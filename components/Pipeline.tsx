@@ -17,13 +17,35 @@ interface ColumnProps {
 const Column: React.FC<ColumnProps> = ({ title, status, color, children, count, onDrop }) => {
     const [isOver, setIsOver] = useState(false);
 
-    const colors = {
-        slate: 'border-slate-400 bg-slate-50 dark:bg-white/5',
-        blue: 'border-blue-50 bg-blue-50 dark:bg-blue-500/5',
-        amber: 'border-amber-50 bg-amber-50 dark:bg-amber-500/5',
-        green: 'border-green-50 bg-green-50 dark:bg-green-500/5',
-        red: 'border-red-50 bg-red-50 dark:bg-red-500/5'
+    const colorStyles = {
+        slate: { 
+            wrapper: 'border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-white/5',
+            headerBorder: 'border-slate-300 dark:border-slate-700',
+            headerBg: 'bg-slate-50/90 dark:bg-slate-900/80'
+        },
+        blue: { 
+            wrapper: 'border-blue-100 bg-blue-50 dark:border-blue-900/30 dark:bg-blue-500/5', 
+            headerBorder: 'border-blue-200 dark:border-blue-800',
+            headerBg: 'bg-blue-50/90 dark:bg-slate-900/80'
+        },
+        amber: { 
+            wrapper: 'border-amber-100 bg-amber-50 dark:border-amber-900/30 dark:bg-amber-500/5', 
+            headerBorder: 'border-amber-200 dark:border-amber-800',
+            headerBg: 'bg-amber-50/90 dark:bg-slate-900/80'
+        },
+        green: { 
+            wrapper: 'border-green-100 bg-green-50 dark:border-green-900/30 dark:bg-green-500/5', 
+            headerBorder: 'border-green-200 dark:border-green-800',
+            headerBg: 'bg-green-50/90 dark:bg-slate-900/80'
+        },
+        red: { 
+            wrapper: 'border-red-100 bg-red-50 dark:border-red-900/30 dark:bg-red-500/5', 
+            headerBorder: 'border-red-200 dark:border-red-800',
+            headerBg: 'bg-red-50/90 dark:bg-slate-900/80'
+        }
     };
+
+    const styles = colorStyles[color];
 
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault();
@@ -44,11 +66,11 @@ const Column: React.FC<ColumnProps> = ({ title, status, color, children, count, 
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            className={`flex flex-col w-80 flex-shrink-0 rounded-xl h-full max-h-full transition-colors ${colors[color].split(' ')[1]} ${isOver ? 'ring-2 ring-primary ring-inset bg-opacity-70' : ''}`}
+            className={`flex flex-col w-80 flex-shrink-0 rounded-xl h-full max-h-full border transition-colors ${styles.wrapper} ${isOver ? 'ring-2 ring-primary ring-inset bg-opacity-70' : ''}`}
         >
-            <div className={`p-4 border-b-2 ${colors[color].split(' ')[0]} sticky top-0 rounded-t-xl z-10 backdrop-blur-sm flex justify-between items-center`}>
-                 <h2 className="text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wide">{title}</h2>
-                 {count !== undefined && <span className="bg-white dark:bg-slate-800 text-xs font-bold px-2 py-0.5 rounded-full text-slate-600 dark:text-slate-300">{count}</span>}
+            <div className={`p-4 border-b-2 ${styles.headerBorder} ${styles.headerBg} sticky top-0 rounded-t-xl z-10 backdrop-blur-sm flex justify-between items-center transition-colors`}>
+                 <h2 className="text-slate-900 dark:text-slate-100 text-sm font-bold uppercase tracking-wide">{title}</h2>
+                 {count !== undefined && <span className="bg-white dark:bg-slate-800 text-xs font-bold px-2 py-0.5 rounded-full text-slate-600 dark:text-slate-300 border border-slate-100 dark:border-slate-700">{count}</span>}
             </div>
             <div className="flex flex-col gap-3 p-3 overflow-y-auto no-scrollbar flex-1">
                 {children}
@@ -66,7 +88,7 @@ const BidCard: React.FC<{ bid: Bid, onClick?: () => void, onDragStart: (e: React
             className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-3 border border-slate-200 dark:border-slate-700 hover:shadow-md hover:border-primary/50 transition-all cursor-grab active:cursor-grabbing group"
         >
             <div className="flex justify-between items-start mb-2">
-                <h3 className="font-bold text-slate-800 dark:text-white text-sm">{bid.companyName}</h3>
+                <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm">{bid.companyName}</h3>
                 {bid.price && bid.price !== '-' && bid.price !== '?' && (
                     <span className="text-xs font-semibold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 px-2 py-0.5 rounded">
                         {bid.price}
@@ -87,7 +109,7 @@ const BidCard: React.FC<{ bid: Bid, onClick?: () => void, onDragStart: (e: React
             {bid.tags && bid.tags.length > 0 && (
                 <div className="flex gap-1 flex-wrap">
                     {bid.tags.map(tag => (
-                        <span key={tag} className="text-[10px] bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded">
+                        <span key={tag} className="text-[10px] bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-600">
                             {tag}
                         </span>
                     ))}
@@ -99,10 +121,10 @@ const BidCard: React.FC<{ bid: Bid, onClick?: () => void, onDragStart: (e: React
 
 const CategoryCard: React.FC<{ category: DemandCategory, onClick: () => void }> = ({ category, onClick }) => {
     const statusColors = {
-        open: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
-        negotiating: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
-        closed: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
-        sod: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+        open: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200',
+        negotiating: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200',
+        closed: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-200',
+        sod: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-200',
     };
 
     const statusLabels = {

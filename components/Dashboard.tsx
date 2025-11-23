@@ -20,10 +20,16 @@ const parseMoney = (valueStr: string): number => {
     return isNaN(val) ? 0 : val;
 };
 
+// Modified to show full precise amount where needed
 const formatMoney = (val: number): string => {
     if (val >= 1000000) {
         return (val / 1000000).toFixed(1) + 'M Kč';
     }
+    return new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(val);
+};
+
+// New helper for exact amounts
+const formatMoneyFull = (val: number): string => {
     return new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(val);
 };
 
@@ -32,11 +38,11 @@ const formatMoney = (val: number): string => {
 interface ProjectFinancials {
     id: string;
     name: string;
-    totalBudget: number;
-    totalContracted: number;
+    totalBudget: number; // Now represents Revenue (Investor SOD + Amendments)
+    totalContracted: number; // Costs (Subcontractors)
     categories: {
         name: string;
-        budget: number;
+        budgetEstimate: number; // The original category estimation
         winningBid: number;
         winningBidder: string | null;
     }[];
@@ -46,22 +52,26 @@ const getProjectData = (projectId: string): ProjectFinancials => {
     const project = PROJECTS_DB[projectId];
     if (!project) return { id: projectId, name: 'Unknown', totalBudget: 0, totalContracted: 0, categories: [] };
 
-    let totalBudget = 0;
+    // 1. Calculate Total Revenue (Budget) from Investor Contract
+    const investorSod = project.investorFinancials?.sodPrice || 0;
+    const investorAmendmentsTotal = project.investorFinancials?.amendments.reduce((sum, a) => sum + (a.price || 0), 0) || 0;
+    const totalBudget = investorSod + investorAmendmentsTotal;
+
     let totalContracted = 0;
     const categories = [];
 
     for (const cat of project.categories) {
-        const budget = parseMoney(cat.budget);
-        totalBudget += budget;
-
+        const budgetEstimate = parseMoney(cat.budget);
+        
         const bids = INITIAL_BIDS[cat.id] || [];
         const winningBid = bids.find(b => b.status === 'sod');
         const winningAmount = winningBid ? parseMoney(winningBid.price || '0') : 0;
+        
         totalContracted += winningAmount;
 
         categories.push({
             name: cat.title,
-            budget: budget,
+            budgetEstimate: budgetEstimate,
             winningBid: winningAmount,
             winningBidder: winningBid ? winningBid.companyName : null
         });
@@ -107,19 +117,19 @@ const ProjectCard: React.FC<{ projectId: string }> = ({ projectId }) => {
                 </div>
                 <div className="text-right">
                     <span className={`text-xs font-bold px-2 py-1 rounded-full ${diff >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                        {diff >= 0 ? 'Úspora' : 'Nad rozpočet'}
+                        {diff >= 0 ? 'Zisk' : 'Ztráta'}
                     </span>
                 </div>
             </div>
             
             <div className="p-6 grid grid-cols-2 gap-4 bg-white dark:bg-slate-900">
                 <div>
-                     <p className="text-xs text-slate-500 uppercase tracking-wider">Budget</p>
-                     <p className="text-lg font-bold text-slate-700 dark:text-slate-200">{formatMoney(data.totalBudget)}</p>
+                     <p className="text-xs text-slate-500 uppercase tracking-wider">Rozpočet (Investor)</p>
+                     <p className="text-lg font-bold text-slate-700 dark:text-slate-200">{formatMoneyFull(data.totalBudget)}</p>
                 </div>
                 <div className="text-right">
-                     <p className="text-xs text-slate-500 uppercase tracking-wider">Zasmluvněno</p>
-                     <p className="text-lg font-bold text-primary">{formatMoney(data.totalContracted)}</p>
+                     <p className="text-xs text-slate-500 uppercase tracking-wider">Zasmluvněno (Náklady)</p>
+                     <p className="text-lg font-bold text-primary">{formatMoneyFull(data.totalContracted)}</p>
                 </div>
                  <div className="col-span-2 mt-2">
                      <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
@@ -131,7 +141,7 @@ const ProjectCard: React.FC<{ projectId: string }> = ({ projectId }) => {
                      <div className="flex justify-between mt-1">
                         <p className="text-xs text-slate-400">{Math.round(percentSpent)}% vyčerpáno</p>
                         <p className={`text-xs font-bold ${diff >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                             {diff >= 0 ? '+' : ''}{formatMoney(diff)}
+                             {diff >= 0 ? '+' : ''}{formatMoneyFull(diff)}
                         </p>
                      </div>
                  </div>
@@ -146,7 +156,9 @@ const ProjectCard: React.FC<{ projectId: string }> = ({ projectId }) => {
                  <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-60 overflow-y-auto custom-scrollbar">
                     {data.categories.map((cat, idx) => {
                         const hasWinner = cat.winningBid > 0;
-                        const catDiff = cat.budget - cat.winningBid;
+                        // Diff vs Estimate (internal metric)
+                        const catDiff = cat.budgetEstimate - cat.winningBid;
+                        
                         return (
                             <div key={idx} className="px-6 py-3 flex justify-between items-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                 <div>
@@ -156,9 +168,9 @@ const ProjectCard: React.FC<{ projectId: string }> = ({ projectId }) => {
                                 <div className="text-right">
                                     {hasWinner ? (
                                         <div className="flex flex-col items-end">
-                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{formatMoney(cat.winningBid)}</span>
+                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{formatMoneyFull(cat.winningBid)}</span>
                                             <span className={`text-[10px] ${catDiff >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                                                {catDiff >= 0 ? 'Ušetřeno' : 'Navíc'} {formatMoney(Math.abs(catDiff))}
+                                                vs Odhad: {catDiff >= 0 ? '-' : '+'}{formatMoney(Math.abs(catDiff))}
                                             </span>
                                         </div>
                                     ) : (
@@ -207,25 +219,25 @@ export const Dashboard: React.FC = () => {
                 color="bg-blue-500" 
             />
             <KPICard 
-                title="Celkový Rozpočet" 
-                value={formatMoney(totalBudget)} 
+                title="Celkový Rozpočet (Investor)" 
+                value={formatMoneyFull(totalBudget)} 
                 icon="account_balance_wallet" 
                 color="bg-slate-500" 
-                subtitle="Součet vysoutěžených cen"
+                subtitle="Součet SOD + Dodatky"
             />
             <KPICard 
-                title="Zasmluvněno (SOD)" 
-                value={formatMoney(totalContracted)} 
+                title="Zasmluvněno (Náklady)" 
+                value={formatMoneyFull(totalContracted)} 
                 icon="handshake" 
                 color="bg-primary" 
-                subtitle="Aktuální smluvní ceny"
+                subtitle="Ceny subdodavatelů"
             />
              <KPICard 
-                title="Bilance Úspor" 
-                value={(totalBalance >= 0 ? '+' : '') + formatMoney(totalBalance)} 
+                title="Bilance Zisku" 
+                value={(totalBalance >= 0 ? '+' : '') + formatMoneyFull(totalBalance)} 
                 icon="savings" 
                 color={totalBalance >= 0 ? "bg-green-500" : "bg-red-500"}
-                subtitle={totalBalance >= 0 ? "Pod rozpočtem" : "Překročení rozpočtu"}
+                subtitle={totalBalance >= 0 ? "Zisk" : "Ztráta"}
             />
         </div>
 
@@ -241,10 +253,10 @@ export const Dashboard: React.FC = () => {
                         <Tooltip 
                             cursor={{ fill: 'transparent' }}
                             contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}
-                            formatter={(value: number) => formatMoney(value)}
+                            formatter={(value: number) => formatMoneyFull(value)}
                         />
-                        <Bar dataKey="budget" name="Rozpočet" fill="#94a3b8" radius={[4, 4, 0, 0]} barSize={30} />
-                        <Bar dataKey="contracted" name="Smluvní cena" fill="#607AFB" radius={[4, 4, 0, 0]} barSize={30} />
+                        <Bar dataKey="budget" name="Rozpočet (Investor)" fill="#94a3b8" radius={[4, 4, 0, 0]} barSize={30} />
+                        <Bar dataKey="contracted" name="Smluvní cena (Náklady)" fill="#607AFB" radius={[4, 4, 0, 0]} barSize={30} />
                     </BarChart>
                 </ResponsiveContainer>
             </div>

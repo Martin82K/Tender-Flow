@@ -41,8 +41,51 @@ export interface ChartData {
   color?: string;
 }
 
+export type ProjectStatus = 'tender' | 'realization' | 'archived';
+
 export interface Project {
   id: string;
   name: string;
   location: string;
+  status: ProjectStatus;
+}
+
+export interface ContractDetails {
+  maturity: number; // days
+  warranty: number; // months
+  retention: string; // e.g. "5+5 %"
+  siteFacilities: number; // %
+  insurance: number; // %
+}
+
+export interface Amendment {
+  id: string;
+  label: string; // e.g. "Dodatek č.1"
+  price: number;
+}
+
+export interface InvestorFinancials {
+  sodPrice: number; // Base contract price
+  amendments: Amendment[];
+}
+
+export interface ProjectDetails {
+  id?: string; // Optional linkage
+  title: string;
+  
+  // Editable General Info
+  investor?: string; // Investor
+  technicalSupervisor?: string; // Technický dozor (TDI)
+  location: string;
+  finishDate: string;
+  siteManager: string; // Hlavní stavbyvedoucí
+  constructionManager?: string; // Stavbyvedoucí
+  constructionTechnician?: string; // Stavební technik
+  
+  // Financials
+  plannedCost?: number; // Interní plánovaný náklad (Cíl)
+
+  categories: DemandCategory[];
+  contract?: ContractDetails;
+  investorFinancials?: InvestorFinancials;
 }
