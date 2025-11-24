@@ -5,8 +5,8 @@ import { Dashboard } from './components/Dashboard';
 import { ProjectLayout } from './components/ProjectLayout';
 import { Contacts } from './components/Contacts';
 import { Settings } from './components/Settings';
-import { View, ProjectTab, Project, ProjectDetails, StatusConfig, DemandCategory } from './types';
-import { MOCK_PROJECTS, PROJECTS_DB } from './data';
+import { View, ProjectTab, Project, ProjectDetails, StatusConfig, DemandCategory, Subcontractor } from './types';
+import { MOCK_PROJECTS, PROJECTS_DB, ALL_CONTACTS } from './data';
 
 const DEFAULT_STATUSES: StatusConfig[] = [
   { id: 'available', label: 'K dispozici', color: 'green' },
@@ -28,6 +28,9 @@ const App: React.FC = () => {
 
   // Contact Statuses State
   const [contactStatuses, setContactStatuses] = useState<StatusConfig[]>(DEFAULT_STATUSES);
+
+  // Contacts State (Lifted up from Contacts.tsx)
+  const [contacts, setContacts] = useState<Subcontractor[]>(ALL_CONTACTS);
 
   // Dark Mode Management
   const [darkMode, setDarkMode] = useState(() => {
@@ -88,7 +91,6 @@ const App: React.FC = () => {
       if (selectedProjectId === id) {
           setCurrentView('dashboard');
       }
-      // Optional: Clean up details from allProjectDetails
   };
 
   const handleArchiveProject = (id: string) => {
@@ -112,6 +114,11 @@ const App: React.FC = () => {
     }));
   };
 
+  const handleImportContacts = (newContacts: Subcontractor[]) => {
+      setContacts(prev => [...prev, ...newContacts]);
+      alert(`Úspěšně importováno ${newContacts.length} kontaktů.`);
+  };
+
   const renderView = () => {
     switch (currentView) {
       case 'dashboard':
@@ -128,7 +135,13 @@ const App: React.FC = () => {
           />
         );
       case 'contacts':
-        return <Contacts statuses={contactStatuses} />;
+        return (
+            <Contacts 
+                contacts={contacts}
+                onContactsChange={setContacts}
+                statuses={contactStatuses} 
+            />
+        );
       case 'settings':
         return (
             <Settings 
@@ -140,6 +153,7 @@ const App: React.FC = () => {
                 onArchiveProject={handleArchiveProject}
                 contactStatuses={contactStatuses}
                 onUpdateStatuses={setContactStatuses}
+                onImportContacts={handleImportContacts}
             />
         );
       default:

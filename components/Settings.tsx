@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Header } from './Header';
-import { Project, ProjectStatus, StatusConfig } from '../types';
+import { Project, ProjectStatus, StatusConfig, Subcontractor } from '../types';
 
 interface SettingsProps {
     darkMode: boolean;
@@ -12,6 +12,7 @@ interface SettingsProps {
     onArchiveProject: (id: string) => void;
     contactStatuses: StatusConfig[];
     onUpdateStatuses: (statuses: StatusConfig[]) => void;
+    onImportContacts: (contacts: Subcontractor[]) => void;
 }
 
 export const Settings: React.FC<SettingsProps> = ({ 
@@ -22,7 +23,8 @@ export const Settings: React.FC<SettingsProps> = ({
     onDeleteProject,
     onArchiveProject,
     contactStatuses,
-    onUpdateStatuses
+    onUpdateStatuses,
+    onImportContacts
 }) => {
     // Project Form State
     const [newProjectName, setNewProjectName] = useState('');
@@ -32,6 +34,10 @@ export const Settings: React.FC<SettingsProps> = ({
     // Status Form State
     const [newStatusLabel, setNewStatusLabel] = useState('');
     const [newStatusColor, setNewStatusColor] = useState<StatusConfig['color']>('blue');
+
+    // Import State
+    const [importedContacts, setImportedContacts] = useState<Subcontractor[]>([]);
+    const [fileName, setFileName] = useState('');
 
     const handleCreateProject = (e: React.FormEvent) => {
         e.preventDefault();
@@ -53,7 +59,6 @@ export const Settings: React.FC<SettingsProps> = ({
         e.preventDefault();
         if (!newStatusLabel) return;
         
-        // Generate a simple slug-like ID from label or timestamp
         const id = newStatusLabel.toLowerCase().replace(/[^a-z0-9]/g, '') + '_' + Date.now().toString().slice(-4);
         
         const newStatus: StatusConfig = {
@@ -88,6 +93,60 @@ export const Settings: React.FC<SettingsProps> = ({
         { value: 'purple', class: 'bg-purple-500' },
         { value: 'slate', class: 'bg-slate-500' },
     ];
+
+    // Import Logic
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setFileName(file.name);
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const text = event.target?.result as string;
+                parseCSV(text);
+            };
+            reader.readAsText(file);
+        }
+    };
+
+    const parseCSV = (csvText: string) => {
+        // Simple CSV parser
+        // Assumes format: Firma, Jméno, Specializace, Telefon, Email, IČO, Region
+        const lines = csvText.split('\n').map(l => l.trim()).filter(l => l);
+        const parsed: Subcontractor[] = [];
+
+        // Skip header if it looks like one
+        const startIndex = lines[0].toLowerCase().includes('firma') ? 1 : 0;
+
+        for (let i = startIndex; i < lines.length; i++) {
+            // Handle basic comma or semicolon separation
+            const separator = lines[i].includes(';') ? ';' : ',';
+            const cols = lines[i].split(separator).map(c => c.trim());
+            
+            if (cols.length >= 3) {
+                parsed.push({
+                    id: `imp_${Date.now()}_${i}`,
+                    company: cols[0] || 'Neznámá firma',
+                    name: cols[1] || '-',
+                    specialization: cols[2] || 'Ostatní',
+                    phone: cols[3] || '-',
+                    email: cols[4] || '-',
+                    ico: cols[5] || '-',
+                    region: cols[6] || '-',
+                    status: 'available' // Default status
+                });
+            }
+        }
+        setImportedContacts(parsed);
+    };
+
+    const handleConfirmImport = () => {
+        if (importedContacts.length > 0) {
+            onImportContacts(importedContacts);
+            setImportedContacts([]);
+            setFileName('');
+        }
+    };
 
     return (
         <div className="flex flex-col h-full bg-background-light dark:bg-background-dark overflow-y-auto">
@@ -190,7 +249,44 @@ export const Settings: React.FC<SettingsProps> = ({
                     </div>
                 </section>
 
-                {/* 3. Project Management Section */}
+                {/* 3. Import Data Section */}
+                <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+                        <span className="material-symbols-outlined">upload_file</span>
+                        Import Kontaktů
+                    </h2>
+                    
+                    <div className="flex flex-col gap-4">
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                            Nahrajte CSV soubor pro hromadný import kontaktů. <br/>
+                            <span className="text-xs italic">Formát: Firma, Jméno, Specializace, Telefon, Email, IČO, Region</span>
+                        </p>
+                        
+                        <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+                            <label className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700">
+                                <span className="material-symbols-outlined">folder_open</span>
+                                {fileName || 'Vybrat soubor CSV'}
+                                <input type="file" accept=".csv" onChange={handleFileChange} className="hidden" />
+                            </label>
+                            
+                            {importedContacts.length > 0 && (
+                                <div className="flex items-center gap-4 flex-1">
+                                    <span className="text-sm font-medium text-green-600">
+                                        Nalezeno {importedContacts.length} kontaktů
+                                    </span>
+                                    <button 
+                                        onClick={handleConfirmImport}
+                                        className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm"
+                                    >
+                                        Importovat do databáze
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </section>
+
+                {/* 4. Project Management Section */}
                 <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
                         <span className="material-symbols-outlined">domain_add</span>

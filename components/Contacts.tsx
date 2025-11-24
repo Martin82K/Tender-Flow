@@ -2,17 +2,15 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Header } from './Header';
 import { Subcontractor, StatusConfig } from '../types';
-import { ALL_CONTACTS } from '../data';
 import { getAiSuggestion, findCompanyRegions } from '../services/geminiService';
 
 interface ContactsProps {
     statuses: StatusConfig[];
+    contacts: Subcontractor[];
+    onContactsChange: (contacts: Subcontractor[]) => void;
 }
 
-export const Contacts: React.FC<ContactsProps> = ({ statuses }) => {
-  // Data State
-  const [contacts, setContacts] = useState<Subcontractor[]>(ALL_CONTACTS);
-  
+export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContactsChange }) => {
   // Selection State
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -145,13 +143,14 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses }) => {
       
       const regionsMap = await findCompanyRegions(queryList);
       
-      // Update state
-      setContacts(prev => prev.map(c => {
+      // Update props via handler
+      const updatedContacts = contacts.map(c => {
           if (regionsMap[c.id]) {
               return { ...c, region: regionsMap[c.id] };
           }
           return c;
-      }));
+      });
+      onContactsChange(updatedContacts);
 
       setIsRegionLoading(false);
       setSelectedIds(new Set()); // Clear selection
@@ -187,7 +186,8 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses }) => {
 
       if (editingContact) {
           // Edit existing
-          setContacts(prev => prev.map(c => c.id === editingContact.id ? { ...c, ...formData } as Subcontractor : c));
+          const updatedContacts = contacts.map(c => c.id === editingContact.id ? { ...c, ...formData } as Subcontractor : c);
+          onContactsChange(updatedContacts);
       } else {
           // Add new
           const newContact: Subcontractor = {
@@ -201,7 +201,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses }) => {
               region: formData.region || '-',
               status: formData.status || 'available'
           };
-          setContacts(prev => [newContact, ...prev]);
+          onContactsChange([newContact, ...contacts]);
       }
       setIsContactModalOpen(false);
   };
@@ -209,7 +209,8 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses }) => {
   const handleDeleteContact = () => {
       if (editingContact) {
           if (confirm('Opravdu chcete smazat tento kontakt?')) {
-              setContacts(prev => prev.filter(c => c.id !== editingContact.id));
+              const updatedContacts = contacts.filter(c => c.id !== editingContact.id);
+              onContactsChange(updatedContacts);
               setIsContactModalOpen(false);
           }
       }
