@@ -33,11 +33,11 @@ export const PROJECTS_DB: Record<string, ProjectDetails> = {
         ]
     },
     categories: [
-      { id: '1', title: 'Vnitřní omítky', budget: '~1.5M Kč', status: 'sod', subcontractorCount: 5, description: 'Kompletní vnitřní omítky pro objekt A a B.' },
-      { id: '2', title: 'Elektroinstalace', budget: '~2.1M Kč', status: 'open', subcontractorCount: 8, description: 'Silnoproud a slaboproud, včetně rozvaděčů.' },
-      { id: '3', title: 'Fasády', budget: '~3.5M Kč', status: 'sod', subcontractorCount: 3, description: 'Zateplovací systém a finální omítka.' },
-      { id: '4', title: 'Sádrokartony', budget: '~950 000 Kč', status: 'open', subcontractorCount: 4, description: 'Příčky a podhledy ve 2. a 3. NP.' },
-      { id: '5', title: 'Zdravotechnika', budget: '~1.2M Kč', status: 'open', subcontractorCount: 6, description: 'Voda, odpady, kanalizace.' },
+      { id: '1', title: 'Vnitřní omítky', budget: '~1.5M Kč', sodBudget: 1650000, planBudget: 1500000, status: 'sod', subcontractorCount: 5, description: 'Kompletní vnitřní omítky pro objekt A a B.' },
+      { id: '2', title: 'Elektroinstalace', budget: '~2.1M Kč', sodBudget: 2300000, planBudget: 2100000, status: 'open', subcontractorCount: 8, description: 'Silnoproud a slaboproud, včetně rozvaděčů.' },
+      { id: '3', title: 'Fasády', budget: '~3.5M Kč', sodBudget: 3800000, planBudget: 3500000, status: 'sod', subcontractorCount: 3, description: 'Zateplovací systém a finální omítka.' },
+      { id: '4', title: 'Sádrokartony', budget: '~950 000 Kč', sodBudget: 1100000, planBudget: 950000, status: 'open', subcontractorCount: 4, description: 'Příčky a podhledy ve 2. a 3. NP.' },
+      { id: '5', title: 'Zdravotechnika', budget: '~1.2M Kč', sodBudget: 1400000, planBudget: 1200000, status: 'open', subcontractorCount: 6, description: 'Voda, odpady, kanalizace.' },
     ]
   },
   'p2': {
@@ -62,8 +62,8 @@ export const PROJECTS_DB: Record<string, ProjectDetails> = {
         amendments: []
     },
     categories: [
-      { id: '6', title: 'Vzduchotechnika', budget: '~5.0M Kč', status: 'open', subcontractorCount: 2, description: 'HVAC systém pro 4 patra kanceláří.' },
-      { id: '7', title: 'Skleněné příčky', budget: '~2.8M Kč', status: 'sod', subcontractorCount: 3, description: 'Dělící stěny zasedacích místností.' },
+      { id: '6', title: 'Vzduchotechnika', budget: '~5.0M Kč', sodBudget: 5500000, planBudget: 5000000, status: 'open', subcontractorCount: 2, description: 'HVAC systém pro 4 patra kanceláří.' },
+      { id: '7', title: 'Skleněné příčky', budget: '~2.8M Kč', sodBudget: 3200000, planBudget: 2800000, status: 'sod', subcontractorCount: 3, description: 'Dělící stěny zasedacích místností.' },
     ]
   },
   'p3': {
@@ -90,7 +90,7 @@ export const PROJECTS_DB: Record<string, ProjectDetails> = {
         ]
     },
     categories: [
-        { id: '8', title: 'Průmyslové podlahy', budget: '~12.5M Kč', status: 'open', subcontractorCount: 4, description: 'Litý beton pro halu A.' },
+        { id: '8', title: 'Průmyslové podlahy', budget: '~12.5M Kč', sodBudget: 13000000, planBudget: 12500000, status: 'open', subcontractorCount: 4, description: 'Litý beton pro halu A.' },
     ]
   }
 };

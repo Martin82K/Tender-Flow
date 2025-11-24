@@ -8,6 +8,7 @@ import { ProjectTab, ProjectDetails, ContractDetails, InvestorFinancials, Demand
 // --- Helper Functions ---
 const parseMoney = (valueStr: string): number => {
     if (!valueStr || valueStr === '-' || valueStr === '?') return 0;
+    // Handle typical formats
     const cleanStr = valueStr.replace(/[^0-9,.]/g, '').replace(',', '.');
     let val = parseFloat(cleanStr);
     if (valueStr.includes('M')) val *= 1000000;
@@ -25,6 +26,113 @@ const formatMoneyFull = (val: number): string => {
 };
 
 // --- Sub-Components ---
+
+interface FinancialAnalysisTableProps {
+    categories: DemandCategory[];
+}
+
+const FinancialAnalysisTable: React.FC<FinancialAnalysisTableProps> = ({ categories }) => {
+    // Pre-calculate totals
+    let totalSod = 0;
+    let totalPlan = 0;
+    let totalSub = 0;
+    let totalDiffSod = 0;
+    let totalDiffPlan = 0;
+
+    const rows = categories.map(cat => {
+        const bids = INITIAL_BIDS[cat.id] || [];
+        const winningBid = bids.find(b => b.status === 'sod');
+        const subPrice = winningBid ? parseMoney(winningBid.price || '0') : 0;
+        
+        const diffSod = cat.sodBudget - subPrice;
+        const diffPlan = cat.planBudget - subPrice;
+
+        // Add to totals
+        totalSod += cat.sodBudget;
+        totalPlan += cat.planBudget;
+        if (winningBid) {
+            totalSub += subPrice;
+            totalDiffSod += diffSod;
+            totalDiffPlan += diffPlan;
+        }
+
+        return {
+            ...cat,
+            winningBidder: winningBid?.companyName || '-',
+            subPrice,
+            diffSod,
+            diffPlan,
+            hasWinner: !!winningBid
+        };
+    });
+
+    return (
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mt-6 mb-10">
+            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+                <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary">table_chart</span>
+                    Detailní finanční přehled
+                </h3>
+            </div>
+            <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left text-slate-600 dark:text-slate-400">
+                    <thead className="text-xs text-slate-700 dark:text-slate-300 uppercase bg-slate-100 dark:bg-slate-800 border-b dark:border-slate-700">
+                        <tr>
+                            <th className="px-6 py-3 font-bold">Poptávka / Sekce</th>
+                            <th className="px-6 py-3 font-bold">Subdodavatel</th>
+                            <th className="px-6 py-3 font-bold text-right bg-blue-50/50 dark:bg-blue-900/10">Cena SOD</th>
+                            <th className="px-6 py-3 font-bold text-right bg-blue-50/30 dark:bg-blue-900/5">Cena Plán</th>
+                            <th className="px-6 py-3 font-bold text-right bg-purple-50/30 dark:bg-purple-900/5">Cena SUB</th>
+                            <th className="px-6 py-3 font-bold text-right">Bilance (SOD)</th>
+                            <th className="px-6 py-3 font-bold text-right">Bilance (Plán)</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {rows.map((row) => (
+                            <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                <td className="px-6 py-3 font-medium text-slate-900 dark:text-white whitespace-nowrap border-r border-slate-100 dark:border-slate-800">
+                                    {row.title}
+                                </td>
+                                <td className="px-6 py-3 border-r border-slate-100 dark:border-slate-800">
+                                    {row.winningBidder}
+                                </td>
+                                <td className="px-6 py-3 text-right font-mono bg-blue-50/50 dark:bg-blue-900/10">
+                                    {formatMoneyFull(row.sodBudget)}
+                                </td>
+                                <td className="px-6 py-3 text-right font-mono text-slate-500 dark:text-slate-400 bg-blue-50/30 dark:bg-blue-900/5">
+                                    {formatMoneyFull(row.planBudget)}
+                                </td>
+                                <td className="px-6 py-3 text-right font-mono font-bold text-slate-800 dark:text-slate-200 bg-purple-50/30 dark:bg-purple-900/5 border-r border-slate-100 dark:border-slate-800">
+                                    {row.hasWinner ? formatMoneyFull(row.subPrice) : '-'}
+                                </td>
+                                <td className={`px-6 py-3 text-right font-mono font-bold ${!row.hasWinner ? 'text-slate-300' : row.diffSod >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                                    {row.hasWinner ? formatMoneyFull(row.diffSod) : '-'}
+                                </td>
+                                <td className={`px-6 py-3 text-right font-mono font-bold ${!row.hasWinner ? 'text-slate-300' : row.diffPlan >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                                    {row.hasWinner ? formatMoneyFull(row.diffPlan) : '-'}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                    <tfoot className="bg-slate-100 dark:bg-slate-800 border-t-2 border-slate-200 dark:border-slate-700 font-bold text-slate-900 dark:text-white">
+                        <tr>
+                            <td className="px-6 py-4 text-right border-r border-slate-200 dark:border-slate-700" colSpan={2}>CELKEM</td>
+                            <td className="px-6 py-4 text-right bg-blue-100/50 dark:bg-blue-900/20">{formatMoneyFull(totalSod)}</td>
+                            <td className="px-6 py-4 text-right bg-blue-50/50 dark:bg-blue-900/10">{formatMoneyFull(totalPlan)}</td>
+                            <td className="px-6 py-4 text-right bg-purple-50/50 dark:bg-purple-900/10 border-r border-slate-200 dark:border-slate-700">{formatMoneyFull(totalSub)}</td>
+                            <td className={`px-6 py-4 text-right ${totalDiffSod >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                                {formatMoneyFull(totalDiffSod)}
+                            </td>
+                            <td className={`px-6 py-4 text-right ${totalDiffPlan >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                                {formatMoneyFull(totalDiffPlan)}
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    );
+};
 
 interface ProjectOverviewProps {
     project: ProjectDetails;
@@ -172,7 +280,7 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
     };
 
     return (
-        <div className="p-6 lg:p-10 flex flex-col gap-6 overflow-y-auto">
+        <div className="p-6 lg:p-10 flex flex-col gap-6 overflow-y-auto h-full">
             {/* Top Stats - Updated to include Planned Cost */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                  {/* Card 1: Revenue */}
@@ -463,7 +571,7 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
                         )}
                     </div>
 
-                    {/* Internal Budget Card (NEW) */}
+                    {/* Internal Budget Card */}
                     <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
@@ -625,92 +733,11 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
                             )}
                         </div>
                     )}
-                    
-                    {/* Recent Activity (Mock) */}
-                    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 h-fit">
-                        <h3 className="font-bold text-lg mb-4 text-slate-900 dark:text-white">Poslední aktivita</h3>
-                        <div className="flex flex-col gap-4">
-                            {[1,2,3].map(i => (
-                                <div key={i} className="flex gap-4 pb-4 border-b border-slate-100 dark:border-slate-800 last:border-0 last:pb-0">
-                                    <div className="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-                                        <span className="material-symbols-outlined text-[20px]">history</span>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-medium text-slate-900 dark:text-white">Změna statusu u poptávky "Elektroinstalace"</p>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">Jan Novák • Před 2 hodinami</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
                 </div>
             </div>
-        </div>
-    );
-};
 
-const ProjectDocuments: React.FC = () => {
-    const folders = [
-        { name: 'Stavební povolení', items: 3 },
-        { name: 'Prováděcí dokumentace', items: 12 },
-        { name: 'Smlouvy', items: 5 },
-        { name: 'Faktury', items: 24 },
-        { name: 'Fotodokumentace', items: 156 },
-    ];
-
-    return (
-        <div className="p-6 lg:p-10 overflow-y-auto">
-             <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-4">
-                {folders.map((folder, idx) => (
-                    <div key={idx} className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-primary/50 hover:shadow-md transition-all cursor-pointer group">
-                        <span className="material-symbols-outlined text-[40px] text-amber-400 group-hover:scale-110 transition-transform">folder</span>
-                        <h3 className="font-bold text-slate-900 dark:text-white mt-2">{folder.name}</h3>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">{folder.items} souborů</p>
-                    </div>
-                ))}
-                 <button className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-4 flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary hover:border-primary hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all">
-                    <span className="material-symbols-outlined text-[30px] mb-2">cloud_upload</span>
-                    <span className="text-sm font-medium">Nahrát soubor</span>
-                </button>
-             </div>
-             
-             <h3 className="text-lg font-bold text-slate-900 dark:text-white mt-8 mb-4">Nedávné soubory</h3>
-             <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-                 <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400">
-                     <thead className="bg-slate-50 dark:bg-slate-800/50 text-xs uppercase font-semibold text-slate-500 dark:text-slate-400">
-                         <tr>
-                             <th className="px-6 py-3">Název</th>
-                             <th className="px-6 py-3">Velikost</th>
-                             <th className="px-6 py-3">Nahrál</th>
-                             <th className="px-6 py-3 text-right">Akce</th>
-                         </tr>
-                     </thead>
-                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                         <tr>
-                             <td className="px-6 py-4 flex items-center gap-3 font-medium text-slate-900 dark:text-white">
-                                 <span className="material-symbols-outlined text-red-500">picture_as_pdf</span>
-                                 Půdorys_1NP_final.pdf
-                             </td>
-                             <td className="px-6 py-4">4.2 MB</td>
-                             <td className="px-6 py-4">Jan Novák</td>
-                             <td className="px-6 py-4 text-right">
-                                 <button className="hover:text-primary"><span className="material-symbols-outlined">download</span></button>
-                             </td>
-                         </tr>
-                         <tr>
-                             <td className="px-6 py-4 flex items-center gap-3 font-medium text-slate-900 dark:text-white">
-                                 <span className="material-symbols-outlined text-blue-500">description</span>
-                                 Smlouva_Elektro.docx
-                             </td>
-                             <td className="px-6 py-4">1.8 MB</td>
-                             <td className="px-6 py-4">Petr Dvořák</td>
-                             <td className="px-6 py-4 text-right">
-                                 <button className="hover:text-primary"><span className="material-symbols-outlined">download</span></button>
-                             </td>
-                         </tr>
-                     </tbody>
-                 </table>
-             </div>
+            {/* Detailed Financial Analysis Table */}
+            <FinancialAnalysisTable categories={project.categories} />
         </div>
     );
 };
@@ -747,19 +774,12 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, project
                     >
                         Pipelines
                     </button>
-                    <button 
-                        onClick={() => onTabChange('documents')}
-                        className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === 'documents' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
-                    >
-                        Dokumentace
-                    </button>
                 </div>
             </Header>
 
             <div className="flex-1 overflow-hidden flex flex-col">
                 {activeTab === 'overview' && <ProjectOverview project={project} onUpdate={onUpdateDetails} />}
                 {activeTab === 'pipeline' && <Pipeline projectId={projectId} onAddCategory={onAddCategory} />}
-                {activeTab === 'documents' && <ProjectDocuments />}
             </div>
         </div>
     );

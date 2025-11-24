@@ -137,6 +137,12 @@ const CategoryCard: React.FC<{ category: DemandCategory, onClick: () => void }> 
 
     const status = category.status === 'sod' ? 'sod' : category.status === 'closed' ? 'closed' : category.status === 'negotiating' ? 'negotiating' : 'open';
 
+    // Formatting Helper
+    const formatMoney = (val: number) => {
+        if(!val) return '-';
+        return new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(val);
+    }
+
     return (
         <button onClick={onClick} className="flex flex-col text-left bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 hover:shadow-lg hover:border-primary/50 transition-all group relative overflow-hidden h-full">
             <div className="absolute top-0 left-0 w-1 h-full bg-primary opacity-0 group-hover:opacity-100 transition-opacity"></div>
@@ -155,8 +161,8 @@ const CategoryCard: React.FC<{ category: DemandCategory, onClick: () => void }> 
 
             <div className="flex items-center justify-between w-full mt-auto pt-4 border-t border-slate-100 dark:border-slate-800">
                 <div className="flex flex-col">
-                     <span className="text-xs text-slate-400">Budget</span>
-                     <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{category.budget}</span>
+                     <span className="text-xs text-slate-400">Cena SOD</span>
+                     <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{formatMoney(category.sodBudget)}</span>
                 </div>
                  <div className="flex flex-col items-end">
                      <span className="text-xs text-slate-400">Dodavatelé</span>
@@ -184,7 +190,8 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, onAddCategory }) 
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [newCategoryForm, setNewCategoryForm] = useState({
         title: '',
-        budget: '',
+        sodBudget: '',
+        planBudget: '',
         description: ''
     });
 
@@ -226,17 +233,21 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, onAddCategory }) 
         e.preventDefault();
         if(!onAddCategory) return;
         
+        const sod = parseFloat(newCategoryForm.sodBudget) || 0;
+        
         const newCat: DemandCategory = {
             id: `cat_${Date.now()}`,
             title: newCategoryForm.title,
-            budget: newCategoryForm.budget || 'Nezadáno',
+            budget: '~' + new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 }).format(sod) + ' Kč', // Legacy
+            sodBudget: sod,
+            planBudget: parseFloat(newCategoryForm.planBudget) || 0,
             description: newCategoryForm.description,
             status: 'open',
             subcontractorCount: 0
         };
 
         onAddCategory(newCat);
-        setNewCategoryForm({ title: '', budget: '', description: '' });
+        setNewCategoryForm({ title: '', sodBudget: '', planBudget: '', description: '' });
         setIsAddModalOpen(false);
     };
 
@@ -400,15 +411,27 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, onAddCategory }) 
                                         placeholder="Např. Klempířské konstrukce"
                                     />
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Odhadovaný rozpočet</label>
-                                    <input 
-                                        type="text" 
-                                        value={newCategoryForm.budget} 
-                                        onChange={e => setNewCategoryForm({...newCategoryForm, budget: e.target.value})}
-                                        className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
-                                        placeholder="Např. ~500 000 Kč"
-                                    />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Cena SOD (Investor)</label>
+                                        <input 
+                                            type="number" 
+                                            value={newCategoryForm.sodBudget} 
+                                            onChange={e => setNewCategoryForm({...newCategoryForm, sodBudget: e.target.value})}
+                                            className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
+                                            placeholder="500000"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Interní Plán</label>
+                                        <input 
+                                            type="number" 
+                                            value={newCategoryForm.planBudget} 
+                                            onChange={e => setNewCategoryForm({...newCategoryForm, planBudget: e.target.value})}
+                                            className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
+                                            placeholder="450000"
+                                        />
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Popis prací</label>

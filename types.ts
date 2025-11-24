@@ -1,7 +1,7 @@
 
 export type View = 'dashboard' | 'project' | 'contacts' | 'settings';
 
-export type ProjectTab = 'overview' | 'pipeline' | 'documents';
+export type ProjectTab = 'overview' | 'pipeline';
 
 export interface StatusConfig {
   id: string;
@@ -24,7 +24,9 @@ export interface Subcontractor {
 export interface DemandCategory {
   id: string;
   title: string;
-  budget: string;
+  budget: string; // Display string (legacy)
+  sodBudget: number; // Price in contract with investor (Revenue)
+  planBudget: number; // Internal target price (Target Cost)
   status: 'open' | 'negotiating' | 'closed' | 'sod';
   subcontractorCount: number;
   description: string;
