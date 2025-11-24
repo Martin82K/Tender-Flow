@@ -6,6 +6,10 @@ import { Project, ProjectStatus, StatusConfig, Subcontractor } from '../types';
 interface SettingsProps {
     darkMode: boolean;
     onToggleDarkMode: () => void;
+    primaryColor: string;
+    onSetPrimaryColor: (color: string) => void;
+    backgroundColor: string;
+    onSetBackgroundColor: (color: string) => void;
     projects: Project[];
     onAddProject: (project: Project) => void;
     onDeleteProject: (id: string) => void;
@@ -17,7 +21,11 @@ interface SettingsProps {
 
 export const Settings: React.FC<SettingsProps> = ({ 
     darkMode, 
-    onToggleDarkMode, 
+    onToggleDarkMode,
+    primaryColor,
+    onSetPrimaryColor,
+    backgroundColor,
+    onSetBackgroundColor,
     projects, 
     onAddProject, 
     onDeleteProject,
@@ -94,6 +102,24 @@ export const Settings: React.FC<SettingsProps> = ({
         { value: 'slate', class: 'bg-slate-500' },
     ];
 
+    const themeColors = [
+        '#607AFB', // Default Blue
+        '#3B82F6', // Vivid Blue
+        '#10B981', // Emerald
+        '#F59E0B', // Amber
+        '#EF4444', // Red
+        '#8B5CF6', // Violet
+        '#EC4899', // Pink
+        '#6366F1', // Indigo
+    ];
+
+    const backgroundColors = [
+        { label: 'Výchozí', color: '#f5f6f8' },
+        { label: 'Čistá bílá', color: '#ffffff' },
+        { label: 'Teplá', color: '#fbf7f1' },
+        { label: 'Studená', color: '#f0f9ff' },
+    ];
+
     // Import Logic
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -160,17 +186,85 @@ export const Settings: React.FC<SettingsProps> = ({
                         <span className="material-symbols-outlined">palette</span>
                         Vzhled aplikace
                     </h2>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm font-medium text-slate-800 dark:text-white">Tmavý režim</p>
-                            <p className="text-xs text-slate-500">Přepnout mezi světlým a tmavým motivem.</p>
+                    
+                    <div className="space-y-6">
+                        {/* Dark Mode Toggle */}
+                        <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+                            <div>
+                                <p className="text-sm font-medium text-slate-800 dark:text-white">Tmavý režim</p>
+                                <p className="text-xs text-slate-500">Přepnout mezi světlým a tmavým motivem.</p>
+                            </div>
+                            <button 
+                                onClick={onToggleDarkMode}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${darkMode ? 'bg-primary' : 'bg-slate-300'}`}
+                            >
+                                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${darkMode ? 'translate-x-6' : 'translate-x-1'}`} />
+                            </button>
                         </div>
-                        <button 
-                            onClick={onToggleDarkMode}
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${darkMode ? 'bg-primary' : 'bg-slate-300'}`}
-                        >
-                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${darkMode ? 'translate-x-6' : 'translate-x-1'}`} />
-                        </button>
+
+                        {/* Color Theme */}
+                        <div className="flex flex-col gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div>
+                                    <p className="text-sm font-medium text-slate-800 dark:text-white">Barevné schéma</p>
+                                    <p className="text-xs text-slate-500">Vyberte hlavní barvu aplikace (Brand Color).</p>
+                                </div>
+                                <div className="flex flex-wrap gap-3 items-center">
+                                    {themeColors.map(color => (
+                                        <button
+                                            key={color}
+                                            onClick={() => onSetPrimaryColor(color)}
+                                            className={`size-8 rounded-full transition-all shadow-sm ${primaryColor === color ? 'ring-2 ring-offset-2 ring-slate-400 dark:ring-slate-500 scale-110' : 'hover:scale-105'}`}
+                                            style={{ backgroundColor: color }}
+                                            title={color}
+                                        />
+                                    ))}
+                                    <div className="relative flex items-center">
+                                        <label htmlFor="custom-color" className="cursor-pointer size-8 rounded-full bg-gradient-to-tr from-white to-slate-200 border border-slate-300 flex items-center justify-center hover:scale-105 transition-transform" title="Vlastní barva">
+                                            <span className="material-symbols-outlined text-[16px] text-slate-600">colorize</span>
+                                        </label>
+                                        <input 
+                                            id="custom-color"
+                                            type="color" 
+                                            value={primaryColor}
+                                            onChange={(e) => onSetPrimaryColor(e.target.value)}
+                                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Background Color */}
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div>
+                                <p className="text-sm font-medium text-slate-800 dark:text-white">Barva pozadí</p>
+                                <p className="text-xs text-slate-500">Vyberte barvu podkladu aplikace (pouze pro světlý režim).</p>
+                            </div>
+                            <div className="flex flex-wrap gap-3 items-center">
+                                {backgroundColors.map(bg => (
+                                    <button
+                                        key={bg.color}
+                                        onClick={() => onSetBackgroundColor(bg.color)}
+                                        className={`size-8 rounded-full transition-all shadow-sm border border-slate-200 ${backgroundColor === bg.color ? 'ring-2 ring-offset-2 ring-slate-400 dark:ring-slate-500 scale-110' : 'hover:scale-105'}`}
+                                        style={{ backgroundColor: bg.color }}
+                                        title={bg.label}
+                                    />
+                                ))}
+                                <div className="relative flex items-center">
+                                    <label htmlFor="custom-bg" className="cursor-pointer size-8 rounded-full bg-white border border-slate-300 flex items-center justify-center hover:scale-105 transition-transform" title="Vlastní pozadí">
+                                        <span className="material-symbols-outlined text-[16px] text-slate-600">format_paint</span>
+                                    </label>
+                                    <input 
+                                        id="custom-bg"
+                                        type="color" 
+                                        value={backgroundColor}
+                                        onChange={(e) => onSetBackgroundColor(e.target.value)}
+                                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                                    />
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </section>
 

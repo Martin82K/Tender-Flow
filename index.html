@@ -21,8 +21,9 @@
         theme: {
           extend: {
             colors: {
-              primary: "#607AFB",
-              "background-light": "#f5f6f8",
+              // Use CSS variable with fallback. Format must be r g b for opacity to work
+              primary: "rgb(var(--color-primary) / <alpha-value>)", 
+              "background-light": "var(--color-background)",
               "background-dark": "#0f1323",
             },
             fontFamily: {
@@ -33,6 +34,12 @@
       };
     </script>
     <style>
+      :root {
+        /* Default Primary Color: #607AFB -> 96 122 251 */
+        --color-primary: 96 122 251;
+        /* Default Background Color: #f5f6f8 */
+        --color-background: #f5f6f8;
+      }
       body {
         font-family: 'Inter', sans-serif;
       }

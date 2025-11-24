@@ -14,6 +14,14 @@ const DEFAULT_STATUSES: StatusConfig[] = [
   { id: 'waiting', label: 'Čeká', color: 'yellow' }
 ];
 
+// Helper to convert Hex to RGB for Tailwind
+const hexToRgb = (hex: string) => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result
+    ? `${parseInt(result[1], 16)} ${parseInt(result[2], 16)} ${parseInt(result[3], 16)}`
+    : '96 122 251'; // Default Fallback
+};
+
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [projects, setProjects] = useState<Project[]>(MOCK_PROJECTS);
@@ -41,6 +49,10 @@ const App: React.FC = () => {
     return false;
   });
 
+  // Theme Color Management
+  const [primaryColor, setPrimaryColor] = useState('#607AFB');
+  const [backgroundColor, setBackgroundColor] = useState('#f5f6f8');
+
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
@@ -48,6 +60,16 @@ const App: React.FC = () => {
       document.documentElement.classList.remove('dark');
     }
   }, [darkMode]);
+
+  // Update CSS Variable when color changes
+  useEffect(() => {
+    document.documentElement.style.setProperty('--color-primary', hexToRgb(primaryColor));
+  }, [primaryColor]);
+
+  // Update Background CSS Variable
+  useEffect(() => {
+    document.documentElement.style.setProperty('--color-background', backgroundColor);
+  }, [backgroundColor]);
 
   const handleProjectSelect = (id: string) => {
     setSelectedProjectId(id);
@@ -147,6 +169,10 @@ const App: React.FC = () => {
             <Settings 
                 darkMode={darkMode} 
                 onToggleDarkMode={() => setDarkMode(!darkMode)}
+                primaryColor={primaryColor}
+                onSetPrimaryColor={setPrimaryColor}
+                backgroundColor={backgroundColor}
+                onSetBackgroundColor={setBackgroundColor}
                 projects={projects}
                 onAddProject={handleAddProject}
                 onDeleteProject={handleDeleteProject}
