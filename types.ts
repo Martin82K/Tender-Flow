@@ -3,14 +3,22 @@ export type View = 'dashboard' | 'project' | 'contacts' | 'settings';
 
 export type ProjectTab = 'overview' | 'pipeline' | 'documents';
 
+export interface StatusConfig {
+  id: string;
+  label: string;
+  color: 'green' | 'red' | 'yellow' | 'blue' | 'purple' | 'slate';
+}
+
 export interface Subcontractor {
   id: string;
-  name: string;
-  company: string;
-  specialization: string;
+  name: string; // Contact Person (Jméno)
+  company: string; // Supplier (Dodavatel)
+  specialization: string; // Type (Typ)
   phone: string;
   email: string;
-  status: 'available' | 'busy' | 'waiting';
+  ico?: string; // IČ
+  region?: string;
+  status: string; // Dynamic ID linking to StatusConfig
 }
 
 export interface DemandCategory {

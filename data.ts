@@ -1,5 +1,5 @@
 
-import { DemandCategory, Bid, Project, ProjectDetails } from './types';
+import { DemandCategory, Bid, Project, ProjectDetails, Subcontractor } from './types';
 
 export const MOCK_PROJECTS: Project[] = [
   { id: 'p1', name: 'Rezidence Slunečnice', location: 'Praha', status: 'realization' },
@@ -120,3 +120,76 @@ export const INITIAL_BIDS: Record<string, Bid[]> = {
         { id: '701', subcontractorId: 'gl1', companyName: 'Glass & Design', contactPerson: 'Jana Sklenářová', price: '2.65M Kč', status: 'sod' } // Winning
     ]
 };
+
+// Parsed data from the PDF documents
+export const ALL_CONTACTS: Subcontractor[] = [
+    // Akustika
+    { id: 'c1', company: 'Ecophon', specialization: 'Akustická opatření', name: 'Viktor Dyk', phone: '602 394 331', email: 'viktor.dyk@ecophon.cz', status: 'available' },
+    { id: 'c2', company: 'Esprit', specialization: 'Akustická opatření', name: '-', phone: '-', email: 'priprava@esprit-pha.cz', status: 'available' },
+    { id: 'c3', company: 'Farrao', specialization: 'Akustická opatření', name: 'Plívová', phone: '724 100 712', email: 'plivova@farrao.cz', status: 'busy' },
+    { id: 'c4', company: 'Intergips', specialization: 'Akustická opatření', name: 'Petr Zlesa', phone: '602 347 703', email: 'petr.zlesa@intergips.cz', status: 'available' },
+    { id: 'c5', company: 'Komont', specialization: 'Akustická opatření', name: 'Jiří Kollowrat', phone: '602 201 251', email: 'kolowrat.j@komont.cz', status: 'available' },
+    { id: 'c6', company: 'Soning', specialization: 'Akustická opatření', name: 'Ing. Pavel Bezděk', phone: '602 271 732', email: 'pavel.bezdek@soning.cz', status: 'available' },
+    { id: 'c7', company: 'Stavomak', specialization: 'Akustická opatření', name: 'Jiří Karafiát', phone: '775 739 714', email: 'karafiat@stavomak.cz', status: 'busy' },
+    
+    // Bourací práce / Demolice
+    { id: 'c8', company: 'A1 Demolice', specialization: 'Bourací práce', name: 'Jan Zavázal', phone: '724 068 700', email: 'j.zavazal@a1demolice.cz', status: 'available' },
+    { id: 'c9', company: 'APB - PLZEŇ a.s.', specialization: 'Bourací práce', name: 'Eva Březinová', phone: '606 759 200', email: 'brezinova.eva@apb-plzen.cz', ico: '27066410', status: 'busy' },
+    { id: 'c10', company: 'LB s.r.o.', specialization: 'Bourací práce', name: 'Jan Frič', phone: '607 71 39 43', email: 'info@lbsro.cz', ico: '46882049', status: 'available' },
+    { id: 'c11', company: 'Metta', specialization: 'Bourací práce', name: 'Ing. Vladimír Kendera', phone: '733 128 404', email: 'info@metta.cz', status: 'available' },
+    { id: 'c12', company: 'Odpady Janeček', specialization: 'Bourací práce', name: 'Pavel Bouz', phone: '778 798 989', email: 'bouz.pavel@odpady-janecek.cz', status: 'waiting' },
+    
+    // Elektro
+    { id: 'c13', company: 'AZ Klima', specialization: 'Elektro Silnoproud', name: '-', phone: '-', email: 'obchod@azklima.com', status: 'available' },
+    { id: 'c14', company: 'COBAP s.r.o.', specialization: 'Elektro Silnoproud', name: 'Jaroslav Plíšek', phone: '724 895 676', email: 'jaroslav.plisek@cobap.cz', status: 'busy' },
+    { id: 'c15', company: 'Colsys', specialization: 'Elektro Silnoproud', name: 'Miroslav Klír', phone: '603 234 773', email: 'miroslav.klir@colsys.cz', status: 'available' },
+    { id: 'c16', company: 'Electro Enterprises', specialization: 'Elektro Silnoproud', name: '-', phone: '-', email: 'info@electroenterprises.cz', status: 'available' },
+    { id: 'c17', company: 'KARSCH ELEKTRO s.r.o.', specialization: 'Elektro Silnoproud', name: 'Karsch', phone: '-', email: 'karsch@karsch-elektro.cz', ico: '27310159', status: 'available' },
+    { id: 'c18', company: 'Minet Elektro', specialization: 'Elektro Silnoproud', name: 'Skřivánek', phone: '-', email: 'skrivanek@minetelektro.cz', ico: '25016202', status: 'available' },
+    
+    // Výtahy
+    { id: 'c19', company: 'KONE', specialization: 'Výtahy', name: 'Lucie Benetková', phone: '778 755 202', email: 'lucie.benetkova@kone.com', status: 'available' },
+    { id: 'c20', company: 'Otis', specialization: 'Výtahy', name: 'Adéla Lukačovská', phone: '731 639 054', email: 'adela.lukacovska@otis.com', status: 'busy' },
+    { id: 'c21', company: 'Schindler', specialization: 'Výtahy', name: 'Petr Malý', phone: '605 207 932', email: 'petr.maly@cz.schindler.com', status: 'available' },
+    { id: 'c22', company: 'Výtahy Voto', specialization: 'Výtahy', name: 'Herman', phone: '-', email: 'herman@vytahy-voto.cz', status: 'waiting' },
+    
+    // Dveře / Okna
+    { id: 'c23', company: 'Termetal s.r.o.', specialization: 'Dveře automatické', name: 'Zavřel', phone: '777 711 197', email: 'zavrel@termetal.cz', status: 'available' },
+    { id: 'c24', company: 'Sapeli', specialization: 'Dveře interiér', name: 'Ivana Kalousová', phone: '734 571 529', email: 'ivana.kalousova@development-sapeli.cz', status: 'available' },
+    { id: 'c25', company: 'Vekra', specialization: 'Výplně otvorů', name: 'Petr Laibl', phone: '725 596 408', email: 'petr.laibl@vekra.cz', status: 'busy' },
+    { id: 'c26', company: 'Sulko', specialization: 'Výplně otvorů', name: 'Ondřej Pěnička', phone: '725 060 610', email: 'ondrej.penicka@sulko.cz', status: 'available' },
+    
+    // Podlahy
+    { id: 'c27', company: 'Barkotex', specialization: 'Podlahy povlakové', name: 'Petr Polanecký', phone: '727 985 457', email: 'polanecky@barkotex.cz', status: 'available' },
+    { id: 'c28', company: 'BOCA Group', specialization: 'Podlahy povlakové', name: 'Kovář', phone: '602 201 118', email: 'kovar@bocapraha.cz', status: 'available' },
+    { id: 'c29', company: 'Pro Interier', specialization: 'Podlahy dřevěnné', name: 'Ondřej Novák', phone: '777 472 260', email: 'Ondrej.Novak@pro-interier.cz', status: 'waiting' },
+    
+    // ZTI / Voda / Topení
+    { id: 'c30', company: 'Kmont', specialization: 'ZTI', name: 'Spurný', phone: '603 251 447', email: 'spurny@kmont.cz', status: 'available' },
+    { id: 'c31', company: 'Instalace Praha', specialization: 'ZTI', name: 'Látal', phone: '737 200 424', email: 'latal@instalace.cz', status: 'available' },
+    { id: 'c32', company: 'Promat', specialization: 'PBŘ', name: '-', phone: '-', email: 'martinek@promat.cz', status: 'available' },
+    
+    // Zámečnické
+    { id: 'c33', company: 'Solidsteel s.r.o.', specialization: 'Zámečnické kce', name: 'Petr Bára', phone: '602 354 581', email: 'petr.bara@solidsteel.cz', status: 'available' },
+    { id: 'c34', company: 'Sollus', specialization: 'Zámečnické kce', name: 'M. Šilhanek', phone: '-', email: 'm_silhanek@sollus.cz', status: 'busy' },
+    { id: 'c35', company: 'Fibeko', specialization: 'Zámečník NEREZ', name: '-', phone: '-', email: 'info@fibeko.cz', status: 'available' },
+    
+    // Fasády
+    { id: 'c36', company: 'Baumit', specialization: 'Fasáda KZS', name: 'K. Kladívko', phone: '725 114 848', email: 'k.kladivko@baumit.cz', status: 'available' },
+    { id: 'c37', company: 'Stavomak', specialization: 'Fasáda KZS', name: 'Karafiát', phone: '-', email: 'karafiat@stavomak.cz', status: 'available' },
+    { id: 'c38', company: 'Alufront', specialization: 'Fasáda - LOP', name: 'Josef Drechsel', phone: '776 782 350', email: 'josef.drechsel@alufront.cz', status: 'busy' },
+    
+    // Ostatní
+    { id: 'c39', company: 'Siko', specialization: 'Obklady a Dlažby', name: 'Ondřej Malý', phone: '737 260 184', email: 'ondrej.maly@siko.cz', status: 'available' },
+    { id: 'c40', company: 'Ptáček', specialization: 'Zařizovací předměty', name: 'Petra Vlčková', phone: '725 507 829', email: 'Petra.Vlckova@ptacek.cz', status: 'available' },
+    { id: 'c41', company: 'Lignis', specialization: 'Dveře interiér', name: 'Neduchalová', phone: '775 850 931', email: 'neduchalova@lignis.cz', status: 'available' },
+    { id: 'c42', company: 'Hormann', specialization: 'Vrata', name: 'J. Mlejnek', phone: '727 953 665', email: 'j.mlejnek.prg@hormann.cz', status: 'available' },
+    { id: 'c43', company: 'GAPA MB', specialization: 'Čistící zóny', name: '-', phone: '-', email: 'vyroba@gapa.cz', status: 'available' },
+    { id: 'c44', company: 'Sport club', specialization: 'Dětské hřiště', name: '-', phone: '-', email: 'sportclub@spor-tclub.cz', status: 'available' },
+    { id: 'c45', company: 'Best', specialization: 'Venkovní dlažba', name: '-', phone: '-', email: 'info@best.cz', status: 'available' },
+    { id: 'c46', company: 'DEK Stavebniny', specialization: 'Stavební materiál', name: 'Lucie Bezručová', phone: '734 792 783', email: 'lucie.bezrucova@dek-cz.com', status: 'available' },
+    { id: 'c47', company: 'ProCeram', specialization: 'Obklady a Dlažby', name: 'Michal Šťastný', phone: '734 311 700', email: 'michal.stastny@proceram.cz', status: 'busy' },
+    { id: 'c48', company: 'Dřevomonta', specialization: 'Truhlářské kce', name: 'Aleš', phone: '602 333 747', email: 'ales@drevomonta.cz', status: 'available' },
+    { id: 'c49', company: 'Exx', specialization: 'Svítidla', name: 'Kužel', phone: '725 032 131', email: 'kuzel@exx.cz', status: 'waiting' },
+    { id: 'c50', company: 'Lasvit', specialization: 'Svítidla', name: 'Michaela Kozáková', phone: '723 858 003', email: 'michaela.kozakova@lasvit.com', status: 'busy' }
+];

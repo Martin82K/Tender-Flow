@@ -5,8 +5,14 @@ import { Dashboard } from './components/Dashboard';
 import { ProjectLayout } from './components/ProjectLayout';
 import { Contacts } from './components/Contacts';
 import { Settings } from './components/Settings';
-import { View, ProjectTab, Project, ProjectDetails } from './types';
+import { View, ProjectTab, Project, ProjectDetails, StatusConfig, DemandCategory } from './types';
 import { MOCK_PROJECTS, PROJECTS_DB } from './data';
+
+const DEFAULT_STATUSES: StatusConfig[] = [
+  { id: 'available', label: 'K dispozici', color: 'green' },
+  { id: 'busy', label: 'Zaneprázdněn', color: 'red' },
+  { id: 'waiting', label: 'Čeká', color: 'yellow' }
+];
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('dashboard');
@@ -19,6 +25,9 @@ const App: React.FC = () => {
   
   // State for the internal project tabs (Overview, Pipeline, Docs)
   const [activeProjectTab, setActiveProjectTab] = useState<ProjectTab>('overview');
+
+  // Contact Statuses State
+  const [contactStatuses, setContactStatuses] = useState<StatusConfig[]>(DEFAULT_STATUSES);
 
   // Dark Mode Management
   const [darkMode, setDarkMode] = useState(() => {
@@ -93,6 +102,16 @@ const App: React.FC = () => {
       }));
   };
 
+  const handleAddCategory = (projectId: string, newCategory: DemandCategory) => {
+    setAllProjectDetails(prev => ({
+        ...prev,
+        [projectId]: {
+            ...prev[projectId],
+            categories: [...prev[projectId].categories, newCategory]
+        }
+    }));
+  };
+
   const renderView = () => {
     switch (currentView) {
       case 'dashboard':
@@ -103,12 +122,13 @@ const App: React.FC = () => {
             projectId={selectedProjectId} 
             projectDetails={allProjectDetails[selectedProjectId]}
             onUpdateDetails={(updates) => handleUpdateProjectDetails(selectedProjectId, updates)}
+            onAddCategory={(category) => handleAddCategory(selectedProjectId, category)}
             activeTab={activeProjectTab}
             onTabChange={setActiveProjectTab}
           />
         );
       case 'contacts':
-        return <Contacts />;
+        return <Contacts statuses={contactStatuses} />;
       case 'settings':
         return (
             <Settings 
@@ -118,6 +138,8 @@ const App: React.FC = () => {
                 onAddProject={handleAddProject}
                 onDeleteProject={handleDeleteProject}
                 onArchiveProject={handleArchiveProject}
+                contactStatuses={contactStatuses}
+                onUpdateStatuses={setContactStatuses}
             />
         );
       default:

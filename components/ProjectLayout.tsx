@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Header } from './Header';
 import { Pipeline } from './Pipeline';
 import { INITIAL_BIDS } from '../data';
-import { ProjectTab, ProjectDetails, ContractDetails, InvestorFinancials } from '../types';
+import { ProjectTab, ProjectDetails, ContractDetails, InvestorFinancials, DemandCategory } from '../types';
 
 // --- Helper Functions ---
 const parseMoney = (valueStr: string): number => {
@@ -721,11 +721,12 @@ interface ProjectLayoutProps {
     projectId: string;
     projectDetails?: ProjectDetails;
     onUpdateDetails: (updates: Partial<ProjectDetails>) => void;
+    onAddCategory: (category: DemandCategory) => void;
     activeTab: ProjectTab;
     onTabChange: (tab: ProjectTab) => void;
 }
 
-export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, projectDetails, onUpdateDetails, activeTab, onTabChange }) => {
+export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, projectDetails, onUpdateDetails, onAddCategory, activeTab, onTabChange }) => {
     const project = projectDetails;
     
     if (!project) return <div>Project not found</div>;
@@ -757,7 +758,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, project
 
             <div className="flex-1 overflow-hidden flex flex-col">
                 {activeTab === 'overview' && <ProjectOverview project={project} onUpdate={onUpdateDetails} />}
-                {activeTab === 'pipeline' && <Pipeline projectId={projectId} />}
+                {activeTab === 'pipeline' && <Pipeline projectId={projectId} onAddCategory={onAddCategory} />}
                 {activeTab === 'documents' && <ProjectDocuments />}
             </div>
         </div>

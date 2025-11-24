@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Header } from './Header';
 import { DemandCategory, Bid, BidStatus } from '../types';
@@ -172,12 +173,21 @@ const CategoryCard: React.FC<{ category: DemandCategory, onClick: () => void }> 
 
 interface PipelineProps {
     projectId: string;
+    onAddCategory?: (category: DemandCategory) => void;
 }
 
-export const Pipeline: React.FC<PipelineProps> = ({ projectId }) => {
+export const Pipeline: React.FC<PipelineProps> = ({ projectId, onAddCategory }) => {
     const [activeCategory, setActiveCategory] = useState<DemandCategory | null>(null);
     const [bids, setBids] = useState<Record<string, Bid[]>>(INITIAL_BIDS);
     
+    // Create New Category State
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [newCategoryForm, setNewCategoryForm] = useState({
+        title: '',
+        budget: '',
+        description: ''
+    });
+
     // Reset active category when switching projects
     useEffect(() => {
         setActiveCategory(null);
@@ -210,6 +220,24 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId }) => {
                 return prev;
             });
         }
+    };
+
+    const handleCreateCategory = (e: React.FormEvent) => {
+        e.preventDefault();
+        if(!onAddCategory) return;
+        
+        const newCat: DemandCategory = {
+            id: `cat_${Date.now()}`,
+            title: newCategoryForm.title,
+            budget: newCategoryForm.budget || 'Nezadáno',
+            description: newCategoryForm.description,
+            status: 'open',
+            subcontractorCount: 0
+        };
+
+        onAddCategory(newCat);
+        setNewCategoryForm({ title: '', budget: '', description: '' });
+        setIsAddModalOpen(false);
     };
 
     if (activeCategory) {
@@ -313,7 +341,10 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId }) => {
     return (
         <div className="flex flex-col h-full bg-background-light dark:bg-background-dark">
             <Header title={`Stavba: ${projectData.title}`} subtitle="Přehled poptávek a subdodávek">
-                 <button className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors">
+                 <button 
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors"
+                >
                     <span className="material-symbols-outlined text-[20px]">add_home_work</span>
                     <span className="hidden sm:inline">Nová Poptávka</span>
                 </button>
@@ -330,7 +361,10 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId }) => {
                     ))}
                     
                     {/* Add New Placeholder */}
-                    <button className="flex flex-col items-center justify-center text-center bg-slate-50 dark:bg-slate-800/50 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-5 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-h-[200px] group">
+                    <button 
+                        onClick={() => setIsAddModalOpen(true)}
+                        className="flex flex-col items-center justify-center text-center bg-slate-50 dark:bg-slate-800/50 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-5 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-h-[200px] group"
+                    >
                         <div className="size-12 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                             <span className="material-symbols-outlined text-slate-500 dark:text-slate-400">add</span>
                         </div>
@@ -339,6 +373,74 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId }) => {
                     </button>
                 </div>
             </div>
+
+            {/* Create Category Modal */}
+            {isAddModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col">
+                        <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shrink-0">
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                                Nová Poptávka / Sekce
+                            </h3>
+                            <button onClick={() => setIsAddModalOpen(false)} className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        
+                        <form onSubmit={handleCreateCategory} className="flex flex-col">
+                            <div className="p-6 space-y-4">
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Název sekce *</label>
+                                    <input 
+                                        required
+                                        type="text" 
+                                        value={newCategoryForm.title} 
+                                        onChange={e => setNewCategoryForm({...newCategoryForm, title: e.target.value})}
+                                        className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
+                                        placeholder="Např. Klempířské konstrukce"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Odhadovaný rozpočet</label>
+                                    <input 
+                                        type="text" 
+                                        value={newCategoryForm.budget} 
+                                        onChange={e => setNewCategoryForm({...newCategoryForm, budget: e.target.value})}
+                                        className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
+                                        placeholder="Např. ~500 000 Kč"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Popis prací</label>
+                                    <textarea 
+                                        rows={4}
+                                        value={newCategoryForm.description} 
+                                        onChange={e => setNewCategoryForm({...newCategoryForm, description: e.target.value})}
+                                        className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white resize-none"
+                                        placeholder="Detailní popis požadovaných prací..."
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-2">
+                                <button 
+                                    type="button" 
+                                    onClick={() => setIsAddModalOpen(false)}
+                                    className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-300 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700"
+                                >
+                                    Zrušit
+                                </button>
+                                <button 
+                                    type="submit"
+                                    className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-sm font-bold shadow-sm transition-colors"
+                                >
+                                    Vytvořit poptávku
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
