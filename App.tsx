@@ -6,13 +6,7 @@ import { ProjectLayout } from './components/ProjectLayout';
 import { Contacts } from './components/Contacts';
 import { Settings } from './components/Settings';
 import { View, ProjectTab, Project, ProjectDetails, StatusConfig, DemandCategory, Subcontractor } from './types';
-import { MOCK_PROJECTS, PROJECTS_DB, ALL_CONTACTS } from './data';
-
-const DEFAULT_STATUSES: StatusConfig[] = [
-  { id: 'available', label: 'K dispozici', color: 'green' },
-  { id: 'busy', label: 'Zaneprázdněn', color: 'red' },
-  { id: 'waiting', label: 'Čeká', color: 'yellow' }
-];
+import { MOCK_PROJECTS, PROJECTS_DB, ALL_CONTACTS, DEFAULT_STATUSES } from './data';
 
 // Helper to convert Hex to RGB for Tailwind
 const hexToRgb = (hex: string) => {

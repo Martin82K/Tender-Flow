@@ -1,5 +1,11 @@
 
-import { DemandCategory, Bid, Project, ProjectDetails, Subcontractor } from './types';
+import { DemandCategory, Bid, Project, ProjectDetails, Subcontractor, StatusConfig } from './types';
+
+export const DEFAULT_STATUSES: StatusConfig[] = [
+  { id: 'available', label: 'K dispozici', color: 'green' },
+  { id: 'busy', label: 'Zaneprázdněn', color: 'red' },
+  { id: 'waiting', label: 'Čeká', color: 'yellow' }
+];
 
 export const MOCK_PROJECTS: Project[] = [
   { id: 'p1', name: 'Rezidence Slunečnice', location: 'Praha', status: 'realization' },

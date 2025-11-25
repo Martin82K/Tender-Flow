@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from './Header';
 import { DemandCategory, Bid, BidStatus } from '../types';
-import { PROJECTS_DB, INITIAL_BIDS } from '../data';
+import { PROJECTS_DB, INITIAL_BIDS, ALL_CONTACTS, DEFAULT_STATUSES } from '../data';
+import { SubcontractorSelector } from './SubcontractorSelector';
 
 // --- Components ---
 
@@ -186,6 +187,10 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, onAddCategory }) 
     const [activeCategory, setActiveCategory] = useState<DemandCategory | null>(null);
     const [bids, setBids] = useState<Record<string, Bid[]>>(INITIAL_BIDS);
     
+    // Subcontractor Selection State
+    const [isSubcontractorModalOpen, setIsSubcontractorModalOpen] = useState(false);
+    const [selectedSubcontractorIds, setSelectedSubcontractorIds] = useState<Set<string>>(new Set());
+    
     // Create New Category State
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [newCategoryForm, setNewCategoryForm] = useState({
@@ -229,6 +234,40 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, onAddCategory }) 
         }
     };
 
+    const handleAddSubcontractors = () => {
+        if (!activeCategory) return;
+
+        const newBids: Bid[] = [];
+        selectedSubcontractorIds.forEach(id => {
+            const contact = ALL_CONTACTS.find(c => c.id === id);
+            if (contact) {
+                // Check if already exists
+                const existing = (bids[activeCategory.id] || []).find(b => b.subcontractorId === contact.id);
+                if (!existing) {
+                    newBids.push({
+                        id: `bid_${Date.now()}_${contact.id}`,
+                        subcontractorId: contact.id,
+                        companyName: contact.company,
+                        contactPerson: contact.name,
+                        price: '?',
+                        status: 'sent',
+                        tags: []
+                    });
+                }
+            }
+        });
+
+        if (newBids.length > 0) {
+            setBids(prev => ({
+                ...prev,
+                [activeCategory.id]: [...(prev[activeCategory.id] || []), ...newBids]
+            }));
+        }
+
+        setIsSubcontractorModalOpen(false);
+        setSelectedSubcontractorIds(new Set());
+    };
+
     const handleCreateCategory = (e: React.FormEvent) => {
         e.preventDefault();
         if(!onAddCategory) return;
@@ -263,7 +302,10 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, onAddCategory }) 
                         <span className="material-symbols-outlined">arrow_back</span>
                         <span className="text-sm font-medium">Zpět na přehled</span>
                     </button>
-                     <button className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors">
+                     <button 
+                        onClick={() => setIsSubcontractorModalOpen(true)}
+                        className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors"
+                    >
                         <span className="material-symbols-outlined text-[20px]">add</span>
                         <span>Přidat dodavatele</span>
                     </button>
@@ -344,6 +386,53 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, onAddCategory }) 
                          </Column>
                     </div>
                 </div>
+
+                {/* Add Subcontractor Modal */}
+                {isSubcontractorModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-4xl w-full h-[80vh] overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col">
+                            <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shrink-0">
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                                    Vybrat subdodavatele
+                                </h3>
+                                <button onClick={() => setIsSubcontractorModalOpen(false)} className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+                                    <span className="material-symbols-outlined">close</span>
+                                </button>
+                            </div>
+                            
+                            <div className="flex-1 overflow-hidden p-6 flex flex-col min-h-0">
+                                <SubcontractorSelector 
+                                    contacts={ALL_CONTACTS}
+                                    statuses={DEFAULT_STATUSES}
+                                    selectedIds={selectedSubcontractorIds}
+                                    onSelectionChange={setSelectedSubcontractorIds}
+                                    className="flex-1 min-h-0"
+                                />
+                            </div>
+
+                            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center shrink-0">
+                                <div className="text-sm text-slate-500">
+                                    Vybráno: <span className="font-bold text-slate-900 dark:text-white">{selectedSubcontractorIds.size}</span>
+                                </div>
+                                <div className="flex gap-2">
+                                    <button 
+                                        onClick={() => setIsSubcontractorModalOpen(false)}
+                                        className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-300 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700"
+                                    >
+                                        Zrušit
+                                    </button>
+                                    <button 
+                                        onClick={handleAddSubcontractors}
+                                        disabled={selectedSubcontractorIds.size === 0}
+                                        className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-sm font-bold shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        Přenést do pipeline
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         );
     }
