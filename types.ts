@@ -82,7 +82,7 @@ export interface InvestorFinancials {
 export interface ProjectDetails {
   id?: string; // Optional linkage
   title: string;
-  
+
   // Editable General Info
   investor?: string; // Investor
   technicalSupervisor?: string; // Technický dozor (TDI)
@@ -91,11 +91,26 @@ export interface ProjectDetails {
   siteManager: string; // Hlavní stavbyvedoucí
   constructionManager?: string; // Stavbyvedoucí
   constructionTechnician?: string; // Stavební technik
-  
+
   // Financials
   plannedCost?: number; // Interní plánovaný náklad (Cíl)
 
   categories: DemandCategory[];
   contract?: ContractDetails;
   investorFinancials?: InvestorFinancials;
+}
+
+export interface UserPreferences {
+  darkMode: boolean;
+  primaryColor: string;
+  backgroundColor: string;
+}
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'user';
+  avatarUrl?: string;
+  preferences?: UserPreferences;
 }
