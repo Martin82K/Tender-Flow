@@ -2,26 +2,24 @@
 import React, { useState } from 'react';
 import { Header } from './Header';
 import { Subcontractor, StatusConfig } from '../types';
-import { getAiSuggestion, findCompanyRegions } from '../services/geminiService';
+import { findCompanyRegions } from '../services/geminiService';
 import { SubcontractorSelector } from './SubcontractorSelector';
 
 interface ContactsProps {
     statuses: StatusConfig[];
     contacts: Subcontractor[];
     onContactsChange: (contacts: Subcontractor[]) => void;
+    onDeleteContacts: (ids: string[]) => void;
 }
 
-export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContactsChange }) => {
+export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContactsChange, onDeleteContacts }) => {
   // Selection State
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   
   // Filtered Data State (received from child)
   const [filteredContacts, setFilteredContacts] = useState<Subcontractor[]>(contacts);
 
-  // AI Modal State
-  const [showAiModal, setShowAiModal] = useState(false);
-  const [aiResponse, setAiResponse] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  // AI Region State
   const [isRegionLoading, setIsRegionLoading] = useState(false);
   
   // Contact Modal State
@@ -41,19 +39,6 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
   });
 
   // --- AI Handlers ---
-
-  const handleAiSuggest = async () => {
-    setShowAiModal(true);
-    setAiResponse('');
-    setIsLoading(true);
-    
-    // Use the filtered list from the child component
-    const contextData = JSON.stringify(filteredContacts.slice(0, 50)); 
-    const result = await getAiSuggestion(contextData);
-    
-    setAiResponse(result);
-    setIsLoading(false);
-  };
 
   const handleAutoFillRegions = async () => {
       if (selectedIds.size === 0) return;
@@ -83,6 +68,15 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
 
       setIsRegionLoading(false);
       setSelectedIds(new Set()); // Clear selection
+  };
+
+  const handleDeleteSelected = () => {
+      if (selectedIds.size === 0) return;
+
+      if (confirm(`Opravdu chcete smazat ${selectedIds.size} vybraných kontaktů?`)) {
+          onDeleteContacts(Array.from(selectedIds));
+          setSelectedIds(new Set());
+      }
   };
 
   // --- CRUD Handlers ---
@@ -138,8 +132,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
   const handleDeleteContact = () => {
       if (editingContact) {
           if (confirm('Opravdu chcete smazat tento kontakt?')) {
-              const updatedContacts = contacts.filter(c => c.id !== editingContact.id);
-              onContactsChange(updatedContacts);
+              onDeleteContacts([editingContact.id]);
               setIsContactModalOpen(false);
           }
       }
@@ -158,6 +151,13 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                         {selectedIds.size} vybráno
                     </span>
                     <button 
+                        onClick={handleDeleteSelected}
+                        className="flex items-center gap-2 bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-900/30 dark:hover:bg-red-900/50 dark:text-red-300 px-3 py-1.5 rounded-md text-sm font-bold shadow-sm transition-colors mr-2"
+                        title="Smazat vybrané"
+                    >
+                        <span className="material-symbols-outlined text-[18px]">delete</span>
+                    </button>
+                    <button 
                         onClick={handleAutoFillRegions}
                         disabled={isRegionLoading}
                         className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-sm font-bold shadow-sm transition-colors disabled:opacity-50"
@@ -170,15 +170,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                         Doplnit regiony (AI)
                     </button>
                 </div>
-            ) : (
-                <button 
-                    onClick={handleAiSuggest}
-                    className="flex items-center gap-2 bg-primary/10 dark:bg-primary/20 text-primary dark:text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-primary/20 dark:hover:bg-primary/30 transition-colors"
-                >
-                    <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
-                    AI Návrh
-                </button>
-            )}
+            ) : null}
             <button 
                 onClick={handleOpenAddModal}
                 className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors"
@@ -356,43 +348,6 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                   </form>
               </div>
           </div>
-      )}
-
-      {/* AI Modal */}
-      {showAiModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 dark:border-slate-700">
-                <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                         <span className="material-symbols-outlined text-primary">auto_awesome</span>
-                         <h3 className="text-lg font-bold text-slate-900 dark:text-white">AI Recommendation</h3>
-                    </div>
-                    <button onClick={() => setShowAiModal(false)} className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
-                        <span className="material-symbols-outlined">close</span>
-                    </button>
-                </div>
-                <div className="p-6">
-                    {isLoading ? (
-                        <div className="flex flex-col items-center justify-center py-8 gap-3">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                            <p className="text-sm text-slate-500">Analyzuji kontakty...</p>
-                        </div>
-                    ) : (
-                        <div className="prose dark:prose-invert text-sm max-h-[60vh] overflow-y-auto">
-                            <p className="whitespace-pre-wrap">{aiResponse}</p>
-                        </div>
-                    )}
-                </div>
-                 <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 flex justify-end">
-                    <button 
-                        onClick={() => setShowAiModal(false)}
-                        className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-300 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700"
-                    >
-                        Zavřít
-                    </button>
-                </div>
-            </div>
-        </div>
       )}
     </div>
   );

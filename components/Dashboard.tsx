@@ -1,24 +1,15 @@
 
 import React from 'react';
 import { Header } from './Header';
-import { PROJECTS_DB, INITIAL_BIDS } from '../data';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { Project, ProjectDetails } from '../types';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
+interface DashboardProps {
+    projects: Project[];
+    projectDetails: Record<string, ProjectDetails>;
+}
 
 // --- Helper Functions ---
-
-const parseMoney = (valueStr: string): number => {
-    if (!valueStr || valueStr === '-' || valueStr === '?') return 0;
-    const cleanStr = valueStr.replace(/[^0-9,.]/g, '').replace(',', '.');
-    let val = parseFloat(cleanStr);
-    
-    if (valueStr.includes('M')) {
-        val *= 1000000;
-    } else if (valueStr.includes('k') || valueStr.includes('K')) {
-        val *= 1000;
-    }
-    
-    return isNaN(val) ? 0 : val;
-};
 
 // Modified to show full precise amount where needed
 const formatMoney = (val: number): string => {
@@ -38,48 +29,37 @@ const formatMoneyFull = (val: number): string => {
 interface ProjectFinancials {
     id: string;
     name: string;
-    totalBudget: number; // Now represents Revenue (Investor SOD + Amendments)
-    totalContracted: number; // Costs (Subcontractors)
+    totalBudget: number; // Revenue (Investor SOD + Amendments)
+    totalContracted: number; // Costs from SOD categories
     categories: {
         name: string;
-        budgetEstimate: number; // The original category estimation
-        winningBid: number;
-        winningBidder: string | null;
+        sodBudget: number;
+        planBudget: number;
+        status: string;
     }[];
 }
 
-const getProjectData = (projectId: string): ProjectFinancials => {
-    const project = PROJECTS_DB[projectId];
-    if (!project) return { id: projectId, name: 'Unknown', totalBudget: 0, totalContracted: 0, categories: [] };
-
-    // 1. Calculate Total Revenue (Budget) from Investor Contract
-    const investorSod = project.investorFinancials?.sodPrice || 0;
-    const investorAmendmentsTotal = project.investorFinancials?.amendments.reduce((sum, a) => sum + (a.price || 0), 0) || 0;
+const getProjectData = (project: Project, details: ProjectDetails): ProjectFinancials => {
+    // Calculate Total Revenue (Budget) from Investor Contract
+    const investorSod = details.investorFinancials?.sodPrice || 0;
+    const investorAmendmentsTotal = details.investorFinancials?.amendments?.reduce((sum, a) => sum + (a.price || 0), 0) || 0;
     const totalBudget = investorSod + investorAmendmentsTotal;
 
-    let totalContracted = 0;
-    const categories = [];
+    // Calculate total contracted (only SOD categories)
+    const totalContracted = details.categories
+        .filter(cat => cat.status === 'sod')
+        .reduce((sum, cat) => sum + (cat.sodBudget || 0), 0);
 
-    for (const cat of project.categories) {
-        const budgetEstimate = parseMoney(cat.budget);
-        
-        const bids = INITIAL_BIDS[cat.id] || [];
-        const winningBid = bids.find(b => b.status === 'sod');
-        const winningAmount = winningBid ? parseMoney(winningBid.price || '0') : 0;
-        
-        totalContracted += winningAmount;
-
-        categories.push({
-            name: cat.title,
-            budgetEstimate: budgetEstimate,
-            winningBid: winningAmount,
-            winningBidder: winningBid ? winningBid.companyName : null
-        });
-    }
+    const categories = details.categories.map(cat => ({
+        name: cat.title,
+        sodBudget: cat.sodBudget || 0,
+        planBudget: cat.planBudget || 0,
+        status: cat.status
+    }));
 
     return {
-        id: projectId,
-        name: project.title,
+        id: project.id,
+        name: details.title || project.name,
         totalBudget,
         totalContracted,
         categories
@@ -101,8 +81,8 @@ const KPICard: React.FC<{ title: string; value: string; icon: string; color: str
     </div>
 );
 
-const ProjectCard: React.FC<{ projectId: string }> = ({ projectId }) => {
-    const data = getProjectData(projectId);
+const ProjectCard: React.FC<{ project: Project; details: ProjectDetails }> = ({ project, details }) => {
+    const data = getProjectData(project, details);
     const percentSpent = data.totalBudget > 0 ? (data.totalContracted / data.totalBudget) * 100 : 0;
     const diff = data.totalBudget - data.totalContracted;
     
@@ -147,54 +127,82 @@ const ProjectCard: React.FC<{ projectId: string }> = ({ projectId }) => {
                  </div>
             </div>
 
-            {/* Categories Expandable/List */}
+            {/* Categories List */}
             <div className="border-t border-slate-100 dark:border-slate-800">
                  <div className="px-6 py-3 bg-slate-50 dark:bg-slate-800/30 text-xs font-semibold text-slate-500 uppercase flex justify-between">
                      <span>Kategorie</span>
                      <span>Stav</span>
                  </div>
                  <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-60 overflow-y-auto custom-scrollbar">
-                    {data.categories.map((cat, idx) => {
-                        const hasWinner = cat.winningBid > 0;
-                        // Diff vs Estimate (internal metric)
-                        const catDiff = cat.budgetEstimate - cat.winningBid;
+                    {data.categories.length > 0 ? data.categories.map((cat, idx) => {
+                        const hasSOD = cat.status === 'sod';
+                        const catDiff = cat.planBudget - cat.sodBudget;
                         
                         return (
                             <div key={idx} className="px-6 py-3 flex justify-between items-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                 <div>
                                     <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{cat.name}</p>
-                                    {cat.winningBidder && <p className="text-xs text-slate-500">{cat.winningBidder}</p>}
                                 </div>
                                 <div className="text-right">
-                                    {hasWinner ? (
+                                    {hasSOD ? (
                                         <div className="flex flex-col items-end">
-                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{formatMoneyFull(cat.winningBid)}</span>
+                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{formatMoneyFull(cat.sodBudget)}</span>
                                             <span className={`text-[10px] ${catDiff >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                                                vs Odhad: {catDiff >= 0 ? '-' : '+'}{formatMoney(Math.abs(catDiff))}
+                                                vs Plán: {catDiff >= 0 ? '-' : '+'}{formatMoney(Math.abs(catDiff))}
                                             </span>
                                         </div>
                                     ) : (
-                                        <span className="text-xs bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-1 rounded">V řešení</span>
+                                        <span className="text-xs bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-1 rounded">{cat.status === 'open' ? 'V řešení' : cat.status}</span>
                                     )}
                                 </div>
                             </div>
                         );
-                    })}
+                    }) : (
+                        <div className="px-6 py-8 text-center">
+                            <span className="material-symbols-outlined text-slate-300 dark:text-slate-600 text-4xl mb-2 block">category</span>
+                            <p className="text-sm text-slate-500">Žádné kategorie</p>
+                        </div>
+                    )}
                  </div>
             </div>
         </div>
     );
 };
 
-export const Dashboard: React.FC = () => {
-  const projectIds = Object.keys(PROJECTS_DB);
+const EmptyState: React.FC = () => (
+    <div className="flex flex-col items-center justify-center h-full py-20">
+        <div className="text-center max-w-md">
+            <span className="material-symbols-outlined text-slate-300 dark:text-slate-600 text-[100px] mb-4 block">domain_disabled</span>
+            <h3 className="text-2xl font-bold text-slate-700 dark:text-slate-300 mb-2">Žádné projekty</h3>
+            <p className="text-slate-500 dark:text-slate-400 mb-6">
+                Zatím nemáte žádné aktivní projekty. Začněte přidáním nového projektu v nastavení.
+            </p>
+            <span className="material-symbols-outlined text-primary text-5xl">arrow_downward</span>
+            <p className="text-sm text-slate-400 mt-2">Použijte menu vlevo → Nastavení</p>
+        </div>
+    </div>
+);
+
+export const Dashboard: React.FC<DashboardProps> = ({ projects, projectDetails }) => {
+  const activeProjects = projects.filter(p => p.status !== 'archived');
+
+  if (activeProjects.length === 0) {
+    return (
+        <div className="flex flex-col h-full overflow-y-auto bg-background-light dark:bg-background-dark">
+            <Header title="Dashboard" subtitle="Celkový přehled staveb a financí" />
+            <EmptyState />
+        </div>
+    );
+  }
   
   // Global Stats Calculation
-  const allProjectsData = projectIds.map(getProjectData);
+  const allProjectsData = activeProjects
+    .filter(p => projectDetails[p.id])
+    .map(p => getProjectData(p, projectDetails[p.id]));
   
   const totalBudget = allProjectsData.reduce((acc, curr) => acc + curr.totalBudget, 0);
   const totalContracted = allProjectsData.reduce((acc, curr) => acc + curr.totalContracted, 0);
-  const totalProjects = projectIds.length;
+  const totalProjects = allProjectsData.length;
   const totalBalance = totalBudget - totalContracted;
   
   // Chart Data
@@ -242,25 +250,27 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {/* 2. Global Chart Section */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Porovnání Rozpočtů vs. Realita</h3>
-            <div className="h-[300px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                        <XAxis dataKey="name" tick={{ fill: '#64748b' }} axisLine={false} tickLine={false} />
-                        <YAxis tick={{ fill: '#64748b' }} axisLine={false} tickLine={false} tickFormatter={(val) => `${val / 1000000}M`} />
-                        <Tooltip 
-                            cursor={{ fill: 'transparent' }}
-                            contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}
-                            formatter={(value: number) => formatMoneyFull(value)}
-                        />
-                        <Bar dataKey="budget" name="Rozpočet (Investor)" fill="#94a3b8" radius={[4, 4, 0, 0]} barSize={30} />
-                        <Bar dataKey="contracted" name="Smluvní cena (Náklady)" fill="#607AFB" radius={[4, 4, 0, 0]} barSize={30} />
-                    </BarChart>
-                </ResponsiveContainer>
+        {allProjectsData.length > 0 && (
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Porovnání Rozpočtů vs. Realita</h3>
+                <div className="h-[300px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                            <XAxis dataKey="name" tick={{ fill: '#64748b' }} axisLine={false} tickLine={false} />
+                            <YAxis tick={{ fill: '#64748b' }} axisLine={false} tickLine={false} tickFormatter={(val) => `${val / 1000000}M`} />
+                            <Tooltip 
+                                cursor={{ fill: 'transparent' }}
+                                contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                                formatter={(value: number) => formatMoneyFull(value)}
+                            />
+                            <Bar dataKey="budget" name="Rozpočet (Investor)" fill="#94a3b8" radius={[4, 4, 0, 0]} barSize={30} />
+                            <Bar dataKey="contracted" name="Smluvní cena (Náklady)" fill="#607AFB" radius={[4, 4, 0, 0]} barSize={30} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
             </div>
-        </div>
+        )}
 
         {/* 3. Project Detail Grid */}
         <div>
@@ -269,8 +279,8 @@ export const Dashboard: React.FC = () => {
                 Detailní přehled staveb
             </h3>
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                {projectIds.map(id => (
-                    <ProjectCard key={id} projectId={id} />
+                {activeProjects.map(project => projectDetails[project.id] && (
+                    <ProjectCard key={project.id} project={project} details={projectDetails[project.id]} />
                 ))}
             </div>
         </div>

@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { Header } from './Header';
-import { DemandCategory, Bid, BidStatus } from '../types';
+import { DemandCategory, Bid, BidStatus, Subcontractor } from '../types';
 import { PROJECTS_DB, INITIAL_BIDS, ALL_CONTACTS, DEFAULT_STATUSES } from '../data';
 import { SubcontractorSelector } from './SubcontractorSelector';
+import { supabase } from '../services/supabase';
 
 // --- Components ---
 
@@ -81,7 +82,84 @@ const Column: React.FC<ColumnProps> = ({ title, status, color, children, count, 
     );
 }
 
-const BidCard: React.FC<{ bid: Bid, onClick?: () => void, onDragStart: (e: React.DragEvent, bidId: string) => void }> = ({ bid, onClick, onDragStart }) => {
+const EditBidModal: React.FC<{ bid: Bid, onClose: () => void, onSave: (updatedBid: Bid) => void }> = ({ bid, onClose, onSave }) => {
+    const [form, setForm] = useState({ ...bid });
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        onSave(form);
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col">
+                <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shrink-0">
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Upravit nabídku</h3>
+                    <button onClick={onClose} className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+                        <span className="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+                <form onSubmit={handleSubmit} className="flex flex-col">
+                    <div className="p-6 space-y-4">
+                        <div>
+                            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Kontaktní osoba</label>
+                            <input 
+                                type="text" 
+                                value={form.contactPerson} 
+                                onChange={e => setForm({...form, contactPerson: e.target.value})}
+                                className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
+                            />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Email</label>
+                                <input 
+                                    type="email" 
+                                    value={form.email || ''} 
+                                    onChange={e => setForm({...form, email: e.target.value})}
+                                    className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Telefon</label>
+                                <input 
+                                    type="text" 
+                                    value={form.phone || ''} 
+                                    onChange={e => setForm({...form, phone: e.target.value})}
+                                    className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Cena</label>
+                            <input 
+                                type="text" 
+                                value={form.price || ''} 
+                                onChange={e => setForm({...form, price: e.target.value})}
+                                className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Poznámka</label>
+                            <textarea 
+                                rows={3}
+                                value={form.notes || ''} 
+                                onChange={e => setForm({...form, notes: e.target.value})}
+                                className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white resize-none"
+                            />
+                        </div>
+                    </div>
+                    <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-2">
+                        <button type="button" onClick={onClose} className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-300 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700">Zrušit</button>
+                        <button type="submit" className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-sm font-bold shadow-sm transition-colors">Uložit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+const BidCard: React.FC<{ bid: Bid, onClick?: () => void, onDragStart: (e: React.DragEvent, bidId: string) => void, onEdit: (bid: Bid) => void }> = ({ bid, onClick, onDragStart, onEdit }) => {
     return (
         <div 
             draggable
@@ -90,7 +168,15 @@ const BidCard: React.FC<{ bid: Bid, onClick?: () => void, onDragStart: (e: React
             className="bg-white dark:bg-slate-800 rounded-lg shadow-sm p-3 border border-slate-200 dark:border-slate-700 hover:shadow-md hover:border-primary/50 transition-all cursor-grab active:cursor-grabbing group"
         >
             <div className="flex justify-between items-start mb-2">
-                <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm">{bid.companyName}</h3>
+                <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm">{bid.companyName}</h3>
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); onEdit(bid); }}
+                        className="text-slate-400 hover:text-primary transition-colors opacity-0 group-hover:opacity-100"
+                    >
+                        <span className="material-symbols-outlined text-[16px]">edit</span>
+                    </button>
+                </div>
                 {bid.price && bid.price !== '-' && bid.price !== '?' && (
                     <span className="text-xs font-semibold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 px-2 py-0.5 rounded">
                         {bid.price}
@@ -103,6 +189,18 @@ const BidCard: React.FC<{ bid: Bid, onClick?: () => void, onDragStart: (e: React
                     <span className="material-symbols-outlined text-[14px]">person</span>
                     {bid.contactPerson}
                 </div>
+                {bid.phone && (
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-xs">
+                        <span className="material-symbols-outlined text-[14px]">call</span>
+                        {bid.phone}
+                    </div>
+                )}
+                {bid.email && (
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-xs">
+                        <span className="material-symbols-outlined text-[14px]">mail</span>
+                        {bid.email}
+                    </div>
+                )}
                 {bid.notes && (
                     <p className="text-xs text-slate-400 italic mt-1">"{bid.notes}"</p>
                 )}
@@ -183,14 +281,116 @@ interface PipelineProps {
     onAddCategory?: (category: DemandCategory) => void;
 }
 
+const CreateContactModal: React.FC<{ initialName: string, onClose: () => void, onSave: (contact: Subcontractor) => void }> = ({ initialName, onClose, onSave }) => {
+    const [form, setForm] = useState({
+        company: initialName,
+        name: '',
+        email: '',
+        phone: '',
+        specialization: '',
+        ico: '',
+        region: ''
+    });
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        const newContact: Subcontractor = {
+            id: crypto.randomUUID(),
+            company: form.company,
+            name: form.name || '-',
+            email: form.email || '-',
+            phone: form.phone || '-',
+            specialization: form.specialization || 'Ostatní',
+            ico: form.ico,
+            region: form.region,
+            status: 'available'
+        };
+        onSave(newContact);
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col">
+                <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shrink-0">
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Nový dodavatel</h3>
+                    <button onClick={onClose} className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+                        <span className="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+                <form onSubmit={handleSubmit} className="flex flex-col">
+                    <div className="p-6 space-y-4">
+                        <div>
+                            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Firma / Název *</label>
+                            <input 
+                                required
+                                type="text" 
+                                value={form.company} 
+                                onChange={e => setForm({...form, company: e.target.value})}
+                                className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Specializace</label>
+                            <input 
+                                type="text" 
+                                value={form.specialization} 
+                                onChange={e => setForm({...form, specialization: e.target.value})}
+                                className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
+                                placeholder="Např. Elektro, Zedník..."
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Kontaktní osoba</label>
+                            <input 
+                                type="text" 
+                                value={form.name} 
+                                onChange={e => setForm({...form, name: e.target.value})}
+                                className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
+                            />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Email</label>
+                                <input 
+                                    type="email" 
+                                    value={form.email} 
+                                    onChange={e => setForm({...form, email: e.target.value})}
+                                    className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Telefon</label>
+                                <input 
+                                    type="text" 
+                                    value={form.phone} 
+                                    onChange={e => setForm({...form, phone: e.target.value})}
+                                    className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-2">
+                        <button type="button" onClick={onClose} className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-300 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700">Zrušit</button>
+                        <button type="submit" className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-sm font-bold shadow-sm transition-colors">Vytvořit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
 export const Pipeline: React.FC<PipelineProps> = ({ projectId, onAddCategory }) => {
     const [activeCategory, setActiveCategory] = useState<DemandCategory | null>(null);
     const [bids, setBids] = useState<Record<string, Bid[]>>(INITIAL_BIDS);
+    const [contacts, setContacts] = useState<Subcontractor[]>(ALL_CONTACTS);
     
     // Subcontractor Selection State
     const [isSubcontractorModalOpen, setIsSubcontractorModalOpen] = useState(false);
     const [selectedSubcontractorIds, setSelectedSubcontractorIds] = useState<Set<string>>(new Set());
     
+    // Edit Bid State
+    const [editingBid, setEditingBid] = useState<Bid | null>(null);
+
     // Create New Category State
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [newCategoryForm, setNewCategoryForm] = useState({
@@ -199,6 +399,10 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, onAddCategory }) 
         planBudget: '',
         description: ''
     });
+
+    // Create Contact State
+    const [isCreateContactModalOpen, setIsCreateContactModalOpen] = useState(false);
+    const [newContactName, setNewContactName] = useState('');
 
     // Reset active category when switching projects
     useEffect(() => {
@@ -239,7 +443,7 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, onAddCategory }) 
 
         const newBids: Bid[] = [];
         selectedSubcontractorIds.forEach(id => {
-            const contact = ALL_CONTACTS.find(c => c.id === id);
+            const contact = contacts.find(c => c.id === id);
             if (contact) {
                 // Check if already exists
                 const existing = (bids[activeCategory.id] || []).find(b => b.subcontractorId === contact.id);
@@ -249,6 +453,8 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, onAddCategory }) 
                         subcontractorId: contact.id,
                         companyName: contact.company,
                         contactPerson: contact.name,
+                        email: contact.email,
+                        phone: contact.phone,
                         price: '?',
                         status: 'sent',
                         tags: []
@@ -290,6 +496,55 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, onAddCategory }) 
         setIsAddModalOpen(false);
     };
 
+    const handleSaveBid = (updatedBid: Bid) => {
+        if (!activeCategory) return;
+        
+        setBids(prev => {
+            const categoryBids = [...(prev[activeCategory.id] || [])];
+            const index = categoryBids.findIndex(b => b.id === updatedBid.id);
+            if (index > -1) {
+                categoryBids[index] = updatedBid;
+                return { ...prev, [activeCategory.id]: categoryBids };
+            }
+            return prev;
+        });
+        setEditingBid(null);
+    };
+
+    const handleCreateContactRequest = (name: string) => {
+        setNewContactName(name);
+        setIsCreateContactModalOpen(true);
+    };
+
+    const handleSaveNewContact = async (newContact: Subcontractor) => {
+        // Optimistic update
+        setContacts(prev => [...prev, newContact]);
+        setSelectedSubcontractorIds(prev => new Set(prev).add(newContact.id));
+        setIsCreateContactModalOpen(false);
+
+        // Persist to Supabase
+        try {
+            const { error } = await supabase.from('subcontractors').insert({
+                id: newContact.id,
+                company_name: newContact.company,
+                contact_person_name: newContact.name,
+                email: newContact.email,
+                phone: newContact.phone,
+                specialization: newContact.specialization,
+                ico: newContact.ico,
+                region: newContact.region,
+                status_id: newContact.status
+            });
+
+            if (error) {
+                console.error('Error saving contact to Supabase:', error);
+                // Optionally revert state or show notification
+            }
+        } catch (err) {
+            console.error('Unexpected error saving contact:', err);
+        }
+    };
+
     if (activeCategory) {
         // --- DETAIL VIEW (PIPELINE) ---
         return (
@@ -322,7 +577,7 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, onAddCategory }) 
                             onDrop={handleDrop}
                         >
                              {getBidsForColumn(activeCategory.id, 'sent').map(bid => (
-                                 <BidCard key={bid.id} bid={bid} onDragStart={handleDragStart} />
+                                 <BidCard key={bid.id} bid={bid} onDragStart={handleDragStart} onEdit={setEditingBid} />
                              ))}
                              {getBidsForColumn(activeCategory.id, 'sent').length === 0 && (
                                  <div className="text-center p-4 text-slate-400 text-sm italic">Žádní dodavatelé v této fázi</div>
@@ -338,7 +593,7 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, onAddCategory }) 
                             onDrop={handleDrop}
                         >
                             {getBidsForColumn(activeCategory.id, 'offer').map(bid => (
-                                 <BidCard key={bid.id} bid={bid} onDragStart={handleDragStart} />
+                                 <BidCard key={bid.id} bid={bid} onDragStart={handleDragStart} onEdit={setEditingBid} />
                              ))}
                         </Column>
 
@@ -351,7 +606,7 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, onAddCategory }) 
                             onDrop={handleDrop}
                         >
                             {getBidsForColumn(activeCategory.id, 'shortlist').map(bid => (
-                                 <BidCard key={bid.id} bid={bid} onDragStart={handleDragStart} />
+                                 <BidCard key={bid.id} bid={bid} onDragStart={handleDragStart} onEdit={setEditingBid} />
                              ))}
                         </Column>
 
@@ -368,7 +623,7 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, onAddCategory }) 
                                     <div className="absolute -top-2 -right-2 bg-yellow-400 text-yellow-900 rounded-full p-1 z-10 shadow-sm pointer-events-none">
                                         <span className="material-symbols-outlined text-[16px] block">trophy</span>
                                     </div>
-                                    <BidCard bid={bid} onDragStart={handleDragStart} />
+                                    <BidCard bid={bid} onDragStart={handleDragStart} onEdit={setEditingBid} />
                                  </div>
                              ))}
                         </Column>
@@ -381,7 +636,7 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, onAddCategory }) 
                             onDrop={handleDrop}
                         >
                               {getBidsForColumn(activeCategory.id, 'rejected').map(bid => (
-                                  <BidCard key={bid.id} bid={bid} onDragStart={handleDragStart} />
+                                  <BidCard key={bid.id} bid={bid} onDragStart={handleDragStart} onEdit={setEditingBid} />
                               ))}
                          </Column>
                     </div>
@@ -402,10 +657,11 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, onAddCategory }) 
                             
                             <div className="flex-1 overflow-hidden p-6 flex flex-col min-h-0">
                                 <SubcontractorSelector 
-                                    contacts={ALL_CONTACTS}
+                                    contacts={contacts}
                                     statuses={DEFAULT_STATUSES}
                                     selectedIds={selectedSubcontractorIds}
                                     onSelectionChange={setSelectedSubcontractorIds}
+                                    onAddContact={handleCreateContactRequest}
                                     className="flex-1 min-h-0"
                                 />
                             </div>
@@ -432,6 +688,24 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, onAddCategory }) 
                             </div>
                         </div>
                     </div>
+                )}
+
+                {/* Create Contact Modal */}
+                {isCreateContactModalOpen && (
+                    <CreateContactModal 
+                        initialName={newContactName}
+                        onClose={() => setIsCreateContactModalOpen(false)}
+                        onSave={handleSaveNewContact}
+                    />
+                )}
+
+                {/* Edit Bid Modal */}
+                {editingBid && (
+                    <EditBidModal 
+                        bid={editingBid} 
+                        onClose={() => setEditingBid(null)} 
+                        onSave={handleSaveBid} 
+                    />
                 )}
             </div>
         );

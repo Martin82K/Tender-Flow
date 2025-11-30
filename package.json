@@ -1,5 +1,5 @@
 {
-  "name": "scaleup-crm",
+  "name": "construction-crm",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -9,10 +9,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^19.2.0",
     "@google/genai": "^1.30.0",
+    "@supabase/supabase-js": "^2.86.0",
+    "@types/papaparse": "^5.5.0",
+    "papaparse": "^5.5.3",
+    "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "recharts": "^3.4.1"
+    "recharts": "^3.4.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

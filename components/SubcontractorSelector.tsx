@@ -8,6 +8,7 @@ interface SubcontractorSelectorProps {
   onSelectionChange: (ids: Set<string>) => void;
   onFilteredContactsChange?: (contacts: Subcontractor[]) => void;
   onEditContact?: (contact: Subcontractor) => void; // Optional, for Contacts view
+  onAddContact?: (name: string) => void; // Optional, for creating new contact
   className?: string;
 }
 
@@ -18,6 +19,7 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
   onSelectionChange,
   onFilteredContactsChange,
   onEditContact,
+  onAddContact,
   className,
 }) => {
   const [searchText, setSearchText] = useState("");
@@ -230,6 +232,22 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
           </div>
         )}
       </div>
+
+      {/* Create New Contact Option */}
+      {onAddContact && searchText && (
+          <button
+              onClick={() => onAddContact(searchText)}
+              className="flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors text-left group"
+          >
+              <div className="size-10 rounded-full bg-blue-100 dark:bg-blue-800 flex items-center justify-center text-blue-600 dark:text-blue-300 group-hover:scale-110 transition-transform">
+                  <span className="material-symbols-outlined">add</span>
+              </div>
+              <div>
+                  <h4 className="font-bold text-blue-900 dark:text-blue-100">Vytvořit nového dodavatele: "{searchText}"</h4>
+                  <p className="text-xs text-blue-600 dark:text-blue-300">Přidat do databáze a vybrat pro tuto poptávku</p>
+              </div>
+          </button>
+      )}
 
       {/* Table */}
       <div className="bg-white dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm flex-1 flex flex-col min-h-0">

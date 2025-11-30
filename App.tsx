@@ -7,8 +7,16 @@ import { Dashboard } from './components/Dashboard';
 import { ProjectLayout } from './components/ProjectLayout';
 import { Contacts } from './components/Contacts';
 import { Settings } from './components/Settings';
-import { View, ProjectTab, Project, ProjectDetails, StatusConfig, DemandCategory, Subcontractor } from './types';
-import { MOCK_PROJECTS, PROJECTS_DB, ALL_CONTACTS, DEFAULT_STATUSES } from './data';
+import { View, ProjectTab, Project, ProjectStatus, DemandCategory, ProjectDetails, Subcontractor, StatusConfig } from './types';
+import { supabase } from './services/supabase';
+import { mergeContacts, syncContactsFromUrl } from './services/contactsImportService';
+
+// Default statuses (keep these as they're configuration)
+const DEFAULT_STATUSES: StatusConfig[] = [
+  { id: 'available', label: 'K dispozici', color: 'green' },
+  { id: 'busy', label: 'Zaneprázdněn', color: 'red' },
+  { id: 'waiting', label: 'Čeká', color: 'yellow' }
+];
 
 // Helper to convert Hex to RGB for Tailwind
 const hexToRgb = (hex: string) => {
@@ -19,23 +27,19 @@ const hexToRgb = (hex: string) => {
 };
 
 const AppContent: React.FC = () => {
-  const { isAuthenticated, login, register, updatePreferences, user, isLoading } = useAuth();
+  const { isAuthenticated, login, register, updatePreferences, user, isLoading: authLoading } = useAuth();
   const [currentView, setCurrentView] = useState<View>('dashboard');
-  const [projects, setProjects] = useState<Project[]>(MOCK_PROJECTS);
-
-  // State for detailed project data to allow editing
-  const [allProjectDetails, setAllProjectDetails] = useState<Record<string, ProjectDetails>>(PROJECTS_DB);
-
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('p1');
-
-  // State for the internal project tabs (Overview, Pipeline, Docs)
-  const [activeProjectTab, setActiveProjectTab] = useState<ProjectTab>('overview');
-
-  // Contact Statuses State
+  
+  // Data States
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [allProjectDetails, setAllProjectDetails] = useState<Record<string, ProjectDetails>>({});
+  const [contacts, setContacts] = useState<Subcontractor[]>([]);
   const [contactStatuses, setContactStatuses] = useState<StatusConfig[]>(DEFAULT_STATUSES);
-
-  // Contacts State (Lifted up from Contacts.tsx)
-  const [contacts, setContacts] = useState<Subcontractor[]>(ALL_CONTACTS);
+  
+  // UI States
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [activeProjectTab, setActiveProjectTab] = useState<ProjectTab>('overview');
+  const [isDataLoading, setIsDataLoading] = useState(true);
 
   // Dark Mode Management
   const [darkMode, setDarkMode] = useState(() => {
@@ -76,6 +80,141 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     document.documentElement.style.setProperty('--color-background', backgroundColor);
   }, [backgroundColor]);
+
+  // Load data from Supabase on mount
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadInitialData();
+    }
+  }, [isAuthenticated]);
+
+  const loadInitialData = async () => {
+    setIsDataLoading(true);
+    try {
+      // Load projects
+      const { data: projectsData, error: projectsError } = await supabase
+        .from('projects')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (projectsError) throw projectsError;
+
+      const loadedProjects: Project[] = (projectsData || []).map(p => ({
+        id: p.id,
+        name: p.name,
+        location: p.location || '',
+        status: p.status || 'realization'
+      }));
+
+      setProjects(loadedProjects);
+
+      // Set first project as selected if available
+      if (loadedProjects.length > 0 && !selectedProjectId) {
+        setSelectedProjectId(loadedProjects[0].id);
+      }
+
+      // Load project details for all projects
+      const detailsMap: Record<string, ProjectDetails> = {};
+      
+      for (const project of projectsData || []) {
+        // Load categories for this project
+        const { data: categoriesData } = await supabase
+          .from('demand_categories')
+          .select('*')
+          .eq('project_id', project.id);
+
+        const categories: DemandCategory[] = (categoriesData || []).map(c => ({
+          id: c.id,
+          title: c.title,
+          budget: c.budget_display || '',
+          sodBudget: c.sod_budget || 0,
+          planBudget: c.plan_budget || 0,
+          status: c.status || 'open',
+          subcontractorCount: 0,
+          description: c.description || ''
+        }));
+
+        // Load contract details
+        const { data: contractData } = await supabase
+          .from('project_contracts')
+          .select('*')
+          .eq('project_id', project.id)
+          .single();
+
+        // Load investor financials
+        const { data: financialsData } = await supabase
+          .from('project_investor_financials')
+          .select('*')
+          .eq('project_id', project.id)
+          .single();
+
+        // Load amendments
+        const { data: amendmentsData } = await supabase
+          .from('project_amendments')
+          .select('*')
+          .eq('project_id', project.id);
+
+        detailsMap[project.id] = {
+          title: project.name,
+          investor: project.investor || '',
+          technicalSupervisor: project.technical_supervisor || '',
+          location: project.location || '',
+          finishDate: project.finish_date || '',
+          siteManager: project.site_manager || '',
+          constructionManager: project.construction_manager || '',
+          constructionTechnician: project.construction_technician || '',
+          plannedCost: project.planned_cost || 0,
+          documentationLink: project.documentation_link,
+          inquiryLetterLink: project.inquiry_letter_link,
+          categories,
+          contract: contractData ? {
+            maturity: contractData.maturity_days || 30,
+            warranty: contractData.warranty_months || 60,
+            retention: contractData.retention_terms || '',
+            siteFacilities: contractData.site_facilities_percent || 0,
+            insurance: contractData.insurance_percent || 0
+          } : undefined,
+          investorFinancials: financialsData ? {
+            sodPrice: financialsData.sod_price || 0,
+            amendments: (amendmentsData || []).map(a => ({
+              id: a.id,
+              label: a.label,
+              price: a.price || 0
+            }))
+          } : undefined
+        };
+      }
+
+      setAllProjectDetails(detailsMap);
+
+      // Load all subcontractors
+      const { data: subcontractorsData, error: subcontractorsError } = await supabase
+        .from('subcontractors')
+        .select('*')
+        .order('company_name');
+
+      if (subcontractorsError) throw subcontractorsError;
+
+      const loadedContacts: Subcontractor[] = (subcontractorsData || []).map(s => ({
+        id: s.id,
+        company: s.company_name,
+        name: s.contact_person_name || '-',
+        specialization: s.specialization || 'Ostatní',
+        phone: s.phone || '-',
+        email: s.email || '-',
+        ico: s.ico || '-',
+        region: s.region || '-',
+        status: s.status_id || 'available'
+      }));
+
+      setContacts(loadedContacts);
+
+    } catch (error) {
+      console.error('Error loading initial data:', error);
+    } finally {
+      setIsDataLoading(false);
+    }
+  };
 
   const handleProjectSelect = (id: string) => {
     setSelectedProjectId(id);
@@ -125,67 +264,227 @@ const AppContent: React.FC = () => {
     setProjects(prev => prev.map(p => p.id === id ? { ...p, status: 'archived' } : p));
   };
 
-  const handleUpdateProjectDetails = (id: string, updates: Partial<ProjectDetails>) => {
+  const handleUpdateProjectDetails = async (id: string, updates: Partial<ProjectDetails>) => {
+    // Optimistic update
     setAllProjectDetails(prev => ({
       ...prev,
       [id]: { ...prev[id], ...updates }
     }));
-  };
 
-  const handleAddCategory = (projectId: string, newCategory: DemandCategory) => {
-    setAllProjectDetails(prev => ({
-      ...prev,
-      [projectId]: {
-        ...prev[projectId],
-        categories: [...prev[projectId].categories, newCategory]
+    // Persist to Supabase
+    try {
+      // Update main project fields
+      const projectUpdates: any = {};
+      if (updates.investor !== undefined) projectUpdates.investor = updates.investor;
+      if (updates.technicalSupervisor !== undefined) projectUpdates.technical_supervisor = updates.technicalSupervisor;
+      if (updates.siteManager !== undefined) projectUpdates.site_manager = updates.siteManager;
+      if (updates.constructionManager !== undefined) projectUpdates.construction_manager = updates.constructionManager;
+      if (updates.constructionTechnician !== undefined) projectUpdates.construction_technician = updates.constructionTechnician;
+      if (updates.location !== undefined) projectUpdates.location = updates.location;
+      if (updates.finishDate !== undefined) projectUpdates.finish_date = updates.finishDate;
+      if (updates.plannedCost !== undefined) projectUpdates.planned_cost = updates.plannedCost;
+      if (updates.documentationLink !== undefined) projectUpdates.documentation_link = updates.documentationLink;
+      if (updates.inquiryLetterLink !== undefined) projectUpdates.inquiry_letter_link = updates.inquiryLetterLink;
+
+      if (Object.keys(projectUpdates).length > 0) {
+        const { error } = await supabase
+          .from('projects')
+          .update(projectUpdates)
+          .eq('id', id);
+
+        if (error) console.error('Error updating project:', error);
       }
-    }));
+
+      // Update contract if provided
+      if (updates.contract) {
+        const { error: contractError } = await supabase
+          .from('project_contracts')
+          .upsert({
+            project_id: id,
+            maturity_days: updates.contract.maturity,
+            warranty_months: updates.contract.warranty,
+            retention_terms: updates.contract.retention,
+            site_facilities_percent: updates.contract.siteFacilities,
+            insurance_percent: updates.contract.insurance
+          });
+
+        if (contractError) console.error('Error updating contract:', contractError);
+      }
+
+      // Update investor financials if provided
+      if (updates.investorFinancials) {
+        const { error: financialsError } = await supabase
+          .from('project_investor_financials')
+          .upsert({
+            project_id: id,
+            sod_price: updates.investorFinancials.sodPrice
+          });
+
+        if (financialsError) console.error('Error updating financials:', financialsError);
+
+        // Handle amendments (delete and re-insert for simplicity)
+        if (updates.investorFinancials.amendments) {
+          await supabase
+            .from('project_amendments')
+            .delete()
+            .eq('project_id', id);
+
+          if (updates.investorFinancials.amendments.length > 0) {
+            const { error: amendmentsError } = await supabase
+              .from('project_amendments')
+              .insert(
+                updates.investorFinancials.amendments.map(a => ({
+                  id: a.id,
+                  project_id: id,
+                  label: a.label,
+                  price: a.price
+                }))
+              );
+
+            if (amendmentsError) console.error('Error updating amendments:', amendmentsError);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Unexpected error updating project details:', error);
+    }
   };
 
-  const handleImportContacts = (newContacts: Subcontractor[]) => {
-    setContacts(prevContacts => {
-      const updatedContacts = [...prevContacts];
-      let addedCount = 0;
-      let updatedCount = 0;
+  const handleAddCategory = async (projectId: string, newCategory: DemandCategory) => {
+  // Optimistic update to local state
+  setAllProjectDetails(prev => ({
+    ...prev,
+    [projectId]: {
+      ...prev[projectId],
+      categories: [...prev[projectId].categories, newCategory]
+    }
+  }));
 
-      newContacts.forEach(imported => {
-        // Normalize company name for matching (case-insensitive, trim)
-        const normalizedImportName = imported.company.trim().toLowerCase();
-
-        const existingIndex = updatedContacts.findIndex(
-          c => c.company.trim().toLowerCase() === normalizedImportName
-        );
-
-        if (existingIndex >= 0) {
-          // Update existing contact
-          // Preserve ID and Status!
-          updatedContacts[existingIndex] = {
-            ...updatedContacts[existingIndex],
-            name: imported.name !== '-' ? imported.name : updatedContacts[existingIndex].name,
-            specialization: imported.specialization !== 'Ostatní' ? imported.specialization : updatedContacts[existingIndex].specialization,
-            phone: imported.phone !== '-' ? imported.phone : updatedContacts[existingIndex].phone,
-            email: imported.email !== '-' ? imported.email : updatedContacts[existingIndex].email,
-            ico: imported.ico !== '-' ? imported.ico : updatedContacts[existingIndex].ico,
-            region: imported.region !== '-' ? imported.region : updatedContacts[existingIndex].region,
-            // Explicitly NOT updating status
-          };
-          updatedCount++;
-        } else {
-          // Add new contact
-          updatedContacts.push(imported);
-          addedCount++;
-        }
-      });
-
-      alert(`Import dokončen:\n- Přidáno nových: ${addedCount}\n- Aktualizováno: ${updatedCount}`);
-      return updatedContacts;
+  // Persist to Supabase
+  try {
+    const { error } = await supabase.from('demand_categories').insert({
+      id: newCategory.id,
+      project_id: projectId,
+      title: newCategory.title,
+      budget_display: newCategory.budget,
+      sod_budget: newCategory.sodBudget,
+      plan_budget: newCategory.planBudget,
+      status: newCategory.status,
+      description: newCategory.description
     });
+
+    if (error) {
+      console.error('Error saving category to Supabase:', error);
+      // Optionally revert local state on error
+    }
+  } catch (err) {
+    console.error('Unexpected error saving category:', err);
+  }
+};
+
+  const handleImportContacts = async (newContacts: Subcontractor[]) => {
+    // Use the merge logic from service
+    const { mergedContacts, added, updated, addedCount, updatedCount } = mergeContacts(contacts, newContacts);
+
+    // Optimistic update
+    setContacts(mergedContacts);
+
+    // Persist to Supabase
+    try {
+      // 1. Insert new contacts
+      if (added.length > 0) {
+        const { error: insertError } = await supabase
+          .from('subcontractors')
+          .insert(added.map(c => ({
+            id: c.id,
+            company_name: c.company,
+            contact_person_name: c.name,
+            specialization: c.specialization,
+            phone: c.phone,
+            email: c.email,
+            ico: c.ico,
+            region: c.region,
+            status_id: c.status
+          })));
+        
+        if (insertError) console.error('Error inserting contacts:', insertError);
+      }
+
+      // 2. Update existing contacts (one by one for now, or use upsert if we had clean IDs)
+      // Since we matched by name, IDs might match or not. 
+      // Actually, mergeContacts preserves IDs for existing contacts.
+      if (updated.length > 0) {
+        for (const contact of updated) {
+          const { error: updateError } = await supabase
+            .from('subcontractors')
+            .update({
+              company_name: contact.company,
+              contact_person_name: contact.name,
+              specialization: contact.specialization,
+              phone: contact.phone,
+              email: contact.email,
+              ico: contact.ico,
+              region: contact.region,
+              // status_id: contact.status // Status is preserved in merge, but we can update it if needed. Merge logic says preserve.
+            })
+            .eq('id', contact.id);
+            
+          if (updateError) console.error(`Error updating contact ${contact.company}:`, updateError);
+        }
+      }
+
+      alert(`Synchronizace dokončena:\n- Přidáno nových: ${addedCount}\n- Aktualizováno: ${updatedCount}`);
+
+    } catch (error) {
+      console.error('Error persisting contacts:', error);
+      alert('Chyba při ukládání kontaktů do databáze.');
+    }
+  };
+
+  const handleDeleteContacts = async (idsToDelete: string[]) => {
+    if (idsToDelete.length === 0) return;
+
+    // Optimistic update
+    setContacts(prev => prev.filter(c => !idsToDelete.includes(c.id)));
+
+    try {
+      const { error } = await supabase
+        .from('subcontractors')
+        .delete()
+        .in('id', idsToDelete);
+
+      if (error) {
+        console.error('Error deleting contacts:', error);
+        alert('Chyba při mazání kontaktů z databáze.');
+        // Revert optimistic update if needed (complex, maybe just reload)
+        loadInitialData();
+      }
+    } catch (error) {
+      console.error('Unexpected error deleting contacts:', error);
+    }
+  };
+
+  const handleSyncContacts = async (url: string) => {
+    setIsDataLoading(true);
+    try {
+      const result = await syncContactsFromUrl(url);
+      if (result.success) {
+        await handleImportContacts(result.contacts);
+      } else {
+        alert(`Chyba synchronizace: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Sync error:', error);
+      alert('Nepodařilo se synchronizovat kontakty.');
+    } finally {
+      setIsDataLoading(false);
+    }
   };
 
   const renderView = () => {
     switch (currentView) {
       case 'dashboard':
-        return <Dashboard />;
+        return <Dashboard projects={projects} projectDetails={allProjectDetails} />;
       case 'project':
         return (
           <ProjectLayout
@@ -199,16 +498,17 @@ const AppContent: React.FC = () => {
         );
       case 'contacts':
         return (
-          <Contacts
-            contacts={contacts}
+          <Contacts 
+            statuses={contactStatuses} 
+            contacts={contacts} 
             onContactsChange={setContacts}
-            statuses={contactStatuses}
+            onDeleteContacts={handleDeleteContacts}
           />
         );
       case 'settings':
         return (
-          <Settings
-            darkMode={darkMode}
+          <Settings 
+            darkMode={darkMode} 
             onToggleDarkMode={() => {
               const newMode = !darkMode;
               setDarkMode(newMode);
@@ -231,6 +531,9 @@ const AppContent: React.FC = () => {
             contactStatuses={contactStatuses}
             onUpdateStatuses={setContactStatuses}
             onImportContacts={handleImportContacts}
+            onSyncContacts={handleSyncContacts}
+            onDeleteContacts={handleDeleteContacts}
+            contacts={contacts}
           />
         );
       default:
@@ -238,7 +541,7 @@ const AppContent: React.FC = () => {
     }
   };
 
-  if (isLoading) {
+  if (authLoading || isDataLoading) {
     return <div className="flex items-center justify-center h-screen bg-gray-900 text-white">Loading...</div>;
   }
 

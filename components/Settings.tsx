@@ -16,7 +16,9 @@ interface SettingsProps {
     onArchiveProject: (id: string) => void;
     contactStatuses: StatusConfig[];
     onUpdateStatuses: (statuses: StatusConfig[]) => void;
-    onImportContacts: (contacts: Subcontractor[]) => void;
+    onSyncContacts: (url: string) => Promise<void>;
+    onDeleteContacts: (ids: string[]) => void;
+    contacts: Subcontractor[];
 }
 
 export const Settings: React.FC<SettingsProps> = ({ 
@@ -32,7 +34,10 @@ export const Settings: React.FC<SettingsProps> = ({
     onArchiveProject,
     contactStatuses,
     onUpdateStatuses,
-    onImportContacts
+    onImportContacts,
+    onSyncContacts,
+    onDeleteContacts,
+    contacts
 }) => {
     // Project Form State
     const [newProjectName, setNewProjectName] = useState('');
@@ -46,6 +51,51 @@ export const Settings: React.FC<SettingsProps> = ({
     // Import State
     const [importedContacts, setImportedContacts] = useState<Subcontractor[]>([]);
     const [fileName, setFileName] = useState('');
+    
+    // Auto-Sync State
+    const [importUrl, setImportUrl] = useState(() => localStorage.getItem('contactsImportUrl') || '');
+    const [lastSyncTime, setLastSyncTime] = useState(() => localStorage.getItem('contactsLastSyncTime') || '');
+    const [isSyncing, setIsSyncing] = useState(false);
+
+    const handleSaveUrl = () => {
+        if (importUrl) {
+            localStorage.setItem('contactsImportUrl', importUrl);
+            alert('URL uložena.');
+        }
+    };
+
+    const handleSyncNow = async () => {
+        if (!importUrl) {
+            alert('Prosím zadejte URL souboru.');
+            return;
+        }
+        
+        setIsSyncing(true);
+        try {
+            await onSyncContacts(importUrl);
+            const now = new Date().toLocaleString('cs-CZ');
+            setLastSyncTime(now);
+            localStorage.setItem('contactsLastSyncTime', now);
+        } catch (error) {
+            console.error('Sync failed:', error);
+        } finally {
+            setIsSyncing(false);
+        }
+    };
+
+    const handleDeleteAllContacts = () => {
+        if (contacts.length === 0) {
+            alert('Databáze kontaktů je již prázdná.');
+            return;
+        }
+
+        if (confirm(`VAROVÁNÍ: Opravdu chcete smazat VŠECHNY kontakty (${contacts.length}) z databáze? Tuto akci nelze vrátit zpět!`)) {
+            if (confirm('Opravdu? Jste si naprosto jistí?')) {
+                const allIds = contacts.map(c => c.id);
+                onDeleteContacts(allIds);
+            }
+        }
+    };
 
     const handleCreateProject = (e: React.FormEvent) => {
         e.preventDefault();
@@ -345,12 +395,80 @@ export const Settings: React.FC<SettingsProps> = ({
 
                 {/* 3. Import Data Section */}
                 <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-                        <span className="material-symbols-outlined">upload_file</span>
-                        Import Kontaktů
-                    </h2>
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <span className="material-symbols-outlined">upload_file</span>
+                            Import Kontaktů
+                        </h2>
+                        <button 
+                            onClick={handleDeleteAllContacts}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1"
+                            title="Smazat všechny kontakty z databáze"
+                        >
+                            <span className="material-symbols-outlined text-[16px]">delete_forever</span>
+                            Smazat vše
+                        </button>
+                    </div>
                     
+                    {/* Auto-Sync from URL */}
+                    <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4 mb-6">
+                        <div className="flex items-start gap-3 mb-4">
+                            <span className="material-symbols-outlined text-purple-600 dark:text-purple-400">sync</span>
+                            <div className="flex-1">
+                                <h3 className="text-sm font-bold text-purple-900 dark:text-purple-100 mb-1">Synchronizace kontaktů z URL</h3>
+                                <p className="text-xs text-purple-700 dark:text-purple-300 mb-3">
+                                    Zadejte odkaz na CSV/XLSX soubor (např. Google Sheets export link). 
+                                    Synchronizaci spustíte tlačítkem níže.
+                                </p>
+                                
+                                <div className="space-y-3">
+                                    <div>
+                                        <label className="block text-xs text-purple-700 dark:text-purple-300 mb-1 font-medium">URL souboru</label>
+                                        <input 
+                                            type="url"
+                                            value={importUrl}
+                                            onChange={(e) => setImportUrl(e.target.value)}
+                                            placeholder="https://docs.google.com/spreadsheets/.../export?format=csv"
+                                            className="w-full rounded-lg bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:ring-purple-500 focus:border-purple-500"
+                                        />
+                                    </div>
+                                    
+                                    <div className="flex items-center gap-2">
+                                        <button 
+                                            type="button"
+                                            onClick={handleSaveUrl}
+                                            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm"
+                                        >
+                                            Uložit URL
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            onClick={handleSyncNow}
+                                            disabled={isSyncing || !importUrl}
+                                            className="bg-white dark:bg-slate-800 border border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <span className="flex items-center gap-2">
+                                                <span className={`material-symbols-outlined text-[18px] ${isSyncing ? 'animate-spin' : ''}`}>sync</span>
+                                                {isSyncing ? 'Synchronizuji...' : 'Synchronizovat nyní'}
+                                            </span>
+                                        </button>
+                                    </div>
+                                    
+                                    <p className="text-xs text-purple-600 dark:text-purple-400 italic">
+                                        💡 Poslední synchronizace: {lastSyncTime || 'Ještě nebyla provedena'}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Manual File Upload */}
                     <div className="flex flex-col gap-4">
+                        <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                            <span className="material-symbols-outlined text-[20px]">info</span>
+                            <span>Nebo nahrajte soubor jednorázově:</span>
+                        </div>
+                        
                         <p className="text-sm text-slate-500 dark:text-slate-400">
                             Nahrajte CSV soubor pro hromadný import kontaktů. <br/>
                             <span className="text-xs italic">Formát: Firma, Jméno, Specializace, Telefon, Email, IČO, Region</span>

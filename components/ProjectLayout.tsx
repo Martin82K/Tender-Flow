@@ -27,6 +27,290 @@ const formatMoneyFull = (val: number): string => {
 
 // --- Sub-Components ---
 
+interface ProjectDocumentsProps {
+    project: ProjectDetails;
+    onUpdate: (updates: Partial<ProjectDetails>) => void;
+}
+
+const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }) => {
+    const [isEditingDocs, setIsEditingDocs] = useState(false);
+    const [isEditingLetter, setIsEditingLetter] = useState(false);
+    const [docsLinkValue, setDocsLinkValue] = useState('');
+    const [letterLinkValue, setLetterLinkValue] = useState('');
+
+    useEffect(() => {
+        setDocsLinkValue(project.documentationLink || '');
+    }, [project.documentationLink, isEditingDocs]);
+
+    useEffect(() => {
+        setLetterLinkValue(project.inquiryLetterLink || '');
+    }, [project.inquiryLetterLink, isEditingLetter]);
+
+    const handleSaveDocs = () => {
+        onUpdate({ documentationLink: docsLinkValue });
+        setIsEditingDocs(false);
+    };
+
+    const handleSaveLetter = () => {
+        onUpdate({ inquiryLetterLink: letterLinkValue });
+        setIsEditingLetter(false);
+    };
+
+    const hasDocsLink = project.documentationLink && project.documentationLink.trim() !== '';
+    const hasLetterLink = project.inquiryLetterLink && project.inquiryLetterLink.trim() !== '';
+
+    return (
+        <div className="p-6 lg:p-10 flex flex-col gap-6 overflow-y-auto h-full">
+            <div className="max-w-4xl mx-auto w-full">
+                {/* Header Card */}
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-8">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-primary text-2xl">folder_open</span>
+                        </div>
+                        <div>
+                            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Projektová dokumentace</h2>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">Odkaz na sdílenou dokumentaci stavby</p>
+                        </div>
+                    </div>
+
+                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-6 border border-slate-200 dark:border-slate-700">
+                        <div className="flex justify-between items-start mb-4">
+                            <div className="flex items-center gap-2">
+                                <span className="material-symbols-outlined text-slate-400">link</span>
+                                <h3 className="font-semibold text-slate-900 dark:text-white">Odkaz na dokumentaci</h3>
+                            </div>
+                            {!isEditingDocs ? (
+                                <button 
+                                    onClick={() => setIsEditingDocs(true)} 
+                                    className="text-slate-400 hover:text-primary transition-colors"
+                                >
+                                    <span className="material-symbols-outlined text-[20px]">edit</span>
+                                </button>
+                            ) : (
+                                <div className="flex gap-2">
+                                    <button 
+                                        onClick={handleSaveDocs} 
+                                        className="text-green-500 hover:text-green-600"
+                                    >
+                                        <span className="material-symbols-outlined text-[20px]">check</span>
+                                    </button>
+                                    <button 
+                                        onClick={() => setIsEditingDocs(false)} 
+                                        className="text-red-500 hover:text-red-600"
+                                    >
+                                        <span className="material-symbols-outlined text-[20px]">close</span>
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        {!isEditingDocs ? (
+                            <div>
+                                {hasDocsLink ? (
+                                    <div className="space-y-3">
+                                        <a 
+                                            href={project.documentationLink} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="block p-4 bg-white dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 hover:border-primary hover:bg-slate-50 dark:hover:bg-slate-600 transition-all group"
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                    <span className="material-symbols-outlined text-primary">description</span>
+                                                    <span className="text-sm font-medium text-slate-900 dark:text-white truncate">
+                                                        {project.documentationLink}
+                                                    </span>
+                                                </div>
+                                                <span className="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors">open_in_new</span>
+                                            </div>
+                                        </a>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                                            <span className="material-symbols-outlined text-[14px]">info</span>
+                                            Klikněte pro otevření v novém okně
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-8">
+                                        <span className="material-symbols-outlined text-slate-300 dark:text-slate-600 text-5xl mb-3 block">link_off</span>
+                                        <p className="text-slate-500 dark:text-slate-400 text-sm">Žádný odkaz není nastaven</p>
+                                        <p className="text-slate-400 dark:text-slate-500 text-xs mt-1">Klikněte na ikonu úprav pro přidání odkazu</p>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                <input 
+                                    type="url"
+                                    value={docsLinkValue}
+                                    onChange={(e) => setDocsLinkValue(e.target.value)}
+                                    placeholder="https://example.com/project-docs"
+                                    className="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-3 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"
+                                />
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                    Zadejte URL odkaz na sdílenou složku (např. Google Drive, Dropbox, SharePoint)
+                                </p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Inquiry Letter Section */}
+                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-6 border border-slate-200 dark:border-slate-700 mt-6">
+                        <div className="flex justify-between items-start mb-4">
+                            <div className="flex items-center gap-2">
+                                <span className="material-symbols-outlined text-slate-400">mail</span>
+                                <h3 className="font-semibold text-slate-900 dark:text-white">Poptávkový dopis (šablona)</h3>
+                            </div>
+                            {!isEditingLetter ? (
+                                <button 
+                                    onClick={() => setIsEditingLetter(true)} 
+                                    className="text-slate-400 hover:text-primary transition-colors"
+                                >
+                                    <span className="material-symbols-outlined text-[20px]">edit</span>
+                                </button>
+                            ) : (
+                                <div className="flex gap-2">
+                                    <button 
+                                        onClick={handleSaveLetter} 
+                                        className="text-green-500 hover:text-green-600"
+                                    >
+                                        <span className="material-symbols-outlined text-[20px]">check</span>
+                                    </button>
+                                    <button 
+                                        onClick={() => setIsEditingLetter(false)} 
+                                        className="text-red-500 hover:text-red-600"
+                                    >
+                                        <span className="material-symbols-outlined text-[20px]">close</span>
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        {!isEditingLetter ? (
+                            <div>
+                                {hasLetterLink ? (
+                                    <div className="space-y-3">
+                                        <a 
+                                            href={project.inquiryLetterLink} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="block p-4 bg-white dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 hover:border-primary hover:bg-slate-50 dark:hover:bg-slate-600 transition-all group"
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                    <span className="material-symbols-outlined text-primary">article</span>
+                                                    <span className="text-sm font-medium text-slate-900 dark:text-white truncate">
+                                                        {project.inquiryLetterLink}
+                                                    </span>
+                                                </div>
+                                                <span className="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors">open_in_new</span>
+                                            </div>
+                                        </a>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                                            <span className="material-symbols-outlined text-[14px]">info</span>
+                                            Klikněte pro otevření šablony
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-8">
+                                        <span className="material-symbols-outlined text-slate-300 dark:text-slate-600 text-5xl mb-3 block">mail_outline</span>
+                                        <p className="text-slate-500 dark:text-slate-400 text-sm">Žádná šablona není nastavena</p>
+                                        <p className="text-slate-400 dark:text-slate-500 text-xs mt-1">Klikněte na ikonu úprav pro přidání odkazu</p>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                <input 
+                                    type="url"
+                                    value={letterLinkValue}
+                                    onChange={(e) => setLetterLinkValue(e.target.value)}
+                                    placeholder="https://docs.google.com/document/..."
+                                    className="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-3 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"
+                                />
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                    Zadejte URL odkaz na šablonu poptávkového dopisu (např. Google Docs, Word Online)
+                                </p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Dynamic Placeholders Tips */}
+                    <div className="mt-6 p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800 rounded-lg">
+                        <div className="flex items-start gap-3">
+                            <span className="material-symbols-outlined text-purple-600 dark:text-purple-400 text-[20px]">code</span>
+                            <div className="flex-1">
+                                <h4 className="font-semibold text-purple-900 dark:text-purple-100 text-sm mb-2">Dynamické proměnné pro šablonu</h4>
+                                <p className="text-xs text-purple-700 dark:text-purple-300 mb-3">V šabloně poptávkového dopisu můžete použít tyto proměnné:</p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                                    <div className="bg-white/50 dark:bg-purple-900/20 p-2 rounded">
+                                        <code className="text-purple-800 dark:text-purple-200 font-mono">{'{NAZEV_STAVBY}'}</code>
+                                        <span className="text-purple-600 dark:text-purple-400 ml-2">- Název projektu</span>
+                                    </div>
+                                    <div className="bg-white/50 dark:bg-purple-900/20 p-2 rounded">
+                                        <code className="text-purple-800 dark:text-purple-200 font-mono">{'{INVESTOR}'}</code>
+                                        <span className="text-purple-600 dark:text-purple-400 ml-2">- Investor</span>
+                                    </div>
+                                    <div className="bg-white/50 dark:bg-purple-900/20 p-2 rounded">
+                                        <code className="text-purple-800 dark:text-purple-200 font-mono">{'{LOKACE}'}</code>
+                                        <span className="text-purple-600 dark:text-purple-400 ml-2">- Lokace stavby</span>
+                                    </div>
+                                    <div className="bg-white/50 dark:bg-purple-900/20 p-2 rounded">
+                                        <code className="text-purple-800 dark:text-purple-200 font-mono">{'{TERMIN_DOKONCENI}'}</code>
+                                        <span className="text-purple-600 dark:text-purple-400 ml-2">- Termín dokončení</span>
+                                    </div>
+                                    <div className="bg-white/50 dark:bg-purple-900/20 p-2 rounded">
+                                        <code className="text-purple-800 dark:text-purple-200 font-mono">{'{STAVBYVEDOUCI}'}</code>
+                                        <span className="text-purple-600 dark:text-purple-400 ml-2">- Stavbyvedoucí</span>
+                                    </div>
+                                    <div className="bg-white/50 dark:bg-purple-900/20 p-2 rounded">
+                                        <code className="text-purple-800 dark:text-purple-200 font-mono">{'{SOD_CENA}'}</code>
+                                        <span className="text-purple-600 dark:text-purple-400 ml-2">- Cena SOD smlouvy</span>
+                                    </div>
+                                    <div className="bg-white/50 dark:bg-purple-900/20 p-2 rounded">
+                                        <code className="text-purple-800 dark:text-purple-200 font-mono">{'{SPLATNOST}'}</code>
+                                        <span className="text-purple-600 dark:text-purple-400 ml-2">- Splatnost faktury</span>
+                                    </div>
+                                    <div className="bg-white/50 dark:bg-purple-900/20 p-2 rounded">
+                                        <code className="text-purple-800 dark:text-purple-200 font-mono">{'{ZARUKA}'}</code>
+                                        <span className="text-purple-600 dark:text-purple-400 ml-2">- Záruční doba</span>
+                                    </div>
+                                    <div className="bg-white/50 dark:bg-purple-900/20 p-2 rounded">
+                                        <code className="text-purple-800 dark:text-purple-200 font-mono">{'{POZASTAVKA}'}</code>
+                                        <span className="text-purple-600 dark:text-purple-400 ml-2">- Pozastávka</span>
+                                    </div>
+                                    <div className="bg-white/50 dark:bg-purple-900/20 p-2 rounded">
+                                        <code className="text-purple-800 dark:text-purple-200 font-mono">{'{TECHNICKY_DOZOR}'}</code>
+                                        <span className="text-purple-600 dark:text-purple-400 ml-2">- TDI</span>
+                                    </div>
+                                </div>
+                                <p className="text-xs text-purple-600 dark:text-purple-400 mt-3 italic">
+                                    💡 Použijte mail merge funkci ve Wordu nebo skript v Google Docs pro automatické nahrazení proměnných skutečnými hodnotami.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Tips Section */}
+                    <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg">
+                        <div className="flex items-start gap-3">
+                            <span className="material-symbols-outlined text-blue-600 dark:text-blue-400 text-[20px]">lightbulb</span>
+                            <div>
+                                <h4 className="font-semibold text-blue-900 dark:text-blue-100 text-sm mb-1">Tipy pro dokumentaci</h4>
+                                <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
+                                    <li>• Použijte sdílené cloudové úložiště pro snadný přístup celého týmu</li>
+                                    <li>• Ujistěte se, že všichni relevantní členové mají přístupová práva</li>
+                                    <li>• Udržujte dokumentaci aktuální a dobře organizovanou</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 interface FinancialAnalysisTableProps {
     categories: DemandCategory[];
 }
@@ -774,12 +1058,19 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, project
                     >
                         Pipelines
                     </button>
+                    <button 
+                        onClick={() => onTabChange('documents')}
+                        className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === 'documents' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                    >
+                        Dokumenty
+                    </button>
                 </div>
             </Header>
 
             <div className="flex-1 overflow-hidden flex flex-col">
                 {activeTab === 'overview' && <ProjectOverview project={project} onUpdate={onUpdateDetails} />}
                 {activeTab === 'pipeline' && <Pipeline projectId={projectId} onAddCategory={onAddCategory} />}
+                {activeTab === 'documents' && <ProjectDocuments project={project} onUpdate={onUpdateDetails} />}
             </div>
         </div>
     );

@@ -1,7 +1,7 @@
 
 export type View = 'dashboard' | 'project' | 'contacts' | 'settings';
 
-export type ProjectTab = 'overview' | 'pipeline';
+export type ProjectTab = 'overview' | 'pipeline' | 'documents';
 
 export interface StatusConfig {
   id: string;
@@ -39,6 +39,8 @@ export interface Bid {
   subcontractorId: string;
   companyName: string;
   contactPerson: string;
+  email?: string;
+  phone?: string;
   price?: string;
   notes?: string;
   tags?: string[];
@@ -94,6 +96,10 @@ export interface ProjectDetails {
 
   // Financials
   plannedCost?: number; // Interní plánovaný náklad (Cíl)
+
+  // Documents
+  documentationLink?: string; // Link to shared project documentation
+  inquiryLetterLink?: string; // Link to inquiry letter template
 
   categories: DemandCategory[];
   contract?: ContractDetails;

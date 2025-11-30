@@ -68,7 +68,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
               <span className="material-symbols-outlined">construction</span>
             </div>
             <div className="flex flex-col overflow-hidden">
-              <h1 className="text-slate-800 dark:text-slate-200 text-base font-bold leading-normal truncate">ScaleUP CRM</h1>
+              <h1 className="text-slate-800 dark:text-slate-200 text-base font-bold leading-normal truncate">Construction CRM</h1>
               <p className="text-slate-500 dark:text-slate-400 text-xs font-normal truncate">Stavební divize</p>
             </div>
           </div>

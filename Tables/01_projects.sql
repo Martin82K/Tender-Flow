@@ -11,6 +11,8 @@ CREATE TABLE projects (
     construction_manager VARCHAR(255),
     construction_technician VARCHAR(255),
     planned_cost DECIMAL(15, 2),
+    documentation_link TEXT, -- Link to project documentation
+    inquiry_letter_link TEXT, -- Link to inquiry letter template
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

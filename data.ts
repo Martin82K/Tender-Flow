@@ -104,26 +104,26 @@ export const PROJECTS_DB: Record<string, ProjectDetails> = {
 export const INITIAL_BIDS: Record<string, Bid[]> = {
     // Project 1 - Category 1 (Omítky)
     '1': [ 
-        { id: '101', subcontractorId: 's1', companyName: 'Stavby-Praha s.r.o.', contactPerson: 'Jan Novák', price: '1.55M Kč', tags: ['Reliable'], status: 'sod' }, // Winning Bid
-        { id: '102', subcontractorId: 's2', companyName: 'Omítky Profi', contactPerson: 'Petr Rychlý', price: '1.48M Kč', tags: ['Cheapest'], status: 'offer' },
+        { id: '101', subcontractorId: 's1', companyName: 'Stavby-Praha s.r.o.', contactPerson: 'Jan Novák', email: 'jan.novak@stavbypraha.cz', phone: '603 111 222', price: '1.55M Kč', tags: ['Spolehlivý'], status: 'sod' }, // Winning Bid
+        { id: '102', subcontractorId: 's2', companyName: 'Omítky Profi', contactPerson: 'Petr Rychlý', email: 'petr.rychly@omitkyprofi.cz', phone: '777 888 999', price: '1.48M Kč', tags: ['Nejlevnější'], status: 'offer' },
         { id: '103', subcontractorId: 's3', companyName: 'Kvalitní Zdi a.s.', contactPerson: 'Alois Vomáčka', price: '-', notes: 'Odmítli pro kapacitu', status: 'rejected' },
     ],
     // Project 1 - Category 2 (Elektro)
     '2': [ 
-         { id: '201', subcontractorId: 'e1', companyName: 'El-mont s.r.o.', contactPerson: 'Martina Černá', price: '2.2M Kč', status: 'offer' },
-         { id: '202', subcontractorId: 'e2', companyName: 'VoltAmpere', contactPerson: 'Josef Blesk', price: '?', status: 'sent' },
+         { id: '201', subcontractorId: 'e1', companyName: 'El-mont s.r.o.', contactPerson: 'Martina Černá', email: 'martina@elmont.cz', phone: '604 555 666', price: '2.2M Kč', status: 'offer' },
+         { id: '202', subcontractorId: 'e2', companyName: 'VoltAmpere', contactPerson: 'Josef Blesk', email: 'blesk@voltampere.cz', phone: '720 333 444', price: '?', status: 'sent' },
     ],
     // Project 1 - Category 3 (Fasády)
     '3': [
-        { id: '301', subcontractorId: 'f1', companyName: 'Fasády Top', contactPerson: 'Karel Fasáda', price: '3.35M Kč', status: 'sod' }, // Winning Bid
+        { id: '301', subcontractorId: 'f1', companyName: 'Fasády Top', contactPerson: 'Karel Fasáda', email: 'karel@fasadytop.cz', phone: '605 777 888', price: '3.35M Kč', status: 'sod' }, // Winning Bid
     ],
     // Project 2 - Category 6 (Vzduchotechnika)
     '6': [
-        { id: '601', subcontractorId: 'ac1', companyName: 'AirFlow Systems', contactPerson: 'Tomáš Větrák', price: '4.9M Kč', status: 'shortlist' }
+        { id: '601', subcontractorId: 'ac1', companyName: 'AirFlow Systems', contactPerson: 'Tomáš Větrák', email: 'tomas@airflow.cz', phone: '730 123 123', price: '4.9M Kč', status: 'shortlist' }
     ],
     // Project 2 - Category 7 (Sklo)
     '7': [
-        { id: '701', subcontractorId: 'gl1', companyName: 'Glass & Design', contactPerson: 'Jana Sklenářová', price: '2.65M Kč', status: 'sod' } // Winning
+        { id: '701', subcontractorId: 'gl1', companyName: 'Glass & Design', contactPerson: 'Jana Sklenářová', email: 'jana@glassdesign.cz', phone: '608 999 000', price: '2.65M Kč', status: 'sod' } // Winning
     ]
 };
 
