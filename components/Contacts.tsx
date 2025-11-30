@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Header } from './Header';
 import { Subcontractor, StatusConfig } from '../types';
 import { findCompanyRegions } from '../services/geminiService';
@@ -9,10 +8,14 @@ interface ContactsProps {
     statuses: StatusConfig[];
     contacts: Subcontractor[];
     onContactsChange: (contacts: Subcontractor[]) => void;
+    onAddContact: (contact: Subcontractor) => void;
+    onUpdateContact: (contact: Subcontractor) => void;
+    onBulkUpdateContacts: (contacts: Subcontractor[]) => void;
     onDeleteContacts: (ids: string[]) => void;
+    isAdmin?: boolean;
 }
 
-export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContactsChange, onDeleteContacts }) => {
+export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContactsChange, onAddContact, onUpdateContact, onBulkUpdateContacts, onDeleteContacts, isAdmin = false }) => {
   // Selection State
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   
@@ -30,13 +33,24 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
   const [formData, setFormData] = useState<Partial<Subcontractor>>({
       company: '',
       name: '',
-      specialization: '',
+      specialization: [],
       phone: '',
       email: '',
       ico: '',
       region: '',
       status: 'available'
   });
+
+  // Keep editingContact in sync with updated contacts
+  useEffect(() => {
+      if (editingContact) {
+          const updatedContact = contacts.find(c => c.id === editingContact.id);
+          if (updatedContact) {
+              setEditingContact(updatedContact);
+              setFormData({ ...updatedContact });
+          }
+      }
+  }, [contacts, editingContact?.id]);
 
   // --- AI Handlers ---
 
@@ -64,7 +78,16 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
           }
           return c;
       });
-      onContactsChange(updatedContacts);
+      
+      // Filter only changed contacts for bulk update
+      const changedContacts = updatedContacts.filter(c => {
+          const original = contacts.find(orig => orig.id === c.id);
+          return original && original.region !== c.region;
+      });
+
+      if (changedContacts.length > 0) {
+          onBulkUpdateContacts(changedContacts);
+      }
 
       setIsRegionLoading(false);
       setSelectedIds(new Set()); // Clear selection
@@ -86,7 +109,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
       setFormData({
           company: '',
           name: '',
-          specialization: '',
+          specialization: [],
           phone: '',
           email: '',
           ico: '',
@@ -105,16 +128,12 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
   const handleSaveContact = (e: React.FormEvent) => {
       e.preventDefault();
       
-      if (!formData.company || !formData.specialization) return; // Basic validation
+      if (!formData.company || !formData.specialization || formData.specialization.length === 0) return; // Basic validation
 
       if (editingContact) {
           // Edit existing
-          const updatedContacts = contacts.map(c => c.id === editingContact.id ? { ...c, ...formData } as Subcontractor : c);
-          onContactsChange(updatedContacts);
-      } else {
-          // Add new
-          const newContact: Subcontractor = {
-              id: `new_${Date.now()}`,
+          const updatedContact: Subcontractor = {
+              id: editingContact.id,
               company: formData.company!,
               name: formData.name || '-',
               specialization: formData.specialization!,
@@ -124,22 +143,43 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
               region: formData.region || '-',
               status: formData.status || 'available'
           };
-          onContactsChange([newContact, ...contacts]);
+          onUpdateContact(updatedContact);
+      } else {
+          // Add new
+          const newContact: Subcontractor = {
+              id: crypto.randomUUID(),
+              company: formData.company!,
+              name: formData.name || '-',
+              specialization: formData.specialization!,
+              phone: formData.phone || '-',
+              email: formData.email || '-',
+              ico: formData.ico || '-',
+              region: formData.region || '-',
+              status: formData.status || 'available'
+          };
+          onAddContact(newContact);
       }
       setIsContactModalOpen(false);
   };
 
-  const handleDeleteContact = () => {
+  const handleDeleteContact = (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
       if (editingContact) {
-          if (confirm('Opravdu chcete smazat tento kontakt?')) {
-              onDeleteContacts([editingContact.id]);
-              setIsContactModalOpen(false);
-          }
+          // Use setTimeout to decouple from the click event loop
+          // This fixes issues where the confirm dialog closes immediately in some browsers
+          setTimeout(() => {
+              if (window.confirm('Opravdu chcete smazat tento kontakt?')) {
+                  onDeleteContacts([editingContact.id]);
+                  setIsContactModalOpen(false);
+              }
+          }, 100);
       }
   };
 
   // Get unique specializations for datalist (re-calculate here for the form, or export from selector? simpler to recalc)
-  const allSpecializations = Array.from(new Set(contacts.map(c => c.specialization))).sort();
+  const allSpecializations = Array.from(new Set(contacts.flatMap(c => c.specialization))).sort();
 
   return (
     <div className="flex flex-col h-full bg-background-light dark:bg-background-dark overflow-y-auto">
@@ -224,15 +264,15 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
 
                               {/* Specialization */}
                               <div className="col-span-2">
-                                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Specializace / Typ *</label>
+                                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Specializace / Typ * (oddělte čárkou)</label>
                                   <input 
                                       required
                                       type="text" 
                                       list="specializations-list"
-                                      value={formData.specialization} 
-                                      onChange={e => setFormData({...formData, specialization: e.target.value})}
+                                      value={formData.specialization?.join(', ')} 
+                                      onChange={e => setFormData({...formData, specialization: e.target.value.split(',').map(s => s.trim()).filter(Boolean)})}
                                       className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
-                                      placeholder="Např. Elektro Silnoproud"
+                                      placeholder="Např. Elektro Silnoproud, ZTI"
                                   />
                                   <datalist id="specializations-list">
                                       {allSpecializations.map(spec => (
@@ -317,7 +357,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                           </div>
                       </div>
                       
-                      <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center shrink-0">
+                        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center shrink-0">
                           {editingContact ? (
                               <button 
                                   type="button" 

@@ -1,10 +1,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { Header } from './Header';
-import { DemandCategory, Bid, BidStatus, Subcontractor } from '../types';
-import { PROJECTS_DB, INITIAL_BIDS, ALL_CONTACTS, DEFAULT_STATUSES } from '../data';
+import { DemandCategory, Bid, BidStatus, Subcontractor, ProjectDetails, StatusConfig } from '../types';
 import { SubcontractorSelector } from './SubcontractorSelector';
 import { supabase } from '../services/supabase';
+
+const DEFAULT_STATUSES: StatusConfig[] = [
+  { id: 'available', label: 'K dispozici', color: 'green' },
+  { id: 'busy', label: 'Zaneprázdněn', color: 'red' },
+  { id: 'waiting', label: 'Čeká', color: 'yellow' }
+];
 
 // --- Components ---
 
@@ -278,6 +283,9 @@ const CategoryCard: React.FC<{ category: DemandCategory, onClick: () => void }> 
 
 interface PipelineProps {
     projectId: string;
+    projectDetails: ProjectDetails;
+    bids: Record<string, Bid[]>;
+    contacts: Subcontractor[];
     onAddCategory?: (category: DemandCategory) => void;
 }
 
@@ -379,10 +387,27 @@ const CreateContactModal: React.FC<{ initialName: string, onClose: () => void, o
     );
 };
 
-export const Pipeline: React.FC<PipelineProps> = ({ projectId, onAddCategory }) => {
+export const Pipeline: React.FC<PipelineProps> = ({ projectId, projectDetails, bids: initialBids, contacts, onAddCategory }) => {
     const [activeCategory, setActiveCategory] = useState<DemandCategory | null>(null);
-    const [bids, setBids] = useState<Record<string, Bid[]>>(INITIAL_BIDS);
-    const [contacts, setContacts] = useState<Subcontractor[]>(ALL_CONTACTS);
+    const [bids, setBids] = useState<Record<string, Bid[]>>(initialBids);
+    // const [contacts, setContacts] = useState<Subcontractor[]>(ALL_CONTACTS); // Use prop directly or state if we modify it locally?
+    // The component modifies contacts (adding new ones). So we might need state, but initialized from prop.
+    // However, App.tsx manages contacts. Ideally we should call a handler to add contact in App.tsx.
+    // For now, let's keep local state initialized from prop to minimize refactor, 
+    // BUT we need to sync back or just rely on the fact that we insert to Supabase and App.tsx might reload?
+    // App.tsx doesn't auto-reload contacts on change in child.
+    // Let's use the prop for reading, but we need a way to update.
+    // The original code had `setContacts`.
+    // Let's use a local state initialized from prop for now.
+    const [localContacts, setLocalContacts] = useState<Subcontractor[]>(contacts);
+    
+    useEffect(() => {
+        setLocalContacts(contacts);
+    }, [contacts]);
+
+    useEffect(() => {
+        setBids(initialBids);
+    }, [initialBids]);
     
     // Subcontractor Selection State
     const [isSubcontractorModalOpen, setIsSubcontractorModalOpen] = useState(false);
@@ -409,7 +434,7 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, onAddCategory }) 
         setActiveCategory(null);
     }, [projectId]);
 
-    const projectData = PROJECTS_DB[projectId] || { title: 'Unknown Project', categories: [] };
+    const projectData = projectDetails;
 
     const getBidsForColumn = (categoryId: string, status: BidStatus) => {
         return (bids[categoryId] || []).filter(bid => bid.status === status);
@@ -443,7 +468,7 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, onAddCategory }) 
 
         const newBids: Bid[] = [];
         selectedSubcontractorIds.forEach(id => {
-            const contact = contacts.find(c => c.id === id);
+            const contact = localContacts.find(c => c.id === id);
             if (contact) {
                 // Check if already exists
                 const existing = (bids[activeCategory.id] || []).find(b => b.subcontractorId === contact.id);
@@ -518,7 +543,7 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, onAddCategory }) 
 
     const handleSaveNewContact = async (newContact: Subcontractor) => {
         // Optimistic update
-        setContacts(prev => [...prev, newContact]);
+        setLocalContacts(prev => [...prev, newContact]);
         setSelectedSubcontractorIds(prev => new Set(prev).add(newContact.id));
         setIsCreateContactModalOpen(false);
 
@@ -657,7 +682,7 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, onAddCategory }) 
                             
                             <div className="flex-1 overflow-hidden p-6 flex flex-col min-h-0">
                                 <SubcontractorSelector 
-                                    contacts={contacts}
+                                    contacts={localContacts}
                                     statuses={DEFAULT_STATUSES}
                                     selectedIds={selectedSubcontractorIds}
                                     onSelectionChange={setSelectedSubcontractorIds}

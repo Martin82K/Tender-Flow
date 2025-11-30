@@ -2,8 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from './Header';
 import { Pipeline } from './Pipeline';
-import { INITIAL_BIDS } from '../data';
-import { ProjectTab, ProjectDetails, ContractDetails, InvestorFinancials, DemandCategory } from '../types';
+import { ProjectTab, ProjectDetails, ContractDetails, InvestorFinancials, DemandCategory, Bid, Subcontractor } from '../types';
 
 // --- Helper Functions ---
 const parseMoney = (valueStr: string): number => {
@@ -313,9 +312,10 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
 
 interface FinancialAnalysisTableProps {
     categories: DemandCategory[];
+    bids?: Record<string, Bid[]>;
 }
 
-const FinancialAnalysisTable: React.FC<FinancialAnalysisTableProps> = ({ categories }) => {
+const FinancialAnalysisTable: React.FC<FinancialAnalysisTableProps> = ({ categories, bids = {} }) => {
     // Pre-calculate totals
     let totalSod = 0;
     let totalPlan = 0;
@@ -324,8 +324,8 @@ const FinancialAnalysisTable: React.FC<FinancialAnalysisTableProps> = ({ categor
     let totalDiffPlan = 0;
 
     const rows = categories.map(cat => {
-        const bids = INITIAL_BIDS[cat.id] || [];
-        const winningBid = bids.find(b => b.status === 'sod');
+        const catBids = bids[cat.id] || [];
+        const winningBid = catBids.find(b => b.status === 'sod');
         const subPrice = winningBid ? parseMoney(winningBid.price || '0') : 0;
         
         const diffSod = cat.sodBudget - subPrice;
@@ -532,8 +532,8 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
     let completedTasks = 0;
     
     project.categories.forEach(cat => {
-        const bids = INITIAL_BIDS[cat.id] || [];
-        const winningBid = bids.find(b => b.status === 'sod');
+        const catBids = project.bids?.[cat.id] || [];
+        const winningBid = catBids.find(b => b.status === 'sod');
         if (winningBid) {
             totalContractedCost += parseMoney(winningBid.price || '0');
             completedTasks++;
@@ -1021,7 +1021,7 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
             </div>
 
             {/* Detailed Financial Analysis Table */}
-            <FinancialAnalysisTable categories={project.categories} />
+            <FinancialAnalysisTable categories={project.categories} bids={project.bids} />
         </div>
     );
 };
@@ -1035,9 +1035,10 @@ interface ProjectLayoutProps {
     onAddCategory: (category: DemandCategory) => void;
     activeTab: ProjectTab;
     onTabChange: (tab: ProjectTab) => void;
+    contacts: Subcontractor[];
 }
 
-export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, projectDetails, onUpdateDetails, onAddCategory, activeTab, onTabChange }) => {
+export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, projectDetails, onUpdateDetails, onAddCategory, activeTab, onTabChange, contacts }) => {
     const project = projectDetails;
     
     if (!project) return <div>Project not found</div>;
@@ -1069,7 +1070,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, project
 
             <div className="flex-1 overflow-hidden flex flex-col">
                 {activeTab === 'overview' && <ProjectOverview project={project} onUpdate={onUpdateDetails} />}
-                {activeTab === 'pipeline' && <Pipeline projectId={projectId} onAddCategory={onAddCategory} />}
+                {activeTab === 'pipeline' && <Pipeline projectId={projectId} projectDetails={project} bids={project.bids || {}} contacts={contacts} onAddCategory={onAddCategory} />}
                 {activeTab === 'documents' && <ProjectDocuments project={project} onUpdate={onUpdateDetails} />}
             </div>
         </div>

@@ -8,5 +8,17 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(
   supabaseUrl || '',
-  supabaseAnonKey || ''
+  supabaseAnonKey || '',
+  {
+    auth: {
+      // Use localStorage instead of cookies to avoid Safari blocking
+      storage: window.localStorage,
+      storageKey: 'crm-auth-token',
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true,
+      // Longer session timeout (7 days)
+      flowType: 'pkce'
+    }
+  }
 );

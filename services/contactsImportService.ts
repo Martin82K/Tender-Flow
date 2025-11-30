@@ -90,10 +90,22 @@ const parseCSV = async (blob: Blob): Promise<ImportResult> => {
   return new Promise((resolve) => {
     const reader = new FileReader();
     reader.onload = (e) => {
-      const text = e.target?.result as string;
+      let text = e.target?.result as string;
+      
+      // Check for title line (no delimiters) and remove it if present
+      const lines = text.split('\n');
+      if (lines.length > 1) {
+        const firstLine = lines[0];
+        // If first line has no semicolons or commas, but second line does, assume it's a title
+        if (!firstLine.includes(';') && !firstLine.includes(',') && (lines[1].includes(';') || lines[1].includes(','))) {
+           text = lines.slice(1).join('\n');
+        }
+      }
+
       Papa.parse(text, {
         header: true,
         skipEmptyLines: true,
+        transformHeader: (h) => h.trim(), // Trim whitespace from headers (e.g. "Typ ")
         complete: (results) => {
           const contacts = parseContactsData(results.data);
           resolve({
@@ -162,17 +174,20 @@ const parseXLSX = async (blob: Blob): Promise<ImportResult> => {
  * Expected columns: Firma, Jméno, Specializace, Telefon, Email, IČO, Region
  */
 const parseContactsData = (data: any[]): Subcontractor[] => {
-  return data.map((row: any, index: number) => ({
-    id: `import_${Date.now()}_${index}`,
-    company: row['Firma'] || row['firma'] || row['Company'] || '-',
-    name: row['Jméno'] || row['jmeno'] || row['Name'] || '-',
-    specialization: row['Specializace'] || row['specializace'] || row['Specialization'] || row['Typ'] || 'Ostatní',
-    phone: row['Telefon'] || row['telefon'] || row['Phone'] || '-',
-    email: row['Email'] || row['email'] || '-',
-    ico: row['IČO'] || row['ICO'] || row['ico'] || '-',
-    region: row['Region'] || row['region'] || '-',
-    status: 'available'
-  })).filter(contact => contact.company !== '-'); // Filter out invalid rows
+  return data.map((row: any, index: number) => {
+    const spec = row['Specializace'] || row['specializace'] || row['Specialization'] || row['Typ'] || 'Ostatní';
+    return {
+      id: `import_${Date.now()}_${index}`,
+      company: row['Firma'] || row['firma'] || row['Company'] || row['Dodavatel'] || '-',
+      name: row['Jméno'] || row['jmeno'] || row['Name'] || row['Kontakt'] || '-',
+      specialization: [spec], // Store as array
+      phone: row['Telefon'] || row['telefon'] || row['Phone'] || '-',
+      email: row['Email'] || row['email'] || '-',
+      ico: row['IČO'] || row['ICO'] || row['ico'] || row['IČO (bez mezer)'] || '-',
+      region: row['Region'] || row['region'] || '-',
+      status: 'available'
+    };
+  }).filter(contact => contact.company !== '-' && contact.company !== undefined); // Filter out invalid rows
 };
 
 export interface MergeResult {
@@ -201,11 +216,15 @@ export const mergeContacts = (existingContacts: Subcontractor[], importedContact
     if (existingIndex >= 0) {
       // Update existing contact
       const existing = merged[existingIndex];
+      
+      // Merge specializations
+      const mergedSpecializations = Array.from(new Set([...existing.specialization, ...imported.specialization]));
+
       const updatedContact = {
         ...existing,
         // Update fields if they are present in import and not placeholder
         name: imported.name !== '-' ? imported.name : existing.name,
-        specialization: imported.specialization !== 'Ostatní' ? imported.specialization : existing.specialization,
+        specialization: mergedSpecializations,
         phone: imported.phone !== '-' ? imported.phone : existing.phone,
         email: imported.email !== '-' ? imported.email : existing.email,
         ico: imported.ico !== '-' ? imported.ico : existing.ico,

@@ -29,7 +29,7 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
 
   // Get unique specializations
   const specializations = useMemo(() => {
-    const specs = new Set(contacts.map((c) => c.specialization));
+    const specs = new Set(contacts.flatMap((c) => c.specialization));
     return Array.from(specs).sort();
   }, [contacts]);
 
@@ -40,11 +40,11 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
         contact.name.toLowerCase().includes(searchText.toLowerCase()) ||
         contact.company.toLowerCase().includes(searchText.toLowerCase()) ||
         contact.email.toLowerCase().includes(searchText.toLowerCase()) ||
-        contact.specialization.toLowerCase().includes(searchText.toLowerCase());
+        contact.specialization.some(s => s.toLowerCase().includes(searchText.toLowerCase()));
 
       const matchesSpec =
         filterSpecialization === "all" ||
-        contact.specialization === filterSpecialization;
+        contact.specialization.includes(filterSpecialization);
       const matchesStatus =
         filterStatus === "all" || contact.status === filterStatus;
 
@@ -300,9 +300,13 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
                       {contact.company}
                     </td>
                     <td className="px-6 py-4">
-                      <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-1 rounded text-xs whitespace-nowrap">
-                        {contact.specialization}
-                      </span>
+                      <div className="flex flex-wrap gap-1">
+                        {contact.specialization.map((spec, index) => (
+                          <span key={index} className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-1 rounded text-xs whitespace-nowrap">
+                            {spec}
+                          </span>
+                        ))}
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-slate-900 dark:text-slate-200">
                       <div className="flex items-center gap-2">

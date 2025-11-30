@@ -7,7 +7,7 @@ import { Dashboard } from './components/Dashboard';
 import { ProjectLayout } from './components/ProjectLayout';
 import { Contacts } from './components/Contacts';
 import { Settings } from './components/Settings';
-import { View, ProjectTab, Project, ProjectStatus, DemandCategory, ProjectDetails, Subcontractor, StatusConfig } from './types';
+import { View, ProjectTab, Project, ProjectStatus, DemandCategory, ProjectDetails, Subcontractor, StatusConfig, Bid } from './types';
 import { supabase } from './services/supabase';
 import { mergeContacts, syncContactsFromUrl } from './services/contactsImportService';
 
@@ -40,6 +40,8 @@ const AppContent: React.FC = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [activeProjectTab, setActiveProjectTab] = useState<ProjectTab>('overview');
   const [isDataLoading, setIsDataLoading] = useState(true);
+  const [loadingError, setLoadingError] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Dark Mode Management
   const [darkMode, setDarkMode] = useState(() => {
@@ -56,10 +58,19 @@ const AppContent: React.FC = () => {
 
   // Sync preferences from user profile
   useEffect(() => {
+    console.log('[App.tsx] User preferences changed:', user?.preferences);
     if (user?.preferences) {
+      console.log('[App.tsx] Applying preferences:', {
+        darkMode: user.preferences.darkMode,
+        primaryColor: user.preferences.primaryColor,
+        backgroundColor: user.preferences.backgroundColor
+      });
       setDarkMode(user.preferences.darkMode);
       setPrimaryColor(user.preferences.primaryColor);
       setBackgroundColor(user.preferences.backgroundColor);
+      console.log('[App.tsx] Preferences applied successfully');
+    } else {
+      console.log('[App.tsx] No user preferences to apply');
     }
   }, [user]);
 
@@ -83,15 +94,48 @@ const AppContent: React.FC = () => {
 
   // Load data from Supabase on mount
   useEffect(() => {
-    if (isAuthenticated) {
-      loadInitialData();
-    }
-  }, [isAuthenticated]);
+    let mounted = true;
+    let timeoutId: NodeJS.Timeout;
+
+    const load = async () => {
+        if (isAuthenticated) {
+            // Set a timeout to detect hanging
+            timeoutId = setTimeout(() => {
+                if (mounted && isDataLoading) {
+                    setLoadingError('Načítání dat trvá příliš dlouho. Zkontrolujte připojení k internetu nebo zkuste stránku obnovit.');
+                    setIsDataLoading(false);
+                }
+            }, 15000); // 15 seconds timeout
+
+            await loadInitialData();
+            
+            if (mounted) clearTimeout(timeoutId);
+        } else if (!authLoading) {
+            setIsDataLoading(false);
+        }
+    };
+
+    load();
+
+    return () => {
+        mounted = false;
+        if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [isAuthenticated, authLoading]);
 
   const loadInitialData = async () => {
     setIsDataLoading(true);
+    setLoadingError(null);
+    console.log('Starting loadInitialData...');
     try {
       // Load projects
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+          // Hardcoded Admin Check
+          setIsAdmin(session.user.email === 'martinkalkus82@gmail.com');
+      }
+
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
         .select('*')
@@ -187,6 +231,61 @@ const AppContent: React.FC = () => {
 
       setAllProjectDetails(detailsMap);
 
+      // Load all bids
+      const { data: bidsData } = await supabase
+        .from('bids')
+        .select('*');
+
+      // Distribute bids to projects
+      if (bidsData) {
+        const bidsByProject: Record<string, Record<string, Bid[]>> = {};
+        
+        // We need to map bids to projects via categories. 
+        // Since we don't have a direct link in the bids table (it links to demand_categories),
+        // we need to know which project a category belongs to.
+        // We already loaded categories for each project in the loop above.
+        
+        // Create a map of categoryId -> projectId
+        const categoryProjectMap: Record<string, string> = {};
+        Object.entries(detailsMap).forEach(([projectId, details]) => {
+            details.categories.forEach(cat => {
+                categoryProjectMap[cat.id] = projectId;
+            });
+        });
+
+        bidsData.forEach(bid => {
+            const projectId = categoryProjectMap[bid.demand_category_id];
+            if (projectId) {
+                if (!bidsByProject[projectId]) bidsByProject[projectId] = {};
+                if (!bidsByProject[projectId][bid.demand_category_id]) bidsByProject[projectId][bid.demand_category_id] = [];
+                
+                bidsByProject[projectId][bid.demand_category_id].push({
+                    id: bid.id,
+                    subcontractorId: bid.subcontractor_id,
+                    companyName: bid.company_name,
+                    contactPerson: bid.contact_person,
+                    email: bid.email,
+                    phone: bid.phone,
+                    price: bid.price,
+                    notes: bid.notes,
+                    tags: bid.tags,
+                    status: bid.status
+                });
+            }
+        });
+
+        // Update project details with bids
+        setAllProjectDetails(prev => {
+            const next = { ...prev };
+            Object.keys(next).forEach(pid => {
+                if (bidsByProject[pid]) {
+                    next[pid] = { ...next[pid], bids: bidsByProject[pid] };
+                }
+            });
+            return next;
+        });
+      }
+
       // Load all subcontractors
       const { data: subcontractorsData, error: subcontractorsError } = await supabase
         .from('subcontractors')
@@ -222,9 +321,11 @@ const AppContent: React.FC = () => {
     setActiveProjectTab('overview');
   };
 
-  const handleAddProject = (newProject: Project) => {
-    setProjects(prev => [...prev, newProject]);
-    // Also initialize details for the new project
+  const handleAddProject = async (newProject: Project) => {
+    // Optimistic update
+    setProjects(prev => [newProject, ...prev]);
+    
+    // Initialize details
     setAllProjectDetails(prev => ({
       ...prev,
       [newProject.id]: {
@@ -248,20 +349,66 @@ const AppContent: React.FC = () => {
         investorFinancials: {
           sodPrice: 0,
           amendments: []
-        }
+        },
+        bids: {}
       }
     }));
+
+    // Persist to Supabase
+    try {
+        const { error } = await supabase
+            .from('projects')
+            .insert({
+                id: newProject.id,
+                name: newProject.name,
+                location: newProject.location,
+                status: newProject.status
+            });
+        
+        if (error) {
+            console.error('Error creating project:', error);
+            // Revert optimistic update?
+        }
+    } catch (err) {
+        console.error('Unexpected error creating project:', err);
+    }
   };
 
-  const handleDeleteProject = (id: string) => {
+  const handleDeleteProject = async (id: string) => {
+    // Optimistic update
     setProjects(prev => prev.filter(p => p.id !== id));
     if (selectedProjectId === id) {
       setCurrentView('dashboard');
     }
+
+    // Persist to Supabase
+    try {
+        const { error } = await supabase
+            .from('projects')
+            .delete()
+            .eq('id', id);
+        
+        if (error) console.error('Error deleting project:', error);
+    } catch (err) {
+        console.error('Unexpected error deleting project:', err);
+    }
   };
 
-  const handleArchiveProject = (id: string) => {
+  const handleArchiveProject = async (id: string) => {
+    // Optimistic update
     setProjects(prev => prev.map(p => p.id === id ? { ...p, status: 'archived' } : p));
+
+    // Persist to Supabase
+    try {
+        const { error } = await supabase
+            .from('projects')
+            .update({ status: 'archived' })
+            .eq('id', id);
+        
+        if (error) console.error('Error archiving project:', error);
+    } catch (err) {
+        console.error('Unexpected error archiving project:', err);
+    }
   };
 
   const handleUpdateProjectDetails = async (id: string, updates: Partial<ProjectDetails>) => {
@@ -382,37 +529,57 @@ const AppContent: React.FC = () => {
   }
 };
 
-  const handleImportContacts = async (newContacts: Subcontractor[]) => {
+  const handleImportContacts = async (newContacts: Subcontractor[], onProgress?: (percent: number) => void) => {
     // Use the merge logic from service
     const { mergedContacts, added, updated, addedCount, updatedCount } = mergeContacts(contacts, newContacts);
 
     // Optimistic update
     setContacts(mergedContacts);
 
+    const totalOps = (added.length > 0 ? 1 : 0) + updated.length; // 1 batch insert + N updates
+    let completedOps = 0;
+    
+    const reportProgress = () => {
+        if (onProgress && totalOps > 0) {
+            onProgress(Math.round((completedOps / totalOps) * 100));
+        }
+    };
+
     // Persist to Supabase
     try {
+      console.log('Starting contact import persistence...', { addedCount: added.length, updatedCount: updated.length });
+
       // 1. Insert new contacts
       if (added.length > 0) {
-        const { error: insertError } = await supabase
-          .from('subcontractors')
-          .insert(added.map(c => ({
+        const payload = added.map(c => ({
             id: c.id,
-            company_name: c.company,
-            contact_person_name: c.name,
+            company_name: c.company.substring(0, 255),
+            contact_person_name: c.name.substring(0, 255),
             specialization: c.specialization,
-            phone: c.phone,
-            email: c.email,
-            ico: c.ico,
-            region: c.region,
+            phone: c.phone.substring(0, 50),
+            email: c.email.substring(0, 255),
+            ico: c.ico.substring(0, 50),
+            region: c.region.substring(0, 100),
             status_id: c.status
-          })));
+        }));
+        console.log('Inserting payload:', payload);
+
+        const { data, error: insertError } = await supabase
+          .from('subcontractors')
+          .insert(payload)
+          .select();
         
-        if (insertError) console.error('Error inserting contacts:', insertError);
+        if (insertError) {
+            console.error('Error inserting contacts:', insertError);
+            alert(`Chyba při vkládání kontaktů: ${insertError.message}`);
+        } else {
+            console.log('Successfully inserted contacts:', data);
+            completedOps++;
+            reportProgress();
+        }
       }
 
-      // 2. Update existing contacts (one by one for now, or use upsert if we had clean IDs)
-      // Since we matched by name, IDs might match or not. 
-      // Actually, mergeContacts preserves IDs for existing contacts.
+      // 2. Update existing contacts
       if (updated.length > 0) {
         for (const contact of updated) {
           const { error: updateError } = await supabase
@@ -425,19 +592,24 @@ const AppContent: React.FC = () => {
               email: contact.email,
               ico: contact.ico,
               region: contact.region,
-              // status_id: contact.status // Status is preserved in merge, but we can update it if needed. Merge logic says preserve.
             })
             .eq('id', contact.id);
             
-          if (updateError) console.error(`Error updating contact ${contact.company}:`, updateError);
+          if (updateError) {
+              console.error(`Error updating contact ${contact.company}:`, updateError);
+          } else {
+              completedOps++;
+              reportProgress();
+          }
         }
       }
 
+      console.log('Import persistence completed.');
       alert(`Synchronizace dokončena:\n- Přidáno nových: ${addedCount}\n- Aktualizováno: ${updatedCount}`);
 
-    } catch (error) {
-      console.error('Error persisting contacts:', error);
-      alert('Chyba při ukládání kontaktů do databáze.');
+    } catch (error: any) {
+      console.error('Unexpected error persisting contacts:', error);
+      alert(`Neočekávaná chyba při ukládání: ${error.message || error}`);
     }
   };
 
@@ -456,20 +628,131 @@ const AppContent: React.FC = () => {
       if (error) {
         console.error('Error deleting contacts:', error);
         alert('Chyba při mazání kontaktů z databáze.');
-        // Revert optimistic update if needed (complex, maybe just reload)
-        loadInitialData();
+        // Revert optimistic update by reloading contacts from DB
+        const { data } = await supabase.from('subcontractors').select('*');
+        if (data) {
+          setContacts(data.map(row => ({
+            id: row.id,
+            company: row.company_name,
+            name: row.contact_person_name,
+            specialization: row.specialization || [],
+            phone: row.phone,
+            email: row.email,
+            ico: row.ico,
+            region: row.region,
+            status: row.status_id
+          })));
+        }
       }
     } catch (error) {
       console.error('Unexpected error deleting contacts:', error);
     }
   };
 
-  const handleSyncContacts = async (url: string) => {
-    setIsDataLoading(true);
+  const handleAddContact = async (contact: Subcontractor) => {
+      // Optimistic update
+      setContacts(prev => [contact, ...prev]);
+
+      try {
+          const { error } = await supabase
+              .from('subcontractors')
+              .insert({
+                  id: contact.id,
+                  company_name: contact.company,
+                  contact_person_name: contact.name,
+                  specialization: contact.specialization,
+                  phone: contact.phone,
+                  email: contact.email,
+                  ico: contact.ico,
+                  region: contact.region,
+                  status_id: contact.status
+              });
+          
+          if (error) {
+              console.error('Error adding contact:', error);
+              alert('Chyba při přidávání kontaktu do databáze.');
+              loadInitialData(); // Revert
+          }
+      } catch (err) {
+          console.error('Unexpected error adding contact:', err);
+      }
+  };
+
+  const handleUpdateContact = async (contact: Subcontractor) => {
+      // Optimistic update
+      setContacts(prev => prev.map(c => c.id === contact.id ? contact : c));
+
+      try {
+          const { error } = await supabase
+              .from('subcontractors')
+              .update({
+                  company_name: contact.company,
+                  contact_person_name: contact.name,
+                  specialization: contact.specialization,
+                  phone: contact.phone,
+                  email: contact.email,
+                  ico: contact.ico,
+                  region: contact.region,
+                  status_id: contact.status
+              })
+              .eq('id', contact.id);
+          
+          if (error) {
+              console.error('Error updating contact:', error);
+              alert('Chyba při aktualizaci kontaktu v databázi.');
+              loadInitialData(); // Revert
+          }
+      } catch (err) {
+          console.error('Unexpected error updating contact:', err);
+      }
+  };
+
+  const handleBulkUpdateContacts = async (updatedContacts: Subcontractor[]) => {
+      // Optimistic update
+      setContacts(prev => {
+          const newContacts = [...prev];
+          updatedContacts.forEach(updated => {
+              const index = newContacts.findIndex(c => c.id === updated.id);
+              if (index !== -1) {
+                  newContacts[index] = updated;
+              }
+          });
+          return newContacts;
+      });
+
+      try {
+          // Process updates in parallel
+          const updates = updatedContacts.map(contact => 
+              supabase
+                  .from('subcontractors')
+                  .update({
+                      company_name: contact.company,
+                      contact_person_name: contact.name,
+                      specialization: contact.specialization,
+                      phone: contact.phone,
+                      email: contact.email,
+                      ico: contact.ico,
+                      region: contact.region,
+                      status_id: contact.status
+                  })
+                  .eq('id', contact.id)
+          );
+
+          await Promise.all(updates);
+      } catch (err) {
+          console.error('Unexpected error bulk updating contacts:', err);
+          alert('Chyba při hromadné aktualizaci kontaktů.');
+          loadInitialData(); // Revert
+      }
+  };
+
+  const handleSyncContacts = async (url: string, onProgress?: (percent: number) => void) => {
+    // We don't want to block the UI with a global loading screen anymore
+    // setIsDataLoading(true); 
     try {
       const result = await syncContactsFromUrl(url);
       if (result.success) {
-        await handleImportContacts(result.contacts);
+        await handleImportContacts(result.contacts, onProgress);
       } else {
         alert(`Chyba synchronizace: ${result.error}`);
       }
@@ -477,7 +760,7 @@ const AppContent: React.FC = () => {
       console.error('Sync error:', error);
       alert('Nepodařilo se synchronizovat kontakty.');
     } finally {
-      setIsDataLoading(false);
+      // setIsDataLoading(false);
     }
   };
 
@@ -494,6 +777,7 @@ const AppContent: React.FC = () => {
             onAddCategory={(category) => handleAddCategory(selectedProjectId, category)}
             activeTab={activeProjectTab}
             onTabChange={setActiveProjectTab}
+            contacts={contacts}
           />
         );
       case 'contacts':
@@ -502,28 +786,22 @@ const AppContent: React.FC = () => {
             statuses={contactStatuses} 
             contacts={contacts} 
             onContactsChange={setContacts}
+            onAddContact={handleAddContact}
+            onUpdateContact={handleUpdateContact}
+            onBulkUpdateContacts={handleBulkUpdateContacts}
             onDeleteContacts={handleDeleteContacts}
+            isAdmin={isAdmin}
           />
         );
       case 'settings':
         return (
           <Settings 
-            darkMode={darkMode} 
-            onToggleDarkMode={() => {
-              const newMode = !darkMode;
-              setDarkMode(newMode);
-              if (user) updatePreferences({ darkMode: newMode });
-            }}
+            darkMode={darkMode}
+            onToggleDarkMode={() => setDarkMode(!darkMode)}
             primaryColor={primaryColor}
-            onSetPrimaryColor={(color) => {
-              setPrimaryColor(color);
-              if (user) updatePreferences({ primaryColor: color });
-            }}
+            onSetPrimaryColor={setPrimaryColor}
             backgroundColor={backgroundColor}
-            onSetBackgroundColor={(color) => {
-              setBackgroundColor(color);
-              if (user) updatePreferences({ backgroundColor: color });
-            }}
+            onSetBackgroundColor={setBackgroundColor}
             projects={projects}
             onAddProject={handleAddProject}
             onDeleteProject={handleDeleteProject}
@@ -534,6 +812,18 @@ const AppContent: React.FC = () => {
             onSyncContacts={handleSyncContacts}
             onDeleteContacts={handleDeleteContacts}
             contacts={contacts}
+            isAdmin={isAdmin}
+            onSaveSettings={() => {
+                if (user) {
+                    updatePreferences({ 
+                        darkMode, 
+                        primaryColor, 
+                        backgroundColor 
+                    });
+                    alert('Nastavení vzhledu bylo uloženo.');
+                }
+            }}
+            user={user}
           />
         );
       default:
@@ -542,7 +832,38 @@ const AppContent: React.FC = () => {
   };
 
   if (authLoading || isDataLoading) {
-    return <div className="flex items-center justify-center h-screen bg-gray-900 text-white">Loading...</div>;
+    return (
+        <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-white gap-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+            <p>Načítám aplikaci... {authLoading ? '(Ověřování)' : ''} {isDataLoading ? '(Data)' : ''}</p>
+        </div>
+    );
+  }
+
+  if (loadingError) {
+      return (
+          <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-white gap-6 p-4 text-center">
+              <div className="text-red-500 text-5xl">
+                  <span className="material-symbols-outlined text-6xl">error</span>
+              </div>
+              <h1 className="text-2xl font-bold">Chyba při načítání</h1>
+              <p className="text-gray-400 max-w-md">{loadingError}</p>
+              <div className="flex gap-4">
+                  <button 
+                      onClick={() => window.location.reload()} 
+                      className="px-6 py-2 bg-primary hover:bg-primary/90 rounded-lg font-bold transition-colors"
+                  >
+                      Obnovit stránku
+                  </button>
+                  <button 
+                      onClick={() => supabase.auth.signOut().then(() => window.location.reload())} 
+                      className="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg font-bold transition-colors"
+                  >
+                      Odhlásit se
+                  </button>
+              </div>
+          </div>
+      );
   }
 
   if (!isAuthenticated) {

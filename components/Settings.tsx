@@ -16,9 +16,13 @@ interface SettingsProps {
     onArchiveProject: (id: string) => void;
     contactStatuses: StatusConfig[];
     onUpdateStatuses: (statuses: StatusConfig[]) => void;
-    onSyncContacts: (url: string) => Promise<void>;
+    onImportContacts: (contacts: Subcontractor[], onProgress?: (percent: number) => void) => Promise<void>;
+    onSyncContacts: (url: string, onProgress?: (percent: number) => void) => Promise<void>;
     onDeleteContacts: (ids: string[]) => void;
     contacts: Subcontractor[];
+    isAdmin?: boolean;
+    onSaveSettings: () => void;
+    user?: any; // Add user prop for debug
 }
 
 export const Settings: React.FC<SettingsProps> = ({ 
@@ -37,7 +41,10 @@ export const Settings: React.FC<SettingsProps> = ({
     onImportContacts,
     onSyncContacts,
     onDeleteContacts,
-    contacts
+    contacts,
+    isAdmin = false,
+    onSaveSettings,
+    user
 }) => {
     // Project Form State
     const [newProjectName, setNewProjectName] = useState('');
@@ -51,6 +58,8 @@ export const Settings: React.FC<SettingsProps> = ({
     // Import State
     const [importedContacts, setImportedContacts] = useState<Subcontractor[]>([]);
     const [fileName, setFileName] = useState('');
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [isUploading, setIsUploading] = useState(false);
     
     // Auto-Sync State
     const [importUrl, setImportUrl] = useState(() => localStorage.getItem('contactsImportUrl') || '');
@@ -71,8 +80,9 @@ export const Settings: React.FC<SettingsProps> = ({
         }
         
         setIsSyncing(true);
+        setUploadProgress(0);
         try {
-            await onSyncContacts(importUrl);
+            await onSyncContacts(importUrl, (p) => setUploadProgress(p));
             const now = new Date().toLocaleString('cs-CZ');
             setLastSyncTime(now);
             localStorage.setItem('contactsLastSyncTime', now);
@@ -80,6 +90,7 @@ export const Settings: React.FC<SettingsProps> = ({
             console.error('Sync failed:', error);
         } finally {
             setIsSyncing(false);
+            setUploadProgress(0);
         }
     };
 
@@ -204,7 +215,7 @@ export const Settings: React.FC<SettingsProps> = ({
                     id: `imp_${Date.now()}_${i}`,
                     company: cols[0] || 'Neznámá firma',
                     name: cols[1] || '-',
-                    specialization: cols[2] || 'Ostatní',
+                    specialization: [cols[2] || 'Ostatní'], // Changed to array
                     phone: cols[3] || '-',
                     email: cols[4] || '-',
                     ico: cols[5] || '-',
@@ -216,11 +227,20 @@ export const Settings: React.FC<SettingsProps> = ({
         setImportedContacts(parsed);
     };
 
-    const handleConfirmImport = () => {
+    const handleConfirmImport = async () => {
         if (importedContacts.length > 0) {
-            onImportContacts(importedContacts);
-            setImportedContacts([]);
-            setFileName('');
+            setIsUploading(true);
+            setUploadProgress(0);
+            try {
+                await onImportContacts(importedContacts, (percent) => setUploadProgress(percent));
+                setImportedContacts([]);
+                setFileName('');
+            } catch (error) {
+                console.error("Import failed", error);
+            } finally {
+                setIsUploading(false);
+                setUploadProgress(0);
+            }
         }
     };
 
@@ -230,6 +250,20 @@ export const Settings: React.FC<SettingsProps> = ({
 
             <div className="p-6 lg:p-10 max-w-4xl mx-auto w-full flex flex-col gap-8 pb-20">
                 
+                {/* Debug Info */}
+                {isAdmin && (
+                    <div className="bg-slate-800 text-green-400 p-4 rounded-lg font-mono text-xs overflow-auto">
+                        <h3 className="font-bold text-white mb-2">Debug Info</h3>
+                        <pre>{JSON.stringify({ 
+                            darkMode, 
+                            primaryColor, 
+                            backgroundColor,
+                            userPreferences: user?.preferences
+                        }, null, 2)}</pre>
+                        <p className="mt-2 text-white">Check console for full logs.</p>
+                    </div>
+                )}
+
                 {/* 1. Appearance Section */}
                 <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
@@ -316,6 +350,16 @@ export const Settings: React.FC<SettingsProps> = ({
                             </div>
                         </div>
                     </div>
+                    
+                    <div className="mt-6 flex justify-end border-t border-slate-100 dark:border-slate-800 pt-4">
+                        <button 
+                            onClick={onSaveSettings}
+                            className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-2.5 rounded-lg font-bold shadow-sm transition-all hover:scale-105 active:scale-95"
+                        >
+                            <span className="material-symbols-outlined">save</span>
+                            Uložit nastavení vzhledu
+                        </button>
+                    </div>
                 </section>
 
                 {/* 2. Subcontractor Status Management */}
@@ -400,14 +444,16 @@ export const Settings: React.FC<SettingsProps> = ({
                             <span className="material-symbols-outlined">upload_file</span>
                             Import Kontaktů
                         </h2>
-                        <button 
-                            onClick={handleDeleteAllContacts}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1"
-                            title="Smazat všechny kontakty z databáze"
-                        >
-                            <span className="material-symbols-outlined text-[16px]">delete_forever</span>
-                            Smazat vše
-                        </button>
+                        {isAdmin && (
+                            <button 
+                                onClick={handleDeleteAllContacts}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1"
+                                title="Smazat všechny kontakty z databáze"
+                            >
+                                <span className="material-symbols-outlined text-[16px]">delete_forever</span>
+                                Smazat vše
+                            </button>
+                        )}
                     </div>
                     
                     {/* Auto-Sync from URL */}
@@ -454,6 +500,20 @@ export const Settings: React.FC<SettingsProps> = ({
                                         </button>
                                     </div>
                                     
+                                    {isSyncing && (
+                                        <div className="flex items-center gap-4 mt-2">
+                                            <div className="flex-1 h-2 bg-purple-200 dark:bg-purple-900/50 rounded-full overflow-hidden">
+                                                <div 
+                                                    className="h-full bg-purple-600 transition-all duration-300 ease-out"
+                                                    style={{ width: `${uploadProgress}%` }}
+                                                />
+                                            </div>
+                                            <span className="text-sm font-bold text-purple-700 dark:text-purple-300 whitespace-nowrap">
+                                                {uploadProgress}%
+                                            </span>
+                                        </div>
+                                    )}
+
                                     <p className="text-xs text-purple-600 dark:text-purple-400 italic">
                                         💡 Poslední synchronizace: {lastSyncTime || 'Ještě nebyla provedena'}
                                     </p>
@@ -481,7 +541,7 @@ export const Settings: React.FC<SettingsProps> = ({
                                 <input type="file" accept=".csv" onChange={handleFileChange} className="hidden" />
                             </label>
                             
-                            {importedContacts.length > 0 && (
+                            {importedContacts.length > 0 && !isUploading && (
                                 <div className="flex items-center gap-4 flex-1">
                                     <span className="text-sm font-medium text-green-600">
                                         Nalezeno {importedContacts.length} kontaktů
@@ -492,6 +552,20 @@ export const Settings: React.FC<SettingsProps> = ({
                                     >
                                         Importovat do databáze
                                     </button>
+                                </div>
+                            )}
+
+                            {isUploading && (
+                                <div className="flex-1 flex items-center gap-4">
+                                    <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                        <div 
+                                            className="h-full bg-primary transition-all duration-300 ease-out"
+                                            style={{ width: `${uploadProgress}%` }}
+                                        />
+                                    </div>
+                                    <span className="text-sm font-bold text-primary whitespace-nowrap">
+                                        {uploadProgress}%
+                                    </span>
                                 </div>
                             )}
                         </div>

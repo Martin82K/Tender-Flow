@@ -14,19 +14,58 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+import { supabase } from '../services/supabase';
+
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
+        // Check active session
         const initAuth = async () => {
-            const currentUser = authService.getCurrentUser();
-            if (currentUser) {
+            console.log('AuthContext: Initializing...');
+            let timeoutId: NodeJS.Timeout;
+
+            try {
+                // Create a promise that rejects after 5 seconds
+                const timeoutPromise = new Promise((_, reject) => {
+                    timeoutId = setTimeout(() => reject(new Error('Auth check timed out')), 5000);
+                });
+
+                // Race the auth check against the timeout
+                const currentUser = await Promise.race([
+                    authService.getCurrentUser(),
+                    timeoutPromise
+                ]) as User | null;
+
+                console.log('AuthContext: User loaded', currentUser?.email);
                 setUser(currentUser);
+            } catch (error) {
+                console.error('Error loading user:', error);
+                // If auth fails/timeouts, we assume not logged in, but we stop loading
+                setUser(null);
+            } finally {
+                if (timeoutId!) clearTimeout(timeoutId);
+                setIsLoading(false);
+                console.log('AuthContext: Loading finished');
             }
-            setIsLoading(false);
         };
+
         initAuth();
+
+        // Listen for auth changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                const currentUser = await authService.getCurrentUser();
+                setUser(currentUser);
+            } else if (event === 'SIGNED_OUT') {
+                setUser(null);
+            }
+        });
+
+        return () => {
+            subscription.unsubscribe();
+        };
     }, []);
 
     const login = async (email: string, password: string) => {
@@ -41,8 +80,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const register = async (name: string, email: string, password: string) => {
         try {
-            // Password is ignored in mock service but would be sent to API
-            const user = await authService.register(name, email);
+            const user = await authService.register(name, email, password);
             setUser(user);
         } catch (error) {
             console.error('Registration failed', error);
@@ -59,8 +97,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     };
 
-    const logout = () => {
-        authService.logout();
+    const logout = async () => {
+        await authService.logout();
         setUser(null);
     };
 

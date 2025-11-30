@@ -13,7 +13,7 @@ export interface Subcontractor {
   id: string;
   name: string; // Contact Person (Jméno)
   company: string; // Supplier (Dodavatel)
-  specialization: string; // Type (Typ)
+  specialization: string[]; // Type (Typ)
   phone: string;
   email: string;
   ico?: string; // IČ
@@ -104,6 +104,7 @@ export interface ProjectDetails {
   categories: DemandCategory[];
   contract?: ContractDetails;
   investorFinancials?: InvestorFinancials;
+  bids?: Record<string, Bid[]>;
 }
 
 export interface UserPreferences {
