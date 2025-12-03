@@ -11,7 +11,7 @@ export function generateInquiryEmail(
   const subject = `Poptávka - ${category.title} - ${project.title}`;
   
   // Basic template with dynamic variables
-  const template = `Dobrý den,
+  let template = `Dobrý den,
 
 obracíme se na Vás s poptávkou subdodávky pro stavbu ${project.title}.
 
@@ -35,10 +35,18 @@ ${project.contract ? `- Splatnost: ${project.contract.maturity} dnů
 - Zařízení staveniště: ${project.contract.siteFacilities}%` : ''}${project.contract.insurance ? `
 - Pojištění: ${project.contract.insurance}%` : ''}` : '- Budou specifikovány v SOD'}
 
+ODKAZ NA DOKUMENTACI:
+${project.documentationLink || 'Odkaz bude upřesněn.'}
+
 Prosíme o zaslání cenové nabídky do [DATUM].
 
 S pozdravem,
 ${project.siteManager}`;
+
+  // Replace dynamic variables if custom template is used (this is a placeholder for future custom template logic)
+  // For now, we just ensure the default template has the link. 
+  // If we were loading a custom template string, we would do:
+  // template = template.replace('{{odkaz_dokumentace}}', project.documentationLink || '');
 
   return {
     subject,

@@ -93,11 +93,16 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                         </div>
                     </div>
 
-                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-6 border border-slate-200 dark:border-slate-700">
+                    <div className={`rounded-lg p-6 border transition-colors ${hasDocsLink ? 'bg-green-50/50 dark:bg-green-900/10 border-green-200 dark:border-green-800' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'}`}>
                         <div className="flex justify-between items-start mb-4">
                             <div className="flex items-center gap-2">
                                 <span className="material-symbols-outlined text-slate-400">link</span>
                                 <h3 className="font-semibold text-slate-900 dark:text-white">Odkaz na dokumentaci</h3>
+                                {hasDocsLink && (
+                                    <span className="ml-2 px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-[10px] font-bold uppercase rounded-full border border-green-200 dark:border-green-800">
+                                        Nastaveno
+                                    </span>
+                                )}
                             </div>
                             {!isEditingDocs ? (
                                 <button 
@@ -174,11 +179,16 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                     </div>
 
                     {/* Inquiry Letter Section */}
-                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-6 border border-slate-200 dark:border-slate-700 mt-6">
+                    <div className={`rounded-lg p-6 border mt-6 transition-colors ${hasLetterLink ? 'bg-green-50/50 dark:bg-green-900/10 border-green-200 dark:border-green-800' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'}`}>
                         <div className="flex justify-between items-start mb-4">
                             <div className="flex items-center gap-2">
                                 <span className="material-symbols-outlined text-slate-400">mail</span>
                                 <h3 className="font-semibold text-slate-900 dark:text-white">Poptávkový dopis (šablona)</h3>
+                                {hasLetterLink && (
+                                    <span className="ml-2 px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-[10px] font-bold uppercase rounded-full border border-green-200 dark:border-green-800">
+                                        Nastaveno
+                                    </span>
+                                )}
                             </div>
                             {!isEditingLetter ? (
                                 <button 
@@ -392,6 +402,11 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                     <div className="bg-white/50 dark:bg-purple-900/20 p-2 rounded">
                                         <code className="text-purple-800 dark:text-purple-200 font-mono">{'{TECHNICKY_DOZOR}'}</code>
                                         <span className="text-purple-600 dark:text-purple-400 ml-2">- TDI</span>
+                                    </div>
+
+                                    <div className="bg-white/50 dark:bg-purple-900/20 p-2 rounded">
+                                        <code className="text-purple-800 dark:text-purple-200 font-mono">{'{ODKAZ_DOKUMENTACE}'}</code>
+                                        <span className="text-purple-600 dark:text-purple-400 ml-2">- Odkaz na dokumentaci</span>
                                     </div>
                                 </div>
                                 <p className="text-xs text-purple-600 dark:text-purple-400 mt-3 italic">

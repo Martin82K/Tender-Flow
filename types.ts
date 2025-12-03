@@ -38,6 +38,7 @@ export interface DemandCategory {
   subcontractorCount: number;
   description: string;
   documents?: DemandDocument[];
+  deadline?: string; // Termín pro podání nabídky (ISO date string)
 }
 
 export type BidStatus = 'contacted' | "sent" | "offer" | "shortlist" | "sod" | "rejected";

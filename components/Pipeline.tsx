@@ -1,11 +1,13 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Header } from './Header';
 import { DemandCategory, Bid, BidStatus, Subcontractor, ProjectDetails, StatusConfig, DemandDocument } from '../types';
 import { SubcontractorSelector } from './SubcontractorSelector';
 import { supabase } from '../services/supabase';
 import { uploadDocument, formatFileSize } from '../services/documentService';
 import { generateInquiryEmail, createMailtoLink } from '../services/inquiryService';
+import { exportToXLSX, exportToMarkdown, exportToPDF } from '../services/exportService';
 
 const DEFAULT_STATUSES: StatusConfig[] = [
   { id: 'available', label: 'K dispozici', color: 'green' },
@@ -237,7 +239,7 @@ const BidCard: React.FC<{ bid: Bid, onClick?: () => void, onDragStart: (e: React
     )
 }
 
-const CategoryCard: React.FC<{ category: DemandCategory, onClick: () => void }> = ({ category, onClick }) => {
+const CategoryCard: React.FC<{ category: DemandCategory, onClick: () => void, onEdit?: (category: DemandCategory) => void, onDelete?: (categoryId: string) => void }> = ({ category, onClick, onEdit, onDelete }) => {
     const statusColors = {
         open: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200',
         negotiating: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200',
@@ -264,6 +266,28 @@ const CategoryCard: React.FC<{ category: DemandCategory, onClick: () => void }> 
         <button onClick={onClick} className="flex flex-col text-left bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 hover:shadow-lg hover:border-primary/50 transition-all group relative overflow-hidden h-full">
             <div className="absolute top-0 left-0 w-1 h-full bg-primary opacity-0 group-hover:opacity-100 transition-opacity"></div>
             
+            {/* Action buttons */}
+            <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                {onEdit && (
+                    <button
+                        onClick={(e) => { e.stopPropagation(); onEdit(category); }}
+                        className="p-1.5 bg-blue-100 dark:bg-blue-900/40 hover:bg-blue-200 dark:hover:bg-blue-900/60 rounded-lg transition-colors"
+                        title="Upravit"
+                    >
+                        <span className="material-symbols-outlined text-[16px] text-blue-700 dark:text-blue-200">edit</span>
+                    </button>
+                )}
+                {onDelete && (
+                    <button
+                        onClick={(e) => { e.stopPropagation(); onDelete(category.id); }}
+                        className="p-1.5 bg-red-100 dark:bg-red-900/40 hover:bg-red-200 dark:hover:bg-red-900/60 rounded-lg transition-colors"
+                        title="Smazat"
+                    >
+                        <span className="material-symbols-outlined text-[16px] text-red-700 dark:text-red-200">delete</span>
+                    </button>
+                )}
+            </div>
+            
             <div className="flex justify-between w-full items-start mb-2">
                 <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-full ${statusColors[status]}`}>
                     {statusLabels[status]}
@@ -272,6 +296,31 @@ const CategoryCard: React.FC<{ category: DemandCategory, onClick: () => void }> 
             </div>
 
             <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">{category.title}</h3>
+            
+            {category.deadline && (() => {
+                const deadlineDate = new Date(category.deadline);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const daysUntil = Math.ceil((deadlineDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                const isOverdue = daysUntil < 0;
+                const isUrgent = daysUntil >= 0 && daysUntil <= 7;
+                
+                const colorClass = isOverdue 
+                    ? 'text-red-600 dark:text-red-400' 
+                    : isUrgent 
+                        ? 'text-orange-600 dark:text-orange-400' 
+                        : 'text-slate-500 dark:text-slate-400';
+                
+                return (
+                    <div className={`flex items-center gap-1 text-xs mb-2 ${colorClass}`}>
+                        <span className="material-symbols-outlined text-[14px]">event</span>
+                        <span>Termín: {deadlineDate.toLocaleDateString('cs-CZ')}</span>
+                        {isOverdue && <span className="font-bold">(prošlý)</span>}
+                        {isUrgent && !isOverdue && <span className="font-bold">({daysUntil}d)</span>}
+                    </div>
+                );
+            })()}
+            
             <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-4 h-10">
                 {category.description}
             </p>
@@ -309,6 +358,8 @@ interface PipelineProps {
     bids: Record<string, Bid[]>;
     contacts: Subcontractor[];
     onAddCategory?: (category: DemandCategory) => void;
+    onEditCategory?: (category: DemandCategory) => void;
+    onDeleteCategory?: (categoryId: string) => void;
 }
 
 const CreateContactModal: React.FC<{ initialName: string, onClose: () => void, onSave: (contact: Subcontractor) => void }> = ({ initialName, onClose, onSave }) => {
@@ -409,7 +460,7 @@ const CreateContactModal: React.FC<{ initialName: string, onClose: () => void, o
     );
 };
 
-export const Pipeline: React.FC<PipelineProps> = ({ projectId, projectDetails, bids: initialBids, contacts, onAddCategory }) => {
+export const Pipeline: React.FC<PipelineProps> = ({ projectId, projectDetails, bids: initialBids, contacts, onAddCategory, onEditCategory, onDeleteCategory }) => {
     const [activeCategory, setActiveCategory] = useState<DemandCategory | null>(null);
     const [bids, setBids] = useState<Record<string, Bid[]>>(initialBids);
     // const [contacts, setContacts] = useState<Subcontractor[]>(ALL_CONTACTS); // Use prop directly or state if we modify it locally?
@@ -440,14 +491,21 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, projectDetails, b
 
     // Create New Category State
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editingCategory, setEditingCategory] = useState<DemandCategory | null>(null);
     const [newCategoryForm, setNewCategoryForm] = useState({
         title: '',
         sodBudget: '',
         planBudget: '',
-        description: ''
+        description: '',
+        deadline: ''
     });
+    const [isSubcontractorModalMaximized, setIsSubcontractorModalMaximized] = useState(false);
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
     const [uploadingFiles, setUploadingFiles] = useState(false);
+    const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
+    const exportButtonRef = useRef<HTMLButtonElement>(null);
+    const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
 
     // Create Contact State
     const [isCreateContactModalOpen, setIsCreateContactModalOpen] = useState(false);
@@ -556,13 +614,77 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, projectDetails, b
             description: newCategoryForm.description,
             status: 'open',
             subcontractorCount: 0,
-            documents: uploadedDocuments.length > 0 ? uploadedDocuments : undefined
+            documents: uploadedDocuments.length > 0 ? uploadedDocuments : undefined,
+            deadline: newCategoryForm.deadline || undefined
         };
 
         onAddCategory(newCat);
-        setNewCategoryForm({ title: '', sodBudget: '', planBudget: '', description: '' });
+        setNewCategoryForm({ title: '', sodBudget: '', planBudget: '', description: '', deadline: '' });
         setSelectedFiles([]);
         setIsAddModalOpen(false);
+    };
+
+    const handleEditCategory = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!onEditCategory || !editingCategory) return;
+        
+        const sod = parseFloat(newCategoryForm.sodBudget) || 0;
+        
+        // Upload documents if any new files selected
+        let uploadedDocuments: DemandDocument[] = editingCategory.documents || [];
+        if (selectedFiles.length > 0) {
+            setUploadingFiles(true);
+            try {
+                const newDocs = await Promise.all(
+                    selectedFiles.map(file => uploadDocument(file, editingCategory.id))
+                );
+                uploadedDocuments = [...uploadedDocuments, ...newDocs];
+            } catch (error) {
+                console.error('Error uploading documents:', error);
+                alert('Chyba při nahrávání dokumentů. Zkuste to prosím znovu.');
+                setUploadingFiles(false);
+                return;
+            }
+            setUploadingFiles(false);
+        }
+        
+        const updatedCat: DemandCategory = {
+            ...editingCategory,
+            title: newCategoryForm.title,
+            budget: '~' + new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 }).format(sod) + ' Kč',
+            sodBudget: sod,
+            planBudget: parseFloat(newCategoryForm.planBudget) || 0,
+            description: newCategoryForm.description,
+            documents: uploadedDocuments.length > 0 ? uploadedDocuments : undefined,
+            deadline: newCategoryForm.deadline || undefined
+        };
+
+        onEditCategory(updatedCat);
+        setNewCategoryForm({ title: '', sodBudget: '', planBudget: '', description: '', deadline: '' });
+        setSelectedFiles([]);
+        setEditingCategory(null);
+        setIsEditModalOpen(false);
+    };
+
+    const handleEditCategoryClick = (category: DemandCategory) => {
+        setEditingCategory(category);
+        setNewCategoryForm({
+            title: category.title,
+            sodBudget: category.sodBudget.toString(),
+            planBudget: category.planBudget.toString(),
+            description: category.description,
+            deadline: category.deadline || ''
+        });
+        setSelectedFiles([]);
+        setIsEditModalOpen(true);
+    };
+
+    const handleDeleteCategory = (categoryId: string) => {
+        if (!onDeleteCategory) return;
+        
+        if (confirm('Opravdu chcete smazat tuto poptávku? Tato akce je nevratná.')) {
+            onDeleteCategory(categoryId);
+        }
     };
 
     const handleSaveBid = (updatedBid: Bid) => {
@@ -609,6 +731,30 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, projectDetails, b
                 return prev;
             });
         }, 100);
+    };
+
+    const handleExport = (format: 'xlsx' | 'markdown' | 'pdf') => {
+        if (!activeCategory) return;
+        
+        const categoryBids = bids[activeCategory.id] || [];
+        
+        try {
+            switch (format) {
+                case 'xlsx':
+                    exportToXLSX(activeCategory, categoryBids, projectDetails);
+                    break;
+                case 'markdown':
+                    exportToMarkdown(activeCategory, categoryBids, projectDetails);
+                    break;
+                case 'pdf':
+                    exportToPDF(activeCategory, categoryBids, projectDetails);
+                    break;
+            }
+            setIsExportMenuOpen(false);
+        } catch (error) {
+            console.error('Export error:', error);
+            alert('Chyba při exportu. Zkuste to prosím znovu.');
+        }
     };
 
     const handleSaveNewContact = async (newContact: Subcontractor) => {
@@ -659,6 +805,76 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, projectDetails, b
                         <span className="material-symbols-outlined text-[20px]">add</span>
                         <span>Přidat dodavatele</span>
                     </button>
+                    
+                    {/* Export Button with Dropdown */}
+                    <div className="relative">
+                        <button 
+                            ref={exportButtonRef}
+                            onClick={() => {
+                                if (!isExportMenuOpen && exportButtonRef.current) {
+                                    const rect = exportButtonRef.current.getBoundingClientRect();
+                                    setMenuPosition({
+                                        top: rect.bottom + 8,
+                                        left: rect.right - 224 // w-56 = 14rem = 224px
+                                    });
+                                }
+                                setIsExportMenuOpen(!isExportMenuOpen);
+                            }}
+                            className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-lg text-sm font-bold transition-colors"
+                        >
+                            <span className="material-symbols-outlined text-[20px]">download</span>
+                            <span>Export</span>
+                            <span className="material-symbols-outlined text-[16px]">expand_more</span>
+                        </button>
+                        
+                        {isExportMenuOpen && createPortal(
+                            <>
+                                <div 
+                                    className="fixed inset-0 z-[9998] bg-transparent" 
+                                    onClick={() => setIsExportMenuOpen(false)}
+                                />
+                                <div 
+                                    className="fixed w-56 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg z-[9999]"
+                                    style={{ 
+                                        top: `${menuPosition.top}px`, 
+                                        left: `${menuPosition.left}px` 
+                                    }}
+                                >
+                                    <button
+                                        onClick={() => handleExport('xlsx')}
+                                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-left border-b border-slate-100 dark:border-slate-700"
+                                    >
+                                        <span className="material-symbols-outlined text-green-600 text-[20px]">table_chart</span>
+                                        <div>
+                                            <div className="text-sm font-medium text-slate-900 dark:text-white">Excel</div>
+                                            <div className="text-xs text-slate-500 dark:text-slate-400">.xlsx formát</div>
+                                        </div>
+                                    </button>
+                                    <button
+                                        onClick={() => handleExport('markdown')}
+                                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-left border-b border-slate-100 dark:border-slate-700"
+                                    >
+                                        <span className="material-symbols-outlined text-blue-600 text-[20px]">code</span>
+                                        <div>
+                                            <div className="text-sm font-medium text-slate-900 dark:text-white">Markdown</div>
+                                            <div className="text-xs text-slate-500 dark:text-slate-400">.md formát</div>
+                                        </div>
+                                    </button>
+                                    <button
+                                        onClick={() => handleExport('pdf')}
+                                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-left"
+                                    >
+                                        <span className="material-symbols-outlined text-red-600 text-[20px]">picture_as_pdf</span>
+                                        <div>
+                                            <div className="text-sm font-medium text-slate-900 dark:text-white">PDF</div>
+                                            <div className="text-xs text-slate-500 dark:text-slate-400">.pdf formát</div>
+                                        </div>
+                                    </button>
+                                </div>
+                            </>,
+                            document.body
+                        )}
+                    </div>
                 </Header>
                 
                 {/* Document List Section */}
@@ -790,17 +1006,31 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, projectDetails, b
                     </div>
                 </div>
 
-                {/* Add Subcontractor Modal */}
                 {isSubcontractorModalOpen && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-4xl w-full h-[80vh] overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col">
+                        <div className={`bg-white dark:bg-slate-900 shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col transition-all duration-200 ${
+                            isSubcontractorModalMaximized 
+                                ? 'fixed inset-0 rounded-none w-full h-full' 
+                                : 'rounded-2xl max-w-4xl w-full h-[80vh]'
+                        }`}>
                             <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shrink-0">
                                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                                     Vybrat subdodavatele
                                 </h3>
-                                <button onClick={() => setIsSubcontractorModalOpen(false)} className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
-                                    <span className="material-symbols-outlined">close</span>
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    <button 
+                                        onClick={() => setIsSubcontractorModalMaximized(!isSubcontractorModalMaximized)} 
+                                        className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                        title={isSubcontractorModalMaximized ? "Obnovit velikost" : "Zvětšit na celou obrazovku"}
+                                    >
+                                        <span className="material-symbols-outlined">
+                                            {isSubcontractorModalMaximized ? 'close_fullscreen' : 'fullscreen'}
+                                        </span>
+                                    </button>
+                                    <button onClick={() => setIsSubcontractorModalOpen(false)} className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                                        <span className="material-symbols-outlined">close</span>
+                                    </button>
+                                </div>
                             </div>
                             
                             <div className="flex-1 overflow-hidden p-6 flex flex-col min-h-0">
@@ -878,7 +1108,9 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, projectDetails, b
                         <CategoryCard 
                             key={category.id} 
                             category={category} 
-                            onClick={() => setActiveCategory(category)} 
+                            onClick={() => setActiveCategory(category)}
+                            onEdit={handleEditCategoryClick}
+                            onDelete={handleDeleteCategory}
                         />
                     ))}
                     
@@ -955,6 +1187,17 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, projectDetails, b
                                     />
                                 </div>
                                 <div>
+                                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Termín poptávky</label>
+                                    <input 
+                                        type="date"
+                                        value={newCategoryForm.deadline} 
+                                        onChange={e => setNewCategoryForm({...newCategoryForm, deadline: e.target.value})}
+                                        min={new Date().toISOString().split('T')[0]}
+                                        className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
+                                    />
+                                    <p className="text-[10px] text-slate-400 mt-1">Termín pro podání cenové nabídky</p>
+                                </div>
+                                <div>
                                     <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">Dokumenty</label>
                                     <div className="flex flex-col gap-3">
                                         <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg cursor-pointer bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
@@ -1020,6 +1263,99 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, projectDetails, b
                                 >
                                     {uploadingFiles && <span className="material-symbols-outlined animate-spin text-[16px]">progress_activity</span>}
                                     {uploadingFiles ? 'Nahrávání...' : 'Vytvořit poptávku'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Category Modal */}
+            {isEditModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col">
+                        <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shrink-0">
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                                Upravit Poptávku
+                            </h3>
+                            <button onClick={() => {setIsEditModalOpen(false); setEditingCategory(null);}} className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        
+                        <form onSubmit={handleEditCategory} className="flex flex-col">
+                            <div className="p-6 space-y-4">
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Název sekce *</label>
+                                    <input 
+                                        required
+                                        type="text" 
+                                        value={newCategoryForm.title} 
+                                        onChange={e => setNewCategoryForm({...newCategoryForm, title: e.target.value})}
+                                        className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
+                                        placeholder="Např. Klempířské konstrukce"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Cena SOD (Investor)</label>
+                                        <input 
+                                            type="number" 
+                                            value={newCategoryForm.sodBudget} 
+                                            onChange={e => setNewCategoryForm({...newCategoryForm, sodBudget: e.target.value})}
+                                            className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
+                                            placeholder="500000"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Interní Plán</label>
+                                        <input 
+                                            type="number" 
+                                            value={newCategoryForm.planBudget} 
+                                            onChange={e => setNewCategoryForm({...newCategoryForm, planBudget: e.target.value})}
+                                            className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
+                                            placeholder="450000"
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Popis prací</label>
+                                    <textarea 
+                                        rows={4}
+                                        value={newCategoryForm.description} 
+                                        onChange={e => setNewCategoryForm({...newCategoryForm, description: e.target.value})}
+                                        className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white resize-none"
+                                        placeholder="Detailní popis požadovaných prací..."
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Termín poptávky</label>
+                                    <input 
+                                        type="date"
+                                        value={newCategoryForm.deadline} 
+                                        onChange={e => setNewCategoryForm({...newCategoryForm, deadline: e.target.value})}
+                                        min={new Date().toISOString().split('T')[0]}
+                                        className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
+                                    />
+                                    <p className="text-[10px] text-slate-400 mt-1">Termín pro podání cenové nabídky</p>
+                                </div>
+                            </div>
+
+                            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-2">
+                                <button 
+                                    type="button"
+                                    onClick={() => {setIsEditModalOpen(false); setEditingCategory(null);}}
+                                    className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-300 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700"
+                                >
+                                    Zrušit
+                                </button>
+                                <button 
+                                    type="submit"
+                                    disabled={uploadingFiles}
+                                    className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-sm font-bold shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                >
+                                    {uploadingFiles && <span className="material-symbols-outlined animate-spin text-[16px]">progress_activity</span>}
+                                    {uploadingFiles ? 'Ukládání...' : 'Uložit změny'}
                                 </button>
                             </div>
                         </form>
