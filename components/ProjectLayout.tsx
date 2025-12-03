@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Header } from './Header';
 import { Pipeline } from './Pipeline';
 import { ProjectTab, ProjectDetails, ContractDetails, InvestorFinancials, DemandCategory, Bid, Subcontractor } from '../types';
+import { uploadDocument, formatFileSize } from '../services/documentService';
 
 // --- Helper Functions ---
 const parseMoney = (valueStr: string): number => {
@@ -36,6 +37,8 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
     const [isEditingLetter, setIsEditingLetter] = useState(false);
     const [docsLinkValue, setDocsLinkValue] = useState('');
     const [letterLinkValue, setLetterLinkValue] = useState('');
+    const [selectedTemplateFile, setSelectedTemplateFile] = useState<File | null>(null);
+    const [isUploadingTemplate, setIsUploadingTemplate] = useState(false);
 
     useEffect(() => {
         setDocsLinkValue(project.documentationLink || '');
@@ -50,8 +53,25 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
         setIsEditingDocs(false);
     };
 
-    const handleSaveLetter = () => {
-        onUpdate({ inquiryLetterLink: letterLinkValue });
+    const handleSaveLetter = async () => {
+        if (selectedTemplateFile) {
+            // Upload file to storage
+            setIsUploadingTemplate(true);
+            try {
+                const doc = await uploadDocument(selectedTemplateFile, `template_${project.id || 'default'}`);
+                onUpdate({ inquiryLetterLink: doc.url });
+                setSelectedTemplateFile(null);
+            } catch (error) {
+                console.error('Error uploading template:', error);
+                alert('Chyba při nahrávání šablony. Zkuste to prosím znovu.');
+                setIsUploadingTemplate(false);
+                return;
+            }
+            setIsUploadingTemplate(false);
+        } else {
+            // Save URL
+            onUpdate({ inquiryLetterLink: letterLinkValue });
+        }
         setIsEditingLetter(false);
     };
 
@@ -170,14 +190,23 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                             ) : (
                                 <div className="flex gap-2">
                                     <button 
-                                        onClick={handleSaveLetter} 
-                                        className="text-green-500 hover:text-green-600"
+                                        onClick={handleSaveLetter}
+                                        disabled={isUploadingTemplate}
+                                        className={`transition-colors ${isUploadingTemplate ? 'text-slate-400 cursor-not-allowed' : 'text-green-500 hover:text-green-600'}`}
                                     >
-                                        <span className="material-symbols-outlined text-[20px]">check</span>
+                                        {isUploadingTemplate ? (
+                                            <span className="material-symbols-outlined text-[20px] animate-spin">progress_activity</span>
+                                        ) : (
+                                            <span className="material-symbols-outlined text-[20px]">check</span>
+                                        )}
                                     </button>
                                     <button 
-                                        onClick={() => setIsEditingLetter(false)} 
-                                        className="text-red-500 hover:text-red-600"
+                                        onClick={() => {
+                                            setIsEditingLetter(false);
+                                            setSelectedTemplateFile(null);
+                                        }}
+                                        disabled={isUploadingTemplate}
+                                        className={`transition-colors ${isUploadingTemplate ? 'text-slate-400 cursor-not-allowed' : 'text-red-500 hover:text-red-600'}`}
                                     >
                                         <span className="material-symbols-outlined text-[20px]">close</span>
                                     </button>
@@ -219,17 +248,99 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                 )}
                             </div>
                         ) : (
-                            <div className="space-y-3">
-                                <input 
-                                    type="url"
-                                    value={letterLinkValue}
-                                    onChange={(e) => setLetterLinkValue(e.target.value)}
-                                    placeholder="https://docs.google.com/document/..."
-                                    className="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-3 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"
+                            <div className="space-y-4">
+                                {/* Tab Selection */}
+                                <div className="flex gap-2 border-b border-slate-200 dark:border-slate-700">
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedTemplateFile(null)}
+                                        className={`px-4 py-2 text-sm font-medium transition-colors ${
+                                            !selectedTemplateFile
+                                                ? 'text-primary border-b-2 border-primary'
+                                                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                                        }`}
+                                    >
+                                        <span className="flex items-center gap-2">
+                                            <span className="material-symbols-outlined text-[18px]">link</span>
+                                            URL odkaz
+                                        </span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setLetterLinkValue('');
+                                            const input = document.getElementById('template-file-input') as HTMLInputElement;
+                                            input?.click();
+                                        }}
+                                        className={`px-4 py-2 text-sm font-medium transition-colors ${
+                                            selectedTemplateFile
+                                                ? 'text-primary border-b-2 border-primary'
+                                                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                                        }`}
+                                    >
+                                        <span className="flex items-center gap-2">
+                                            <span className="material-symbols-outlined text-[18px]">upload_file</span>
+                                            Nahrát soubor
+                                        </span>
+                                    </button>
+                                </div>
+
+                                {/* Content based on selection */}
+                                {!selectedTemplateFile ? (
+                                    <div className="space-y-3">
+                                        <input 
+                                            type="url"
+                                            value={letterLinkValue}
+                                            onChange={(e) => setLetterLinkValue(e.target.value)}
+                                            placeholder="https://docs.google.com/document/..."
+                                            className="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-3 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"
+                                        />
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                                            Zadejte URL odkaz na šablonu poptávkového dopisu (např. Google Docs, Word Online)
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg p-4">
+                                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                <span className="material-symbols-outlined text-primary text-[24px]">description</span>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{selectedTemplateFile.name}</p>
+                                                    <p className="text-xs text-slate-500 dark:text-slate-400">{formatFileSize(selectedTemplateFile.size)}</p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setSelectedTemplateFile(null)}
+                                                className="text-slate-400 hover:text-red-500 transition-colors"
+                                            >
+                                                <span className="material-symbols-outlined text-[20px]">close</span>
+                                            </button>
+                                        </div>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                                            Soubor bude nahrán do úložiště při uložení
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Hidden file input */}
+                                <input
+                                    id="template-file-input"
+                                    type="file"
+                                    accept=".doc,.docx,.pdf,.odt"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                        if (e.target.files && e.target.files[0]) {
+                                            const file = e.target.files[0];
+                                            if (file.size > 10 * 1024 * 1024) {
+                                                alert('Soubor je příliš velký. Maximum je 10MB.');
+                                                return;
+                                            }
+                                            setSelectedTemplateFile(file);
+                                            setLetterLinkValue('');
+                                        }
+                                    }}
                                 />
-                                <p className="text-xs text-slate-500 dark:text-slate-400">
-                                    Zadejte URL odkaz na šablonu poptávkového dopisu (např. Google Docs, Word Online)
-                                </p>
                             </div>
                         )}
                     </div>

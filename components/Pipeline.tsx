@@ -1,9 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { Header } from './Header';
-import { DemandCategory, Bid, BidStatus, Subcontractor, ProjectDetails, StatusConfig } from '../types';
+import { DemandCategory, Bid, BidStatus, Subcontractor, ProjectDetails, StatusConfig, DemandDocument } from '../types';
 import { SubcontractorSelector } from './SubcontractorSelector';
 import { supabase } from '../services/supabase';
+import { uploadDocument, formatFileSize } from '../services/documentService';
+import { generateInquiryEmail, createMailtoLink } from '../services/inquiryService';
 
 const DEFAULT_STATUSES: StatusConfig[] = [
   { id: 'available', label: 'K dispozici', color: 'green' },
@@ -164,7 +166,7 @@ const EditBidModal: React.FC<{ bid: Bid, onClose: () => void, onSave: (updatedBi
     );
 };
 
-const BidCard: React.FC<{ bid: Bid, onClick?: () => void, onDragStart: (e: React.DragEvent, bidId: string) => void, onEdit: (bid: Bid) => void }> = ({ bid, onClick, onDragStart, onEdit }) => {
+const BidCard: React.FC<{ bid: Bid, onClick?: () => void, onDragStart: (e: React.DragEvent, bidId: string) => void, onEdit: (bid: Bid) => void, onGenerateInquiry?: (bid: Bid) => void, category?: DemandCategory }> = ({ bid, onClick, onDragStart, onEdit, onGenerateInquiry, category }) => {
     return (
         <div 
             draggable
@@ -219,6 +221,17 @@ const BidCard: React.FC<{ bid: Bid, onClick?: () => void, onDragStart: (e: React
                         </span>
                     ))}
                 </div>
+            )}
+            
+            {/* Generate Inquiry Button for contacted status */}
+            {bid.status === 'contacted' && onGenerateInquiry && bid.email && (
+                <button
+                    onClick={(e) => { e.stopPropagation(); onGenerateInquiry(bid); }}
+                    className="mt-3 w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white px-3 py-2 rounded-lg text-xs font-bold transition-colors"
+                >
+                    <span className="material-symbols-outlined text-[16px]">mail</span>
+                    Generovat poptávku
+                </button>
             )}
         </div>
     )
@@ -275,6 +288,15 @@ const CategoryCard: React.FC<{ category: DemandCategory, onClick: () => void }> 
                         {category.subcontractorCount}
                      </div>
                 </div>
+                {category.documents && category.documents.length > 0 && (
+                    <div className="flex flex-col items-end">
+                        <span className="text-xs text-slate-400">Dokumenty</span>
+                        <div className="flex items-center gap-1 text-sm font-semibold text-slate-700 dark:text-slate-200">
+                            <span className="material-symbols-outlined text-[16px]">attachment</span>
+                            {category.documents.length}
+                        </div>
+                    </div>
+                )}
             </div>
         </button>
     );
@@ -424,6 +446,8 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, projectDetails, b
         planBudget: '',
         description: ''
     });
+    const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+    const [uploadingFiles, setUploadingFiles] = useState(false);
 
     // Create Contact State
     const [isCreateContactModalOpen, setIsCreateContactModalOpen] = useState(false);
@@ -481,7 +505,7 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, projectDetails, b
                         email: contact.email,
                         phone: contact.phone,
                         price: '?',
-                        status: 'sent',
+                        status: 'contacted',
                         tags: []
                     });
                 }
@@ -499,25 +523,45 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, projectDetails, b
         setSelectedSubcontractorIds(new Set());
     };
 
-    const handleCreateCategory = (e: React.FormEvent) => {
+    const handleCreateCategory = async (e: React.FormEvent) => {
         e.preventDefault();
         if(!onAddCategory) return;
         
         const sod = parseFloat(newCategoryForm.sodBudget) || 0;
+        const categoryId = `cat_${Date.now()}`;
+        
+        // Upload documents if any
+        let uploadedDocuments: DemandDocument[] = [];
+        if (selectedFiles.length > 0) {
+            setUploadingFiles(true);
+            try {
+                uploadedDocuments = await Promise.all(
+                    selectedFiles.map(file => uploadDocument(file, categoryId))
+                );
+            } catch (error) {
+                console.error('Error uploading documents:', error);
+                alert('Chyba při nahrávání dokumentů. Zkuste to prosím znovu.');
+                setUploadingFiles(false);
+                return;
+            }
+            setUploadingFiles(false);
+        }
         
         const newCat: DemandCategory = {
-            id: `cat_${Date.now()}`,
+            id: categoryId,
             title: newCategoryForm.title,
             budget: '~' + new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 }).format(sod) + ' Kč', // Legacy
             sodBudget: sod,
             planBudget: parseFloat(newCategoryForm.planBudget) || 0,
             description: newCategoryForm.description,
             status: 'open',
-            subcontractorCount: 0
+            subcontractorCount: 0,
+            documents: uploadedDocuments.length > 0 ? uploadedDocuments : undefined
         };
 
         onAddCategory(newCat);
         setNewCategoryForm({ title: '', sodBudget: '', planBudget: '', description: '' });
+        setSelectedFiles([]);
         setIsAddModalOpen(false);
     };
 
@@ -539,6 +583,32 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, projectDetails, b
     const handleCreateContactRequest = (name: string) => {
         setNewContactName(name);
         setIsCreateContactModalOpen(true);
+    };
+
+    const handleGenerateInquiry = (bid: Bid) => {
+        if (!activeCategory) return;
+        
+        // Generate email content
+        const { subject, body } = generateInquiryEmail(activeCategory, projectDetails, bid);
+        
+        // Create mailto link
+        const mailtoLink = createMailtoLink(bid.email || '', subject, body);
+        
+        // Open email client
+        window.location.href = mailtoLink;
+        
+        // Move bid to 'sent' status
+        setTimeout(() => {
+            setBids(prev => {
+                const categoryBids = [...(prev[activeCategory.id] || [])];
+                const index = categoryBids.findIndex(b => b.id === bid.id);
+                if (index > -1) {
+                    categoryBids[index] = { ...categoryBids[index], status: 'sent' };
+                    return { ...prev, [activeCategory.id]: categoryBids };
+                }
+                return prev;
+            });
+        }, 100);
     };
 
     const handleSaveNewContact = async (newContact: Subcontractor) => {
@@ -591,13 +661,66 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, projectDetails, b
                     </button>
                 </Header>
                 
+                {/* Document List Section */}
+                {activeCategory.documents && activeCategory.documents.length > 0 && (
+                    <div className="px-6 pt-4">
+                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+                            <div className="flex items-center gap-2 mb-3">
+                                <span className="material-symbols-outlined text-slate-600 dark:text-slate-400 text-[20px]">folder_open</span>
+                                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Přiložené dokumenty</h3>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                                {activeCategory.documents.map((doc) => (
+                                    <a
+                                        key={doc.id}
+                                        href={doc.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors group"
+                                    >
+                                        <span className="material-symbols-outlined text-slate-400 text-[20px]">description</span>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-medium text-slate-700 dark:text-slate-200 truncate group-hover:text-primary">{doc.name}</p>
+                                            <p className="text-[10px] text-slate-400">{formatFileSize(doc.size)}</p>
+                                        </div>
+                                        <span className="material-symbols-outlined text-slate-400 group-hover:text-primary text-[16px]">download</span>
+                                    </a>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
+                
                 <div className="flex-1 overflow-x-auto overflow-y-hidden p-6">
                     <div className="flex h-full space-x-4 min-w-max">
                         {/* 1. Oslovení (Contacted) */}
                         <Column 
-                            title="Oslovení / Odesláno" 
-                            status="sent"
+                            title="Oslovení" 
+                            status="contacted"
                             color="slate" 
+                            count={getBidsForColumn(activeCategory.id, 'contacted').length}
+                            onDrop={handleDrop}
+                        >
+                             {getBidsForColumn(activeCategory.id, 'contacted').map(bid => (
+                                 <BidCard 
+                                     key={bid.id} 
+                                     bid={bid} 
+                                     onDragStart={handleDragStart} 
+                                     onEdit={setEditingBid}
+                                     onGenerateInquiry={handleGenerateInquiry}
+                                     category={activeCategory}
+                                 />
+                             ))}
+                             {getBidsForColumn(activeCategory.id, 'contacted').length === 0 && (
+                                 <div className="text-center p-4 text-slate-400 text-sm italic">Žádní dodavatelé v této fázi</div>
+                             )}
+                        </Column>
+
+                        {/* 2. Odesláno (Sent) */}
+                        <Column 
+                            title="Odesláno" 
+                            status="sent"
+                            color="blue" 
                             count={getBidsForColumn(activeCategory.id, 'sent').length}
                             onDrop={handleDrop}
                         >
@@ -609,11 +732,11 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, projectDetails, b
                              )}
                         </Column>
 
-                        {/* 2. Cenová nabídka (Offers) */}
+                        {/* 3. Cenová nabídka (Offers) */}
                         <Column 
                             title="Cenová nabídka" 
                             status="offer"
-                            color="blue" 
+                            color="amber" 
                             count={getBidsForColumn(activeCategory.id, 'offer').length}
                             onDrop={handleDrop}
                         >
@@ -622,11 +745,11 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, projectDetails, b
                              ))}
                         </Column>
 
-                        {/* 3. Užší výběr (Shortlist) */}
+                        {/* 4. Užší výběr (Shortlist) */}
                          <Column 
                             title="Užší výběr" 
                             status="shortlist"
-                            color="amber" 
+                            color="blue" 
                             count={getBidsForColumn(activeCategory.id, 'shortlist').length}
                             onDrop={handleDrop}
                         >
@@ -635,7 +758,7 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, projectDetails, b
                              ))}
                         </Column>
 
-                        {/* 4. Jednání o SOD (Contract Negotiation) */}
+                        {/* 5. Jednání o SOD (Contract Negotiation) */}
                         <Column 
                             title="Jednání o SOD" 
                             status="sod"
@@ -653,7 +776,7 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, projectDetails, b
                              ))}
                         </Column>
                         
-                         {/* 5. Zamítnuto (Rejected) */}
+                         {/* 6. Zamítnuto (Rejected) */}
                          <Column 
                             title="Zamítnuto / Odstoupili" 
                             status="rejected"
@@ -831,6 +954,55 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, projectDetails, b
                                         placeholder="Detailní popis požadovaných prací..."
                                     />
                                 </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">Dokumenty</label>
+                                    <div className="flex flex-col gap-3">
+                                        <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg cursor-pointer bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                                            <div className="flex flex-col items-center justify-center">
+                                                <span className="material-symbols-outlined text-slate-400 text-[28px] mb-1">upload_file</span>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400">Klikněte pro výběr souborů</p>
+                                                <p className="text-[10px] text-slate-400 mt-0.5">PDF, Word, Excel, obrázky (max 10MB)</p>
+                                            </div>
+                                            <input 
+                                                type="file" 
+                                                multiple
+                                                className="hidden" 
+                                                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                                                onChange={(e) => {
+                                                    if (e.target.files) {
+                                                        const newFiles = Array.from(e.target.files).filter((f: File) => f.size <= 10 * 1024 * 1024);
+                                                        if (newFiles.length < e.target.files.length) {
+                                                            alert('Některé soubory překročily limit 10MB a nebyly přidány.');
+                                                        }
+                                                        setSelectedFiles(prev => [...prev, ...newFiles]);
+                                                    }
+                                                }}
+                                            />
+                                        </label>
+                                        {selectedFiles.length > 0 && (
+                                            <div className="space-y-2">
+                                                {selectedFiles.map((file, index) => (
+                                                    <div key={index} className="flex items-center justify-between bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2">
+                                                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                                                            <span className="material-symbols-outlined text-slate-400 text-[18px]">description</span>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-xs font-medium text-slate-700 dark:text-slate-200 truncate">{file.name}</p>
+                                                                <p className="text-[10px] text-slate-400">{formatFileSize(file.size)}</p>
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setSelectedFiles(prev => prev.filter((_, i) => i !== index))}
+                                                            className="text-slate-400 hover:text-red-500 transition-colors ml-2"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[18px]">close</span>
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                             
                             <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-2">
@@ -843,9 +1015,11 @@ export const Pipeline: React.FC<PipelineProps> = ({ projectId, projectDetails, b
                                 </button>
                                 <button 
                                     type="submit"
-                                    className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-sm font-bold shadow-sm transition-colors"
+                                    disabled={uploadingFiles}
+                                    className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-sm font-bold shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                                 >
-                                    Vytvořit poptávku
+                                    {uploadingFiles && <span className="material-symbols-outlined animate-spin text-[16px]">progress_activity</span>}
+                                    {uploadingFiles ? 'Nahrávání...' : 'Vytvořit poptávku'}
                                 </button>
                             </div>
                         </form>

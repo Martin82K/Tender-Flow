@@ -1,12 +1,11 @@
+export type View = "dashboard" | "project" | "contacts" | "settings";
 
-export type View = 'dashboard' | 'project' | 'contacts' | 'settings';
-
-export type ProjectTab = 'overview' | 'pipeline' | 'documents';
+export type ProjectTab = "overview" | "pipeline" | "documents";
 
 export interface StatusConfig {
   id: string;
   label: string;
-  color: 'green' | 'red' | 'yellow' | 'blue' | 'purple' | 'slate';
+  color: "green" | "red" | "yellow" | "blue" | "purple" | "slate";
 }
 
 export interface Subcontractor {
@@ -21,18 +20,27 @@ export interface Subcontractor {
   status: string; // Dynamic ID linking to StatusConfig
 }
 
+export interface DemandDocument {
+  id: string;
+  name: string;
+  url: string;
+  size: number;
+  uploadedAt: string;
+}
+
 export interface DemandCategory {
   id: string;
   title: string;
   budget: string; // Display string (legacy)
   sodBudget: number; // Price in contract with investor (Revenue)
   planBudget: number; // Internal target price (Target Cost)
-  status: 'open' | 'negotiating' | 'closed' | 'sod';
+  status: "open" | "negotiating" | "closed" | "sod";
   subcontractorCount: number;
   description: string;
+  documents?: DemandDocument[];
 }
 
-export type BidStatus = 'sent' | 'offer' | 'shortlist' | 'sod' | 'rejected';
+export type BidStatus = 'contacted' | "sent" | "offer" | "shortlist" | "sod" | "rejected";
 
 export interface Bid {
   id: string;
@@ -53,7 +61,7 @@ export interface ChartData {
   color?: string;
 }
 
-export type ProjectStatus = 'tender' | 'realization' | 'archived';
+export type ProjectStatus = "tender" | "realization" | "archived";
 
 export interface Project {
   id: string;
@@ -117,7 +125,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'user';
+  role: "admin" | "user";
   avatarUrl?: string;
   preferences?: UserPreferences;
 }

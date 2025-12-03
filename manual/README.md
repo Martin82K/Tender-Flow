@@ -1,47 +1,135 @@
 # Construction CRM - Uživatelská příručka
 
-![Construction CRM Logo](../components/Sidebar.tsx)
+Vítejte v uživatelské příručce Construction CRM - moderního systému pro správu stavebních projektů a subdodavatelů.
 
-**Construction CRM**  
-_Profesionální řešení pro správu stavebních projektů a subdodavatelů_
+## Obsah příručky
 
----
+### Základy
 
-Vytvořeno s využitím **Google AI Studio** a **Gemini**
+1. [Úvod do Construction CRM](01-uvod.md)
 
----
+   - Co je Construction CRM
+   - Hlavní funkce
+   - Technologie
 
-## Obsah
-
-1. [Úvod](01-uvod.md)
 2. [Dashboard](02-dashboard.md)
-3. [Správa projektů](03-projekty.md)
-4. [Pipeline a poptávky](04-pipeline.md)
-5. [Správa subdodavatelů](05-subdodavatele.md)
-6. [Vytvoření nové poptávky](06-nova-poptavka.md)
+   - Přehled projektů
+   - Statistiky
+   - Navigace
+
+### Projekty a poptávky
+
+3. [Projekty](03-projekty.md)
+
+   - Vytvoření projektu
+   - Správa projektů
+   - Detaily projektu
+
+4. [Pipeline](04-pipeline.md)
+
+   - Kanban board
+   - Stavy nabídek
+   - Drag & Drop
+
+5. [Subdodavatelé](05-subdodavatele.md)
+
+   - Databáze kontaktů
+   - Filtrování
+   - Stavy subdodavatelů
+
+6. [Nová poptávka](06-nova-poptavka.md)
+   - Vytvoření kategorie
+   - Vyplnění formuláře
+   - Rozpočty
+
+### Práce s Pipeline
+
 7. [Přidání subdodavatele do poptávky](07-pridani-subdodavatele.md)
+
+   - Výběr subdodavatelů
+   - Přenos do pipeline
+   - Vytvoření nového kontaktu
+
 8. [Úprava nabídek](08-uprava-nabidek.md)
-9. [Vytvoření nového subdodavatele](09-novy-subdodavatel.md)
 
----
+   - Editace cen
+   - Poznámky a tagy
+   - Změna statusu
 
-## Rychlý start
+9. [Nový subdodavatel](09-novy-subdodavatel.md)
+   - Vyplnění formuláře
+   - Specializace
+   - Import kontaktů
 
-Tato příručka vás provede všemi funkcemi **Construction CRM**. Každá kapitola se zaměřuje na konkrétní funkčnost aplikace a obsahuje podrobné návody krok za krokem.
+### Dokumenty a šablony
 
-### Pro koho je tato aplikace určena?
+10. [**Nahrávání dokumentů k poptávce**](10-dokumenty-poptavky.md) 🆕
 
-Construction CRM je navrženo pro:
+    - Přidání příloh
+    - Podporované formáty
+    - Zobrazení dokumentů
 
-- Stavební firmy řídící více projektů současně
-- Project managery koordinující subdodavatele
-- Týmy potřebující přehled o poptávkách a nabídkách
+11. [**Nastavení šablony poptávkového dopisu**](11-sablona-dopisu.md) 🆕
 
----
+    - URL odkaz vs nahrání souboru
+    - Dynamické proměnné
+    - Příklady šablon
+
+12. [**Generování a odesílání poptávky**](12-generovani-poptavky.md) 🆕
+    - Automatické generování emailu
+    - Sloupce Oslovení/Odesláno
+    - Workflow poptávání
+
+## Nové funkce v této verzi
+
+### 📎 Dokumenty poptávky
+
+Můžete nyní přikládat dokumenty (výkresy, specifikace, fotografie) přímo k jednotlivým poptávkám při jejich vytváření.
+
+### 📧 Šablony poptávek
+
+Nastavte si vlastní šablonu poptávkového dopisu s dynamickými proměnnými, která se automaticky použije při oslovování subdodavatelů.
+
+### ✉️ Generování poptávky
+
+Jedním kliknutím vygenerujte kompletní email s poptávkou včetně všech detailů projektu a automaticky přesuňte kontakt do správného sloupce.
+
+### 🔄 Nové sloupce Pipeline
+
+Pipeline nyní rozlišuje mezi subdodavateli "Oslovení" (připraveni k oslovení) a "Odesláno" (již osloveni).
+
+## Jak používat tuto příručku
+
+- **Pro začátečníky:** Začněte kapitolou 1 a postupujte chronologicky
+- **Pro zkušené:** Používejte obsah pro rychlý přístup ke konkrétním funkcím
+- **Hledání informací:** Každá kapitola má jasnou strukturu s praktickými příklady
+
+## Tipy pro efektivní práci
+
+1. **Začněte nastavením šablony** - Ušetříte čas při opakovaném oslovování
+2. **Připravte dokumentaci předem** - Nahrajte výkresy a specifikace hned při vytvoření poptávky
+3. **Využívejte dynamické proměnné** - Automatizujte opakující se informace v emailech
+4. **Organizujte Pipeline** - Pravidelně aktualizujte stavy subdodavatelů
 
 ## Podpora
 
-Pro technickou podporu nebo dotazy kontaktujte tým vývoje.
+Máte-li otázky nebo návrhy na vylepšení:
 
-**Verze dokumentace:** 1.0  
-**Datum aktualizace:** 30. listopad 2025
+- Kontaktujte administrátora systému
+- Nahlaste chybu prostřednictvím aplikace
+
+## Verze
+
+**Aktuální verze:** 2.0  
+**Datum aktualizace:** Prosinec 2024
+
+**Co je nového:**
+
+- Přidána podpora pro dokumenty poptávek
+- Implementováno nahrávání šablon
+- Automatizované generování poptávek
+- Rozdělení Pipeline sloupců
+
+---
+
+Přejeme příjemnou práci s Construction CRM! 🏗️
