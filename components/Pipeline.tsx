@@ -246,9 +246,10 @@ const BidCard: React.FC<{
   onClick?: () => void;
   onDragStart: (e: React.DragEvent, bidId: string) => void;
   onEdit: (bid: Bid) => void;
+  onDelete?: (bidId: string) => void;
   onGenerateInquiry?: (bid: Bid) => void;
   category?: DemandCategory;
-}> = ({ bid, onClick, onDragStart, onEdit, onGenerateInquiry, category }) => {
+}> = ({ bid, onClick, onDragStart, onEdit, onDelete, onGenerateInquiry, category }) => {
   return (
     <div
       draggable
@@ -270,6 +271,20 @@ const BidCard: React.FC<{
           >
             <span className="material-symbols-outlined text-[16px]">edit</span>
           </button>
+          {onDelete && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (confirm('Opravdu chcete odebrat tohoto dodavatele z výběrového řízení?')) {
+                  onDelete(bid.id);
+                }
+              }}
+              className="text-slate-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+              title="Odebrat z výběrového řízení"
+            >
+              <span className="material-symbols-outlined text-[16px]">close</span>
+            </button>
+          )}
         </div>
         {bid.price && bid.price !== "-" && bid.price !== "?" && (
           <span className="text-xs font-semibold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 px-2 py-0.5 rounded">
@@ -1023,6 +1038,30 @@ export const Pipeline: React.FC<PipelineProps> = ({
     }
   };
 
+  const handleDeleteBid = async (bidId: string) => {
+    if (!activeCategory) return;
+
+    // Optimistic update
+    setBids((prev) => {
+      const categoryBids = (prev[activeCategory.id] || []).filter(b => b.id !== bidId);
+      return { ...prev, [activeCategory.id]: categoryBids };
+    });
+
+    // Delete from Supabase
+    try {
+      const { error } = await supabase
+        .from('bids')
+        .delete()
+        .eq('id', bidId);
+      
+      if (error) {
+        console.error('Error deleting bid:', error);
+      }
+    } catch (err) {
+      console.error('Unexpected error deleting bid:', err);
+    }
+  };
+
   const handleCreateContactRequest = (name: string) => {
     setNewContactName(name);
     setIsCreateContactModalOpen(true);
@@ -1286,6 +1325,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   bid={bid}
                   onDragStart={handleDragStart}
                   onEdit={setEditingBid}
+                  onDelete={handleDeleteBid}
                   onGenerateInquiry={handleGenerateInquiry}
                   category={activeCategory}
                 />
@@ -1312,6 +1352,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   bid={bid}
                   onDragStart={handleDragStart}
                   onEdit={setEditingBid}
+                  onDelete={handleDeleteBid}
                 />
               ))}
               {getBidsForColumn(activeCategory.id, "sent").length === 0 && (
@@ -1335,6 +1376,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   bid={bid}
                   onDragStart={handleDragStart}
                   onEdit={setEditingBid}
+                  onDelete={handleDeleteBid}
                 />
               ))}
             </Column>
@@ -1353,6 +1395,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   bid={bid}
                   onDragStart={handleDragStart}
                   onEdit={setEditingBid}
+                  onDelete={handleDeleteBid}
                 />
               ))}
             </Column>
@@ -1376,6 +1419,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                     bid={bid}
                     onDragStart={handleDragStart}
                     onEdit={setEditingBid}
+                    onDelete={handleDeleteBid}
                   />
                 </div>
               ))}
@@ -1394,6 +1438,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   bid={bid}
                   onDragStart={handleDragStart}
                   onEdit={setEditingBid}
+                  onDelete={handleDeleteBid}
                 />
               ))}
             </Column>
