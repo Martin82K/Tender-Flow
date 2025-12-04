@@ -147,16 +147,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onRegister })
             </button>
           </div>
 
-          {/* Quick Login Button (Dev) */}
+          {/* Version Label */}
           <div className="mt-8 pt-8 border-t border-white/10 text-center">
-            <button
-              type="button"
-              onClick={handleQuickLogin}
-              className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors flex items-center justify-center gap-2 mx-auto border border-emerald-500/30 px-3 py-1.5 rounded-full hover:bg-emerald-500/10"
-            >
-              <span>⚡</span>
-              Rychlé přihlášení (Dev)
-            </button>
+            <span className="text-xs text-white/40">v.0.1</span>
           </div>
         </form>
 
