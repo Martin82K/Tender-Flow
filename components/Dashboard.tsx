@@ -3,6 +3,7 @@ import React from 'react';
 import { Header } from './Header';
 import { Project, ProjectDetails } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { formatMoney, formatMoneyShort, formatChartAxis } from '../utils/formatters';
 
 interface DashboardProps {
     projects: Project[];
@@ -11,18 +12,9 @@ interface DashboardProps {
 
 // --- Helper Functions ---
 
-// Modified to show full precise amount where needed
-const formatMoney = (val: number): string => {
-    if (val >= 1000000) {
-        return (val / 1000000).toFixed(1) + 'M Kč';
-    }
-    return new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(val);
-};
+// Using central formatter - formatMoney for full amounts
+const formatMoneyFull = formatMoney;
 
-// New helper for exact amounts
-const formatMoneyFull = (val: number): string => {
-    return new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(val);
-};
 
 // --- Logic to aggregate data ---
 
@@ -258,7 +250,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ projects, projectDetails }
                         <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                             <XAxis dataKey="name" tick={{ fill: '#64748b' }} axisLine={false} tickLine={false} />
-                            <YAxis tick={{ fill: '#64748b' }} axisLine={false} tickLine={false} tickFormatter={(val) => `${val / 1000000}M`} />
+                            <YAxis tick={{ fill: '#64748b' }} axisLine={false} tickLine={false} tickFormatter={formatChartAxis} />
                             <Tooltip 
                                 cursor={{ fill: 'transparent' }}
                                 contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}

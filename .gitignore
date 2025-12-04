@@ -30,3 +30,6 @@ dist-ssr
 
 # seznam subdodavatelů
 sub.csv
+
+# Local Netlify folder
+.netlify

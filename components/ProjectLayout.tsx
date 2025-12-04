@@ -1159,12 +1159,14 @@ interface ProjectLayoutProps {
     projectDetails?: ProjectDetails;
     onUpdateDetails: (updates: Partial<ProjectDetails>) => void;
     onAddCategory: (category: DemandCategory) => void;
+    onEditCategory?: (category: DemandCategory) => void;
+    onDeleteCategory?: (categoryId: string) => void;
     activeTab: ProjectTab;
     onTabChange: (tab: ProjectTab) => void;
     contacts: Subcontractor[];
 }
 
-export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, projectDetails, onUpdateDetails, onAddCategory, activeTab, onTabChange, contacts }) => {
+export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, projectDetails, onUpdateDetails, onAddCategory, onEditCategory, onDeleteCategory, activeTab, onTabChange, contacts }) => {
     const project = projectDetails;
     
     if (!project) return <div>Project not found</div>;
@@ -1196,7 +1198,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, project
 
             <div className="flex-1 overflow-hidden flex flex-col">
                 {activeTab === 'overview' && <ProjectOverview project={project} onUpdate={onUpdateDetails} />}
-                {activeTab === 'pipeline' && <Pipeline projectId={projectId} projectDetails={project} bids={project.bids || {}} contacts={contacts} onAddCategory={onAddCategory} />}
+                {activeTab === 'pipeline' && <Pipeline projectId={projectId} projectDetails={project} bids={project.bids || {}} contacts={contacts} onAddCategory={onAddCategory} onEditCategory={onEditCategory} onDeleteCategory={onDeleteCategory} />}
                 {activeTab === 'documents' && <ProjectDocuments project={project} onUpdate={onUpdateDetails} />}
             </div>
         </div>

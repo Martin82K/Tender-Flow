@@ -39,6 +39,8 @@ export interface DemandCategory {
   description: string;
   documents?: DemandDocument[];
   deadline?: string; // Termín pro podání nabídky (ISO date string)
+  realizationStart?: string; // Termín realizace - začátek (ISO date string)
+  realizationEnd?: string; // Termín realizace - konec (ISO date string)
 }
 
 export type BidStatus = 'contacted' | "sent" | "offer" | "shortlist" | "sod" | "rejected";
