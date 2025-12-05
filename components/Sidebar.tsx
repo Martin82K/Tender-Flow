@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { View, Project } from '../types';
+import logo from '../assets/logo.png';
 
 interface SidebarProps {
   currentView: View;
@@ -64,9 +65,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
         <div className="flex flex-col gap-4 flex-1">
           {/* Logo */}
           <div className="flex items-center gap-3 p-2 min-w-0">
-            <div className="flex items-center justify-center size-10 min-w-10 rounded-lg bg-primary text-white">
-              <span className="material-symbols-outlined">construction</span>
-            </div>
+            <img 
+              src={logo} 
+              alt="Construction CRM Logo" 
+              className="size-10 min-w-10 object-contain drop-shadow-md"
+            />
             <div className="flex flex-col overflow-hidden">
               <h1 className="text-slate-800 dark:text-slate-200 text-base font-bold leading-normal truncate">Construction CRM</h1>
               <p className="text-slate-500 dark:text-slate-400 text-xs font-normal truncate">Stavební divize</p>
