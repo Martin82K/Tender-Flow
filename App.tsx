@@ -35,9 +35,9 @@ const hexToRgb = (hex: string) => {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return result
     ? `${parseInt(result[1], 16)} ${parseInt(result[2], 16)} ${parseInt(
-        result[3],
-        16
-      )}`
+      result[3],
+      16
+    )}`
     : "96 122 251"; // Default Fallback
 };
 
@@ -186,6 +186,7 @@ const AppContent: React.FC = () => {
         name: p.name,
         location: p.location || "",
         status: p.status || "realization",
+        isDemo: p.is_demo,
       }));
 
       setProjects(loadedProjects);
@@ -256,22 +257,22 @@ const AppContent: React.FC = () => {
           categories,
           contract: contractData
             ? {
-                maturity: contractData.maturity_days || 30,
-                warranty: contractData.warranty_months || 60,
-                retention: contractData.retention_terms || "",
-                siteFacilities: contractData.site_facilities_percent || 0,
-                insurance: contractData.insurance_percent || 0,
-              }
+              maturity: contractData.maturity_days || 30,
+              warranty: contractData.warranty_months || 60,
+              retention: contractData.retention_terms || "",
+              siteFacilities: contractData.site_facilities_percent || 0,
+              insurance: contractData.insurance_percent || 0,
+            }
             : undefined,
           investorFinancials: financialsData
             ? {
-                sodPrice: financialsData.sod_price || 0,
-                amendments: (amendmentsData || []).map((a) => ({
-                  id: a.id,
-                  label: a.label,
-                  price: a.price || 0,
-                })),
-              }
+              sodPrice: financialsData.sod_price || 0,
+              amendments: (amendmentsData || []).map((a) => ({
+                id: a.id,
+                label: a.label,
+                price: a.price || 0,
+              })),
+            }
             : undefined,
         };
       }
@@ -343,10 +344,10 @@ const AppContent: React.FC = () => {
       const loadedContacts: Subcontractor[] = (subcontractorsData || []).map(
         (s) => {
           // Database stores specialization as text[] array
-          const specArray = Array.isArray(s.specialization) 
-            ? s.specialization 
+          const specArray = Array.isArray(s.specialization)
+            ? s.specialization
             : s.specialization ? [s.specialization] : ["Ostatní"];
-          
+
           return {
             id: s.id,
             company: s.company_name,
@@ -435,9 +436,23 @@ const AppContent: React.FC = () => {
 
     // Persist to Supabase
     try {
-      const { error } = await supabase.from("projects").delete().eq("id", id);
+      const projectToDelete = projects.find(p => p.id === id);
 
-      if (error) console.error("Error deleting project:", error);
+      if (projectToDelete?.isDemo) {
+        // For Demo projects, we don't delete, we hide them for this user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { error } = await supabase.from("user_hidden_projects").insert({
+            user_id: user.id,
+            project_id: id
+          });
+          if (error) console.error("Error hiding demo project:", error);
+        }
+      } else {
+        // Normal delete
+        const { error } = await supabase.from("projects").delete().eq("id", id);
+        if (error) console.error("Error deleting project:", error);
+      }
     } catch (err) {
       console.error("Unexpected error deleting project:", err);
     }

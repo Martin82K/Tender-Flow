@@ -109,9 +109,8 @@ const Column: React.FC<ColumnProps> = ({
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      className={`flex flex-col w-80 flex-shrink-0 rounded-xl h-full max-h-full border transition-colors ${
-        styles.wrapper
-      } ${isOver ? "ring-2 ring-primary ring-inset bg-opacity-70" : ""}`}
+      className={`flex flex-col w-80 flex-shrink-0 rounded-xl h-full max-h-full border transition-colors ${styles.wrapper
+        } ${isOver ? "ring-2 ring-primary ring-inset bg-opacity-70" : ""}`}
     >
       <div
         className={`p-4 border-b-2 ${styles.headerBorder} ${styles.headerBg} sticky top-0 rounded-t-xl z-10 backdrop-blur-sm flex justify-between items-center transition-colors`}
@@ -139,7 +138,7 @@ const EditBidModal: React.FC<{
 }> = ({ bid, onClose, onSave }) => {
   const [form, setForm] = useState({ ...bid });
   const [priceDisplay, setPriceDisplay] = useState(
-    bid.price && bid.price !== "?" && bid.price !== "-" 
+    bid.price && bid.price !== "?" && bid.price !== "-"
       ? formatInputNumber(parseFormattedNumber(bid.price.replace(/[^\d\s,.-]/g, '')))
       : ""
   );
@@ -149,7 +148,7 @@ const EditBidModal: React.FC<{
     // Allow only digits, spaces, and commas
     const cleaned = raw.replace(/[^\d\s,]/g, '');
     setPriceDisplay(cleaned);
-    
+
     // Parse and store numeric value
     const numericValue = parseFormattedNumber(cleaned);
     if (numericValue > 0) {
@@ -168,9 +167,9 @@ const EditBidModal: React.FC<{
   };
 
   const handleRoundChange = (round: number) => {
-    setForm({ 
-      ...form, 
-      selectionRound: form.selectionRound === round ? undefined : round 
+    setForm({
+      ...form,
+      selectionRound: form.selectionRound === round ? undefined : round
     });
   };
 
@@ -245,7 +244,7 @@ const EditBidModal: React.FC<{
                 className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
               />
             </div>
-            
+
             {/* Datum k zaslání úpravy */}
             <div>
               <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
@@ -268,11 +267,10 @@ const EditBidModal: React.FC<{
                 {[1, 2, 3].map((round) => (
                   <label
                     key={round}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${
-                      form.selectionRound === round
-                        ? "bg-primary/10 border-primary text-primary"
-                        : "bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300"
-                    }`}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${form.selectionRound === round
+                      ? "bg-primary/10 border-primary text-primary"
+                      : "bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300"
+                      }`}
                   >
                     <input
                       type="checkbox"
@@ -429,7 +427,8 @@ const CategoryCard: React.FC<{
   onClick: () => void;
   onEdit?: (category: DemandCategory) => void;
   onDelete?: (categoryId: string) => void;
-}> = ({ category, onClick, onEdit, onDelete }) => {
+  onToggleComplete?: (category: DemandCategory) => void;
+}> = ({ category, onClick, onEdit, onDelete, onToggleComplete }) => {
   const statusColors = {
     open: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200",
     negotiating:
@@ -450,10 +449,10 @@ const CategoryCard: React.FC<{
     category.status === "sod"
       ? "sod"
       : category.status === "closed"
-      ? "closed"
-      : category.status === "negotiating"
-      ? "negotiating"
-      : "open";
+        ? "closed"
+        : category.status === "negotiating"
+          ? "negotiating"
+          : "open";
 
   // Formatting Helper - using centralized formatter
   const formatMoneyLocal = formatMoney;
@@ -467,6 +466,20 @@ const CategoryCard: React.FC<{
 
       {/* Action buttons */}
       <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {onToggleComplete && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleComplete(category);
+            }}
+            className={`p-1.5 ${category.status === 'closed' ? 'bg-green-100 dark:bg-green-900/40 hover:bg-green-200 dark:hover:bg-green-900/60' : 'bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600'} rounded-lg transition-colors`}
+            title={category.status === 'closed' ? 'Označit jako otevřenou' : 'Označit jako ukončenou'}
+          >
+            <span className={`material-symbols-outlined text-[16px] ${category.status === 'closed' ? 'text-green-700 dark:text-green-200' : 'text-slate-600 dark:text-slate-300'}`}>
+              {category.status === 'closed' ? 'check_circle' : 'task_alt'}
+            </span>
+          </button>
+        )}
         {onEdit && (
           <button
             onClick={(e) => {
@@ -526,8 +539,8 @@ const CategoryCard: React.FC<{
           const colorClass = isOverdue
             ? "text-red-600 dark:text-red-400"
             : isUrgent
-            ? "text-orange-600 dark:text-orange-400"
-            : "text-slate-500 dark:text-slate-400";
+              ? "text-orange-600 dark:text-orange-400"
+              : "text-slate-500 dark:text-slate-400";
 
           return (
             <div
@@ -637,7 +650,7 @@ const CreateContactModal: React.FC<{
     const specializationArray = form.specialization
       ? form.specialization.split(',').map(s => s.trim()).filter(Boolean)
       : ["Ostatní"];
-    
+
     const newContact: Subcontractor = {
       id: crypto.randomUUID(),
       company: form.company,
@@ -1136,6 +1149,16 @@ export const Pipeline: React.FC<PipelineProps> = ({
     setIsEditModalOpen(true);
   };
 
+  const handleToggleCategoryComplete = (category: DemandCategory) => {
+    // Toggle between 'open' and 'closed' status
+    const newStatus = category.status === 'closed' ? 'open' : 'closed';
+    const updatedCategory: DemandCategory = {
+      ...category,
+      status: newStatus
+    };
+    onEditCategory?.(updatedCategory);
+  };
+
   const handleDeleteCategory = (categoryId: string) => {
     if (!onDeleteCategory) return;
 
@@ -1162,7 +1185,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
     setEditingBid(null);
 
     // Parse numeric price from display string
-    const numericPrice = updatedBid.price 
+    const numericPrice = updatedBid.price
       ? parseFormattedNumber(updatedBid.price.replace(/[^\d\s,.-]/g, ''))
       : null;
 
@@ -1182,7 +1205,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
           selection_round: updatedBid.selectionRound || null
         })
         .eq('id', updatedBid.id);
-      
+
       if (error) {
         console.error('Error updating bid:', error);
       }
@@ -1206,7 +1229,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
         .from('bids')
         .delete()
         .eq('id', bidId);
-      
+
       if (error) {
         console.error('Error deleting bid:', error);
       }
@@ -1485,10 +1508,10 @@ export const Pipeline: React.FC<PipelineProps> = ({
               ))}
               {getBidsForColumn(activeCategory.id, "contacted").length ===
                 0 && (
-                <div className="text-center p-4 text-slate-400 text-sm italic">
-                  Žádní dodavatelé v této fázi
-                </div>
-              )}
+                  <div className="text-center p-4 text-slate-400 text-sm italic">
+                    Žádní dodavatelé v této fázi
+                  </div>
+                )}
             </Column>
 
             {/* 2. Odesláno (Sent) */}
@@ -1601,11 +1624,10 @@ export const Pipeline: React.FC<PipelineProps> = ({
         {isSubcontractorModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
             <div
-              className={`bg-white dark:bg-slate-900 shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col transition-all duration-200 ${
-                isSubcontractorModalMaximized
-                  ? "fixed inset-0 rounded-none w-full h-full"
-                  : "rounded-2xl max-w-4xl w-full h-[80vh]"
-              }`}
+              className={`bg-white dark:bg-slate-900 shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col transition-all duration-200 ${isSubcontractorModalMaximized
+                ? "fixed inset-0 rounded-none w-full h-full"
+                : "rounded-2xl max-w-4xl w-full h-[80vh]"
+                }`}
             >
               <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shrink-0">
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">
@@ -1728,6 +1750,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
               onClick={() => setActiveCategory(category)}
               onEdit={handleEditCategoryClick}
               onDelete={handleDeleteCategory}
+              onToggleComplete={handleToggleCategoryComplete}
             />
           ))}
 

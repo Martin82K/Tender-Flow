@@ -73,6 +73,7 @@ export interface Project {
   name: string;
   location: string;
   status: ProjectStatus;
+  isDemo?: boolean;
 }
 
 export interface ContractDetails {

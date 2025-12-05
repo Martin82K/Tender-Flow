@@ -8,23 +8,23 @@ import { uploadDocument, formatFileSize } from '../services/documentService';
 // --- Helper Functions ---
 const parseMoney = (valueStr: string): number => {
     if (!valueStr || valueStr === '-' || valueStr === '?') return 0;
-    
+
     // Check for M (millions) or K (thousands) suffix first
     const hasM = /M/i.test(valueStr);
     const hasK = /K/i.test(valueStr) && !/Kč/i.test(valueStr); // K but not Kč
-    
+
     // Remove all non-numeric characters except comma and dot
     // Czech format uses spaces for thousands and comma for decimals
     const cleanStr = valueStr
         .replace(/\s/g, '')     // Remove all whitespace/spaces
         .replace(/[^0-9,.-]/g, '') // Keep only digits, comma, dot, minus
         .replace(',', '.');     // Replace comma with dot for parseFloat
-    
+
     let val = parseFloat(cleanStr);
-    
+
     if (hasM) val *= 1000000;
     else if (hasK) val *= 1000;
-    
+
     return isNaN(val) ? 0 : val;
 };
 
@@ -117,22 +117,22 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                 )}
                             </div>
                             {!isEditingDocs ? (
-                                <button 
-                                    onClick={() => setIsEditingDocs(true)} 
+                                <button
+                                    onClick={() => setIsEditingDocs(true)}
                                     className="text-slate-400 hover:text-primary transition-colors"
                                 >
                                     <span className="material-symbols-outlined text-[20px]">edit</span>
                                 </button>
                             ) : (
                                 <div className="flex gap-2">
-                                    <button 
-                                        onClick={handleSaveDocs} 
+                                    <button
+                                        onClick={handleSaveDocs}
                                         className="text-green-500 hover:text-green-600"
                                     >
                                         <span className="material-symbols-outlined text-[20px]">check</span>
                                     </button>
-                                    <button 
-                                        onClick={() => setIsEditingDocs(false)} 
+                                    <button
+                                        onClick={() => setIsEditingDocs(false)}
                                         className="text-red-500 hover:text-red-600"
                                     >
                                         <span className="material-symbols-outlined text-[20px]">close</span>
@@ -145,9 +145,9 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                             <div>
                                 {hasDocsLink ? (
                                     <div className="space-y-3">
-                                        <a 
-                                            href={project.documentationLink} 
-                                            target="_blank" 
+                                        <a
+                                            href={project.documentationLink}
+                                            target="_blank"
                                             rel="noopener noreferrer"
                                             className="block p-4 bg-white dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 hover:border-primary hover:bg-slate-50 dark:hover:bg-slate-600 transition-all group"
                                         >
@@ -176,7 +176,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                             </div>
                         ) : (
                             <div className="space-y-3">
-                                <input 
+                                <input
                                     type="url"
                                     value={docsLinkValue}
                                     onChange={(e) => setDocsLinkValue(e.target.value)}
@@ -203,15 +203,15 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                 )}
                             </div>
                             {!isEditingLetter ? (
-                                <button 
-                                    onClick={() => setIsEditingLetter(true)} 
+                                <button
+                                    onClick={() => setIsEditingLetter(true)}
                                     className="text-slate-400 hover:text-primary transition-colors"
                                 >
                                     <span className="material-symbols-outlined text-[20px]">edit</span>
                                 </button>
                             ) : (
                                 <div className="flex gap-2">
-                                    <button 
+                                    <button
                                         onClick={handleSaveLetter}
                                         disabled={isUploadingTemplate}
                                         className={`transition-colors ${isUploadingTemplate ? 'text-slate-400 cursor-not-allowed' : 'text-green-500 hover:text-green-600'}`}
@@ -222,7 +222,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                             <span className="material-symbols-outlined text-[20px]">check</span>
                                         )}
                                     </button>
-                                    <button 
+                                    <button
                                         onClick={() => {
                                             setIsEditingLetter(false);
                                             setSelectedTemplateFile(null);
@@ -240,9 +240,9 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                             <div>
                                 {hasLetterLink ? (
                                     <div className="space-y-3">
-                                        <a 
-                                            href={project.inquiryLetterLink} 
-                                            target="_blank" 
+                                        <a
+                                            href={project.inquiryLetterLink}
+                                            target="_blank"
                                             rel="noopener noreferrer"
                                             className="block p-4 bg-white dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 hover:border-primary hover:bg-slate-50 dark:hover:bg-slate-600 transition-all group"
                                         >
@@ -276,11 +276,10 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                     <button
                                         type="button"
                                         onClick={() => setSelectedTemplateFile(null)}
-                                        className={`px-4 py-2 text-sm font-medium transition-colors ${
-                                            !selectedTemplateFile
-                                                ? 'text-primary border-b-2 border-primary'
-                                                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
-                                        }`}
+                                        className={`px-4 py-2 text-sm font-medium transition-colors ${!selectedTemplateFile
+                                            ? 'text-primary border-b-2 border-primary'
+                                            : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                                            }`}
                                     >
                                         <span className="flex items-center gap-2">
                                             <span className="material-symbols-outlined text-[18px]">link</span>
@@ -294,11 +293,10 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                             const input = document.getElementById('template-file-input') as HTMLInputElement;
                                             input?.click();
                                         }}
-                                        className={`px-4 py-2 text-sm font-medium transition-colors ${
-                                            selectedTemplateFile
-                                                ? 'text-primary border-b-2 border-primary'
-                                                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
-                                        }`}
+                                        className={`px-4 py-2 text-sm font-medium transition-colors ${selectedTemplateFile
+                                            ? 'text-primary border-b-2 border-primary'
+                                            : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                                            }`}
                                     >
                                         <span className="flex items-center gap-2">
                                             <span className="material-symbols-outlined text-[18px]">upload_file</span>
@@ -310,7 +308,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                 {/* Content based on selection */}
                                 {!selectedTemplateFile ? (
                                     <div className="space-y-3">
-                                        <input 
+                                        <input
                                             type="url"
                                             value={letterLinkValue}
                                             onChange={(e) => setLetterLinkValue(e.target.value)}
@@ -465,7 +463,7 @@ const FinancialAnalysisTable: React.FC<FinancialAnalysisTableProps> = ({ categor
         const catBids = bids[cat.id] || [];
         const winningBid = catBids.find(b => b.status === 'sod');
         const subPrice = winningBid ? parseMoney(winningBid.price || '0') : 0;
-        
+
         const diffSod = cat.sodBudget - subPrice;
         const diffPlan = cat.planBudget - subPrice;
 
@@ -565,7 +563,7 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
     const contract = project.contract;
     const investor = project.investorFinancials || { sodPrice: 0, amendments: [] };
     const plannedCost = project.plannedCost || 0;
-    
+
     // Edit States
     const [editingInfo, setEditingInfo] = useState(false);
     const [editingContract, setEditingContract] = useState(false);
@@ -595,7 +593,7 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
         sodPrice: 0,
         amendments: []
     });
-    
+
     const [internalForm, setInternalForm] = useState({
         plannedCost: 0
     });
@@ -650,16 +648,16 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
         });
         setEditingInvestor(false);
     };
-    
+
     const handleSaveInternal = () => {
         onUpdate({
             plannedCost: internalForm.plannedCost
         });
         setEditingInternal(false);
     };
-    
+
     // Calculate stats
-    
+
     // 1. Calculate Total Revenue (Budget) from Investor Contract
     const investorSod = investor.sodPrice || 0;
     const investorAmendmentsTotal = investor.amendments.reduce((sum, a) => sum + (a.price || 0), 0);
@@ -668,7 +666,7 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
     // 2. Calculate Total Cost (Contracted Subcontractors)
     let totalContractedCost = 0;
     let completedTasks = 0;
-    
+
     project.categories.forEach(cat => {
         const catBids = project.bids?.[cat.id] || [];
         const winningBid = catBids.find(b => b.status === 'sod');
@@ -705,30 +703,30 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
         <div className="p-6 lg:p-10 flex flex-col gap-6 overflow-y-auto h-full">
             {/* Top Stats - Updated to include Planned Cost */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                 {/* Card 1: Revenue */}
-                 <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                {/* Card 1: Revenue */}
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
                     <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Rozpočet (Investor)</p>
                     <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-2">{formatMoneyFull(totalBudget)}</h3>
                     <p className="text-xs text-slate-400 mt-1">Příjem (SOD + Dodatky)</p>
                     <div className="mt-4 w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                        <div className="bg-slate-500 h-full" style={{width: '100%'}}></div>
+                        <div className="bg-slate-500 h-full" style={{ width: '100%' }}></div>
                     </div>
-                 </div>
+                </div>
 
-                 {/* Card 2: Planned (Internal) */}
-                 <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                {/* Card 2: Planned (Internal) */}
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
                     <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Plánovaný náklad</p>
                     <h3 className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-2">
                         {plannedCost > 0 ? formatMoneyFull(plannedCost) : '-'}
                     </h3>
                     <p className="text-xs text-slate-400 mt-1">Interní cíl nákladů</p>
                     <div className="mt-4 w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                         <div className="bg-blue-500 h-full" style={{width: '100%'}}></div>
+                        <div className="bg-blue-500 h-full" style={{ width: '100%' }}></div>
                     </div>
-                 </div>
+                </div>
 
-                 {/* Card 3: Contracted (Real) */}
-                 <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                {/* Card 3: Contracted (Real) */}
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
                     <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Zasmluvněno (Realita)</p>
                     <h3 className="text-2xl font-bold text-primary mt-2">{formatMoneyFull(totalContractedCost)}</h3>
                     <p className="text-xs text-slate-400 mt-1">
@@ -736,24 +734,115 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
                             {plannedBalance >= 0 ? '+' : ''}{formatMoneyFull(plannedBalance)}
                         </span>
                     </p>
-                     <div className="mt-4 w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                        <div 
-                            className={`h-full transition-all ${plannedCost > 0 && totalContractedCost > plannedCost ? 'bg-red-500' : 'bg-primary'}`} 
-                            style={{width: `${plannedCost > 0 ? (totalContractedCost/plannedCost)*100 : 0}%`}}
+                    <div className="mt-4 w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                        <div
+                            className={`h-full transition-all ${plannedCost > 0 && totalContractedCost > plannedCost ? 'bg-red-500' : 'bg-primary'}`}
+                            style={{ width: `${plannedCost > 0 ? (totalContractedCost / plannedCost) * 100 : 0}%` }}
                         ></div>
                     </div>
-                 </div>
+                </div>
 
-                 {/* Card 4: Progress */}
-                 <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                {/* Card 4: Progress */}
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
                     <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Postup Zadávání</p>
                     <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-2">{completedTasks} / {project.categories.length} <span className="text-sm font-normal text-slate-500">sekcí</span></h3>
                     <p className="text-xs text-slate-400 mt-1">Hotové subdodávky</p>
                     <div className="mt-4 w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                        <div className="bg-green-500 h-full" style={{width: `${progress}%`}}></div>
+                        <div className="bg-green-500 h-full" style={{ width: `${progress}%` }}></div>
                     </div>
-                 </div>
+                </div>
             </div>
+
+            {/* Demand Categories Overview Cards */}
+            {project.categories.length > 0 && (
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                            <span className="material-symbols-outlined text-primary">category</span>
+                            Přehled Poptávek ({project.categories.length})
+                        </h3>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                        {project.categories.map(cat => {
+                            const catBids = project.bids?.[cat.id] || [];
+                            const winningBid = catBids.find(b => b.status === 'sod');
+                            const subPrice = winningBid ? parseMoney(winningBid.price || '0') : 0;
+                            const diffSod = cat.sodBudget - subPrice;
+                            const diffPlan = cat.planBudget - subPrice;
+                            const hasWinner = !!winningBid;
+
+                            // Status badge styling
+                            const statusConfig: Record<string, { label: string; color: string; icon: string }> = {
+                                'open': { label: 'Otevřená', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300', icon: 'hourglass_empty' },
+                                'negotiating': { label: 'Jednání', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300', icon: 'handshake' },
+                                'closed': { label: 'Uzavřená', color: 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300', icon: 'done' },
+                                'sod': { label: 'SOD', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300', icon: 'verified' }
+                            };
+                            const status = statusConfig[cat.status] || statusConfig['open'];
+
+                            return (
+                                <div key={cat.id} className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 border border-slate-100 dark:border-slate-700 hover:border-primary/50 transition-colors">
+                                    {/* Header */}
+                                    <div className="flex items-start justify-between mb-3">
+                                        <h4 className="font-semibold text-slate-900 dark:text-white text-sm line-clamp-2">{cat.title}</h4>
+                                        <span className={`shrink-0 ml-2 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase flex items-center gap-1 ${status.color}`}>
+                                            <span className="material-symbols-outlined text-[12px]">{status.icon}</span>
+                                            {status.label}
+                                        </span>
+                                    </div>
+
+                                    {/* Budget Info */}
+                                    <div className="space-y-2 mb-3">
+                                        <div className="flex justify-between items-center text-xs">
+                                            <span className="text-slate-500 dark:text-slate-400">Cena SOD:</span>
+                                            <span className="font-mono font-medium text-slate-700 dark:text-slate-300">{formatMoneyFull(cat.sodBudget)}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-xs">
+                                            <span className="text-slate-500 dark:text-slate-400">Interní plán:</span>
+                                            <span className="font-mono font-medium text-slate-700 dark:text-slate-300">{formatMoneyFull(cat.planBudget)}</span>
+                                        </div>
+                                        {hasWinner && (
+                                            <div className="flex justify-between items-center text-xs">
+                                                <span className="text-slate-500 dark:text-slate-400">Vysoutěženo:</span>
+                                                <span className="font-mono font-bold text-primary">{formatMoneyFull(subPrice)}</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Subcontractor or Bid Count */}
+                                    <div className="pt-3 border-t border-slate-200 dark:border-slate-600">
+                                        {hasWinner ? (
+                                            <div className="space-y-1">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="material-symbols-outlined text-green-500 text-[16px]">check_circle</span>
+                                                    <span className="text-xs font-medium text-slate-700 dark:text-slate-300 truncate">{winningBid.companyName}</span>
+                                                </div>
+                                                <div className="flex justify-between text-xs pl-6">
+                                                    <span className="text-slate-500 dark:text-slate-400">Bilance SOD:</span>
+                                                    <span className={`font-bold ${diffSod >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                                                        {diffSod >= 0 ? '+' : ''}{formatMoney(diffSod)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between text-xs pl-6">
+                                                    <span className="text-slate-500 dark:text-slate-400">Bilance Plán:</span>
+                                                    <span className={`font-bold ${diffPlan >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                                                        {diffPlan >= 0 ? '+' : ''}{formatMoney(diffPlan)}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                                                <span className="material-symbols-outlined text-[16px]">groups</span>
+                                                <span>{catBids.length} {catBids.length === 1 ? 'nabídka' : catBids.length >= 2 && catBids.length <= 4 ? 'nabídky' : 'nabídek'}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left Column: Info Cards */}
@@ -835,65 +924,65 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
                             <div className="flex flex-col gap-3">
                                 <div>
                                     <label className="text-xs text-slate-500 mb-1 block">Investor</label>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         value={infoForm.investor}
-                                        onChange={e => setInfoForm({...infoForm, investor: e.target.value})}
+                                        onChange={e => setInfoForm({ ...infoForm, investor: e.target.value })}
                                         className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-sm text-slate-900 dark:text-white"
                                     />
                                 </div>
                                 <div>
                                     <label className="text-xs text-slate-500 mb-1 block">Technický dozor</label>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         value={infoForm.technicalSupervisor}
-                                        onChange={e => setInfoForm({...infoForm, technicalSupervisor: e.target.value})}
+                                        onChange={e => setInfoForm({ ...infoForm, technicalSupervisor: e.target.value })}
                                         className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-sm text-slate-900 dark:text-white"
                                     />
                                 </div>
                                 <div className="h-px bg-slate-100 dark:bg-slate-800 my-1"></div>
                                 <div>
                                     <label className="text-xs text-slate-500 mb-1 block">Lokace</label>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         value={infoForm.location}
-                                        onChange={e => setInfoForm({...infoForm, location: e.target.value})}
+                                        onChange={e => setInfoForm({ ...infoForm, location: e.target.value })}
                                         className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-sm text-slate-900 dark:text-white"
                                     />
                                 </div>
                                 <div>
                                     <label className="text-xs text-slate-500 mb-1 block">Termín dokončení</label>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         value={infoForm.finishDate}
-                                        onChange={e => setInfoForm({...infoForm, finishDate: e.target.value})}
+                                        onChange={e => setInfoForm({ ...infoForm, finishDate: e.target.value })}
                                         className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-sm text-slate-900 dark:text-white"
                                     />
                                 </div>
                                 <div>
                                     <label className="text-xs text-slate-500 mb-1 block">Hlavní stavbyvedoucí</label>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         value={infoForm.siteManager}
-                                        onChange={e => setInfoForm({...infoForm, siteManager: e.target.value})}
+                                        onChange={e => setInfoForm({ ...infoForm, siteManager: e.target.value })}
                                         className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-sm text-slate-900 dark:text-white"
                                     />
                                 </div>
                                 <div>
                                     <label className="text-xs text-slate-500 mb-1 block">Stavbyvedoucí</label>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         value={infoForm.constructionManager}
-                                        onChange={e => setInfoForm({...infoForm, constructionManager: e.target.value})}
+                                        onChange={e => setInfoForm({ ...infoForm, constructionManager: e.target.value })}
                                         className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-sm text-slate-900 dark:text-white"
                                     />
                                 </div>
                                 <div>
                                     <label className="text-xs text-slate-500 mb-1 block">Stavební technik</label>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         value={infoForm.constructionTechnician}
-                                        onChange={e => setInfoForm({...infoForm, constructionTechnician: e.target.value})}
+                                        onChange={e => setInfoForm({ ...infoForm, constructionTechnician: e.target.value })}
                                         className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-sm text-slate-900 dark:text-white"
                                     />
                                 </div>
@@ -933,14 +1022,14 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
                                     <p className="text-sm font-medium text-slate-800 dark:text-white">Základní SOD</p>
                                     <p className="text-sm font-bold text-slate-900 dark:text-white">{formatMoneyFull(investor.sodPrice)}</p>
                                 </div>
-                                
+
                                 {investor.amendments.map((amendment, idx) => (
                                     <div key={amendment.id} className="flex justify-between items-center py-1">
                                         <p className="text-sm text-slate-500 dark:text-slate-400">{amendment.label}</p>
                                         <p className="text-sm font-semibold text-slate-900 dark:text-white">{formatMoneyFull(amendment.price)}</p>
                                     </div>
                                 ))}
-                                
+
                                 <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
                                     <p className="text-sm font-bold text-slate-900 dark:text-white uppercase">Celkem bez DPH</p>
                                     <p className="text-base font-bold text-primary">{formatMoneyFull(totalBudget)}</p>
@@ -950,26 +1039,26 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
                             <div className="flex flex-col gap-4">
                                 <div>
                                     <label className="text-xs text-slate-500 mb-1 block">Základní cena SOD</label>
-                                    <input 
-                                        type="number" 
+                                    <input
+                                        type="number"
                                         value={investorForm.sodPrice}
-                                        onChange={e => setInvestorForm({...investorForm, sodPrice: parseFloat(e.target.value) || 0})}
+                                        onChange={e => setInvestorForm({ ...investorForm, sodPrice: parseFloat(e.target.value) || 0 })}
                                         className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-2 text-sm text-slate-900 dark:text-white font-semibold text-right"
                                     />
                                 </div>
-                                
+
                                 <div className="space-y-2">
                                     <label className="text-xs text-slate-500 mb-1 block">Dodatky</label>
                                     {investorForm.amendments.map((amendment, idx) => (
                                         <div key={amendment.id} className="flex gap-2 items-center">
-                                            <input 
+                                            <input
                                                 type="text"
                                                 value={amendment.label}
                                                 onChange={e => updateAmendment(idx, 'label', e.target.value)}
                                                 className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-sm text-slate-900 dark:text-white"
                                                 placeholder="Název dodatku"
                                             />
-                                            <input 
+                                            <input
                                                 type="number"
                                                 value={amendment.price}
                                                 onChange={e => updateAmendment(idx, 'price', parseFloat(e.target.value) || 0)}
@@ -981,7 +1070,7 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
                                             </button>
                                         </div>
                                     ))}
-                                    <button 
+                                    <button
                                         onClick={addAmendment}
                                         className="text-xs flex items-center gap-1 text-primary hover:text-primary/80 mt-2 font-medium"
                                     >
@@ -1041,10 +1130,10 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
                             <div className="flex flex-col gap-3">
                                 <div>
                                     <label className="text-xs text-slate-500 mb-1 block">Plánovaný náklad (Cíl)</label>
-                                    <input 
-                                        type="number" 
+                                    <input
+                                        type="number"
                                         value={internalForm.plannedCost}
-                                        onChange={e => setInternalForm({...internalForm, plannedCost: parseFloat(e.target.value) || 0})}
+                                        onChange={e => setInternalForm({ ...internalForm, plannedCost: parseFloat(e.target.value) || 0 })}
                                         className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-2 text-sm text-slate-900 dark:text-white font-semibold text-right"
                                     />
                                 </div>
@@ -1057,8 +1146,8 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
                 <div className="flex flex-col gap-6">
                     {/* Contract Info Card */}
                     {contract && (
-                         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
-                             <div className="flex justify-between items-center mb-4">
+                        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
+                            <div className="flex justify-between items-center mb-4">
                                 <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
                                     <span className="material-symbols-outlined text-primary">gavel</span>
                                     Parametry smlouvy
@@ -1104,50 +1193,50 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
                                 </div>
                             ) : (
                                 <div className="flex flex-col gap-3">
-                                     <div className="grid grid-cols-2 gap-2 items-center">
+                                    <div className="grid grid-cols-2 gap-2 items-center">
                                         <label className="text-xs text-slate-500">Splatnost (dní)</label>
-                                        <input 
-                                            type="number" 
+                                        <input
+                                            type="number"
                                             value={contractForm.maturity}
-                                            onChange={e => setContractForm({...contractForm, maturity: parseInt(e.target.value) || 0})}
+                                            onChange={e => setContractForm({ ...contractForm, maturity: parseInt(e.target.value) || 0 })}
                                             className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-sm text-slate-900 dark:text-white text-right"
                                         />
                                     </div>
                                     <div className="grid grid-cols-2 gap-2 items-center">
                                         <label className="text-xs text-slate-500">Záruka (měsíců)</label>
-                                        <input 
-                                            type="number" 
+                                        <input
+                                            type="number"
                                             value={contractForm.warranty}
-                                            onChange={e => setContractForm({...contractForm, warranty: parseInt(e.target.value) || 0})}
+                                            onChange={e => setContractForm({ ...contractForm, warranty: parseInt(e.target.value) || 0 })}
                                             className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-sm text-slate-900 dark:text-white text-right"
                                         />
                                     </div>
                                     <div className="grid grid-cols-2 gap-2 items-center">
                                         <label className="text-xs text-slate-500">Pozastávka</label>
-                                        <input 
-                                            type="text" 
+                                        <input
+                                            type="text"
                                             value={contractForm.retention}
-                                            onChange={e => setContractForm({...contractForm, retention: e.target.value})}
+                                            onChange={e => setContractForm({ ...contractForm, retention: e.target.value })}
                                             className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-sm text-slate-900 dark:text-white text-right"
                                         />
                                     </div>
                                     <div className="grid grid-cols-2 gap-2 items-center">
                                         <label className="text-xs text-slate-500">Zař. staveniště (%)</label>
-                                        <input 
+                                        <input
                                             type="number"
-                                            step="0.1" 
+                                            step="0.1"
                                             value={contractForm.siteFacilities}
-                                            onChange={e => setContractForm({...contractForm, siteFacilities: parseFloat(e.target.value) || 0})}
+                                            onChange={e => setContractForm({ ...contractForm, siteFacilities: parseFloat(e.target.value) || 0 })}
                                             className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-sm text-slate-900 dark:text-white text-right"
                                         />
                                     </div>
                                     <div className="grid grid-cols-2 gap-2 items-center">
                                         <label className="text-xs text-slate-500">Pojištění (%)</label>
-                                        <input 
+                                        <input
                                             type="number"
                                             step="0.1"
                                             value={contractForm.insurance}
-                                            onChange={e => setContractForm({...contractForm, insurance: parseFloat(e.target.value) || 0})}
+                                            onChange={e => setContractForm({ ...contractForm, insurance: parseFloat(e.target.value) || 0 })}
                                             className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-sm text-slate-900 dark:text-white text-right"
                                         />
                                     </div>
@@ -1182,26 +1271,26 @@ interface ProjectLayoutProps {
 
 export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, projectDetails, onUpdateDetails, onAddCategory, onEditCategory, onDeleteCategory, onBidsChange, activeTab, onTabChange, contacts, statuses }) => {
     const project = projectDetails;
-    
+
     if (!project) return <div>Project not found</div>;
 
     return (
         <div className="flex flex-col h-full bg-background-light dark:bg-background-dark">
             <Header title={project.title} subtitle="Detail stavby">
                 <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
-                    <button 
+                    <button
                         onClick={() => onTabChange('overview')}
                         className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === 'overview' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
                     >
                         Přehled
                     </button>
-                    <button 
+                    <button
                         onClick={() => onTabChange('pipeline')}
                         className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === 'pipeline' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
                     >
                         Pipelines
                     </button>
-                    <button 
+                    <button
                         onClick={() => onTabChange('documents')}
                         className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === 'documents' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
                     >
@@ -1210,7 +1299,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, project
                 </div>
             </Header>
 
-            <div className="flex-1 overflow-hidden flex flex-col">
+            <div className="flex-1 overflow-auto flex flex-col">
                 {activeTab === 'overview' && <ProjectOverview project={project} onUpdate={onUpdateDetails} />}
                 {activeTab === 'pipeline' && <Pipeline projectId={projectId} projectDetails={project} bids={project.bids || {}} contacts={contacts} statuses={statuses} onAddCategory={onAddCategory} onEditCategory={onEditCategory} onDeleteCategory={onDeleteCategory} onBidsChange={(bids) => onBidsChange?.(projectId, bids)} />}
                 {activeTab === 'documents' && <ProjectDocuments project={project} onUpdate={onUpdateDetails} />}
