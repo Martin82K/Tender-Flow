@@ -732,7 +732,7 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
                     <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Zasmluvněno (Realita)</p>
                     <h3 className="text-2xl font-bold text-primary mt-2">{formatMoneyFull(totalContractedCost)}</h3>
                     <p className="text-xs text-slate-400 mt-1">
-                        Rezerva: <span className={plannedBalance >= 0 ? 'text-green-500 font-bold' : 'text-red-500 font-bold'}>
+                        Zbývá zadat: <span className={plannedBalance >= 0 ? 'text-green-500 font-bold' : 'text-red-500 font-bold'}>
                             {plannedBalance >= 0 ? '+' : ''}{formatMoneyFull(plannedBalance)}
                         </span>
                     </p>
@@ -1173,13 +1173,14 @@ interface ProjectLayoutProps {
     onAddCategory: (category: DemandCategory) => void;
     onEditCategory?: (category: DemandCategory) => void;
     onDeleteCategory?: (categoryId: string) => void;
+    onBidsChange?: (projectId: string, bids: Record<string, Bid[]>) => void;
     activeTab: ProjectTab;
     onTabChange: (tab: ProjectTab) => void;
     contacts: Subcontractor[];
     statuses?: StatusConfig[];
 }
 
-export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, projectDetails, onUpdateDetails, onAddCategory, onEditCategory, onDeleteCategory, activeTab, onTabChange, contacts, statuses }) => {
+export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, projectDetails, onUpdateDetails, onAddCategory, onEditCategory, onDeleteCategory, onBidsChange, activeTab, onTabChange, contacts, statuses }) => {
     const project = projectDetails;
     
     if (!project) return <div>Project not found</div>;
@@ -1211,7 +1212,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, project
 
             <div className="flex-1 overflow-hidden flex flex-col">
                 {activeTab === 'overview' && <ProjectOverview project={project} onUpdate={onUpdateDetails} />}
-                {activeTab === 'pipeline' && <Pipeline projectId={projectId} projectDetails={project} bids={project.bids || {}} contacts={contacts} statuses={statuses} onAddCategory={onAddCategory} onEditCategory={onEditCategory} onDeleteCategory={onDeleteCategory} />}
+                {activeTab === 'pipeline' && <Pipeline projectId={projectId} projectDetails={project} bids={project.bids || {}} contacts={contacts} statuses={statuses} onAddCategory={onAddCategory} onEditCategory={onEditCategory} onDeleteCategory={onDeleteCategory} onBidsChange={(bids) => onBidsChange?.(projectId, bids)} />}
                 {activeTab === 'documents' && <ProjectDocuments project={project} onUpdate={onUpdateDetails} />}
             </div>
         </div>

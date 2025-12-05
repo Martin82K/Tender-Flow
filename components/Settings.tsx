@@ -66,6 +66,154 @@ export const Settings: React.FC<SettingsProps> = ({
     const [lastSyncTime, setLastSyncTime] = useState(() => localStorage.getItem('contactsLastSyncTime') || '');
     const [isSyncing, setIsSyncing] = useState(false);
 
+    // Registration Settings State (Admin only) - loaded from database
+    const [allowPublicRegistration, setAllowPublicRegistration] = useState(false);
+    const [allowedDomains, setAllowedDomains] = useState('');
+    const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+    const [isSavingSettings, setIsSavingSettings] = useState(false);
+
+    // AI Settings State (Admin only) - localStorage
+    const [aiEnabled, setAiEnabled] = useState(() => {
+        const stored = localStorage.getItem('aiEnabled');
+        return stored !== 'false'; // Default to true
+    });
+
+    // Default AI Prompts
+    const DEFAULT_PROMPT_ACHIEVEMENTS = `Jsi kreativní analytik stavebních projektů. Vygeneruj 4-5 UNIKÁTNÍCH achievement-style insights ve stylu herních úspěchů. Buď kreativní - každé volání má být jiné!
+
+Odpověz POUZE jako JSON pole. Každý insight může mít tyto vlastnosti:
+{
+  "title": "Název achievementu (kreativní, ve stylu hry)",
+  "content": "Krátký popis (max 80 znaků)",
+  "type": "achievement|success|warning|info|tip",
+  "icon": "material_icon",
+  "progress": 0-100 (volitelné, pro progress bar),
+  "achievement": { "level": 1-5, "maxLevel": 5, "label": "Bronze/Silver/Gold/Platinum/Diamond" } (volitelné),
+  "stats": [{ "label": "Název", "value": "Hodnota", "trend": "up|down|neutral" }] (volitelné, max 2 položky)
+}
+
+PŘÍKLADY NÁZVŮ: "💰 Mistr úspor", "🏆 SOD Champion", "📊 Analytik měsíce", "🚀 Speed Builder"`;
+
+    const DEFAULT_PROMPT_CHARTS = `Jsi elitní stavební manažer a krizový finanční stratég s 20 lety praxe. Tvým cílem není jen zobrazovat suchá data, ale okamžitě vizualizovat zdraví projektů, rizika a efektivitu nákupu.
+
+Když analyzuješ data, hledej odpovědi na tyto klíčové otázky a převeď je do grafů:
+
+1. EFEKTIVITA NÁKUPU (Buyout Savings): Porovnej rozpočet vs. smluvní ceny. Kde šetříme a kde proděláváme? (Využij sloupcový graf pro porovnání Rozpočet vs. Náklady).
+2. ZISKOVOST PROJEKTŮ: Které stavby generují největší marži a které jsou rizikové? (Koláčový graf rozdělení zisku nebo sloupcový graf marží).
+3. RYCHLOST KONTRAHOVÁNÍ (Risk Management): Máme zasmluvněno dostatek subdodavatelů vzhledem k fázi projektu? (Progress bar pro uzavřené SOD).
+
+POKYNY:
+- Barvy: ČERVENÁ = ztráta/riziko, ZELENÁ = úspora/zisk, MODRÁ = neutrální.
+- V popisu grafu (content) vysvětli MANAŽERSKÝ DOPAD.
+
+Vygeneruj 3-4 grafy. Odpověz POUZE jako JSON pole s grafy:
+{
+  "title": "Název grafu",
+  "content": "Manažerský insight (proč na tom záleží)",
+  "type": "chart",
+  "icon": "bar_chart|pie_chart|show_chart|analytics|savings|trending_up",
+  "chartType": "bar|pie|progress",
+  "chartData": [{ "label": "Položka", "value": číslo, "color": "#hex" }]
+}
+
+TYPY GRAFŮ: bar, pie, progress`;
+
+    const DEFAULT_PROMPT_REPORTS = `Jsi zkušený stavbyvedoucí a projektový manažer. Připravuješ přehledné reporty o stavu projektů pro vedení firmy a investory.
+
+Vygeneruj 3-4 reportovací položky.
+
+Odpověz POUZE jako JSON pole:
+{
+  "title": "Název sekce reportu",
+  "content": "Stručný text reportu (2-3 věty, klíčové informace pro management)",
+  "type": "info|success|warning|tip",
+  "icon": "summarize|assessment|analytics|report|trending_up|trending_down|warning|check_circle",
+  "stats": [{ "label": "Metrika", "value": "Hodnota", "trend": "up|down|neutral" }]
+}
+
+Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rychlé rozhodování vedení!`;
+
+    // AI Prompts State (Admin only) - with defaults
+    const [promptAchievements, setPromptAchievements] = useState(() => 
+        localStorage.getItem('aiPromptAchievements') || DEFAULT_PROMPT_ACHIEVEMENTS
+    );
+    const [promptCharts, setPromptCharts] = useState(() => 
+        localStorage.getItem('aiPromptCharts') || DEFAULT_PROMPT_CHARTS
+    );
+    const [promptReports, setPromptReports] = useState(() => 
+        localStorage.getItem('aiPromptReports') || DEFAULT_PROMPT_REPORTS
+    );
+
+    // Initialize localStorage with defaults if empty
+    React.useEffect(() => {
+        if (!localStorage.getItem('aiPromptAchievements')) {
+            localStorage.setItem('aiPromptAchievements', DEFAULT_PROMPT_ACHIEVEMENTS);
+        }
+        if (!localStorage.getItem('aiPromptCharts')) {
+            localStorage.setItem('aiPromptCharts', DEFAULT_PROMPT_CHARTS);
+        }
+        if (!localStorage.getItem('aiPromptReports')) {
+            localStorage.setItem('aiPromptReports', DEFAULT_PROMPT_REPORTS);
+        }
+    }, []);
+
+    // Save AI setting to localStorage when it changes
+    React.useEffect(() => {
+        localStorage.setItem('aiEnabled', aiEnabled.toString());
+    }, [aiEnabled]);
+
+    // Prompts saved feedback
+    const [promptsSaved, setPromptsSaved] = useState(false);
+
+    // Save prompts to localStorage
+    const savePrompts = () => {
+        localStorage.setItem('aiPromptAchievements', promptAchievements);
+        localStorage.setItem('aiPromptCharts', promptCharts);
+        localStorage.setItem('aiPromptReports', promptReports);
+        setPromptsSaved(true);
+        setTimeout(() => setPromptsSaved(false), 3000);
+    };
+
+    // Load registration settings from database on mount
+    React.useEffect(() => {
+        const loadSettings = async () => {
+            if (!isAdmin) return;
+            try {
+                const { authService } = await import('../services/authService');
+                const settings = await authService.getAppSettings();
+                setAllowPublicRegistration(settings.allowPublicRegistration);
+                setAllowedDomains(settings.allowedDomains.join(', '));
+            } catch (error) {
+                console.error('Error loading registration settings:', error);
+            } finally {
+                setIsLoadingSettings(false);
+            }
+        };
+        loadSettings();
+    }, [isAdmin]);
+
+    const handleSaveRegistrationSettings = async () => {
+        setIsSavingSettings(true);
+        try {
+            const { authService } = await import('../services/authService');
+            const domainsArray = allowedDomains
+                .split(',')
+                .map(d => d.trim())
+                .filter(Boolean);
+            
+            await authService.updateAppSettings({
+                allowPublicRegistration,
+                allowedDomains: domainsArray
+            });
+            alert('Nastavení registrací uloženo do databáze.');
+        } catch (error) {
+            console.error('Error saving registration settings:', error);
+            alert('Chyba při ukládání nastavení.');
+        } finally {
+            setIsSavingSettings(false);
+        }
+    };
+
     const handleSaveUrl = () => {
         if (importUrl) {
             localStorage.setItem('contactsImportUrl', importUrl);
@@ -262,6 +410,170 @@ export const Settings: React.FC<SettingsProps> = ({
                         }, null, 2)}</pre>
                         <p className="mt-2 text-white">Check console for full logs.</p>
                     </div>
+                )}
+
+                {/* Admin Only: AI Settings */}
+                {isAdmin && (
+                    <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+                        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                            <span className="material-symbols-outlined">auto_awesome</span>
+                            Nastavení AI funkcí
+                            <span className="ml-2 px-2 py-0.5 bg-purple-100 text-purple-600 text-xs font-bold rounded-full">Admin</span>
+                        </h2>
+                        
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-slate-800 dark:text-white">Povolit AI analýzu</p>
+                                <p className="text-xs text-slate-500">Aktivuje AI Insights na Dashboardu pomocí Gemini API.</p>
+                            </div>
+                            <button 
+                                onClick={() => setAiEnabled(!aiEnabled)}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${aiEnabled ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-600'}`}
+                            >
+                                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${aiEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                            </button>
+                        </div>
+                        
+                        {!aiEnabled && (
+                            <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                                <p className="text-sm text-amber-800 dark:text-amber-200 flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-[18px]">warning</span>
+                                    AI funkce jsou vypnuty. Uživatelé uvidí lokální statistiky místo AI analýzy.
+                                </p>
+                            </div>
+                        )}
+
+                        {/* AI Prompts Management */}
+                        {aiEnabled && (
+                            <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-700 space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-[18px]">edit_note</span>
+                                        Správa AI Promptů
+                                    </h3>
+                                    <button
+                                        onClick={savePrompts}
+                                        className={`px-3 py-1.5 text-white text-xs font-medium rounded-lg transition-colors flex items-center gap-1 ${
+                                            promptsSaved 
+                                                ? 'bg-green-500' 
+                                                : 'bg-primary hover:bg-primary/90'
+                                        }`}
+                                    >
+                                        {promptsSaved ? (
+                                            <>
+                                                <span className="material-symbols-outlined text-[14px]">check</span>
+                                                Uloženo!
+                                            </>
+                                        ) : (
+                                            'Uložit prompty'
+                                        )}
+                                    </button>
+                                </div>
+                                <p className="text-xs text-slate-500">
+                                    Přizpůsobte instrukce pro AI. Prázdné pole = použije se výchozí systémový prompt.
+                                </p>
+
+                                {/* Achievements Prompt */}
+                                <div className="space-y-2">
+                                    <label className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400">
+                                        <span>🏆</span> Prompt pro Achievementy
+                                    </label>
+                                    <textarea
+                                        value={promptAchievements}
+                                        onChange={(e) => setPromptAchievements(e.target.value)}
+                                        placeholder="Výchozí: Jsi kreativní analytik stavebních projektů. Vygeneruj achievement-style insights ve stylu herních úspěchů..."
+                                        className="w-full h-24 p-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary resize-y"
+                                    />
+                                </div>
+
+                                {/* Charts Prompt */}
+                                <div className="space-y-2">
+                                    <label className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400">
+                                        <span>📊</span> Prompt pro Grafy
+                                    </label>
+                                    <textarea
+                                        value={promptCharts}
+                                        onChange={(e) => setPromptCharts(e.target.value)}
+                                        placeholder="Výchozí: Jsi dlouholetý manažer se znalostmi vedení staveb. Generuješ grafy pro analýzu staveb..."
+                                        className="w-full h-24 p-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary resize-y"
+                                    />
+                                </div>
+
+                                {/* Reports Prompt */}
+                                <div className="space-y-2">
+                                    <label className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400">
+                                        <span>📋</span> Prompt pro Reporty
+                                    </label>
+                                    <textarea
+                                        value={promptReports}
+                                        onChange={(e) => setPromptReports(e.target.value)}
+                                        placeholder="Výchozí: Jsi zkušený stavbyvedoucí. Připrav přehledný report o stavu projektů..."
+                                        className="w-full h-24 p-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary resize-y"
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </section>
+                )}
+
+                {/* Admin Only: Registration Settings */}
+                {isAdmin && (
+                    <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+                        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                            <span className="material-symbols-outlined">admin_panel_settings</span>
+                            Nastavení registrací
+                            <span className="ml-2 px-2 py-0.5 bg-red-100 text-red-600 text-xs font-bold rounded-full">Admin</span>
+                        </h2>
+                        
+                        <div className="space-y-6">
+                            {/* Allow Public Registration Toggle */}
+                            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+                                <div>
+                                    <p className="text-sm font-medium text-slate-800 dark:text-white">Povolit registrace všem</p>
+                                    <p className="text-xs text-slate-500">Pokud je vypnuto, pouze emaily z povolených domén se mohou registrovat.</p>
+                                </div>
+                                <button 
+                                    onClick={() => setAllowPublicRegistration(!allowPublicRegistration)}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${allowPublicRegistration ? 'bg-green-500' : 'bg-slate-300'}`}
+                                >
+                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${allowPublicRegistration ? 'translate-x-6' : 'translate-x-1'}`} />
+                                </button>
+                            </div>
+
+                            {/* Domain Whitelist */}
+                            <div className="flex flex-col gap-3">
+                                <div>
+                                    <p className="text-sm font-medium text-slate-800 dark:text-white">Povolit registrace na doménu (whitelist)</p>
+                                    <p className="text-xs text-slate-500 mb-2">
+                                        Zadejte domény oddělené čárkou. Např.: @baustav.cz, @firma.cz
+                                    </p>
+                                </div>
+                                <input 
+                                    type="text"
+                                    value={allowedDomains}
+                                    onChange={(e) => setAllowedDomains(e.target.value)}
+                                    placeholder="@baustav.cz, @mojefirma.cz"
+                                    className="w-full rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:ring-primary focus:border-primary"
+                                />
+                                <p className="text-xs text-slate-400 italic">
+                                    💡 Pokud je povoleno "Povolit registrace všem", tento whitelist se ignoruje.
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div className="mt-6 flex justify-end border-t border-slate-100 dark:border-slate-800 pt-4">
+                            <button 
+                                onClick={handleSaveRegistrationSettings}
+                                disabled={isSavingSettings || isLoadingSettings}
+                                className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-2.5 rounded-lg font-bold shadow-sm transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <span className={`material-symbols-outlined ${isSavingSettings ? 'animate-spin' : ''}`}>
+                                    {isSavingSettings ? 'sync' : 'save'}
+                                </span>
+                                {isSavingSettings ? 'Ukládám...' : 'Uložit nastavení registrací'}
+                            </button>
+                        </div>
+                    </section>
                 )}
 
                 {/* 1. Appearance Section */}

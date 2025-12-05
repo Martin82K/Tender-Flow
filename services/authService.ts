@@ -19,6 +19,12 @@ export const authService = {
     },
 
     register: async (name: string, email: string, password: string): Promise<User> => {
+        // Check registration settings before allowing signup
+        const canRegister = await authService.checkRegistrationAllowed(email);
+        if (!canRegister.allowed) {
+            throw new Error(canRegister.reason || 'Registrace není povolena pro tento email.');
+        }
+
         const { data, error } = await supabase.auth.signUp({
             email,
             password,
@@ -40,6 +46,94 @@ export const authService = {
         return user;
     },
 
+    checkRegistrationAllowed: async (email: string): Promise<{ allowed: boolean; reason?: string }> => {
+        try {
+            const { data: settings, error } = await supabase
+                .from('app_settings')
+                .select('allow_public_registration, allowed_domains')
+                .eq('id', 'default')
+                .single();
+
+            if (error) {
+                console.error('Error fetching app_settings:', error);
+                // If settings don't exist, allow registration (fail-open)
+                return { allowed: true };
+            }
+
+            // If public registration is allowed, let anyone register
+            if (settings?.allow_public_registration) {
+                return { allowed: true };
+            }
+
+            // Check if email domain is in whitelist
+            const allowedDomains: string[] = settings?.allowed_domains || [];
+            if (allowedDomains.length === 0) {
+                return { 
+                    allowed: false, 
+                    reason: 'Registrace je zakázána. Kontaktujte administrátora.' 
+                };
+            }
+
+            const emailDomain = email.toLowerCase().split('@')[1];
+            const isAllowed = allowedDomains.some(domain => {
+                const cleanDomain = domain.replace('@', '').toLowerCase().trim();
+                return emailDomain === cleanDomain || emailDomain.endsWith('.' + cleanDomain);
+            });
+
+            if (!isAllowed) {
+                return { 
+                    allowed: false, 
+                    reason: `Registrace je povolena pouze pro domény: ${allowedDomains.join(', ')}` 
+                };
+            }
+
+            return { allowed: true };
+        } catch (e) {
+            console.error('Error checking registration:', e);
+            // Fail-open: if we can't check, allow registration
+            return { allowed: true };
+        }
+    },
+
+    getAppSettings: async (): Promise<{ allowPublicRegistration: boolean; allowedDomains: string[] }> => {
+        try {
+            const { data, error } = await supabase
+                .from('app_settings')
+                .select('allow_public_registration, allowed_domains')
+                .eq('id', 'default')
+                .single();
+
+            if (error) {
+                console.error('Error fetching app_settings:', error);
+                return { allowPublicRegistration: false, allowedDomains: [] };
+            }
+
+            return {
+                allowPublicRegistration: data?.allow_public_registration || false,
+                allowedDomains: data?.allowed_domains || []
+            };
+        } catch (e) {
+            console.error('Error loading app settings:', e);
+            return { allowPublicRegistration: false, allowedDomains: [] };
+        }
+    },
+
+    updateAppSettings: async (settings: { allowPublicRegistration: boolean; allowedDomains: string[] }): Promise<void> => {
+        const { error } = await supabase
+            .from('app_settings')
+            .upsert({
+                id: 'default',
+                allow_public_registration: settings.allowPublicRegistration,
+                allowed_domains: settings.allowedDomains,
+                updated_at: new Date().toISOString()
+            }, { onConflict: 'id' });
+
+        if (error) {
+            console.error('Error updating app_settings:', error);
+            throw error;
+        }
+    },
+
     logout: async (): Promise<void> => {
         const { error } = await supabase.auth.signOut();
         if (error) throw error;
@@ -49,9 +143,11 @@ export const authService = {
         console.log('[authService] getCurrentUser: Starting...');
         let session = null;
         try {
+
+            // Add timeout race to prevent hanging indefinitely
             const sessionPromise = supabase.auth.getSession();
             const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Session fetch timeout')), 2000)
+                setTimeout(() => reject(new Error('Connection timeout - Supabase is slow')), 15000)
             );
             
             const { data } = await Promise.race([sessionPromise, timeoutPromise]) as any;

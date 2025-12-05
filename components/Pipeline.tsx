@@ -610,6 +610,7 @@ interface PipelineProps {
   onAddCategory?: (category: DemandCategory) => void;
   onEditCategory?: (category: DemandCategory) => void;
   onDeleteCategory?: (categoryId: string) => void;
+  onBidsChange?: (bids: Record<string, Bid[]>) => void;
 }
 
 const CreateContactModal: React.FC<{
@@ -806,6 +807,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
   onAddCategory,
   onEditCategory,
   onDeleteCategory,
+  onBidsChange,
 }) => {
   const [activeCategory, setActiveCategory] = useState<DemandCategory | null>(
     null
@@ -829,6 +831,13 @@ export const Pipeline: React.FC<PipelineProps> = ({
   useEffect(() => {
     setBids(initialBids);
   }, [initialBids]);
+
+  // Notify parent when bids change (for overview synchronization)
+  useEffect(() => {
+    if (onBidsChange) {
+      onBidsChange(bids);
+    }
+  }, [bids, onBidsChange]);
 
   // Subcontractor Selection State
   const [isSubcontractorModalOpen, setIsSubcontractorModalOpen] =
@@ -1279,7 +1288,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
         contact_person_name: newContact.name,
         email: newContact.email,
         phone: newContact.phone,
-        specialization: Array.isArray(newContact.specialization) ? newContact.specialization.join(', ') : newContact.specialization,
+        specialization: newContact.specialization,
         ico: newContact.ico,
         region: newContact.region,
         status_id: newContact.status,

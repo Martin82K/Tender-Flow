@@ -342,11 +342,10 @@ const AppContent: React.FC = () => {
 
       const loadedContacts: Subcontractor[] = (subcontractorsData || []).map(
         (s) => {
-          // Parse specialization: database stores as comma-separated string, frontend expects array
-          const specString = s.specialization || "Ostatní";
-          const specArray = typeof specString === 'string' 
-            ? specString.split(',').map((sp: string) => sp.trim()).filter(Boolean)
-            : Array.isArray(specString) ? specString : ["Ostatní"];
+          // Database stores specialization as text[] array
+          const specArray = Array.isArray(s.specialization) 
+            ? s.specialization 
+            : s.specialization ? [s.specialization] : ["Ostatní"];
           
           return {
             id: s.id,
@@ -706,7 +705,7 @@ const AppContent: React.FC = () => {
           id: c.id,
           company_name: c.company.substring(0, 255),
           contact_person_name: c.name.substring(0, 255),
-          specialization: Array.isArray(c.specialization) ? c.specialization.join(', ') : c.specialization,
+          specialization: c.specialization,
           phone: c.phone.substring(0, 50),
           email: c.email.substring(0, 255),
           ico: c.ico.substring(0, 50),
@@ -738,7 +737,7 @@ const AppContent: React.FC = () => {
             .update({
               company_name: contact.company,
               contact_person_name: contact.name,
-              specialization: Array.isArray(contact.specialization) ? contact.specialization.join(', ') : contact.specialization,
+              specialization: contact.specialization,
               phone: contact.phone,
               email: contact.email,
               ico: contact.ico,
@@ -815,7 +814,7 @@ const AppContent: React.FC = () => {
         id: contact.id,
         company_name: contact.company,
         contact_person_name: contact.name,
-        specialization: Array.isArray(contact.specialization) ? contact.specialization.join(', ') : contact.specialization,
+        specialization: contact.specialization,
         phone: contact.phone,
         email: contact.email,
         ico: contact.ico,
@@ -843,7 +842,7 @@ const AppContent: React.FC = () => {
         .update({
           company_name: contact.company,
           contact_person_name: contact.name,
-          specialization: Array.isArray(contact.specialization) ? contact.specialization.join(', ') : contact.specialization,
+          specialization: contact.specialization,
           phone: contact.phone,
           email: contact.email,
           ico: contact.ico,
@@ -883,7 +882,7 @@ const AppContent: React.FC = () => {
           .update({
             company_name: contact.company,
             contact_person_name: contact.name,
-            specialization: Array.isArray(contact.specialization) ? contact.specialization.join(', ') : contact.specialization,
+            specialization: contact.specialization,
             phone: contact.phone,
             email: contact.email,
             ico: contact.ico,
@@ -945,6 +944,16 @@ const AppContent: React.FC = () => {
             onDeleteCategory={(categoryId) =>
               handleDeleteCategory(selectedProjectId, categoryId)
             }
+            onBidsChange={(projectId, bids) => {
+              // Update bids in project details for real-time overview sync
+              setAllProjectDetails(prev => ({
+                ...prev,
+                [projectId]: {
+                  ...prev[projectId],
+                  bids
+                }
+              }));
+            }}
             activeTab={activeProjectTab}
             onTabChange={setActiveProjectTab}
             contacts={contacts}

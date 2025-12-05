@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@google/genai": "^1.30.0",
+    "@google/generative-ai": "^0.24.1",
     "@supabase/supabase-js": "^2.86.0",
     "@types/papaparse": "^5.5.0",
     "jspdf": "^3.0.4",
