@@ -8,11 +8,23 @@ import { uploadDocument, formatFileSize } from '../services/documentService';
 // --- Helper Functions ---
 const parseMoney = (valueStr: string): number => {
     if (!valueStr || valueStr === '-' || valueStr === '?') return 0;
-    // Handle typical formats
-    const cleanStr = valueStr.replace(/[^0-9,.]/g, '').replace(',', '.');
+    
+    // Check for M (millions) or K (thousands) suffix first
+    const hasM = /M/i.test(valueStr);
+    const hasK = /K/i.test(valueStr) && !/Kč/i.test(valueStr); // K but not Kč
+    
+    // Remove all non-numeric characters except comma and dot
+    // Czech format uses spaces for thousands and comma for decimals
+    const cleanStr = valueStr
+        .replace(/\s/g, '')     // Remove all whitespace/spaces
+        .replace(/[^0-9,.-]/g, '') // Keep only digits, comma, dot, minus
+        .replace(',', '.');     // Replace comma with dot for parseFloat
+    
     let val = parseFloat(cleanStr);
-    if (valueStr.includes('M')) val *= 1000000;
-    else if (valueStr.includes('k') || valueStr.includes('K')) val *= 1000;
+    
+    if (hasM) val *= 1000000;
+    else if (hasK) val *= 1000;
+    
     return isNaN(val) ? 0 : val;
 };
 
