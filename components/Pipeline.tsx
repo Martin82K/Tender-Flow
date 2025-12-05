@@ -1279,7 +1279,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
         contact_person_name: newContact.name,
         email: newContact.email,
         phone: newContact.phone,
-        specialization: newContact.specialization,
+        specialization: Array.isArray(newContact.specialization) ? newContact.specialization.join(', ') : newContact.specialization,
         ico: newContact.ico,
         region: newContact.region,
         status_id: newContact.status,
