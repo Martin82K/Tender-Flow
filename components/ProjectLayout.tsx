@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from './Header';
 import { Pipeline } from './Pipeline';
-import { ProjectTab, ProjectDetails, ContractDetails, InvestorFinancials, DemandCategory, Bid, Subcontractor } from '../types';
+import { ProjectTab, ProjectDetails, ContractDetails, InvestorFinancials, DemandCategory, Bid, Subcontractor, StatusConfig } from '../types';
 import { uploadDocument, formatFileSize } from '../services/documentService';
 
 // --- Helper Functions ---
@@ -1164,9 +1164,10 @@ interface ProjectLayoutProps {
     activeTab: ProjectTab;
     onTabChange: (tab: ProjectTab) => void;
     contacts: Subcontractor[];
+    statuses?: StatusConfig[];
 }
 
-export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, projectDetails, onUpdateDetails, onAddCategory, onEditCategory, onDeleteCategory, activeTab, onTabChange, contacts }) => {
+export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, projectDetails, onUpdateDetails, onAddCategory, onEditCategory, onDeleteCategory, activeTab, onTabChange, contacts, statuses }) => {
     const project = projectDetails;
     
     if (!project) return <div>Project not found</div>;
@@ -1198,7 +1199,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, project
 
             <div className="flex-1 overflow-hidden flex flex-col">
                 {activeTab === 'overview' && <ProjectOverview project={project} onUpdate={onUpdateDetails} />}
-                {activeTab === 'pipeline' && <Pipeline projectId={projectId} projectDetails={project} bids={project.bids || {}} contacts={contacts} onAddCategory={onAddCategory} onEditCategory={onEditCategory} onDeleteCategory={onDeleteCategory} />}
+                {activeTab === 'pipeline' && <Pipeline projectId={projectId} projectDetails={project} bids={project.bids || {}} contacts={contacts} statuses={statuses} onAddCategory={onAddCategory} onEditCategory={onEditCategory} onDeleteCategory={onDeleteCategory} />}
                 {activeTab === 'documents' && <ProjectDocuments project={project} onUpdate={onUpdateDetails} />}
             </div>
         </div>

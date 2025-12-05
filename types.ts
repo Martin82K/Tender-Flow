@@ -56,6 +56,8 @@ export interface Bid {
   notes?: string;
   tags?: string[];
   status: BidStatus;
+  updateDate?: string; // Datum k zaslání úpravy (ISO date string)
+  selectionRound?: number; // Kolo výběru: 1, 2, nebo 3
 }
 
 export interface ChartData {

@@ -138,6 +138,41 @@ const EditBidModal: React.FC<{
   onSave: (updatedBid: Bid) => void;
 }> = ({ bid, onClose, onSave }) => {
   const [form, setForm] = useState({ ...bid });
+  const [priceDisplay, setPriceDisplay] = useState(
+    bid.price && bid.price !== "?" && bid.price !== "-" 
+      ? formatInputNumber(parseFormattedNumber(bid.price.replace(/[^\d\s,.-]/g, '')))
+      : ""
+  );
+
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    // Allow only digits, spaces, and commas
+    const cleaned = raw.replace(/[^\d\s,]/g, '');
+    setPriceDisplay(cleaned);
+    
+    // Parse and store numeric value
+    const numericValue = parseFormattedNumber(cleaned);
+    if (numericValue > 0) {
+      setForm({ ...form, price: formatInputNumber(numericValue) + " Kč" });
+    } else {
+      setForm({ ...form, price: cleaned ? cleaned : "?" });
+    }
+  };
+
+  const handlePriceBlur = () => {
+    // Format on blur
+    const numericValue = parseFormattedNumber(priceDisplay);
+    if (numericValue > 0) {
+      setPriceDisplay(formatInputNumber(numericValue));
+    }
+  };
+
+  const handleRoundChange = (round: number) => {
+    setForm({ 
+      ...form, 
+      selectionRound: form.selectionRound === round ? undefined : round 
+    });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -146,7 +181,7 @@ const EditBidModal: React.FC<{
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh]">
         <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shrink-0">
           <h3 className="text-lg font-bold text-slate-900 dark:text-white">
             Upravit nabídku
@@ -158,8 +193,8 @@ const EditBidModal: React.FC<{
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="flex flex-col">
-          <div className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
+          <div className="p-6 space-y-4 overflow-y-auto">
             <div>
               <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                 Kontaktní osoba
@@ -199,15 +234,58 @@ const EditBidModal: React.FC<{
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                Cena
+                Cena (Kč)
               </label>
               <input
                 type="text"
-                value={form.price || ""}
-                onChange={(e) => setForm({ ...form, price: e.target.value })}
+                value={priceDisplay}
+                onChange={handlePriceChange}
+                onBlur={handlePriceBlur}
+                placeholder="1 500 000"
                 className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
               />
             </div>
+            
+            {/* Datum k zaslání úpravy */}
+            <div>
+              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                Datum k zaslání úpravy
+              </label>
+              <input
+                type="date"
+                value={form.updateDate || ""}
+                onChange={(e) => setForm({ ...form, updateDate: e.target.value })}
+                className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
+              />
+            </div>
+
+            {/* Kola výběru */}
+            <div>
+              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">
+                Kolo výběru
+              </label>
+              <div className="flex gap-3">
+                {[1, 2, 3].map((round) => (
+                  <label
+                    key={round}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${
+                      form.selectionRound === round
+                        ? "bg-primary/10 border-primary text-primary"
+                        : "bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={form.selectionRound === round}
+                      onChange={() => handleRoundChange(round)}
+                      className="sr-only"
+                    />
+                    <span className="text-sm font-medium">{round}. kolo</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
             <div>
               <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                 Poznámka
@@ -220,7 +298,7 @@ const EditBidModal: React.FC<{
               />
             </div>
           </div>
-          <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-2">
+          <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-2 shrink-0">
             <button
               type="button"
               onClick={onClose}
@@ -240,6 +318,7 @@ const EditBidModal: React.FC<{
     </div>
   );
 };
+
 
 const BidCard: React.FC<{
   bid: Bid;
@@ -527,6 +606,7 @@ interface PipelineProps {
   projectDetails: ProjectDetails;
   bids: Record<string, Bid[]>;
   contacts: Subcontractor[];
+  statuses?: StatusConfig[];
   onAddCategory?: (category: DemandCategory) => void;
   onEditCategory?: (category: DemandCategory) => void;
   onDeleteCategory?: (categoryId: string) => void;
@@ -534,9 +614,11 @@ interface PipelineProps {
 
 const CreateContactModal: React.FC<{
   initialName: string;
+  existingSpecializations: string[];
+  statuses: StatusConfig[];
   onClose: () => void;
   onSave: (contact: Subcontractor) => void;
-}> = ({ initialName, onClose, onSave }) => {
+}> = ({ initialName, existingSpecializations, statuses, onClose, onSave }) => {
   const [form, setForm] = useState({
     company: initialName,
     name: "",
@@ -545,27 +627,33 @@ const CreateContactModal: React.FC<{
     specialization: "",
     ico: "",
     region: "",
+    status: "available",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Parse specialization: split by comma and trim
+    const specializationArray = form.specialization
+      ? form.specialization.split(',').map(s => s.trim()).filter(Boolean)
+      : ["Ostatní"];
+    
     const newContact: Subcontractor = {
       id: crypto.randomUUID(),
       company: form.company,
       name: form.name || "-",
       email: form.email || "-",
       phone: form.phone || "-",
-      specialization: form.specialization || "Ostatní",
-      ico: form.ico,
-      region: form.region,
-      status: "available",
+      specialization: specializationArray.length > 0 ? specializationArray : ["Ostatní"],
+      ico: form.ico || "-",
+      region: form.region || "-",
+      status: form.status || "available",
     };
     onSave(newContact);
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh]">
         <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shrink-0">
           <h3 className="text-lg font-bold text-slate-900 dark:text-white">
             Nový dodavatel
@@ -577,8 +665,8 @@ const CreateContactModal: React.FC<{
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="flex flex-col">
-          <div className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
+          <div className="p-6 space-y-4 overflow-y-auto">
             <div>
               <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                 Firma / Název *
@@ -593,17 +681,23 @@ const CreateContactModal: React.FC<{
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                Specializace
+                Specializace / Typ (oddělte čárkou)
               </label>
               <input
                 type="text"
+                list="pipeline-specializations-list"
                 value={form.specialization}
                 onChange={(e) =>
                   setForm({ ...form, specialization: e.target.value })
                 }
                 className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
-                placeholder="Např. Elektro, Zedník..."
+                placeholder="Např. Strojní omítky, Elektro"
               />
+              <datalist id="pipeline-specializations-list">
+                {existingSpecializations.map(spec => (
+                  <option key={spec} value={spec} />
+                ))}
+              </datalist>
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
@@ -640,8 +734,48 @@ const CreateContactModal: React.FC<{
                 />
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                  IČO
+                </label>
+                <input
+                  type="text"
+                  value={form.ico}
+                  onChange={(e) => setForm({ ...form, ico: e.target.value })}
+                  className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
+                  placeholder="12345678"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                  Region
+                </label>
+                <input
+                  type="text"
+                  value={form.region}
+                  onChange={(e) => setForm({ ...form, region: e.target.value })}
+                  className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
+                  placeholder="Praha, Brno..."
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                Stav
+              </label>
+              <select
+                value={form.status}
+                onChange={(e) => setForm({ ...form, status: e.target.value })}
+                className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
+              >
+                {statuses.map(s => (
+                  <option key={s.id} value={s.id}>{s.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
-          <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-2">
+          <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-2 shrink-0">
             <button
               type="button"
               onClick={onClose}
@@ -662,11 +796,13 @@ const CreateContactModal: React.FC<{
   );
 };
 
+
 export const Pipeline: React.FC<PipelineProps> = ({
   projectId,
   projectDetails,
   bids: initialBids,
   contacts,
+  statuses = DEFAULT_STATUSES,
   onAddCategory,
   onEditCategory,
   onDeleteCategory,
@@ -1016,6 +1152,11 @@ export const Pipeline: React.FC<PipelineProps> = ({
     });
     setEditingBid(null);
 
+    // Parse numeric price from display string
+    const numericPrice = updatedBid.price 
+      ? parseFormattedNumber(updatedBid.price.replace(/[^\d\s,.-]/g, ''))
+      : null;
+
     // Persist to Supabase
     try {
       const { error } = await supabase
@@ -1024,9 +1165,12 @@ export const Pipeline: React.FC<PipelineProps> = ({
           contact_person: updatedBid.contactPerson,
           email: updatedBid.email,
           phone: updatedBid.phone,
+          price: numericPrice && numericPrice > 0 ? numericPrice : null,
           price_display: updatedBid.price,
           notes: updatedBid.notes,
-          status: updatedBid.status
+          status: updatedBid.status,
+          update_date: updatedBid.updateDate || null,
+          selection_round: updatedBid.selectionRound || null
         })
         .eq('id', updatedBid.id);
       
@@ -1529,6 +1673,8 @@ export const Pipeline: React.FC<PipelineProps> = ({
         {isCreateContactModalOpen && (
           <CreateContactModal
             initialName={newContactName}
+            existingSpecializations={Array.from(new Set(localContacts.flatMap(c => c.specialization))).sort()}
+            statuses={statuses}
             onClose={() => setIsCreateContactModalOpen(false)}
             onSave={handleSaveNewContact}
           />

@@ -312,10 +312,12 @@ const AppContent: React.FC = () => {
               contactPerson: bid.contact_person,
               email: bid.email,
               phone: bid.phone,
-              price: bid.price,
+              price: bid.price_display || (bid.price ? bid.price.toString() : null),
               notes: bid.notes,
               tags: bid.tags,
               status: bid.status,
+              updateDate: bid.update_date,
+              selectionRound: bid.selection_round,
             });
           }
         });
@@ -938,6 +940,7 @@ const AppContent: React.FC = () => {
             activeTab={activeProjectTab}
             onTabChange={setActiveProjectTab}
             contacts={contacts}
+            statuses={contactStatuses}
           />
         );
       case "contacts":
