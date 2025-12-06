@@ -24,28 +24,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Check active session
         const initAuth = async () => {
             console.log('AuthContext: Initializing...');
-            let timeoutId: NodeJS.Timeout;
-
             try {
-                // Create a promise that rejects after 5 seconds
-                const timeoutPromise = new Promise((_, reject) => {
-                    timeoutId = setTimeout(() => reject(new Error('Auth check timed out')), 5000);
-                });
-
-                // Race the auth check against the timeout
-                const currentUser = await Promise.race([
-                    authService.getCurrentUser(),
-                    timeoutPromise
-                ]) as User | null;
-
+                const currentUser = await authService.getCurrentUser();
                 console.log('AuthContext: User loaded', currentUser?.email);
                 setUser(currentUser);
             } catch (error) {
                 console.error('Error loading user:', error);
-                // If auth fails/timeouts, we assume not logged in, but we stop loading
                 setUser(null);
             } finally {
-                if (timeoutId!) clearTimeout(timeoutId);
                 setIsLoading(false);
                 console.log('AuthContext: Loading finished');
             }

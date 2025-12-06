@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Default Primary Color: #607AFB -> 96 122 251 */
+  --color-primary: 96 122 251;
+  /* Default Background Color: #f5f6f8 */
+  --color-background: #f5f6f8;
+}
+
+body {
+  font-family: "Inter", sans-serif;
+}
+
+/* Material Symbols settings */
+.material-symbols-outlined {
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+}
+.material-symbols-outlined.fill {
+  font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24;
+}
+
+/* Hide scrollbar for clean horizontal scrolling */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

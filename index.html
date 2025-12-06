@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Construction CRM</title>
+    <link rel="icon" type="image/png" href="/favicon.png" />
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -21,7 +22,6 @@
         theme: {
           extend: {
             colors: {
-              // Use CSS variable with fallback. Format must be r g b for opacity to work
               primary: "rgb(var(--color-primary) / <alpha-value>)",
               "background-light": "var(--color-background)",
               "background-dark": "#0f1323",
@@ -35,9 +35,7 @@
     </script>
     <style>
       :root {
-        /* Default Primary Color: #607AFB -> 96 122 251 */
         --color-primary: 96 122 251;
-        /* Default Background Color: #f5f6f8 */
         --color-background: #f5f6f8;
       }
       body {
@@ -49,7 +47,6 @@
       .material-symbols-outlined.fill {
         font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24;
       }
-      /* Hide scrollbar for clean horizontal scrolling */
       .no-scrollbar::-webkit-scrollbar {
         display: none;
       }

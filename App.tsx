@@ -248,14 +248,14 @@ const AppContent: React.FC = () => {
           .from("project_contracts")
           .select("*")
           .eq("project_id", project.id)
-          .single();
+          .maybeSingle();
 
         // Load investor financials
         const { data: financialsData } = await supabase
           .from("project_investor_financials")
           .select("*")
           .eq("project_id", project.id)
-          .single();
+          .maybeSingle();
 
         // Load amendments
         const { data: amendmentsData } = await supabase
@@ -961,6 +961,17 @@ const AppContent: React.FC = () => {
     }
   };
 
+  const handleBidsChange = React.useCallback((projectId: string, bids: Record<string, Bid[]>) => {
+    // Update bids in project details for real-time overview sync
+    setAllProjectDetails(prev => ({
+      ...prev,
+      [projectId]: {
+        ...prev[projectId],
+        bids
+      }
+    }));
+  }, []);
+
   const renderView = () => {
     switch (currentView) {
       case "dashboard":
@@ -984,16 +995,7 @@ const AppContent: React.FC = () => {
             onDeleteCategory={(categoryId) =>
               handleDeleteCategory(selectedProjectId, categoryId)
             }
-            onBidsChange={(projectId, bids) => {
-              // Update bids in project details for real-time overview sync
-              setAllProjectDetails(prev => ({
-                ...prev,
-                [projectId]: {
-                  ...prev[projectId],
-                  bids
-                }
-              }));
-            }}
+            onBidsChange={handleBidsChange}
             activeTab={activeProjectTab}
             onTabChange={setActiveProjectTab}
             contacts={contacts}

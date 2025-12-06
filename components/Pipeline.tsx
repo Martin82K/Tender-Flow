@@ -424,11 +424,13 @@ const BidCard: React.FC<{
 
 const CategoryCard: React.FC<{
   category: DemandCategory;
+  bidCount: number;
+  priceOfferCount: number;
   onClick: () => void;
   onEdit?: (category: DemandCategory) => void;
   onDelete?: (categoryId: string) => void;
   onToggleComplete?: (category: DemandCategory) => void;
-}> = ({ category, onClick, onEdit, onDelete, onToggleComplete }) => {
+}> = ({ category, bidCount, priceOfferCount, onClick, onEdit, onDelete, onToggleComplete }) => {
   const statusColors = {
     open: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200",
     negotiating:
@@ -458,9 +460,17 @@ const CategoryCard: React.FC<{
   const formatMoneyLocal = formatMoney;
 
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
-      className="flex flex-col text-left bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 hover:shadow-lg hover:border-primary/50 transition-all group relative overflow-hidden h-full"
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      className="flex flex-col text-left bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 hover:shadow-lg hover:border-primary/50 transition-all group relative overflow-hidden h-full cursor-pointer"
     >
       <div className="absolute top-0 left-0 w-1 h-full bg-primary opacity-0 group-hover:opacity-100 transition-opacity"></div>
 
@@ -589,13 +599,22 @@ const CategoryCard: React.FC<{
             {formatMoney(category.sodBudget)}
           </span>
         </div>
-        <div className="flex flex-col items-end">
-          <span className="text-xs text-slate-400">Dodavatelé</span>
+        <div className="flex flex-col items-center">
+          <span className="text-xs text-slate-400">Poptáno</span>
           <div className="flex items-center gap-1 text-sm font-semibold text-slate-700 dark:text-slate-200">
             <span className="material-symbols-outlined text-[16px]">
               groups
             </span>
-            {category.subcontractorCount}
+            {bidCount}
+          </div>
+        </div>
+        <div className="flex flex-col items-center">
+          <span className="text-xs text-slate-400">CN</span>
+          <div className="flex items-center gap-1 text-sm font-semibold text-slate-700 dark:text-slate-200">
+            <span className="material-symbols-outlined text-[16px]">
+              description
+            </span>
+            {priceOfferCount}
           </div>
         </div>
         {category.documents && category.documents.length > 0 && (
@@ -610,7 +629,7 @@ const CategoryCard: React.FC<{
           </div>
         )}
       </div>
-    </button>
+    </div>
   );
 };
 
@@ -836,21 +855,42 @@ export const Pipeline: React.FC<PipelineProps> = ({
   // The original code had `setContacts`.
   // Let's use a local state initialized from prop for now.
   const [localContacts, setLocalContacts] = useState<Subcontractor[]>(contacts);
+  
+  // Track whether the bids change is internal (user action) vs from props
+  const isInternalBidsChange = useRef(false);
+  // Store pending bids to notify parent after render
+  const pendingBidsNotification = useRef<Record<string, Bid[]> | null>(null);
 
   useEffect(() => {
     setLocalContacts(contacts);
   }, [contacts]);
 
   useEffect(() => {
-    setBids(initialBids);
+    // Only update from props if not an internal change
+    if (!isInternalBidsChange.current) {
+      setBids(initialBids);
+    }
+    isInternalBidsChange.current = false;
   }, [initialBids]);
 
-  // Notify parent when bids change (for overview synchronization)
+  // Notify parent after render when we have pending changes
   useEffect(() => {
-    if (onBidsChange) {
-      onBidsChange(bids);
+    if (pendingBidsNotification.current !== null && onBidsChange) {
+      onBidsChange(pendingBidsNotification.current);
+      pendingBidsNotification.current = null;
     }
-  }, [bids, onBidsChange]);
+  });
+
+  // Helper to update bids and mark as internal change
+  const updateBidsInternal = (updater: (prev: Record<string, Bid[]>) => Record<string, Bid[]>) => {
+    isInternalBidsChange.current = true;
+    setBids(prev => {
+      const newBids = updater(prev);
+      // Store for notification after render (not during render)
+      pendingBidsNotification.current = newBids;
+      return newBids;
+    });
+  };
 
   // Subcontractor Selection State
   const [isSubcontractorModalOpen, setIsSubcontractorModalOpen] =
@@ -912,7 +952,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
     if (activeCategory && bidId) {
       // Optimistic update
-      setBids((prev) => {
+      updateBidsInternal((prev) => {
         const categoryBids = [...(prev[activeCategory.id] || [])];
         const bidIndex = categoryBids.findIndex((b) => b.id === bidId);
 
@@ -971,7 +1011,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
     if (newBids.length > 0) {
       // Optimistic update
-      setBids((prev) => ({
+      updateBidsInternal((prev) => ({
         ...prev,
         [activeCategory.id]: [...(prev[activeCategory.id] || []), ...newBids],
       }));
@@ -1173,7 +1213,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
     if (!activeCategory) return;
 
     // Optimistic update
-    setBids((prev) => {
+    updateBidsInternal((prev) => {
       const categoryBids = [...(prev[activeCategory.id] || [])];
       const index = categoryBids.findIndex((b) => b.id === updatedBid.id);
       if (index > -1) {
@@ -1218,7 +1258,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
     if (!activeCategory) return;
 
     // Optimistic update
-    setBids((prev) => {
+    updateBidsInternal((prev) => {
       const categoryBids = (prev[activeCategory.id] || []).filter(b => b.id !== bidId);
       return { ...prev, [activeCategory.id]: categoryBids };
     });
@@ -1261,7 +1301,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
     // Move bid to 'sent' status
     setTimeout(() => {
-      setBids((prev) => {
+      updateBidsInternal((prev) => {
         const categoryBids = [...(prev[activeCategory.id] || [])];
         const index = categoryBids.findIndex((b) => b.id === bid.id);
         if (index > -1) {
@@ -1743,16 +1783,23 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
       <div className="p-6 lg:p-10 overflow-y-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {projectData.categories.map((category) => (
-            <CategoryCard
-              key={category.id}
-              category={category}
-              onClick={() => setActiveCategory(category)}
-              onEdit={handleEditCategoryClick}
-              onDelete={handleDeleteCategory}
-              onToggleComplete={handleToggleCategoryComplete}
-            />
-          ))}
+          {projectData.categories.map((category) => {
+            const categoryBids = bids[category.id] || [];
+            const bidCount = categoryBids.length;
+            const priceOfferCount = categoryBids.filter(b => b.price && b.price !== '?' && b.price.trim() !== '').length;
+            return (
+              <CategoryCard
+                key={category.id}
+                category={category}
+                bidCount={bidCount}
+                priceOfferCount={priceOfferCount}
+                onClick={() => setActiveCategory(category)}
+                onEdit={handleEditCategoryClick}
+                onDelete={handleDeleteCategory}
+                onToggleComplete={handleToggleCategoryComplete}
+              />
+            );
+          })}
 
           {/* Add New Placeholder */}
           <button
