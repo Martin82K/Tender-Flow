@@ -397,20 +397,6 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
             <Header title="Nastavení" subtitle="Konfigurace aplikace a správa staveb" />
 
             <div className="p-6 lg:p-10 max-w-4xl mx-auto w-full flex flex-col gap-8 pb-20">
-                
-                {/* Debug Info */}
-                {isAdmin && (
-                    <div className="bg-slate-800 text-green-400 p-4 rounded-lg font-mono text-xs overflow-auto">
-                        <h3 className="font-bold text-white mb-2">Debug Info</h3>
-                        <pre>{JSON.stringify({ 
-                            darkMode, 
-                            primaryColor, 
-                            backgroundColor,
-                            userPreferences: user?.preferences
-                        }, null, 2)}</pre>
-                        <p className="mt-2 text-white">Check console for full logs.</p>
-                    </div>
-                )}
 
                 {/* Admin Only: AI Settings */}
                 {isAdmin && (
