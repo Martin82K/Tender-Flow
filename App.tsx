@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { LandingPage } from "./components/LandingPage";
 import { Sidebar } from "./components/Sidebar";
@@ -51,6 +51,7 @@ const AppContent: React.FC = () => {
     isLoading: authLoading,
   } = useAuth();
   const [currentView, setCurrentView] = useState<View>("dashboard");
+  const lastRefreshTime = useRef<number>(Date.now());
 
   // Data States
   const [projects, setProjects] = useState<Project[]>([]);
@@ -159,10 +160,30 @@ const AppContent: React.FC = () => {
     };
   }, [isAuthenticated, authLoading]);
 
-  const loadInitialData = async () => {
-    setIsDataLoading(true);
-    setLoadingError(null);
-    console.log("Starting loadInitialData...");
+  // Smart Data Refresh on Visibility Change
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && isAuthenticated) {
+        const now = Date.now();
+        // 1 minute threshold to refresh data if tab was backgrounded
+        if (now - lastRefreshTime.current > 60 * 1000) {
+            console.log('[App] Returning to active tab, refreshing data silently...');
+            await loadInitialData(true); // silent refresh
+            lastRefreshTime.current = now;
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isAuthenticated]);
+
+  const loadInitialData = async (silent = false) => {
+    if (!silent) {
+        setIsDataLoading(true);
+        setLoadingError(null);
+    }
+    console.log("Starting loadInitialData...", { silent });
     try {
       // Load projects
       const {
@@ -366,7 +387,8 @@ const AppContent: React.FC = () => {
     } catch (error) {
       console.error("Error loading initial data:", error);
     } finally {
-      setIsDataLoading(false);
+      if (!silent) setIsDataLoading(false);
+      lastRefreshTime.current = Date.now();
     }
   };
 
@@ -840,7 +862,8 @@ const AppContent: React.FC = () => {
       if (error) {
         console.error("Error adding contact:", error);
         alert("Chyba při přidávání kontaktu do databáze.");
-        loadInitialData(); // Revert
+        alert("Chyba při přidávání kontaktu do databáze.");
+        loadInitialData(true); // Revert silently
       }
     } catch (err) {
       console.error("Unexpected error adding contact:", err);
@@ -869,7 +892,8 @@ const AppContent: React.FC = () => {
       if (error) {
         console.error("Error updating contact:", error);
         alert("Chyba při aktualizaci kontaktu v databázi.");
-        loadInitialData(); // Revert
+        alert("Chyba při aktualizaci kontaktu v databázi.");
+        loadInitialData(true); // Revert silently
       }
     } catch (err) {
       console.error("Unexpected error updating contact:", err);
@@ -911,7 +935,8 @@ const AppContent: React.FC = () => {
     } catch (err) {
       console.error("Unexpected error bulk updating contacts:", err);
       alert("Chyba při hromadné aktualizaci kontaktů.");
-      loadInitialData(); // Revert
+      alert("Chyba při hromadné aktualizaci kontaktů.");
+      loadInitialData(true); // Revert silently
     }
   };
 
