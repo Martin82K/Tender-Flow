@@ -2,8 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from './Header';
 import { Pipeline } from './Pipeline';
-import { ProjectTab, ProjectDetails, ContractDetails, InvestorFinancials, DemandCategory, Bid, Subcontractor, StatusConfig } from '../types';
+import { ProjectTab, ProjectDetails, ContractDetails, InvestorFinancials, DemandCategory, Bid, Subcontractor, StatusConfig, Template } from '../types';
 import { uploadDocument, formatFileSize } from '../services/documentService';
+import { TemplateManager } from './TemplateManager';
+import { getTemplateById } from '../services/templateService';
 
 // --- Helper Functions ---
 const parseMoney = (valueStr: string): number => {
@@ -51,6 +53,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
     const [letterLinkValue, setLetterLinkValue] = useState('');
     const [selectedTemplateFile, setSelectedTemplateFile] = useState<File | null>(null);
     const [isUploadingTemplate, setIsUploadingTemplate] = useState(false);
+    const [showTemplateManager, setShowTemplateManager] = useState(false);
 
     useEffect(() => {
         setDocsLinkValue(project.documentationLink || '');
@@ -191,6 +194,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                     </div>
 
                     {/* Inquiry Letter Section */}
+                    {/* Inquiry Letter Section */}
                     <div className={`rounded-lg p-6 border mt-6 transition-colors ${hasLetterLink ? 'bg-green-50/50 dark:bg-green-900/10 border-green-200 dark:border-green-800' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'}`}>
                         <div className="flex justify-between items-start mb-4">
                             <div className="flex items-center gap-2">
@@ -202,167 +206,77 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                     </span>
                                 )}
                             </div>
-                            {!isEditingLetter ? (
-                                <button
-                                    onClick={() => setIsEditingLetter(true)}
-                                    className="text-slate-400 hover:text-primary transition-colors"
-                                >
-                                    <span className="material-symbols-outlined text-[20px]">edit</span>
-                                </button>
+                            
+                            <button
+                                onClick={() => setShowTemplateManager(true)}
+                                className="px-3 py-1.5 text-sm font-medium text-primary bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors flex items-center gap-2 shadow-sm"
+                            >
+                                <span className="material-symbols-outlined text-[18px]">{hasLetterLink ? 'change_circle' : 'add_circle'}</span>
+                                {hasLetterLink ? 'Změnit šablonu' : 'Vybrat šablonu'}
+                            </button>
+                        </div>
+
+                        <div>
+                            {hasLetterLink ? (
+                                <div className="space-y-3">
+                                    <div
+                                        className="block p-4 bg-white dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 transition-all group"
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                <span className="material-symbols-outlined text-primary">
+                                                    {project.inquiryLetterLink?.startsWith('template:') ? 'wysiwyg' : 'link'}
+                                                </span>
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-medium text-slate-900 dark:text-white truncate">
+                                                        {project.inquiryLetterLink?.startsWith('template:') 
+                                                            ? (getTemplateById(project.inquiryLetterLink.split(':')[1])?.name || 'Neznámá šablona')
+                                                            : (project.inquiryLetterLink?.startsWith('http') ? 'Externí odkaz / Soubor' : project.inquiryLetterLink)
+                                                        }
+                                                    </span>
+                                                    {project.inquiryLetterLink?.startsWith('template:') && (
+                                                        <span className="text-xs text-slate-500">HTML Šablona připravená k odeslání</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button 
+                                                    onClick={() => setShowTemplateManager(true)}
+                                                    className="p-2 text-slate-400 hover:text-primary transition-colors"
+                                                    title="Upravit / Zobrazit"
+                                                >
+                                                    <span className="material-symbols-outlined">visibility</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {project.inquiryLetterLink?.startsWith('template:') ? (
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                                            <span className="material-symbols-outlined text-[14px]">info</span>
+                                            Tato šablona bude použita pro generování emailů subdodavatelům.
+                                        </p>
+                                    ) : (
+                                        <p className="text-xs text-yellow-600 dark:text-yellow-400 flex items-center gap-1">
+                                            <span className="material-symbols-outlined text-[14px]">warning</span>
+                                            Používáte starý formát odkazu. Doporučujeme přejít na systémovou šablonu.
+                                        </p>
+                                    )}
+                                </div>
                             ) : (
-                                <div className="flex gap-2">
+                                <div className="text-center py-8 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg">
+                                    <span className="material-symbols-outlined text-slate-300 dark:text-slate-600 text-5xl mb-3 block">mail_outline</span>
+                                    <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Žádná šablona není vybrána</p>
+                                    <p className="text-slate-400 dark:text-slate-500 text-xs mt-1 mb-4">Vyberte šablonu pro komunikaci se subdodavateli</p>
                                     <button
-                                        onClick={handleSaveLetter}
-                                        disabled={isUploadingTemplate}
-                                        className={`transition-colors ${isUploadingTemplate ? 'text-slate-400 cursor-not-allowed' : 'text-green-500 hover:text-green-600'}`}
+                                        onClick={() => setShowTemplateManager(true)}
+                                        className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors inline-flex items-center gap-2 text-sm font-medium"
                                     >
-                                        {isUploadingTemplate ? (
-                                            <span className="material-symbols-outlined text-[20px] animate-spin">progress_activity</span>
-                                        ) : (
-                                            <span className="material-symbols-outlined text-[20px]">check</span>
-                                        )}
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            setIsEditingLetter(false);
-                                            setSelectedTemplateFile(null);
-                                        }}
-                                        disabled={isUploadingTemplate}
-                                        className={`transition-colors ${isUploadingTemplate ? 'text-slate-400 cursor-not-allowed' : 'text-red-500 hover:text-red-600'}`}
-                                    >
-                                        <span className="material-symbols-outlined text-[20px]">close</span>
+                                        <span className="material-symbols-outlined text-[18px]">add_circle</span>
+                                        Vytvořit nebo vybrat šablonu
                                     </button>
                                 </div>
                             )}
                         </div>
-
-                        {!isEditingLetter ? (
-                            <div>
-                                {hasLetterLink ? (
-                                    <div className="space-y-3">
-                                        <a
-                                            href={project.inquiryLetterLink}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="block p-4 bg-white dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 hover:border-primary hover:bg-slate-50 dark:hover:bg-slate-600 transition-all group"
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                    <span className="material-symbols-outlined text-primary">article</span>
-                                                    <span className="text-sm font-medium text-slate-900 dark:text-white truncate">
-                                                        {project.inquiryLetterLink}
-                                                    </span>
-                                                </div>
-                                                <span className="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors">open_in_new</span>
-                                            </div>
-                                        </a>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                                            <span className="material-symbols-outlined text-[14px]">info</span>
-                                            Klikněte pro otevření šablony
-                                        </p>
-                                    </div>
-                                ) : (
-                                    <div className="text-center py-8">
-                                        <span className="material-symbols-outlined text-slate-300 dark:text-slate-600 text-5xl mb-3 block">mail_outline</span>
-                                        <p className="text-slate-500 dark:text-slate-400 text-sm">Žádná šablona není nastavena</p>
-                                        <p className="text-slate-400 dark:text-slate-500 text-xs mt-1">Klikněte na ikonu úprav pro přidání odkazu</p>
-                                    </div>
-                                )}
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                {/* Tab Selection */}
-                                <div className="flex gap-2 border-b border-slate-200 dark:border-slate-700">
-                                    <button
-                                        type="button"
-                                        onClick={() => setSelectedTemplateFile(null)}
-                                        className={`px-4 py-2 text-sm font-medium transition-colors ${!selectedTemplateFile
-                                            ? 'text-primary border-b-2 border-primary'
-                                            : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
-                                            }`}
-                                    >
-                                        <span className="flex items-center gap-2">
-                                            <span className="material-symbols-outlined text-[18px]">link</span>
-                                            URL odkaz
-                                        </span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setLetterLinkValue('');
-                                            const input = document.getElementById('template-file-input') as HTMLInputElement;
-                                            input?.click();
-                                        }}
-                                        className={`px-4 py-2 text-sm font-medium transition-colors ${selectedTemplateFile
-                                            ? 'text-primary border-b-2 border-primary'
-                                            : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
-                                            }`}
-                                    >
-                                        <span className="flex items-center gap-2">
-                                            <span className="material-symbols-outlined text-[18px]">upload_file</span>
-                                            Nahrát soubor
-                                        </span>
-                                    </button>
-                                </div>
-
-                                {/* Content based on selection */}
-                                {!selectedTemplateFile ? (
-                                    <div className="space-y-3">
-                                        <input
-                                            type="url"
-                                            value={letterLinkValue}
-                                            onChange={(e) => setLetterLinkValue(e.target.value)}
-                                            placeholder="https://docs.google.com/document/..."
-                                            className="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-3 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"
-                                        />
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                                            Zadejte URL odkaz na šablonu poptávkového dopisu (např. Google Docs, Word Online)
-                                        </p>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-3">
-                                        <div className="flex items-center justify-between bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg p-4">
-                                            <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                <span className="material-symbols-outlined text-primary text-[24px]">description</span>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{selectedTemplateFile.name}</p>
-                                                    <p className="text-xs text-slate-500 dark:text-slate-400">{formatFileSize(selectedTemplateFile.size)}</p>
-                                                </div>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => setSelectedTemplateFile(null)}
-                                                className="text-slate-400 hover:text-red-500 transition-colors"
-                                            >
-                                                <span className="material-symbols-outlined text-[20px]">close</span>
-                                            </button>
-                                        </div>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                                            Soubor bude nahrán do úložiště při uložení
-                                        </p>
-                                    </div>
-                                )}
-
-                                {/* Hidden file input */}
-                                <input
-                                    id="template-file-input"
-                                    type="file"
-                                    accept=".doc,.docx,.pdf,.odt"
-                                    className="hidden"
-                                    onChange={(e) => {
-                                        if (e.target.files && e.target.files[0]) {
-                                            const file = e.target.files[0];
-                                            if (file.size > 10 * 1024 * 1024) {
-                                                alert('Soubor je příliš velký. Maximum je 10MB.');
-                                                return;
-                                            }
-                                            setSelectedTemplateFile(file);
-                                            setLetterLinkValue('');
-                                        }
-                                    }}
-                                />
-                            </div>
-                        )}
                     </div>
 
                     {/* Dynamic Placeholders Tips */}
@@ -442,6 +356,23 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                     </div>
                 </div>
             </div>
+
+
+            {/* Template Manager Overlay */}
+            {showTemplateManager && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-slate-900 rounded-xl w-full max-w-6xl h-[85vh] shadow-2xl">
+                        <TemplateManager
+                            project={project}
+                            onClose={() => setShowTemplateManager(false)}
+                            onSelectTemplate={(template) => {
+                                onUpdate({ inquiryLetterLink: `template:${template.id}` });
+                                setShowTemplateManager(false);
+                            }}
+                        />
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

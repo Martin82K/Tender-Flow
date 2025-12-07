@@ -98,6 +98,7 @@ export interface InvestorFinancials {
 export interface ProjectDetails {
   id?: string; // Optional linkage
   title: string;
+  status?: ProjectStatus; // Added specific status field
 
   // Editable General Info
   investor?: string; // Investor
@@ -134,4 +135,13 @@ export interface User {
   role: "admin" | "user";
   avatarUrl?: string;
   preferences?: UserPreferences;
+}
+
+export interface Template {
+  id: string;
+  name: string;
+  subject: string;
+  content: string;
+  isDefault: boolean;
+  lastModified: string;
 }

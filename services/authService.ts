@@ -147,7 +147,7 @@ export const authService = {
             // Add timeout race to prevent hanging indefinitely
             const sessionPromise = supabase.auth.getSession();
             const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Auth check timed out (2s)')), 2000)
+                setTimeout(() => reject(new Error('Auth check timed out (10s)')), 10000)
             );
             
             const { data } = await Promise.race([sessionPromise, timeoutPromise]) as any;

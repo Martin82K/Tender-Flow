@@ -27,6 +27,8 @@ import {
   formatInputNumber,
   parseFormattedNumber,
 } from "../utils/formatters";
+import { getTemplateById } from "../services/templateService";
+import { processTemplate } from "../utils/templateUtils";
 
 const DEFAULT_STATUSES: StatusConfig[] = [
   { id: "available", label: "K dispozici", color: "green" },
@@ -1286,12 +1288,63 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const handleGenerateInquiry = (bid: Bid) => {
     if (!activeCategory) return;
 
-    // Generate email content
-    const { subject, body } = generateInquiryEmail(
-      activeCategory,
-      projectDetails,
-      bid
-    );
+    let subject = "";
+    let body = "";
+
+    // Check if using new template system
+    if (projectDetails.inquiryLetterLink?.startsWith('template:')) {
+      const templateId = projectDetails.inquiryLetterLink.split(':')[1];
+      const template = getTemplateById(templateId);
+      
+      if (template) {
+        // Prepare data for template
+        // We pass 'bid' related info indirectly via dummy or generic if needed, 
+        // but TemplateUtils currently supports Project and Category. 
+        // We might want to extend it to support Bid info later (e.g. {OSLOVENI}, {FIRMA}),
+        // but for now the user asked to connect it.
+        // NOTE: processTemplate now takes project and category.
+        // Let's create a combined data object if we want to support bid details later?
+        // actually looking at templateUtils, it works with ProjectDetails and DemandCategory.
+        
+        // We should add bid info to template if we want to be perfect, but for now let's just use what we have.
+        // Actually I should check if processTemplate generates the BODY directly or if we need to wrap it.
+        // Content IS the body.
+        
+        // We need to HTML-to-Text for mailto body if possible, OR just put HTML. 
+        // Mailto only supports plain text. We must strip HTML or just use newlines.
+        // The user put HTML in the template editor. 
+        // A simple strip-tags or replacement of <br> with %0D%0A is needed for mailto.
+        
+        let rawSubject = template.subject;
+        let rawContent = template.content;
+        
+        // Process variables
+        subject = processTemplate(rawSubject, projectDetails, activeCategory);
+        
+        // For body, we need to be careful. Mailto doesn't support HTML.
+        // We will try to convert basic HTML to text.
+        // <br> -> \n
+        // <b>, <i> -> remove tags
+        let processedBody = processTemplate(rawContent, projectDetails, activeCategory);
+        
+        // Simple HTML to Text conversion for Mailto
+        body = processedBody
+            .replace(/<br\s*\/?>/gi, '\n')
+            .replace(/<[^>]+>/g, '') // Strip other tags
+            .replace(/&nbsp;/g, ' ');
+            
+      } else {
+        // Template not found fallback
+        const result = generateInquiryEmail(activeCategory, projectDetails, bid);
+        subject = result.subject;
+        body = result.body;
+      }
+    } else {
+      // Legacy way
+      const result = generateInquiryEmail(activeCategory, projectDetails, bid);
+      subject = result.subject;
+      body = result.body;
+    }
 
     // Create mailto link
     const mailtoLink = createMailtoLink(bid.email || "", subject, body);

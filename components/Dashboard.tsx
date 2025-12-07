@@ -305,11 +305,11 @@ const AIInsightsWidget: React.FC<{ projects: ProjectSummary[] }> = ({ projects }
         <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg">
-                        <span className="material-symbols-outlined text-white">auto_awesome</span>
+                    <div className="p-2 bg-slate-900 rounded-lg border border-slate-800 shadow-sm">
+                        <span className="material-symbols-outlined text-amber-400">memory</span>
                     </div>
                     <div>
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">AI</h3>
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">Construction Ai</h3>
                         <p className="text-xs text-slate-500">Automatická analýza projektů</p>
                     </div>
                 </div>

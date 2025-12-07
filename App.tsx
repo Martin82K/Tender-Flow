@@ -265,6 +265,7 @@ const AppContent: React.FC = () => {
 
         detailsMap[project.id] = {
           title: project.name,
+          status: project.status || "realization",
           investor: project.investor || "",
           technicalSupervisor: project.technical_supervisor || "",
           location: project.location || "",
