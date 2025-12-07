@@ -22,23 +22,4 @@ export const supabase = createClient(
   }
 );
 
-// Refresh session when user returns to tab (prevents unexpected logouts)
-if (typeof document !== 'undefined') {
-  document.addEventListener('visibilitychange', async () => {
-    if (document.visibilityState === 'visible') {
-      console.log('[Supabase] Tab became visible, checking session...');
-      try {
-        const { data, error } = await supabase.auth.getSession();
-        if (error) {
-          console.error('[Supabase] Session check error:', error);
-        } else if (data.session) {
-            console.log('[Supabase] Session is valid');
-        } else {
-            console.log('[Supabase] No active session found');
-        }
-      } catch (e) {
-        console.error('[Supabase] Visibility change handler error:', e);
-      }
-    }
-  });
-}
+
