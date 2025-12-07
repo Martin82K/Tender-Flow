@@ -160,23 +160,23 @@ const AppContent: React.FC = () => {
     };
   }, [isAuthenticated, authLoading]);
 
-  // Smart Data Refresh on Visibility Change
-  useEffect(() => {
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible' && isAuthenticated) {
-        const now = Date.now();
-        // 1 minute threshold to refresh data if tab was backgrounded
-        if (now - lastRefreshTime.current > 60 * 1000) {
-            console.log('[App] Returning to active tab, refreshing data silently...');
-            await loadInitialData(true); // silent refresh
-            lastRefreshTime.current = now;
-        }
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [isAuthenticated]);
+    // Smart Data Refresh on Visibility Change - DISABLED due to auth instability
+    // useEffect(() => {
+    //   const handleVisibilityChange = async () => {
+    //     if (document.visibilityState === 'visible' && isAuthenticated) {
+    //       const now = Date.now();
+    //       // 1 minute threshold to refresh data if tab was backgrounded
+    //       if (now - lastRefreshTime.current > 60 * 1000) {
+    //           console.log('[App] Returning to active tab, refreshing data silently...');
+    //           await loadInitialData(true); // silent refresh
+    //           lastRefreshTime.current = now;
+    //       }
+    //     }
+    //   };
+    // 
+    //   document.addEventListener('visibilitychange', handleVisibilityChange);
+    //   return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    // }, [isAuthenticated]);
 
   const loadInitialData = async (silent = false) => {
     if (!silent) {
