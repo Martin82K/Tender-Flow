@@ -44,7 +44,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             console.log('[AuthContext] Auth State Change:', event, session?.user?.email);
             if (event === 'SIGNED_IN') {
                 const currentUser = await authService.getCurrentUser();
-                setUser(currentUser);
+                if (currentUser) {
+                    setUser(currentUser);
+                } else {
+                    console.warn('[AuthContext] SIGNED_IN event but no user returned (timeout?). Keeping current session.');
+                }
             } else if (event === 'SIGNED_OUT') {
                 console.warn('[AuthContext] Received SIGNED_OUT event from Supabase');
                 setUser(null);
