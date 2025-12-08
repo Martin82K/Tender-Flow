@@ -94,27 +94,27 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
     const hasLetterLink = project.inquiryLetterLink && project.inquiryLetterLink.trim() !== '';
 
     return (
-        <div className="p-6 lg:p-10 flex flex-col gap-6 overflow-y-auto h-full">
+        <div className="p-6 lg:p-10 flex flex-col gap-6 overflow-y-auto h-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 min-h-screen">
             <div className="max-w-4xl mx-auto w-full">
                 {/* Header Card */}
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-8">
+                <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-xl p-8">
                     <div className="flex items-center gap-3 mb-6">
-                        <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-primary text-2xl">folder_open</span>
+                        <div className="size-12 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/20 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-emerald-400 text-2xl">folder_open</span>
                         </div>
                         <div>
-                            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Projektová dokumentace</h2>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">Odkaz na sdílenou dokumentaci stavby</p>
+                            <h2 className="text-2xl font-bold text-white">Projektová dokumentace</h2>
+                            <p className="text-sm text-slate-400">Odkaz na sdílenou dokumentaci stavby</p>
                         </div>
                     </div>
 
-                    <div className={`rounded-lg p-6 border transition-colors ${hasDocsLink ? 'bg-green-50/50 dark:bg-green-900/10 border-green-200 dark:border-green-800' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'}`}>
+                    <div className={`rounded-xl p-6 border transition-colors ${hasDocsLink ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-slate-800/30 border-slate-700/50'}`}>
                         <div className="flex justify-between items-start mb-4">
                             <div className="flex items-center gap-2">
                                 <span className="material-symbols-outlined text-slate-400">link</span>
-                                <h3 className="font-semibold text-slate-900 dark:text-white">Odkaz na dokumentaci</h3>
+                                <h3 className="font-semibold text-white">Odkaz na dokumentaci</h3>
                                 {hasDocsLink && (
-                                    <span className="ml-2 px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-[10px] font-bold uppercase rounded-full border border-green-200 dark:border-green-800">
+                                    <span className="ml-2 px-2.5 py-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase rounded-lg border border-emerald-500/30">
                                         Nastaveno
                                     </span>
                                 )}
@@ -122,9 +122,9 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                             {!isEditingDocs ? (
                                 <button
                                     onClick={() => setIsEditingDocs(true)}
-                                    className="text-slate-400 hover:text-primary transition-colors"
+                                    className="p-2 hover:bg-slate-700/50 rounded-lg transition-all"
                                 >
-                                    <span className="material-symbols-outlined text-[20px]">edit</span>
+                                    <span className="material-symbols-outlined text-slate-400 text-[20px]">edit</span>
                                 </button>
                             ) : (
                                 <div className="flex gap-2">
@@ -152,28 +152,28 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                             href={project.documentationLink}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="block p-4 bg-white dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 hover:border-primary hover:bg-slate-50 dark:hover:bg-slate-600 transition-all group"
+                                            className="block p-4 bg-slate-800/50 rounded-xl border border-slate-700/50 hover:border-emerald-500/30 hover:bg-slate-700/50 transition-all group"
                                         >
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                    <span className="material-symbols-outlined text-primary">description</span>
-                                                    <span className="text-sm font-medium text-slate-900 dark:text-white truncate">
+                                                    <span className="material-symbols-outlined text-emerald-400">description</span>
+                                                    <span className="text-sm font-medium text-white truncate">
                                                         {project.documentationLink}
                                                     </span>
                                                 </div>
-                                                <span className="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors">open_in_new</span>
+                                                <span className="material-symbols-outlined text-slate-500 group-hover:text-emerald-400 transition-colors">open_in_new</span>
                                             </div>
                                         </a>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                                        <p className="text-xs text-slate-500 flex items-center gap-1">
                                             <span className="material-symbols-outlined text-[14px]">info</span>
                                             Klikněte pro otevření v novém okně
                                         </p>
                                     </div>
                                 ) : (
                                     <div className="text-center py-8">
-                                        <span className="material-symbols-outlined text-slate-300 dark:text-slate-600 text-5xl mb-3 block">link_off</span>
-                                        <p className="text-slate-500 dark:text-slate-400 text-sm">Žádný odkaz není nastaven</p>
-                                        <p className="text-slate-400 dark:text-slate-500 text-xs mt-1">Klikněte na ikonu úprav pro přidání odkazu</p>
+                                        <span className="material-symbols-outlined text-slate-600 text-5xl mb-3 block">link_off</span>
+                                        <p className="text-slate-400 text-sm">Žádný odkaz není nastaven</p>
+                                        <p className="text-slate-500 text-xs mt-1">Klikněte na ikonu úprav pro přidání odkazu</p>
                                     </div>
                                 )}
                             </div>
@@ -184,9 +184,9 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                     value={docsLinkValue}
                                     onChange={(e) => setDocsLinkValue(e.target.value)}
                                     placeholder="https://example.com/project-docs"
-                                    className="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-3 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary"
+                                    className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-3 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
                                 />
-                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                <p className="text-xs text-slate-500">
                                     Zadejte URL odkaz na sdílenou složku (např. Google Drive, Dropbox, SharePoint)
                                 </p>
                             </div>
@@ -195,21 +195,21 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
 
                     {/* Inquiry Letter Section */}
                     {/* Inquiry Letter Section */}
-                    <div className={`rounded-lg p-6 border mt-6 transition-colors ${hasLetterLink ? 'bg-green-50/50 dark:bg-green-900/10 border-green-200 dark:border-green-800' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'}`}>
+                    <div className={`rounded-xl p-6 border mt-6 transition-colors ${hasLetterLink ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-slate-800/30 border-slate-700/50'}`}>
                         <div className="flex justify-between items-start mb-4">
                             <div className="flex items-center gap-2">
                                 <span className="material-symbols-outlined text-slate-400">mail</span>
-                                <h3 className="font-semibold text-slate-900 dark:text-white">Poptávkový dopis (šablona)</h3>
+                                <h3 className="font-semibold text-white">Poptávkový dopis (šablona)</h3>
                                 {hasLetterLink && (
-                                    <span className="ml-2 px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-[10px] font-bold uppercase rounded-full border border-green-200 dark:border-green-800">
+                                    <span className="ml-2 px-2.5 py-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase rounded-lg border border-emerald-500/30">
                                         Nastaveno
                                     </span>
                                 )}
                             </div>
-                            
+
                             <button
                                 onClick={() => setShowTemplateManager(true)}
-                                className="px-3 py-1.5 text-sm font-medium text-primary bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors flex items-center gap-2 shadow-sm"
+                                className="px-3 py-1.5 text-sm font-medium text-emerald-400 bg-slate-800/50 border border-slate-700/50 rounded-xl hover:bg-slate-700/50 hover:border-emerald-500/30 transition-all flex items-center gap-2"
                             >
                                 <span className="material-symbols-outlined text-[18px]">{hasLetterLink ? 'change_circle' : 'add_circle'}</span>
                                 {hasLetterLink ? 'Změnit šablonu' : 'Vybrat šablonu'}
@@ -220,16 +220,16 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                             {hasLetterLink ? (
                                 <div className="space-y-3">
                                     <div
-                                        className="block p-4 bg-white dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 transition-all group"
+                                        className="block p-4 bg-slate-800/50 rounded-xl border border-slate-700/50 transition-all group"
                                     >
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                <span className="material-symbols-outlined text-primary">
+                                                <span className="material-symbols-outlined text-emerald-400">
                                                     {project.inquiryLetterLink?.startsWith('template:') ? 'wysiwyg' : 'link'}
                                                 </span>
                                                 <div className="flex flex-col">
-                                                    <span className="text-sm font-medium text-slate-900 dark:text-white truncate">
-                                                        {project.inquiryLetterLink?.startsWith('template:') 
+                                                    <span className="text-sm font-medium text-white truncate">
+                                                        {project.inquiryLetterLink?.startsWith('template:')
                                                             ? (getTemplateById(project.inquiryLetterLink.split(':')[1])?.name || 'Neznámá šablona')
                                                             : (project.inquiryLetterLink?.startsWith('http') ? 'Externí odkaz / Soubor' : project.inquiryLetterLink)
                                                         }
@@ -240,9 +240,9 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                                 </div>
                                             </div>
                                             <div className="flex gap-2">
-                                                <button 
+                                                <button
                                                     onClick={() => setShowTemplateManager(true)}
-                                                    className="p-2 text-slate-400 hover:text-primary transition-colors"
+                                                    className="p-2 text-slate-500 hover:text-emerald-400 transition-colors"
                                                     title="Upravit / Zobrazit"
                                                 >
                                                     <span className="material-symbols-outlined">visibility</span>
@@ -251,25 +251,25 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                         </div>
                                     </div>
                                     {project.inquiryLetterLink?.startsWith('template:') ? (
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                                        <p className="text-xs text-slate-500 flex items-center gap-1">
                                             <span className="material-symbols-outlined text-[14px]">info</span>
                                             Tato šablona bude použita pro generování emailů subdodavatelům.
                                         </p>
                                     ) : (
-                                        <p className="text-xs text-yellow-600 dark:text-yellow-400 flex items-center gap-1">
+                                        <p className="text-xs text-amber-400 flex items-center gap-1">
                                             <span className="material-symbols-outlined text-[14px]">warning</span>
                                             Používáte starý formát odkazu. Doporučujeme přejít na systémovou šablonu.
                                         </p>
                                     )}
                                 </div>
                             ) : (
-                                <div className="text-center py-8 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg">
-                                    <span className="material-symbols-outlined text-slate-300 dark:text-slate-600 text-5xl mb-3 block">mail_outline</span>
-                                    <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Žádná šablona není vybrána</p>
-                                    <p className="text-slate-400 dark:text-slate-500 text-xs mt-1 mb-4">Vyberte šablonu pro komunikaci se subdodavateli</p>
+                                <div className="text-center py-8 border-2 border-dashed border-slate-700/50 rounded-xl">
+                                    <span className="material-symbols-outlined text-slate-600 text-5xl mb-3 block">mail_outline</span>
+                                    <p className="text-slate-400 text-sm font-medium">Žádná šablona není vybrána</p>
+                                    <p className="text-slate-500 text-xs mt-1 mb-4">Vyberte šablonu pro komunikaci se subdodavateli</p>
                                     <button
                                         onClick={() => setShowTemplateManager(true)}
-                                        className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors inline-flex items-center gap-2 text-sm font-medium"
+                                        className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white rounded-xl transition-all inline-flex items-center gap-2 text-sm font-medium shadow-lg"
                                     >
                                         <span className="material-symbols-outlined text-[18px]">add_circle</span>
                                         Vytvořit nebo vybrat šablonu
@@ -280,60 +280,60 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                     </div>
 
                     {/* Dynamic Placeholders Tips */}
-                    <div className="mt-6 p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800 rounded-lg">
+                    <div className="mt-6 p-4 bg-violet-500/10 border border-violet-500/30 rounded-xl">
                         <div className="flex items-start gap-3">
-                            <span className="material-symbols-outlined text-purple-600 dark:text-purple-400 text-[20px]">code</span>
+                            <span className="material-symbols-outlined text-violet-400 text-[20px]">code</span>
                             <div className="flex-1">
-                                <h4 className="font-semibold text-purple-900 dark:text-purple-100 text-sm mb-2">Dynamické proměnné pro šablonu</h4>
-                                <p className="text-xs text-purple-700 dark:text-purple-300 mb-3">V šabloně poptávkového dopisu můžete použít tyto proměnné:</p>
+                                <h4 className="font-semibold text-violet-300 text-sm mb-2">Dynamické proměnné pro šablonu</h4>
+                                <p className="text-xs text-violet-400/80 mb-3">V šabloně poptávkového dopisu můžete použít tyto proměnné:</p>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-                                    <div className="bg-white/50 dark:bg-purple-900/20 p-2 rounded">
-                                        <code className="text-purple-800 dark:text-purple-200 font-mono">{'{NAZEV_STAVBY}'}</code>
-                                        <span className="text-purple-600 dark:text-purple-400 ml-2">- Název projektu</span>
+                                    <div className="bg-slate-800/50 p-2 rounded-lg">
+                                        <code className="text-violet-300 font-mono">{'{NAZEV_STAVBY}'}</code>
+                                        <span className="text-slate-400 ml-2">- Název projektu</span>
                                     </div>
-                                    <div className="bg-white/50 dark:bg-purple-900/20 p-2 rounded">
-                                        <code className="text-purple-800 dark:text-purple-200 font-mono">{'{INVESTOR}'}</code>
-                                        <span className="text-purple-600 dark:text-purple-400 ml-2">- Investor</span>
+                                    <div className="bg-slate-800/50 p-2 rounded-lg">
+                                        <code className="text-violet-300 font-mono">{'{INVESTOR}'}</code>
+                                        <span className="text-slate-400 ml-2">- Investor</span>
                                     </div>
-                                    <div className="bg-white/50 dark:bg-purple-900/20 p-2 rounded">
-                                        <code className="text-purple-800 dark:text-purple-200 font-mono">{'{LOKACE}'}</code>
-                                        <span className="text-purple-600 dark:text-purple-400 ml-2">- Lokace stavby</span>
+                                    <div className="bg-slate-800/50 p-2 rounded-lg">
+                                        <code className="text-violet-300 font-mono">{'{LOKACE}'}</code>
+                                        <span className="text-slate-400 ml-2">- Lokace stavby</span>
                                     </div>
-                                    <div className="bg-white/50 dark:bg-purple-900/20 p-2 rounded">
-                                        <code className="text-purple-800 dark:text-purple-200 font-mono">{'{TERMIN_DOKONCENI}'}</code>
-                                        <span className="text-purple-600 dark:text-purple-400 ml-2">- Termín dokončení</span>
+                                    <div className="bg-slate-800/50 p-2 rounded-lg">
+                                        <code className="text-violet-300 font-mono">{'{TERMIN_DOKONCENI}'}</code>
+                                        <span className="text-slate-400 ml-2">- Termín dokončení</span>
                                     </div>
-                                    <div className="bg-white/50 dark:bg-purple-900/20 p-2 rounded">
-                                        <code className="text-purple-800 dark:text-purple-200 font-mono">{'{STAVBYVEDOUCI}'}</code>
-                                        <span className="text-purple-600 dark:text-purple-400 ml-2">- Stavbyvedoucí</span>
+                                    <div className="bg-slate-800/50 p-2 rounded-lg">
+                                        <code className="text-violet-300 font-mono">{'{STAVBYVEDOUCI}'}</code>
+                                        <span className="text-slate-400 ml-2">- Stavbyvedoucí</span>
                                     </div>
-                                    <div className="bg-white/50 dark:bg-purple-900/20 p-2 rounded">
-                                        <code className="text-purple-800 dark:text-purple-200 font-mono">{'{SOD_CENA}'}</code>
-                                        <span className="text-purple-600 dark:text-purple-400 ml-2">- Cena SOD smlouvy</span>
+                                    <div className="bg-slate-800/50 p-2 rounded-lg">
+                                        <code className="text-violet-300 font-mono">{'{SOD_CENA}'}</code>
+                                        <span className="text-slate-400 ml-2">- Cena SOD smlouvy</span>
                                     </div>
-                                    <div className="bg-white/50 dark:bg-purple-900/20 p-2 rounded">
-                                        <code className="text-purple-800 dark:text-purple-200 font-mono">{'{SPLATNOST}'}</code>
-                                        <span className="text-purple-600 dark:text-purple-400 ml-2">- Splatnost faktury</span>
+                                    <div className="bg-slate-800/50 p-2 rounded-lg">
+                                        <code className="text-violet-300 font-mono">{'{SPLATNOST}'}</code>
+                                        <span className="text-slate-400 ml-2">- Splatnost faktury</span>
                                     </div>
-                                    <div className="bg-white/50 dark:bg-purple-900/20 p-2 rounded">
-                                        <code className="text-purple-800 dark:text-purple-200 font-mono">{'{ZARUKA}'}</code>
-                                        <span className="text-purple-600 dark:text-purple-400 ml-2">- Záruční doba</span>
+                                    <div className="bg-slate-800/50 p-2 rounded-lg">
+                                        <code className="text-violet-300 font-mono">{'{ZARUKA}'}</code>
+                                        <span className="text-slate-400 ml-2">- Záruční doba</span>
                                     </div>
-                                    <div className="bg-white/50 dark:bg-purple-900/20 p-2 rounded">
-                                        <code className="text-purple-800 dark:text-purple-200 font-mono">{'{POZASTAVKA}'}</code>
-                                        <span className="text-purple-600 dark:text-purple-400 ml-2">- Pozastávka</span>
+                                    <div className="bg-slate-800/50 p-2 rounded-lg">
+                                        <code className="text-violet-300 font-mono">{'{POZASTAVKA}'}</code>
+                                        <span className="text-slate-400 ml-2">- Pozastávka</span>
                                     </div>
-                                    <div className="bg-white/50 dark:bg-purple-900/20 p-2 rounded">
-                                        <code className="text-purple-800 dark:text-purple-200 font-mono">{'{TECHNICKY_DOZOR}'}</code>
-                                        <span className="text-purple-600 dark:text-purple-400 ml-2">- TDI</span>
+                                    <div className="bg-slate-800/50 p-2 rounded-lg">
+                                        <code className="text-violet-300 font-mono">{'{TECHNICKY_DOZOR}'}</code>
+                                        <span className="text-slate-400 ml-2">- TDI</span>
                                     </div>
 
-                                    <div className="bg-white/50 dark:bg-purple-900/20 p-2 rounded">
-                                        <code className="text-purple-800 dark:text-purple-200 font-mono">{'{ODKAZ_DOKUMENTACE}'}</code>
-                                        <span className="text-purple-600 dark:text-purple-400 ml-2">- Odkaz na dokumentaci</span>
+                                    <div className="bg-slate-800/50 p-2 rounded-lg">
+                                        <code className="text-violet-300 font-mono">{'{ODKAZ_DOKUMENTACE}'}</code>
+                                        <span className="text-slate-400 ml-2">- Odkaz na dokumentaci</span>
                                     </div>
                                 </div>
-                                <p className="text-xs text-purple-600 dark:text-purple-400 mt-3 italic">
+                                <p className="text-xs text-slate-500 mt-3 italic">
                                     💡 Použijte mail merge funkci ve Wordu nebo skript v Google Docs pro automatické nahrazení proměnných skutečnými hodnotami.
                                 </p>
                             </div>
@@ -341,12 +341,12 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                     </div>
 
                     {/* Tips Section */}
-                    <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg">
+                    <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
                         <div className="flex items-start gap-3">
-                            <span className="material-symbols-outlined text-blue-600 dark:text-blue-400 text-[20px]">lightbulb</span>
+                            <span className="material-symbols-outlined text-blue-400 text-[20px]">lightbulb</span>
                             <div>
-                                <h4 className="font-semibold text-blue-900 dark:text-blue-100 text-sm mb-1">Tipy pro dokumentaci</h4>
-                                <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
+                                <h4 className="font-semibold text-blue-300 text-sm mb-1">Tipy pro dokumentaci</h4>
+                                <ul className="text-xs text-blue-400/80 space-y-1">
                                     <li>• Použijte sdílené cloudové úložiště pro snadný přístup celého týmu</li>
                                     <li>• Ujistěte se, že všichni relevantní členové mají přístupová práva</li>
                                     <li>• Udržujte dokumentaci aktuální a dobře organizovanou</li>
@@ -631,69 +631,101 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
     };
 
     return (
-        <div className="p-6 lg:p-10 flex flex-col gap-6 overflow-y-auto h-full">
-            {/* Top Stats - Updated to include Planned Cost */}
+        <div className="p-6 lg:p-10 flex flex-col gap-6 overflow-y-auto h-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+            {/* Top Stats - Premium Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                 {/* Card 1: Revenue */}
-                <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                    <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Rozpočet (Investor)</p>
-                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-2">{formatMoneyFull(totalBudget)}</h3>
-                    <p className="text-xs text-slate-400 mt-1">Příjem (SOD + Dodatky)</p>
-                    <div className="mt-4 w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                        <div className="bg-slate-500 h-full" style={{ width: '100%' }}></div>
+                <div className="group relative bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 hover:border-slate-600/50 transition-all overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div className="relative">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="p-3 bg-gradient-to-br from-blue-500/20 to-blue-600/10 rounded-xl border border-blue-500/20 shadow-lg shadow-blue-500/10">
+                                <span className="material-symbols-outlined text-blue-400">payments</span>
+                            </div>
+                            <span className="material-symbols-outlined text-emerald-400 text-[20px]">trending_up</span>
+                        </div>
+                        <div className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2">Rozpočet (Investor)</div>
+                        <div className="text-3xl font-bold text-white mb-1">{formatMoneyFull(totalBudget)}</div>
+                        <div className="text-xs text-slate-500">Příjem (SOD + Dodatky)</div>
+                        <div className="mt-4 h-1 bg-slate-700/50 rounded-full overflow-hidden">
+                            <div className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full" style={{ width: '100%' }}></div>
+                        </div>
                     </div>
                 </div>
 
                 {/* Card 2: Planned (Internal) */}
-                <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                    <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Plánovaný náklad</p>
-                    <h3 className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-2">
-                        {plannedCost > 0 ? formatMoneyFull(plannedCost) : '-'}
-                    </h3>
-                    <p className="text-xs text-slate-400 mt-1">Interní cíl nákladů</p>
-                    <div className="mt-4 w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                        <div className="bg-blue-500 h-full" style={{ width: '100%' }}></div>
+                <div className="group relative bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 hover:border-slate-600/50 transition-all overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div className="relative">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="p-3 bg-gradient-to-br from-indigo-500/20 to-indigo-600/10 rounded-xl border border-indigo-500/20 shadow-lg shadow-indigo-500/10">
+                                <span className="material-symbols-outlined text-indigo-400">bar_chart</span>
+                            </div>
+                            <span className="material-symbols-outlined text-emerald-400 text-[20px]">trending_up</span>
+                        </div>
+                        <div className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2">Plánovaný náklad</div>
+                        <div className="text-3xl font-bold text-white mb-1">
+                            {plannedCost > 0 ? formatMoneyFull(plannedCost) : '-'}
+                        </div>
+                        <div className="text-xs text-slate-500">Interní cíl nákladů</div>
+                        <div className="mt-4 h-1 bg-slate-700/50 rounded-full overflow-hidden">
+                            <div className="h-full bg-gradient-to-r from-indigo-500 to-indigo-400 rounded-full" style={{ width: totalBudget > 0 ? `${(plannedCost / totalBudget) * 100}%` : '0%' }}></div>
+                        </div>
                     </div>
                 </div>
 
                 {/* Card 3: Contracted (Real) */}
-                <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                    <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Zasmluvněno (Realita)</p>
-                    <h3 className="text-2xl font-bold text-primary mt-2">{formatMoneyFull(totalContractedCost)}</h3>
-                    <p className="text-xs text-slate-400 mt-1">
-                        Zbývá zadat: <span className={plannedBalance >= 0 ? 'text-green-500 font-bold' : 'text-red-500 font-bold'}>
-                            {plannedBalance >= 0 ? '+' : ''}{formatMoneyFull(plannedBalance)}
-                        </span>
-                    </p>
-                    <div className="mt-4 w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                        <div
-                            className={`h-full transition-all ${plannedCost > 0 && totalContractedCost > plannedCost ? 'bg-red-500' : 'bg-primary'}`}
-                            style={{ width: `${plannedCost > 0 ? (totalContractedCost / plannedCost) * 100 : 0}%` }}
-                        ></div>
+                <div className="group relative bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 hover:border-slate-600/50 transition-all overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div className="relative">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="p-3 bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 rounded-xl border border-emerald-500/20 shadow-lg shadow-emerald-500/10">
+                                <span className="material-symbols-outlined text-emerald-400">trending_up</span>
+                            </div>
+                            <span className="material-symbols-outlined text-emerald-400 text-[20px]">trending_up</span>
+                        </div>
+                        <div className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2">Zasmluvněno (Realita)</div>
+                        <div className="text-3xl font-bold text-emerald-400 mb-1">{formatMoneyFull(totalContractedCost)}</div>
+                        <div className={`text-xs ${plannedBalance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            Zbývá zadat: {plannedBalance >= 0 ? '+' : ''}{formatMoneyFull(plannedBalance)}
+                        </div>
+                        <div className="mt-4 h-1 bg-slate-700/50 rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full ${plannedCost > 0 && totalContractedCost > plannedCost ? 'bg-gradient-to-r from-red-500 to-red-400' : 'bg-gradient-to-r from-emerald-500 to-emerald-400'}`} style={{ width: `${plannedCost > 0 ? Math.min((totalContractedCost / plannedCost) * 100, 100) : 0}%` }}></div>
+                        </div>
                     </div>
                 </div>
 
                 {/* Card 4: Progress */}
-                <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                    <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Postup Zadávání</p>
-                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-2">{completedTasks} / {project.categories.length} <span className="text-sm font-normal text-slate-500">sekcí</span></h3>
-                    <p className="text-xs text-slate-400 mt-1">Hotové subdodávky</p>
-                    <div className="mt-4 w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                        <div className="bg-green-500 h-full" style={{ width: `${progress}%` }}></div>
+                <div className="group relative bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 hover:border-slate-600/50 transition-all overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div className="relative">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="p-3 bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 rounded-xl border border-emerald-500/20 shadow-lg shadow-emerald-500/10">
+                                <span className="material-symbols-outlined text-emerald-400">auto_awesome</span>
+                            </div>
+                        </div>
+                        <div className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2">Postup Zadávání</div>
+                        <div className="text-3xl font-bold text-white mb-1">{completedTasks} / {project.categories.length}</div>
+                        <div className="text-xs text-slate-500">Hotové subdodávky</div>
+                        <div className="mt-4 h-1 bg-slate-700/50 rounded-full overflow-hidden">
+                            <div className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full" style={{ width: `${progress}%` }}></div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             {/* Demand Categories Overview Cards */}
             {project.categories.length > 0 && (
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-                            <span className="material-symbols-outlined text-primary">category</span>
-                            Přehled Poptávek ({project.categories.length})
-                        </h3>
+                <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-8 shadow-2xl">
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-emerald-500/20 rounded-lg">
+                                <span className="material-symbols-outlined text-emerald-400">category</span>
+                            </div>
+                            <h2 className="text-2xl font-bold text-white">Přehled Poptávek ({project.categories.length})</h2>
+                        </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                         {project.categories.map(cat => {
                             const catBids = project.bids?.[cat.id] || [];
                             const winningBid = catBids.find(b => b.status === 'sod');
@@ -702,67 +734,65 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
                             const diffPlan = cat.planBudget - subPrice;
                             const hasWinner = !!winningBid;
 
-                            // Status badge styling
+                            // Status badge styling - dark theme
                             const statusConfig: Record<string, { label: string; color: string; icon: string }> = {
-                                'open': { label: 'Otevřená', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300', icon: 'hourglass_empty' },
-                                'negotiating': { label: 'Jednání', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300', icon: 'handshake' },
-                                'closed': { label: 'Uzavřená', color: 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300', icon: 'done' },
-                                'sod': { label: 'SOD', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300', icon: 'verified' }
+                                'open': { label: 'OTEVŘENÁ', color: 'bg-blue-500/20 border border-blue-500/30 text-blue-400', icon: 'hourglass_empty' },
+                                'negotiating': { label: 'JEDNÁNÍ', color: 'bg-yellow-500/20 border border-yellow-500/30 text-yellow-400', icon: 'handshake' },
+                                'closed': { label: 'UZAVŘENÁ', color: 'bg-slate-500/20 border border-slate-500/30 text-slate-400', icon: 'done' },
+                                'sod': { label: 'SOD', color: 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-400', icon: 'verified' }
                             };
                             const status = statusConfig[cat.status] || statusConfig['open'];
 
                             return (
-                                <div key={cat.id} className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 border border-slate-100 dark:border-slate-700 hover:border-primary/50 transition-colors">
+                                <div key={cat.id} className="group bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-slate-700/50 rounded-xl p-6 hover:border-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/5 transition-all">
                                     {/* Header */}
-                                    <div className="flex items-start justify-between mb-3">
-                                        <h4 className="font-semibold text-slate-900 dark:text-white text-sm line-clamp-2">{cat.title}</h4>
-                                        <span className={`shrink-0 ml-2 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase flex items-center gap-1 ${status.color}`}>
-                                            <span className="material-symbols-outlined text-[12px]">{status.icon}</span>
+                                    <div className="flex items-start justify-between mb-4">
+                                        <h3 className="font-semibold text-white text-lg">{cat.title}</h3>
+                                        <span className={`shrink-0 ml-2 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${status.color}`}>
                                             {status.label}
                                         </span>
                                     </div>
 
                                     {/* Budget Info */}
-                                    <div className="space-y-2 mb-3">
-                                        <div className="flex justify-between items-center text-xs">
-                                            <span className="text-slate-500 dark:text-slate-400">Cena SOD:</span>
-                                            <span className="font-mono font-medium text-slate-700 dark:text-slate-300">{formatMoneyFull(cat.sodBudget)}</span>
+                                    <div className="space-y-3 mb-4">
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-slate-400">Cena SOD:</span>
+                                            <span className="font-semibold text-white">{formatMoneyFull(cat.sodBudget)}</span>
                                         </div>
-                                        <div className="flex justify-between items-center text-xs">
-                                            <span className="text-slate-500 dark:text-slate-400">Interní plán:</span>
-                                            <span className="font-mono font-medium text-slate-700 dark:text-slate-300">{formatMoneyFull(cat.planBudget)}</span>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-slate-400">Interní plán:</span>
+                                            <span className="font-semibold text-white">{formatMoneyFull(cat.planBudget)}</span>
                                         </div>
                                         {hasWinner && (
-                                            <div className="flex justify-between items-center text-xs">
-                                                <span className="text-slate-500 dark:text-slate-400">Vysoutěženo:</span>
-                                                <span className="font-mono font-bold text-primary">{formatMoneyFull(subPrice)}</span>
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-slate-400">Vysoutěženo:</span>
+                                                <span className="font-semibold text-emerald-400">{formatMoneyFull(subPrice)}</span>
                                             </div>
                                         )}
                                     </div>
 
                                     {/* Subcontractor or Bid Count */}
-                                    <div className="pt-3 border-t border-slate-200 dark:border-slate-600">
+                                    <div className="pt-4 border-t border-slate-700/50">
                                         {hasWinner ? (
-                                            <div className="space-y-1">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="material-symbols-outlined text-green-500 text-[16px]">check_circle</span>
-                                                    <span className="text-xs font-medium text-slate-700 dark:text-slate-300 truncate">{winningBid.companyName}</span>
+                                            <div className="space-y-2">
+                                                <div className="flex items-center justify-between text-sm mb-2">
+                                                    <span className="text-emerald-400">✓ {winningBid.companyName}</span>
                                                 </div>
-                                                <div className="flex justify-between text-xs pl-6">
-                                                    <span className="text-slate-500 dark:text-slate-400">Bilance SOD:</span>
-                                                    <span className={`font-bold ${diffSod >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                                                <div className="flex justify-between text-xs">
+                                                    <span className="text-slate-500">Bilance SOD:</span>
+                                                    <span className={`font-semibold ${diffSod >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                                                         {diffSod >= 0 ? '+' : ''}{formatMoney(diffSod)}
                                                     </span>
                                                 </div>
-                                                <div className="flex justify-between text-xs pl-6">
-                                                    <span className="text-slate-500 dark:text-slate-400">Bilance Plán:</span>
-                                                    <span className={`font-bold ${diffPlan >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                                                <div className="flex justify-between text-xs">
+                                                    <span className="text-slate-500">Bilance Plán:</span>
+                                                    <span className={`font-semibold ${diffPlan >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                                                         {diffPlan >= 0 ? '+' : ''}{formatMoney(diffPlan)}
                                                     </span>
                                                 </div>
                                             </div>
                                         ) : (
-                                            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                                            <div className="flex items-center gap-2 text-sm text-slate-400">
                                                 <span className="material-symbols-outlined text-[16px]">groups</span>
                                                 <span>{catBids.length} {catBids.length === 1 ? 'nabídka' : catBids.length >= 2 && catBids.length <= 4 ? 'nabídky' : 'nabídek'}</span>
                                             </div>
@@ -779,12 +809,12 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
                 {/* Left Column: Info Cards */}
                 <div className="flex flex-col gap-6">
                     {/* Project Info Card */}
-                    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="font-bold text-lg text-slate-900 dark:text-white">Informace o stavbě</h3>
+                    <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-lg font-bold text-white">Informace o stavbě</h3>
                             {!editingInfo ? (
-                                <button onClick={() => setEditingInfo(true)} className="text-slate-400 hover:text-primary transition-colors">
-                                    <span className="material-symbols-outlined text-[20px]">edit</span>
+                                <button onClick={() => setEditingInfo(true)} className="p-2 hover:bg-slate-700/50 rounded-lg transition-all">
+                                    <span className="material-symbols-outlined text-slate-400 text-[20px]">edit</span>
                                 </button>
                             ) : (
                                 <div className="flex gap-2">
@@ -800,54 +830,53 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
 
                         {!editingInfo ? (
                             <div className="flex flex-col gap-4">
-                                <div className="flex items-start gap-3">
-                                    <span className="material-symbols-outlined text-slate-400">corporate_fare</span>
-                                    <div>
-                                        <p className="text-sm font-semibold text-slate-900 dark:text-white">Investor</p>
-                                        <p className="text-sm text-slate-500 dark:text-slate-400">{project.investor || '-'}</p>
+                                <div className="flex items-start gap-3 p-3 bg-slate-800/30 rounded-lg">
+                                    <span className="material-symbols-outlined text-blue-400 mt-0.5">corporate_fare</span>
+                                    <div className="flex-1">
+                                        <div className="text-xs text-slate-400 mb-1">Investor</div>
+                                        <div className="font-medium text-white">{project.investor || '—'}</div>
                                     </div>
                                 </div>
-                                <div className="flex items-start gap-3">
-                                    <span className="material-symbols-outlined text-slate-400">visibility</span>
-                                    <div>
-                                        <p className="text-sm font-semibold text-slate-900 dark:text-white">Technický dozor</p>
-                                        <p className="text-sm text-slate-500 dark:text-slate-400">{project.technicalSupervisor || '-'}</p>
+                                <div className="flex items-start gap-3 p-3 bg-slate-800/30 rounded-lg">
+                                    <span className="material-symbols-outlined text-violet-400 mt-0.5">visibility</span>
+                                    <div className="flex-1">
+                                        <div className="text-xs text-slate-400 mb-1">Technický dozor</div>
+                                        <div className="font-medium text-white">{project.technicalSupervisor || '—'}</div>
                                     </div>
                                 </div>
-                                <div className="h-px bg-slate-100 dark:bg-slate-800 my-1"></div>
-                                <div className="flex items-start gap-3">
-                                    <span className="material-symbols-outlined text-slate-400">location_on</span>
-                                    <div>
-                                        <p className="text-sm font-semibold text-slate-900 dark:text-white">Lokace</p>
-                                        <p className="text-sm text-slate-500 dark:text-slate-400">{project.location}</p>
+                                <div className="flex items-start gap-3 p-3 bg-slate-800/30 rounded-lg">
+                                    <span className="material-symbols-outlined text-emerald-400 mt-0.5">location_on</span>
+                                    <div className="flex-1">
+                                        <div className="text-xs text-slate-400 mb-1">Lokace</div>
+                                        <div className="font-medium text-white">{project.location || '—'}</div>
                                     </div>
                                 </div>
-                                <div className="flex items-start gap-3">
-                                    <span className="material-symbols-outlined text-slate-400">calendar_today</span>
-                                    <div>
-                                        <p className="text-sm font-semibold text-slate-900 dark:text-white">Termín dokončení</p>
-                                        <p className="text-sm text-slate-500 dark:text-slate-400">{project.finishDate}</p>
+                                <div className="flex items-start gap-3 p-3 bg-slate-800/30 rounded-lg">
+                                    <span className="material-symbols-outlined text-orange-400 mt-0.5">calendar_today</span>
+                                    <div className="flex-1">
+                                        <div className="text-xs text-slate-400 mb-1">Termín dokončení</div>
+                                        <div className="font-medium text-white">{project.finishDate || '—'}</div>
                                     </div>
                                 </div>
-                                <div className="flex items-start gap-3">
-                                    <span className="material-symbols-outlined text-slate-400">person</span>
-                                    <div>
-                                        <p className="text-sm font-semibold text-slate-900 dark:text-white">Hlavní stavbyvedoucí</p>
-                                        <p className="text-sm text-slate-500 dark:text-slate-400">{project.siteManager}</p>
+                                <div className="flex items-start gap-3 p-3 bg-slate-800/30 rounded-lg">
+                                    <span className="material-symbols-outlined text-slate-400 mt-0.5">person</span>
+                                    <div className="flex-1">
+                                        <div className="text-xs text-slate-400 mb-1">Hlavní stavbyvedoucí</div>
+                                        <div className="font-medium text-white">{project.siteManager || '—'}</div>
                                     </div>
                                 </div>
-                                <div className="flex items-start gap-3">
-                                    <span className="material-symbols-outlined text-slate-400">engineering</span>
-                                    <div>
-                                        <p className="text-sm font-semibold text-slate-900 dark:text-white">Stavbyvedoucí</p>
-                                        <p className="text-sm text-slate-500 dark:text-slate-400">{project.constructionManager || '-'}</p>
+                                <div className="flex items-start gap-3 p-3 bg-slate-800/30 rounded-lg">
+                                    <span className="material-symbols-outlined text-slate-400 mt-0.5">engineering</span>
+                                    <div className="flex-1">
+                                        <div className="text-xs text-slate-400 mb-1">Stavbyvedoucí</div>
+                                        <div className="font-medium text-white">{project.constructionManager || '—'}</div>
                                     </div>
                                 </div>
-                                <div className="flex items-start gap-3">
-                                    <span className="material-symbols-outlined text-slate-400">handyman</span>
-                                    <div>
-                                        <p className="text-sm font-semibold text-slate-900 dark:text-white">Stavební technik</p>
-                                        <p className="text-sm text-slate-500 dark:text-slate-400">{project.constructionTechnician || '-'}</p>
+                                <div className="flex items-start gap-3 p-3 bg-slate-800/30 rounded-lg">
+                                    <span className="material-symbols-outlined text-slate-400 mt-0.5">handyman</span>
+                                    <div className="flex-1">
+                                        <div className="text-xs text-slate-400 mb-1">Stavební technik</div>
+                                        <div className="font-medium text-white">{project.constructionTechnician || '—'}</div>
                                     </div>
                                 </div>
                             </div>
@@ -859,7 +888,7 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
                                         type="text"
                                         value={infoForm.investor}
                                         onChange={e => setInfoForm({ ...infoForm, investor: e.target.value })}
-                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-sm text-slate-900 dark:text-white"
+                                        className="w-full bg-slate-800/50 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-white focus:border-orange-500/50 focus:outline-none"
                                     />
                                 </div>
                                 <div>
@@ -868,7 +897,7 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
                                         type="text"
                                         value={infoForm.technicalSupervisor}
                                         onChange={e => setInfoForm({ ...infoForm, technicalSupervisor: e.target.value })}
-                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-sm text-slate-900 dark:text-white"
+                                        className="w-full bg-slate-800/50 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-white focus:border-orange-500/50 focus:outline-none"
                                     />
                                 </div>
                                 <div className="h-px bg-slate-100 dark:bg-slate-800 my-1"></div>
@@ -878,7 +907,7 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
                                         type="text"
                                         value={infoForm.location}
                                         onChange={e => setInfoForm({ ...infoForm, location: e.target.value })}
-                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-sm text-slate-900 dark:text-white"
+                                        className="w-full bg-slate-800/50 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-white focus:border-orange-500/50 focus:outline-none"
                                     />
                                 </div>
                                 <div>
@@ -887,7 +916,7 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
                                         type="text"
                                         value={infoForm.finishDate}
                                         onChange={e => setInfoForm({ ...infoForm, finishDate: e.target.value })}
-                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-sm text-slate-900 dark:text-white"
+                                        className="w-full bg-slate-800/50 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-white focus:border-orange-500/50 focus:outline-none"
                                     />
                                 </div>
                                 <div>
@@ -896,7 +925,7 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
                                         type="text"
                                         value={infoForm.siteManager}
                                         onChange={e => setInfoForm({ ...infoForm, siteManager: e.target.value })}
-                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-sm text-slate-900 dark:text-white"
+                                        className="w-full bg-slate-800/50 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-white focus:border-orange-500/50 focus:outline-none"
                                     />
                                 </div>
                                 <div>
@@ -905,7 +934,7 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
                                         type="text"
                                         value={infoForm.constructionManager}
                                         onChange={e => setInfoForm({ ...infoForm, constructionManager: e.target.value })}
-                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-sm text-slate-900 dark:text-white"
+                                        className="w-full bg-slate-800/50 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-white focus:border-orange-500/50 focus:outline-none"
                                     />
                                 </div>
                                 <div>
@@ -914,7 +943,7 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
                                         type="text"
                                         value={infoForm.constructionTechnician}
                                         onChange={e => setInfoForm({ ...infoForm, constructionTechnician: e.target.value })}
-                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-sm text-slate-900 dark:text-white"
+                                        className="w-full bg-slate-800/50 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-white focus:border-orange-500/50 focus:outline-none"
                                     />
                                 </div>
                             </div>
@@ -925,15 +954,15 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
                 {/* Middle Column: Financial Cards */}
                 <div className="flex flex-col gap-6">
                     {/* Investor Financials Card */}
-                    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-                                <span className="material-symbols-outlined text-primary">account_balance_wallet</span>
+                    <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                <span className="material-symbols-outlined text-emerald-400">account_balance_wallet</span>
                                 Smlouva s investorem
                             </h3>
                             {!editingInvestor ? (
-                                <button onClick={() => setEditingInvestor(true)} className="text-slate-400 hover:text-primary transition-colors">
-                                    <span className="material-symbols-outlined text-[20px]">edit</span>
+                                <button onClick={() => setEditingInvestor(true)} className="p-2 hover:bg-slate-700/50 rounded-lg transition-all">
+                                    <span className="material-symbols-outlined text-slate-400 text-[20px]">edit</span>
                                 </button>
                             ) : (
                                 <div className="flex gap-2">
@@ -948,22 +977,22 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
                         </div>
 
                         {!editingInvestor ? (
-                            <div className="flex flex-col gap-3">
-                                <div className="flex justify-between items-center py-1 border-b border-slate-100 dark:border-slate-800/50 pb-2">
-                                    <p className="text-sm font-medium text-slate-800 dark:text-white">Základní SOD</p>
-                                    <p className="text-sm font-bold text-slate-900 dark:text-white">{formatMoneyFull(investor.sodPrice)}</p>
+                            <div className="flex flex-col gap-4">
+                                <div className="flex justify-between items-center p-3 bg-slate-800/30 rounded-lg">
+                                    <span className="text-slate-400 text-sm">Základní SOD</span>
+                                    <span className="font-semibold text-white">{formatMoneyFull(investor.sodPrice)}</span>
                                 </div>
 
                                 {investor.amendments.map((amendment, idx) => (
-                                    <div key={amendment.id} className="flex justify-between items-center py-1">
-                                        <p className="text-sm text-slate-500 dark:text-slate-400">{amendment.label}</p>
-                                        <p className="text-sm font-semibold text-slate-900 dark:text-white">{formatMoneyFull(amendment.price)}</p>
+                                    <div key={amendment.id} className="flex justify-between items-center p-3 bg-slate-800/30 rounded-lg">
+                                        <span className="text-slate-400 text-sm">{amendment.label}</span>
+                                        <span className="font-semibold text-white">{formatMoneyFull(amendment.price)}</span>
                                     </div>
                                 ))}
 
-                                <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
-                                    <p className="text-sm font-bold text-slate-900 dark:text-white uppercase">Celkem bez DPH</p>
-                                    <p className="text-base font-bold text-primary">{formatMoneyFull(totalBudget)}</p>
+                                <div className="flex justify-between items-center p-3 bg-slate-800/30 rounded-lg border-t-2 border-slate-700">
+                                    <span className="text-slate-400 text-sm font-bold uppercase">Celkem bez DPH</span>
+                                    <span className="text-lg font-bold text-emerald-400">{formatMoneyFull(totalBudget)}</span>
                                 </div>
                             </div>
                         ) : (
@@ -1014,15 +1043,15 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
                     </div>
 
                     {/* Internal Budget Card */}
-                    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-                                <span className="material-symbols-outlined text-blue-600">savings</span>
+                    <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                <span className="material-symbols-outlined text-blue-400">savings</span>
                                 Interní Rozpočet
                             </h3>
                             {!editingInternal ? (
-                                <button onClick={() => setEditingInternal(true)} className="text-slate-400 hover:text-primary transition-colors">
-                                    <span className="material-symbols-outlined text-[20px]">edit</span>
+                                <button onClick={() => setEditingInternal(true)} className="p-2 hover:bg-slate-700/50 rounded-lg transition-all">
+                                    <span className="material-symbols-outlined text-slate-400 text-[20px]">edit</span>
                                 </button>
                             ) : (
                                 <div className="flex gap-2">
@@ -1037,35 +1066,33 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
                         </div>
 
                         {!editingInternal ? (
-                            <div className="flex flex-col gap-3">
-                                <div className="flex justify-between items-center py-1">
-                                    <p className="text-sm text-slate-500 dark:text-slate-400">Plánovaný náklad</p>
-                                    <p className="text-sm font-bold text-slate-900 dark:text-white">
+                            <div className="flex flex-col gap-4">
+                                <div className="flex justify-between items-center p-3 bg-slate-800/30 rounded-lg">
+                                    <span className="text-slate-400 text-sm">Plánovaný náklad</span>
+                                    <span className="font-semibold text-white">
                                         {plannedCost > 0 ? formatMoneyFull(plannedCost) : 'Nezadáno'}
-                                    </p>
+                                    </span>
                                 </div>
-                                <div className="flex justify-between items-center py-1">
-                                    <p className="text-sm text-slate-500 dark:text-slate-400">Zasmluvněno</p>
-                                    <p className="text-sm font-semibold text-slate-900 dark:text-white">{formatMoneyFull(totalContractedCost)}</p>
+                                <div className="flex justify-between items-center p-3 bg-slate-800/30 rounded-lg">
+                                    <span className="text-slate-400 text-sm">Zasmluvněno</span>
+                                    <span className="font-semibold text-white">{formatMoneyFull(totalContractedCost)}</span>
                                 </div>
-                                <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                                    <div className="flex justify-between items-center">
-                                        <p className="text-sm font-medium text-slate-800 dark:text-white">Aktuální rezerva</p>
-                                        <p className={`text-base font-bold ${plannedBalance >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                                            {plannedBalance >= 0 ? '+' : ''}{formatMoneyFull(plannedBalance)}
-                                        </p>
-                                    </div>
+                                <div className="flex justify-between items-center p-3 bg-slate-800/30 rounded-lg border-t-2 border-slate-700">
+                                    <span className="text-slate-400 text-sm font-medium">Aktuální rezerva</span>
+                                    <span className={`text-lg font-bold ${plannedBalance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                        {plannedBalance >= 0 ? '+' : ''}{formatMoneyFull(plannedBalance)}
+                                    </span>
                                 </div>
                             </div>
                         ) : (
                             <div className="flex flex-col gap-3">
                                 <div>
-                                    <label className="text-xs text-slate-500 mb-1 block">Plánovaný náklad (Cíl)</label>
+                                    <label className="text-xs text-slate-400 mb-1 block">Plánovaný náklad (Cíl)</label>
                                     <input
                                         type="number"
                                         value={internalForm.plannedCost}
                                         onChange={e => setInternalForm({ ...internalForm, plannedCost: parseFloat(e.target.value) || 0 })}
-                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-2 py-2 text-sm text-slate-900 dark:text-white font-semibold text-right"
+                                        className="w-full bg-slate-800/50 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-white font-semibold text-right focus:border-orange-500/50 focus:outline-none"
                                     />
                                 </div>
                             </div>
@@ -1077,15 +1104,15 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
                 <div className="flex flex-col gap-6">
                     {/* Contract Info Card */}
                     {contract && (
-                        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-primary">gavel</span>
+                        <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-amber-400">gavel</span>
                                     Parametry smlouvy
                                 </h3>
                                 {!editingContract ? (
-                                    <button onClick={() => setEditingContract(true)} className="text-slate-400 hover:text-primary transition-colors">
-                                        <span className="material-symbols-outlined text-[20px]">edit</span>
+                                    <button onClick={() => setEditingContract(true)} className="p-2 hover:bg-slate-700/50 rounded-lg transition-all">
+                                        <span className="material-symbols-outlined text-slate-400 text-[20px]">edit</span>
                                     </button>
                                 ) : (
                                     <div className="flex gap-2">
@@ -1100,26 +1127,26 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
                             </div>
 
                             {!editingContract ? (
-                                <div className="flex flex-col gap-3 divide-y divide-slate-100 dark:divide-slate-800">
-                                    <div className="flex justify-between items-center py-1">
-                                        <p className="text-sm text-slate-500 dark:text-slate-400">Splatnost</p>
-                                        <p className="text-sm font-semibold text-slate-900 dark:text-white">{contract.maturity} dní</p>
+                                <div className="flex flex-col gap-4">
+                                    <div className="flex justify-between items-center p-3 bg-slate-800/30 rounded-lg">
+                                        <span className="text-slate-400 text-sm">Splatnost</span>
+                                        <span className="font-semibold text-white">{contract.maturity} dní</span>
                                     </div>
-                                    <div className="flex justify-between items-center pt-2 py-1">
-                                        <p className="text-sm text-slate-500 dark:text-slate-400">Záruka</p>
-                                        <p className="text-sm font-semibold text-slate-900 dark:text-white">{contract.warranty} měsíců</p>
+                                    <div className="flex justify-between items-center p-3 bg-slate-800/30 rounded-lg">
+                                        <span className="text-slate-400 text-sm">Záruka</span>
+                                        <span className="font-semibold text-white">{contract.warranty} měsíců</span>
                                     </div>
-                                    <div className="flex justify-between items-center pt-2 py-1">
-                                        <p className="text-sm text-slate-500 dark:text-slate-400">Pozastávka</p>
-                                        <p className="text-sm font-semibold text-slate-900 dark:text-white">{contract.retention}</p>
+                                    <div className="flex justify-between items-center p-3 bg-slate-800/30 rounded-lg">
+                                        <span className="text-slate-400 text-sm">Pozastávka</span>
+                                        <span className="font-semibold text-white">{contract.retention}</span>
                                     </div>
-                                    <div className="flex justify-between items-center pt-2 py-1">
-                                        <p className="text-sm text-slate-500 dark:text-slate-400">Zařízení staveniště</p>
-                                        <p className="text-sm font-semibold text-slate-900 dark:text-white">{contract.siteFacilities} %</p>
+                                    <div className="flex justify-between items-center p-3 bg-slate-800/30 rounded-lg">
+                                        <span className="text-slate-400 text-sm">Zařízení staveniště</span>
+                                        <span className="font-semibold text-white">{contract.siteFacilities} %</span>
                                     </div>
-                                    <div className="flex justify-between items-center pt-2 py-1">
-                                        <p className="text-sm text-slate-500 dark:text-slate-400">Podíl na pojištění</p>
-                                        <p className="text-sm font-semibold text-slate-900 dark:text-white">{contract.insurance} %</p>
+                                    <div className="flex justify-between items-center p-3 bg-slate-800/30 rounded-lg">
+                                        <span className="text-slate-400 text-sm">Podíl na pojištění</span>
+                                        <span className="font-semibold text-white">{contract.insurance} %</span>
                                     </div>
                                 </div>
                             ) : (

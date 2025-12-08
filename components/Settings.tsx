@@ -436,43 +436,43 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
     };
 
     return (
-        <div className="flex flex-col h-full bg-background-light dark:bg-background-dark overflow-y-auto">
+        <div className="flex flex-col h-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 min-h-screen overflow-y-auto">
             <Header title="Nastavení" subtitle="Konfigurace aplikace a správa staveb" />
 
             <div className="p-6 lg:p-10 max-w-5xl mx-auto w-full pb-20">
 
                 {/* Profile Settings Section */}
-                <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm mb-8">
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-                        <span className="material-symbols-outlined">person</span>
+                <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl mb-8">
+                    <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                        <span className="material-symbols-outlined text-emerald-400">person</span>
                         Profil
                     </h2>
 
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-xs text-slate-500 mb-1">Email</label>
+                            <label className="block text-xs text-slate-400 mb-1">Email</label>
                             <input
                                 type="text"
                                 value={user?.email || ''}
                                 disabled
-                                className="w-full rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm text-slate-600 dark:text-slate-400"
+                                className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-slate-400"
                             />
                         </div>
 
                         <div>
-                            <label className="block text-xs text-slate-500 mb-1">Zobrazované jméno</label>
+                            <label className="block text-xs text-slate-400 mb-1">Zobrazované jméno</label>
                             <div className="flex gap-2">
                                 <input
                                     type="text"
                                     value={displayName}
                                     onChange={(e) => setDisplayName(e.target.value)}
                                     placeholder="Např. Martin Kalkus"
-                                    className="flex-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:ring-primary focus:border-primary"
+                                    className="flex-1 rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
                                 />
                                 <button
                                     onClick={handleSaveDisplayName}
                                     disabled={isSavingDisplayName}
-                                    className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                    className="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                                 >
                                     {isSavingDisplayName && <span className="material-symbols-outlined animate-spin text-[18px]">sync</span>}
                                     Uložit
@@ -485,28 +485,28 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
 
                 {/* Admin Only: AI Settings */}
                 {isAdmin && (
-                    <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
-                        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                            <span className="material-symbols-outlined">auto_awesome</span>
+                    <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl mb-8">
+                        <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-violet-400">auto_awesome</span>
                             Nastavení AI funkcí
-                            <span className="ml-2 px-2 py-0.5 bg-purple-100 text-purple-600 text-xs font-bold rounded-full">Admin</span>
+                            <span className="ml-2 px-2.5 py-1 bg-violet-500/20 text-violet-400 text-xs font-bold rounded-lg border border-violet-500/30">Admin</span>
                         </h2>
 
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm font-medium text-slate-800 dark:text-white">Povolit AI analýzu</p>
+                                <p className="text-sm font-medium text-white">Povolit AI analýzu</p>
                                 <p className="text-xs text-slate-500">Aktivuje AI Insights na Dashboardu pomocí Gemini API.</p>
                             </div>
                             <button
                                 onClick={() => setAiEnabled(!aiEnabled)}
-                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${aiEnabled ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-600'}`}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${aiEnabled ? 'bg-emerald-500' : 'bg-slate-600'}`}
                             >
                                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${aiEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
                             </button>
                         </div>
 
                         {!aiEnabled && (
-                            <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                            <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl">
                                 <p className="text-sm text-amber-800 dark:text-amber-200 flex items-center gap-2">
                                     <span className="material-symbols-outlined text-[18px]">warning</span>
                                     AI funkce jsou vypnuty. Uživatelé uvidí lokální statistiky místo AI analýzy.
@@ -588,23 +588,23 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
 
                 {/* Admin Only: Registration Settings */}
                 {isAdmin && (
-                    <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
-                        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                            <span className="material-symbols-outlined">admin_panel_settings</span>
+                    <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl mb-8">
+                        <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-red-400">admin_panel_settings</span>
                             Nastavení registrací
-                            <span className="ml-2 px-2 py-0.5 bg-red-100 text-red-600 text-xs font-bold rounded-full">Admin</span>
+                            <span className="ml-2 px-2.5 py-1 bg-red-500/20 text-red-400 text-xs font-bold rounded-lg border border-red-500/30">Admin</span>
                         </h2>
 
                         <div className="space-y-6">
                             {/* Allow Public Registration Toggle */}
-                            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+                            <div className="flex items-center justify-between pb-4 border-b border-slate-700/50">
                                 <div>
-                                    <p className="text-sm font-medium text-slate-800 dark:text-white">Povolit registrace všem</p>
+                                    <p className="text-sm font-medium text-white">Povolit registrace všem</p>
                                     <p className="text-xs text-slate-500">Pokud je vypnuto, pouze emaily z povolených domén se mohou registrovat.</p>
                                 </div>
                                 <button
                                     onClick={() => setAllowPublicRegistration(!allowPublicRegistration)}
-                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${allowPublicRegistration ? 'bg-green-500' : 'bg-slate-300'}`}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${allowPublicRegistration ? 'bg-emerald-500' : 'bg-slate-600'}`}
                                 >
                                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${allowPublicRegistration ? 'translate-x-6' : 'translate-x-1'}`} />
                                 </button>
@@ -613,7 +613,7 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
                             {/* Domain Whitelist */}
                             <div className="flex flex-col gap-3">
                                 <div>
-                                    <p className="text-sm font-medium text-slate-800 dark:text-white">Povolit registrace na doménu (whitelist)</p>
+                                    <p className="text-sm font-medium text-white">Povolit registrace na doménu (whitelist)</p>
                                     <p className="text-xs text-slate-500 mb-2">
                                         Zadejte domény oddělené čárkou. Např.: @baustav.cz, @firma.cz
                                     </p>
@@ -623,19 +623,19 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
                                     value={allowedDomains}
                                     onChange={(e) => setAllowedDomains(e.target.value)}
                                     placeholder="@baustav.cz, @mojefirma.cz"
-                                    className="w-full rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:ring-primary focus:border-primary"
+                                    className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
                                 />
-                                <p className="text-xs text-slate-400 italic">
+                                <p className="text-xs text-slate-500 italic">
                                     💡 Pokud je povoleno "Povolit registrace všem", tento whitelist se ignoruje.
                                 </p>
                             </div>
                         </div>
 
-                        <div className="mt-6 flex justify-end border-t border-slate-100 dark:border-slate-800 pt-4">
+                        <div className="mt-6 flex justify-end border-t border-slate-700/50 pt-4">
                             <button
                                 onClick={handleSaveRegistrationSettings}
                                 disabled={isSavingSettings || isLoadingSettings}
-                                className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-2.5 rounded-lg font-bold shadow-sm transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <span className={`material-symbols-outlined ${isSavingSettings ? 'animate-spin' : ''}`}>
                                     {isSavingSettings ? 'sync' : 'save'}
@@ -647,32 +647,32 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
                 )}
 
                 {/* 1. Appearance Section */}
-                <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                        <span className="material-symbols-outlined">palette</span>
+                <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl mb-8">
+                    <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <span className="material-symbols-outlined text-pink-400">palette</span>
                         Vzhled aplikace
                     </h2>
 
                     <div className="space-y-6">
                         {/* Dark Mode Toggle */}
-                        <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+                        <div className="flex items-center justify-between pb-4 border-b border-slate-700/50">
                             <div>
-                                <p className="text-sm font-medium text-slate-800 dark:text-white">Tmavý režim</p>
+                                <p className="text-sm font-medium text-white">Tmavý režim</p>
                                 <p className="text-xs text-slate-500">Přepnout mezi světlým a tmavým motivem.</p>
                             </div>
                             <button
                                 onClick={onToggleDarkMode}
-                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${darkMode ? 'bg-primary' : 'bg-slate-300'}`}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${darkMode ? 'bg-emerald-500' : 'bg-slate-600'}`}
                             >
                                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${darkMode ? 'translate-x-6' : 'translate-x-1'}`} />
                             </button>
                         </div>
 
                         {/* Color Theme */}
-                        <div className="flex flex-col gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
+                        <div className="flex flex-col gap-4 border-b border-slate-700/50 pb-4">
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                 <div>
-                                    <p className="text-sm font-medium text-slate-800 dark:text-white">Barevné schéma</p>
+                                    <p className="text-sm font-medium text-white">Barevné schéma</p>
                                     <p className="text-xs text-slate-500">Vyberte hlavní barvu aplikace (Brand Color).</p>
                                 </div>
                                 <div className="flex flex-wrap gap-3 items-center">

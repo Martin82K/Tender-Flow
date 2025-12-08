@@ -122,46 +122,46 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
     };
 
     return (
-        <div className="flex flex-col h-full bg-background-light dark:bg-background-dark overflow-y-auto">
+        <div className="flex flex-col h-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 min-h-screen overflow-y-auto">
             <Header title="Správa Staveb" subtitle="Vytváření, archivace a sdílení projektů" />
 
             <div className="p-6 lg:p-10 max-w-5xl mx-auto w-full pb-20">
 
                 {/* 1. Create New Project */}
-                <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm mb-8">
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-                        <span className="material-symbols-outlined">add_business</span>
+                <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl mb-8">
+                    <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                        <span className="material-symbols-outlined text-emerald-400">add_business</span>
                         Nová stavba
                     </h2>
 
-                    <form onSubmit={handleCreateProject} className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
+                    <form onSubmit={handleCreateProject} className="bg-slate-800/30 p-4 rounded-xl border border-slate-700/50">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                             <div>
-                                <label className="block text-xs text-slate-500 mb-1">Název projektu</label>
+                                <label className="block text-xs text-slate-400 mb-1">Název projektu</label>
                                 <input
                                     type="text"
                                     value={newProjectName}
                                     onChange={(e) => setNewProjectName(e.target.value)}
                                     placeholder="Např. Rezidence Park"
-                                    className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:ring-primary focus:border-primary"
+                                    className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs text-slate-500 mb-1">Lokace</label>
+                                <label className="block text-xs text-slate-400 mb-1">Lokace</label>
                                 <input
                                     type="text"
                                     value={newProjectLocation}
                                     onChange={(e) => setNewProjectLocation(e.target.value)}
                                     placeholder="Např. Plzeň"
-                                    className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:ring-primary focus:border-primary"
+                                    className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs text-slate-500 mb-1">Typ / Fáze</label>
+                                <label className="block text-xs text-slate-400 mb-1">Typ / Fáze</label>
                                 <select
                                     value={newProjectStatus}
                                     onChange={(e) => setNewProjectStatus(e.target.value as ProjectStatus)}
-                                    className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:ring-primary focus:border-primary"
+                                    className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
                                 >
                                     <option value="tender">Soutěž (Příprava)</option>
                                     <option value="realization">Realizace (Výstavba)</option>
@@ -172,7 +172,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                             <button
                                 type="submit"
                                 disabled={!newProjectName || !newProjectLocation || isCreating}
-                                className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                className="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                             >
                                 {isCreating && <span className="material-symbols-outlined animate-spin text-[18px]">sync</span>}
                                 Vytvořit projekt
@@ -182,19 +182,19 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                 </section>
 
                 {/* 2. Project List */}
-                <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-                        <span className="material-symbols-outlined">list_alt</span>
+                <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl">
+                    <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                        <span className="material-symbols-outlined text-blue-400">list_alt</span>
                         Seznam vašich a sdílených staveb
                     </h2>
 
                     <div className="space-y-3">
                         {projects.map(project => (
-                            <div key={project.id} className={`flex items-center justify-between p-4 rounded-lg border ${project.status === 'archived' ? 'bg-slate-100 border-slate-200 dark:bg-slate-800/30 dark:border-slate-800 opacity-60' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700'}`}>
+                            <div key={project.id} className={`flex items-center justify-between p-4 rounded-xl border ${project.status === 'archived' ? 'bg-slate-800/30 border-slate-700/30 opacity-60' : 'bg-slate-800/50 border-slate-700/50'}`}>
                                 <div className="flex items-center gap-4">
-                                    <div className={`size-10 rounded-full flex items-center justify-center ${project.status === 'realization' ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30' :
-                                        project.status === 'tender' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30' :
-                                            'bg-slate-200 text-slate-500 dark:bg-slate-800'
+                                    <div className={`size-10 rounded-full flex items-center justify-center ${project.status === 'realization' ? 'bg-amber-500/20 text-amber-400' :
+                                        project.status === 'tender' ? 'bg-blue-500/20 text-blue-400' :
+                                            'bg-slate-700/50 text-slate-500'
                                         }`}>
                                         <span className="material-symbols-outlined">
                                             {project.status === 'realization' ? 'engineering' : project.status === 'tender' ? 'edit_document' : 'archive'}
@@ -202,22 +202,22 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                     </div>
                                     <div>
                                         <div className="flex items-center gap-2">
-                                            <h4 className="font-bold text-slate-900 dark:text-white text-sm">{project.name}</h4>
+                                            <h4 className="font-bold text-white text-sm">{project.name}</h4>
                                             {/* Ownership Badges */}
                                             {project.ownerId && project.ownerId !== user?.id && (
-                                                <span className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 text-[10px] px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
+                                                <span className="bg-blue-500/20 text-blue-400 text-[10px] px-2 py-0.5 rounded-lg border border-blue-500/30">
                                                     Sdíleno od: {project.ownerEmail || 'Uživatel'}
                                                 </span>
                                             )}
                                             {!project.ownerId && (
-                                                <span className="bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 text-[10px] px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
+                                                <span className="bg-slate-700/50 text-slate-400 text-[10px] px-2 py-0.5 rounded-lg border border-slate-600/50">
                                                     Veřejné
                                                 </span>
                                             )}
                                             {/* Shared WITH Badge (For Owners) */}
                                             {project.ownerId === user?.id && project.sharedWith && project.sharedWith.length > 0 && (
                                                 <div
-                                                    className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 text-[10px] px-2 py-0.5 rounded-full border border-purple-200 dark:border-purple-800 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors cursor-pointer max-w-[200px] truncate"
+                                                    className="bg-violet-500/20 text-violet-400 text-[10px] px-2 py-0.5 rounded-lg border border-violet-500/30 hover:bg-violet-500/30 transition-colors cursor-pointer max-w-[200px] truncate"
                                                     onClick={(e) => { e.stopPropagation(); openShareModal(project.id); }}
                                                     title={`Sdíleno s: ${project.sharedWith.join(', ')}`}
                                                 >
@@ -237,7 +237,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                     {(!project.ownerId || project.ownerId === user?.id) && (
                                         <button
                                             onClick={() => openShareModal(project.id)}
-                                            className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-colors flex items-center gap-1"
+                                            className="p-2 text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors flex items-center gap-1"
                                             title="Sdílet projekt"
                                         >
                                             <span className="material-symbols-outlined text-[20px]">share</span>
@@ -247,7 +247,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                     {project.status !== 'archived' && (
                                         <button
                                             onClick={() => onArchiveProject(project.id)}
-                                            className="p-2 text-slate-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-full transition-colors"
+                                            className="p-2 text-slate-500 hover:text-amber-400 hover:bg-amber-500/10 rounded-lg transition-colors"
                                             title="Archivovat"
                                         >
                                             <span className="material-symbols-outlined text-[20px]">archive</span>
@@ -258,7 +258,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                     {(!project.ownerId || project.ownerId === user?.id) && (
                                         <button
                                             onClick={() => onDeleteProject(project.id)}
-                                            className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
+                                            className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                                             title="Odstranit"
                                         >
                                             <span className="material-symbols-outlined text-[20px]">delete</span>
@@ -276,14 +276,14 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
 
             {/* Sharing Modal */}
             {sharingProjectId && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-200 dark:border-slate-800">
-                        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
-                            <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                <span className="material-symbols-outlined text-blue-500">share</span>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+                    <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-700/50">
+                        <div className="p-4 border-b border-slate-700/50 flex justify-between items-center">
+                            <h3 className="font-bold text-white flex items-center gap-2">
+                                <span className="material-symbols-outlined text-blue-400">share</span>
                                 Sdílení projektu
                             </h3>
-                            <button onClick={closeShareModal} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                            <button onClick={closeShareModal} className="text-slate-400 hover:text-white transition-colors">
                                 <span className="material-symbols-outlined">close</span>
                             </button>
                         </div>
@@ -292,21 +292,21 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                             {/* Add User Form */}
                             <form onSubmit={handleShare} className="flex gap-2 mb-6">
                                 <div className="flex-1">
-                                    <label className="block text-xs text-slate-500 mb-1">Email uživatele</label>
+                                    <label className="block text-xs text-slate-400 mb-1">Email uživatele</label>
                                     <input
                                         type="email"
                                         required
                                         value={shareEmail}
                                         onChange={(e) => setShareEmail(e.target.value)}
                                         placeholder="kolega@firma.cz"
-                                        className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm"
+                                        className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
                                     />
                                 </div>
                                 <div className="flex items-end">
                                     <button
                                         type="submit"
                                         disabled={isSharing || !shareEmail}
-                                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold h-[38px] flex items-center gap-2"
+                                        className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white px-4 py-2.5 rounded-xl text-sm font-bold h-[42px] flex items-center gap-2 shadow-lg transition-all"
                                     >
                                         {isSharing ? '...' : 'Přidat'}
                                     </button>
@@ -315,7 +315,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
 
                             {/* List of Shared Users */}
                             <div>
-                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
+                                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
                                     Lidé s přístupem
                                 </h4>
                                 {isLoadingShares ? (
@@ -327,19 +327,19 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                 ) : (
                                     <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
                                         {shares.map(share => (
-                                            <div key={share.user_id} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                                            <div key={share.user_id} className="flex items-center justify-between p-3 rounded-xl bg-slate-800/50 border border-slate-700/50">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="size-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">
+                                                    <div className="size-8 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-xs font-bold">
                                                         {share.email?.charAt(0).toUpperCase()}
                                                     </div>
                                                     <div>
-                                                        <p className="text-sm font-medium text-slate-900 dark:text-white">{share.email}</p>
+                                                        <p className="text-sm font-medium text-white">{share.email}</p>
                                                         <p className="text-[10px] text-slate-500 uppercase">{share.permission}</p>
                                                     </div>
                                                 </div>
                                                 <button
                                                     onClick={() => handleRemoveShare(share.user_id)}
-                                                    className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
+                                                    className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                                                     title="Odebrat přístup"
                                                 >
                                                     <span className="material-symbols-outlined text-[18px]">person_remove</span>

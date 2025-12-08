@@ -78,7 +78,7 @@ const ProjectCard: React.FC<{ project: Project; details: ProjectDetails }> = ({ 
     const data = getProjectData(project, details);
     const percentSpent = data.totalBudget > 0 ? (data.totalContracted / data.totalBudget) * 100 : 0;
     const diff = data.totalBudget - data.totalContracted;
-    
+
     return (
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
             <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/20">
@@ -94,43 +94,43 @@ const ProjectCard: React.FC<{ project: Project; details: ProjectDetails }> = ({ 
                     </span>
                 </div>
             </div>
-            
+
             <div className="p-6 grid grid-cols-2 gap-4 bg-white dark:bg-slate-900">
                 <div>
-                     <p className="text-xs text-slate-500 uppercase tracking-wider">Rozpočet (Investor)</p>
-                     <p className="text-lg font-bold text-slate-700 dark:text-slate-200">{formatMoneyFull(data.totalBudget)}</p>
+                    <p className="text-xs text-slate-500 uppercase tracking-wider">Rozpočet (Investor)</p>
+                    <p className="text-lg font-bold text-slate-700 dark:text-slate-200">{formatMoneyFull(data.totalBudget)}</p>
                 </div>
                 <div className="text-right">
-                     <p className="text-xs text-slate-500 uppercase tracking-wider">Zasmluvněno (Náklady)</p>
-                     <p className="text-lg font-bold text-primary">{formatMoneyFull(data.totalContracted)}</p>
+                    <p className="text-xs text-slate-500 uppercase tracking-wider">Zasmluvněno (Náklady)</p>
+                    <p className="text-lg font-bold text-primary">{formatMoneyFull(data.totalContracted)}</p>
                 </div>
-                 <div className="col-span-2 mt-2">
-                     <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
-                         <div 
+                <div className="col-span-2 mt-2">
+                    <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
+                        <div
                             className={`h-full rounded-full transition-all duration-500 ${percentSpent > 100 ? 'bg-red-500' : 'bg-primary'}`}
                             style={{ width: `${Math.min(percentSpent, 100)}%` }}
-                         ></div>
-                     </div>
-                     <div className="flex justify-between mt-1">
+                        ></div>
+                    </div>
+                    <div className="flex justify-between mt-1">
                         <p className="text-xs text-slate-400">{Math.round(percentSpent)}% vyčerpáno</p>
                         <p className={`text-xs font-bold ${diff >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                             {diff >= 0 ? '+' : ''}{formatMoneyFull(diff)}
+                            {diff >= 0 ? '+' : ''}{formatMoneyFull(diff)}
                         </p>
-                     </div>
-                 </div>
+                    </div>
+                </div>
             </div>
 
             {/* Categories List */}
             <div className="border-t border-slate-100 dark:border-slate-800">
-                 <div className="px-6 py-3 bg-slate-50 dark:bg-slate-800/30 text-xs font-semibold text-slate-500 uppercase flex justify-between">
-                     <span>Kategorie</span>
-                     <span>Stav</span>
-                 </div>
-                 <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-60 overflow-y-auto custom-scrollbar">
+                <div className="px-6 py-3 bg-slate-50 dark:bg-slate-800/30 text-xs font-semibold text-slate-500 uppercase flex justify-between">
+                    <span>Kategorie</span>
+                    <span>Stav</span>
+                </div>
+                <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-60 overflow-y-auto custom-scrollbar">
                     {data.categories.length > 0 ? data.categories.map((cat, idx) => {
                         const hasSOD = cat.status === 'sod';
                         const catDiff = cat.planBudget - cat.sodBudget;
-                        
+
                         return (
                             <div key={idx} className="px-6 py-3 flex justify-between items-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                 <div>
@@ -156,7 +156,7 @@ const ProjectCard: React.FC<{ project: Project; details: ProjectDetails }> = ({ 
                             <p className="text-sm text-slate-500">Žádné kategorie</p>
                         </div>
                     )}
-                 </div>
+                </div>
             </div>
         </div>
     );
@@ -202,10 +202,10 @@ const AIInsightsWidget: React.FC<{ projects: ProjectSummary[] }> = ({ projects }
         const loadInsights = async () => {
             setIsLoading(true);
             const cacheKey = `ai_insights_${mode}`;
-            
+
             // Try to load from session storage first
             const cachedData = sessionStorage.getItem(cacheKey);
-            
+
             try {
                 // Check if AI is enabled by admin
                 if (!aiEnabled) {
@@ -214,7 +214,7 @@ const AIInsightsWidget: React.FC<{ projects: ProjectSummary[] }> = ({ projects }
                     setInsights(localInsights);
                 } else if (process.env.GEMINI_API_KEY) {
                     setShowDisabledWarning(false);
-                    
+
                     if (cachedData) {
                         // Use cached data if available
                         console.log(`[AI] Using cached insights for mode: ${mode}`);
@@ -239,7 +239,7 @@ const AIInsightsWidget: React.FC<{ projects: ProjectSummary[] }> = ({ projects }
                 setIsLoading(false);
             }
         };
-        
+
         loadInsights();
     }, [projects, aiEnabled, mode]);
 
@@ -282,7 +282,7 @@ const AIInsightsWidget: React.FC<{ projects: ProjectSummary[] }> = ({ projects }
     const refreshInsights = async () => {
         setIsLoading(true);
         const cacheKey = `ai_insights_${mode}`;
-        
+
         try {
             if (aiEnabled && process.env.GEMINI_API_KEY) {
                 // Remove from cache to force regeneration
@@ -319,38 +319,35 @@ const AIInsightsWidget: React.FC<{ projects: ProjectSummary[] }> = ({ projects }
                         <button
                             type="button"
                             onClick={() => setMode('achievements')}
-                            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                                mode === 'achievements' 
-                                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' 
+                            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${mode === 'achievements'
+                                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
                                     : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'
-                            }`}
+                                }`}
                         >
                             🏆 Achievementy
                         </button>
                         <button
                             type="button"
                             onClick={() => setMode('charts')}
-                            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                                mode === 'charts' 
-                                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' 
+                            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${mode === 'charts'
+                                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
                                     : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'
-                            }`}
+                                }`}
                         >
                             📊 Grafy
                         </button>
                         <button
                             type="button"
                             onClick={() => setMode('reports')}
-                            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                                mode === 'reports' 
-                                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' 
+                            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${mode === 'reports'
+                                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
                                     : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'
-                            }`}
+                                }`}
                         >
                             📋 Reporty
                         </button>
                     </div>
-                    
+
                     {/* Refresh Button */}
                     <button
                         type="button"
@@ -390,7 +387,7 @@ const AIInsightsWidget: React.FC<{ projects: ProjectSummary[] }> = ({ projects }
                                 <div className="flex-1 min-w-0">
                                     <h4 className="font-bold text-sm mb-1">{insight.title}</h4>
                                     <p className="text-xs opacity-80 mb-2">{insight.content}</p>
-                                    
+
                                     {/* Progress Bar */}
                                     {insight.progress !== undefined && (
                                         <div className="mt-2">
@@ -399,7 +396,7 @@ const AIInsightsWidget: React.FC<{ projects: ProjectSummary[] }> = ({ projects }
                                                 <span>{Math.round(insight.progress)}%</span>
                                             </div>
                                             <div className="w-full bg-black/10 dark:bg-white/10 rounded-full h-2 overflow-hidden">
-                                                <div 
+                                                <div
                                                     className={`h-full rounded-full transition-all duration-500 ${getIconBg(insight.type)}`}
                                                     style={{ width: `${Math.min(100, Math.max(0, insight.progress))}%` }}
                                                 />
@@ -414,11 +411,10 @@ const AIInsightsWidget: React.FC<{ projects: ProjectSummary[] }> = ({ projects }
                                                 {Array.from({ length: insight.achievement.maxLevel || 5 }).map((_, i) => (
                                                     <div
                                                         key={i}
-                                                        className={`w-4 h-4 rounded-full ${
-                                                            i < (insight.achievement?.level || 0)
+                                                        className={`w-4 h-4 rounded-full ${i < (insight.achievement?.level || 0)
                                                                 ? `bg-gradient-to-br ${getAchievementColor(insight.achievement?.label || '')}`
                                                                 : 'bg-black/10 dark:bg-white/10'
-                                                        }`}
+                                                            }`}
                                                     />
                                                 ))}
                                             </div>
@@ -434,11 +430,10 @@ const AIInsightsWidget: React.FC<{ projects: ProjectSummary[] }> = ({ projects }
                                             {insight.stats.slice(0, 2).map((stat, i) => (
                                                 <div key={i} className="flex items-center gap-1.5">
                                                     {stat.trend && (
-                                                        <span className={`material-symbols-outlined text-[14px] ${
-                                                            stat.trend === 'up' ? 'text-green-600' : 
-                                                            stat.trend === 'down' ? 'text-red-500' : 'text-slate-400'
-                                                        }`}>
-                                                    </span>
+                                                        <span className={`material-symbols-outlined text-[14px] ${stat.trend === 'up' ? 'text-green-600' :
+                                                                stat.trend === 'down' ? 'text-red-500' : 'text-slate-400'
+                                                            }`}>
+                                                        </span>
                                                     )}
                                                     <div>
                                                         <p className="text-[10px] opacity-60">{stat.label}</p>
@@ -462,16 +457,16 @@ const AIInsightsWidget: React.FC<{ projects: ProjectSummary[] }> = ({ projects }
                                                             <div key={i} className="flex items-center gap-2">
                                                                 <span className="text-[10px] w-20 truncate opacity-70">{item.label}</span>
                                                                 <div className="flex-1 h-4 bg-black/5 dark:bg-white/5 rounded overflow-hidden">
-                                                                    <div 
+                                                                    <div
                                                                         className="h-full rounded transition-all duration-500"
-                                                                        style={{ 
+                                                                        style={{
                                                                             width: `${width}%`,
                                                                             backgroundColor: item.color || '#3B82F6'
                                                                         }}
                                                                     />
                                                                 </div>
                                                                 <span className="text-[10px] font-bold w-12 text-right">
-                                                                    {item.value > 1000000 ? `${(item.value/1000000).toFixed(1)}M` : item.value.toLocaleString()}
+                                                                    {item.value > 1000000 ? `${(item.value / 1000000).toFixed(1)}M` : item.value.toLocaleString()}
                                                                 </span>
                                                             </div>
                                                         );
@@ -507,8 +502,8 @@ const AIInsightsWidget: React.FC<{ projects: ProjectSummary[] }> = ({ projects }
                                                     <div className="flex-1 space-y-1">
                                                         {insight.chartData.map((item, i) => (
                                                             <div key={i} className="flex items-center gap-2 text-[10px]">
-                                                                <div 
-                                                                    className="w-2 h-2 rounded-full shrink-0" 
+                                                                <div
+                                                                    className="w-2 h-2 rounded-full shrink-0"
                                                                     style={{ backgroundColor: item.color || '#3B82F6' }}
                                                                 />
                                                                 <span className="truncate flex-1">{item.label}</span>
@@ -527,9 +522,9 @@ const AIInsightsWidget: React.FC<{ projects: ProjectSummary[] }> = ({ projects }
                                                         <span>{insight.chartData[0].value}%</span>
                                                     </div>
                                                     <div className="w-full h-3 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
-                                                        <div 
+                                                        <div
                                                             className="h-full rounded-full transition-all duration-700"
-                                                            style={{ 
+                                                            style={{
                                                                 width: `${Math.min(100, insight.chartData[0].value)}%`,
                                                                 backgroundColor: insight.chartData[0].color || '#10B981'
                                                             }}
@@ -579,96 +574,96 @@ const EmptyState: React.FC = () => (
 );
 
 export const Dashboard: React.FC<DashboardProps> = ({ projects, projectDetails }) => {
-  const activeProjects = projects.filter(p => p.status !== 'archived');
+    const activeProjects = projects.filter(p => p.status !== 'archived');
 
-  if (activeProjects.length === 0) {
+    if (activeProjects.length === 0) {
+        return (
+            <div className="flex flex-col h-full overflow-y-auto bg-background-light dark:bg-background-dark">
+                <Header title="Dashboard" subtitle="Celkový přehled staveb a financí" />
+                <EmptyState />
+            </div>
+        );
+    }
+
+    // Global Stats Calculation
+    const allProjectsData = activeProjects
+        .filter(p => projectDetails[p.id])
+        .map(p => getProjectData(p, projectDetails[p.id]));
+
+    const totalBudget = allProjectsData.reduce((acc, curr) => acc + curr.totalBudget, 0);
+    const totalContracted = allProjectsData.reduce((acc, curr) => acc + curr.totalContracted, 0);
+    const totalProjects = allProjectsData.length;
+    const totalBalance = totalBudget - totalContracted;
+
+    // Chart Data
+    const chartData = allProjectsData.map(p => ({
+        name: p.name.split(' ')[0], // Short name
+        budget: p.totalBudget,
+        contracted: p.totalContracted
+    }));
+
     return (
         <div className="flex flex-col h-full overflow-y-auto bg-background-light dark:bg-background-dark">
             <Header title="Dashboard" subtitle="Celkový přehled staveb a financí" />
-            <EmptyState />
-        </div>
-    );
-  }
-  
-  // Global Stats Calculation
-  const allProjectsData = activeProjects
-    .filter(p => projectDetails[p.id])
-    .map(p => getProjectData(p, projectDetails[p.id]));
-  
-  const totalBudget = allProjectsData.reduce((acc, curr) => acc + curr.totalBudget, 0);
-  const totalContracted = allProjectsData.reduce((acc, curr) => acc + curr.totalContracted, 0);
-  const totalProjects = allProjectsData.length;
-  const totalBalance = totalBudget - totalContracted;
-  
-  // Chart Data
-  const chartData = allProjectsData.map(p => ({
-      name: p.name.split(' ')[0], // Short name
-      budget: p.totalBudget,
-      contracted: p.totalContracted
-  }));
 
-  return (
-    <div className="flex flex-col h-full overflow-y-auto bg-background-light dark:bg-background-dark">
-      <Header title="Dashboard" subtitle="Celkový přehled staveb a financí" />
-      
-      <div className="p-6 lg:p-10 flex flex-col gap-8 max-w-[1600px] mx-auto w-full">
-        
-        {/* 1. Global KPI Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <KPICard 
-                title="Aktivní Stavby" 
-                value={totalProjects.toString()} 
-                icon="domain" 
-                color="bg-blue-500" 
-            />
-            <KPICard 
-                title="Celkový Rozpočet (Investor)" 
-                value={formatMoneyFull(totalBudget)} 
-                icon="account_balance_wallet" 
-                color="bg-slate-500" 
-                subtitle="Součet SOD + Dodatky"
-            />
-            <KPICard 
-                title="Zasmluvněno (Náklady)" 
-                value={formatMoneyFull(totalContracted)} 
-                icon="handshake" 
-                color="bg-primary" 
-                subtitle="Ceny subdodavatelů"
-            />
-             <KPICard 
-                title="Bilance Zisku" 
-                value={(totalBalance >= 0 ? '+' : '') + formatMoneyFull(totalBalance)} 
-                icon="savings" 
-                color={totalBalance >= 0 ? "bg-green-500" : "bg-red-500"}
-                subtitle={totalBalance >= 0 ? "Zisk" : "Ztráta"}
-            />
-        </div>
+            <div className="p-6 lg:p-10 flex flex-col gap-8 max-w-[1600px] mx-auto w-full">
 
-        {/* 2. AI Insights Section */}
-        {allProjectsData.length > 0 && (
-            <AIInsightsWidget projects={allProjectsData.map(p => ({
-                name: p.name,
-                totalBudget: p.totalBudget,
-                totalContracted: p.totalContracted,
-                categoriesCount: p.categories.length,
-                sodCount: p.categories.filter(c => c.status === 'sod').length,
-                balance: p.totalBudget - p.totalContracted
-            }))} />
-        )}
+                {/* 1. Global KPI Section */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <KPICard
+                        title="Aktivní Stavby"
+                        value={totalProjects.toString()}
+                        icon="domain"
+                        color="bg-blue-500"
+                    />
+                    <KPICard
+                        title="Celkový Rozpočet (Investor)"
+                        value={formatMoneyFull(totalBudget)}
+                        icon="account_balance_wallet"
+                        color="bg-slate-500"
+                        subtitle="Součet SOD + Dodatky"
+                    />
+                    <KPICard
+                        title="Zasmluvněno (Náklady)"
+                        value={formatMoneyFull(totalContracted)}
+                        icon="handshake"
+                        color="bg-primary"
+                        subtitle="Ceny subdodavatelů"
+                    />
+                    <KPICard
+                        title="Bilance Zisku"
+                        value={(totalBalance >= 0 ? '+' : '') + formatMoneyFull(totalBalance)}
+                        icon="savings"
+                        color={totalBalance >= 0 ? "bg-green-500" : "bg-red-500"}
+                        subtitle={totalBalance >= 0 ? "Zisk" : "Ztráta"}
+                    />
+                </div>
 
-        {/* 3. Project Detail Grid */}
-        <div>
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                <span className="material-symbols-outlined">view_module</span>
-                Detailní přehled staveb
-            </h3>
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                {activeProjects.map(project => projectDetails[project.id] && (
-                    <ProjectCard key={project.id} project={project} details={projectDetails[project.id]} />
-                ))}
+                {/* 2. AI Insights Section */}
+                {allProjectsData.length > 0 && (
+                    <AIInsightsWidget projects={allProjectsData.map(p => ({
+                        name: p.name,
+                        totalBudget: p.totalBudget,
+                        totalContracted: p.totalContracted,
+                        categoriesCount: p.categories.length,
+                        sodCount: p.categories.filter(c => c.status === 'sod').length,
+                        balance: p.totalBudget - p.totalContracted
+                    }))} />
+                )}
+
+                {/* 3. Project Detail Grid */}
+                <div>
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                        <span className="material-symbols-outlined">view_module</span>
+                        Detailní přehled staveb
+                    </h3>
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                        {activeProjects.map(project => projectDetails[project.id] && (
+                            <ProjectCard key={project.id} project={project} details={projectDetails[project.id]} />
+                        ))}
+                    </div>
+                </div>
             </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 };
