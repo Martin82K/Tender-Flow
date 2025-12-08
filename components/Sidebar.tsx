@@ -16,6 +16,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
   const { user, logout } = useAuth();
   const [width, setWidth] = useState(260);
   const [isResizing, setIsResizing] = useState(false);
+  const [displayName, setDisplayName] = useState('');
   const sidebarRef = useRef<HTMLElement>(null);
 
   const startResizing = useCallback((e: React.MouseEvent) => {
@@ -49,6 +50,30 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
     };
   }, [resize, stopResizing]);
 
+  // Load display name
+  useEffect(() => {
+    if (user?.id) {
+      loadDisplayName();
+    }
+  }, [user?.id]);
+
+  const loadDisplayName = async () => {
+    try {
+      const { supabase } = await import('../services/supabase');
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('display_name')
+        .eq('user_id', user.id)
+        .single();
+
+      if (data?.display_name) {
+        setDisplayName(data.display_name);
+      }
+    } catch (error) {
+      // Silently fail - display name is optional
+    }
+  };
+
   return (
     <aside
       ref={sidebarRef}
@@ -65,9 +90,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
         <div className="flex flex-col gap-4 flex-1">
           {/* Logo */}
           <div className="flex items-center gap-3 p-2 min-w-0">
-            <img 
-              src={logo} 
-              alt="Construction CRM Logo" 
+            <img
+              src={logo}
+              alt="Construction CRM Logo"
               className="size-10 min-w-10 object-contain drop-shadow-md"
             />
             <div className="flex flex-col overflow-hidden">
@@ -81,8 +106,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
             <button
               onClick={() => onViewChange('dashboard')}
               className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors overflow-hidden ${currentView === 'dashboard'
-                  ? 'bg-primary/10 text-primary dark:bg-primary/20 dark:text-white'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10'
+                ? 'bg-primary/10 text-primary dark:bg-primary/20 dark:text-white'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10'
                 }`}
             >
               <span className={`material-symbols-outlined ${currentView === 'dashboard' ? 'fill' : ''}`}>dashboard</span>
@@ -92,8 +117,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
             {/* Projects Accordion */}
             <details className="group" open={currentView === 'project' || currentView === 'dashboard' || currentView === 'settings'}>
               <summary className={`flex items-center justify-between gap-3 px-3 py-2 rounded-lg transition-colors cursor-pointer list-none overflow-hidden ${currentView === 'project'
-                  ? 'text-slate-800 dark:text-white font-semibold'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10'
+                ? 'text-slate-800 dark:text-white font-semibold'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10'
                 }`}>
                 <div className="flex items-center gap-3 overflow-hidden">
                   <span className={`material-symbols-outlined ${currentView === 'project' ? 'fill text-primary' : ''}`}>foundation</span>
@@ -111,8 +136,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
                       onProjectSelect(project.id);
                     }}
                     className={`flex items-center gap-2 text-left text-sm px-3 py-2 rounded-md transition-colors truncate ${currentView === 'project' && selectedProjectId === project.id
-                        ? 'bg-slate-100 dark:bg-white/10 text-slate-900 dark:text-white font-medium'
-                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5'
+                      ? 'bg-slate-100 dark:bg-white/10 text-slate-900 dark:text-white font-medium'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5'
                       }`}
                     title={project.name}
                   >
@@ -129,8 +154,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
             <button
               onClick={() => onViewChange('contacts')}
               className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors overflow-hidden ${currentView === 'contacts'
-                  ? 'bg-primary/10 text-primary dark:bg-primary/20 dark:text-white'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10'
+                ? 'bg-primary/10 text-primary dark:bg-primary/20 dark:text-white'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10'
                 }`}
             >
               <span className={`material-symbols-outlined ${currentView === 'contacts' ? 'fill' : ''}`}>groups</span>
@@ -142,10 +167,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
         {/* Bottom Actions */}
         <div className="flex flex-col gap-2 overflow-hidden mt-auto pt-4 border-t border-slate-100 dark:border-slate-800/50">
           <button
+            onClick={() => onViewChange('project-management')}
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors overflow-hidden ${currentView === 'project-management'
+              ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white'
+              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10'
+              }`}
+          >
+            <span className="material-symbols-outlined">domain_add</span>
+            <p className="text-sm font-medium leading-normal truncate">Správa staveb</p>
+          </button>
+
+          <button
             onClick={() => onViewChange('settings')}
             className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors overflow-hidden ${currentView === 'settings'
-                ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10'
+              ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white'
+              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10'
               }`}
           >
             <span className="material-symbols-outlined">settings</span>
@@ -159,8 +195,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
               <div className="size-8 min-w-8 rounded-full bg-gradient-to-tr from-primary to-blue-400"></div>
             )}
             <div className="flex flex-col overflow-hidden">
-              <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{user?.name || 'User'}</p>
-              <p className="text-xs text-slate-500 truncate capitalize">{user?.role || 'Member'}</p>
+              <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{displayName || user?.email?.split('@')[0] || 'User'}</p>
+              <p className="text-xs text-slate-500 truncate capitalize">{user?.role || 'User'}</p>
             </div>
             <button
               onClick={logout}

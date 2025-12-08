@@ -1,4 +1,4 @@
-export type View = "dashboard" | "project" | "contacts" | "settings";
+export type View = "dashboard" | "project" | "contacts" | "settings" | "project-management";
 
 export type ProjectTab = "overview" | "pipeline" | "documents";
 
@@ -74,6 +74,9 @@ export interface Project {
   location: string;
   status: ProjectStatus;
   isDemo?: boolean;
+  ownerId?: string;
+  ownerEmail?: string;
+  sharedWith?: string[];
 }
 
 export interface ContractDetails {

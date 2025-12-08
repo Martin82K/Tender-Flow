@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
-import { LandingPage } from "./components/LandingPage";
+import { LandingPage } from './components/LandingPage';
+import { ProjectManager } from './components/ProjectManager';
 import { Sidebar } from "./components/Sidebar";
 import { Dashboard } from "./components/Dashboard";
 import { ProjectLayout } from "./components/ProjectLayout";
@@ -37,7 +38,8 @@ const hexToRgb = (hex: string) => {
     ? `${parseInt(result[1], 16)} ${parseInt(result[2], 16)} ${parseInt(
       result[3],
       16
-    )}`
+    )
+    } `
     : "96 122 251"; // Default Fallback
 };
 
@@ -160,28 +162,28 @@ const AppContent: React.FC = () => {
     };
   }, [isAuthenticated, authLoading]);
 
-    // Smart Data Refresh on Visibility Change - DISABLED due to auth instability
-    // useEffect(() => {
-    //   const handleVisibilityChange = async () => {
-    //     if (document.visibilityState === 'visible' && isAuthenticated) {
-    //       const now = Date.now();
-    //       // 1 minute threshold to refresh data if tab was backgrounded
-    //       if (now - lastRefreshTime.current > 60 * 1000) {
-    //           console.log('[App] Returning to active tab, refreshing data silently...');
-    //           await loadInitialData(true); // silent refresh
-    //           lastRefreshTime.current = now;
-    //       }
-    //     }
-    //   };
-    // 
-    //   document.addEventListener('visibilitychange', handleVisibilityChange);
-    //   return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    // }, [isAuthenticated]);
+  // Smart Data Refresh on Visibility Change - DISABLED due to auth instability
+  // useEffect(() => {
+  //   const handleVisibilityChange = async () => {
+  //     if (document.visibilityState === 'visible' && isAuthenticated) {
+  //       const now = Date.now();
+  //       // 1 minute threshold to refresh data if tab was backgrounded
+  //       if (now - lastRefreshTime.current > 60 * 1000) {
+  //           console.log('[App] Returning to active tab, refreshing data silently...');
+  //           await loadInitialData(true); // silent refresh
+  //           lastRefreshTime.current = now;
+  //       }
+  //     }
+  //   };
+  // 
+  //   document.addEventListener('visibilitychange', handleVisibilityChange);
+  //   return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  // }, [isAuthenticated]);
 
   const loadInitialData = async (silent = false) => {
     if (!silent) {
-        setIsDataLoading(true);
-        setLoadingError(null);
+      setIsDataLoading(true);
+      setLoadingError(null);
     }
     console.log("Starting loadInitialData...", { silent });
     try {
@@ -195,20 +197,33 @@ const AppContent: React.FC = () => {
         setIsAdmin(session.user.email === "martinkalkus82@gmail.com");
       }
 
-      const { data: projectsData, error: projectsError } = await supabase
-        .from("projects")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const [projectsResponse, metadataResponse] = await Promise.all([
+        supabase.from("projects").select("*").order("created_at", { ascending: false }),
+        supabase.rpc("get_projects_metadata")
+      ]);
+
+      const projectsData = projectsResponse.data;
+      const projectsError = projectsResponse.error;
+      const metadata = metadataResponse.data as { project_id: string, owner_email: string, shared_with_emails: string[] }[] || [];
 
       if (projectsError) throw projectsError;
 
-      const loadedProjects: Project[] = (projectsData || []).map((p) => ({
-        id: p.id,
-        name: p.name,
-        location: p.location || "",
-        status: p.status || "realization",
-        isDemo: p.is_demo,
-      }));
+      const metadataMap = new Map<string, { owner: string, shared: string[] }>();
+      metadata.forEach(m => metadataMap.set(m.project_id, { owner: m.owner_email, shared: m.shared_with_emails || [] }));
+
+      const loadedProjects: Project[] = (projectsData || []).map((p) => {
+        const meta = metadataMap.get(p.id);
+        return {
+          id: p.id,
+          name: p.name,
+          location: p.location || "",
+          status: p.status || "realization",
+          isDemo: p.is_demo,
+          ownerId: p.owner_id,
+          ownerEmail: meta?.owner,
+          sharedWith: meta?.shared
+        };
+      });
 
       setProjects(loadedProjects);
 
@@ -439,6 +454,7 @@ const AppContent: React.FC = () => {
         name: newProject.name,
         location: newProject.location,
         status: newProject.status,
+        owner_id: user?.id
       });
 
       if (error) {
@@ -759,7 +775,7 @@ const AppContent: React.FC = () => {
 
         if (insertError) {
           console.error("Error inserting contacts:", insertError);
-          alert(`Chyba při vkládání kontaktů: ${insertError.message}`);
+          alert(`Chyba při vkládání kontaktů: ${insertError.message} `);
         } else {
           console.log("Successfully inserted contacts:", data);
           completedOps++;
@@ -785,7 +801,7 @@ const AppContent: React.FC = () => {
 
           if (updateError) {
             console.error(
-              `Error updating contact ${contact.company}:`,
+              `Error updating contact ${contact.company}: `,
               updateError
             );
           } else {
@@ -797,11 +813,11 @@ const AppContent: React.FC = () => {
 
       console.log("Import persistence completed.");
       alert(
-        `Synchronizace dokončena:\n- Přidáno nových: ${addedCount}\n- Aktualizováno: ${updatedCount}`
+        `Synchronizace dokončena: \n - Přidáno nových: ${addedCount} \n - Aktualizováno: ${updatedCount} `
       );
     } catch (error: any) {
       console.error("Unexpected error persisting contacts:", error);
-      alert(`Neočekávaná chyba při ukládání: ${error.message || error}`);
+      alert(`Neočekávaná chyba při ukládání: ${error.message || error} `);
     }
   };
 
@@ -858,6 +874,7 @@ const AppContent: React.FC = () => {
         ico: contact.ico,
         region: contact.region,
         status_id: contact.status,
+        owner_id: user?.id
       });
 
       if (error) {
@@ -952,7 +969,7 @@ const AppContent: React.FC = () => {
       if (result.success) {
         await handleImportContacts(result.contacts, onProgress);
       } else {
-        alert(`Chyba synchronizace: ${result.error}`);
+        alert(`Chyba synchronizace: ${result.error} `);
       }
     } catch (error) {
       console.error("Sync error:", error);
@@ -1025,10 +1042,7 @@ const AppContent: React.FC = () => {
             onSetPrimaryColor={setPrimaryColor}
             backgroundColor={backgroundColor}
             onSetBackgroundColor={setBackgroundColor}
-            projects={projects}
-            onAddProject={handleAddProject}
-            onDeleteProject={handleDeleteProject}
-            onArchiveProject={handleArchiveProject}
+
             contactStatuses={contactStatuses}
             onUpdateStatuses={setContactStatuses}
             onImportContacts={handleImportContacts}
@@ -1047,6 +1061,15 @@ const AppContent: React.FC = () => {
               }
             }}
             user={user}
+          />
+        );
+      case "project-management":
+        return (
+          <ProjectManager
+            projects={projects}
+            onAddProject={handleAddProject}
+            onDeleteProject={handleDeleteProject}
+            onArchiveProject={handleArchiveProject}
           />
         );
       default:

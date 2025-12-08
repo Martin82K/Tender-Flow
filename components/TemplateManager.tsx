@@ -14,21 +14,32 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
     const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
     const [editMode, setEditMode] = useState(false);
     const [previewMode, setPreviewMode] = useState(false);
-    
+    const [loading, setLoading] = useState(false);
+    const [saving, setSaving] = useState(false);
+
     // Editor State
     const [editedName, setEditedName] = useState('');
     const [editedSubject, setEditedSubject] = useState('');
     const [editedContent, setEditedContent] = useState('');
 
-    useEffect(() => {
-        setTemplates(getTemplates());
-    }, []);
+    const loadTemplatesData = async () => {
+        setLoading(true);
+        try {
+            const data = await getTemplates();
+            setTemplates(data);
+            if (!selectedTemplateId && data.length > 0) {
+                setSelectedTemplateId(data[0].id);
+            }
+        } catch (error) {
+            console.error('Failed to load templates:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        if (!selectedTemplateId && templates.length > 0) {
-            setSelectedTemplateId(templates[0].id);
-        }
-    }, [templates]);
+        loadTemplatesData();
+    }, []);
 
     const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
 
@@ -40,25 +51,34 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
         }
     }, [selectedTemplate]);
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!selectedTemplateId) return;
-        
+        setSaving(true);
+
         const updatedTemplate: Template = {
-            id: selectedTemplateId,
+            id: selectedTemplateId, // Service will handle if this is a temp ID vs real ID
             name: editedName,
             subject: editedSubject,
             content: editedContent,
             isDefault: selectedTemplate?.isDefault || false,
             lastModified: new Date().toISOString().split('T')[0]
         };
-        
-        saveTemplate(updatedTemplate);
-        setTemplates(getTemplates());
-        setEditMode(false);
+
+        const saved = await saveTemplate(updatedTemplate);
+        if (saved) {
+            setEditMode(false);
+            // Reload templates to get updated IDs if new
+            const data = await getTemplates();
+            setTemplates(data);
+            // Select the saved template (using ID from result in case it changed from temp to uuid)
+            setSelectedTemplateId(saved.id);
+        }
+        setSaving(false);
     };
 
     const handleCreateNew = () => {
-        const newId = Date.now().toString();
+        // Use a temporary ID that clearly looks temporary but unique enough for UI key
+        const newId = `temp-${Date.now()}`;
         const newTemplate: Template = {
             id: newId,
             name: 'Nová šablona',
@@ -67,20 +87,36 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
             isDefault: false,
             lastModified: new Date().toISOString().split('T')[0]
         };
-        saveTemplate(newTemplate);
-        setTemplates(getTemplates());
+
+        // We add it to local state immediately for UI responsiveness
+        setTemplates(prev => [...prev, newTemplate]);
         setSelectedTemplateId(newId);
         setEditMode(true);
+        // Note: We don't save to DB yet, user must click Save
     };
 
-    const handleDelete = (id: string) => {
+    const handleDelete = async (id: string) => {
         if (confirm('Opravdu chcete smazat tuto šablonu?')) {
-            serviceDeleteTemplate(id);
-            const newTemplates = getTemplates();
-            setTemplates(newTemplates);
-            if (selectedTemplateId === id) {
-                setSelectedTemplateId(newTemplates[0]?.id || null);
+            // Check if it's a temp template (not saved yet)
+            if (id.startsWith('temp-')) {
+                const newTemplates = templates.filter(t => t.id !== id);
+                setTemplates(newTemplates);
+                if (selectedTemplateId === id) {
+                    setSelectedTemplateId(newTemplates[0]?.id || null);
+                }
+                return;
             }
+
+            setLoading(true);
+            const success = await serviceDeleteTemplate(id);
+            if (success) {
+                const newTemplates = templates.filter(t => t.id !== id);
+                setTemplates(newTemplates);
+                if (selectedTemplateId === id) {
+                    setSelectedTemplateId(newTemplates[0]?.id || null);
+                }
+            }
+            setLoading(false);
         }
     };
 
@@ -91,11 +127,11 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
             const end = textarea.selectionEnd;
             const text = textarea.value;
             const selection = text.substring(start, end);
-            
+
             // If nothing selected, just insert empty tags
             const newText = text.substring(0, start) + `<${tag}>${selection}</${tag}>` + text.substring(end);
             setEditedContent(newText);
-            
+
             // Restore focus and cursor inside the tag
             setTimeout(() => {
                 textarea.focus();
@@ -113,7 +149,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
             const text = textarea.value;
             const newText = text.substring(0, start) + code + text.substring(end);
             setEditedContent(newText);
-            
+
             // Restore focus and cursor
             setTimeout(() => {
                 textarea.focus();
@@ -147,42 +183,46 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
                 {/* Sidebar List */}
                 <div className="w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col">
                     <div className="p-4 border-b border-slate-200 dark:border-slate-700">
-                        <button 
+                        <button
                             onClick={handleCreateNew}
-                            className="w-full py-2 px-4 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors flex items-center justify-center gap-2 font-medium text-sm"
+                            disabled={loading || saving}
+                            className="w-full py-2 px-4 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors flex items-center justify-center gap-2 font-medium text-sm disabled:opacity-50"
                         >
                             <span className="material-symbols-outlined text-[20px]">add</span>
                             Nová šablona
                         </button>
                     </div>
                     <div className="flex-1 overflow-y-auto p-3 space-y-2">
-                        {templates.map(template => (
-                            <div 
-                                key={template.id}
-                                onClick={() => {
-                                    if (!editMode) setSelectedTemplateId(template.id);
-                                    else if (confirm('Máte neuložené změny. Chcete je zahodit?')) {
-                                        setEditMode(false);
-                                        setSelectedTemplateId(template.id);
-                                    }
-                                }}
-                                className={`p-3 rounded-lg cursor-pointer transition-all border ${
-                                    selectedTemplateId === template.id 
-                                        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 ring-1 ring-blue-200 dark:ring-blue-800' 
-                                        : 'bg-white dark:bg-slate-800 border-transparent hover:bg-slate-50 dark:hover:bg-slate-700'
-                                }`}
-                            >
-                                <div className="flex justify-between items-start mb-1">
-                                    <h4 className={`font-medium text-sm ${selectedTemplateId === template.id ? 'text-primary' : 'text-slate-900 dark:text-white'}`}>
-                                        {template.name}
-                                    </h4>
-                                    {template.isDefault && (
-                                        <span className="text-[10px] bg-slate-100 dark:bg-slate-700 text-slate-500 px-1.5 py-0.5 rounded font-bold">DEF</span>
-                                    )}
+                        {loading && templates.length === 0 ? (
+                            <div className="text-center py-4 text-slate-500 text-sm">Načítám...</div>
+                        ) : (
+                            templates.map(template => (
+                                <div
+                                    key={template.id}
+                                    onClick={() => {
+                                        if (!editMode) setSelectedTemplateId(template.id);
+                                        else if (confirm('Máte neuložené změny. Chcete je zahodit?')) {
+                                            setEditMode(false);
+                                            setSelectedTemplateId(template.id);
+                                        }
+                                    }}
+                                    className={`p-3 rounded-lg cursor-pointer transition-all border ${selectedTemplateId === template.id
+                                            ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 ring-1 ring-blue-200 dark:ring-blue-800'
+                                            : 'bg-white dark:bg-slate-800 border-transparent hover:bg-slate-50 dark:hover:bg-slate-700'
+                                        }`}
+                                >
+                                    <div className="flex justify-between items-start mb-1">
+                                        <h4 className={`font-medium text-sm ${selectedTemplateId === template.id ? 'text-primary' : 'text-slate-900 dark:text-white'}`}>
+                                            {template.name}
+                                        </h4>
+                                        {template.isDefault && (
+                                            <span className="text-[10px] bg-slate-100 dark:bg-slate-700 text-slate-500 px-1.5 py-0.5 rounded font-bold">DEF</span>
+                                        )}
+                                    </div>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{template.subject}</p>
                                 </div>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{template.subject}</p>
-                            </div>
-                        ))}
+                            ))
+                        )}
                     </div>
                 </div>
 
@@ -195,26 +235,25 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
                                 <div className="flex items-center gap-2">
                                     {!editMode ? (
                                         <>
-                                            <button 
+                                            <button
                                                 onClick={() => setEditMode(true)}
                                                 className="px-3 py-1.5 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md hover:bg-slate-50 dark:hover:bg-slate-600 flex items-center gap-2"
                                             >
                                                 <span className="material-symbols-outlined text-[18px]">edit</span>
                                                 Upravit
                                             </button>
-                                            <button 
+                                            <button
                                                 onClick={() => setPreviewMode(!previewMode)}
-                                                className={`px-3 py-1.5 text-sm font-medium border rounded-md flex items-center gap-2 ${
-                                                    previewMode 
-                                                        ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800' 
+                                                className={`px-3 py-1.5 text-sm font-medium border rounded-md flex items-center gap-2 ${previewMode
+                                                        ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800'
                                                         : 'text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 hover:bg-slate-50'
-                                                }`}
+                                                    }`}
                                             >
                                                 <span className="material-symbols-outlined text-[18px]">visibility</span>
                                                 {previewMode ? 'Zobrazit kód' : 'Náhled'}
                                             </button>
                                             {onSelectTemplate && (
-                                                <button 
+                                                <button
                                                     onClick={() => onSelectTemplate(selectedTemplate)}
                                                     className="ml-2 px-3 py-1.5 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 flex items-center gap-2"
                                                 >
@@ -225,28 +264,35 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
                                         </>
                                     ) : (
                                         <>
-                                            <button 
+                                            <button
                                                 onClick={handleSave}
-                                                className="px-3 py-1.5 text-sm font-medium text-white bg-primary border border-transparent rounded-md hover:bg-primary-dark flex items-center gap-2"
+                                                disabled={saving}
+                                                className="px-3 py-1.5 text-sm font-medium text-white bg-primary border border-transparent rounded-md hover:bg-primary-dark flex items-center gap-2 disabled:opacity-50"
                                             >
-                                                <span className="material-symbols-outlined text-[18px]">save</span>
-                                                Uložit
+                                                {saving ? (
+                                                    <span className="material-symbols-outlined text-[18px] animate-spin">refresh</span>
+                                                ) : (
+                                                    <span className="material-symbols-outlined text-[18px]">save</span>
+                                                )}
+                                                {saving ? 'Ukládám...' : 'Uložit'}
                                             </button>
-                                            <button 
+                                            <button
                                                 onClick={() => setEditMode(false)}
-                                                className="px-3 py-1.5 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md hover:bg-slate-50 dark:hover:bg-slate-600"
+                                                disabled={saving}
+                                                className="px-3 py-1.5 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md hover:bg-slate-50 dark:hover:bg-slate-600 disabled:opacity-50"
                                             >
                                                 Zrušit
                                             </button>
                                         </>
                                     )}
                                 </div>
-                                
+
                                 <div className="flex items-center gap-2">
                                     {!editMode && (
-                                        <button 
+                                        <button
                                             onClick={() => handleDelete(selectedTemplate.id)}
-                                            className="text-red-500 hover:text-red-700 p-2"
+                                            disabled={loading}
+                                            className="text-red-500 hover:text-red-700 p-2 disabled:opacity-50"
                                             title="Smazat šablonu"
                                         >
                                             <span className="material-symbols-outlined">delete</span>
@@ -328,7 +374,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
                                                     Tip: Můžete použít HTML tagy jako &lt;b&gt;tučné&lt;/b&gt;, &lt;br&gt; pro nový řádek.
                                                 </p>
                                             </div>
-                                            
+
                                             {/* Variables Helper */}
                                             <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 h-fit">
                                                 <h4 className="font-semibold text-sm text-slate-900 dark:text-white mb-3">
@@ -371,10 +417,10 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
                                         </div>
 
                                         <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-8 shadow-sm min-h-[400px]">
-                                            <div 
+                                            <div
                                                 className="prose dark:prose-invert max-w-none"
-                                                dangerouslySetInnerHTML={{ 
-                                                    __html: (previewMode ? processTemplate(selectedTemplate.content, previewData) : selectedTemplate.content).replace(/\n/g, '<br/>') 
+                                                dangerouslySetInnerHTML={{
+                                                    __html: (previewMode ? processTemplate(selectedTemplate.content, previewData) : selectedTemplate.content).replace(/\n/g, '<br/>')
                                                 }}
                                             />
                                         </div>

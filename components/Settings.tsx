@@ -10,10 +10,7 @@ interface SettingsProps {
     onSetPrimaryColor: (color: string) => void;
     backgroundColor: string;
     onSetBackgroundColor: (color: string) => void;
-    projects: Project[];
-    onAddProject: (project: Project) => void;
-    onDeleteProject: (id: string) => void;
-    onArchiveProject: (id: string) => void;
+
     contactStatuses: StatusConfig[];
     onUpdateStatuses: (statuses: StatusConfig[]) => void;
     onImportContacts: (contacts: Subcontractor[], onProgress?: (percent: number) => void) => Promise<void>;
@@ -25,17 +22,13 @@ interface SettingsProps {
     user?: any; // Add user prop for debug
 }
 
-export const Settings: React.FC<SettingsProps> = ({ 
-    darkMode, 
+export const Settings: React.FC<SettingsProps> = ({
+    darkMode,
     onToggleDarkMode,
     primaryColor,
     onSetPrimaryColor,
     backgroundColor,
     onSetBackgroundColor,
-    projects, 
-    onAddProject, 
-    onDeleteProject,
-    onArchiveProject,
     contactStatuses,
     onUpdateStatuses,
     onImportContacts,
@@ -46,10 +39,7 @@ export const Settings: React.FC<SettingsProps> = ({
     onSaveSettings,
     user
 }) => {
-    // Project Form State
-    const [newProjectName, setNewProjectName] = useState('');
-    const [newProjectLocation, setNewProjectLocation] = useState('');
-    const [newProjectStatus, setNewProjectStatus] = useState<ProjectStatus>('tender');
+
 
     // Status Form State
     const [newStatusLabel, setNewStatusLabel] = useState('');
@@ -60,7 +50,7 @@ export const Settings: React.FC<SettingsProps> = ({
     const [fileName, setFileName] = useState('');
     const [uploadProgress, setUploadProgress] = useState(0);
     const [isUploading, setIsUploading] = useState(false);
-    
+
     // Auto-Sync State
     const [importUrl, setImportUrl] = useState(() => localStorage.getItem('contactsImportUrl') || '');
     const [lastSyncTime, setLastSyncTime] = useState(() => localStorage.getItem('contactsLastSyncTime') || '');
@@ -77,6 +67,73 @@ export const Settings: React.FC<SettingsProps> = ({
         const stored = localStorage.getItem('aiEnabled');
         return stored !== 'false'; // Default to true
     });
+
+    // Display Name State
+    const [displayName, setDisplayName] = useState('');
+    const [isSavingDisplayName, setIsSavingDisplayName] = useState(false);
+
+    // Load display name on mount
+    React.useEffect(() => {
+        if (user?.id) {
+            loadDisplayName();
+        }
+    }, [user?.id]);
+
+    const loadDisplayName = async () => {
+        try {
+            const { supabase } = await import('../services/supabase');
+            const { data, error } = await supabase
+                .from('user_profiles')
+                .select('display_name')
+                .eq('user_id', user.id)
+                .single();
+
+            if (error && error.code !== 'PGRST116') { // PGRST116 = not found
+                console.error('Error loading display name:', error);
+                return;
+            }
+
+            if (data) {
+                setDisplayName(data.display_name || '');
+            }
+        } catch (error) {
+            console.error('Error loading display name:', error);
+        }
+    };
+
+    const handleSaveDisplayName = async () => {
+        if (!user?.id) {
+            alert('Uživatel není přihlášen');
+            return;
+        }
+
+        setIsSavingDisplayName(true);
+        try {
+            const { supabase } = await import('../services/supabase');
+
+            const { error } = await supabase
+                .from('user_profiles')
+                .upsert({
+                    user_id: user.id,
+                    display_name: displayName || null,
+                    updated_at: new Date().toISOString()
+                }, {
+                    onConflict: 'user_id'
+                });
+
+            if (error) {
+                console.error('Upsert error:', error);
+                throw error;
+            }
+
+            alert('Zobrazované jméno bylo uloženo');
+        } catch (error: any) {
+            console.error('Error saving display name:', error);
+            alert(`Chyba při ukládání jména: ${error?.message || 'Neznámá chyba'}`);
+        } finally {
+            setIsSavingDisplayName(false);
+        }
+    };
 
     // Default AI Prompts
     const DEFAULT_PROMPT_ACHIEVEMENTS = `Jsi kreativní analytik stavebních projektů. Vygeneruj 4-5 UNIKÁTNÍCH achievement-style insights ve stylu herních úspěchů. Buď kreativní - každé volání má být jiné!
@@ -134,13 +191,13 @@ Odpověz POUZE jako JSON pole:
 Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rychlé rozhodování vedení!`;
 
     // AI Prompts State (Admin only) - with defaults
-    const [promptAchievements, setPromptAchievements] = useState(() => 
+    const [promptAchievements, setPromptAchievements] = useState(() =>
         localStorage.getItem('aiPromptAchievements') || DEFAULT_PROMPT_ACHIEVEMENTS
     );
-    const [promptCharts, setPromptCharts] = useState(() => 
+    const [promptCharts, setPromptCharts] = useState(() =>
         localStorage.getItem('aiPromptCharts') || DEFAULT_PROMPT_CHARTS
     );
-    const [promptReports, setPromptReports] = useState(() => 
+    const [promptReports, setPromptReports] = useState(() =>
         localStorage.getItem('aiPromptReports') || DEFAULT_PROMPT_REPORTS
     );
 
@@ -200,7 +257,7 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
                 .split(',')
                 .map(d => d.trim())
                 .filter(Boolean);
-            
+
             await authService.updateAppSettings({
                 allowPublicRegistration,
                 allowedDomains: domainsArray
@@ -226,7 +283,7 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
             alert('Prosím zadejte URL souboru.');
             return;
         }
-        
+
         setIsSyncing(true);
         setUploadProgress(0);
         try {
@@ -256,28 +313,14 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
         }
     };
 
-    const handleCreateProject = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newProjectName || !newProjectLocation) return;
 
-        const newProject: Project = {
-            id: `p${Date.now()}`,
-            name: newProjectName,
-            location: newProjectLocation,
-            status: newProjectStatus
-        };
-
-        onAddProject(newProject);
-        setNewProjectName('');
-        setNewProjectLocation('');
-    };
 
     const handleAddStatus = (e: React.FormEvent) => {
         e.preventDefault();
         if (!newStatusLabel) return;
-        
+
         const id = newStatusLabel.toLowerCase().replace(/[^a-z0-9]/g, '') + '_' + Date.now().toString().slice(-4);
-        
+
         const newStatus: StatusConfig = {
             id,
             label: newStatusLabel,
@@ -295,11 +338,11 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
     };
 
     const handleUpdateStatusLabel = (id: string, newLabel: string) => {
-         onUpdateStatuses(contactStatuses.map(s => s.id === id ? { ...s, label: newLabel } : s));
+        onUpdateStatuses(contactStatuses.map(s => s.id === id ? { ...s, label: newLabel } : s));
     };
-    
+
     const handleUpdateStatusColor = (id: string, newColor: StatusConfig['color']) => {
-         onUpdateStatuses(contactStatuses.map(s => s.id === id ? { ...s, color: newColor } : s));
+        onUpdateStatuses(contactStatuses.map(s => s.id === id ? { ...s, color: newColor } : s));
     };
 
     const colorOptions: { value: StatusConfig['color'], class: string }[] = [
@@ -334,7 +377,7 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             setFileName(file.name);
-            
+
             const reader = new FileReader();
             reader.onload = (event) => {
                 const text = event.target?.result as string;
@@ -357,7 +400,7 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
             // Handle basic comma or semicolon separation
             const separator = lines[i].includes(';') ? ';' : ',';
             const cols = lines[i].split(separator).map(c => c.trim());
-            
+
             if (cols.length >= 3) {
                 parsed.push({
                     id: `imp_${Date.now()}_${i}`,
@@ -396,7 +439,49 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
         <div className="flex flex-col h-full bg-background-light dark:bg-background-dark overflow-y-auto">
             <Header title="Nastavení" subtitle="Konfigurace aplikace a správa staveb" />
 
-            <div className="p-6 lg:p-10 max-w-4xl mx-auto w-full flex flex-col gap-8 pb-20">
+            <div className="p-6 lg:p-10 max-w-5xl mx-auto w-full pb-20">
+
+                {/* Profile Settings Section */}
+                <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm mb-8">
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+                        <span className="material-symbols-outlined">person</span>
+                        Profil
+                    </h2>
+
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-xs text-slate-500 mb-1">Email</label>
+                            <input
+                                type="text"
+                                value={user?.email || ''}
+                                disabled
+                                className="w-full rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm text-slate-600 dark:text-slate-400"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-xs text-slate-500 mb-1">Zobrazované jméno</label>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={displayName}
+                                    onChange={(e) => setDisplayName(e.target.value)}
+                                    placeholder="Např. Martin Kalkus"
+                                    className="flex-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:ring-primary focus:border-primary"
+                                />
+                                <button
+                                    onClick={handleSaveDisplayName}
+                                    disabled={isSavingDisplayName}
+                                    className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                >
+                                    {isSavingDisplayName && <span className="material-symbols-outlined animate-spin text-[18px]">sync</span>}
+                                    Uložit
+                                </button>
+                            </div>
+                            <p className="text-xs text-slate-500 mt-1">Toto jméno se zobrazí ostatním uživatelům při sdílení projektů</p>
+                        </div>
+                    </div>
+                </section>
 
                 {/* Admin Only: AI Settings */}
                 {isAdmin && (
@@ -406,20 +491,20 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
                             Nastavení AI funkcí
                             <span className="ml-2 px-2 py-0.5 bg-purple-100 text-purple-600 text-xs font-bold rounded-full">Admin</span>
                         </h2>
-                        
+
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm font-medium text-slate-800 dark:text-white">Povolit AI analýzu</p>
                                 <p className="text-xs text-slate-500">Aktivuje AI Insights na Dashboardu pomocí Gemini API.</p>
                             </div>
-                            <button 
+                            <button
                                 onClick={() => setAiEnabled(!aiEnabled)}
                                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${aiEnabled ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-600'}`}
                             >
                                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${aiEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
                             </button>
                         </div>
-                        
+
                         {!aiEnabled && (
                             <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
                                 <p className="text-sm text-amber-800 dark:text-amber-200 flex items-center gap-2">
@@ -439,11 +524,10 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
                                     </h3>
                                     <button
                                         onClick={savePrompts}
-                                        className={`px-3 py-1.5 text-white text-xs font-medium rounded-lg transition-colors flex items-center gap-1 ${
-                                            promptsSaved 
-                                                ? 'bg-green-500' 
-                                                : 'bg-primary hover:bg-primary/90'
-                                        }`}
+                                        className={`px-3 py-1.5 text-white text-xs font-medium rounded-lg transition-colors flex items-center gap-1 ${promptsSaved
+                                            ? 'bg-green-500'
+                                            : 'bg-primary hover:bg-primary/90'
+                                            }`}
                                     >
                                         {promptsSaved ? (
                                             <>
@@ -510,7 +594,7 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
                             Nastavení registrací
                             <span className="ml-2 px-2 py-0.5 bg-red-100 text-red-600 text-xs font-bold rounded-full">Admin</span>
                         </h2>
-                        
+
                         <div className="space-y-6">
                             {/* Allow Public Registration Toggle */}
                             <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
@@ -518,7 +602,7 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
                                     <p className="text-sm font-medium text-slate-800 dark:text-white">Povolit registrace všem</p>
                                     <p className="text-xs text-slate-500">Pokud je vypnuto, pouze emaily z povolených domén se mohou registrovat.</p>
                                 </div>
-                                <button 
+                                <button
                                     onClick={() => setAllowPublicRegistration(!allowPublicRegistration)}
                                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${allowPublicRegistration ? 'bg-green-500' : 'bg-slate-300'}`}
                                 >
@@ -534,7 +618,7 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
                                         Zadejte domény oddělené čárkou. Např.: @baustav.cz, @firma.cz
                                     </p>
                                 </div>
-                                <input 
+                                <input
                                     type="text"
                                     value={allowedDomains}
                                     onChange={(e) => setAllowedDomains(e.target.value)}
@@ -546,9 +630,9 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
                                 </p>
                             </div>
                         </div>
-                        
+
                         <div className="mt-6 flex justify-end border-t border-slate-100 dark:border-slate-800 pt-4">
-                            <button 
+                            <button
                                 onClick={handleSaveRegistrationSettings}
                                 disabled={isSavingSettings || isLoadingSettings}
                                 className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-2.5 rounded-lg font-bold shadow-sm transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -568,7 +652,7 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
                         <span className="material-symbols-outlined">palette</span>
                         Vzhled aplikace
                     </h2>
-                    
+
                     <div className="space-y-6">
                         {/* Dark Mode Toggle */}
                         <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
@@ -576,7 +660,7 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
                                 <p className="text-sm font-medium text-slate-800 dark:text-white">Tmavý režim</p>
                                 <p className="text-xs text-slate-500">Přepnout mezi světlým a tmavým motivem.</p>
                             </div>
-                            <button 
+                            <button
                                 onClick={onToggleDarkMode}
                                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${darkMode ? 'bg-primary' : 'bg-slate-300'}`}
                             >
@@ -605,9 +689,9 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
                                         <label htmlFor="custom-color" className="cursor-pointer size-8 rounded-full bg-gradient-to-tr from-white to-slate-200 border border-slate-300 flex items-center justify-center hover:scale-105 transition-transform" title="Vlastní barva">
                                             <span className="material-symbols-outlined text-[16px] text-slate-600">colorize</span>
                                         </label>
-                                        <input 
+                                        <input
                                             id="custom-color"
-                                            type="color" 
+                                            type="color"
                                             value={primaryColor}
                                             onChange={(e) => onSetPrimaryColor(e.target.value)}
                                             className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
@@ -637,9 +721,9 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
                                     <label htmlFor="custom-bg" className="cursor-pointer size-8 rounded-full bg-white border border-slate-300 flex items-center justify-center hover:scale-105 transition-transform" title="Vlastní pozadí">
                                         <span className="material-symbols-outlined text-[16px] text-slate-600">format_paint</span>
                                     </label>
-                                    <input 
+                                    <input
                                         id="custom-bg"
-                                        type="color" 
+                                        type="color"
                                         value={backgroundColor}
                                         onChange={(e) => onSetBackgroundColor(e.target.value)}
                                         className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
@@ -648,9 +732,9 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
                             </div>
                         </div>
                     </div>
-                    
+
                     <div className="mt-6 flex justify-end border-t border-slate-100 dark:border-slate-800 pt-4">
-                        <button 
+                        <button
                             onClick={onSaveSettings}
                             className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-2.5 rounded-lg font-bold shadow-sm transition-all hover:scale-105 active:scale-95"
                         >
@@ -666,16 +750,16 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
                         <span className="material-symbols-outlined">label</span>
                         Správa stavů kontaktů
                     </h2>
-                    
+
                     {/* Add Status */}
                     <form onSubmit={handleAddStatus} className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700 mb-6 flex flex-col md:flex-row gap-4 items-end">
                         <div className="flex-1 w-full">
                             <label className="block text-xs text-slate-500 mb-1">Název stavu</label>
-                            <input 
-                                type="text" 
+                            <input
+                                type="text"
                                 value={newStatusLabel}
                                 onChange={(e) => setNewStatusLabel(e.target.value)}
-                                placeholder="Např. Dovolená" 
+                                placeholder="Např. Dovolená"
                                 className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:ring-primary focus:border-primary"
                             />
                         </div>
@@ -693,8 +777,8 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
                                 ))}
                             </div>
                         </div>
-                        <button 
-                            type="submit" 
+                        <button
+                            type="submit"
                             disabled={!newStatusLabel}
                             className="bg-primary hover:bg-primary/90 text-white px-4 py-2 h-[38px] rounded-lg text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full md:w-auto"
                         >
@@ -708,7 +792,7 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
                             <div key={status.id} className="flex items-center gap-4 p-3 rounded-lg border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                                 <div className="flex gap-1.5 items-center bg-slate-100 dark:bg-slate-800 rounded px-2 py-1">
                                     {colorOptions.map(opt => (
-                                         <button
+                                        <button
                                             key={opt.value}
                                             onClick={() => handleUpdateStatusColor(status.id, opt.value)}
                                             className={`size-4 rounded-full ${opt.class} ${status.color === opt.value ? 'ring-2 ring-offset-1 ring-white dark:ring-slate-900' : 'opacity-40 hover:opacity-100'}`}
@@ -716,14 +800,14 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
                                     ))}
                                 </div>
                                 <div className="flex-1">
-                                     <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         value={status.label}
                                         onChange={(e) => handleUpdateStatusLabel(status.id, e.target.value)}
                                         className="bg-transparent border-none p-0 text-sm font-medium text-slate-900 dark:text-white focus:ring-0 w-full"
                                     />
                                 </div>
-                                <button 
+                                <button
                                     onClick={() => handleDeleteStatus(status.id)}
                                     className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
                                     title="Smazat stav"
@@ -743,7 +827,7 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
                             Import Kontaktů
                         </h2>
                         {isAdmin && (
-                            <button 
+                            <button
                                 onClick={handleDeleteAllContacts}
                                 className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1"
                                 title="Smazat všechny kontakty z databáze"
@@ -753,7 +837,7 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
                             </button>
                         )}
                     </div>
-                    
+
                     {/* Auto-Sync from URL */}
                     <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4 mb-6">
                         <div className="flex items-start gap-3 mb-4">
@@ -761,14 +845,14 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
                             <div className="flex-1">
                                 <h3 className="text-sm font-bold text-purple-900 dark:text-purple-100 mb-1">Synchronizace kontaktů z URL</h3>
                                 <p className="text-xs text-purple-700 dark:text-purple-300 mb-3">
-                                    Zadejte odkaz na CSV/XLSX soubor (např. Google Sheets export link). 
+                                    Zadejte odkaz na CSV/XLSX soubor (např. Google Sheets export link).
                                     Synchronizaci spustíte tlačítkem níže.
                                 </p>
-                                
+
                                 <div className="space-y-3">
                                     <div>
                                         <label className="block text-xs text-purple-700 dark:text-purple-300 mb-1 font-medium">URL souboru</label>
-                                        <input 
+                                        <input
                                             type="url"
                                             value={importUrl}
                                             onChange={(e) => setImportUrl(e.target.value)}
@@ -776,16 +860,16 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
                                             className="w-full rounded-lg bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:ring-purple-500 focus:border-purple-500"
                                         />
                                     </div>
-                                    
+
                                     <div className="flex items-center gap-2">
-                                        <button 
+                                        <button
                                             type="button"
                                             onClick={handleSaveUrl}
                                             className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm"
                                         >
                                             Uložit URL
                                         </button>
-                                        <button 
+                                        <button
                                             type="button"
                                             onClick={handleSyncNow}
                                             disabled={isSyncing || !importUrl}
@@ -797,11 +881,11 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
                                             </span>
                                         </button>
                                     </div>
-                                    
+
                                     {isSyncing && (
                                         <div className="flex items-center gap-4 mt-2">
                                             <div className="flex-1 h-2 bg-purple-200 dark:bg-purple-900/50 rounded-full overflow-hidden">
-                                                <div 
+                                                <div
                                                     className="h-full bg-purple-600 transition-all duration-300 ease-out"
                                                     style={{ width: `${uploadProgress}%` }}
                                                 />
@@ -826,25 +910,25 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
                             <span className="material-symbols-outlined text-[20px]">info</span>
                             <span>Nebo nahrajte soubor jednorázově:</span>
                         </div>
-                        
+
                         <p className="text-sm text-slate-500 dark:text-slate-400">
-                            Nahrajte CSV soubor pro hromadný import kontaktů. <br/>
+                            Nahrajte CSV soubor pro hromadný import kontaktů. <br />
                             <span className="text-xs italic">Formát: Firma, Jméno, Specializace, Telefon, Email, IČO, Region</span>
                         </p>
-                        
+
                         <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
                             <label className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700">
                                 <span className="material-symbols-outlined">folder_open</span>
                                 {fileName || 'Vybrat soubor CSV'}
                                 <input type="file" accept=".csv" onChange={handleFileChange} className="hidden" />
                             </label>
-                            
+
                             {importedContacts.length > 0 && !isUploading && (
                                 <div className="flex items-center gap-4 flex-1">
                                     <span className="text-sm font-medium text-green-600">
                                         Nalezeno {importedContacts.length} kontaktů
                                     </span>
-                                    <button 
+                                    <button
                                         onClick={handleConfirmImport}
                                         className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm"
                                     >
@@ -856,7 +940,7 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
                             {isUploading && (
                                 <div className="flex-1 flex items-center gap-4">
                                     <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                        <div 
+                                        <div
                                             className="h-full bg-primary transition-all duration-300 ease-out"
                                             style={{ width: `${uploadProgress}%` }}
                                         />
@@ -870,108 +954,7 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
                     </div>
                 </section>
 
-                {/* 4. Project Management Section */}
-                <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-                        <span className="material-symbols-outlined">domain_add</span>
-                        Správa Staveb
-                    </h2>
 
-                    {/* Add New Project Form */}
-                    <form onSubmit={handleCreateProject} className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700 mb-8">
-                        <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-3 uppercase tracking-wider">Přidat novou stavbu</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                            <div>
-                                <label className="block text-xs text-slate-500 mb-1">Název projektu</label>
-                                <input 
-                                    type="text" 
-                                    value={newProjectName}
-                                    onChange={(e) => setNewProjectName(e.target.value)}
-                                    placeholder="Např. Rezidence Park" 
-                                    className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:ring-primary focus:border-primary"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs text-slate-500 mb-1">Lokace</label>
-                                <input 
-                                    type="text" 
-                                    value={newProjectLocation}
-                                    onChange={(e) => setNewProjectLocation(e.target.value)}
-                                    placeholder="Např. Plzeň" 
-                                    className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:ring-primary focus:border-primary"
-                                />
-                            </div>
-                             <div>
-                                <label className="block text-xs text-slate-500 mb-1">Typ / Fáze</label>
-                                <select 
-                                    value={newProjectStatus}
-                                    onChange={(e) => setNewProjectStatus(e.target.value as ProjectStatus)}
-                                    className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:ring-primary focus:border-primary"
-                                >
-                                    <option value="tender">Soutěž (Příprava)</option>
-                                    <option value="realization">Realizace (Výstavba)</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div className="flex justify-end">
-                            <button 
-                                type="submit" 
-                                disabled={!newProjectName || !newProjectLocation}
-                                className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                Vytvořit projekt
-                            </button>
-                        </div>
-                    </form>
-
-                    {/* Existing Projects List */}
-                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-3 uppercase tracking-wider">Seznam projektů</h3>
-                    <div className="space-y-3">
-                        {projects.map(project => (
-                            <div key={project.id} className={`flex items-center justify-between p-4 rounded-lg border ${project.status === 'archived' ? 'bg-slate-100 border-slate-200 dark:bg-slate-800/30 dark:border-slate-800 opacity-60' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700'}`}>
-                                <div className="flex items-center gap-4">
-                                    <div className={`size-10 rounded-full flex items-center justify-center ${
-                                        project.status === 'realization' ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30' : 
-                                        project.status === 'tender' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30' :
-                                        'bg-slate-200 text-slate-500 dark:bg-slate-800'
-                                    }`}>
-                                        <span className="material-symbols-outlined">
-                                            {project.status === 'realization' ? 'engineering' : project.status === 'tender' ? 'edit_document' : 'archive'}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-slate-900 dark:text-white text-sm">{project.name}</h4>
-                                        <p className="text-xs text-slate-500">{project.location} • {
-                                            project.status === 'realization' ? 'Realizace' : 
-                                            project.status === 'tender' ? 'Soutěž' : 'Archivováno'
-                                        }</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    {project.status !== 'archived' && (
-                                        <button 
-                                            onClick={() => onArchiveProject(project.id)}
-                                            className="p-2 text-slate-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-full transition-colors"
-                                            title="Archivovat"
-                                        >
-                                            <span className="material-symbols-outlined text-[20px]">archive</span>
-                                        </button>
-                                    )}
-                                    <button 
-                                        onClick={() => onDeleteProject(project.id)}
-                                        className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
-                                        title="Odstranit"
-                                    >
-                                        <span className="material-symbols-outlined text-[20px]">delete</span>
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                        {projects.length === 0 && (
-                            <p className="text-center text-slate-500 italic py-4">Žádné projekty v databázi.</p>
-                        )}
-                    </div>
-                </section>
             </div>
         </div>
     );
