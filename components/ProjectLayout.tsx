@@ -405,8 +405,11 @@ const FinancialAnalysisTable: React.FC<FinancialAnalysisTableProps> = ({ categor
 
     const rows = categories.map(cat => {
         const catBids = bids[cat.id] || [];
-        const winningBid = catBids.find(b => b.status === 'sod');
-        const subPrice = winningBid ? parseMoney(winningBid.price || '0') : 0;
+        // Get ALL winning bids (status === 'sod'), not just the first one
+        const winningBids = catBids.filter(b => b.status === 'sod');
+        // Sum all winning prices
+        const subPrice = winningBids.reduce((sum, bid) => sum + parseMoney(bid.price || '0'), 0);
+        const hasWinner = winningBids.length > 0;
 
         const diffSod = cat.sodBudget - subPrice;
         const diffPlan = cat.planBudget - subPrice;
@@ -414,7 +417,7 @@ const FinancialAnalysisTable: React.FC<FinancialAnalysisTableProps> = ({ categor
         // Add to totals
         totalSod += cat.sodBudget;
         totalPlan += cat.planBudget;
-        if (winningBid) {
+        if (hasWinner) {
             totalSub += subPrice;
             totalDiffSod += diffSod;
             totalDiffPlan += diffPlan;
@@ -422,11 +425,14 @@ const FinancialAnalysisTable: React.FC<FinancialAnalysisTableProps> = ({ categor
 
         return {
             ...cat,
-            winningBidder: winningBid?.companyName || '-',
+            winningBidder: winningBids.length > 0
+                ? winningBids.map(b => b.companyName).join(', ')
+                : '-',
+            winnerCount: winningBids.length,
             subPrice,
             diffSod,
             diffPlan,
-            hasWinner: !!winningBid
+            hasWinner
         };
     });
 
@@ -741,11 +747,13 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                         {project.categories.map(cat => {
                             const catBids = project.bids?.[cat.id] || [];
-                            const winningBid = catBids.find(b => b.status === 'sod');
-                            const subPrice = winningBid ? parseMoney(winningBid.price || '0') : 0;
+                            // Get ALL winning bids, not just first one
+                            const winningBids = catBids.filter(b => b.status === 'sod');
+                            // Sum all winning prices
+                            const subPrice = winningBids.reduce((sum, bid) => sum + parseMoney(bid.price || '0'), 0);
                             const diffSod = cat.sodBudget - subPrice;
                             const diffPlan = cat.planBudget - subPrice;
-                            const hasWinner = !!winningBid;
+                            const hasWinner = winningBids.length > 0;
 
                             // Status badge styling - dark theme
                             const statusConfig: Record<string, { label: string; color: string; icon: string }> = {
@@ -789,7 +797,11 @@ const ProjectOverview: React.FC<ProjectOverviewProps> = ({ project, onUpdate }) 
                                         {hasWinner ? (
                                             <div className="space-y-2">
                                                 <div className="flex items-center justify-between text-sm mb-2">
-                                                    <span className="text-emerald-400">✓ {winningBid.companyName}</span>
+                                                    <span className="text-emerald-400">
+                                                        ✓ {winningBids.length === 1
+                                                            ? winningBids[0].companyName
+                                                            : `${winningBids.length} vítězů`}
+                                                    </span>
                                                 </div>
                                                 <div className="flex justify-between text-xs">
                                                     <span className="text-slate-500">Bilance SOD:</span>
