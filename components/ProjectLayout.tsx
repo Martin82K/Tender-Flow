@@ -54,6 +54,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
     const [selectedTemplateFile, setSelectedTemplateFile] = useState<File | null>(null);
     const [isUploadingTemplate, setIsUploadingTemplate] = useState(false);
     const [showTemplateManager, setShowTemplateManager] = useState(false);
+    const [templateName, setTemplateName] = useState<string | null>(null);
 
     useEffect(() => {
         setDocsLinkValue(project.documentationLink || '');
@@ -62,6 +63,18 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
     useEffect(() => {
         setLetterLinkValue(project.inquiryLetterLink || '');
     }, [project.inquiryLetterLink, isEditingLetter]);
+
+    // Load template name asynchronously
+    useEffect(() => {
+        if (project.inquiryLetterLink?.startsWith('template:')) {
+            const templateId = project.inquiryLetterLink.split(':')[1];
+            getTemplateById(templateId).then(template => {
+                setTemplateName(template?.name || 'Neznámá šablona');
+            });
+        } else {
+            setTemplateName(null);
+        }
+    }, [project.inquiryLetterLink]);
 
     const handleSaveDocs = () => {
         onUpdate({ documentationLink: docsLinkValue });
@@ -230,7 +243,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                                 <div className="flex flex-col">
                                                     <span className="text-sm font-medium text-white truncate">
                                                         {project.inquiryLetterLink?.startsWith('template:')
-                                                            ? (getTemplateById(project.inquiryLetterLink.split(':')[1])?.name || 'Neznámá šablona')
+                                                            ? (templateName || 'Načítání...')
                                                             : (project.inquiryLetterLink?.startsWith('http') ? 'Externí odkaz / Soubor' : project.inquiryLetterLink)
                                                         }
                                                     </span>

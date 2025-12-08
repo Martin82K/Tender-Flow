@@ -1286,7 +1286,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
     setIsCreateContactModalOpen(true);
   };
 
-  const handleGenerateInquiry = (bid: Bid) => {
+  const handleGenerateInquiry = async (bid: Bid) => {
     if (!activeCategory) return;
 
     let subject = "";
@@ -1295,7 +1295,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
     // Check if using new template system
     if (projectDetails.inquiryLetterLink?.startsWith('template:')) {
       const templateId = projectDetails.inquiryLetterLink.split(':')[1];
-      const template = getTemplateById(templateId);
+      const template = await getTemplateById(templateId);
 
       if (template) {
         // Prepare data for template
