@@ -171,8 +171,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
         {/* Bottom Section */}
         <div className="mt-auto p-3 space-y-2 border-t border-slate-700/50">
           <button
-            onClick={() => onViewChange('projectManager')}
-            className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all ${currentView === 'projectManager'
+            onClick={() => onViewChange('project-management')}
+            className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all ${currentView === 'project-management'
               ? 'bg-slate-800/80 text-white border border-slate-700/50'
               : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
               }`}
