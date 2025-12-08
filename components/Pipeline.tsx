@@ -725,6 +725,7 @@ const CreateContactModal: React.FC<{
                 onChange={(e) =>
                   setForm({ ...form, specialization: e.target.value })
                 }
+                onKeyDown={(e) => e.stopPropagation()}
                 className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
                 placeholder="Např. Strojní omítky, Elektro"
               />

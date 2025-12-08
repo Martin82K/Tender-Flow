@@ -3,51 +3,39 @@ import { supabase } from './supabase';
 
 export const INITIAL_TEMPLATES: Template[] = [
     {
-        id: '1',
-        name: 'Standardní poptávka',
+        id: '0',
+        name: 'MK poptávka standard',
         subject: 'Poptávka: {NAZEV_STAVBY} - {KATEGORIE_NAZEV}',
         content: `Dobrý den,
 
-u stavby <b>{NAZEV_STAVBY}</b> ({LOKACE}) poptáváme:
+dovoluji si obrátit se na Vás s poptávkou pro výběrové řízení <b>„{KATEGORIE_NAZEV}" </b>pro akci <b>„{NAZEV_STAVBY}"</b>.
 
-<b>{KATEGORIE_NAZEV}</b>
-
-Termín realizace: dle dohody
-Termín dokončení stavby: {TERMIN_DOKONCENI}
-
-<b>Podmínky:</b>
-Splatnost: {SPLATNOST}
-Záruka: {ZARUKA}
-Pozastávka: {POZASTAVKA}
-
-Prosíme o nacenění dle přiložené dokumentace:
+Tato poptávka je do <b>{SOUTEZ_REALIZACE}</b>.
+Současně zasílám odkaz na PD a výkaz výměr k ocenění.
 {ODKAZ_DOKUMENTACE}
 
-S pozdravem,
-{STAVBYVEDOUCI}`,
+Termín realizace: <b>{TERMIN_REALIZACE}</b>
+Termín dokončení stavby: <b>{TERMIN_DOKONCENI}</b>
+
+V cenové nabídce by mělo být mimo jiné zahrnuto:
+- splatnost: {SPLATNOST}
+- záruka: {ZARUKA}
+- zádržné: {POZASTAVKA}
+- veškerý vodorovný a svislý přesun hmot
+- doprava, likvidace odpadu
+- montážní dokumentace včetně schválení zadavatelem
+- předložení vzorků ke schválení
+- kompletní spojovací materiál (kotvy, nýty, ukončovací lišty, separační pásky, tmely apod.)
+- do ceny je nutné započítat vlastní manipulační techniku, manipulátor, jeřáb, montážní plošiny, lešení
+- součást dodávky je i prověření požadovaných parametrů konstrukcí
+
+<b>Cenovou nabídku zašlete, prosím, nejpozději do {TERMIN_POPTAVKY} do 12:00 hodin.
+Prosím o zpětnou vazbu, zdali budete cenovou nabídku zpracovávat. V případě jejího odmítnutí prosím o oznámení této skutečnosti co nejdříve.</b>
+V případě jakýchkoli dotazů mě neváhejte kontaktovat.
+
+Děkuji.`,
         isDefault: true,
-        lastModified: '2024-03-20'
-    },
-    {
-        id: '2',
-        name: 'Anglická verze',
-        subject: 'Inquiry: {NAZEV_STAVBY} - {KATEGORIE_NAZEV}',
-        content: `Dear partners,
-
-We are looking for subcontractors for project <b>{NAZEV_STAVBY}</b> located in {LOKACE}.
-
-Scope of work:
-<b>{KATEGORIE_NAZEV}</b>
-
-Completion date: {TERMIN_DOKONCENI}
-
-Please send your quotation based on documentation:
-{ODKAZ_DOKUMENTACE}
-
-Best regards,
-{STAVBYVEDOUCI}`,
-        isDefault: false,
-        lastModified: '2024-03-22'
+        lastModified: '2024-12-08'
     }
 ];
 

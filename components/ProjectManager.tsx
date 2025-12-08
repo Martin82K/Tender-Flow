@@ -192,13 +192,11 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                         {projects.map(project => (
                             <div key={project.id} className={`flex items-center justify-between p-4 rounded-xl border ${project.status === 'archived' ? 'bg-slate-800/30 border-slate-700/30 opacity-60' : 'bg-slate-800/50 border-slate-700/50'}`}>
                                 <div className="flex items-center gap-4">
-                                    <div className={`size-10 rounded-full flex items-center justify-center ${project.status === 'realization' ? 'bg-amber-500/20 text-amber-400' :
+                                    <div className={`size-10 rounded-full flex items-center justify-center text-lg font-bold ${project.status === 'realization' ? 'bg-amber-500/20 text-amber-400' :
                                         project.status === 'tender' ? 'bg-blue-500/20 text-blue-400' :
                                             'bg-slate-700/50 text-slate-500'
                                         }`}>
-                                        <span className="material-symbols-outlined">
-                                            {project.status === 'realization' ? 'engineering' : project.status === 'tender' ? 'edit_document' : 'archive'}
-                                        </span>
+                                        {project.status === 'realization' ? 'R' : project.status === 'tender' ? 'S' : 'A'}
                                     </div>
                                     <div>
                                         <div className="flex items-center gap-2">
