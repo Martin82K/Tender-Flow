@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import logo from '../assets/logo.png';
+import { ConstructionBackground } from './ConstructionBackground';
 
 interface LandingPageProps {
   onLogin: (email: string, password: string) => Promise<void>;
@@ -50,8 +51,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onRegister })
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center bg-gray-900 relative overflow-hidden">
-      {/* Background Gradient Effect */}
-      <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 z-0" />
+      {/* Background Animation */}
+      <div className="absolute inset-0 z-0">
+        <ConstructionBackground />
+      </div>
 
       {/* Content Container */}
       <div className="relative z-10 flex flex-col items-center justify-center w-full max-w-4xl px-4">
