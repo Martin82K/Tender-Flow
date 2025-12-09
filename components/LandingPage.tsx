@@ -63,7 +63,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onRegister })
         <div className="mb-8 transform hover:scale-105 transition-transform duration-500">
           <img
             src={logo}
-            alt="Construction TMS Logo"
+            alt="Tender Flow Logo"
             className="w-48 h-48 object-contain drop-shadow-2xl"
           />
         </div>
@@ -71,9 +71,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onRegister })
         {/* Title Section */}
         <div className="text-center mb-12">
           <h1 className="text-5xl md:text-6xl font-light text-white tracking-wider mb-2">
-            Construction TMS
+            Tender Flow
           </h1>
-          <p className="text-xl md:text-2xl text-white/70 font-light tracking-wide">
+          <p className="text-sm md:text-base text-white/70 font-light tracking-wide">
             Tender Management System
           </p>
           <div className="h-1 w-32 bg-orange-500 mx-auto rounded-full mt-4" />

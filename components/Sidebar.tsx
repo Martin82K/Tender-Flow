@@ -92,12 +92,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
           <div className="flex items-center gap-3 p-2 min-w-0">
             <img
               src={logo}
-              alt="Construction TMS Logo"
+              alt="Tender Flow Logo"
               className="size-14 min-w-14 object-contain drop-shadow-md shrink-0"
             />
             <div className="flex flex-col min-w-0">
-              <h1 className="text-white text-base font-bold leading-normal break-words">Construction TMS</h1>
-              <p className="text-slate-500 text-xs font-normal break-words">Tender Management System</p>
+              <h1 className="text-white text-base font-bold leading-normal break-words">Tender Flow</h1>
+              <p className="text-slate-500 text-[6px] font-normal break-words">Tender Management System</p>
             </div>
           </div>
 
