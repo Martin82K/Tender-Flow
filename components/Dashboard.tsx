@@ -212,7 +212,7 @@ const AIInsightsWidget: React.FC<{ projects: ProjectSummary[] }> = ({ projects }
                     setShowDisabledWarning(true);
                     const localInsights = generateLocalInsights(projects);
                     setInsights(localInsights);
-                } else if (process.env.GEMINI_API_KEY) {
+                } else if (import.meta.env.VITE_GEMINI_API_KEY) {
                     setShowDisabledWarning(false);
 
                     if (cachedData) {
@@ -284,7 +284,7 @@ const AIInsightsWidget: React.FC<{ projects: ProjectSummary[] }> = ({ projects }
         const cacheKey = `ai_insights_${mode}`;
 
         try {
-            if (aiEnabled && process.env.GEMINI_API_KEY) {
+            if (aiEnabled && import.meta.env.VITE_GEMINI_API_KEY) {
                 // Remove from cache to force regeneration
                 sessionStorage.removeItem(cacheKey);
                 const aiInsights = await generateProjectInsights(projects, mode);
@@ -320,8 +320,8 @@ const AIInsightsWidget: React.FC<{ projects: ProjectSummary[] }> = ({ projects }
                             type="button"
                             onClick={() => setMode('achievements')}
                             className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${mode === 'achievements'
-                                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'
+                                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'
                                 }`}
                         >
                             🏆 Achievementy
@@ -330,8 +330,8 @@ const AIInsightsWidget: React.FC<{ projects: ProjectSummary[] }> = ({ projects }
                             type="button"
                             onClick={() => setMode('charts')}
                             className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${mode === 'charts'
-                                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'
+                                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'
                                 }`}
                         >
                             📊 Grafy
@@ -340,8 +340,8 @@ const AIInsightsWidget: React.FC<{ projects: ProjectSummary[] }> = ({ projects }
                             type="button"
                             onClick={() => setMode('reports')}
                             className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${mode === 'reports'
-                                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'
+                                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'
                                 }`}
                         >
                             📋 Reporty
@@ -412,8 +412,8 @@ const AIInsightsWidget: React.FC<{ projects: ProjectSummary[] }> = ({ projects }
                                                     <div
                                                         key={i}
                                                         className={`w-4 h-4 rounded-full ${i < (insight.achievement?.level || 0)
-                                                                ? `bg-gradient-to-br ${getAchievementColor(insight.achievement?.label || '')}`
-                                                                : 'bg-black/10 dark:bg-white/10'
+                                                            ? `bg-gradient-to-br ${getAchievementColor(insight.achievement?.label || '')}`
+                                                            : 'bg-black/10 dark:bg-white/10'
                                                             }`}
                                                     />
                                                 ))}
@@ -431,7 +431,7 @@ const AIInsightsWidget: React.FC<{ projects: ProjectSummary[] }> = ({ projects }
                                                 <div key={i} className="flex items-center gap-1.5">
                                                     {stat.trend && (
                                                         <span className={`material-symbols-outlined text-[14px] ${stat.trend === 'up' ? 'text-green-600' :
-                                                                stat.trend === 'down' ? 'text-red-500' : 'text-slate-400'
+                                                            stat.trend === 'down' ? 'text-red-500' : 'text-slate-400'
                                                             }`}>
                                                         </span>
                                                     )}
@@ -550,9 +550,9 @@ const AIInsightsWidget: React.FC<{ projects: ProjectSummary[] }> = ({ projects }
                 </div>
             )}
 
-            {!process.env.GEMINI_API_KEY && !showDisabledWarning && (
+            {!import.meta.env.VITE_GEMINI_API_KEY && !showDisabledWarning && (
                 <p className="text-xs text-slate-400 mt-4 text-center italic">
-                    💡 Pro pokročilou AI analýzu přidejte GEMINI_API_KEY do .env
+                    💡 Pro pokročilou AI analýzu přidejte VITE_GEMINI_API_KEY do .env
                 </p>
             )}
         </div>

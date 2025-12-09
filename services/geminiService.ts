@@ -2,11 +2,11 @@ import { GoogleGenAI } from "@google/genai";
 
 export const getAiSuggestion = async (contextData: string): Promise<string> => {
   try {
-    if (!process.env.API_KEY) {
+    if (!import.meta.env.VITE_GEMINI_API_KEY) {
       return "AI API Key not configured.";
     }
-    
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+    const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: `You are an intelligent assistant for a Construction Management CRM. 
@@ -25,13 +25,13 @@ export const getAiSuggestion = async (contextData: string): Promise<string> => {
 
 export const findCompanyRegions = async (contacts: { id: string; company: string; ico?: string }[]): Promise<Record<string, string>> => {
   try {
-    if (!process.env.API_KEY) {
+    if (!import.meta.env.VITE_GEMINI_API_KEY) {
       console.error("AI API Key not configured.");
       return {};
     }
 
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    
+    const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
+
     // Construct a list for the prompt
     const listStr = contacts.map(c => `ID: ${c.id}, Company: ${c.company}, ICO: ${c.ico || 'N/A'}`).join('\n');
 
@@ -55,10 +55,10 @@ export const findCompanyRegions = async (contacts: { id: string; company: string
     });
 
     const text = response.text || "{}";
-    
+
     // Clean up potential markdown code blocks if the model ignores the instruction
     const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    
+
     try {
       const result = JSON.parse(jsonStr);
       return result;

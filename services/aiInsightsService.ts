@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Initialize Gemini - API key from .env as GEMINI_API_KEY (configured in vite.config.ts)
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+// Initialize Gemini - API key from .env as VITE_GEMINI_API_KEY
+const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || '');
 
 interface ProjectSummary {
   name: string;
@@ -28,10 +28,10 @@ export interface AIInsight {
 const getRandomSeed = () => Math.floor(Math.random() * 1000);
 
 export const generateProjectInsights = async (projects: ProjectSummary[], mode: 'achievements' | 'charts' | 'reports' = 'achievements'): Promise<AIInsight[]> => {
-  if (!process.env.GEMINI_API_KEY) {
+  if (!import.meta.env.VITE_GEMINI_API_KEY) {
     return [{
       title: 'API klíč nenalezen',
-      content: 'Pro AI analýzu přidejte GEMINI_API_KEY do .env souboru.',
+      content: 'Pro AI analýzu přidejte VITE_GEMINI_API_KEY do .env souboru.',
       type: 'warning',
       icon: 'warning'
     }];
@@ -139,20 +139,20 @@ Odpověz POUZE jako JSON pole.`;
 
     // Load prompt based on mode
     let basePrompt = '';
-    
+
     if (typeof localStorage !== 'undefined') {
-        if (mode === 'achievements') {
-            basePrompt = localStorage.getItem('aiPromptAchievements') || DEFAULT_ACHIEVEMENTS_PROMPT;
-        } else if (mode === 'charts') {
-            basePrompt = localStorage.getItem('aiPromptCharts') || DEFAULT_CHARTS_PROMPT;
-        } else if (mode === 'reports') {
-            basePrompt = localStorage.getItem('aiPromptReports') || DEFAULT_REPORTS_PROMPT;
-        }
+      if (mode === 'achievements') {
+        basePrompt = localStorage.getItem('aiPromptAchievements') || DEFAULT_ACHIEVEMENTS_PROMPT;
+      } else if (mode === 'charts') {
+        basePrompt = localStorage.getItem('aiPromptCharts') || DEFAULT_CHARTS_PROMPT;
+      } else if (mode === 'reports') {
+        basePrompt = localStorage.getItem('aiPromptReports') || DEFAULT_REPORTS_PROMPT;
+      }
     } else {
-        // Fallback if localStorage is not available
-        if (mode === 'achievements') basePrompt = DEFAULT_ACHIEVEMENTS_PROMPT;
-        else if (mode === 'charts') basePrompt = DEFAULT_CHARTS_PROMPT;
-        else if (mode === 'reports') basePrompt = DEFAULT_REPORTS_PROMPT;
+      // Fallback if localStorage is not available
+      if (mode === 'achievements') basePrompt = DEFAULT_ACHIEVEMENTS_PROMPT;
+      else if (mode === 'charts') basePrompt = DEFAULT_CHARTS_PROMPT;
+      else if (mode === 'reports') basePrompt = DEFAULT_REPORTS_PROMPT;
     }
 
     const prompt = basePrompt + dataContext;
@@ -188,7 +188,7 @@ Odpověz POUZE jako JSON pole.`;
 // Local insights when API is not available
 export const generateLocalInsights = (projects: ProjectSummary[]): AIInsight[] => {
   const insights: AIInsight[] = [];
-  
+
   const totalBudget = projects.reduce((s, p) => s + p.totalBudget, 0);
   const totalCosts = projects.reduce((s, p) => s + p.totalContracted, 0);
   const totalBalance = totalBudget - totalCosts;
@@ -219,8 +219,8 @@ export const generateLocalInsights = (projects: ProjectSummary[]): AIInsight[] =
   }, projects[0]);
 
   if (bestProject) {
-    const bestMargin = bestProject.totalBudget > 0 
-      ? ((bestProject.balance) / bestProject.totalBudget) * 100 
+    const bestMargin = bestProject.totalBudget > 0
+      ? ((bestProject.balance) / bestProject.totalBudget) * 100
       : 0;
     insights.push({
       title: 'Nejziskovější projekt',
