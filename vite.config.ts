@@ -13,6 +13,22 @@ export default defineConfig(() => {
       alias: {
         '@': path.resolve(__dirname, '.'),
       }
+    },
+    build: {
+      chunkSizeWarningLimit: 750, // Increase from default 500kB
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            // Split large vendor libraries into separate chunks
+            'vendor-react': ['react', 'react-dom'],
+            'vendor-supabase': ['@supabase/supabase-js'],
+            'vendor-pdf': ['jspdf', 'jspdf-autotable'],
+            'vendor-excel': ['xlsx'],
+            'vendor-charts': ['recharts'],
+            'vendor-utils': ['dompurify', 'html2canvas'],
+          }
+        }
+      }
     }
   };
 });

@@ -37,6 +37,27 @@ function getStatusLabel(status: string): string {
 }
 
 /**
+ * Remove Czech diacritics for PDF compatibility
+ */
+function removeDiacritics(text: string): string {
+  const diacriticsMap: Record<string, string> = {
+    'á': 'a', 'Á': 'A', 'č': 'c', 'Č': 'C', 'ď': 'd', 'Ď': 'D',
+    'é': 'e', 'É': 'E', 'ě': 'e', 'Ě': 'E', 'í': 'i', 'Í': 'I',
+    'ň': 'n', 'Ň': 'N', 'ó': 'o', 'Ó': 'O', 'ř': 'r', 'Ř': 'R',
+    'š': 's', 'Š': 'S', 'ť': 't', 'Ť': 'T', 'ú': 'u', 'Ú': 'U',
+    'ů': 'u', 'Ů': 'U', 'ý': 'y', 'Ý': 'Y', 'ž': 'z', 'Ž': 'Z'
+  };
+  return text.replace(/[áÁčČďĎéÉěĚíÍňŇóÓřŘšŠťŤúÚůŮýÝžŽ]/g, char => diacriticsMap[char] || char);
+}
+
+/**
+ * Get status label without diacritics for PDF
+ */
+function getStatusLabelPDF(status: string): string {
+  return removeDiacritics(getStatusLabel(status));
+}
+
+/**
  * Parse money string to number
  */
 function parseMoney(value: string): number {
@@ -47,7 +68,7 @@ function parseMoney(value: string): number {
 }
 
 /**
- * Export to XLSX format
+ * Export to XLSX format with styling
  */
 export function exportToXLSX(
   category: DemandCategory,
@@ -56,9 +77,9 @@ export function exportToXLSX(
 ): void {
   const workbook = XLSX.utils.book_new();
 
-  // Sheet 1: Přehled poptávky
-  const overviewData = [
-    ['Přehled poptávky'],
+  // Combined data - overview + suppliers on one sheet
+  const combinedData: (string | number)[][] = [
+    ['PŘEHLED POPTÁVKY', '', '', '', '', '', '', '', '', '', '', ''],
     [],
     ['Projekt:', project.title],
     ['Kategorie:', category.title],
@@ -67,65 +88,77 @@ export function exportToXLSX(
     ...(category.deadline ? [['Termín poptávky:', formatDate(category.deadline)]] : []),
     ['Datum exportu:', formatDate(new Date().toISOString())],
     [],
-    ['Popis:'],
-    [category.description || '-']
+    ['Popis:', category.description || '-'],
+    [],
+    [], // Empty row before suppliers table
+    ['SEZNAM DODAVATELŮ', '', '', '', '', '', '', '', '', '', '', ''],
+    [],
+    ['#', 'Firma', 'Kontaktní osoba', 'Email', 'Telefon', 'Cena', '1. kolo', '2. kolo', '3. kolo', 'Stav', 'Tagy', 'Poznámky']
   ];
 
-  const overviewSheet = XLSX.utils.aoa_to_sheet(overviewData);
-  XLSX.utils.book_append_sheet(workbook, overviewSheet, 'Přehled');
+  const headerRowIndex = combinedData.length - 1; // 0-indexed row number of table header
 
-  // Sheet 2: Seznam dodavatelů
-  const headers = ['#', 'Firma', 'Kontaktní osoba', 'Email', 'Telefon', 'Cena', '1. kolo', '2. kolo', '3. kolo', 'Stav', 'Tagy', 'Poznámky'];
-
-  const bidRows = bids.map((bid, index) => [
-    index + 1,
-    bid.companyName,
-    bid.contactPerson,
-    bid.email || '-',
-    bid.phone || '-',
-    bid.price || '?',
-    bid.priceHistory?.[1] || '-',
-    bid.priceHistory?.[2] || '-',
-    bid.priceHistory?.[3] || '-',
-    getStatusLabel(bid.status),
-    bid.tags ? bid.tags.join(', ') : '-',
-    bid.notes || '-'
-  ]);
-
-  const bidsData = [headers, ...bidRows];
+  // Add bid rows
+  bids.forEach((bid, index) => {
+    combinedData.push([
+      index + 1,
+      bid.companyName,
+      bid.contactPerson,
+      bid.email || '-',
+      bid.phone || '-',
+      bid.price || '?',
+      bid.priceHistory?.[1] || '-',
+      bid.priceHistory?.[2] || '-',
+      bid.priceHistory?.[3] || '-',
+      getStatusLabel(bid.status),
+      bid.tags ? bid.tags.join(', ') : '-',
+      bid.notes || '-'
+    ]);
+  });
 
   // Add statistics
   const offersCount = bids.filter(b => b.status === 'offer' || b.status === 'shortlist' || b.status === 'sod').length;
   const prices = bids.filter(b => b.price && b.price !== '?').map(b => parseMoney(b.price));
   const avgPrice = prices.length > 0 ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
 
-  bidsData.push([]);
-  bidsData.push(['Statistiky']);
-  bidsData.push(['Celkem osloveno:', bids.length.toString()]);
-  bidsData.push(['Obdržené nabídky:', offersCount.toString()]);
+  combinedData.push([]);
+  combinedData.push(['STATISTIKY', '', '', '', '', '', '', '', '', '', '', '']);
+  combinedData.push(['Celkem osloveno:', bids.length.toString()]);
+  combinedData.push(['Obdržené nabídky:', offersCount.toString()]);
   if (avgPrice > 0) {
-    bidsData.push(['Průměrná cena:', formatMoney(avgPrice)]);
+    combinedData.push(['Průměrná cena:', formatMoney(avgPrice)]);
   }
 
-  const bidsSheet = XLSX.utils.aoa_to_sheet(bidsData);
+  const sheet = XLSX.utils.aoa_to_sheet(combinedData);
 
   // Set column widths
-  bidsSheet['!cols'] = [
+  sheet['!cols'] = [
     { wch: 5 },   // #
-    { wch: 25 },  // Firma
-    { wch: 20 },  // Kontakt
-    { wch: 25 },  // Email
+    { wch: 28 },  // Firma
+    { wch: 22 },  // Kontakt
+    { wch: 28 },  // Email
     { wch: 15 },  // Telefon
     { wch: 15 },  // Cena
-    { wch: 15 },  // 1. kolo
-    { wch: 15 },  // 2. kolo
-    { wch: 15 },  // 3. kolo
-    { wch: 15 },  // Stav
-    { wch: 20 },  // Tagy
-    { wch: 30 }   // Poznámky
+    { wch: 14 },  // 1. kolo
+    { wch: 14 },  // 2. kolo
+    { wch: 14 },  // 3. kolo
+    { wch: 14 },  // Stav
+    { wch: 18 },  // Tagy
+    { wch: 35 }   // Poznámky
   ];
 
-  XLSX.utils.book_append_sheet(workbook, bidsSheet, 'Dodavatelé');
+  // Merge cells for section titles
+  sheet['!merges'] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } },  // PŘEHLED POPTÁVKY
+    { s: { r: 12, c: 0 }, e: { r: 12, c: 5 } }, // SEZNAM DODAVATELŮ (row 13)
+  ];
+
+  // Set row heights for better readability
+  sheet['!rows'] = [
+    { hpt: 24 },  // Title row - taller
+  ];
+
+  XLSX.utils.book_append_sheet(workbook, sheet, 'Poptávka');
 
   // Download file
   const filename = `poptavka_${category.title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
@@ -197,62 +230,66 @@ export function exportToPDF(
   bids: Bid[],
   project: ProjectDetails
 ): void {
-  const doc = new jsPDF();
+  // Create PDF in landscape orientation
+  const doc = new jsPDF({ orientation: 'landscape' });
 
   // Title
-  doc.setFontSize(20);
+  doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text('Poptávka', 14, 20);
+  doc.text('Prehled poptavky', 14, 15);
 
-  // Project info
-  doc.setFontSize(12);
+  // Project info - two columns for better space usage
+  doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  let yPos = 35;
 
-  doc.text(`Projekt: ${project.title}`, 14, yPos);
-  yPos += 7;
-  doc.text(`Kategorie: ${category.title}`, 14, yPos);
-  yPos += 7;
+  doc.text(`Projekt: ${removeDiacritics(project.title)}`, 14, 25);
+  doc.text(`Kategorie: ${removeDiacritics(category.title)}`, 14, 31);
+
+  // Format money without Kč symbol for PDF (use CZK instead)
+  const formatMoneyPDF = (value: number) =>
+    new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 }).format(value) + ' CZK';
+
+  doc.text(`SOD rozpocet: ${formatMoneyPDF(category.sodBudget)}`, 150, 25);
+  doc.text(`Planovany rozpocet: ${formatMoneyPDF(category.planBudget)}`, 150, 31);
 
   if (category.deadline) {
-    doc.text(`Termín: ${formatDate(category.deadline)}`, 14, yPos);
-    yPos += 7;
+    doc.text(`Termin: ${formatDate(category.deadline)}`, 14, 37);
   }
 
-  doc.text(`SOD rozpočet: ${formatMoney(category.sodBudget)}`, 14, yPos);
-  yPos += 7;
-  doc.text(`Plánovaný rozpočet: ${formatMoney(category.planBudget)}`, 14, yPos);
-  yPos += 10;
-
-  // Table
+  // Table with round prices - all text without diacritics
   const tableData = bids.map((bid, index) => [
     (index + 1).toString(),
-    bid.companyName,
-    bid.contactPerson,
+    removeDiacritics(bid.companyName),
+    removeDiacritics(bid.contactPerson),
     bid.email || '-',
     bid.phone || '-',
-    bid.price || '?',
-    getStatusLabel(bid.status)
+    bid.price ? removeDiacritics(bid.price) : '?',
+    bid.priceHistory?.[1] ? removeDiacritics(bid.priceHistory[1]) : '-',
+    bid.priceHistory?.[2] ? removeDiacritics(bid.priceHistory[2]) : '-',
+    bid.priceHistory?.[3] ? removeDiacritics(bid.priceHistory[3]) : '-',
+    getStatusLabelPDF(bid.status)
   ]);
 
   autoTable(doc, {
-    startY: yPos,
-    head: [['#', 'Firma', 'Kontakt', 'Email', 'Telefon', 'Cena', 'Stav']],
+    startY: 42,
+    head: [['#', 'Firma', 'Kontakt', 'Email', 'Telefon', 'Cena', '1.kolo', '2.kolo', '3.kolo', 'Stav']],
     body: tableData,
-    styles: { fontSize: 9, cellPadding: 3 },
+    styles: { fontSize: 8, cellPadding: 2, font: 'helvetica' },
     headStyles: { fillColor: [71, 85, 105], textColor: 255, fontStyle: 'bold' },
     alternateRowStyles: { fillColor: [248, 250, 252] },
     columnStyles: {
-      0: { cellWidth: 10 },
-      1: { cellWidth: 35 },
+      0: { cellWidth: 8 },
+      1: { cellWidth: 40 },
       2: { cellWidth: 30 },
-      3: { cellWidth: 40 },
+      3: { cellWidth: 45 },
       4: { cellWidth: 25 },
       5: { cellWidth: 25 },
-      6: { cellWidth: 25 }
-
+      6: { cellWidth: 22 },
+      7: { cellWidth: 22 },
+      8: { cellWidth: 22 },
+      9: { cellWidth: 25 }
     },
-    margin: { top: 10 }
+    margin: { left: 14, right: 14 }
   });
 
   // Statistics
@@ -266,9 +303,9 @@ export function exportToPDF(
   doc.text('Statistiky:', 14, finalY);
   doc.setFont('helvetica', 'normal');
   doc.text(`Celkem osloveno: ${bids.length}`, 14, finalY + 6);
-  doc.text(`Obdržené nabídky: ${offersCount}`, 14, finalY + 12);
+  doc.text(`Obdrzene nabidky: ${offersCount}`, 14, finalY + 12);
   if (avgPrice > 0) {
-    doc.text(`Průměrná cena: ${formatMoney(avgPrice)}`, 14, finalY + 18);
+    doc.text(`Prumerna cena: ${formatMoneyPDF(avgPrice)}`, 14, finalY + 18);
   }
 
   // Footer
@@ -278,7 +315,7 @@ export function exportToPDF(
     doc.setFontSize(8);
     doc.setTextColor(128);
     doc.text(
-      `Exportováno: ${formatDate(new Date().toISOString())} | Strana ${i} z ${pageCount}`,
+      `Exportovano: ${formatDate(new Date().toISOString())} | Strana ${i} z ${pageCount}`,
       14,
       doc.internal.pageSize.height - 10
     );

@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { LandingPage } from './components/LandingPage';
-import { ProjectManager } from './components/ProjectManager';
 import { Sidebar } from "./components/Sidebar";
-import { Dashboard } from "./components/Dashboard";
-import { ProjectLayout } from "./components/ProjectLayout";
-import { Contacts } from "./components/Contacts";
-import { Settings } from "./components/Settings";
+
+// Lazy load heavy components for better code splitting
+const ProjectManager = React.lazy(() => import('./components/ProjectManager').then(m => ({ default: m.ProjectManager })));
+const Dashboard = React.lazy(() => import('./components/Dashboard').then(m => ({ default: m.Dashboard })));
+const ProjectLayout = React.lazy(() => import('./components/ProjectLayout').then(m => ({ default: m.ProjectLayout })));
+const Contacts = React.lazy(() => import('./components/Contacts').then(m => ({ default: m.Contacts })));
+const Settings = React.lazy(() => import('./components/Settings').then(m => ({ default: m.Settings })));
 import {
   View,
   ProjectTab,
@@ -1136,7 +1138,13 @@ const AppContent: React.FC = () => {
         onProjectSelect={handleProjectSelect}
       />
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
-        {renderView()}
+        <Suspense fallback={
+          <div className="flex items-center justify-center h-full">
+            <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
+          </div>
+        }>
+          {renderView()}
+        </Suspense>
       </main>
     </div>
   );
