@@ -9,6 +9,7 @@ const Dashboard = React.lazy(() => import('./components/Dashboard').then(m => ({
 const ProjectLayout = React.lazy(() => import('./components/ProjectLayout').then(m => ({ default: m.ProjectLayout })));
 const Contacts = React.lazy(() => import('./components/Contacts').then(m => ({ default: m.Contacts })));
 const Settings = React.lazy(() => import('./components/Settings').then(m => ({ default: m.Settings })));
+const ProjectOverview = React.lazy(() => import('./components/ProjectOverview').then(m => ({ default: m.ProjectOverview })));
 import {
   View,
   ProjectTab,
@@ -1079,8 +1080,20 @@ const AppContent: React.FC = () => {
             onArchiveProject={handleArchiveProject}
           />
         );
+      case "project-overview":
+        return (
+          <ProjectOverview
+            projects={projects}
+            projectDetails={allProjectDetails}
+          />
+        );
       default:
-        return <Dashboard />;
+        return (
+          <Dashboard
+            projects={projects}
+            projectDetails={allProjectDetails}
+          />
+        );
     }
   };
 

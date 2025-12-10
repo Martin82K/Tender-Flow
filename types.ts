@@ -1,4 +1,4 @@
-export type View = "dashboard" | "project" | "contacts" | "settings" | "project-management";
+export type View = "dashboard" | "project" | "contacts" | "settings" | "project-management" | "project-overview";
 
 export type ProjectTab = "overview" | "pipeline" | "documents";
 

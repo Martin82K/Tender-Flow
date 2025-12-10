@@ -171,7 +171,8 @@ Odpověz POUZE jako JSON pole.`;
       } else if (mode === 'reports') {
         basePrompt = localStorage.getItem('aiPromptReports') || DEFAULT_REPORTS_PROMPT;
       } else if (mode === 'contacts') {
-        basePrompt = localStorage.getItem('aiPromptContacts') || DEFAULT_CONTACTS_PROMPT;
+        const storedPrompt = localStorage.getItem('aiPromptContacts');
+        basePrompt = (storedPrompt && storedPrompt.trim()) ? storedPrompt : DEFAULT_CONTACTS_PROMPT;
       }
     } else {
       // Fallback if localStorage is not available
