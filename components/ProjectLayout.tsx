@@ -292,66 +292,6 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                         </div>
                     </div>
 
-                    {/* Dynamic Placeholders Tips */}
-                    <div className="mt-6 p-4 bg-violet-500/10 border border-violet-500/30 rounded-xl">
-                        <div className="flex items-start gap-3">
-                            <span className="material-symbols-outlined text-violet-400 text-[20px]">code</span>
-                            <div className="flex-1">
-                                <h4 className="font-semibold text-violet-300 text-sm mb-2">Dynamické proměnné pro šablonu</h4>
-                                <p className="text-xs text-violet-400/80 mb-3">V šabloně poptávkového dopisu můžete použít tyto proměnné:</p>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-                                    <div className="bg-slate-800/50 p-2 rounded-lg">
-                                        <code className="text-violet-300 font-mono">{'{NAZEV_STAVBY}'}</code>
-                                        <span className="text-slate-400 ml-2">- Název projektu</span>
-                                    </div>
-                                    <div className="bg-slate-800/50 p-2 rounded-lg">
-                                        <code className="text-violet-300 font-mono">{'{INVESTOR}'}</code>
-                                        <span className="text-slate-400 ml-2">- Investor</span>
-                                    </div>
-                                    <div className="bg-slate-800/50 p-2 rounded-lg">
-                                        <code className="text-violet-300 font-mono">{'{LOKACE}'}</code>
-                                        <span className="text-slate-400 ml-2">- Lokace stavby</span>
-                                    </div>
-                                    <div className="bg-slate-800/50 p-2 rounded-lg">
-                                        <code className="text-violet-300 font-mono">{'{TERMIN_DOKONCENI}'}</code>
-                                        <span className="text-slate-400 ml-2">- Termín dokončení</span>
-                                    </div>
-                                    <div className="bg-slate-800/50 p-2 rounded-lg">
-                                        <code className="text-violet-300 font-mono">{'{STAVBYVEDOUCI}'}</code>
-                                        <span className="text-slate-400 ml-2">- Stavbyvedoucí</span>
-                                    </div>
-                                    <div className="bg-slate-800/50 p-2 rounded-lg">
-                                        <code className="text-violet-300 font-mono">{'{SOD_CENA}'}</code>
-                                        <span className="text-slate-400 ml-2">- Cena SOD smlouvy</span>
-                                    </div>
-                                    <div className="bg-slate-800/50 p-2 rounded-lg">
-                                        <code className="text-violet-300 font-mono">{'{SPLATNOST}'}</code>
-                                        <span className="text-slate-400 ml-2">- Splatnost faktury</span>
-                                    </div>
-                                    <div className="bg-slate-800/50 p-2 rounded-lg">
-                                        <code className="text-violet-300 font-mono">{'{ZARUKA}'}</code>
-                                        <span className="text-slate-400 ml-2">- Záruční doba</span>
-                                    </div>
-                                    <div className="bg-slate-800/50 p-2 rounded-lg">
-                                        <code className="text-violet-300 font-mono">{'{POZASTAVKA}'}</code>
-                                        <span className="text-slate-400 ml-2">- Pozastávka</span>
-                                    </div>
-                                    <div className="bg-slate-800/50 p-2 rounded-lg">
-                                        <code className="text-violet-300 font-mono">{'{TECHNICKY_DOZOR}'}</code>
-                                        <span className="text-slate-400 ml-2">- TDI</span>
-                                    </div>
-
-                                    <div className="bg-slate-800/50 p-2 rounded-lg">
-                                        <code className="text-violet-300 font-mono">{'{ODKAZ_DOKUMENTACE}'}</code>
-                                        <span className="text-slate-400 ml-2">- Odkaz na dokumentaci</span>
-                                    </div>
-                                </div>
-                                <p className="text-xs text-slate-500 mt-3 italic">
-                                    💡 Použijte mail merge funkci ve Wordu nebo skript v Google Docs pro automatické nahrazení proměnných skutečnými hodnotami.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
 
                     {/* Tips Section */}
                     <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
