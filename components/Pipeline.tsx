@@ -153,11 +153,25 @@ const EditBidModal: React.FC<{
 
     // Parse and store numeric value
     const numericValue = parseFormattedNumber(cleaned);
+    const priceStr = numericValue > 0 ? formatInputNumber(numericValue) + " Kč" : (cleaned ? cleaned : "?");
+
+    // Update price and priceHistory for current round
+    const currentRound = form.selectionRound || 1;
+    const newPriceHistory = { ...(form.priceHistory || {}) };
+
     if (numericValue > 0) {
-      setForm({ ...form, price: formatInputNumber(numericValue) + " Kč" });
+      // Add/update price for current round
+      newPriceHistory[currentRound] = priceStr;
     } else {
-      setForm({ ...form, price: cleaned ? cleaned : "?" });
+      // Remove price from current round when cleared
+      delete newPriceHistory[currentRound];
     }
+
+    setForm({
+      ...form,
+      price: priceStr,
+      priceHistory: Object.keys(newPriceHistory).length > 0 ? newPriceHistory : undefined
+    });
   };
 
   const handlePriceBlur = () => {
@@ -169,9 +183,20 @@ const EditBidModal: React.FC<{
   };
 
   const handleRoundChange = (round: number) => {
+    const newRound = form.selectionRound === round ? undefined : round;
+
+    // When changing round, load existing price for that round if available
+    let newPriceDisplay = "";
+    if (newRound && form.priceHistory && form.priceHistory[newRound]) {
+      const existingPrice = form.priceHistory[newRound];
+      newPriceDisplay = formatInputNumber(parseFormattedNumber(existingPrice.replace(/[^\d\s,.-]/g, '')));
+    }
+
+    setPriceDisplay(newPriceDisplay);
     setForm({
       ...form,
-      selectionRound: form.selectionRound === round ? undefined : round
+      selectionRound: newRound,
+      price: newRound && form.priceHistory?.[newRound] ? form.priceHistory[newRound] : form.price
     });
   };
 
@@ -291,10 +316,10 @@ const EditBidModal: React.FC<{
                 Poznámka
               </label>
               <textarea
-                rows={3}
+                rows={5}
                 value={form.notes || ""}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white resize-none"
+                className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white resize-y min-h-[80px]"
               />
             </div>
           </div>
@@ -387,6 +412,21 @@ const BidCard: React.FC<{
           <div className="flex items-center gap-2 text-slate-400 text-xs">
             <span className="material-symbols-outlined text-[14px]">mail</span>
             {bid.email}
+          </div>
+        )}
+        {/* Price History - show previous round prices */}
+        {bid.priceHistory && Object.keys(bid.priceHistory).length > 1 && (
+          <div className="mt-2 pt-2 border-t border-slate-700/50">
+            {Object.entries(bid.priceHistory)
+              .sort(([a], [b]) => Number(a) - Number(b))
+              .map(([round, price]) => (
+                <div key={round} className="flex items-center justify-between text-xs text-slate-500">
+                  <span>{round}. kolo:</span>
+                  <span className={Number(round) === bid.selectionRound ? "text-emerald-400 font-medium" : ""}>
+                    {price}
+                  </span>
+                </div>
+              ))}
           </div>
         )}
         {bid.notes && (
@@ -1242,6 +1282,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
           phone: updatedBid.phone,
           price: numericPrice && numericPrice > 0 ? numericPrice : null,
           price_display: updatedBid.price,
+          price_history: updatedBid.priceHistory || null,
           notes: updatedBid.notes,
           status: updatedBid.status,
           update_date: updatedBid.updateDate || null,

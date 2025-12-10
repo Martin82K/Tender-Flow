@@ -53,6 +53,7 @@ export interface Bid {
   email?: string;
   phone?: string;
   price?: string;
+  priceHistory?: Record<number, string>; // Prices per round: { 1: "2095766 Kč", 2: "1372066 Kč" }
   notes?: string;
   tags?: string[];
   status: BidStatus;

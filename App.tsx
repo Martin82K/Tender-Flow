@@ -23,6 +23,7 @@ import {
   mergeContacts,
   syncContactsFromUrl,
 } from "./services/contactsImportService";
+import { loadContactStatuses } from "./services/contactStatusService";
 
 // Default statuses (keep these as they're configuration)
 const DEFAULT_STATUSES: StatusConfig[] = [
@@ -351,6 +352,7 @@ const AppContent: React.FC = () => {
               email: bid.email,
               phone: bid.phone,
               price: bid.price_display || (bid.price ? bid.price.toString() : null),
+              priceHistory: bid.price_history || undefined,
               notes: bid.notes,
               tags: bid.tags,
               status: bid.status,
@@ -400,6 +402,10 @@ const AppContent: React.FC = () => {
       );
 
       setContacts(loadedContacts);
+
+      // Load contact statuses from database
+      const statuses = await loadContactStatuses();
+      setContactStatuses(statuses);
     } catch (error) {
       console.error("Error loading initial data:", error);
     } finally {
@@ -909,8 +915,7 @@ const AppContent: React.FC = () => {
 
       if (error) {
         console.error("Error updating contact:", error);
-        alert("Chyba při aktualizaci kontaktu v databázi.");
-        alert("Chyba při aktualizaci kontaktu v databázi.");
+        alert(`Chyba při aktualizaci kontaktu: ${error.message}`);
         loadInitialData(true); // Revert silently
       }
     } catch (err) {

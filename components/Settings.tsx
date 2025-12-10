@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Header } from './Header';
 import { Project, ProjectStatus, StatusConfig, Subcontractor } from '../types';
+import { addContactStatus, updateContactStatus, deleteContactStatus } from '../services/contactStatusService';
 
 interface SettingsProps {
     darkMode: boolean;
@@ -315,7 +316,7 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
 
 
 
-    const handleAddStatus = (e: React.FormEvent) => {
+    const handleAddStatus = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newStatusLabel) return;
 
@@ -327,22 +328,53 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
             color: newStatusColor
         };
 
+        // Optimistic update
         onUpdateStatuses([...contactStatuses, newStatus]);
         setNewStatusLabel('');
-    };
 
-    const handleDeleteStatus = (id: string) => {
-        if (confirm('Opravdu smazat tento status? Kontakty s tímto statusem budou muset být přeřazeny.')) {
-            onUpdateStatuses(contactStatuses.filter(s => s.id !== id));
+        // Persist to database
+        const success = await addContactStatus(newStatus);
+        if (!success) {
+            alert('Chyba při ukládání stavu do databáze.');
         }
     };
 
-    const handleUpdateStatusLabel = (id: string, newLabel: string) => {
-        onUpdateStatuses(contactStatuses.map(s => s.id === id ? { ...s, label: newLabel } : s));
+    const handleDeleteStatus = async (id: string) => {
+        if (confirm('Opravdu smazat tento status? Kontakty s tímto statusem budou muset být přeřazeny.')) {
+            // Optimistic update
+            onUpdateStatuses(contactStatuses.filter(s => s.id !== id));
+
+            // Persist to database
+            const success = await deleteContactStatus(id);
+            if (!success) {
+                alert('Chyba při mazání stavu z databáze.');
+            }
+        }
     };
 
-    const handleUpdateStatusColor = (id: string, newColor: StatusConfig['color']) => {
+    const handleUpdateStatusLabel = async (id: string, newLabel: string) => {
+        // Optimistic update
+        onUpdateStatuses(contactStatuses.map(s => s.id === id ? { ...s, label: newLabel } : s));
+
+        // Debounced persist - update on blur instead
+    };
+
+    const handleStatusLabelBlur = async (id: string, newLabel: string) => {
+        const success = await updateContactStatus(id, { label: newLabel });
+        if (!success) {
+            alert('Chyba při ukládání změny do databáze.');
+        }
+    };
+
+    const handleUpdateStatusColor = async (id: string, newColor: StatusConfig['color']) => {
+        // Optimistic update
         onUpdateStatuses(contactStatuses.map(s => s.id === id ? { ...s, color: newColor } : s));
+
+        // Persist to database
+        const success = await updateContactStatus(id, { color: newColor });
+        if (!success) {
+            alert('Chyba při ukládání barvy do databáze.');
+        }
     };
 
     const colorOptions: { value: StatusConfig['color'], class: string }[] = [
@@ -744,80 +776,84 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
                     </div>
                 </section>
 
-                {/* 2. Subcontractor Status Management */}
-                <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-                        <span className="material-symbols-outlined">label</span>
-                        Správa stavů kontaktů
-                    </h2>
+                {/* 2. Subcontractor Status Management - Admin Only */}
+                {isAdmin && (
+                    <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+                        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+                            <span className="material-symbols-outlined">label</span>
+                            Správa stavů kontaktů
+                            <span className="ml-2 px-2.5 py-1 bg-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-bold rounded-lg border border-amber-500/30">Admin</span>
+                        </h2>
 
-                    {/* Add Status */}
-                    <form onSubmit={handleAddStatus} className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700 mb-6 flex flex-col md:flex-row gap-4 items-end">
-                        <div className="flex-1 w-full">
-                            <label className="block text-xs text-slate-500 mb-1">Název stavu</label>
-                            <input
-                                type="text"
-                                value={newStatusLabel}
-                                onChange={(e) => setNewStatusLabel(e.target.value)}
-                                placeholder="Např. Dovolená"
-                                className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:ring-primary focus:border-primary"
-                            />
-                        </div>
-                        <div className="w-full md:w-auto">
-                            <label className="block text-xs text-slate-500 mb-1">Barva</label>
-                            <div className="flex gap-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg p-1.5 h-[38px] items-center">
-                                {colorOptions.map(opt => (
-                                    <button
-                                        key={opt.value}
-                                        type="button"
-                                        onClick={() => setNewStatusColor(opt.value)}
-                                        className={`size-6 rounded-full ${opt.class} ${newStatusColor === opt.value ? 'ring-2 ring-offset-1 ring-slate-400 dark:ring-slate-500 scale-110' : 'opacity-70 hover:opacity-100'}`}
-                                        title={opt.value}
-                                    />
-                                ))}
+                        {/* Add Status */}
+                        <form onSubmit={handleAddStatus} className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700 mb-6 flex flex-col md:flex-row gap-4 items-end">
+                            <div className="flex-1 w-full">
+                                <label className="block text-xs text-slate-500 mb-1">Název stavu</label>
+                                <input
+                                    type="text"
+                                    value={newStatusLabel}
+                                    onChange={(e) => setNewStatusLabel(e.target.value)}
+                                    placeholder="Např. Dovolená"
+                                    className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:ring-primary focus:border-primary"
+                                />
                             </div>
-                        </div>
-                        <button
-                            type="submit"
-                            disabled={!newStatusLabel}
-                            className="bg-primary hover:bg-primary/90 text-white px-4 py-2 h-[38px] rounded-lg text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full md:w-auto"
-                        >
-                            Přidat
-                        </button>
-                    </form>
-
-                    {/* Status List */}
-                    <div className="space-y-3">
-                        {contactStatuses.map(status => (
-                            <div key={status.id} className="flex items-center gap-4 p-3 rounded-lg border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                                <div className="flex gap-1.5 items-center bg-slate-100 dark:bg-slate-800 rounded px-2 py-1">
+                            <div className="w-full md:w-auto">
+                                <label className="block text-xs text-slate-500 mb-1">Barva</label>
+                                <div className="flex gap-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg p-1.5 h-[38px] items-center">
                                     {colorOptions.map(opt => (
                                         <button
                                             key={opt.value}
-                                            onClick={() => handleUpdateStatusColor(status.id, opt.value)}
-                                            className={`size-4 rounded-full ${opt.class} ${status.color === opt.value ? 'ring-2 ring-offset-1 ring-white dark:ring-slate-900' : 'opacity-40 hover:opacity-100'}`}
+                                            type="button"
+                                            onClick={() => setNewStatusColor(opt.value)}
+                                            className={`size-6 rounded-full ${opt.class} ${newStatusColor === opt.value ? 'ring-2 ring-offset-1 ring-slate-400 dark:ring-slate-500 scale-110' : 'opacity-70 hover:opacity-100'}`}
+                                            title={opt.value}
                                         />
                                     ))}
                                 </div>
-                                <div className="flex-1">
-                                    <input
-                                        type="text"
-                                        value={status.label}
-                                        onChange={(e) => handleUpdateStatusLabel(status.id, e.target.value)}
-                                        className="bg-transparent border-none p-0 text-sm font-medium text-slate-900 dark:text-white focus:ring-0 w-full"
-                                    />
-                                </div>
-                                <button
-                                    onClick={() => handleDeleteStatus(status.id)}
-                                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
-                                    title="Smazat stav"
-                                >
-                                    <span className="material-symbols-outlined text-[18px]">delete</span>
-                                </button>
                             </div>
-                        ))}
-                    </div>
-                </section>
+                            <button
+                                type="submit"
+                                disabled={!newStatusLabel}
+                                className="bg-primary hover:bg-primary/90 text-white px-4 py-2 h-[38px] rounded-lg text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full md:w-auto"
+                            >
+                                Přidat
+                            </button>
+                        </form>
+
+                        {/* Status List */}
+                        <div className="space-y-3">
+                            {contactStatuses.map(status => (
+                                <div key={status.id} className="flex items-center gap-4 p-3 rounded-lg border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                                    <div className="flex gap-1.5 items-center bg-slate-100 dark:bg-slate-800 rounded px-2 py-1">
+                                        {colorOptions.map(opt => (
+                                            <button
+                                                key={opt.value}
+                                                onClick={() => handleUpdateStatusColor(status.id, opt.value)}
+                                                className={`size-4 rounded-full ${opt.class} ${status.color === opt.value ? 'ring-2 ring-offset-1 ring-white dark:ring-slate-900' : 'opacity-40 hover:opacity-100'}`}
+                                            />
+                                        ))}
+                                    </div>
+                                    <div className="flex-1">
+                                        <input
+                                            type="text"
+                                            value={status.label}
+                                            onChange={(e) => handleUpdateStatusLabel(status.id, e.target.value)}
+                                            onBlur={(e) => handleStatusLabelBlur(status.id, e.target.value)}
+                                            className="bg-transparent border-none p-0 text-sm font-medium text-slate-900 dark:text-white focus:ring-0 w-full"
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={() => handleDeleteStatus(status.id)}
+                                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
+                                        title="Smazat stav"
+                                    >
+                                        <span className="material-symbols-outlined text-[18px]">delete</span>
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                )}
 
                 {/* 3. Import Data Section */}
                 <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">

@@ -75,8 +75,8 @@ export function exportToXLSX(
   XLSX.utils.book_append_sheet(workbook, overviewSheet, 'Přehled');
 
   // Sheet 2: Seznam dodavatelů
-  const headers = ['#', 'Firma', 'Kontaktní osoba', 'Email', 'Telefon', 'Cena', 'Stav', 'Tagy', 'Poznámky'];
-  
+  const headers = ['#', 'Firma', 'Kontaktní osoba', 'Email', 'Telefon', 'Cena', '1. kolo', '2. kolo', '3. kolo', 'Stav', 'Tagy', 'Poznámky'];
+
   const bidRows = bids.map((bid, index) => [
     index + 1,
     bid.companyName,
@@ -84,18 +84,21 @@ export function exportToXLSX(
     bid.email || '-',
     bid.phone || '-',
     bid.price || '?',
+    bid.priceHistory?.[1] || '-',
+    bid.priceHistory?.[2] || '-',
+    bid.priceHistory?.[3] || '-',
     getStatusLabel(bid.status),
     bid.tags ? bid.tags.join(', ') : '-',
     bid.notes || '-'
   ]);
 
   const bidsData = [headers, ...bidRows];
-  
+
   // Add statistics
   const offersCount = bids.filter(b => b.status === 'offer' || b.status === 'shortlist' || b.status === 'sod').length;
   const prices = bids.filter(b => b.price && b.price !== '?').map(b => parseMoney(b.price));
   const avgPrice = prices.length > 0 ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
-  
+
   bidsData.push([]);
   bidsData.push(['Statistiky']);
   bidsData.push(['Celkem osloveno:', bids.length.toString()]);
@@ -105,7 +108,7 @@ export function exportToXLSX(
   }
 
   const bidsSheet = XLSX.utils.aoa_to_sheet(bidsData);
-  
+
   // Set column widths
   bidsSheet['!cols'] = [
     { wch: 5 },   // #
@@ -114,6 +117,9 @@ export function exportToXLSX(
     { wch: 25 },  // Email
     { wch: 15 },  // Telefon
     { wch: 15 },  // Cena
+    { wch: 15 },  // 1. kolo
+    { wch: 15 },  // 2. kolo
+    { wch: 15 },  // 3. kolo
     { wch: 15 },  // Stav
     { wch: 20 },  // Tagy
     { wch: 30 }   // Poznámky
@@ -136,41 +142,41 @@ export function exportToMarkdown(
 ): void {
   let markdown = `# Poptávka: ${category.title}\n\n`;
   markdown += `**Projekt:** ${project.title}\n\n`;
-  
+
   if (category.deadline) {
     markdown += `**Termín:** ${formatDate(category.deadline)}\n\n`;
   }
-  
+
   markdown += `**SOD rozpočet:** ${formatMoney(category.sodBudget)}\n`;
   markdown += `**Plánovaný rozpočet:** ${formatMoney(category.planBudget)}\n\n`;
-  
+
   if (category.description) {
     markdown += `## Popis prací\n\n${category.description}\n\n`;
   }
-  
+
   markdown += `## Seznam dodavatelů\n\n`;
   markdown += `| # | Firma | Kontakt | Email | Telefon | Cena | Stav |\n`;
   markdown += `|---|-------|---------|-------|---------|------|------|\n`;
-  
+
   bids.forEach((bid, index) => {
     markdown += `| ${index + 1} | ${bid.companyName} | ${bid.contactPerson} | ${bid.email || '-'} | ${bid.phone || '-'} | ${bid.price || '?'} | ${getStatusLabel(bid.status)} |\n`;
   });
-  
+
   // Statistics
   const offersCount = bids.filter(b => b.status === 'offer' || b.status === 'shortlist' || b.status === 'sod').length;
   const prices = bids.filter(b => b.price && b.price !== '?').map(b => parseMoney(b.price));
   const avgPrice = prices.length > 0 ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
-  
+
   markdown += `\n## Statistiky\n\n`;
   markdown += `- **Celkem osloveno:** ${bids.length}\n`;
   markdown += `- **Obdržené nabídky:** ${offersCount}\n`;
   if (avgPrice > 0) {
     markdown += `- **Průměrná cena:** ${formatMoney(avgPrice)}\n`;
   }
-  
+
   markdown += `\n---\n\n`;
   markdown += `*Exportováno: ${formatDate(new Date().toISOString())}*\n`;
-  
+
   // Download file
   const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
   const url = URL.createObjectURL(blob);
@@ -192,32 +198,32 @@ export function exportToPDF(
   project: ProjectDetails
 ): void {
   const doc = new jsPDF();
-  
+
   // Title
   doc.setFontSize(20);
   doc.setFont('helvetica', 'bold');
   doc.text('Poptávka', 14, 20);
-  
+
   // Project info
   doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
   let yPos = 35;
-  
+
   doc.text(`Projekt: ${project.title}`, 14, yPos);
   yPos += 7;
   doc.text(`Kategorie: ${category.title}`, 14, yPos);
   yPos += 7;
-  
+
   if (category.deadline) {
     doc.text(`Termín: ${formatDate(category.deadline)}`, 14, yPos);
     yPos += 7;
   }
-  
+
   doc.text(`SOD rozpočet: ${formatMoney(category.sodBudget)}`, 14, yPos);
   yPos += 7;
   doc.text(`Plánovaný rozpočet: ${formatMoney(category.planBudget)}`, 14, yPos);
   yPos += 10;
-  
+
   // Table
   const tableData = bids.map((bid, index) => [
     (index + 1).toString(),
@@ -228,7 +234,7 @@ export function exportToPDF(
     bid.price || '?',
     getStatusLabel(bid.status)
   ]);
-  
+
   autoTable(doc, {
     startY: yPos,
     head: [['#', 'Firma', 'Kontakt', 'Email', 'Telefon', 'Cena', 'Stav']],
@@ -248,12 +254,12 @@ export function exportToPDF(
     },
     margin: { top: 10 }
   });
-  
+
   // Statistics
   const offersCount = bids.filter(b => b.status === 'offer' || b.status === 'shortlist' || b.status === 'sod').length;
   const prices = bids.filter(b => b.price && b.price !== '?').map(b => parseMoney(b.price));
   const avgPrice = prices.length > 0 ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
-  
+
   const finalY = (doc as any).lastAutoTable.finalY + 10;
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
@@ -264,7 +270,7 @@ export function exportToPDF(
   if (avgPrice > 0) {
     doc.text(`Průměrná cena: ${formatMoney(avgPrice)}`, 14, finalY + 18);
   }
-  
+
   // Footer
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
@@ -277,7 +283,7 @@ export function exportToPDF(
       doc.internal.pageSize.height - 10
     );
   }
-  
+
   // Download
   const filename = `poptavka_${category.title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
   doc.save(filename);
