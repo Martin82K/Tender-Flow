@@ -12,7 +12,7 @@ interface ProjectOverviewProps {
     projectDetails: Record<string, ProjectDetails>;
 }
 
-// KPI Card Component
+// KPI Card Component - compact version
 const KPICard: React.FC<{
     title: string;
     value: string;
@@ -22,10 +22,10 @@ const KPICard: React.FC<{
     trend?: 'up' | 'down' | 'neutral';
 }> = ({ title, value, icon, color, subtitle, trend }) => (
     <div className="bg-white/5 backdrop-blur-xl p-4 rounded-xl border border-white/10 shadow-lg hover:border-white/20 transition-all">
-        <div className="flex items-start justify-between">
+        <div className="flex items-center justify-between gap-2">
             <div className="flex-1 min-w-0">
-                <p className="text-slate-400 text-[10px] font-medium mb-1 uppercase tracking-wider">{title}</p>
-                <h3 className="text-lg font-bold text-white truncate">{value}</h3>
+                <p className="text-slate-400 text-[10px] font-medium uppercase tracking-wider truncate">{title}</p>
+                <h3 className="text-lg font-bold text-white truncate mt-1">{value}</h3>
                 {subtitle && (
                     <div className="flex items-center gap-1 mt-0.5">
                         {trend && (
@@ -38,7 +38,7 @@ const KPICard: React.FC<{
                 )}
             </div>
             <div className={`p-2 rounded-lg ${color} text-white shadow-lg shrink-0`}>
-                <span className="material-symbols-outlined text-[18px]">{icon}</span>
+                <span className="material-symbols-outlined text-[16px]">{icon}</span>
             </div>
         </div>
     </div>
@@ -161,7 +161,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
                 balance: metrics.balance
             }];
 
-            const insights = await generateProjectInsights(projectSummary, 'reports');
+            const insights = await generateProjectInsights(projectSummary, 'overview');
             const analysisText = insights.map(i => `**${i.title}**\n${i.content}`).join('\n\n');
             setAiAnalysis(analysisText || 'Analýza není k dispozici.');
             setHasGeneratedAI(true);
@@ -273,10 +273,10 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
                 </div>
             </Header>
 
-            <div ref={contentRef} className="p-6 lg:p-8 flex flex-col gap-6 max-w-[1800px] mx-auto w-full">
+            <div ref={contentRef} className="p-8 lg:p-10 flex flex-col gap-8 max-w-[1800px] mx-auto w-full">
 
                 {/* KPI Row */}
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                     <KPICard title="Rozpočet (Investor)" value={formatMoneyShort(metrics?.totalBudget || 0)} icon="account_balance" color="bg-gradient-to-br from-blue-500 to-blue-600" />
                     <KPICard title="Plán (interní)" value={formatMoneyShort(metrics?.totalPlanned || 0)} icon="analytics" color="bg-gradient-to-br from-violet-500 to-purple-600" />
                     <KPICard title="Zasmluvněno (SOD)" value={formatMoneyShort(metrics?.totalContracted || 0)} icon="handshake" color="bg-gradient-to-br from-emerald-500 to-teal-600" />
@@ -297,27 +297,27 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
                     <KPICard title="SOD Progress" value={`${Math.round(metrics?.sodProgress || 0)}%`} icon="check_circle" color="bg-gradient-to-br from-amber-500 to-orange-600" subtitle={`${metrics?.sodCount || 0} z ${metrics?.categoriesCount || 0}`} />
                 </div>
 
-                {/* Main Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Main Grid - 50/50 layout */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
                     {/* AI Analysis Card */}
-                    <div className="lg:col-span-1 bg-gradient-to-br from-violet-900/30 to-blue-900/30 backdrop-blur-xl rounded-2xl border border-violet-500/20 p-5">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-2">
-                                <div className="p-2 bg-gradient-to-br from-violet-500 to-blue-500 rounded-lg">
-                                    <span className="material-symbols-outlined text-white text-[18px]">auto_awesome</span>
+                    <div className="bg-gradient-to-br from-violet-900/30 to-blue-900/30 backdrop-blur-xl rounded-2xl border border-violet-500/20 p-6">
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-3">
+                                <div className="p-3 bg-gradient-to-br from-violet-500 to-blue-500 rounded-xl">
+                                    <span className="material-symbols-outlined text-white text-[24px]">auto_awesome</span>
                                 </div>
                                 <div>
-                                    <h3 className="text-sm font-bold text-white">AI Analýza</h3>
-                                    <p className="text-[10px] text-slate-400">TenderFlow AI</p>
+                                    <h3 className="text-lg font-bold text-white">AI Analýza</h3>
+                                    <p className="text-xs text-slate-400">TenderFlow AI</p>
                                 </div>
                             </div>
                             <button
                                 onClick={generateAIAnalysis}
                                 disabled={isAnalyzing}
-                                className="flex items-center gap-1 px-3 py-1.5 bg-violet-600 hover:bg-violet-500 disabled:bg-slate-700 text-white text-xs font-medium rounded-lg transition-colors"
+                                className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 disabled:bg-slate-700 text-white text-sm font-medium rounded-xl transition-colors"
                             >
-                                <span className={`material-symbols-outlined text-[16px] ${isAnalyzing ? 'animate-spin' : ''}`}>
+                                <span className={`material-symbols-outlined text-[18px] ${isAnalyzing ? 'animate-spin' : ''}`}>
                                     {isAnalyzing ? 'sync' : 'refresh'}
                                 </span>
                                 {hasGeneratedAI ? 'Regenerovat' : 'Generovat'}
@@ -325,59 +325,59 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
                         </div>
 
                         {isAnalyzing ? (
-                            <div className="flex items-center justify-center py-8">
-                                <div className="w-8 h-8 border-3 border-violet-500 border-t-transparent rounded-full animate-spin" />
+                            <div className="flex items-center justify-center py-16">
+                                <div className="w-12 h-12 border-4 border-violet-500 border-t-transparent rounded-full animate-spin" />
                             </div>
                         ) : aiAnalysis ? (
-                            <div className="text-slate-300 text-xs leading-relaxed whitespace-pre-line max-h-[300px] overflow-y-auto">
+                            <div className="text-slate-300 text-sm leading-relaxed whitespace-pre-line">
                                 {aiAnalysis}
                             </div>
                         ) : (
-                            <div className="flex flex-col items-center justify-center py-8 text-slate-500">
-                                <span className="material-symbols-outlined text-[40px] mb-2">psychology</span>
-                                <p className="text-xs">Klikněte na "Generovat" pro AI analýzu</p>
+                            <div className="flex flex-col items-center justify-center py-16 text-slate-500">
+                                <span className="material-symbols-outlined text-[60px] mb-3">psychology</span>
+                                <p className="text-sm">Klikněte na "Generovat" pro AI analýzu</p>
                             </div>
                         )}
                     </div>
 
                     {/* Bar Chart - Plan vs SOD */}
-                    <div className="lg:col-span-2 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-5">
-                        <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-blue-400 text-[18px]">bar_chart</span>
+                    <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
+                        <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
+                            <span className="material-symbols-outlined text-blue-400 text-[24px]">bar_chart</span>
                             Plán vs. Zasmluvněno (SOD kategorie)
                         </h3>
                         {categoryChartData.length > 0 ? (
-                            <ResponsiveContainer width="100%" height={250}>
-                                <BarChart data={categoryChartData} margin={{ top: 10, right: 20, left: 0, bottom: 50 }}>
+                            <ResponsiveContainer width="100%" height={350}>
+                                <BarChart data={categoryChartData} margin={{ top: 10, right: 30, left: 10, bottom: 60 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                                    <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 9 }} angle={-45} textAnchor="end" height={50} />
-                                    <YAxis tick={{ fill: '#94a3b8', fontSize: 9 }} tickFormatter={(v) => formatMoneyShort(v)} width={60} />
-                                    <Tooltip formatter={(value: number) => formatMoney(value)} contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', fontSize: '12px' }} />
-                                    <Legend wrapperStyle={{ fontSize: '11px' }} />
-                                    <Bar dataKey="plán" fill="#8B5CF6" radius={[3, 3, 0, 0]} />
-                                    <Bar dataKey="SOD" fill="#10B981" radius={[3, 3, 0, 0]} />
+                                    <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 11 }} angle={-45} textAnchor="end" height={60} />
+                                    <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} tickFormatter={(v) => formatMoneyShort(v)} width={70} />
+                                    <Tooltip formatter={(value: number) => formatMoney(value)} contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', fontSize: '14px' }} />
+                                    <Legend wrapperStyle={{ fontSize: '13px' }} />
+                                    <Bar dataKey="plán" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
+                                    <Bar dataKey="SOD" fill="#10B981" radius={[4, 4, 0, 0]} />
                                 </BarChart>
                             </ResponsiveContainer>
                         ) : (
-                            <div className="flex items-center justify-center h-[250px] text-slate-500 text-sm">Žádné SOD kategorie</div>
+                            <div className="flex items-center justify-center h-[350px] text-slate-500 text-base">Žádné SOD kategorie</div>
                         )}
                     </div>
                 </div>
 
                 {/* Second Row */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
 
                     {/* Profitability Pie */}
-                    <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-5">
-                        <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-emerald-400 text-[18px]">pie_chart</span>
+                    <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
+                        <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-emerald-400 text-[22px]">pie_chart</span>
                             Ziskovost vs Plán
                         </h3>
                         {profitabilityChartData.length > 0 ? (
                             <div className="flex flex-col items-center">
-                                <ResponsiveContainer width="100%" height={140}>
+                                <ResponsiveContainer width="100%" height={200}>
                                     <PieChart>
-                                        <Pie data={profitabilityChartData} cx="50%" cy="50%" innerRadius={35} outerRadius={55} paddingAngle={3} dataKey="value">
+                                        <Pie data={profitabilityChartData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
                                             {profitabilityChartData.map((entry, index) => (
                                                 <Cell key={`cell-${index}`} fill={entry.color} />
                                             ))}
@@ -385,19 +385,19 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
                                         <Tooltip formatter={(value: number) => formatMoney(value)} />
                                     </PieChart>
                                 </ResponsiveContainer>
-                                <div className="flex gap-4 mt-2">
-                                    <div className="flex items-center gap-1 text-[10px]">
-                                        <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                                        <span className="text-slate-400">Ziskové: {formatMoneyShort(metrics?.profitableSum || 0)}</span>
+                                <div className="flex gap-6 mt-4">
+                                    <div className="flex items-center gap-2 text-sm">
+                                        <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                                        <span className="text-slate-300">Ziskové: {formatMoneyShort(metrics?.profitableSum || 0)}</span>
                                     </div>
-                                    <div className="flex items-center gap-1 text-[10px]">
-                                        <div className="w-2 h-2 rounded-full bg-red-500" />
-                                        <span className="text-slate-400">Ztrátové: {formatMoneyShort(metrics?.unprofitableSum || 0)}</span>
+                                    <div className="flex items-center gap-2 text-sm">
+                                        <div className="w-3 h-3 rounded-full bg-red-500" />
+                                        <span className="text-slate-300">Ztrátové: {formatMoneyShort(metrics?.unprofitableSum || 0)}</span>
                                     </div>
                                 </div>
                             </div>
                         ) : (
-                            <div className="flex items-center justify-center h-[180px] text-slate-500 text-xs">Žádná data</div>
+                            <div className="flex items-center justify-center h-[250px] text-slate-500 text-sm">Žádná data</div>
                         )}
                     </div>
 

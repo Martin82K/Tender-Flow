@@ -27,7 +27,7 @@ export interface AIInsight {
 // Random seed for variety in responses
 const getRandomSeed = () => Math.floor(Math.random() * 1000);
 
-export const generateProjectInsights = async (projects: ProjectSummary[], mode: 'achievements' | 'charts' | 'reports' | 'contacts' = 'achievements'): Promise<AIInsight[]> => {
+export const generateProjectInsights = async (projects: ProjectSummary[], mode: 'achievements' | 'charts' | 'reports' | 'contacts' | 'overview' = 'achievements'): Promise<AIInsight[]> => {
   if (!import.meta.env.VITE_GEMINI_API_KEY) {
     return [{
       title: 'API klíč nenalezen',
@@ -144,6 +144,18 @@ Odpověz POUZE jako JSON pole:
 
 Buď kreativní a generuj PRAKTICKÉ insights pro výběr nejlepších subdodavatelů!`;
 
+    const DEFAULT_OVERVIEW_PROMPT = `Jsi finanční analytik stavebního projektu. Analyzuješ finanční stav projektu a jeho poptávky.
+
+SEED PRO VARIACI: ${getRandomSeed()}
+
+Na základě dat o projektu vygeneruj strucnou analýzu:
+- Celkový rozpočet vs. zasmluvněná částka
+- Bilance (zisk/ztráta)
+- Progress uzavřených poptávek
+- Doporučení pro vedoucí projektu
+
+Odpověz jako strukturovaný text (ne JSON), stručně a přehledně. Max 200 slov.`;
+
     // Data Context Construction
     const dataContext = `
 
@@ -173,6 +185,9 @@ Odpověz POUZE jako JSON pole.`;
       } else if (mode === 'contacts') {
         const storedPrompt = localStorage.getItem('aiPromptContacts');
         basePrompt = (storedPrompt && storedPrompt.trim()) ? storedPrompt : DEFAULT_CONTACTS_PROMPT;
+      } else if (mode === 'overview') {
+        const storedPrompt = localStorage.getItem('aiPromptOverview');
+        basePrompt = (storedPrompt && storedPrompt.trim()) ? storedPrompt : DEFAULT_OVERVIEW_PROMPT;
       }
     } else {
       // Fallback if localStorage is not available
@@ -180,6 +195,7 @@ Odpověz POUZE jako JSON pole.`;
       else if (mode === 'charts') basePrompt = DEFAULT_CHARTS_PROMPT;
       else if (mode === 'reports') basePrompt = DEFAULT_REPORTS_PROMPT;
       else if (mode === 'contacts') basePrompt = DEFAULT_CONTACTS_PROMPT;
+      else if (mode === 'overview') basePrompt = DEFAULT_OVERVIEW_PROMPT;
     }
 
     const prompt = basePrompt + dataContext;

@@ -204,6 +204,9 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
     const [promptContacts, setPromptContacts] = useState(() =>
         localStorage.getItem('aiPromptContacts') || ''
     );
+    const [promptOverview, setPromptOverview] = useState(() =>
+        localStorage.getItem('aiPromptOverview') || ''
+    );
 
     // Initialize localStorage with defaults if empty
     React.useEffect(() => {
@@ -218,6 +221,9 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
         }
         if (!localStorage.getItem('aiPromptContacts')) {
             localStorage.setItem('aiPromptContacts', '');
+        }
+        if (!localStorage.getItem('aiPromptOverview')) {
+            localStorage.setItem('aiPromptOverview', '');
         }
     }, []);
 
@@ -235,6 +241,7 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
         localStorage.setItem('aiPromptCharts', promptCharts);
         localStorage.setItem('aiPromptReports', promptReports);
         localStorage.setItem('aiPromptContacts', promptContacts);
+        localStorage.setItem('aiPromptOverview', promptOverview);
         setPromptsSaved(true);
         setTimeout(() => setPromptsSaved(false), 3000);
     };
@@ -630,6 +637,19 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
                                         value={promptContacts}
                                         onChange={(e) => setPromptContacts(e.target.value)}
                                         placeholder="Výchozí: Jsi analytik subdodavatelů. Analyzuj výkonnost subdodavatelů, nejčastější účastníky poptávek..."
+                                        className="w-full h-24 p-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary resize-y"
+                                    />
+                                </div>
+
+                                {/* Overview Prompt */}
+                                <div className="space-y-2">
+                                    <label className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400">
+                                        <span>📊</span> Prompt pro Přehled staveb
+                                    </label>
+                                    <textarea
+                                        value={promptOverview}
+                                        onChange={(e) => setPromptOverview(e.target.value)}
+                                        placeholder="Výchozí: Analyzuj finanční stav projektu, porovnej rozpočet s plánem a zasmluvněnými dodavateli..."
                                         className="w-full h-24 p-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary resize-y"
                                     />
                                 </div>

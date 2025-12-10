@@ -41,6 +41,7 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
             case 'sod': return 'SOD';
             case 'open': return 'V řešení';
             case 'cancelled': return 'Zrušeno';
+            case 'closed': return 'Ukončeno';
             default: return status;
         }
     };
@@ -51,26 +52,37 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
     );
 };
 
-// AI Widget Component (simplified)
+// AI Widget Component
 const AIWidget: React.FC<{ projectData: any }> = ({ projectData }) => {
     const [insights, setInsights] = useState<AIInsight[]>([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [hasGenerated, setHasGenerated] = useState(false);
     const [mode, setMode] = useState<'achievements' | 'charts' | 'reports' | 'contacts'>('achievements');
 
-    const generateAnalysis = async () => {
+    const generateAnalysis = async (selectedMode?: string) => {
         if (!projectData) return;
+        const modeToUse = selectedMode || mode;
         setIsLoading(true);
         try {
-            const aiInsights = await generateProjectInsights([projectData], mode);
+            const aiInsights = await generateProjectInsights([projectData], modeToUse as any);
             setInsights(aiInsights);
-            setHasGenerated(true);
         } catch (error) {
             console.error('AI error:', error);
             setInsights(generateLocalInsights([projectData]));
         } finally {
             setIsLoading(false);
         }
+    };
+
+    // Auto-load on first render
+    React.useEffect(() => {
+        if (projectData && insights.length === 0) {
+            generateAnalysis();
+        }
+    }, [projectData]);
+
+    const handleModeChange = (newMode: typeof mode) => {
+        setMode(newMode);
+        generateAnalysis(newMode);
     };
 
     const getTypeStyles = (type: string) => {
@@ -82,9 +94,16 @@ const AIWidget: React.FC<{ projectData: any }> = ({ projectData }) => {
         }
     };
 
+    const modeButtons = [
+        { key: 'achievements', label: '🏆 Achievementy' },
+        { key: 'charts', label: '📊 Grafy' },
+        { key: 'reports', label: '📋 Reporty' },
+        { key: 'contacts', label: '👥 Kontakty' }
+    ];
+
     return (
         <div className="bg-gradient-to-br from-violet-900/20 to-blue-900/20 backdrop-blur-xl rounded-2xl border border-violet-500/20 p-5">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
                 <div className="flex items-center gap-2">
                     <div className="p-2 bg-gradient-to-br from-violet-500 to-blue-500 rounded-lg">
                         <span className="material-symbols-outlined text-white text-[18px]">auto_awesome</span>
@@ -94,26 +113,29 @@ const AIWidget: React.FC<{ projectData: any }> = ({ projectData }) => {
                         <p className="text-[10px] text-slate-400">Automatická analýza</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
-                    <select
-                        value={mode}
-                        onChange={(e) => setMode(e.target.value as any)}
-                        className="bg-slate-800 border border-slate-700 text-white text-xs px-2 py-1 rounded-lg"
-                    >
-                        <option value="achievements">🏆 Achievementy</option>
-                        <option value="charts">📊 Grafy</option>
-                        <option value="reports">📋 Reporty</option>
-                        <option value="contacts">👥 Kontakty</option>
-                    </select>
+                <div className="flex items-center gap-2 flex-wrap">
+                    {modeButtons.map(btn => (
+                        <button
+                            key={btn.key}
+                            onClick={() => handleModeChange(btn.key as typeof mode)}
+                            disabled={isLoading}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${mode === btn.key
+                                ? 'bg-violet-600 text-white'
+                                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                                }`}
+                        >
+                            {btn.label}
+                        </button>
+                    ))}
                     <button
-                        onClick={generateAnalysis}
+                        onClick={() => generateAnalysis()}
                         disabled={isLoading}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-violet-600 hover:bg-violet-500 disabled:bg-slate-700 text-white text-xs font-medium rounded-lg"
+                        className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 text-white text-xs font-medium rounded-lg"
                     >
                         <span className={`material-symbols-outlined text-[14px] ${isLoading ? 'animate-spin' : ''}`}>
                             {isLoading ? 'sync' : 'refresh'}
                         </span>
-                        {hasGenerated ? 'Regenerovat' : 'Generovat'}
+                        Regenerovat
                     </button>
                 </div>
             </div>
@@ -123,14 +145,14 @@ const AIWidget: React.FC<{ projectData: any }> = ({ projectData }) => {
                     <div className="w-8 h-8 border-3 border-violet-500 border-t-transparent rounded-full animate-spin" />
                 </div>
             ) : insights.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {insights.slice(0, 4).map((insight, idx) => (
-                        <div key={idx} className={`p-3 rounded-xl border ${getTypeStyles(insight.type)}`}>
-                            <div className="flex items-start gap-2">
-                                <span className="material-symbols-outlined text-[18px]">{insight.icon || 'lightbulb'}</span>
+                        <div key={idx} className={`p-4 rounded-xl border ${getTypeStyles(insight.type)}`}>
+                            <div className="flex items-start gap-3">
+                                <span className="material-symbols-outlined text-[24px]">{insight.icon || 'lightbulb'}</span>
                                 <div>
-                                    <h4 className="text-xs font-bold mb-1">{insight.title}</h4>
-                                    <p className="text-[10px] opacity-80">{insight.content}</p>
+                                    <h4 className="text-sm font-bold mb-1">{insight.title}</h4>
+                                    <p className="text-xs opacity-80 leading-relaxed">{insight.content}</p>
                                 </div>
                             </div>
                         </div>
@@ -139,7 +161,7 @@ const AIWidget: React.FC<{ projectData: any }> = ({ projectData }) => {
             ) : (
                 <div className="flex flex-col items-center justify-center py-8 text-slate-500">
                     <span className="material-symbols-outlined text-[40px] mb-2">psychology</span>
-                    <p className="text-xs">Klikněte na "Generovat" pro AI analýzu</p>
+                    <p className="text-xs">Načítám AI analýzu...</p>
                 </div>
             )}
         </div>
@@ -148,7 +170,24 @@ const AIWidget: React.FC<{ projectData: any }> = ({ projectData }) => {
 
 export const Dashboard: React.FC<DashboardProps> = ({ projects, projectDetails }) => {
     const activeProjects = projects.filter(p => p.status !== 'archived');
-    const [selectedProjectId, setSelectedProjectId] = useState<string>(activeProjects[0]?.id || '');
+
+    // Load last selected project from localStorage or use first active
+    const getInitialProjectId = () => {
+        const saved = localStorage.getItem('dashboardSelectedProject');
+        if (saved && activeProjects.some(p => p.id === saved)) {
+            return saved;
+        }
+        return activeProjects[0]?.id || '';
+    };
+
+    const [selectedProjectId, setSelectedProjectId] = useState<string>(getInitialProjectId);
+
+    // Save to localStorage when project changes
+    React.useEffect(() => {
+        if (selectedProjectId) {
+            localStorage.setItem('dashboardSelectedProject', selectedProjectId);
+        }
+    }, [selectedProjectId]);
 
     const selectedProject = projectDetails[selectedProjectId];
     const selectedBids = selectedProject?.bids || {};
@@ -187,8 +226,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ projects, projectDetails }
         const categoryBids = selectedBids[categoryId] || [];
         const totalBids = categoryBids.length;
         const withPrice = categoryBids.filter(b => b.price && b.price !== '?' && b.price !== '-').length;
-        const winner = categoryBids.find(b => b.status === 'sod');
-        return { totalBids, withPrice, winner };
+        const winners = categoryBids.filter(b => b.status === 'sod');
+        const winnersNames = winners.map(w => w.companyName).join(', ');
+        const winnersTotal = winners.reduce((sum, w) => {
+            const price = parseFloat(String(w.price || '0').replace(/\s/g, '').replace(',', '.'));
+            return sum + (isNaN(price) ? 0 : price);
+        }, 0);
+        return { totalBids, withPrice, winners, winnersNames, winnersTotal };
     };
 
     // Export to XLSX
@@ -207,7 +251,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ projects, projectDetails }
                 'Rozdíl (%)': cat.planBudget ? ((diff / cat.planBudget) * 100).toFixed(1) + '%' : '-',
                 'Počet nabídek': bidInfo.totalBids,
                 'S cenou': bidInfo.withPrice,
-                'Vítěz': bidInfo.winner?.companyName || '-'
+                'Vítěz': bidInfo.winnersNames || '-'
             };
         });
 
@@ -379,9 +423,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ projects, projectDetails }
                                                     <span className="text-slate-500">{bidInfo.totalBids}</span>
                                                 </div>
                                             </td>
-                                            <td className="py-3 px-4">
-                                                {bidInfo.winner ? (
-                                                    <span className="text-emerald-400 font-medium">{bidInfo.winner.companyName}</span>
+                                            <td className="py-3 px-4 max-w-[200px]">
+                                                {bidInfo.winnersNames ? (
+                                                    <span className="text-emerald-400 font-medium break-words whitespace-normal">{bidInfo.winnersNames}</span>
                                                 ) : (
                                                     <span className="text-slate-500">-</span>
                                                 )}
