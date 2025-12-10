@@ -155,7 +155,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onRegister })
 
           {/* Version Label */}
           <div className="mt-8 pt-8 border-t border-white/10 text-center">
-            <span className="text-xs text-white/40">verze 0.4.2</span>
+            <span className="text-xs text-white/40">verze 5.0.0</span>
           </div>
         </form>
 

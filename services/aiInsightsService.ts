@@ -27,7 +27,7 @@ export interface AIInsight {
 // Random seed for variety in responses
 const getRandomSeed = () => Math.floor(Math.random() * 1000);
 
-export const generateProjectInsights = async (projects: ProjectSummary[], mode: 'achievements' | 'charts' | 'reports' = 'achievements'): Promise<AIInsight[]> => {
+export const generateProjectInsights = async (projects: ProjectSummary[], mode: 'achievements' | 'charts' | 'reports' | 'contacts' = 'achievements'): Promise<AIInsight[]> => {
   if (!import.meta.env.VITE_GEMINI_API_KEY) {
     return [{
       title: 'API klíč nenalezen',
@@ -121,6 +121,29 @@ Vygeneruj 3-4 reportovací položky. Mohou být různého typu:
 TYPY REPORTŮ: Shrnutí stavu, Finanční přehled, Upozornění, Doporučení.
 Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rychlé rozhodování vedení!`;
 
+    const DEFAULT_CONTACTS_PROMPT = `Jsi analytik subdodavatelů ve stavební firmě. Analyzuješ výkonnost a spolehlivost subdodavatelů na základě dat z výběrových řízení.
+
+SEED PRO VARIACI: ${getRandomSeed()}
+
+Vygeneruj 4-5 insights o subdodavatelích/kontaktech. Zaměř se na:
+- Nejčastější subdodavatelé (podle účasti v poptávkách)
+- Nejlepší subdodavatelé (podle cenové konkurenceschopnosti)
+- Průměrné umístění subdodavatelů v soutěžích
+- Trendy v nabídkách (počet oslovených vs. počet odevzdaných cen)
+- Doporučení pro budoucí poptávání
+
+Odpověz POUZE jako JSON pole:
+{
+  "title": "Název insight",
+  "content": "Stručný popis (max 100 znaků)",
+  "type": "achievement|success|warning|info|tip",
+  "icon": "person|group|star|trending_up|analytics|leaderboard|handshake|verified",
+  "progress": 0-100 (volitelné),
+  "stats": [{ "label": "Metrika", "value": "Hodnota", "trend": "up|down|neutral" }] (volitelné, max 2)
+}
+
+Buď kreativní a generuj PRAKTICKÉ insights pro výběr nejlepších subdodavatelů!`;
+
     // Data Context Construction
     const dataContext = `
 
@@ -147,12 +170,15 @@ Odpověz POUZE jako JSON pole.`;
         basePrompt = localStorage.getItem('aiPromptCharts') || DEFAULT_CHARTS_PROMPT;
       } else if (mode === 'reports') {
         basePrompt = localStorage.getItem('aiPromptReports') || DEFAULT_REPORTS_PROMPT;
+      } else if (mode === 'contacts') {
+        basePrompt = localStorage.getItem('aiPromptContacts') || DEFAULT_CONTACTS_PROMPT;
       }
     } else {
       // Fallback if localStorage is not available
       if (mode === 'achievements') basePrompt = DEFAULT_ACHIEVEMENTS_PROMPT;
       else if (mode === 'charts') basePrompt = DEFAULT_CHARTS_PROMPT;
       else if (mode === 'reports') basePrompt = DEFAULT_REPORTS_PROMPT;
+      else if (mode === 'contacts') basePrompt = DEFAULT_CONTACTS_PROMPT;
     }
 
     const prompt = basePrompt + dataContext;

@@ -189,7 +189,7 @@ const AIInsightsWidget: React.FC<{ projects: ProjectSummary[] }> = ({ projects }
     const [isLoading, setIsLoading] = useState(true);
     const [aiEnabled, setAiEnabled] = useState(true);
     const [showDisabledWarning, setShowDisabledWarning] = useState(false);
-    const [mode, setMode] = useState<'achievements' | 'charts' | 'reports'>('achievements');
+    const [mode, setMode] = useState<'achievements' | 'charts' | 'reports' | 'contacts'>('achievements');
 
     // Check localStorage for AI enabled setting
     useEffect(() => {
@@ -309,7 +309,7 @@ const AIInsightsWidget: React.FC<{ projects: ProjectSummary[] }> = ({ projects }
                         <span className="material-symbols-outlined text-amber-400">memory</span>
                     </div>
                     <div>
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">Construction Ai</h3>
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">TenderFlow AI</h3>
                         <p className="text-xs text-slate-500">Automatická analýza projektů</p>
                     </div>
                 </div>
@@ -345,6 +345,16 @@ const AIInsightsWidget: React.FC<{ projects: ProjectSummary[] }> = ({ projects }
                                 }`}
                         >
                             📋 Reporty
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setMode('contacts')}
+                            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${mode === 'contacts'
+                                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'
+                                }`}
+                        >
+                            👥 Kontakty
                         </button>
                     </div>
 

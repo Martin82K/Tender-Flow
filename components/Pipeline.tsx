@@ -1432,6 +1432,53 @@ export const Pipeline: React.FC<PipelineProps> = ({
     }
   };
 
+  // Handle sending email to losers (non-winners with at least one price)
+  const handleEmailLosers = () => {
+    if (!activeCategory) return;
+
+    const categoryBids = bids[activeCategory.id] || [];
+
+    // Filter bids: not in "sod" status AND has at least one price (in price or priceHistory)
+    const loserBids = categoryBids.filter(bid => {
+      // Exclude winners (SOD status)
+      if (bid.status === 'sod') return false;
+
+      // Must have at least one valid price
+      const hasMainPrice = bid.price && bid.price !== '?' && bid.price !== '-';
+      const hasPriceHistory = bid.priceHistory && Object.keys(bid.priceHistory).length > 0;
+
+      return hasMainPrice || hasPriceHistory;
+    });
+
+    if (loserBids.length === 0) {
+      alert('Nejsou žádní nevybráni účastníci s cenou.');
+      return;
+    }
+
+    // Get emails
+    const emails = loserBids
+      .filter(bid => bid.email)
+      .map(bid => bid.email);
+
+    if (emails.length === 0) {
+      alert('Žádný z nevybraných účastníků nemá uvedený email.');
+      return;
+    }
+
+    // Create mailto link with BCC
+    const subject = encodeURIComponent(`${projectDetails.title} - ${activeCategory.title} - Výsledek výběrového řízení`);
+    const body = encodeURIComponent(
+      `Vážený obchodní partnere,\n\n` +
+      `děkujeme za Vaši nabídku v rámci výběrového řízení na zakázku "${projectDetails.title}" - ${activeCategory.title}.\n\n` +
+      `Po pečlivém zvážení všech nabídek jsme se rozhodli pokračovat s jiným dodavatelem.\n\n` +
+      `Věříme, že budeme mít možnost spolupracovat na dalších projektech v budoucnosti.\n\n` +
+      `S pozdravem`
+    );
+
+    // Open mailto with BCC to all losers
+    window.location.href = `mailto:?bcc=${emails.join(',')}&subject=${subject}&body=${body}`;
+  };
+
   const handleSaveNewContact = async (newContact: Subcontractor) => {
     // Optimistic update
     setLocalContacts((prev) => [...prev, newContact]);
@@ -1576,6 +1623,18 @@ export const Pipeline: React.FC<PipelineProps> = ({
                 document.body
               )}
           </div>
+
+          {/* Email Losers Button */}
+          <button
+            onClick={handleEmailLosers}
+            className="flex items-center gap-2 bg-orange-100 dark:bg-orange-900/30 hover:bg-orange-200 dark:hover:bg-orange-900/50 text-orange-700 dark:text-orange-300 px-4 py-2 rounded-lg text-sm font-bold transition-colors"
+            title="Odeslat email nevybraným účastníkům s cenou"
+          >
+            <span className="material-symbols-outlined text-[20px]">
+              mail
+            </span>
+            <span>Email nevybraným</span>
+          </button>
         </Header>
 
         {/* Document List Section */}

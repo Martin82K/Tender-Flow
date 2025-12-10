@@ -201,6 +201,9 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
     const [promptReports, setPromptReports] = useState(() =>
         localStorage.getItem('aiPromptReports') || DEFAULT_PROMPT_REPORTS
     );
+    const [promptContacts, setPromptContacts] = useState(() =>
+        localStorage.getItem('aiPromptContacts') || ''
+    );
 
     // Initialize localStorage with defaults if empty
     React.useEffect(() => {
@@ -212,6 +215,9 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
         }
         if (!localStorage.getItem('aiPromptReports')) {
             localStorage.setItem('aiPromptReports', DEFAULT_PROMPT_REPORTS);
+        }
+        if (!localStorage.getItem('aiPromptContacts')) {
+            localStorage.setItem('aiPromptContacts', '');
         }
     }, []);
 
@@ -228,6 +234,7 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
         localStorage.setItem('aiPromptAchievements', promptAchievements);
         localStorage.setItem('aiPromptCharts', promptCharts);
         localStorage.setItem('aiPromptReports', promptReports);
+        localStorage.setItem('aiPromptContacts', promptContacts);
         setPromptsSaved(true);
         setTimeout(() => setPromptsSaved(false), 3000);
     };
@@ -610,6 +617,19 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
                                         value={promptReports}
                                         onChange={(e) => setPromptReports(e.target.value)}
                                         placeholder="Výchozí: Jsi zkušený stavbyvedoucí. Připrav přehledný report o stavu projektů..."
+                                        className="w-full h-24 p-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary resize-y"
+                                    />
+                                </div>
+
+                                {/* Contacts Prompt */}
+                                <div className="space-y-2">
+                                    <label className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400">
+                                        <span>👥</span> Prompt pro Kontakty
+                                    </label>
+                                    <textarea
+                                        value={promptContacts}
+                                        onChange={(e) => setPromptContacts(e.target.value)}
+                                        placeholder="Výchozí: Jsi analytik subdodavatelů. Analyzuj výkonnost subdodavatelů, nejčastější účastníky poptávek..."
                                         className="w-full h-24 p-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary resize-y"
                                     />
                                 </div>
