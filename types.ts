@@ -59,6 +59,7 @@ export interface Bid {
   status: BidStatus;
   updateDate?: string; // Datum k zaslání úpravy (ISO date string)
   selectionRound?: number; // Kolo výběru: 1, 2, nebo 3
+  contracted?: boolean; // True when contract is signed with this winner
 }
 
 export interface ChartData {

@@ -33,13 +33,14 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
             case 'sod': return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
             case 'open': return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
             case 'cancelled': return 'bg-red-500/20 text-red-400 border-red-500/30';
+            case 'closed': return 'bg-teal-500/20 text-teal-400 border-teal-500/30';
             default: return 'bg-slate-500/20 text-slate-400 border-slate-500/30';
         }
     };
     const getStatusLabel = () => {
         switch (status) {
             case 'sod': return 'SOD';
-            case 'open': return 'V řešení';
+            case 'open': return 'Probíhá';
             case 'cancelled': return 'Zrušeno';
             case 'closed': return 'Ukončeno';
             default: return status;
@@ -52,22 +53,30 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
     );
 };
 
-// AI Widget Component
+// AI Widget Component with cached insights per mode
 const AIWidget: React.FC<{ projectData: any }> = ({ projectData }) => {
-    const [insights, setInsights] = useState<AIInsight[]>([]);
+    const [insightsCache, setInsightsCache] = useState<Record<string, AIInsight[]>>({});
     const [isLoading, setIsLoading] = useState(false);
     const [mode, setMode] = useState<'achievements' | 'charts' | 'reports' | 'contacts'>('achievements');
 
-    const generateAnalysis = async (selectedMode?: string) => {
+    const insights = insightsCache[mode] || [];
+
+    const generateAnalysis = async (selectedMode?: string, forceRegenerate = false) => {
         if (!projectData) return;
         const modeToUse = selectedMode || mode;
+
+        // Use cache if available and not forcing regenerate
+        if (!forceRegenerate && insightsCache[modeToUse]?.length > 0) {
+            return;
+        }
+
         setIsLoading(true);
         try {
             const aiInsights = await generateProjectInsights([projectData], modeToUse as any);
-            setInsights(aiInsights);
+            setInsightsCache(prev => ({ ...prev, [modeToUse]: aiInsights }));
         } catch (error) {
             console.error('AI error:', error);
-            setInsights(generateLocalInsights([projectData]));
+            setInsightsCache(prev => ({ ...prev, [modeToUse]: generateLocalInsights([projectData]) }));
         } finally {
             setIsLoading(false);
         }
@@ -75,14 +84,17 @@ const AIWidget: React.FC<{ projectData: any }> = ({ projectData }) => {
 
     // Auto-load on first render
     React.useEffect(() => {
-        if (projectData && insights.length === 0) {
+        if (projectData && !insightsCache[mode]?.length) {
             generateAnalysis();
         }
     }, [projectData]);
 
+    // Handle mode change - use cache or generate if not cached
     const handleModeChange = (newMode: typeof mode) => {
         setMode(newMode);
-        generateAnalysis(newMode);
+        if (!insightsCache[newMode]?.length) {
+            generateAnalysis(newMode);
+        }
     };
 
     const getTypeStyles = (type: string) => {
@@ -105,8 +117,8 @@ const AIWidget: React.FC<{ projectData: any }> = ({ projectData }) => {
         <div className="bg-gradient-to-br from-violet-900/20 to-blue-900/20 backdrop-blur-xl rounded-2xl border border-violet-500/20 p-5">
             <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
                 <div className="flex items-center gap-2">
-                    <div className="p-2 bg-gradient-to-br from-violet-500 to-blue-500 rounded-lg">
-                        <span className="material-symbols-outlined text-white text-[18px]">auto_awesome</span>
+                    <div className="p-2 bg-gradient-to-br from-orange-500 to-amber-600 rounded-lg flex items-center justify-center">
+                        <span className="text-white text-[12px] font-black tracking-tighter">TF</span>
                     </div>
                     <div>
                         <h3 className="text-sm font-bold text-white">TenderFlow AI</h3>
@@ -128,7 +140,7 @@ const AIWidget: React.FC<{ projectData: any }> = ({ projectData }) => {
                         </button>
                     ))}
                     <button
-                        onClick={() => generateAnalysis()}
+                        onClick={() => generateAnalysis(mode, true)}
                         disabled={isLoading}
                         className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 text-white text-xs font-medium rounded-lg"
                     >
@@ -202,18 +214,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ projects, projectDetails }
 
         const categories = selectedProject.categories || [];
         const sodCategories = categories.filter(c => c.status === 'sod');
+        const closedCategories = categories.filter(c => c.status === 'closed');
         const openCategories = categories.filter(c => c.status === 'open');
         const totalContracted = sodCategories.reduce((sum, c) => sum + (c.sodBudget || 0), 0);
+        const totalSodAll = categories.reduce((sum, c) => sum + (c.sodBudget || 0), 0);
         const totalPlanned = categories.reduce((sum, c) => sum + (c.planBudget || 0), 0);
         const balance = totalBudget - totalContracted;
 
         return {
             totalBudget,
             totalContracted,
+            totalSodAll,
             totalPlanned,
             balance,
             categories,
             sodCount: sodCategories.length,
+            closedCount: closedCategories.length,
             openCount: openCategories.length,
             totalCount: categories.length
         };
@@ -239,20 +255,63 @@ export const Dashboard: React.FC<DashboardProps> = ({ projects, projectDetails }
     const handleExport = () => {
         if (!selectedProject || !metrics) return;
 
+        const getStatusLabel = (status: string) => {
+            switch (status) {
+                case 'sod': return 'SOD';
+                case 'open': return 'Probíhá';
+                case 'cancelled': return 'Zrušeno';
+                case 'closed': return 'Ukončeno';
+                default: return status;
+            }
+        };
+
         const data = metrics.categories.map(cat => {
             const bidInfo = getCategoryBidInfo(cat.id);
-            const diff = (cat.planBudget || 0) - (cat.sodBudget || 0);
+            const sodVr = bidInfo.winnersTotal > 0 ? (cat.sodBudget || 0) - bidInfo.winnersTotal : null;
+            const pnVr = bidInfo.winnersTotal > 0 ? (cat.planBudget || 0) - bidInfo.winnersTotal : null;
             return {
+                'Stav': getStatusLabel(cat.status),
                 'Poptávka': cat.title,
-                'Stav': cat.status === 'sod' ? 'SOD' : cat.status === 'open' ? 'V řešení' : cat.status,
-                'Plán (Kč)': cat.planBudget || 0,
                 'SOD (Kč)': cat.sodBudget || 0,
-                'Rozdíl (Kč)': diff,
-                'Rozdíl (%)': cat.planBudget ? ((diff / cat.planBudget) * 100).toFixed(1) + '%' : '-',
-                'Počet nabídek': bidInfo.totalBids,
-                'S cenou': bidInfo.withPrice,
+                'Plán (Kč)': cat.planBudget || 0,
+                'Cena VŘ (Kč)': bidInfo.winnersTotal || '-',
+                'SOD-VŘ (Kč)': sodVr !== null ? sodVr : '-',
+                'PN-VŘ (Kč)': pnVr !== null ? pnVr : '-',
+                'Nabídky': `${bidInfo.withPrice}/${bidInfo.totalBids}`,
                 'Vítěz': bidInfo.winnersNames || '-'
             };
+        });
+
+        // Add totals row
+        const totalCenaVr = metrics.categories.reduce((sum, cat) => {
+            const bidInfo = getCategoryBidInfo(cat.id);
+            return sum + (bidInfo.winnersTotal || 0);
+        }, 0);
+        const totalSodVr = metrics.categories.reduce((sum, cat) => {
+            const bidInfo = getCategoryBidInfo(cat.id);
+            if (bidInfo.winnersTotal > 0) {
+                return sum + ((cat.sodBudget || 0) - bidInfo.winnersTotal);
+            }
+            return sum;
+        }, 0);
+        const totalPnVr = metrics.categories.reduce((sum, cat) => {
+            const bidInfo = getCategoryBidInfo(cat.id);
+            if (bidInfo.winnersTotal > 0) {
+                return sum + ((cat.planBudget || 0) - bidInfo.winnersTotal);
+            }
+            return sum;
+        }, 0);
+
+        data.push({
+            'Stav': '',
+            'Poptávka': 'CELKEM',
+            'SOD (Kč)': metrics.totalSodAll,
+            'Plán (Kč)': metrics.totalPlanned,
+            'Cena VŘ (Kč)': totalCenaVr || '-',
+            'SOD-VŘ (Kč)': totalCenaVr > 0 ? totalSodVr : '-',
+            'PN-VŘ (Kč)': totalCenaVr > 0 ? totalPnVr : '-',
+            'Nabídky': '',
+            'Vítěz': ''
         });
 
         const ws = XLSX.utils.json_to_sheet(data);
@@ -261,7 +320,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ projects, projectDetails }
 
         // Set column widths
         ws['!cols'] = [
-            { wch: 30 }, { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 25 }
+            { wch: 12 }, { wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 10 }, { wch: 30 }
         ];
 
         XLSX.writeFile(wb, `prehled-${selectedProject.title.replace(/\s+/g, '-')}.xlsx`);
@@ -373,11 +432,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ projects, projectDetails }
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="bg-slate-800/50">
-                                    <th className="text-left py-3 px-4 text-slate-400 font-medium">Poptávka</th>
                                     <th className="text-center py-3 px-4 text-slate-400 font-medium">Stav</th>
-                                    <th className="text-right py-3 px-4 text-slate-400 font-medium">Plán</th>
+                                    <th className="text-left py-3 px-4 text-slate-400 font-medium">Poptávka</th>
                                     <th className="text-right py-3 px-4 text-slate-400 font-medium">SOD</th>
-                                    <th className="text-right py-3 px-4 text-slate-400 font-medium">Rozdíl</th>
+                                    <th className="text-right py-3 px-4 text-slate-400 font-medium">Plán</th>
+                                    <th className="text-right py-3 px-4 text-slate-400 font-medium">Cena VŘ</th>
+                                    <th className="text-right py-3 px-4 text-slate-400 font-medium">SOD-VŘ</th>
+                                    <th className="text-right py-3 px-4 text-slate-400 font-medium">PN-VŘ</th>
                                     <th className="text-center py-3 px-4 text-slate-400 font-medium">Nabídky</th>
                                     <th className="text-left py-3 px-4 text-slate-400 font-medium">Vítěz</th>
                                 </tr>
@@ -385,33 +446,44 @@ export const Dashboard: React.FC<DashboardProps> = ({ projects, projectDetails }
                             <tbody>
                                 {metrics?.categories.map((cat, idx) => {
                                     const bidInfo = getCategoryBidInfo(cat.id);
-                                    const diff = (cat.planBudget || 0) - (cat.sodBudget || 0);
-                                    const diffPercent = cat.planBudget ? (diff / cat.planBudget) * 100 : 0;
+                                    const diffSodVr = (cat.sodBudget || 0) - (bidInfo.winnersTotal || 0);
+                                    const diffPnVr = (cat.planBudget || 0) - (bidInfo.winnersTotal || 0);
 
                                     return (
                                         <tr key={cat.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                                            <td className="py-3 px-4">
-                                                <span className="text-white font-medium">{cat.title}</span>
-                                            </td>
                                             <td className="py-3 px-4 text-center">
                                                 <StatusBadge status={cat.status} />
                                             </td>
-                                            <td className="py-3 px-4 text-right text-slate-300">
-                                                {cat.planBudget ? formatMoney(cat.planBudget) : '-'}
+                                            <td className="py-3 px-4">
+                                                <span className="text-white font-medium">{cat.title}</span>
                                             </td>
                                             <td className="py-3 px-4 text-right text-white font-medium">
                                                 {cat.sodBudget ? formatMoney(cat.sodBudget) : '-'}
                                             </td>
+                                            <td className="py-3 px-4 text-right text-slate-300">
+                                                {cat.planBudget ? formatMoney(cat.planBudget) : '-'}
+                                            </td>
                                             <td className="py-3 px-4 text-right">
-                                                {cat.status === 'sod' ? (
-                                                    <div className="flex flex-col items-end">
-                                                        <span className={`font-medium ${diff >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                                            {diff >= 0 ? '+' : ''}{formatMoney(diff)}
-                                                        </span>
-                                                        <span className={`text-[10px] ${diff >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                                                            {diffPercent >= 0 ? '+' : ''}{diffPercent.toFixed(1)}%
-                                                        </span>
-                                                    </div>
+                                                {bidInfo.winnersTotal > 0 ? (
+                                                    <span className="text-amber-400 font-medium">{formatMoney(bidInfo.winnersTotal)}</span>
+                                                ) : (
+                                                    <span className="text-slate-500">-</span>
+                                                )}
+                                            </td>
+                                            <td className="py-3 px-4 text-right">
+                                                {bidInfo.winnersTotal > 0 ? (
+                                                    <span className={`font-medium ${diffSodVr >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                        {diffSodVr >= 0 ? '+' : ''}{formatMoney(diffSodVr)}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-slate-500">-</span>
+                                                )}
+                                            </td>
+                                            <td className="py-3 px-4 text-right">
+                                                {bidInfo.winnersTotal > 0 ? (
+                                                    <span className={`font-medium ${diffPnVr >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                        {diffPnVr >= 0 ? '+' : ''}{formatMoney(diffPnVr)}
+                                                    </span>
                                                 ) : (
                                                     <span className="text-slate-500">-</span>
                                                 )}
@@ -437,14 +509,56 @@ export const Dashboard: React.FC<DashboardProps> = ({ projects, projectDetails }
                             {metrics && metrics.categories.length > 0 && (
                                 <tfoot>
                                     <tr className="bg-slate-800/30 font-bold">
+                                        <td className="py-3 px-4 text-center text-slate-400"></td>
                                         <td className="py-3 px-4 text-white">Celkem</td>
-                                        <td className="py-3 px-4 text-center text-slate-400">{metrics.sodCount} SOD</td>
+                                        <td className="py-3 px-4 text-right text-white">{formatMoney(metrics.totalSodAll)}</td>
                                         <td className="py-3 px-4 text-right text-slate-300">{formatMoney(metrics.totalPlanned)}</td>
-                                        <td className="py-3 px-4 text-right text-white">{formatMoney(metrics.totalContracted)}</td>
                                         <td className="py-3 px-4 text-right">
-                                            <span className={`${metrics.balance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                                {metrics.balance >= 0 ? '+' : ''}{formatMoney(metrics.balance)}
-                                            </span>
+                                            {(() => {
+                                                const totalWinnersPrice = metrics.categories.reduce((sum, cat) => {
+                                                    const bidInfo = getCategoryBidInfo(cat.id);
+                                                    return sum + (bidInfo.winnersTotal || 0);
+                                                }, 0);
+                                                return totalWinnersPrice > 0 ? (
+                                                    <span className="text-amber-400">{formatMoney(totalWinnersPrice)}</span>
+                                                ) : <span className="text-slate-500">-</span>;
+                                            })()}
+                                        </td>
+                                        <td className="py-3 px-4 text-right">
+                                            {(() => {
+                                                // Sum only rows that have winner prices
+                                                const totalSodVr = metrics.categories.reduce((sum, cat) => {
+                                                    const bidInfo = getCategoryBidInfo(cat.id);
+                                                    if (bidInfo.winnersTotal > 0) {
+                                                        return sum + ((cat.sodBudget || 0) - bidInfo.winnersTotal);
+                                                    }
+                                                    return sum;
+                                                }, 0);
+                                                const hasAnyWinners = metrics.categories.some(cat => getCategoryBidInfo(cat.id).winnersTotal > 0);
+                                                return hasAnyWinners ? (
+                                                    <span className={`${totalSodVr >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                        {totalSodVr >= 0 ? '+' : ''}{formatMoney(totalSodVr)}
+                                                    </span>
+                                                ) : <span className="text-slate-500">-</span>;
+                                            })()}
+                                        </td>
+                                        <td className="py-3 px-4 text-right">
+                                            {(() => {
+                                                // Sum only rows that have winner prices
+                                                const totalPnVr = metrics.categories.reduce((sum, cat) => {
+                                                    const bidInfo = getCategoryBidInfo(cat.id);
+                                                    if (bidInfo.winnersTotal > 0) {
+                                                        return sum + ((cat.planBudget || 0) - bidInfo.winnersTotal);
+                                                    }
+                                                    return sum;
+                                                }, 0);
+                                                const hasAnyWinners = metrics.categories.some(cat => getCategoryBidInfo(cat.id).winnersTotal > 0);
+                                                return hasAnyWinners ? (
+                                                    <span className={`${totalPnVr >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                                        {totalPnVr >= 0 ? '+' : ''}{formatMoney(totalPnVr)}
+                                                    </span>
+                                                ) : <span className="text-slate-500">-</span>;
+                                            })()}
                                         </td>
                                         <td colSpan={2} className="py-3 px-4"></td>
                                     </tr>

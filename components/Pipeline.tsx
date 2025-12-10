@@ -468,11 +468,13 @@ const CategoryCard: React.FC<{
   category: DemandCategory;
   bidCount: number;
   priceOfferCount: number;
+  contractedCount: number;
+  sodBidsCount: number;
   onClick: () => void;
   onEdit?: (category: DemandCategory) => void;
   onDelete?: (categoryId: string) => void;
   onToggleComplete?: (category: DemandCategory) => void;
-}> = ({ category, bidCount, priceOfferCount, onClick, onEdit, onDelete, onToggleComplete }) => {
+}> = ({ category, bidCount, priceOfferCount, contractedCount, sodBidsCount, onClick, onEdit, onDelete, onToggleComplete }) => {
   const statusColors = {
     open: "bg-blue-500/20 text-blue-400 border border-blue-500/30",
     negotiating:
@@ -667,6 +669,24 @@ const CategoryCard: React.FC<{
                 attachment
               </span>
               {category.documents.length}
+            </div>
+          </div>
+        )}
+        {/* Contract counter - only show if there are SOD bids */}
+        {sodBidsCount > 0 && (
+          <div className="flex flex-col items-end">
+            <span className="text-xs text-slate-500">Smlouvy</span>
+            <div className={`flex items-center gap-1 text-sm font-semibold ${contractedCount === sodBidsCount && sodBidsCount > 0
+              ? 'text-yellow-400 animate-pulse'
+              : contractedCount > 0
+                ? 'text-emerald-400'
+                : 'text-slate-400'
+              }`}>
+              <span className={`material-symbols-outlined text-[16px] ${contractedCount === sodBidsCount && sodBidsCount > 0 ? 'text-yellow-400' : ''
+                }`}>
+                {contractedCount === sodBidsCount && sodBidsCount > 0 ? 'verified' : 'handshake'}
+              </span>
+              {contractedCount}/{sodBidsCount}
             </div>
           </div>
         )}
@@ -1022,6 +1042,41 @@ export const Pipeline: React.FC<PipelineProps> = ({
       } catch (err) {
         console.error("Unexpected error updating bid:", err);
       }
+    }
+  };
+
+  // Toggle contracted status for a bid (marks as signed contract)
+  const handleToggleContracted = async (bid: Bid) => {
+    if (!activeCategory) return;
+
+    const newContracted = !bid.contracted;
+
+    // Optimistic update
+    updateBidsInternal((prev) => {
+      const categoryBids = [...(prev[activeCategory.id] || [])];
+      const index = categoryBids.findIndex((b) => b.id === bid.id);
+      if (index > -1) {
+        categoryBids[index] = {
+          ...categoryBids[index],
+          contracted: newContracted
+        };
+        return { ...prev, [activeCategory.id]: categoryBids };
+      }
+      return prev;
+    });
+
+    // Persist to Supabase
+    try {
+      const { error } = await supabase
+        .from("bids")
+        .update({ contracted: newContracted })
+        .eq("id", bid.id);
+
+      if (error) {
+        console.error("Error updating bid contracted status:", error);
+      }
+    } catch (err) {
+      console.error("Unexpected error updating bid:", err);
     }
   };
 
@@ -1780,11 +1835,25 @@ export const Pipeline: React.FC<PipelineProps> = ({
             >
               {getBidsForColumn(activeCategory.id, "sod").map((bid) => (
                 <div key={bid.id} className="relative">
+                  {/* Trophy icon */}
                   <div className="absolute -top-2 -right-2 bg-yellow-400 text-yellow-900 rounded-full p-1 z-10 shadow-sm pointer-events-none">
                     <span className="material-symbols-outlined text-[16px] block">
                       trophy
                     </span>
                   </div>
+                  {/* Contract icon - clickable */}
+                  <button
+                    onClick={() => handleToggleContracted(bid)}
+                    className={`absolute -top-2 right-6 rounded-full p-1 z-10 shadow-sm transition-all hover:scale-110 ${bid.contracted
+                      ? 'bg-yellow-400 text-yellow-900 ring-2 ring-yellow-300 animate-pulse'
+                      : 'bg-slate-600 text-slate-300 hover:bg-slate-500'
+                      }`}
+                    title={bid.contracted ? 'Zasmluvněno ✓' : 'Označit jako zasmluvněno'}
+                  >
+                    <span className="material-symbols-outlined text-[16px] block">
+                      {bid.contracted ? 'task_alt' : 'description'}
+                    </span>
+                  </button>
                   <BidCard
                     bid={bid}
                     onDragStart={handleDragStart}
@@ -1941,12 +2010,17 @@ export const Pipeline: React.FC<PipelineProps> = ({
             const categoryBids = bids[category.id] || [];
             const bidCount = categoryBids.length;
             const priceOfferCount = categoryBids.filter(b => b.price && b.price !== '?' && b.price.trim() !== '').length;
+            const sodBids = categoryBids.filter(b => b.status === 'sod');
+            const sodBidsCount = sodBids.length;
+            const contractedCount = sodBids.filter(b => b.contracted).length;
             return (
               <CategoryCard
                 key={category.id}
                 category={category}
                 bidCount={bidCount}
                 priceOfferCount={priceOfferCount}
+                contractedCount={contractedCount}
+                sodBidsCount={sodBidsCount}
                 onClick={() => setActiveCategory(category)}
                 onEdit={handleEditCategoryClick}
                 onDelete={handleDeleteCategory}

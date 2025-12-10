@@ -144,20 +144,45 @@ Odpověz POUZE jako JSON pole:
 
 Buď kreativní a generuj PRAKTICKÉ insights pro výběr nejlepších subdodavatelů!`;
 
-    const DEFAULT_OVERVIEW_PROMPT = `Jsi finanční analytik stavebního projektu. Analyzuješ finanční stav projektu a jeho poptávky.
+    const DEFAULT_OVERVIEW_PROMPT = `Jsi zkušený stavební analytik a projektový manažer. Na základě níže uvedených dat z výběrových řízení vytvoř detailní manažerské hodnocení projektu.
 
 SEED PRO VARIACI: ${getRandomSeed()}
 
-Na základě dat o projektu vygeneruj strucnou analýzu:
-- Celkový rozpočet vs. zasmluvněná částka
-- Bilance (zisk/ztráta)
-- Progress uzavřených poptávek
-- Doporučení pro vedoucí projektu
+### Kontext:
+Údaje představují výsledky výběrových řízení na jednotlivé části stavby (subdodávky, materiály, služby). Data obsahují:
+- Názvy položek nebo zakázek a jejich finanční hodnoty
+- Nabídnuté ceny a rozdíly vůči rozpočtu
+- Počty nabídek a úspěšnost výběrových řízení
+- Stav uzavření smluv (SOD)
 
-Odpověz jako strukturovaný text (ne JSON), stručně a přehledně. Max 200 slov.`;
+### Úkol:
+Vygeneruj komplexní slovní hodnocení projektu z pohledu:
 
-    // Data Context Construction
-    const dataContext = `
+1. FINANČNÍ ANALÝZA
+Srovnej nabídkové ceny s rozpočtem, identifikuj úspory nebo překročení, uveď míru konkurence a efektivitu výběrových řízení.
+
+2. SMLUVNÍ A PROCESNÍ STAV
+Zhodnoť postup uzavírání smluv, počet dokončených vs. otevřených poptávek, identifikuj případná rizika v procesu.
+
+3. DODAVATELSKÁ SITUACE
+Popiš celkovou situaci s dodavateli - počet nabídek na poptávku, konkurenceschopnost trhu, případné problémy s nedostatkem nabídek.
+
+4. CELKOVÉ ŘÍZENÍ PROJEKTU
+Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku projektu a další fáze.
+
+### KRITICKY DŮLEŽITÉ - Formát výstupu:
+- NIKDY nepoužívej JSON formát
+- NIKDY nepoužívej hvězdičky ** pro tučný text
+- NIKDY nepoužívej markdown značky jako # nebo \`\`\`
+- Piš POUZE čistý plný text bez jakéhokoliv formátování
+- Nadpisy sekcí piš jako: "1. FINANČNÍ ANALÝZA" (bez hvězdiček)
+- Používej pomlčky - pro odrážky
+- Formulace typu: "Z finančního hlediska lze konstatovat...", "Analýza ukázala..."
+- Na konci přidej SHRNUTÍ A DOPORUČENÍ pro další postup
+- Délka: 300-500 slov`;
+
+    // Data Context Construction - different ending for overview mode
+    const dataContextBase = `
 
 DATA O STAVBÁCH:
 - Celkový rozpočet: ${totalBudget.toLocaleString('cs-CZ')} Kč
@@ -168,9 +193,7 @@ DATA O STAVBÁCH:
 - Počet aktivních staveb: ${projects.length}
 
 DETAIL STAVEB:
-${JSON.stringify(projectsSummary, null, 2)}
-
-Odpověz POUZE jako JSON pole.`;
+${JSON.stringify(projectsSummary, null, 2)}`;
 
     // Load prompt based on mode
     let basePrompt = '';
@@ -198,13 +221,53 @@ Odpověz POUZE jako JSON pole.`;
       else if (mode === 'overview') basePrompt = DEFAULT_OVERVIEW_PROMPT;
     }
 
+    // For overview mode, don't add JSON instruction
+    const dataContext = mode === 'overview'
+      ? dataContextBase + '\n\nVYPIŠ POUZE ČISTÝ TEXT S MARKDOWN FORMÁTOVÁNÍM, NIKDY NE JSON!'
+      : dataContextBase + '\n\nOdpověz POUZE jako JSON pole.';
+
     const prompt = basePrompt + dataContext;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
 
-    // Parse JSON from response
+    // For overview mode, return the text directly (not JSON)
+    if (mode === 'overview') {
+      // Aggressively clean up any JSON/markdown artifacts
+      let cleanText = text
+        // Remove code blocks
+        .replace(/```[^\n]*\n[\s\S]*?```/g, '')
+        .replace(/`/g, '')
+        // Remove JSON-like patterns but keep normal text
+        .replace(/^\s*\{\s*"[^"]+"\s*:/gm, '')
+        .replace(/^\s*\[\s*\{/gm, '')
+        .replace(/\}\s*\]\s*$/gm, '')
+        .replace(/^\s*"[^"]+"\s*:\s*"/gm, '')
+        // Remove markdown formatting
+        .replace(/\*\*/g, '')
+        .replace(/\*/g, '')
+        .replace(/#{1,6}\s*/g, '')
+        // Clean up escaped characters
+        .replace(/\\n/g, '\n')
+        .replace(/\\"/g, '"')
+        .replace(/\\\\/g, '')
+        // Remove stray characters
+        .replace(/^[\[\]{},"\s]+$/gm, '')
+        .replace(/^\s*,\s*$/gm, '')
+        // Remove empty lines and extra whitespace
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+
+      return [{
+        title: 'AI Analýza projektu',
+        content: cleanText,
+        type: 'info',
+        icon: 'analytics'
+      }];
+    }
+
+    // Parse JSON from response for other modes
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
       const insights: AIInsight[] = JSON.parse(jsonMatch[0]);
@@ -213,7 +276,7 @@ Odpověz POUZE jako JSON pole.`;
 
     return [{
       title: 'Analýza dokončena',
-      content: text.slice(0, 150),
+      content: text.slice(0, 500),
       type: 'info',
       icon: 'insights'
     }];

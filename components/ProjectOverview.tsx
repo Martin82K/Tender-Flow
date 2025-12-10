@@ -6,6 +6,7 @@ import { formatMoney, formatMoneyShort } from '../utils/formatters';
 import { generateProjectInsights, AIInsight } from '../services/aiInsightsService';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { RobotoRegularBase64 } from '../fonts/roboto-regular';
 
 interface ProjectOverviewProps {
     projects: Project[];
@@ -77,11 +78,28 @@ const CHART_COLORS = ['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#E
 
 export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, projectDetails }) => {
     const activeProjects = projects.filter(p => p.status !== 'archived');
-    const [selectedProjectId, setSelectedProjectId] = useState<string>(activeProjects[0]?.id || '');
-    const [aiAnalysis, setAiAnalysis] = useState<string>('');
+
+    // Load last selected project from localStorage or use first active
+    const getInitialProjectId = () => {
+        const saved = localStorage.getItem('overviewSelectedProject');
+        if (saved && activeProjects.some(p => p.id === saved)) {
+            return saved;
+        }
+        return activeProjects[0]?.id || '';
+    };
+
+    const [selectedProjectId, setSelectedProjectId] = useState<string>(getInitialProjectId);
+    const [aiInsights, setAiInsights] = useState<AIInsight[]>([]);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [hasGeneratedAI, setHasGeneratedAI] = useState(false);
     const contentRef = useRef<HTMLDivElement>(null);
+
+    // Save to localStorage when project changes
+    React.useEffect(() => {
+        if (selectedProjectId) {
+            localStorage.setItem('overviewSelectedProject', selectedProjectId);
+        }
+    }, [selectedProjectId]);
 
     const selectedProject = projectDetails[selectedProjectId];
 
@@ -94,6 +112,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
         const totalBudget = investorSod + investorAmendments;
 
         const categories = selectedProject.categories || [];
+        const bids = selectedProject.bids || {};
         const sodCategories = categories.filter(c => c.status === 'sod');
         const openCategories = categories.filter(c => c.status === 'open');
         const totalContracted = sodCategories.reduce((sum, c) => sum + (c.sodBudget || 0), 0);
@@ -102,7 +121,40 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
         const balanceVsPlan = totalPlanned - totalContracted;
         const sodProgress = categories.length > 0 ? (sodCategories.length / categories.length) * 100 : 0;
 
-        // Calculate per-category profitability
+        // Calculate profitability from CONTRACTED bids (not just SOD categories)
+        // This uses actual contracted bid prices vs planned budget
+        let contractedBidsTotal = 0;
+        let contractedBidsCount = 0;
+        let profitableFromBids = 0;
+        let unprofitableFromBids = 0;
+
+        categories.forEach(cat => {
+            const categoryBids = bids[cat.id] || [];
+            const contractedBids = categoryBids.filter(b => b.status === 'sod' && b.contracted);
+
+            contractedBids.forEach(bid => {
+                // Parse bid price
+                const priceStr = bid.price?.replace(/[^\d]/g, '') || '0';
+                const bidPrice = parseInt(priceStr) || 0;
+
+                if (bidPrice > 0) {
+                    contractedBidsTotal += bidPrice;
+                    contractedBidsCount++;
+
+                    // Compare to category plan budget (proportional if multiple bids)
+                    const planPortion = cat.planBudget || 0;
+                    const diff = planPortion - bidPrice;
+
+                    if (diff >= 0) {
+                        profitableFromBids += diff;
+                    } else {
+                        unprofitableFromBids += Math.abs(diff);
+                    }
+                }
+            });
+        });
+
+        // Fallback to old calculation if no contracted bids
         const categoryProfitability = categories.map(cat => {
             const planBudget = cat.planBudget || 0;
             const sodBudget = cat.sodBudget || 0;
@@ -119,6 +171,9 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
         const profitableCategories = categoryProfitability.filter(c => c.isProfitable);
         const unprofitableCategories = categoryProfitability.filter(c => !c.isProfitable);
 
+        // Use contracted bids profitability if available, otherwise category-based
+        const hasBidsProfitability = contractedBidsCount > 0;
+
         return {
             totalBudget,
             totalContracted,
@@ -133,20 +188,30 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
             categoryProfitability,
             profitableCategories,
             unprofitableCategories,
-            profitableSum: profitableCategories.reduce((s, c) => s + c.diffVsPlan, 0),
-            unprofitableSum: unprofitableCategories.reduce((s, c) => s + Math.abs(c.diffVsPlan), 0)
+            // Use bids-based profitability when available
+            profitableSum: hasBidsProfitability ? profitableFromBids : profitableCategories.reduce((s, c) => s + c.diffVsPlan, 0),
+            unprofitableSum: hasBidsProfitability ? unprofitableFromBids : unprofitableCategories.reduce((s, c) => s + Math.abs(c.diffVsPlan), 0),
+            contractedBidsCount,
+            contractedBidsTotal
         };
     };
 
     const metrics = getProjectMetrics();
 
-    // Reset AI when project changes
+    // Auto-generate AI on first load
     useEffect(() => {
-        setAiAnalysis('');
+        if (selectedProject && metrics && aiInsights.length === 0 && !hasGeneratedAI && !isAnalyzing) {
+            generateAIAnalysis();
+        }
+    }, [selectedProject, metrics]);
+
+    // Only reset when project changes, but keep cache per project if needed
+    useEffect(() => {
+        setAiInsights([]);
         setHasGeneratedAI(false);
     }, [selectedProjectId]);
 
-    // Manual AI generation
+    // Manual AI generation - now generates multiple insight cards
     const generateAIAnalysis = async () => {
         if (!selectedProject || !metrics) return;
 
@@ -161,61 +226,218 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
                 balance: metrics.balance
             }];
 
+            // Generate overview mode for detailed managerial analysis
             const insights = await generateProjectInsights(projectSummary, 'overview');
-            const analysisText = insights.map(i => `**${i.title}**\n${i.content}`).join('\n\n');
-            setAiAnalysis(analysisText || 'Analýza není k dispozici.');
+            setAiInsights(insights);
             setHasGeneratedAI(true);
         } catch (error) {
             console.error('AI analysis error:', error);
-            setAiAnalysis('Nepodařilo se vygenerovat analýzu.');
+            setAiInsights([]);
         } finally {
             setIsAnalyzing(false);
         }
     };
 
-    // PDF Export
+    // Get insight card style based on type
+    const getInsightStyle = (type: string) => {
+        switch (type) {
+            case 'success': return 'from-emerald-900/40 to-green-900/40 border-emerald-500/30';
+            case 'warning': return 'from-amber-900/40 to-orange-900/40 border-amber-500/30';
+            case 'achievement': return 'from-yellow-900/40 to-orange-900/40 border-yellow-500/30';
+            case 'tip': return 'from-cyan-900/40 to-blue-900/40 border-cyan-500/30';
+            default: return 'from-blue-900/40 to-indigo-900/40 border-blue-500/30';
+        }
+    };
+
+    // PDF Export - Professional text-based report
     const handleExportPDF = async () => {
-        if (!contentRef.current || !selectedProject) return;
+        if (!selectedProject || !metrics) return;
 
         try {
-            const canvas = await html2canvas(contentRef.current, {
-                backgroundColor: '#0f172a',
-                scale: 2,
-                useCORS: true
-            });
+            const pdf = new jsPDF('p', 'mm', 'a4'); // Portrait for report
 
-            const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF('l', 'mm', 'a4');
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
-            const imgWidth = canvas.width;
-            const imgHeight = canvas.height;
-            const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-            const imgScaledWidth = imgWidth * ratio;
-            const imgScaledHeight = imgHeight * ratio;
-            const x = (pdfWidth - imgScaledWidth) / 2;
+            // Add Roboto font for Czech diacritics support
+            pdf.addFileToVFS('Roboto-Regular.ttf', RobotoRegularBase64);
+            pdf.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
+            pdf.setFont('Roboto', 'normal');
 
-            pdf.addImage(imgData, 'PNG', x, 10, imgScaledWidth, imgScaledHeight);
-            pdf.save(`prehled-${selectedProject.title.replace(/\s+/g, '-')}.pdf`);
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const margin = 20;
+            const contentWidth = pageWidth - 2 * margin;
+            let y = margin;
+
+            // Helper function to add text with word wrap
+            const addWrappedText = (text: string, x: number, yPos: number, maxWidth: number, fontSize: number, isBold = false) => {
+                pdf.setFontSize(fontSize);
+                pdf.setFont('Roboto', 'normal');
+                const lines = pdf.splitTextToSize(text, maxWidth);
+                pdf.text(lines, x, yPos);
+                return yPos + (lines.length * fontSize * 0.4);
+            };
+
+            // Header with dark background
+            pdf.setFillColor(15, 23, 42); // slate-950
+            pdf.rect(0, 0, pageWidth, 40, 'F');
+
+            // TF Logo - larger
+            pdf.setFillColor(249, 115, 22); // orange-500
+            pdf.roundedRect(margin, 8, 18, 18, 4, 4, 'F');
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFontSize(11);
+            pdf.setFont('Roboto', 'normal');
+            pdf.text('TF', margin + 4.5, 20);
+
+            // Title - main heading
+            pdf.setFontSize(16);
+            pdf.text('MANAŽERSKÁ ANALÝZA PROJEKTU', margin + 25, 15);
+
+            // Project name
+            pdf.setFontSize(11);
+            pdf.text(selectedProject.title, margin + 25, 23);
+
+            // Date - right aligned, smaller
+            pdf.setFontSize(8);
+            pdf.setTextColor(180, 180, 180); // gray
+            const dateText = `Vygenerováno: ${new Date().toLocaleDateString('cs-CZ')}`;
+            pdf.text(dateText, pageWidth - margin - pdf.getTextWidth(dateText), 32);
+
+            y = 50;
+            pdf.setTextColor(0, 0, 0);
+
+            // Project Summary Section
+            pdf.setFillColor(241, 245, 249); // slate-100
+            pdf.rect(margin, y, contentWidth, 32, 'F');
+
+            // Draw border
+            pdf.setDrawColor(200, 200, 200);
+            pdf.rect(margin, y, contentWidth, 32, 'S');
+
+            y += 7;
+
+            pdf.setFontSize(10);
+            pdf.setFont('Roboto', 'normal');
+            pdf.text('PŘEHLED PROJEKTU', margin + 5, y);
+            y += 7;
+
+            pdf.setFontSize(9);
+            const summaryItems = [
+                `Celkový rozpočet: ${metrics.totalBudget.toLocaleString('cs-CZ')} Kč`,
+                `Zasmluvněno (SOD): ${metrics.totalContracted.toLocaleString('cs-CZ')} Kč`,
+                `Bilance: ${metrics.balance.toLocaleString('cs-CZ')} Kč`,
+                `Postup SOD: ${metrics.sodCount} z ${metrics.categoriesCount} kategorií (${Math.round(metrics.sodProgress)}%)`
+            ];
+
+            pdf.text(summaryItems[0], margin + 5, y);
+            pdf.text(summaryItems[1], margin + 90, y);
+            y += 5;
+            pdf.text(summaryItems[2], margin + 5, y);
+            pdf.text(summaryItems[3], margin + 90, y);
+            y += 18;
+
+            // AI Analysis Section
+            if (aiInsights.length > 0 && aiInsights[0]?.content) {
+                // Section header with underline
+                pdf.setFontSize(11);
+                pdf.setFont('Roboto', 'normal');
+                pdf.text('TenderFlow AI', margin, y);
+                pdf.setDrawColor(249, 115, 22); // orange
+                pdf.setLineWidth(0.5);
+                pdf.line(margin, y + 2, margin + 28, y + 2);
+                y += 10;
+
+                // Clean and format the AI text - combine section numbers with titles
+                let aiText = aiInsights[0].content
+                    .replace(/```json\s*/gi, '')
+                    .replace(/```\s*/gi, '')
+                    .replace(/^\[\s*\{/m, '')
+                    .replace(/\}\s*\]\s*$/m, '')
+                    .replace(/"hodnoceni"\s*:\s*"/i, '')
+                    .replace(/\\n/g, '\n')
+                    .replace(/\*\*/g, '')
+                    // Combine "1." with "FINANČNÍ ANALÝZA" etc.
+                    .replace(/(\d+)\.\s*\n+\s*(FINANČNÍ|SMLUVNÍ|DODAVATEL|CELKOV|SHRNUTÍ)/gi, '$1. $2')
+                    .trim();
+
+                // Split into paragraphs
+                const paragraphs = aiText.split(/\n\n+/);
+
+                for (const para of paragraphs) {
+                    if (!para.trim()) continue;
+
+                    // Check if we need a new page
+                    if (y > 270) {
+                        pdf.addPage();
+                        y = margin;
+                    }
+
+                    // Check if it's a section header
+                    const isHeader = /^\d+\.\s*(FINANČNÍ|SMLUVNÍ|DODAVATEL|CELKOV|SHRNUTÍ)/i.test(para.trim());
+
+                    if (isHeader) {
+                        y += 3; // Extra space before headers
+                        pdf.setFontSize(10);
+                    } else {
+                        pdf.setFontSize(9);
+                    }
+
+                    y = addWrappedText(para.trim(), margin, y, contentWidth, pdf.getFontSize()) + 4;
+                }
+            }
+
+            // Footer
+            const totalPages = pdf.internal.pages.length - 1;
+            for (let i = 1; i <= totalPages; i++) {
+                pdf.setPage(i);
+                pdf.setFontSize(8);
+                pdf.setTextColor(128, 128, 128);
+                pdf.text(`TenderFlow | Strana ${i} z ${totalPages}`, pageWidth / 2, 290, { align: 'center' });
+            }
+
+            pdf.save(`analyza-${selectedProject.title.replace(/\s+/g, '-')}.pdf`);
         } catch (error) {
             console.error('PDF export error:', error);
             alert('Chyba při exportu PDF.');
         }
     };
 
-    // Chart data
-    const categoryChartData = metrics?.categories.filter(c => c.status === 'sod').map(cat => ({
+    // Chart data - show ALL categories, not just SOD
+    const categoryChartData = metrics?.categories.map(cat => ({
         name: cat.title.length > 12 ? cat.title.substring(0, 12) + '...' : cat.title,
         plán: cat.planBudget || 0,
         SOD: cat.sodBudget || 0,
-        rozdíl: (cat.planBudget || 0) - (cat.sodBudget || 0)
-    })) || [];
+        rozdíl: (cat.planBudget || 0) - (cat.sodBudget || 0),
+        status: cat.status
+    })).filter(c => c.plán > 0 || c.SOD > 0) || [];
 
-    const pieChartData = metrics?.categories.filter(c => c.status === 'sod').map((cat, idx) => ({
-        name: cat.title,
-        value: cat.sodBudget || 0,
-        color: CHART_COLORS[idx % CHART_COLORS.length]
-    })).filter(d => d.value > 0) || [];
+    // Pie chart for SOD distribution - filter SOD only but fallback to all with planBudget
+    const pieChartData = (() => {
+        const sodData = metrics?.categories.filter(c => c.status === 'sod' && c.sodBudget > 0) || [];
+        if (sodData.length > 0) {
+            return sodData.map((cat, idx) => ({
+                name: cat.title,
+                value: cat.sodBudget || 0,
+                color: CHART_COLORS[idx % CHART_COLORS.length]
+            }));
+        }
+        // Fallback: show planned budget distribution
+        const planData = metrics?.categories.filter(c => c.planBudget > 0) || [];
+        return planData.map((cat, idx) => ({
+            name: cat.title,
+            value: cat.planBudget || 0,
+            color: CHART_COLORS[idx % CHART_COLORS.length]
+        }));
+    })();
+
+    // Budget overview - always show even without SOD
+    const budgetOverviewData = (() => {
+        const totalPlanned = metrics?.totalPlanned || 0;
+        const totalContracted = metrics?.totalContracted || 0;
+        const remaining = totalPlanned - totalContracted;
+        return [
+            { name: 'Zasmluvněno (SOD)', value: totalContracted, color: '#10B981' },
+            { name: 'Zbývá zasmluvnit', value: remaining > 0 ? remaining : 0, color: '#64748b' }
+        ].filter(d => d.value > 0);
+    })();
 
     const profitabilityChartData = [
         { name: 'Ziskové', value: metrics?.profitableSum || 0, color: '#10B981' },
@@ -297,69 +519,88 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
                     <KPICard title="SOD Progress" value={`${Math.round(metrics?.sodProgress || 0)}%`} icon="check_circle" color="bg-gradient-to-br from-amber-500 to-orange-600" subtitle={`${metrics?.sodCount || 0} z ${metrics?.categoriesCount || 0}`} />
                 </div>
 
-                {/* Main Grid - 50/50 layout */}
+                {/* AI Generation Button */}
+                <div className="flex items-center justify-between bg-gradient-to-r from-violet-900/30 to-blue-900/30 backdrop-blur-xl rounded-xl border border-violet-500/20 p-4">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-gradient-to-br from-orange-500 to-amber-600 rounded-lg flex items-center justify-center">
+                            <span className="text-white text-[12px] font-black tracking-tighter">TF</span>
+                        </div>
+                        <div>
+                            <h3 className="text-sm font-bold text-white">TenderFlow AI Analýza</h3>
+                            <p className="text-[10px] text-slate-400">
+                                {aiInsights.length > 0 ? 'Manažerská analýza projektu' : isAnalyzing ? 'Generuji detailní analýzu...' : 'Automatická analýza projektu'}
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={generateAIAnalysis}
+                        disabled={isAnalyzing}
+                        className="flex items-center gap-1.5 px-4 py-2 bg-violet-600 hover:bg-violet-500 disabled:bg-slate-700 text-white text-xs font-medium rounded-lg transition-colors"
+                    >
+                        <span className={`material-symbols-outlined text-[16px] ${isAnalyzing ? 'animate-spin' : ''}`}>
+                            {isAnalyzing ? 'sync' : hasGeneratedAI ? 'refresh' : 'auto_awesome'}
+                        </span>
+                        {isAnalyzing ? 'Generuji...' : hasGeneratedAI ? 'Regenerovat' : 'Generovat AI'}
+                    </button>
+                </div>
+
+                {/* Main Grid - AI Analysis + Chart side by side */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-                    {/* AI Analysis Card */}
-                    <div className="bg-gradient-to-br from-violet-900/30 to-blue-900/30 backdrop-blur-xl rounded-2xl border border-violet-500/20 p-6">
-                        <div className="flex items-center justify-between mb-6">
-                            <div className="flex items-center gap-3">
-                                <div className="p-3 bg-gradient-to-br from-violet-500 to-blue-500 rounded-xl">
-                                    <span className="material-symbols-outlined text-white text-[24px]">auto_awesome</span>
-                                </div>
-                                <div>
-                                    <h3 className="text-lg font-bold text-white">AI Analýza</h3>
-                                    <p className="text-xs text-slate-400">TenderFlow AI</p>
-                                </div>
-                            </div>
-                            <button
-                                onClick={generateAIAnalysis}
-                                disabled={isAnalyzing}
-                                className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 disabled:bg-slate-700 text-white text-sm font-medium rounded-xl transition-colors"
-                            >
-                                <span className={`material-symbols-outlined text-[18px] ${isAnalyzing ? 'animate-spin' : ''}`}>
-                                    {isAnalyzing ? 'sync' : 'refresh'}
-                                </span>
-                                {hasGeneratedAI ? 'Regenerovat' : 'Generovat'}
-                            </button>
-                        </div>
-
+                    {/* AI Analysis - Full formatted text */}
+                    <div className="bg-gradient-to-br from-violet-900/20 to-blue-900/20 backdrop-blur-xl rounded-2xl border border-violet-500/20 p-5">
+                        <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-violet-400 text-[18px]">description</span>
+                            Manažerská analýza projektu
+                        </h3>
                         {isAnalyzing ? (
-                            <div className="flex items-center justify-center py-16">
-                                <div className="w-12 h-12 border-4 border-violet-500 border-t-transparent rounded-full animate-spin" />
+                            <div className="flex items-center justify-center h-[350px]">
+                                <div className="flex flex-col items-center gap-3">
+                                    <div className="w-10 h-10 border-3 border-violet-500 border-t-transparent rounded-full animate-spin" />
+                                    <p className="text-xs text-slate-400">Generuji detailní analýzu...</p>
+                                </div>
                             </div>
-                        ) : aiAnalysis ? (
-                            <div className="text-slate-300 text-sm leading-relaxed whitespace-pre-line">
-                                {aiAnalysis}
+                        ) : aiInsights.length > 0 && aiInsights[0]?.content ? (
+                            <div className="max-h-[350px] overflow-y-auto pr-2 text-sm text-slate-300 leading-relaxed prose prose-invert prose-sm max-w-none
+                                prose-headings:text-white prose-headings:font-bold prose-headings:mt-4 prose-headings:mb-2
+                                prose-strong:text-white prose-strong:font-semibold
+                                prose-ul:my-2 prose-li:my-0.5">
+                                <div dangerouslySetInnerHTML={{
+                                    __html: aiInsights[0].content
+                                        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                                        .replace(/\n- /g, '<br/>• ')
+                                        .replace(/\n\n/g, '<br/><br/>')
+                                        .replace(/\n/g, '<br/>')
+                                }} />
                             </div>
                         ) : (
-                            <div className="flex flex-col items-center justify-center py-16 text-slate-500">
-                                <span className="material-symbols-outlined text-[60px] mb-3">psychology</span>
-                                <p className="text-sm">Klikněte na "Generovat" pro AI analýzu</p>
+                            <div className="flex flex-col items-center justify-center h-[350px] text-slate-500">
+                                <span className="material-symbols-outlined text-[48px] mb-2 opacity-50">psychology</span>
+                                <p className="text-xs">AI analýza se generuje automaticky...</p>
                             </div>
                         )}
                     </div>
 
                     {/* Bar Chart - Plan vs SOD */}
-                    <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
-                        <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
-                            <span className="material-symbols-outlined text-blue-400 text-[24px]">bar_chart</span>
-                            Plán vs. Zasmluvněno (SOD kategorie)
+                    <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-5">
+                        <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-blue-400 text-[18px]">bar_chart</span>
+                            Plán vs. Zasmluvněno (SOD)
                         </h3>
                         {categoryChartData.length > 0 ? (
                             <ResponsiveContainer width="100%" height={350}>
-                                <BarChart data={categoryChartData} margin={{ top: 10, right: 30, left: 10, bottom: 60 }}>
+                                <BarChart data={categoryChartData} margin={{ top: 10, right: 20, left: 0, bottom: 60 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                                    <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 11 }} angle={-45} textAnchor="end" height={60} />
-                                    <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} tickFormatter={(v) => formatMoneyShort(v)} width={70} />
-                                    <Tooltip formatter={(value: number) => formatMoney(value)} contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', fontSize: '14px' }} />
-                                    <Legend wrapperStyle={{ fontSize: '13px' }} />
+                                    <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 10 }} angle={-45} textAnchor="end" height={60} />
+                                    <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} tickFormatter={(v) => formatMoneyShort(v)} width={60} />
+                                    <Tooltip formatter={(value: number) => formatMoney(value)} contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', fontSize: '12px' }} />
+                                    <Legend wrapperStyle={{ fontSize: '11px' }} />
                                     <Bar dataKey="plán" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
                                     <Bar dataKey="SOD" fill="#10B981" radius={[4, 4, 0, 0]} />
                                 </BarChart>
                             </ResponsiveContainer>
                         ) : (
-                            <div className="flex items-center justify-center h-[350px] text-slate-500 text-base">Žádné SOD kategorie</div>
+                            <div className="flex items-center justify-center h-[350px] text-slate-500 text-sm">Žádné SOD kategorie</div>
                         )}
                     </div>
                 </div>
@@ -397,7 +638,24 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
                                 </div>
                             </div>
                         ) : (
-                            <div className="flex items-center justify-center h-[250px] text-slate-500 text-sm">Žádná data</div>
+                            <div className="flex flex-col items-center justify-center h-[250px]">
+                                <span className="material-symbols-outlined text-slate-600 text-[40px] mb-2">
+                                    {metrics?.contractedBidsCount > 0 ? 'handshake' : 'hourglass_empty'}
+                                </span>
+                                <p className="text-slate-500 text-sm text-center">
+                                    {metrics?.contractedBidsCount > 0
+                                        ? `${metrics.contractedBidsCount} zasmluvněná nabídka`
+                                        : 'Zatím žádné zasmluvněné nabídky'}
+                                </p>
+                                <p className="text-slate-600 text-xs mt-1">
+                                    {metrics?.contractedBidsCount > 0
+                                        ? `Celkem: ${formatMoneyShort(metrics.contractedBidsTotal)}`
+                                        : `Celkový plán: ${formatMoneyShort(metrics?.totalPlanned || 0)}`}
+                                </p>
+                                <p className="text-slate-700 text-[10px] mt-2">
+                                    Označte vítěze jako zasmluvněné v poptávkách
+                                </p>
+                            </div>
                         )}
                     </div>
 
@@ -437,7 +695,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
                     <div className="lg:col-span-2 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-5">
                         <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
                             <span className="material-symbols-outlined text-violet-400 text-[18px]">data_usage</span>
-                            Rozložení SOD nákladů
+                            {metrics?.sodCount > 0 ? 'Rozložení SOD nákladů' : 'Rozložení plánovaného rozpočtu'}
                         </h3>
                         {pieChartData.length > 0 ? (
                             <div className="flex items-center gap-4">

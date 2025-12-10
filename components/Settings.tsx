@@ -191,6 +191,39 @@ Odpověz POUZE jako JSON pole:
 
 Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rychlé rozhodování vedení!`;
 
+    const DEFAULT_PROMPT_OVERVIEW = `Jsi zkušený stavební analytik a projektový manažer. Na základě níže uvedených dat z výběrových řízení vytvoř detailní manažerské hodnocení projektu.
+
+### Kontext:
+Údaje představují výsledky výběrových řízení na jednotlivé části stavby (subdodávky, materiály, služby). Data obsahují:
+- Názvy položek nebo zakázek a jejich finanční hodnoty
+- Nabídnuté ceny a rozdíly vůči rozpočtu
+- Počty nabídek a úspěšnost výběrových řízení
+- Stav uzavření smluv (SOD)
+
+### Úkol:
+Vygeneruj komplexní slovní hodnocení projektu z pohledu:
+
+**1. FINANČNÍ ANALÝZA**
+Srovnej nabídkové ceny s rozpočtem, identifikuj úspory nebo překročení, uveď míru konkurence a efektivitu výběrových řízení.
+
+**2. SMLUVNÍ A PROCESNÍ STAV**
+Zhodnoť postup uzavírání smluv, počet dokončených vs. otevřených poptávek, identifikuj případná rizika v procesu.
+
+**3. DODAVATELSKÁ SITUACE**
+Popiš celkovou situaci s dodavateli - počet nabídek na poptávku, konkurenceschopnost trhu, případné problémy s nedostatkem nabídek.
+
+**4. CELKOVÉ ŘÍZENÍ PROJEKTU**
+Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku projektu a další fáze.
+
+### Formát výstupu:
+- Piš **profesionálně, věcně a přehledně**
+- Používej **tučné nadpisy** pro sekce (pomocí **)
+- Používej odrážky pro přehlednost
+- Formulace typu: "Z finančního hlediska lze konstatovat...", "Analýza ukázala..."
+- Na konci přidej **SHRNUTÍ A DOPORUČENÍ** pro další postup
+- Délka: 300-500 slov
+- Výstup bude zobrazen v UI, proto používej markdown formátování`;
+
     // AI Prompts State (Admin only) - with defaults
     const [promptAchievements, setPromptAchievements] = useState(() =>
         localStorage.getItem('aiPromptAchievements') || DEFAULT_PROMPT_ACHIEVEMENTS
@@ -205,7 +238,7 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
         localStorage.getItem('aiPromptContacts') || ''
     );
     const [promptOverview, setPromptOverview] = useState(() =>
-        localStorage.getItem('aiPromptOverview') || ''
+        localStorage.getItem('aiPromptOverview') || DEFAULT_PROMPT_OVERVIEW
     );
 
     // Initialize localStorage with defaults if empty
@@ -223,7 +256,7 @@ Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rych
             localStorage.setItem('aiPromptContacts', '');
         }
         if (!localStorage.getItem('aiPromptOverview')) {
-            localStorage.setItem('aiPromptOverview', '');
+            localStorage.setItem('aiPromptOverview', DEFAULT_PROMPT_OVERVIEW);
         }
     }, []);
 

@@ -361,6 +361,7 @@ const AppContent: React.FC = () => {
               status: bid.status,
               updateDate: bid.update_date,
               selectionRound: bid.selection_round,
+              contracted: bid.contracted || false,
             });
           }
         });
