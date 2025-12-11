@@ -375,7 +375,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                     <div className="space-y-2">
                         <div className="flex justify-between">
                             <span className="text-slate-400">Splatnost:</span>
-                            <span className="text-white font-medium">{project.contract?.maturity || 30} dní</span>
+                            <span className="text-white font-medium">{project.contract?.maturity ?? 30} dní</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-slate-400">Záruka:</span>
