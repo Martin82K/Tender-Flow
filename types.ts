@@ -1,6 +1,15 @@
 export type View = "dashboard" | "project" | "contacts" | "settings" | "project-management" | "project-overview";
 
-export type ProjectTab = "overview" | "pipeline" | "documents";
+export type ProjectTab = "overview" | "tender-plan" | "pipeline" | "documents";
+
+// Tender Plan Item
+export interface TenderPlanItem {
+  id: string;
+  name: string;           // Název VŘ
+  dateFrom: string;       // Od (datum)
+  dateTo: string;         // Do (datum)
+  categoryId?: string;    // Linked demand category ID (if created)
+}
 
 export interface StatusConfig {
   id: string;

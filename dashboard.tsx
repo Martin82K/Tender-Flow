@@ -6,16 +6,16 @@ export default function ConstructionCRMPremium() {
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
-      
+
       {/* Sidebar */}
       <div className="w-64 bg-slate-900/80 backdrop-blur-xl border-r border-slate-800/50 flex flex-col shadow-2xl">
-        
+
         {/* Logo */}
         <div className="p-6 border-b border-slate-800/50">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 bg-gradient-to-br from-orange-500 via-orange-600 to-amber-600 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2L4 6V12C4 16.5 7 20.5 12 22C17 20.5 20 16.5 20 12V6L12 2Z" fill="white" opacity="0.95"/>
+                <path d="M12 2L4 6V12C4 16.5 7 20.5 12 22C17 20.5 20 16.5 20 12V6L12 2Z" fill="white" opacity="0.95" />
               </svg>
             </div>
             <div>
@@ -37,7 +37,7 @@ export default function ConstructionCRMPremium() {
               <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Stavby</span>
               <ChevronDown className="w-4 h-4 text-slate-500" />
             </div>
-            
+
             <a href="#" className="flex items-center gap-3 px-4 py-3 hover:bg-slate-800/50 rounded-xl text-slate-400 transition-all ml-2">
               <div className="w-2 h-2 rounded-full bg-blue-500"></div>
               <span className="text-sm">Vzorový Projekt RD</span>
@@ -80,7 +80,7 @@ export default function ConstructionCRMPremium() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        
+
         {/* Header */}
         <header className="bg-slate-900/50 backdrop-blur-xl border-b border-slate-800/50 px-8 py-5 shadow-lg">
           <div className="flex items-center justify-between">
@@ -91,13 +91,13 @@ export default function ConstructionCRMPremium() {
               </div>
               <p className="text-slate-400 text-sm">Detail stavby</p>
             </div>
-            
+
             <div className="flex items-center gap-3">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input 
-                  type="text" 
-                  placeholder="Search..." 
+                <input
+                  type="text"
+                  placeholder="Search..."
                   className="pl-10 pr-4 py-2.5 bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-orange-500/50 focus:bg-slate-800/70 transition-all w-64"
                 />
               </div>
@@ -110,15 +110,14 @@ export default function ConstructionCRMPremium() {
 
           {/* Tabs */}
           <div className="flex gap-2 mt-6">
-            {['Přehled', 'Pipelines', 'Dokumenty'].map((tab) => (
+            {['Přehled', 'Výběrová řízení', 'Dokumenty'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab.toLowerCase())}
-                className={`px-6 py-2.5 rounded-lg font-medium transition-all ${
-                  activeTab === tab.toLowerCase()
+                className={`px-6 py-2.5 rounded-lg font-medium transition-all ${activeTab === tab.toLowerCase()
                     ? 'bg-slate-800 text-white shadow-lg'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-                }`}
+                  }`}
               >
                 {tab}
               </button>
@@ -128,7 +127,7 @@ export default function ConstructionCRMPremium() {
 
         {/* Content */}
         <main className="flex-1 overflow-y-auto p-8">
-          
+
           {/* Top Stats - Premium Cards */}
           <div className="grid grid-cols-4 gap-6 mb-8">
             <div className="group relative bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 hover:border-slate-600/50 transition-all overflow-hidden">
@@ -144,7 +143,7 @@ export default function ConstructionCRMPremium() {
                 <div className="text-3xl font-bold mb-1">166 547 570 Kč</div>
                 <div className="text-xs text-slate-500">Příjem (SOD + Dodatky)</div>
                 <div className="mt-4 h-1 bg-slate-700/50 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full" style={{width: '100%'}}></div>
+                  <div className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full" style={{ width: '100%' }}></div>
                 </div>
               </div>
             </div>
@@ -162,7 +161,7 @@ export default function ConstructionCRMPremium() {
                 <div className="text-3xl font-bold mb-1">104 103 835 Kč</div>
                 <div className="text-xs text-slate-500">Interní cíl nákladů</div>
                 <div className="mt-4 h-1 bg-slate-700/50 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-indigo-500 to-indigo-400 rounded-full" style={{width: '62%'}}></div>
+                  <div className="h-full bg-gradient-to-r from-indigo-500 to-indigo-400 rounded-full" style={{ width: '62%' }}></div>
                 </div>
               </div>
             </div>
@@ -180,7 +179,7 @@ export default function ConstructionCRMPremium() {
                 <div className="text-3xl font-bold text-emerald-400 mb-1">3 198 362 Kč</div>
                 <div className="text-xs text-emerald-400">Zbývá zadat: +100 905 473 Kč</div>
                 <div className="mt-4 h-1 bg-slate-700/50 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full" style={{width: '3%'}}></div>
+                  <div className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full" style={{ width: '3%' }}></div>
                 </div>
               </div>
             </div>
@@ -197,7 +196,7 @@ export default function ConstructionCRMPremium() {
                 <div className="text-3xl font-bold mb-1">2 / 3</div>
                 <div className="text-xs text-slate-500">Hotové subdodávky</div>
                 <div className="mt-4 h-1 bg-slate-700/50 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full" style={{width: '67%'}}></div>
+                  <div className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full" style={{ width: '67%' }}></div>
                 </div>
               </div>
             </div>
@@ -221,7 +220,7 @@ export default function ConstructionCRMPremium() {
                   <h3 className="font-semibold text-lg">Ocelová konstrukce terasy</h3>
                   <span className="px-3 py-1 bg-blue-500/20 border border-blue-500/30 rounded-full text-xs font-semibold text-blue-400">OTEVŘENÁ</span>
                 </div>
-                
+
                 <div className="space-y-3 mb-4">
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-400">Cena SOD:</span>
@@ -258,7 +257,7 @@ export default function ConstructionCRMPremium() {
                   <h3 className="font-semibold text-lg">Malby</h3>
                   <span className="px-3 py-1 bg-blue-500/20 border border-blue-500/30 rounded-full text-xs font-semibold text-blue-400">OTEVŘENÁ</span>
                 </div>
-                
+
                 <div className="space-y-3 mb-4">
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-400">Cena SOD:</span>
@@ -284,7 +283,7 @@ export default function ConstructionCRMPremium() {
                   <h3 className="font-semibold text-lg">Obklady a dlažby (materiál)</h3>
                   <span className="px-3 py-1 bg-blue-500/20 border border-blue-500/30 rounded-full text-xs font-semibold text-blue-400">OTEVŘENÁ</span>
                 </div>
-                
+
                 <div className="space-y-3 mb-4">
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-400">Cena SOD:</span>

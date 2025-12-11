@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from './Header';
 import { Pipeline } from './Pipeline';
+import { TenderPlan } from './TenderPlan';
 import { ProjectTab, ProjectDetails, ContractDetails, InvestorFinancials, DemandCategory, Bid, Subcontractor, StatusConfig, Template } from '../types';
 import { uploadDocument, formatFileSize } from '../services/documentService';
 import { TemplateManager } from './TemplateManager';
@@ -363,10 +364,16 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, project
                         Přehled
                     </button>
                     <button
+                        onClick={() => onTabChange('tender-plan')}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'tender-plan' ? 'bg-primary text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-700/50'}`}
+                    >
+                        Plán VŘ
+                    </button>
+                    <button
                         onClick={() => onTabChange('pipeline')}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'pipeline' ? 'bg-primary text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-700/50'}`}
                     >
-                        Pipelines
+                        Výběrová řízení
                     </button>
                     <button
                         onClick={() => onTabChange('documents')}
@@ -379,6 +386,30 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, project
 
             <div className="flex-1 overflow-auto flex flex-col">
                 {activeTab === 'overview' && <ProjectOverviewNew project={project} onUpdate={onUpdateDetails} variant="compact" />}
+                {activeTab === 'tender-plan' && (
+                    <TenderPlan
+                        projectId={projectId}
+                        categories={project.categories || []}
+                        onCreateCategory={(name, dateFrom, dateTo) => {
+                            // Switch to pipeline tab and open add category modal
+                            onTabChange('pipeline');
+                            // The Pipeline component will need to handle this - for now just switch tabs
+                            // A more complete solution would pass the pre-filled data
+                            const newCategory: DemandCategory = {
+                                id: `cat_${Date.now()}`,
+                                title: name,
+                                budget: '0 Kč',
+                                sodBudget: 0,
+                                planBudget: 0,
+                                status: 'open',
+                                subcontractorCount: 0,
+                                description: '',
+                                deadline: dateTo || '',
+                            };
+                            onAddCategory(newCategory);
+                        }}
+                    />
+                )}
                 {activeTab === 'pipeline' && <Pipeline projectId={projectId} projectDetails={project} bids={project.bids || {}} contacts={contacts} statuses={statuses} onAddCategory={onAddCategory} onEditCategory={onEditCategory} onDeleteCategory={onDeleteCategory} onBidsChange={(bids) => onBidsChange?.(projectId, bids)} />}
                 {activeTab === 'documents' && <ProjectDocuments project={project} onUpdate={onUpdateDetails} />}
             </div>
