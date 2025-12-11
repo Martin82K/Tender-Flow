@@ -79,12 +79,14 @@ const AppContent: React.FC = () => {
   // Dark Mode Management
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== "undefined") {
-      return (
-        document.documentElement.classList.contains("dark") ||
-        window.matchMedia("(prefers-color-scheme: dark)").matches
-      );
+      // Default to true (dark mode) for new users
+      const hasStoredPreference = localStorage.getItem('darkMode') !== null;
+      if (hasStoredPreference) {
+        return localStorage.getItem('darkMode') === 'true';
+      }
+      return true;
     }
-    return false;
+    return true;
   });
 
   // Theme Color Management
