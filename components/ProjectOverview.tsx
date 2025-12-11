@@ -113,66 +113,82 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
 
         const categories = selectedProject.categories || [];
         const bids = selectedProject.bids || {};
-        const sodCategories = categories.filter(c => c.status === 'sod');
-        const openCategories = categories.filter(c => c.status === 'open');
-        const totalContracted = sodCategories.reduce((sum, c) => sum + (c.sodBudget || 0), 0);
-        const totalPlanned = categories.reduce((sum, c) => sum + (c.planBudget || 0), 0);
-        const balance = totalBudget - totalContracted;
-        const balanceVsPlan = totalPlanned - totalContracted;
-        const sodProgress = categories.length > 0 ? (sodCategories.length / categories.length) * 100 : 0;
 
-        // Calculate profitability from CONTRACTED bids (not just SOD categories)
-        // This uses actual contracted bid prices vs planned budget
+        console.log('[ProjectOverview] selectedProject.bids:', selectedProject.bids);
+        console.log('[ProjectOverview] categories:', categories.map(c => ({ id: c.id, title: c.title })));
+
+        const openCategories = categories.filter(c => c.status === 'open');
+        const totalPlanned = categories.reduce((sum, c) => sum + (c.planBudget || 0), 0);
+
+        // Better calculation for Contracted Cost: Sum of all winning bids
+        let totalContracted = 0;
         let contractedBidsTotal = 0;
         let contractedBidsCount = 0;
         let profitableFromBids = 0;
         let unprofitableFromBids = 0;
+        let sodCategoriesCount = 0;
 
-        categories.forEach(cat => {
-            const categoryBids = bids[cat.id] || [];
-            const contractedBids = categoryBids.filter(b => b.status === 'sod' && b.contracted);
-
-            contractedBids.forEach(bid => {
-                // Parse bid price
-                const priceStr = bid.price?.replace(/[^\d]/g, '') || '0';
-                const bidPrice = parseInt(priceStr) || 0;
-
-                if (bidPrice > 0) {
-                    contractedBidsTotal += bidPrice;
-                    contractedBidsCount++;
-
-                    // Compare to category plan budget (proportional if multiple bids)
-                    const planPortion = cat.planBudget || 0;
-                    const diff = planPortion - bidPrice;
-
-                    if (diff >= 0) {
-                        profitableFromBids += diff;
-                    } else {
-                        unprofitableFromBids += Math.abs(diff);
-                    }
-                }
-            });
-        });
-
-        // Fallback to old calculation if no contracted bids
         const categoryProfitability = categories.map(cat => {
+            const categoryBids = bids[cat.id] || [];
+            // Winning bids: status 'sod'. In new logic we might also check 'contracted' flag if strictly used,
+            // but 'sod' status on bid usually implies it is the winning one.
+            const winningBids = categoryBids.filter(b => b.status === 'sod');
+
+            let catContractedAmount = 0;
+            if (winningBids.length > 0) {
+                sodCategoriesCount++;
+                winningBids.forEach(bid => {
+                    const priceStr = bid.price?.toString().replace(/[^\d]/g, '') || '0';
+                    const bidPrice = parseInt(priceStr) || 0;
+                    if (bidPrice > 0) {
+                        catContractedAmount += bidPrice;
+                        contractedBidsTotal += bidPrice;
+                        contractedBidsCount++;
+                    }
+                });
+            }
+
+            // Profitability for this category
             const planBudget = cat.planBudget || 0;
-            const sodBudget = cat.sodBudget || 0;
-            const diffVsPlan = planBudget - sodBudget;
+
+            // If we have contracted amount, use it. Otherwise use sodBudget from category if available (legacy), else 0.
+            const actualCost = catContractedAmount > 0 ? catContractedAmount : (cat.sodBudget || 0);
+
+            // Only calculate diff if we have an actual cost (SOD)
+            const diffVsPlan = actualCost > 0 ? planBudget - actualCost : 0;
             const isProfitable = diffVsPlan >= 0;
+
+            if (actualCost > 0) {
+                if (diffVsPlan >= 0) profitableFromBids += diffVsPlan;
+                else unprofitableFromBids += Math.abs(diffVsPlan);
+            }
+
             return {
                 ...cat,
+                sodBudget: actualCost, // Override with calculated cost for display
                 diffVsPlan,
                 isProfitable,
-                profitPercent: planBudget > 0 ? (diffVsPlan / planBudget) * 100 : 0
+                profitPercent: planBudget > 0 ? (diffVsPlan / planBudget) * 100 : 0,
+                hasWinningBid: winningBids.length > 0
             };
-        }).filter(c => c.status === 'sod');
+        });
 
-        const profitableCategories = categoryProfitability.filter(c => c.isProfitable);
-        const unprofitableCategories = categoryProfitability.filter(c => !c.isProfitable);
+        // Use the calculated total contracted
+        // If totalContracted from bids is 0, try to fallback to category.sodBudget sum (legacy)
+        if (contractedBidsTotal > 0) {
+            totalContracted = contractedBidsTotal;
+        } else {
+            totalContracted = categories.filter(c => c.status === 'sod').reduce((sum, c) => sum + (c.sodBudget || 0), 0);
+        }
 
-        // Use contracted bids profitability if available, otherwise category-based
-        const hasBidsProfitability = contractedBidsCount > 0;
+        const balance = totalBudget - totalContracted;
+        const balanceVsPlan = totalPlanned - totalContracted;
+
+        // Progress based on actual winning bids presence or status
+        const sodProgress = categories.length > 0 ? (sodCategoriesCount / categories.length) * 100 : 0;
+
+        const profitableCategories = categoryProfitability.filter(c => c.hasWinningBid && c.isProfitable);
+        const unprofitableCategories = categoryProfitability.filter(c => c.hasWinningBid && !c.isProfitable);
 
         return {
             totalBudget,
@@ -182,15 +198,14 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
             balanceVsPlan,
             sodProgress,
             categoriesCount: categories.length,
-            sodCount: sodCategories.length,
+            sodCount: sodCategoriesCount,
             openCount: openCategories.length,
             categories,
-            categoryProfitability,
+            categoryProfitability, // enriched with calculated values
             profitableCategories,
             unprofitableCategories,
-            // Use bids-based profitability when available
-            profitableSum: hasBidsProfitability ? profitableFromBids : profitableCategories.reduce((s, c) => s + c.diffVsPlan, 0),
-            unprofitableSum: hasBidsProfitability ? unprofitableFromBids : unprofitableCategories.reduce((s, c) => s + Math.abs(c.diffVsPlan), 0),
+            profitableSum: profitableFromBids,
+            unprofitableSum: unprofitableFromBids,
             contractedBidsCount,
             contractedBidsTotal
         };
@@ -217,13 +232,26 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
 
         setIsAnalyzing(true);
         try {
+            // Prepare rich data for AI
+            const categoriesData = metrics.categoryProfitability.map(c => ({
+                title: c.title,
+                plan: c.planBudget,
+                sod: c.sodBudget, // This is now the calculated actual cost
+                diff: c.diffVsPlan,
+                status: c.status
+            }));
+
             const projectSummary = [{
                 name: selectedProject.title,
-                totalBudget: metrics.totalBudget,
-                totalContracted: metrics.totalContracted,
+                totalBudget: metrics.totalBudget, // Investor budget
+                totalPlanned: metrics.totalPlanned, // Internal plan
+                totalContracted: metrics.totalContracted, // Actual spend
+                balance: metrics.balance, // Required by interface
+                balanceVsInvestor: metrics.balance,
+                balanceVsPlan: metrics.balanceVsPlan,
                 categoriesCount: metrics.categoriesCount,
                 sodCount: metrics.sodCount,
-                balance: metrics.balance
+                categoriesData: categoriesData // Detailed breakdown
             }];
 
             // Generate overview mode for detailed managerial analysis

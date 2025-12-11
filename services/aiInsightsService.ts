@@ -10,6 +10,16 @@ interface ProjectSummary {
   categoriesCount: number;
   sodCount: number;
   balance: number;
+  // Optional expanded fields for deep analysis
+  totalPlanned?: number;
+  balanceVsPlan?: number;
+  categoriesData?: {
+    title: string;
+    plan: number;
+    sod: number;
+    diff: number;
+    status: string;
+  }[];
 }
 
 export interface AIInsight {
@@ -47,7 +57,16 @@ export const generateProjectInsights = async (projects: ProjectSummary[], mode: 
       bilance: p.balance,
       kategorií: p.categoriesCount,
       uzavřených: p.sodCount,
-      marže: p.totalBudget > 0 ? ((p.balance / p.totalBudget) * 100).toFixed(1) + '%' : '0%'
+      marže: p.totalBudget > 0 ? ((p.balance / p.totalBudget) * 100).toFixed(1) + '%' : '0%',
+      // Add details if available
+      ...(p.categoriesData ? {
+        detail_kategorií: p.categoriesData.map(c => ({
+          kategorie: c.title,
+          plán: c.plan,
+          sod: c.sod,
+          rozdíl: c.diff
+        }))
+      } : {})
     }));
 
     const totalBudget = projects.reduce((s, p) => s + p.totalBudget, 0);
@@ -160,6 +179,7 @@ Vygeneruj komplexní slovní hodnocení projektu z pohledu:
 
 1. FINANČNÍ ANALÝZA
 Srovnej nabídkové ceny s rozpočtem, identifikuj úspory nebo překročení, uveď míru konkurence a efektivitu výběrových řízení.
+Pokud jsou dostupná detailní data o kategoriích, buď konkrétní (např. "V kategorii X došlo k úspoře Y Kč").
 
 2. SMLUVNÍ A PROCESNÍ STAV
 Zhodnoť postup uzavírání smluv, počet dokončených vs. otevřených poptávek, identifikuj případná rizika v procesu.
