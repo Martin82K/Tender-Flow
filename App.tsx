@@ -300,11 +300,11 @@ const AppContent: React.FC = () => {
           categories,
           contract: contractData
             ? {
-              maturity: contractData.maturity_days || 30,
-              warranty: contractData.warranty_months || 60,
+              maturity: contractData.maturity_days ?? 30,
+              warranty: contractData.warranty_months ?? 60,
               retention: contractData.retention_terms || "",
-              siteFacilities: contractData.site_facilities_percent || 0,
-              insurance: contractData.insurance_percent || 0,
+              siteFacilities: contractData.site_facilities_percent ?? 0,
+              insurance: contractData.insurance_percent ?? 0,
             }
             : undefined,
           investorFinancials: financialsData
@@ -574,6 +574,7 @@ const AppContent: React.FC = () => {
 
       // Update contract if provided
       if (updates.contract) {
+        console.log('[App] Saving contract updates:', updates.contract);
         const { error: contractError } = await supabase
           .from("project_contracts")
           .upsert({
