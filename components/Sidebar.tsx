@@ -74,6 +74,72 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
     }
   };
 
+  // Drag & Drop State for Projects
+  const [projectOrder, setProjectOrder] = useState<string[]>([]);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+
+  // Load order from localStorage on mount
+  useEffect(() => {
+    const savedOrder = localStorage.getItem('projectOrder');
+    if (savedOrder) {
+      try {
+        setProjectOrder(JSON.parse(savedOrder));
+      } catch {
+        setProjectOrder([]);
+      }
+    }
+  }, []);
+
+  // Get ordered projects (only non-archived)
+  const activeProjects = projects.filter(p => p.status !== 'archived');
+  const orderedProjects = [...activeProjects].sort((a, b) => {
+    const aIndex = projectOrder.indexOf(a.id);
+    const bIndex = projectOrder.indexOf(b.id);
+    if (aIndex === -1 && bIndex === -1) return 0;
+    if (aIndex === -1) return 1;
+    if (bIndex === -1) return -1;
+    return aIndex - bIndex;
+  });
+
+  // Drag handlers
+  const handleProjectDragStart = (e: React.DragEvent, projectId: string) => {
+    setDraggedId(projectId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleProjectDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleProjectDrop = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    if (!draggedId || draggedId === targetId) {
+      setDraggedId(null);
+      return;
+    }
+
+    const currentOrder = orderedProjects.map(p => p.id);
+    const draggedIndex = currentOrder.indexOf(draggedId);
+    const targetIndex = currentOrder.indexOf(targetId);
+
+    if (draggedIndex === -1 || targetIndex === -1) {
+      setDraggedId(null);
+      return;
+    }
+
+    currentOrder.splice(draggedIndex, 1);
+    currentOrder.splice(targetIndex, 0, draggedId);
+
+    setProjectOrder(currentOrder);
+    localStorage.setItem('projectOrder', JSON.stringify(currentOrder));
+    setDraggedId(null);
+  };
+
+  const handleProjectDragEnd = () => {
+    setDraggedId(null);
+  };
+
   return (
     <aside
       ref={sidebarRef}
@@ -128,29 +194,35 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
               </summary>
 
               <div className="flex flex-col mt-1 ml-2 gap-1">
-                {projects.length === 0 && <div className="px-4 py-2 text-xs text-slate-500 italic">Žádné aktivní stavby</div>}
-                {projects.map(project => (
-                  <button
+                {orderedProjects.length === 0 && <div className="px-4 py-2 text-xs text-slate-500 italic">Žádné aktivní stavby</div>}
+                {orderedProjects.map(project => (
+                  <div
                     key={project.id}
-                    onClick={() => {
-                      onProjectSelect(project.id);
-                    }}
-                    className={`flex items-center gap-2 text-left text-sm px-3 py-2 rounded-lg transition-all relative overflow-hidden ${currentView === 'project' && selectedProjectId === project.id
+                    draggable
+                    onDragStart={(e) => handleProjectDragStart(e, project.id)}
+                    onDragOver={handleProjectDragOver}
+                    onDrop={(e) => handleProjectDrop(e, project.id)}
+                    onDragEnd={handleProjectDragEnd}
+                    onClick={() => onProjectSelect(project.id)}
+                    className={`flex items-center gap-2 text-left text-sm px-3 py-2 rounded-lg transition-all relative overflow-hidden cursor-move ${currentView === 'project' && selectedProjectId === project.id
                       ? 'text-white font-medium'
                       : 'text-slate-500 hover:text-white hover:bg-slate-800/50'
-                      }`}
+                      } ${draggedId === project.id ? 'opacity-50' : ''}`}
                     title={project.name}
                   >
                     {/* Gradient highlight for selected project */}
                     {currentView === 'project' && selectedProjectId === project.id && (
                       <div className="absolute inset-0 bg-gradient-to-r from-primary/30 via-primary/10 to-transparent rounded-lg border-l-2 border-primary" />
                     )}
+                    <span className="material-symbols-outlined text-slate-600 text-[16px] cursor-grab active:cursor-grabbing relative z-10 shrink-0">
+                      drag_indicator
+                    </span>
                     <span className={`relative z-10 flex items-center justify-center size-5 rounded text-[11px] font-bold shrink-0 ${project.status === 'realization' ? 'bg-amber-500/20 text-amber-400' : 'bg-blue-500/20 text-blue-400'
                       }`}>
                       {project.status === 'realization' ? 'R' : 'S'}
                     </span>
                     <span className="relative z-10 break-words">{project.name}</span>
-                  </button>
+                  </div>
                 ))}
               </div>
             </details>

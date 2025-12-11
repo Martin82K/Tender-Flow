@@ -11,6 +11,79 @@ interface ProjectManagerProps {
     onArchiveProject: (id: string) => void;
 }
 
+// Collapsible Archive Section Component
+const ArchiveSection: React.FC<{
+    projects: Project[];
+    user: { id: string } | null;
+    onRestoreProject: (id: string) => void;
+    onDeleteProject: (id: string) => void;
+    openShareModal: (id: string) => void;
+}> = ({ projects, user, onRestoreProject, onDeleteProject, openShareModal }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+
+    return (
+        <section className="bg-gradient-to-br from-slate-900/50 to-slate-950/50 backdrop-blur-xl border border-slate-700/30 rounded-2xl shadow-xl overflow-hidden">
+            {/* Collapsible Header */}
+            <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="w-full p-4 flex items-center justify-between hover:bg-slate-800/30 transition-colors"
+            >
+                <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-slate-500">inventory_2</span>
+                    <h2 className="text-base font-bold text-slate-400">Archiv</h2>
+                    <span className="bg-slate-700/50 text-slate-500 text-xs px-2 py-0.5 rounded-lg">
+                        {projects.length} {projects.length === 1 ? 'projekt' : projects.length < 5 ? 'projekty' : 'projektů'}
+                    </span>
+                </div>
+                <span className={`material-symbols-outlined text-slate-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
+                    expand_more
+                </span>
+            </button>
+
+            {/* Collapsible Content */}
+            {isExpanded && (
+                <div className="p-4 pt-0 space-y-2">
+                    {projects.map(project => (
+                        <div key={project.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-800/30 border border-slate-700/30 opacity-70 hover:opacity-100 transition-opacity">
+                            <div className="flex items-center gap-3">
+                                <div className="size-8 rounded-full bg-slate-700/50 text-slate-500 flex items-center justify-center text-sm font-bold">
+                                    A
+                                </div>
+                                <div>
+                                    <h4 className="font-medium text-slate-300 text-sm">{project.name}</h4>
+                                    <p className="text-[10px] text-slate-600">{project.location}</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-1">
+                                {/* Restore Button */}
+                                <button
+                                    onClick={() => onRestoreProject(project.id)}
+                                    className="p-1.5 text-slate-500 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors"
+                                    title="Obnovit projekt"
+                                >
+                                    <span className="material-symbols-outlined text-[18px]">unarchive</span>
+                                </button>
+
+                                {/* Delete Button - Only Owner */}
+                                {(!project.ownerId || project.ownerId === user?.id) && (
+                                    <button
+                                        onClick={() => onDeleteProject(project.id)}
+                                        className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                        title="Odstranit trvale"
+                                    >
+                                        <span className="material-symbols-outlined text-[18px]">delete_forever</span>
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </section>
+    );
+};
+
 export const ProjectManager: React.FC<ProjectManagerProps> = ({
     projects,
     onAddProject,
@@ -31,6 +104,76 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
     const [shares, setShares] = useState<{ user_id: string, email: string, permission: string }[]>([]);
     const [isLoadingShares, setIsLoadingShares] = useState(false);
     const [isSharing, setIsSharing] = useState(false);
+
+    // Drag & Drop State
+    const [projectOrder, setProjectOrder] = useState<string[]>([]);
+    const [draggedId, setDraggedId] = useState<string | null>(null);
+
+    // Load order from localStorage on mount
+    useEffect(() => {
+        const savedOrder = localStorage.getItem('projectOrder');
+        if (savedOrder) {
+            try {
+                setProjectOrder(JSON.parse(savedOrder));
+            } catch {
+                setProjectOrder([]);
+            }
+        }
+    }, []);
+
+    // Get ordered active projects
+    const activeProjects = projects.filter(p => p.status !== 'archived');
+    const orderedActiveProjects = [...activeProjects].sort((a, b) => {
+        const aIndex = projectOrder.indexOf(a.id);
+        const bIndex = projectOrder.indexOf(b.id);
+        // Projects not in order go to the end
+        if (aIndex === -1 && bIndex === -1) return 0;
+        if (aIndex === -1) return 1;
+        if (bIndex === -1) return -1;
+        return aIndex - bIndex;
+    });
+
+    // Drag handlers
+    const handleDragStart = (e: React.DragEvent, projectId: string) => {
+        setDraggedId(projectId);
+        e.dataTransfer.effectAllowed = 'move';
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    };
+
+    const handleDrop = (e: React.DragEvent, targetId: string) => {
+        e.preventDefault();
+        if (!draggedId || draggedId === targetId) {
+            setDraggedId(null);
+            return;
+        }
+
+        // Create new order
+        const currentOrder = orderedActiveProjects.map(p => p.id);
+        const draggedIndex = currentOrder.indexOf(draggedId);
+        const targetIndex = currentOrder.indexOf(targetId);
+
+        if (draggedIndex === -1 || targetIndex === -1) {
+            setDraggedId(null);
+            return;
+        }
+
+        // Remove dragged item and insert at target position
+        currentOrder.splice(draggedIndex, 1);
+        currentOrder.splice(targetIndex, 0, draggedId);
+
+        // Save to state and localStorage
+        setProjectOrder(currentOrder);
+        localStorage.setItem('projectOrder', JSON.stringify(currentOrder));
+        setDraggedId(null);
+    };
+
+    const handleDragEnd = () => {
+        setDraggedId(null);
+    };
 
     const handleCreateProject = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -181,17 +324,29 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                     </form>
                 </section>
 
-                {/* 2. Project List */}
-                <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl">
+                {/* 2. Active Project List */}
+                <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl mb-8">
                     <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
                         <span className="material-symbols-outlined text-blue-400">list_alt</span>
                         Seznam vašich a sdílených staveb
                     </h2>
 
                     <div className="space-y-3">
-                        {projects.map(project => (
-                            <div key={project.id} className={`flex items-center justify-between p-4 rounded-xl border ${project.status === 'archived' ? 'bg-slate-800/30 border-slate-700/30 opacity-60' : 'bg-slate-800/50 border-slate-700/50'}`}>
+                        {orderedActiveProjects.map(project => (
+                            <div
+                                key={project.id}
+                                draggable
+                                onDragStart={(e) => handleDragStart(e, project.id)}
+                                onDragOver={handleDragOver}
+                                onDrop={(e) => handleDrop(e, project.id)}
+                                onDragEnd={handleDragEnd}
+                                className={`flex items-center justify-between p-4 rounded-xl border bg-slate-800/50 border-slate-700/50 cursor-move transition-all ${draggedId === project.id ? 'opacity-50 scale-[0.98]' : ''}`}
+                            >
                                 <div className="flex items-center gap-4">
+                                    {/* Drag Handle */}
+                                    <span className="material-symbols-outlined text-slate-600 text-[20px] cursor-grab active:cursor-grabbing">
+                                        drag_indicator
+                                    </span>
                                     <div className={`size-10 rounded-full flex items-center justify-center text-lg font-bold ${project.status === 'realization' ? 'bg-amber-500/20 text-amber-400' :
                                         project.status === 'tender' ? 'bg-blue-500/20 text-blue-400' :
                                             'bg-slate-700/50 text-slate-500'
@@ -242,15 +397,13 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                         </button>
                                     )}
 
-                                    {project.status !== 'archived' && (
-                                        <button
-                                            onClick={() => onArchiveProject(project.id)}
-                                            className="p-2 text-slate-500 hover:text-amber-400 hover:bg-amber-500/10 rounded-lg transition-colors"
-                                            title="Archivovat"
-                                        >
-                                            <span className="material-symbols-outlined text-[20px]">archive</span>
-                                        </button>
-                                    )}
+                                    <button
+                                        onClick={() => onArchiveProject(project.id)}
+                                        className="p-2 text-slate-500 hover:text-amber-400 hover:bg-amber-500/10 rounded-lg transition-colors"
+                                        title="Archivovat"
+                                    >
+                                        <span className="material-symbols-outlined text-[20px]">archive</span>
+                                    </button>
 
                                     {/* Delete Button - Only Owner */}
                                     {(!project.ownerId || project.ownerId === user?.id) && (
@@ -265,11 +418,22 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                 </div>
                             </div>
                         ))}
-                        {projects.length === 0 && (
-                            <p className="text-center text-slate-500 italic py-4">Žádné projekty.</p>
+                        {orderedActiveProjects.length === 0 && (
+                            <p className="text-center text-slate-500 italic py-4">Žádné aktivní projekty.</p>
                         )}
                     </div>
                 </section>
+
+                {/* 3. Archive Section */}
+                {projects.filter(p => p.status === 'archived').length > 0 && (
+                    <ArchiveSection
+                        projects={projects.filter(p => p.status === 'archived')}
+                        user={user}
+                        onRestoreProject={onArchiveProject}
+                        onDeleteProject={onDeleteProject}
+                        openShareModal={openShareModal}
+                    />
+                )}
             </div>
 
             {/* Sharing Modal */}

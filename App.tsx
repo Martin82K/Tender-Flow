@@ -510,21 +510,28 @@ const AppContent: React.FC = () => {
   };
 
   const handleArchiveProject = async (id: string) => {
+    // Find the project to determine current status
+    const project = projects.find(p => p.id === id);
+    if (!project) return;
+
+    // Toggle: if archived, restore to 'realization'; otherwise archive
+    const newStatus = project.status === 'archived' ? 'realization' : 'archived';
+
     // Optimistic update
     setProjects((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, status: "archived" } : p))
+      prev.map((p) => (p.id === id ? { ...p, status: newStatus } : p))
     );
 
     // Persist to Supabase
     try {
       const { error } = await supabase
         .from("projects")
-        .update({ status: "archived" })
+        .update({ status: newStatus })
         .eq("id", id);
 
-      if (error) console.error("Error archiving project:", error);
+      if (error) console.error("Error updating project status:", error);
     } catch (err) {
-      console.error("Unexpected error archiving project:", err);
+      console.error("Unexpected error updating project status:", err);
     }
   };
 
