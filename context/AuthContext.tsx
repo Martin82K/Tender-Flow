@@ -90,8 +90,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     const logout = async () => {
-        await authService.logout();
-        setUser(null);
+        try {
+            await authService.logout();
+        } catch (error) {
+            console.error('Logout failed:', error);
+        } finally {
+            // Always clear local session even if server request fails
+            setUser(null);
+        }
     };
 
     return (
