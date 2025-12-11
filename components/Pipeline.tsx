@@ -638,9 +638,11 @@ const CategoryCard: React.FC<{
 
       <div className="flex items-center justify-between w-full mt-auto pt-4 border-t border-slate-700/50">
         <div className="flex flex-col">
-          <span className="text-xs text-slate-500">Cena SOD</span>
+          <span className="text-xs text-slate-500">
+            {category.winningPrice ? "Vítězná cena" : "Cena SOD (Investor)"}
+          </span>
           <span className="text-sm font-semibold text-white">
-            {formatMoney(category.sodBudget)}
+            {formatMoney(category.winningPrice || category.sodBudget)}
           </span>
         </div>
         <div className="flex flex-col items-center">
@@ -904,9 +906,11 @@ export const Pipeline: React.FC<PipelineProps> = ({
   onDeleteCategory,
   onBidsChange,
 }) => {
+  const projectData = projectDetails;
   const [activeCategory, setActiveCategory] = useState<DemandCategory | null>(
     null
   );
+  const [demandFilter, setDemandFilter] = useState<'all' | 'open' | 'closed' | 'sod'>('all');
   const [bids, setBids] = useState<Record<string, Bid[]>>(initialBids);
   // const [contacts, setContacts] = useState<Subcontractor[]>(ALL_CONTACTS); // Use prop directly or state if we modify it locally?
   // The component modifies contacts (adding new ones). So we might need state, but initialized from prop.
@@ -998,7 +1002,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
     setActiveCategory(null);
   }, [projectId]);
 
-  const projectData = projectDetails;
+
 
   const getBidsForColumn = (categoryId: string, status: BidStatus) => {
     return (bids[categoryId] || []).filter((bid) => bid.status === status);
@@ -1993,6 +1997,53 @@ export const Pipeline: React.FC<PipelineProps> = ({
         title={`Stavba: ${projectData.title}`}
         subtitle="Přehled poptávek a subdodávek"
       >
+        {/* Filter Buttons */}
+        <div className="flex items-center gap-1 bg-slate-800/50 p-1 rounded-xl border border-slate-700/50 mr-4">
+          <button
+            onClick={() => setDemandFilter('all')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${demandFilter === 'all'
+              ? 'bg-slate-700 text-white shadow'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              }`}
+          >
+            Všechny ({projectData.categories.length})
+          </button>
+          <button
+            onClick={() => setDemandFilter('open')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${demandFilter === 'open'
+              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              }`}
+          >
+            Poptávané ({projectData.categories.filter(c => c.status === 'open' || c.status === 'negotiating').length})
+          </button>
+          <button
+            onClick={() => setDemandFilter('closed')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${demandFilter === 'closed'
+              ? 'bg-teal-500/20 text-teal-300 border border-teal-500/30'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              }`}
+          >
+            Ukončené ({projectData.categories.filter(c => c.status === 'closed').length})
+          </button>
+          <button
+            onClick={() => setDemandFilter('sod')}
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${demandFilter === 'sod'
+              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              }`}
+          >
+            Zasmluvněné ({projectData.categories.filter(c => {
+              if (c.status === 'sod') return true;
+              if (c.status === 'closed') {
+                const sodBids = (bids[c.id] || []).filter(b => b.status === 'sod');
+                return sodBids.length > 0 && sodBids.every(b => b.contracted);
+              }
+              return false;
+            }).length})
+          </button>
+        </div>
+
         <button
           onClick={() => setIsAddModalOpen(true)}
           className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-lg transition-all"
@@ -2006,28 +2057,65 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
       <div className="p-6 lg:p-10 overflow-y-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {projectData.categories.map((category) => {
-            const categoryBids = bids[category.id] || [];
-            const bidCount = categoryBids.length;
-            const priceOfferCount = categoryBids.filter(b => b.price && b.price !== '?' && b.price.trim() !== '').length;
-            const sodBids = categoryBids.filter(b => b.status === 'sod');
-            const sodBidsCount = sodBids.length;
-            const contractedCount = sodBids.filter(b => b.contracted).length;
-            return (
-              <CategoryCard
-                key={category.id}
-                category={category}
-                bidCount={bidCount}
-                priceOfferCount={priceOfferCount}
-                contractedCount={contractedCount}
-                sodBidsCount={sodBidsCount}
-                onClick={() => setActiveCategory(category)}
-                onEdit={handleEditCategoryClick}
-                onDelete={handleDeleteCategory}
-                onToggleComplete={handleToggleCategoryComplete}
-              />
-            );
-          })}
+          {projectData.categories
+            .filter(cat => {
+              if (demandFilter === 'all') return true;
+              if (demandFilter === 'open') return cat.status === 'open' || cat.status === 'negotiating';
+              if (demandFilter === 'closed') return cat.status === 'closed';
+              if (demandFilter === 'sod') {
+                // SOD filter includes:
+                // 1. Explicit 'sod' status
+                // 2. 'closed' status IF fully contracted (all winning bids have contracts)
+                if (cat.status === 'sod') return true;
+
+                if (cat.status === 'closed') {
+                  const catBids = bids[cat.id] || [];
+                  const sodBids = catBids.filter(b => b.status === 'sod');
+                  const contractedCount = sodBids.filter(b => b.contracted).length;
+                  // Check if it has winners and ALL are contracted
+                  if (sodBids.length > 0 && sodBids.length === contractedCount) {
+                    return true;
+                  }
+                }
+                return false;
+              }
+              return true;
+            })
+            .map((category) => {
+              const categoryBids = bids[category.id] || [];
+              const bidCount = categoryBids.length;
+              const priceOfferCount = categoryBids.filter(b => b.price && b.price !== '?' && b.price.trim() !== '').length;
+              const sodBids = categoryBids.filter(b => b.status === 'sod');
+              const sodBidsCount = sodBids.length;
+              const contractedCount = sodBids.filter(b => b.contracted).length;
+
+              // Calculate winning price sum
+              const winningPrice = sodBids.reduce((sum, bid) => {
+                // Parse price assuming it might be formatted text "1 500 000 Kč"
+                const numericPrice = typeof bid.price === 'string'
+                  ? parseFloat(bid.price.replace(/[^\d]/g, ''))
+                  : 0;
+                return sum + (isNaN(numericPrice) ? 0 : numericPrice);
+              }, 0);
+
+              // Inject winningPrice into category for display (temporary override or extended type)
+              const categoryWithPrice = { ...category, winningPrice: winningPrice > 0 ? winningPrice : undefined };
+
+              return (
+                <CategoryCard
+                  key={category.id}
+                  category={categoryWithPrice}
+                  bidCount={bidCount}
+                  priceOfferCount={priceOfferCount}
+                  contractedCount={contractedCount}
+                  sodBidsCount={sodBidsCount}
+                  onClick={() => setActiveCategory(category)}
+                  onEdit={handleEditCategoryClick}
+                  onDelete={handleDeleteCategory}
+                  onToggleComplete={handleToggleCategoryComplete}
+                />
+              );
+            })}
 
           {/* Add New Placeholder */}
           <button

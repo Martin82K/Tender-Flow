@@ -1003,7 +1003,11 @@ const AppContent: React.FC = () => {
     switch (currentView) {
       case "dashboard":
         return (
-          <Dashboard projects={projects} projectDetails={allProjectDetails} />
+          <Dashboard
+            projects={projects}
+            projectDetails={allProjectDetails}
+            onUpdateProjectDetails={(id, updates) => handleUpdateProjectDetails(id, updates)}
+          />
         );
       case "project":
         return (
@@ -1093,6 +1097,7 @@ const AppContent: React.FC = () => {
           <Dashboard
             projects={projects}
             projectDetails={allProjectDetails}
+            onUpdateProjectDetails={(id, updates) => handleUpdateProjectDetails(id, updates)}
           />
         );
     }
