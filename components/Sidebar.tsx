@@ -96,8 +96,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
               className="size-14 min-w-14 object-contain drop-shadow-md shrink-0"
             />
             <div className="flex flex-col min-w-0">
-              <h1 className="text-white text-base font-bold leading-normal break-words">Tender Flow</h1>
-              <p className="text-slate-500 text-[6px] font-normal break-words">Tender Management System</p>
+              <h1 className="text-white text-xl font-bold leading-normal break-words">Tender Flow</h1>
+              <p className="text-slate-500 text-[8px] font-normal break-words">Tender Management System</p>
             </div>
           </div>
 
@@ -223,8 +223,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
           {/* Footer Credit */}
           <div className="px-3 pb-2">
             <div className="h-px bg-slate-700/50 w-full my-3"></div>
-            <p className="text-[11px] text-white/50 text-center leading-relaxed font-medium tracking-wide">
-              Created by Kalmatech,<br />Martin Kalkuš
+            <p className="text-[13px] text-white/50 text-center leading-relaxed font-medium tracking-wide">
+              Martin Kalkuš 2025
             </p>
           </div>
         </div>

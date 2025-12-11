@@ -988,7 +988,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                                                 </td>
                                                 <td className="py-3 px-4 text-center">
                                                     <span className="text-slate-400 font-medium">{bidsWithPrice.length}</span>
-                                                    <span className="text-slate-600"> / {cat.subcontractorCount}</span>
+                                                    <span className="text-slate-600"> / {catBids.length}</span>
                                                 </td>
                                                 <td className="py-3 px-4 text-center">
                                                     {hasWinner ? (

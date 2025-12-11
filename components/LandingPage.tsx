@@ -73,7 +73,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onRegister })
           <h1 className="text-5xl md:text-6xl font-light text-white tracking-wider mb-2">
             Tender Flow
           </h1>
-          <p className="text-sm md:text-base text-white/70 font-light tracking-wide">
+          <p className="text-lg md:text-xl text-white/70 font-light tracking-wide">
             Tender Management System
           </p>
           <div className="h-1 w-32 bg-orange-500 mx-auto rounded-full mt-4" />
@@ -155,7 +155,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onRegister })
 
           {/* Version Label */}
           <div className="mt-8 pt-8 border-t border-white/10 text-center">
-            <span className="text-xs text-white/40">verze 0.6.1</span>
+            <span className="text-xs text-white/40">verze 0.7.1</span>
           </div>
         </form>
 
