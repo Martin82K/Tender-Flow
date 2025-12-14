@@ -58,7 +58,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ projects, projectDetails, 
             };
         };
 
-        const data = categories.map(cat => {
+        const data = [...categories].sort((a, b) => a.title.localeCompare(b.title, 'cs')).map(cat => {
             const bidInfo = getCategoryBidInfo(cat.id);
             const sodVr = bidInfo.winnersTotal > 0 ? (cat.sodBudget || 0) - bidInfo.winnersTotal : null;
             const pnVr = bidInfo.winnersTotal > 0 ? (cat.planBudget || 0) - bidInfo.winnersTotal : null;

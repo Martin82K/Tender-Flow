@@ -941,7 +941,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-800">
-                                    {filteredCategories.map(cat => {
+                                    {[...filteredCategories].sort((a, b) => a.title.localeCompare(b.title, 'cs')).map(cat => {
                                         const catBids = project.bids?.[cat.id] || [];
                                         const winningBids = catBids.filter(b => b.status === 'sod');
                                         const contractedBids = winningBids.filter(b => b.contracted);

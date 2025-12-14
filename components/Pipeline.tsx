@@ -2057,7 +2057,8 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
       <div className="p-6 lg:p-10 overflow-y-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {projectData.categories
+          {[...projectData.categories]
+            .sort((a, b) => a.title.localeCompare(b.title, 'cs'))
             .filter(cat => {
               if (demandFilter === 'all') return true;
               if (demandFilter === 'open') return cat.status === 'open' || cat.status === 'negotiating';

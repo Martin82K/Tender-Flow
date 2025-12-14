@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { TenderPlanItem, DemandCategory } from '../types';
+import { supabase } from '../services/supabase';
 
 interface TenderPlanProps {
     projectId: string;
@@ -11,29 +12,48 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
     const [items, setItems] = useState<TenderPlanItem[]>([]);
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
 
     // Form state
     const [formName, setFormName] = useState('');
     const [formDateFrom, setFormDateFrom] = useState('');
     const [formDateTo, setFormDateTo] = useState('');
 
-    // Load from localStorage
+    // Load from Supabase
     useEffect(() => {
-        const saved = localStorage.getItem(`tenderPlan_${projectId}`);
-        if (saved) {
+        const loadItems = async () => {
+            setIsLoading(true);
             try {
-                setItems(JSON.parse(saved));
-            } catch {
-                setItems([]);
-            }
-        }
-    }, [projectId]);
+                const { data, error } = await supabase
+                    .from('tender_plans')
+                    .select('*')
+                    .eq('project_id', projectId)
+                    .order('created_at', { ascending: true });
 
-    // Save to localStorage
-    const saveItems = (newItems: TenderPlanItem[]) => {
-        setItems(newItems);
-        localStorage.setItem(`tenderPlan_${projectId}`, JSON.stringify(newItems));
-    };
+                if (error) {
+                    console.error('Error loading tender plans:', error);
+                    setItems([]);
+                } else {
+                    // Map DB columns to frontend model
+                    const mapped = (data || []).map(row => ({
+                        id: row.id,
+                        name: row.name,
+                        dateFrom: row.date_from || '',
+                        dateTo: row.date_to || '',
+                        categoryId: row.category_id || undefined
+                    }));
+                    setItems(mapped);
+                }
+            } catch (err) {
+                console.error('Unexpected error loading tender plans:', err);
+                setItems([]);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        loadItems();
+    }, [projectId]);
 
     // Find linked category by name
     const findLinkedCategory = (item: TenderPlanItem): DemandCategory | undefined => {
@@ -59,7 +79,7 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
         }
     };
 
-    const handleAdd = () => {
+    const handleAdd = async () => {
         if (!formName.trim()) return;
 
         const newItem: TenderPlanItem = {
@@ -69,8 +89,29 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
             dateTo: formDateTo,
         };
 
-        saveItems([...items, newItem]);
+        // Optimistic update
+        setItems(prev => [...prev, newItem]);
         resetForm();
+
+        // Persist to Supabase
+        try {
+            const { error } = await supabase.from('tender_plans').insert({
+                id: newItem.id,
+                project_id: projectId,
+                name: newItem.name,
+                date_from: newItem.dateFrom || null,
+                date_to: newItem.dateTo || null
+            });
+
+            if (error) {
+                console.error('Error inserting tender plan:', error);
+                // Revert on error
+                setItems(prev => prev.filter(i => i.id !== newItem.id));
+            }
+        } catch (err) {
+            console.error('Unexpected error inserting tender plan:', err);
+            setItems(prev => prev.filter(i => i.id !== newItem.id));
+        }
     };
 
     const handleEdit = (item: TenderPlanItem) => {
@@ -80,22 +121,67 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
         setFormDateTo(item.dateTo);
     };
 
-    const handleUpdate = () => {
+    const handleUpdate = async () => {
         if (!editingId || !formName.trim()) return;
 
-        const updated = items.map(item =>
-            item.id === editingId
-                ? { ...item, name: formName.trim(), dateFrom: formDateFrom, dateTo: formDateTo }
-                : item
-        );
+        const updatedData = {
+            name: formName.trim(),
+            dateFrom: formDateFrom,
+            dateTo: formDateTo
+        };
 
-        saveItems(updated);
+        // Optimistic update
+        setItems(prev => prev.map(item =>
+            item.id === editingId
+                ? { ...item, ...updatedData }
+                : item
+        ));
+        const previousItems = items;
         resetForm();
+
+        // Persist to Supabase
+        try {
+            const { error } = await supabase
+                .from('tender_plans')
+                .update({
+                    name: updatedData.name,
+                    date_from: updatedData.dateFrom || null,
+                    date_to: updatedData.dateTo || null
+                })
+                .eq('id', editingId);
+
+            if (error) {
+                console.error('Error updating tender plan:', error);
+                setItems(previousItems);
+            }
+        } catch (err) {
+            console.error('Unexpected error updating tender plan:', err);
+            setItems(previousItems);
+        }
     };
 
-    const handleDelete = (id: string) => {
+    const handleDelete = async (id: string) => {
         if (!confirm('Opravdu smazat tento plán?')) return;
-        saveItems(items.filter(item => item.id !== id));
+
+        const previousItems = items;
+        // Optimistic update
+        setItems(prev => prev.filter(item => item.id !== id));
+
+        // Persist to Supabase
+        try {
+            const { error } = await supabase
+                .from('tender_plans')
+                .delete()
+                .eq('id', id);
+
+            if (error) {
+                console.error('Error deleting tender plan:', error);
+                setItems(previousItems);
+            }
+        } catch (err) {
+            console.error('Unexpected error deleting tender plan:', err);
+            setItems(previousItems);
+        }
     };
 
     const handleCreateCategory = (item: TenderPlanItem) => {
@@ -148,7 +234,15 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
                             </tr>
                         </thead>
                         <tbody>
-                            {items.length === 0 && !isAdding && (
+                            {isLoading && (
+                                <tr>
+                                    <td colSpan={6} className="px-6 py-12 text-center">
+                                        <span className="material-symbols-outlined text-slate-600 text-5xl mb-3 block animate-spin">progress_activity</span>
+                                        <p className="text-slate-400 text-sm">Načítání plánů VŘ...</p>
+                                    </td>
+                                </tr>
+                            )}
+                            {!isLoading && items.length === 0 && !isAdding && (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-12 text-center">
                                         <span className="material-symbols-outlined text-slate-600 text-5xl mb-3 block">calendar_month</span>
@@ -158,7 +252,58 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
                                 </tr>
                             )}
 
-                            {items.map(item => {
+                            {/* Add new row - displayed at top */}
+                            {isAdding && (
+                                <tr className="border-b border-slate-700/30 bg-slate-800/30">
+                                    <td className="px-6 py-4">
+                                        <input
+                                            type="text"
+                                            value={formName}
+                                            onChange={(e) => setFormName(e.target.value)}
+                                            className="w-full bg-slate-800/50 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                                            placeholder="Název VŘ"
+                                            autoFocus
+                                        />
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <input
+                                            type="date"
+                                            value={formDateFrom}
+                                            onChange={(e) => setFormDateFrom(e.target.value)}
+                                            className="bg-slate-800/50 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                                        />
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <input
+                                            type="date"
+                                            value={formDateTo}
+                                            onChange={(e) => setFormDateTo(e.target.value)}
+                                            className="bg-slate-800/50 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                                        />
+                                    </td>
+                                    <td className="px-6 py-4 text-center">-</td>
+                                    <td className="px-6 py-4">-</td>
+                                    <td className="px-6 py-4 text-right">
+                                        <div className="flex items-center justify-end gap-2">
+                                            <button
+                                                onClick={handleAdd}
+                                                className="p-2 text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors"
+                                            >
+                                                <span className="material-symbols-outlined text-[18px]">check</span>
+                                            </button>
+                                            <button
+                                                onClick={resetForm}
+                                                className="p-2 text-slate-400 hover:bg-slate-700/50 rounded-lg transition-colors"
+                                            >
+                                                <span className="material-symbols-outlined text-[18px]">close</span>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            )}
+
+                            {/* Sort items alphabetically by name */}
+                            {[...items].sort((a, b) => a.name.localeCompare(b.name, 'cs')).map(item => {
                                 const status = getStatus(item);
                                 const hasCategory = !!findLinkedCategory(item);
                                 const isEditing = editingId === item.id;
@@ -271,55 +416,6 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
                                 );
                             })}
 
-                            {/* Add new row */}
-                            {isAdding && (
-                                <tr className="border-b border-slate-700/30 bg-slate-800/30">
-                                    <td className="px-6 py-4">
-                                        <input
-                                            type="text"
-                                            value={formName}
-                                            onChange={(e) => setFormName(e.target.value)}
-                                            className="w-full bg-slate-800/50 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
-                                            placeholder="Název VŘ"
-                                            autoFocus
-                                        />
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <input
-                                            type="date"
-                                            value={formDateFrom}
-                                            onChange={(e) => setFormDateFrom(e.target.value)}
-                                            className="bg-slate-800/50 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
-                                        />
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <input
-                                            type="date"
-                                            value={formDateTo}
-                                            onChange={(e) => setFormDateTo(e.target.value)}
-                                            className="bg-slate-800/50 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
-                                        />
-                                    </td>
-                                    <td className="px-6 py-4 text-center">-</td>
-                                    <td className="px-6 py-4">-</td>
-                                    <td className="px-6 py-4 text-right">
-                                        <div className="flex items-center justify-end gap-2">
-                                            <button
-                                                onClick={handleAdd}
-                                                className="p-2 text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors"
-                                            >
-                                                <span className="material-symbols-outlined text-[18px]">check</span>
-                                            </button>
-                                            <button
-                                                onClick={resetForm}
-                                                className="p-2 text-slate-400 hover:bg-slate-700/50 rounded-lg transition-colors"
-                                            >
-                                                <span className="material-symbols-outlined text-[18px]">close</span>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            )}
                         </tbody>
                     </table>
                 </div>
