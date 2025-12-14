@@ -2,6 +2,7 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { DemandCategory, Bid, ProjectDetails } from '../types';
+import { RobotoRegularBase64 } from '../fonts/roboto-regular';
 
 /**
  * Format money for display
@@ -37,24 +38,11 @@ function getStatusLabel(status: string): string {
 }
 
 /**
- * Remove Czech diacritics for PDF compatibility
+ * Register Roboto font with jsPDF for Czech diacritics support
  */
-function removeDiacritics(text: string): string {
-  const diacriticsMap: Record<string, string> = {
-    'á': 'a', 'Á': 'A', 'č': 'c', 'Č': 'C', 'ď': 'd', 'Ď': 'D',
-    'é': 'e', 'É': 'E', 'ě': 'e', 'Ě': 'E', 'í': 'i', 'Í': 'I',
-    'ň': 'n', 'Ň': 'N', 'ó': 'o', 'Ó': 'O', 'ř': 'r', 'Ř': 'R',
-    'š': 's', 'Š': 'S', 'ť': 't', 'Ť': 'T', 'ú': 'u', 'Ú': 'U',
-    'ů': 'u', 'Ů': 'U', 'ý': 'y', 'Ý': 'Y', 'ž': 'z', 'Ž': 'Z'
-  };
-  return text.replace(/[áÁčČďĎéÉěĚíÍňŇóÓřŘšŠťŤúÚůŮýÝžŽ]/g, char => diacriticsMap[char] || char);
-}
-
-/**
- * Get status label without diacritics for PDF
- */
-function getStatusLabelPDF(status: string): string {
-  return removeDiacritics(getStatusLabel(status));
+function registerRobotoFont(doc: jsPDF): void {
+  doc.addFileToVFS('Roboto-Regular.ttf', RobotoRegularBase64);
+  doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
 }
 
 /**
@@ -79,12 +67,12 @@ export function exportToXLSX(
 
   // Combined data - overview + suppliers on one sheet
   const combinedData: (string | number)[][] = [
-    ['PŘEHLED POPTÁVKY', '', '', '', '', '', '', '', '', '', '', ''],
+    ['ZÁPIS O VÝBĚRU', '', '', '', '', '', '', '', '', '', '', ''],
     [],
     ['Projekt:', project.title],
     ['Kategorie:', category.title],
     ['SOD rozpočet:', formatMoney(category.sodBudget)],
-    ['Plánovaný rozpočet:', formatMoney(category.planBudget)],
+    ['Plánovaný náklad:', formatMoney(category.planBudget)],
     ...(category.deadline ? [['Termín poptávky:', formatDate(category.deadline)]] : []),
     ['Datum exportu:', formatDate(new Date().toISOString())],
     [],
@@ -118,15 +106,33 @@ export function exportToXLSX(
 
   // Add statistics
   const offersCount = bids.filter(b => b.status === 'offer' || b.status === 'shortlist' || b.status === 'sod').length;
-  const prices = bids.filter(b => b.price && b.price !== '?').map(b => parseMoney(b.price));
-  const avgPrice = prices.length > 0 ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
-
   combinedData.push([]);
   combinedData.push(['STATISTIKY', '', '', '', '', '', '', '', '', '', '', '']);
   combinedData.push(['Celkem osloveno:', bids.length.toString()]);
   combinedData.push(['Obdržené nabídky:', offersCount.toString()]);
-  if (avgPrice > 0) {
-    combinedData.push(['Průměrná cena:', formatMoney(avgPrice)]);
+
+  // Winner comparison
+  const winnerBid = bids.find(b => b.status === 'sod');
+  const winnerPrice = winnerBid ? parseMoney(winnerBid.price) : 0;
+
+  if (winnerBid && winnerPrice > 0) {
+    const sodDiff = winnerPrice - category.sodBudget;
+    const planDiff = winnerPrice - category.planBudget;
+    const sodPercent = category.sodBudget > 0 ? ((sodDiff / category.sodBudget) * 100).toFixed(1) : '0';
+    const planPercent = category.planBudget > 0 ? ((planDiff / category.planBudget) * 100).toFixed(1) : '0';
+
+    combinedData.push([]);
+    combinedData.push(['BILANCE VÍTĚZE (Jednání o SOD)', '', '', '', '', '', '', '', '', '', '', '']);
+    combinedData.push(['Vítěz:', winnerBid.companyName]);
+    combinedData.push(['Cena vítěze:', formatMoney(winnerPrice)]);
+    combinedData.push([
+      'vs SOD rozpočet:', 
+      `${sodDiff >= 0 ? '+' : ''}${formatMoney(sodDiff)} (${sodDiff >= 0 ? '+' : ''}${sodPercent}%)`
+    ]);
+    combinedData.push([
+      'vs Plánovaný náklad:', 
+      `${planDiff >= 0 ? '+' : ''}${formatMoney(planDiff)} (${planDiff >= 0 ? '+' : ''}${planPercent}%)`
+    ]);
   }
 
   const sheet = XLSX.utils.aoa_to_sheet(combinedData);
@@ -173,7 +179,7 @@ export function exportToMarkdown(
   bids: Bid[],
   project: ProjectDetails
 ): void {
-  let markdown = `# Poptávka: ${category.title}\n\n`;
+  let markdown = `# Zápis o výběru: ${category.title}\n\n`;
   markdown += `**Projekt:** ${project.title}\n\n`;
 
   if (category.deadline) {
@@ -181,7 +187,7 @@ export function exportToMarkdown(
   }
 
   markdown += `**SOD rozpočet:** ${formatMoney(category.sodBudget)}\n`;
-  markdown += `**Plánovaný rozpočet:** ${formatMoney(category.planBudget)}\n\n`;
+  markdown += `**Plánovaný náklad:** ${formatMoney(category.planBudget)}\n\n`;
 
   if (category.description) {
     markdown += `## Popis prací\n\n${category.description}\n\n`;
@@ -197,14 +203,25 @@ export function exportToMarkdown(
 
   // Statistics
   const offersCount = bids.filter(b => b.status === 'offer' || b.status === 'shortlist' || b.status === 'sod').length;
-  const prices = bids.filter(b => b.price && b.price !== '?').map(b => parseMoney(b.price));
-  const avgPrice = prices.length > 0 ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
-
   markdown += `\n## Statistiky\n\n`;
   markdown += `- **Celkem osloveno:** ${bids.length}\n`;
   markdown += `- **Obdržené nabídky:** ${offersCount}\n`;
-  if (avgPrice > 0) {
-    markdown += `- **Průměrná cena:** ${formatMoney(avgPrice)}\n`;
+
+  // Winner comparison
+  const winnerBid = bids.find(b => b.status === 'sod');
+  const winnerPrice = winnerBid ? parseMoney(winnerBid.price) : 0;
+
+  if (winnerBid && winnerPrice > 0) {
+    const sodDiff = winnerPrice - category.sodBudget;
+    const planDiff = winnerPrice - category.planBudget;
+    const sodPercent = category.sodBudget > 0 ? ((sodDiff / category.sodBudget) * 100).toFixed(1) : '0';
+    const planPercent = category.planBudget > 0 ? ((planDiff / category.planBudget) * 100).toFixed(1) : '0';
+
+    markdown += `\n## Bilance vítěze (Jednání o SOD)\n\n`;
+    markdown += `- **Vítěz:** ${winnerBid.companyName}\n`;
+    markdown += `- **Cena vítěze:** ${formatMoney(winnerPrice)}\n`;
+    markdown += `- **vs SOD rozpočet:** ${sodDiff >= 0 ? '+' : ''}${formatMoney(sodDiff)} (${sodDiff >= 0 ? '+' : ''}${sodPercent}%)\n`;
+    markdown += `- **vs Plánovaný náklad:** ${planDiff >= 0 ? '+' : ''}${formatMoney(planDiff)} (${planDiff >= 0 ? '+' : ''}${planPercent}%)\n`;
   }
 
   markdown += `\n---\n\n`;
@@ -233,49 +250,52 @@ export function exportToPDF(
   // Create PDF in landscape orientation
   const doc = new jsPDF({ orientation: 'landscape' });
 
+  // Register Roboto font for Czech diacritics support
+  registerRobotoFont(doc);
+
   // Title
   doc.setFontSize(18);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Prehled poptavky', 14, 15);
+  doc.setFont('Roboto', 'normal');
+  doc.text('Zápis o výběru', 14, 15);
 
   // Project info - two columns for better space usage
   doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('Roboto', 'normal');
 
-  doc.text(`Projekt: ${removeDiacritics(project.title)}`, 14, 25);
-  doc.text(`Kategorie: ${removeDiacritics(category.title)}`, 14, 31);
+  doc.text(`Projekt: ${project.title}`, 14, 25);
+  doc.text(`Kategorie: ${category.title}`, 14, 31);
 
   // Format money without Kč symbol for PDF (use CZK instead)
   const formatMoneyPDF = (value: number) =>
     new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 }).format(value) + ' CZK';
 
-  doc.text(`SOD rozpocet: ${formatMoneyPDF(category.sodBudget)}`, 150, 25);
-  doc.text(`Planovany rozpocet: ${formatMoneyPDF(category.planBudget)}`, 150, 31);
+  doc.text(`SOD rozpočet: ${formatMoneyPDF(category.sodBudget)}`, 150, 25);
+  doc.text(`Plánovaný náklad: ${formatMoneyPDF(category.planBudget)}`, 150, 31);
 
   if (category.deadline) {
-    doc.text(`Termin: ${formatDate(category.deadline)}`, 14, 37);
+    doc.text(`Termín: ${formatDate(category.deadline)}`, 14, 37);
   }
 
-  // Table with round prices - all text without diacritics
+  // Table with round prices - now with proper Czech diacritics
   const tableData = bids.map((bid, index) => [
     (index + 1).toString(),
-    removeDiacritics(bid.companyName),
-    removeDiacritics(bid.contactPerson),
+    bid.companyName,
+    bid.contactPerson,
     bid.email || '-',
     bid.phone || '-',
-    bid.price ? removeDiacritics(bid.price) : '?',
-    bid.priceHistory?.[1] ? removeDiacritics(bid.priceHistory[1]) : '-',
-    bid.priceHistory?.[2] ? removeDiacritics(bid.priceHistory[2]) : '-',
-    bid.priceHistory?.[3] ? removeDiacritics(bid.priceHistory[3]) : '-',
-    getStatusLabelPDF(bid.status)
+    bid.price || '?',
+    bid.priceHistory?.[1] || '-',
+    bid.priceHistory?.[2] || '-',
+    bid.priceHistory?.[3] || '-',
+    getStatusLabel(bid.status)
   ]);
 
   autoTable(doc, {
     startY: 42,
     head: [['#', 'Firma', 'Kontakt', 'Email', 'Telefon', 'Cena', '1.kolo', '2.kolo', '3.kolo', 'Stav']],
     body: tableData,
-    styles: { fontSize: 8, cellPadding: 2, font: 'helvetica' },
-    headStyles: { fillColor: [71, 85, 105], textColor: 255, fontStyle: 'bold' },
+    styles: { fontSize: 8, cellPadding: 2, font: 'Roboto' },
+    headStyles: { fillColor: [71, 85, 105], textColor: 255 },
     alternateRowStyles: { fillColor: [248, 250, 252] },
     columnStyles: {
       0: { cellWidth: 8 },
@@ -294,18 +314,40 @@ export function exportToPDF(
 
   // Statistics
   const offersCount = bids.filter(b => b.status === 'offer' || b.status === 'shortlist' || b.status === 'sod').length;
-  const prices = bids.filter(b => b.price && b.price !== '?').map(b => parseMoney(b.price));
-  const avgPrice = prices.length > 0 ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
+  
+  // Find winner (bid with status 'sod' - Jednání o SOD)
+  const winnerBid = bids.find(b => b.status === 'sod');
+  const winnerPrice = winnerBid ? parseMoney(winnerBid.price) : 0;
 
   const finalY = (doc as any).lastAutoTable.finalY + 10;
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
+  
+  // Statistics Header
+  doc.setFontSize(9);
+  doc.setFont('Roboto', 'normal'); // Using normal weight but slightly larger size for header
   doc.text('Statistiky:', 14, finalY);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`Celkem osloveno: ${bids.length}`, 14, finalY + 6);
-  doc.text(`Obdrzene nabidky: ${offersCount}`, 14, finalY + 12);
-  if (avgPrice > 0) {
-    doc.text(`Prumerna cena: ${formatMoneyPDF(avgPrice)}`, 14, finalY + 18);
+  
+  // Statistics Content
+  doc.setFontSize(8);
+  doc.text(`Celkem osloveno: ${bids.length}`, 14, finalY + 5);
+  doc.text(`Obdržené nabídky: ${offersCount}`, 14, finalY + 10);
+
+  // Winner price balance section
+  if (winnerBid && winnerPrice > 0) {
+    const sodDiff = winnerPrice - category.sodBudget;
+    const planDiff = winnerPrice - category.planBudget;
+    const sodPercent = category.sodBudget > 0 ? ((sodDiff / category.sodBudget) * 100).toFixed(1) : '0';
+    const planPercent = category.planBudget > 0 ? ((planDiff / category.planBudget) * 100).toFixed(1) : '0';
+
+    // Winner Balance Header
+    doc.setFontSize(9);
+    doc.text('Bilance vítěze (Jednání o SOD):', 14, finalY + 18);
+    
+    // Winner Balance Content
+    doc.setFontSize(8);
+    doc.text(`  Vítěz: ${winnerBid.companyName}`, 14, finalY + 23);
+    doc.text(`  Cena vítěze: ${formatMoneyPDF(winnerPrice)}`, 14, finalY + 28);
+    doc.text(`  vs SOD rozpočet: ${sodDiff >= 0 ? '+' : ''}${formatMoneyPDF(sodDiff)} (${sodDiff >= 0 ? '+' : ''}${sodPercent}%)`, 14, finalY + 33);
+    doc.text(`  vs Plánovaný náklad: ${planDiff >= 0 ? '+' : ''}${formatMoneyPDF(planDiff)} (${planDiff >= 0 ? '+' : ''}${planPercent}%)`, 14, finalY + 38);
   }
 
   // Footer
@@ -315,7 +357,7 @@ export function exportToPDF(
     doc.setFontSize(8);
     doc.setTextColor(128);
     doc.text(
-      `Exportovano: ${formatDate(new Date().toISOString())} | Strana ${i} z ${pageCount}`,
+      `Exportováno: ${formatDate(new Date().toISOString())} | Strana ${i} z ${pageCount}`,
       14,
       doc.internal.pageSize.height - 10
     );
@@ -325,3 +367,4 @@ export function exportToPDF(
   const filename = `poptavka_${category.title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
   doc.save(filename);
 }
+

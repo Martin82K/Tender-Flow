@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1220"/>
+      <stop offset="1" stop-color="#050a13"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="rgba(0,0,0,0.55)"/>
+    </filter>
+    <style>
+      .t { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; fill: rgba(255,255,255,0.92); }
+      .m { fill: rgba(255,255,255,0.66); font-size: 15px; }
+      .h { font-size: 26px; font-weight: 700; }
+      .cap { font-size: 12px; letter-spacing: 0.6px; text-transform: uppercase; fill: rgba(255,255,255,0.55); }
+      .stroke { stroke: rgba(255,255,255,0.14); }
+      .btn { fill: rgba(96,165,250,0.14); stroke: rgba(96,165,250,0.30); }
+      .btn2 { fill: rgba(45,212,191,0.18); stroke: rgba(45,212,191,0.35); }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1200" height="700" fill="url(#bg)"/>
+  <circle cx="220" cy="110" r="200" fill="rgba(45,212,191,0.10)"/>
+  <circle cx="1020" cy="120" r="260" fill="rgba(96,165,250,0.10)"/>
+
+  <rect x="80" y="70" width="1040" height="560" rx="22" fill="rgba(255,255,255,0.06)" class="stroke" filter="url(#shadow)"/>
+  <text x="120" y="130" class="t h">Subdodavatelé – filtrování a hromadné akce</text>
+  <text x="120" y="160" class="t m">Vyberte více kontaktů a použijte hromadné akce (mazání, doplnění regionu).</text>
+
+  <!-- Header -->
+  <rect x="120" y="195" width="960" height="70" rx="18" fill="rgba(0,0,0,0.22)" class="stroke"/>
+  <text x="150" y="236" class="t m">Hromadné akce po výběru</text>
+  <rect x="420" y="212" width="180" height="40" rx="12" class="btn"/>
+  <text x="440" y="238" class="t m">Doplnit regiony (AI)</text>
+  <rect x="610" y="212" width="130" height="40" rx="12" fill="rgba(251,113,133,0.14)" stroke="rgba(251,113,133,0.30)"/>
+  <text x="642" y="238" class="t m">Smazat</text>
+  <rect x="920" y="212" width="140" height="40" rx="12" class="btn2"/>
+  <text x="940" y="238" class="t m">Přidat kontakt</text>
+
+  <!-- Filters -->
+  <rect x="120" y="285" width="960" height="74" rx="18" fill="rgba(0,0,0,0.18)" class="stroke"/>
+  <text x="150" y="318" class="t cap">Filtry</text>
+  <rect x="150" y="328" width="260" height="28" rx="10" fill="rgba(255,255,255,0.06)" class="stroke"/>
+  <text x="164" y="347" class="t m">Vyhledat firmu / jméno</text>
+  <rect x="420" y="328" width="180" height="28" rx="10" fill="rgba(255,255,255,0.06)" class="stroke"/>
+  <text x="435" y="347" class="t m">Specializace</text>
+  <rect x="610" y="328" width="180" height="28" rx="10" fill="rgba(255,255,255,0.06)" class="stroke"/>
+  <text x="625" y="347" class="t m">Status</text>
+  <rect x="800" y="328" width="250" height="28" rx="10" fill="rgba(255,255,255,0.06)" class="stroke"/>
+  <text x="815" y="347" class="t m">Region</text>
+
+  <!-- Table -->
+  <rect x="120" y="375" width="960" height="255" rx="18" fill="rgba(255,255,255,0.04)" class="stroke"/>
+  <text x="150" y="410" class="t cap">Seznam kontaktů</text>
+  <rect x="150" y="430" width="900" height="44" rx="12" fill="rgba(255,255,255,0.05)" class="stroke"/>
+  <text x="164" y="458" class="t m">☑︎  Stavmont s.r.o. • Elektro • IČO • Region</text>
+  <rect x="150" y="484" width="900" height="44" rx="12" fill="rgba(255,255,255,0.05)" class="stroke"/>
+  <text x="164" y="512" class="t m">☑︎  Omítky Praha • Omítky • IČO • (chybí region)</text>
+  <rect x="150" y="538" width="900" height="44" rx="12" fill="rgba(255,255,255,0.05)" class="stroke"/>
+  <text x="164" y="566" class="t m">☐  SDK Team • SDK • IČO • Region</text>
+</svg>
+

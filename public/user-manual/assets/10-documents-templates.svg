@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1220"/>
+      <stop offset="1" stop-color="#050a13"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="rgba(0,0,0,0.55)"/>
+    </filter>
+    <style>
+      .t { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; fill: rgba(255,255,255,0.92); }
+      .m { fill: rgba(255,255,255,0.66); font-size: 15px; }
+      .h { font-size: 26px; font-weight: 700; }
+      .cap { font-size: 12px; letter-spacing: 0.6px; text-transform: uppercase; fill: rgba(255,255,255,0.55); }
+      .stroke { stroke: rgba(255,255,255,0.14); }
+      .chip { fill: rgba(255,255,255,0.06); stroke: rgba(255,255,255,0.12); }
+      .accent { fill: rgba(45,212,191,0.18); stroke: rgba(45,212,191,0.35); }
+      .blue { fill: rgba(96,165,250,0.12); stroke: rgba(96,165,250,0.28); }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1200" height="700" fill="url(#bg)"/>
+  <circle cx="220" cy="120" r="200" fill="rgba(45,212,191,0.10)"/>
+  <circle cx="1030" cy="140" r="260" fill="rgba(96,165,250,0.10)"/>
+
+  <rect x="80" y="70" width="1040" height="560" rx="22" fill="rgba(255,255,255,0.06)" class="stroke" filter="url(#shadow)"/>
+  <text x="120" y="130" class="t h">Dokumenty – odkazy a šablona poptávky</text>
+  <text x="120" y="160" class="t m">Nastavte odkaz na dokumentaci a šablonu emailu (URL / soubor / správce šablon).</text>
+
+  <!-- Docs link -->
+  <rect x="120" y="200" width="480" height="180" rx="18" fill="rgba(0,0,0,0.22)" class="stroke"/>
+  <text x="150" y="234" class="t" font-size="14" font-weight="800">Odkaz na dokumentaci stavby</text>
+  <rect x="150" y="254" width="420" height="34" rx="12" class="chip"/>
+  <text x="166" y="277" class="t m">https://drive.google.com/…</text>
+  <rect x="150" y="302" width="140" height="42" rx="12" class="accent"/>
+  <text x="178" y="329" class="t m">Uložit</text>
+  <text x="150" y="362" class="t m">Tip: používejte sdílenou složku (Drive/SharePoint).</text>
+
+  <!-- Template -->
+  <rect x="640" y="200" width="460" height="430" rx="18" fill="rgba(0,0,0,0.18)" class="stroke"/>
+  <text x="670" y="234" class="t" font-size="14" font-weight="800">Poptávkový dopis (šablona)</text>
+  <text x="670" y="258" class="t m">Možnosti nastavení:</text>
+
+  <text x="670" y="292" class="t cap">1) URL odkaz</text>
+  <rect x="670" y="302" width="400" height="34" rx="12" class="chip"/>
+  <text x="686" y="325" class="t m">https://…/sablona.html</text>
+
+  <text x="670" y="368" class="t cap">2) Nahraný soubor</text>
+  <rect x="670" y="378" width="240" height="34" rx="12" class="blue"/>
+  <text x="686" y="401" class="t m">Vybrat soubor (HTML)</text>
+  <rect x="920" y="374" width="150" height="42" rx="12" class="accent"/>
+  <text x="958" y="401" class="t m">Nahrát</text>
+
+  <text x="670" y="448" class="t cap">3) Správce šablon</text>
+  <rect x="670" y="458" width="400" height="46" rx="12" fill="rgba(168,85,247,0.12)" stroke="rgba(168,85,247,0.28)"/>
+  <text x="686" y="488" class="t m">Otevřít správce šablon → vybrat šablonu</text>
+
+  <rect x="670" y="522" width="400" height="92" rx="12" fill="rgba(255,255,255,0.06)" class="stroke"/>
+  <text x="686" y="554" class="t m">Po výběru ze správce se uloží odkaz typu:</text>
+  <text x="686" y="582" class="t m">template:ID</text>
+</svg>
+

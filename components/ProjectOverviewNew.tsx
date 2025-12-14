@@ -862,19 +862,29 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
 
             {/* Demand Categories Overview Table */}
             {project.categories.length > 0 && (() => {
+                // Helper function to check if a category has signed contracts
+                const hasContracts = (cat: typeof project.categories[0]) => {
+                    const catBids = project.bids?.[cat.id] || [];
+                    // Match table logic: Must be a winning bid (status='sod') AND have contracted flag (truthy)
+                    return catBids.some(b => b.status === 'sod' && b.contracted);
+                };
+
                 // Filter categories based on selected filter
                 const filteredCategories = project.categories.filter(cat => {
                     if (demandFilter === 'all') return true;
-                    if (demandFilter === 'open') return cat.status === 'open';
-                    if (demandFilter === 'closed') return cat.status === 'closed';
-                    if (demandFilter === 'sod') return cat.status === 'sod';
+                    if (demandFilter === 'open') return cat.status === 'open' && !hasContracts(cat); // or status != closed/sod? keeping consistent with previous logic
+                    if (demandFilter === 'closed') return cat.status === 'closed' && !hasContracts(cat);
+                    if (demandFilter === 'sod') return hasContracts(cat);
                     return true;
                 });
 
-                // Count for each filter
-                const openCount = project.categories.filter(c => c.status === 'open').length;
-                const closedCount = project.categories.filter(c => c.status === 'closed').length;
-                const sodCount = project.categories.filter(c => c.status === 'sod').length;
+                // Count for each filter - "sod" counts categories with actual contracts
+                const sodCount = project.categories.reduce((acc, cat) => {
+                    const catBids = project.bids?.[cat.id] || [];
+                    return acc + catBids.filter(b => b.status === 'sod' && b.contracted).length;
+                }, 0);
+                const openCount = project.categories.filter(c => c.status === 'open' && !hasContracts(c)).length;
+                const closedCount = project.categories.filter(c => c.status === 'closed' && !hasContracts(c)).length;
                 const allCount = project.categories.length;
 
                 return (

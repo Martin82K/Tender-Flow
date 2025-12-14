@@ -1079,7 +1079,7 @@ const AppContent: React.FC = () => {
                   darkMode,
                   primaryColor,
                   backgroundColor,
-                });
+                  });
                 alert("Nastavení vzhledu bylo uloženo.");
               }
             }}

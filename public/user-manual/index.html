@@ -1,0 +1,880 @@
+<!doctype html>
+<html lang="cs">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tender Flow – Uživatelská příručka</title>
+    <meta
+      name="description"
+      content="Uživatelská příručka pro aplikaci Tender Flow – stavby, výběrová řízení, subdodavatelé, dokumenty a nastavení."
+    />
+    <style>
+      :root {
+        --bg: #0b1220;
+        --panel: rgba(255, 255, 255, 0.06);
+        --panel-2: rgba(255, 255, 255, 0.08);
+        --text: rgba(255, 255, 255, 0.92);
+        --muted: rgba(255, 255, 255, 0.66);
+        --muted-2: rgba(255, 255, 255, 0.5);
+        --border: rgba(255, 255, 255, 0.12);
+        --accent: #2dd4bf;
+        --accent-2: #60a5fa;
+        --warn: #f59e0b;
+        --danger: #fb7185;
+        --shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+        --radius: 18px;
+        --radius-sm: 12px;
+        --max: 1120px;
+        --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
+          Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        font-family: var(--sans);
+        color: var(--text);
+        background: radial-gradient(
+            1200px 800px at 20% 10%,
+            rgba(45, 212, 191, 0.12),
+            transparent 60%
+          ),
+          radial-gradient(
+            900px 600px at 80% 0%,
+            rgba(96, 165, 250, 0.12),
+            transparent 55%
+          ),
+          radial-gradient(
+            800px 700px at 70% 80%,
+            rgba(245, 158, 11, 0.08),
+            transparent 55%
+          ),
+          linear-gradient(180deg, #060a12 0%, var(--bg) 30%, #050a13 100%);
+      }
+
+      a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+
+      .app {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        min-height: 100%;
+      }
+
+      .sidebar {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        padding: 18px;
+        border-right: 1px solid var(--border);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.04),
+          rgba(255, 255, 255, 0.02)
+        );
+        overflow: auto;
+      }
+
+      .brand {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        padding: 14px 14px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: rgba(0, 0, 0, 0.2);
+        box-shadow: var(--shadow);
+      }
+      .brand .logo-img {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        object-fit: contain;
+        padding: 6px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+      }
+      .brand h1 {
+        font-size: 14px;
+        margin: 0;
+        letter-spacing: 0.2px;
+      }
+      .brand p {
+        margin: 2px 0 0 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .nav {
+        margin-top: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .nav .section {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: rgba(255, 255, 255, 0.04);
+        overflow: hidden;
+      }
+      .nav .section h2 {
+        margin: 0;
+        padding: 12px 14px;
+        font-size: 12px;
+        letter-spacing: 0.6px;
+        text-transform: uppercase;
+        color: var(--muted);
+        border-bottom: 1px solid var(--border);
+        background: rgba(0, 0, 0, 0.18);
+      }
+      .nav a {
+        display: block;
+        padding: 11px 14px;
+        color: var(--text);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      }
+      .nav a:last-child {
+        border-bottom: 0;
+      }
+      .nav a:hover {
+        background: rgba(255, 255, 255, 0.06);
+        text-decoration: none;
+      }
+
+      .content {
+        padding: 28px 22px 90px 22px;
+      }
+
+      .wrap {
+        max-width: var(--max);
+        margin: 0 auto;
+      }
+
+      .hero {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 22px 22px;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.06),
+          rgba(255, 255, 255, 0.03)
+        );
+        box-shadow: var(--shadow);
+      }
+      .hero h1 {
+        font-size: 26px;
+        margin: 0 0 8px 0;
+        letter-spacing: 0.2px;
+      }
+      .hero p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.55;
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 14px;
+      }
+      .chip {
+        font-size: 12px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        color: var(--muted);
+        background: rgba(0, 0, 0, 0.18);
+      }
+
+      .card {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: rgba(255, 255, 255, 0.04);
+        box-shadow: var(--shadow);
+        padding: 18px 18px;
+      }
+      .card h2 {
+        margin: 0 0 8px 0;
+        font-size: 18px;
+      }
+      .card h3 {
+        margin: 18px 0 8px 0;
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.9);
+      }
+      .card p,
+      .card li {
+        color: var(--muted);
+        line-height: 1.6;
+      }
+      .card ul {
+        margin: 8px 0 0 20px;
+      }
+      .card ol {
+        margin: 8px 0 0 20px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
+        margin-top: 16px;
+      }
+
+      figure {
+        margin: 14px 0 0 0;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: rgba(0, 0, 0, 0.2);
+        overflow: hidden;
+      }
+      figure img {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+      figcaption {
+        padding: 10px 12px;
+        font-size: 12px;
+        color: var(--muted-2);
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      code,
+      pre {
+        font-family: var(--mono);
+      }
+      .callout {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 12px 12px;
+        background: rgba(0, 0, 0, 0.2);
+        color: var(--muted);
+        margin-top: 12px;
+      }
+      .callout strong {
+        color: var(--text);
+      }
+      .callout.warn {
+        border-color: rgba(245, 158, 11, 0.35);
+        background: rgba(245, 158, 11, 0.08);
+      }
+      .callout.danger {
+        border-color: rgba(251, 113, 133, 0.35);
+        background: rgba(251, 113, 133, 0.08);
+      }
+
+      .kbd {
+        font-family: var(--mono);
+        font-size: 12px;
+        padding: 2px 6px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(0, 0, 0, 0.25);
+        color: rgba(255, 255, 255, 0.86);
+      }
+
+      .two-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+
+      .footer {
+        margin-top: 18px;
+        padding-top: 18px;
+        border-top: 1px solid var(--border);
+        color: var(--muted-2);
+        font-size: 12px;
+      }
+
+      @media (max-width: 980px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+        .sidebar {
+          position: relative;
+          height: auto;
+        }
+      }
+
+      @media print {
+        body {
+          background: #ffffff;
+          color: #111827;
+        }
+        .sidebar {
+          display: none;
+        }
+        .content {
+          padding: 0;
+        }
+        .hero,
+        .card,
+        figure,
+        .callout {
+          box-shadow: none;
+          background: #ffffff;
+        }
+        a {
+          color: #0f766e;
+        }
+        figure,
+        .hero,
+        .card,
+        .callout {
+          border-color: rgba(17, 24, 39, 0.18);
+        }
+        figcaption {
+          color: rgba(17, 24, 39, 0.6);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand">
+          <img
+            class="logo-img"
+            src="./assets/logo.png"
+            alt="Tender Flow Logo"
+            loading="eager"
+            decoding="async"
+          />
+          <div>
+            <h1>Tender Flow</h1>
+            <p>Uživatelská příručka</p>
+          </div>
+        </div>
+
+        <nav class="nav" aria-label="Obsah příručky">
+          <div class="section">
+            <h2>Začínáme</h2>
+            <a href="#ucel">Účel a role</a>
+            <a href="#prihlaseni">Přihlášení a účet</a>
+            <a href="#navigace">Navigace v aplikaci</a>
+          </div>
+          <div class="section">
+            <h2>Práce se stavbami</h2>
+            <a href="#dashboard">Dashboard</a>
+            <a href="#stavba">Detail stavby (záložky)</a>
+            <a href="#plan-vr">Plán VŘ</a>
+            <a href="#vyberova-rizeni">Výběrová řízení (Pipeline)</a>
+            <a href="#dokumenty">Dokumenty a šablony</a>
+          </div>
+          <div class="section">
+            <h2>Databáze</h2>
+            <a href="#subdodavatele">Subdodavatelé (Kontakty)</a>
+            <a href="#sprava-staveb">Správa staveb</a>
+            <a href="#prehled-staveb">Přehled staveb (analytika)</a>
+          </div>
+          <div class="section">
+            <h2>Nastavení</h2>
+            <a href="#nastaveni">Nastavení aplikace</a>
+            <a href="#import">Import a synchronizace kontaktů</a>
+            <a href="#ai">AI funkce</a>
+          </div>
+          <div class="section">
+            <h2>Řešení problémů</h2>
+            <a href="#caste-otazky">Časté otázky</a>
+            <a href="#kontakt">Podpora</a>
+            <a href="#autorska-prava">Autorská práva</a>
+          </div>
+        </nav>
+      </aside>
+
+      <main class="content">
+        <div class="wrap">
+          <section class="hero" id="top">
+            <h1>Uživatelská příručka – Tender Flow</h1>
+            <p>
+              Tato příručka popisuje práci v aplikaci Tender Flow pro řízení
+              staveb, poptávek a subdodavatelů.
+            </p>
+            <div class="chips" aria-label="Rychlé štítky">
+              <span class="chip">Stavby</span>
+              <span class="chip">Výběrová řízení (Pipeline)</span>
+              <span class="chip">Subdodavatelé</span>
+              <span class="chip">Dokumenty &amp; šablony</span>
+              <span class="chip">Import kontaktů</span>
+            </div>
+          </section>
+
+          <div class="grid">
+            <section class="card" id="ucel">
+              <h2>Účel a role</h2>
+              <p>
+                Tender Flow slouží jako centrální místo pro evidenci staveb
+                a řízení výběrových řízení: od plánování poptávek, přes oslovení
+                subdodavatelů, po vyhodnocení nabídek a evidenci vítěze.
+              </p>
+              <div class="two-col">
+                <div class="callout">
+                  <strong>Typická role uživatele</strong><br />
+                  Stavbyvedoucí / přípravář, který připravuje poptávky, oslovuje
+                  dodavatele a vyhodnocuje nabídky.
+                </div>
+                <div class="callout">
+                  <strong>Co aplikace neřeší automaticky</strong><br />
+                  Odeslání emailu probíhá přes váš výchozí emailový klient
+                  (funkce používá <span class="kbd">mailto:</span>).
+                </div>
+              </div>
+            </section>
+
+            <section class="card" id="prihlaseni">
+              <h2>Přihlášení a účet</h2>
+              <p>
+                Po otevření aplikace se zobrazí přihlašovací obrazovka. Po
+                přihlášení uvidíte vlevo navigaci a vpravo obsah aktuální části
+                aplikace.
+              </p>
+              <ol>
+                <li>Zadejte email a heslo.</li>
+                <li>Klikněte na <strong>Přihlásit</strong>.</li>
+                <li>
+                  Pro odhlášení použijte ikonu
+                  <span class="kbd">logout</span> v dolní části levého panelu.
+                </li>
+              </ol>
+              <figure>
+                <img
+                  src="./assets/01-login.svg"
+                  alt="Schéma přihlášení: pole email/heslo a akce přihlášení"
+                />
+                <figcaption>
+                  Přihlášení: účet je navázaný na Supabase Auth, po přihlášení se
+                  načtou data vašich staveb a kontaktů.
+                </figcaption>
+              </figure>
+              <div class="callout warn">
+                <strong>Poznámka k registracím:</strong> pokud administrátor
+                zapnul omezení registrací, může být povolená pouze vybraným
+                doménám (whitelist).
+              </div>
+            </section>
+
+            <section class="card" id="navigace">
+              <h2>Navigace v aplikaci</h2>
+              <p>
+                Aplikace má vlevo hlavní panel (sidebar). Některé části se chovají
+                jako „přepínač obrazovek“, jiné (Stavby) zobrazují seznam projektů
+                a kliknutím otevřete detail vybrané stavby.
+              </p>
+              <ul>
+                <li><strong>Dashboard</strong> – přehled vybrané stavby a export.</li>
+                <li><strong>Stavby</strong> – seznam aktivních staveb (projekty).</li>
+                <li><strong>Subdodavatelé</strong> – databáze kontaktů.</li>
+                <li><strong>Přehled staveb</strong> – analytika napříč stavbami.</li>
+                <li><strong>Správa staveb</strong> – vytváření, archivace, sdílení.</li>
+                <li><strong>Nastavení</strong> – vzhled, statusy kontaktů, import.</li>
+              </ul>
+              <figure>
+                <img
+                  src="./assets/02-navigation.svg"
+                  alt="Schéma navigace: sidebar se sekcemi a seznamem staveb"
+                />
+                <figcaption>
+                  Sidebar lze šířkově upravit tažením za pravý okraj (resizer).
+                </figcaption>
+              </figure>
+            </section>
+
+            <section class="card" id="dashboard">
+              <h2>Dashboard</h2>
+              <p>
+                Dashboard zobrazuje detailní přehled jedné vybrané stavby:
+                metriky poptávek, rozpočty a rychlé srovnání. V horní části můžete
+                přepnout stavbu a vyexportovat přehled do Excelu.
+              </p>
+              <ul>
+                <li>
+                  <strong>Výběr stavby</strong> – rozbalovací seznam v hlavičce.
+                </li>
+                <li>
+                  <strong>Export XLSX</strong> – vygeneruje tabulku poptávek včetně
+                  souhrnů (SOD, plán, cena VŘ, vítěz).
+                </li>
+              </ul>
+              <figure>
+                <img
+                  src="./assets/03-dashboard.svg"
+                  alt="Schéma dashboardu: výběr stavby, tlačítko export a přehled metrik"
+                />
+                <figcaption>
+                  Export vytvoří soubor typu <span class="kbd">.xlsx</span> s listem
+                  „Poptávky“.
+                </figcaption>
+              </figure>
+            </section>
+
+            <section class="card" id="stavba">
+              <h2>Detail stavby (záložky)</h2>
+              <p>
+                Po kliknutí na stavbu v levém panelu se otevře detail stavby s
+                horními záložkami.
+              </p>
+              <ul>
+                <li><strong>Přehled</strong> – rozpočty, stav, metriky a souhrny.</li>
+                <li><strong>Plán VŘ</strong> – plánování výběrových řízení.</li>
+                <li>
+                  <strong>Výběrová řízení</strong> – pipeline poptávek a nabídek.
+                </li>
+                <li>
+                  <strong>Dokumenty</strong> – odkazy na dokumentaci a šablony
+                  poptávkových dopisů.
+                </li>
+              </ul>
+              <figure>
+                <img
+                  src="./assets/04-project-tabs.svg"
+                  alt="Schéma detailu stavby: hlavička a záložky Přehled, Plán VŘ, Výběrová řízení, Dokumenty"
+                />
+                <figcaption>
+                  Záložka <strong>Výběrová řízení</strong> je hlavní pracovní plocha pro
+                  poptávky a nabídky.
+                </figcaption>
+              </figure>
+            </section>
+
+            <section class="card" id="plan-vr">
+              <h2>Plán VŘ</h2>
+              <p>
+                Plán VŘ slouží pro naplánování výběrových řízení v čase a pro
+                jejich převod do reálných poptávek.
+              </p>
+              <ol>
+                <li>Klikněte na <strong>Přidat VŘ</strong>.</li>
+                <li>Vyplňte název a období (Od/Do).</li>
+                <li>
+                  Pokud poptávka ještě neexistuje, použijte akci pro vytvoření
+                  poptávky ze záznamu plánu.
+                </li>
+              </ol>
+              <figure>
+                <img
+                  src="./assets/11-tender-plan.svg"
+                  alt="Schéma Plánu VŘ: tabulka s názvem VŘ, daty a stavem"
+                />
+                <figcaption>
+                  Stav se odvozuje od existující poptávky se stejným názvem.
+                </figcaption>
+              </figure>
+            </section>
+
+            <section class="card" id="vyberova-rizeni">
+              <h2>Výběrová řízení (Pipeline)</h2>
+              <p>
+                Výběrová řízení jsou organizovaná po <strong>poptávkách</strong>
+                (kategorie prací). Každá poptávka obsahuje seznam oslovených
+                subdodavatelů a jejich nabídky, které se přesouvají mezi sloupci
+                (drag &amp; drop).
+              </p>
+              <h3>Práce s poptávkou</h3>
+              <ol>
+                <li>Vytvořte poptávku (kategorii) v rámci stavby.</li>
+                <li>Přidejte dodavatele do pipeline.</li>
+                <li>Oslovte dodavatele a vyhodnocujte nabídky.</li>
+              </ol>
+              <figure>
+                <img
+                  src="./assets/05-pipeline-board.svg"
+                  alt="Schéma pipeline: sloupce Oslovení, Odesláno, Cenová nabídka, Užší výběr, Jednání o SOD, Odmítnuto"
+                />
+                <figcaption>
+                  Základní tok: <strong>Oslovení</strong> → <strong>Odesláno</strong> →
+                  <strong>Cenová nabídka</strong> → <strong>Užší výběr</strong> →
+                  <strong>Jednání o SOD</strong>.
+                </figcaption>
+              </figure>
+
+              <h3>Stavy nabídky (sloupce)</h3>
+              <ul>
+                <li><strong>Oslovení</strong> – dodavatel připraven k oslovení (tlačítko generování emailu).</li>
+                <li><strong>Odesláno</strong> – poptávka byla odeslána, čeká se na reakci.</li>
+                <li><strong>Cenová nabídka</strong> – dorazila nabídka, doplňte cenu a poznámky.</li>
+                <li><strong>Užší výběr</strong> – shortlist.</li>
+                <li><strong>Jednání o SOD</strong> – finalisté / jednání.</li>
+                <li><strong>Odmítnuto</strong> – neúspěšní.</li>
+              </ul>
+
+              <h3>Karta nabídky</h3>
+              <p>
+                Na kartě nabídky evidujete cenu, tagy, poznámky a případně generujete
+                poptávkový email (pro stav <strong>Oslovení</strong>).
+              </p>
+              <figure>
+                <img
+                  src="./assets/06-bid-card.svg"
+                  alt="Schéma karty nabídky: firma, kontakt, cena, tagy, poznámky, tlačítko Generovat poptávku"
+                />
+                <figcaption>
+                  Tlačítko <strong>Generovat poptávku</strong> se zobrazí, jen pokud má
+                  dodavatel vyplněný email.
+                </figcaption>
+              </figure>
+
+              <div class="callout warn">
+                <strong>Email klient:</strong> generování používá <span class="kbd">mailto:</span>.
+                Aplikace email „neodešle“, pouze ho připraví ve vašem výchozím klientu.
+              </div>
+            </section>
+
+            <section class="card" id="dokumenty">
+              <h2>Dokumenty a šablony</h2>
+              <p>
+                V záložce <strong>Dokumenty</strong> nastavíte:
+              </p>
+              <ul>
+                <li>
+                  <strong>Odkaz na dokumentaci stavby</strong> (např. Drive/SharePoint).
+                </li>
+                <li>
+                  <strong>Poptávkový dopis</strong> – šablonu emailu (URL, nahraný
+                  soubor nebo výběr ze Správce šablon).
+                </li>
+              </ul>
+              <figure>
+                <img
+                  src="./assets/10-documents-templates.svg"
+                  alt="Schéma dokumentů: odkaz na dokumentaci a nastavení šablony poptávkového dopisu"
+                />
+                <figcaption>
+                  Pokud je šablona vybraná ze správce, ukládá se jako odkaz ve tvaru
+                  <span class="kbd">template:ID</span>.
+                </figcaption>
+              </figure>
+              <div class="callout">
+                <strong>Doporučení:</strong> udržujte šablonu krátkou a s jasnými
+                bloky (informace o stavbě, poptávané práce, termíny, podmínky).
+              </div>
+            </section>
+
+            <section class="card" id="subdodavatele">
+              <h2>Subdodavatelé (Kontakty)</h2>
+              <p>
+                Sekce Subdodavatelé obsahuje databázi kontaktů, které následně
+                vybíráte do poptávek. Kontakty můžete filtrovat podle specializací,
+                statusu, regionu a dalších údajů.
+              </p>
+              <ul>
+                <li><strong>Přidat kontakt</strong> – vytvoření nového subdodavatele.</li>
+                <li><strong>Úprava kontaktu</strong> – kliknutím na záznam / akci upravit.</li>
+                <li>
+                  <strong>Hromadné akce</strong> – po výběru více kontaktů lze mazat nebo
+                  doplnit regiony pomocí AI (pokud je povoleno).
+                </li>
+              </ul>
+              <figure>
+                <img
+                  src="./assets/07-contacts.svg"
+                  alt="Schéma kontaktů: filtrování, výběr řádků a hromadné akce"
+                />
+                <figcaption>
+                  Funkce <strong>Doplnit regiony (AI)</strong> pracuje typicky s IČO a
+                  doplní region jen tam, kde chybí.
+                </figcaption>
+              </figure>
+            </section>
+
+            <section class="card" id="sprava-staveb">
+              <h2>Správa staveb</h2>
+              <p>
+                V části Správa staveb vytváříte nové stavby, měníte stav (tender/realizace),
+                archivujete a (pokud jste vlastník) můžete spravovat sdílení.
+              </p>
+              <ol>
+                <li>Vyplňte název a lokaci stavby.</li>
+                <li>Zvolte status (<strong>Tender</strong> nebo <strong>Realizace</strong>).</li>
+                <li>Uložte a poté otevřete stavbu ze seznamu v levém panelu.</li>
+              </ol>
+              <figure>
+                <img
+                  src="./assets/08-project-management.svg"
+                  alt="Schéma správy staveb: seznam, drag & drop pořadí, archiv a sdílení"
+                />
+                <figcaption>
+                  Pořadí staveb v seznamu lze měnit přetažením (ukládá se lokálně v prohlížeči).
+                </figcaption>
+              </figure>
+            </section>
+
+            <section class="card" id="prehled-staveb">
+              <h2>Přehled staveb (analytika)</h2>
+              <p>
+                Přehled staveb slouží pro manažerské pohledy napříč projekty:
+                souhrnné metriky, grafy a (pokud je povoleno) AI analýzu.
+              </p>
+              <figure>
+                <img
+                  src="./assets/12-project-overview-ai.svg"
+                  alt="Schéma analytiky: přehled metrik, AI insight karty a export"
+                />
+                <figcaption>
+                  AI analýza může být generovaná automaticky nebo na vyžádání (dle nastavení).
+                </figcaption>
+              </figure>
+            </section>
+
+            <section class="card" id="nastaveni">
+              <h2>Nastavení aplikace</h2>
+              <p>
+                V Nastavení upravíte vzhled aplikace, statusy kontaktů a také import/synchronizaci
+                databáze subdodavatelů. Některé administrátorské volby se zobrazují pouze adminům.
+              </p>
+              <ul>
+                <li><strong>Vzhled aplikace</strong> – tmavý režim, primární barva, pozadí.</li>
+                <li><strong>Statusy kontaktů</strong> – definice vlastních statusů a barev.</li>
+                <li><strong>Import kontaktů</strong> – CSV soubor / synchronizace z URL.</li>
+                <li><strong>AI nastavení</strong> – zapnutí AI a správa promptů (admin).</li>
+              </ul>
+              <figure>
+                <img
+                  src="./assets/09-settings.svg"
+                  alt="Schéma nastavení: vzhled, statusy, import a AI"
+                />
+                <figcaption>
+                  Změny vzhledu se ukládají do profilu uživatele a projeví se po celé aplikaci.
+                </figcaption>
+              </figure>
+            </section>
+
+            <section class="card" id="import">
+              <h2>Import a synchronizace kontaktů</h2>
+              <p>
+                Kontakty lze nahrát jednorázově ze souboru CSV nebo je synchronizovat z URL
+                (např. export Google Sheets). Import běžně očekává sloupce:
+              </p>
+              <div class="callout">
+                <strong>Formát CSV:</strong>
+                <span class="kbd">Firma, Jméno, Specializace, Telefon, Email, IČO, Region</span>
+              </div>
+              <ol>
+                <li>V Nastavení otevřete sekci Import kontaktů.</li>
+                <li>Vyberte CSV soubor nebo nastavte URL a spusťte synchronizaci.</li>
+                <li>Po načtení potvrďte import do databáze.</li>
+              </ol>
+              <div class="callout warn">
+                <strong>Tip:</strong> u specializací používejte konzistentní názvy (např. „Elektro“, „SDK“, „Omítky“),
+                aby filtrování a výběr do poptávek fungoval předvídatelně.
+              </div>
+            </section>
+
+            <section class="card" id="ai">
+              <h2>AI funkce</h2>
+              <p>
+                Aplikace umí využít Gemini API pro vybrané funkce (např. doplnění regionů a AI insighty).
+                AI lze administrátorsky vypnout.
+              </p>
+              <ul>
+                <li>
+                  <strong>Doplnění regionů</strong> – hromadně doplní region vybraným kontaktům.
+                </li>
+                <li>
+                  <strong>AI analýza</strong> – generuje „insight“ karty a textové souhrny v Přehledu staveb.
+                </li>
+              </ul>
+              <div class="callout">
+                <strong>Pro administrátory:</strong> v Nastavení lze upravit prompt instrukce a zapnout/vypnout AI.
+              </div>
+            </section>
+
+            <section class="card" id="caste-otazky">
+              <h2>Časté otázky</h2>
+              <h3>Neotevře se emailový klient</h3>
+              <p>
+                Zkontrolujte, že máte nastavený výchozí emailový klient. Funkce „Generovat poptávku“ používá
+                <span class="kbd">mailto:</span> a spoléhá na systémové nastavení.
+              </p>
+              <h3>Nevidím některé volby v Nastavení</h3>
+              <p>
+                Některé sekce (např. nastavení registrací nebo AI) mohou být dostupné jen pro administrátory.
+              </p>
+              <h3>Data se dlouho načítají</h3>
+              <p>
+                Pokud načítání trvá déle než ~15 sekund, aplikace obvykle zobrazí hlášku. Zkuste obnovit stránku a
+                ověřit připojení.
+              </p>
+              <div class="callout danger">
+                <strong>Pozor:</strong> mazání kontaktů a některé akce ve Správě staveb jsou nevratné. Před potvrzením
+                vždy zkontrolujte výběr.
+              </div>
+            </section>
+
+            <section class="card" id="kontakt">
+              <h2>Podpora</h2>
+              <p>
+                Pokud narazíte na problém nebo chcete doplnit příručku, předávejte ideálně:
+              </p>
+              <ul>
+                <li>co jste klikli / kde v aplikaci jste byli,</li>
+                <li>co jste očekávali,</li>
+                <li>co se stalo,</li>
+                <li>případně screenshot.</li>
+              </ul>
+
+              <div class="footer">
+                Verze příručky: <strong>1.0</strong> • Datum: <strong>2025‑12‑14</strong> •
+                Umístění: <span class="kbd">/public/user-manual/index.html</span>
+              </div>
+            </section>
+
+            <section class="card" id="autorska-prava">
+              <h2>Informace o autorství a právech k aplikaci</h2>
+              <p>
+                Aplikace Tender Flow byla navržena a vyvinuta jejím autorem a
+                vlastníkem jako komplexní softwarové řešení pro podporu práce s
+                veřejnými zakázkami.
+              </p>
+              <p>
+                Veškerá autorská práva, majetková práva a práva k dalšímu vývoji,
+                úpravám, rozšiřování, distribuci a monetizaci aplikace Tender
+                Flow jsou plně vyhrazena jejímu vlastníkovi.
+              </p>
+              <p>
+                Bez předchozího výslovného písemného souhlasu vlastníka není
+                dovoleno aplikaci ani její části:
+              </p>
+              <ul>
+                <li>upravovat, kopírovat nebo jinak zpracovávat,</li>
+                <li>distribuovat třetím osobám,</li>
+                <li>poskytovat jako součást jiných produktů nebo služeb,</li>
+                <li>
+                  využívat ke komerčním účelům nad rámec udělené licence.
+                </li>
+              </ul>
+              <p>
+                Vlastník aplikace si vyhrazuje právo na průběžné změny, úpravy
+                funkcionality, další vývoj a změny obchodního modelu, a to bez
+                povinnosti předchozího upozornění uživatelů.
+              </p>
+              <div class="callout">
+                <strong>Autor a vlastník:</strong><br />
+                Autorem a vlastníkem aplikace Tender Flow je
+                <span class="kbd">Martin Kalkuš</span> (<a href="mailto:martinkalkus82@gmail.com">martinkalkus82@gmail.com</a>),
+                provozovatel služby <span class="kbd">tenderflow.cz</span>.
+              </div>
+              <div class="callout">
+                © <span class="kbd">2025</span> <span class="kbd">Martin Kalkuš</span>. Všechna práva vyhrazena.
+              </div>
+            </section>
+          </div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

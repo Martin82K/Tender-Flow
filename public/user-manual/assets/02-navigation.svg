@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1220"/>
+      <stop offset="1" stop-color="#050a13"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="rgba(0,0,0,0.55)"/>
+    </filter>
+    <style>
+      .t { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; fill: rgba(255,255,255,0.92); }
+      .m { fill: rgba(255,255,255,0.66); font-size: 16px; }
+      .h { font-size: 26px; font-weight: 700; }
+      .cap { font-size: 12px; letter-spacing: 0.6px; text-transform: uppercase; fill: rgba(255,255,255,0.55); }
+      .stroke { stroke: rgba(255,255,255,0.14); }
+      .chip { fill: rgba(255,255,255,0.06); stroke: rgba(255,255,255,0.12); }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1200" height="700" fill="url(#bg)"/>
+  <circle cx="170" cy="120" r="170" fill="rgba(45,212,191,0.10)"/>
+  <circle cx="1030" cy="110" r="250" fill="rgba(96,165,250,0.10)"/>
+
+  <rect x="110" y="80" width="980" height="540" rx="22" fill="rgba(255,255,255,0.06)" class="stroke" filter="url(#shadow)"/>
+  <text x="150" y="140" class="t h">Navigace (sidebar) – orientace v aplikaci</text>
+  <text x="150" y="170" class="t m">Vlevo je hlavní panel, kde přepínáte obrazovky a vybíráte stavby.</text>
+
+  <!-- Sidebar mock -->
+  <rect x="150" y="210" width="320" height="370" rx="18" fill="rgba(0,0,0,0.26)" class="stroke"/>
+  <text x="175" y="246" class="t cap">Hlavní</text>
+  <rect x="175" y="262" width="270" height="40" rx="12" class="chip"/>
+  <text x="195" y="288" class="t m">Dashboard</text>
+
+  <text x="175" y="332" class="t cap">Stavby (seznam)</text>
+  <rect x="175" y="348" width="270" height="42" rx="12" class="chip"/>
+  <text x="195" y="375" class="t m">Stavby (accordion)</text>
+
+  <rect x="195" y="402" width="250" height="34" rx="10" fill="rgba(96,165,250,0.12)" stroke="rgba(96,165,250,0.30)"/>
+  <text x="214" y="424" class="t m">REKO bazén Aš</text>
+
+  <rect x="195" y="444" width="250" height="34" rx="10" fill="rgba(255,255,255,0.05)" class="stroke"/>
+  <text x="214" y="466" class="t m">Bytový dům – etapa 2</text>
+
+  <rect x="175" y="496" width="270" height="40" rx="12" class="chip"/>
+  <text x="195" y="522" class="t m">Subdodavatelé</text>
+
+  <!-- Bottom -->
+  <text x="175" y="564" class="t cap">Dole</text>
+  <rect x="175" y="578" width="270" height="40" rx="12" class="chip"/>
+  <text x="195" y="604" class="t m">Přehled staveb</text>
+
+  <!-- Main content area -->
+  <rect x="500" y="210" width="560" height="370" rx="18" fill="rgba(0,0,0,0.18)" class="stroke"/>
+  <rect x="520" y="232" width="520" height="56" rx="14" fill="rgba(255,255,255,0.06)" class="stroke"/>
+  <text x="540" y="265" class="t m">Header: Název obrazovky + akce (export, tlačítka…)</text>
+
+  <rect x="520" y="306" width="520" height="250" rx="14" fill="rgba(255,255,255,0.04)" class="stroke"/>
+  <text x="540" y="343" class="t m">Obsah vybrané části (Dashboard / Stavba / Kontakty…)</text>
+  <text x="540" y="372" class="t m">• Tabulky • karty • pipeline sloupce</text>
+
+  <!-- Resizer hint -->
+  <rect x="470" y="210" width="6" height="370" rx="3" fill="rgba(45,212,191,0.55)"/>
+  <text x="150" y="646" class="t m">Tip: šířku sidebaru lze měnit tažením za pravý okraj (resizer).</text>
+</svg>
+

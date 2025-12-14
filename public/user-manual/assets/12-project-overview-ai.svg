@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1220"/>
+      <stop offset="1" stop-color="#050a13"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="rgba(0,0,0,0.55)"/>
+    </filter>
+    <style>
+      .t { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; fill: rgba(255,255,255,0.92); }
+      .m { fill: rgba(255,255,255,0.66); font-size: 15px; }
+      .h { font-size: 26px; font-weight: 700; }
+      .cap { font-size: 12px; letter-spacing: 0.6px; text-transform: uppercase; fill: rgba(255,255,255,0.55); }
+      .stroke { stroke: rgba(255,255,255,0.14); }
+      .chip { fill: rgba(255,255,255,0.06); stroke: rgba(255,255,255,0.12); }
+      .accent { fill: rgba(45,212,191,0.18); stroke: rgba(45,212,191,0.35); }
+      .blue { fill: rgba(96,165,250,0.12); stroke: rgba(96,165,250,0.28); }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1200" height="700" fill="url(#bg)"/>
+  <circle cx="240" cy="120" r="200" fill="rgba(45,212,191,0.10)"/>
+  <circle cx="1030" cy="110" r="260" fill="rgba(96,165,250,0.10)"/>
+
+  <rect x="80" y="70" width="1040" height="560" rx="22" fill="rgba(255,255,255,0.06)" class="stroke" filter="url(#shadow)"/>
+  <text x="120" y="130" class="t h">Přehled staveb – analytika &amp; AI</text>
+  <text x="120" y="160" class="t m">Souhrn metrik napříč stavbami a volitelná AI analýza.</text>
+
+  <!-- Metrics -->
+  <rect x="120" y="200" width="1040" height="92" rx="18" fill="rgba(0,0,0,0.22)" class="stroke"/>
+  <rect x="150" y="225" width="240" height="44" rx="14" class="chip"/>
+  <text x="166" y="253" class="t m">Aktivní stavby: 6</text>
+  <rect x="410" y="225" width="240" height="44" rx="14" class="chip"/>
+  <text x="426" y="253" class="t m">Poptávky: 84</text>
+  <rect x="670" y="225" width="240" height="44" rx="14" class="chip"/>
+  <text x="686" y="253" class="t m">SOD (Σ): 210M</text>
+  <rect x="930" y="225" width="200" height="44" rx="14" class="accent"/>
+  <text x="950" y="253" class="t m">Generovat AI</text>
+
+  <!-- AI insights -->
+  <rect x="120" y="312" width="640" height="318" rx="18" class="blue"/>
+  <text x="150" y="346" class="t" font-size="14" font-weight="800">AI insight karty</text>
+  <rect x="150" y="366" width="280" height="110" rx="16" fill="rgba(255,255,255,0.06)" class="stroke"/>
+  <text x="166" y="402" class="t m">„Nejvyšší úspora“</text>
+  <text x="166" y="430" class="t m">SOD–VŘ: +4,2M</text>
+  <rect x="450" y="366" width="280" height="110" rx="16" fill="rgba(255,255,255,0.06)" class="stroke"/>
+  <text x="466" y="402" class="t m">„Riziková poptávka“</text>
+  <text x="466" y="430" class="t m">málo nabídek s cenou</text>
+  <rect x="150" y="492" width="580" height="112" rx="16" fill="rgba(255,255,255,0.06)" class="stroke"/>
+  <text x="166" y="528" class="t m">Textová analýza / doporučení dalšího kroku…</text>
+
+  <!-- Chart / report -->
+  <rect x="780" y="312" width="380" height="318" rx="18" fill="rgba(0,0,0,0.18)" class="stroke"/>
+  <text x="810" y="346" class="t" font-size="14" font-weight="800">Graf / report</text>
+  <rect x="810" y="366" width="320" height="240" rx="16" fill="rgba(255,255,255,0.05)" class="stroke"/>
+  <text x="830" y="404" class="t m">Rozpočty, marže, trend…</text>
+</svg>
+

@@ -273,6 +273,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
             <span className="text-sm font-medium break-words">Nastavení</span>
           </button>
 
+          <a
+            href="/user-manual/index.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all text-slate-400 hover:bg-slate-800/50 hover:text-white"
+            title="Otevře uživatelskou příručkou v nové záložce"
+          >
+            <span className="material-symbols-outlined shrink-0">menu_book</span>
+            <span className="text-sm font-medium break-words">Uživatelská příručka</span>
+            <span className="material-symbols-outlined ml-auto text-[18px] text-slate-500">open_in_new</span>
+          </a>
+
           <div className="flex items-center gap-3 px-3 py-3 mt-1 overflow-hidden bg-slate-800/30 rounded-xl border border-slate-700/30">
             {user?.avatarUrl ? (
               <img src={user.avatarUrl} alt={user.name} className="size-8 min-w-8 rounded-full" />
