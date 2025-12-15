@@ -707,6 +707,7 @@ interface PipelineProps {
   onEditCategory?: (category: DemandCategory) => void;
   onDeleteCategory?: (categoryId: string) => void;
   onBidsChange?: (bids: Record<string, Bid[]>) => void;
+  searchQuery?: string;
 }
 
 const CreateContactModal: React.FC<{
@@ -905,6 +906,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
   onEditCategory,
   onDeleteCategory,
   onBidsChange,
+  searchQuery = '',
 }) => {
   const projectData = projectDetails;
   const [activeCategory, setActiveCategory] = useState<DemandCategory | null>(
@@ -1993,93 +1995,111 @@ export const Pipeline: React.FC<PipelineProps> = ({
   // --- LIST VIEW (OVERVIEW) ---
   return (
     <div className="flex flex-col h-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 min-h-screen">
-      <Header
-        title={`Stavba: ${projectData.title}`}
-        subtitle="Přehled poptávek a subdodávek"
-      >
-        {/* Filter Buttons */}
-        <div className="flex items-center gap-1 bg-slate-800/50 p-1 rounded-xl border border-slate-700/50 mr-4">
+      <div className="p-6 lg:p-10 overflow-y-auto">
+        {/* Filter Buttons and Add Button */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-1 bg-slate-800/50 p-1 rounded-xl border border-slate-700/50">
+            <button
+              onClick={() => setDemandFilter('all')}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${demandFilter === 'all'
+                ? 'bg-slate-700 text-white shadow'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+            >
+              Všechny ({projectData.categories.length})
+            </button>
+            <button
+              onClick={() => setDemandFilter('open')}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${demandFilter === 'open'
+                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+            >
+              Poptávané ({projectData.categories.filter(c => c.status === 'open' || c.status === 'negotiating').length})
+            </button>
+            <button
+              onClick={() => setDemandFilter('closed')}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${demandFilter === 'closed'
+                ? 'bg-teal-500/20 text-teal-300 border border-teal-500/30'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+            >
+              Ukončené ({projectData.categories.filter(c => c.status === 'closed').length})
+            </button>
+            <button
+              onClick={() => setDemandFilter('sod')}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${demandFilter === 'sod'
+                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+            >
+              Zasmluvněné ({projectData.categories.filter(c => {
+                if (c.status === 'sod') return true;
+                if (c.status === 'closed') {
+                  const sodBids = (bids[c.id] || []).filter(b => b.status === 'sod');
+                  return sodBids.length > 0 && sodBids.every(b => b.contracted);
+                }
+                return false;
+              }).length})
+            </button>
+          </div>
+
           <button
-            onClick={() => setDemandFilter('all')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${demandFilter === 'all'
-              ? 'bg-slate-700 text-white shadow'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800'
-              }`}
+            onClick={() => setIsAddModalOpen(true)}
+            className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-lg transition-all"
           >
-            Všechny ({projectData.categories.length})
-          </button>
-          <button
-            onClick={() => setDemandFilter('open')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${demandFilter === 'open'
-              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800'
-              }`}
-          >
-            Poptávané ({projectData.categories.filter(c => c.status === 'open' || c.status === 'negotiating').length})
-          </button>
-          <button
-            onClick={() => setDemandFilter('closed')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${demandFilter === 'closed'
-              ? 'bg-teal-500/20 text-teal-300 border border-teal-500/30'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800'
-              }`}
-          >
-            Ukončené ({projectData.categories.filter(c => c.status === 'closed').length})
-          </button>
-          <button
-            onClick={() => setDemandFilter('sod')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${demandFilter === 'sod'
-              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800'
-              }`}
-          >
-            Zasmluvněné ({projectData.categories.filter(c => {
-              if (c.status === 'sod') return true;
-              if (c.status === 'closed') {
-                const sodBids = (bids[c.id] || []).filter(b => b.status === 'sod');
-                return sodBids.length > 0 && sodBids.every(b => b.contracted);
-              }
-              return false;
-            }).length})
+            <span className="material-symbols-outlined text-[20px]">
+              add_home_work
+            </span>
+            <span className="hidden sm:inline">Nová Poptávka</span>
           </button>
         </div>
 
-        <button
-          onClick={() => setIsAddModalOpen(true)}
-          className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-lg transition-all"
-        >
-          <span className="material-symbols-outlined text-[20px]">
-            add_home_work
-          </span>
-          <span className="hidden sm:inline">Nová Poptávka</span>
-        </button>
-      </Header>
-
-      <div className="p-6 lg:p-10 overflow-y-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {[...projectData.categories]
             .sort((a, b) => a.title.localeCompare(b.title, 'cs'))
             .filter(cat => {
-              if (demandFilter === 'all') return true;
-              if (demandFilter === 'open') return cat.status === 'open' || cat.status === 'negotiating';
-              if (demandFilter === 'closed') return cat.status === 'closed';
-              if (demandFilter === 'sod') {
+              // First apply status filter
+              if (demandFilter === 'all') {
+                // continue
+              } else if (demandFilter === 'open') {
+                if (cat.status !== 'open' && cat.status !== 'negotiating') return false;
+              } else if (demandFilter === 'closed') {
+                if (cat.status !== 'closed') return false;
+              } else if (demandFilter === 'sod') {
                 // SOD filter includes:
                 // 1. Explicit 'sod' status
                 // 2. 'closed' status IF fully contracted (all winning bids have contracts)
-                if (cat.status === 'sod') return true;
-
-                if (cat.status === 'closed') {
+                if (cat.status === 'sod') {
+                  // continue
+                } else if (cat.status === 'closed') {
                   const catBids = bids[cat.id] || [];
                   const sodBids = catBids.filter(b => b.status === 'sod');
                   const contractedCount = sodBids.filter(b => b.contracted).length;
                   // Check if it has winners and ALL are contracted
-                  if (sodBids.length > 0 && sodBids.length === contractedCount) {
-                    return true;
+                  if (sodBids.length === 0 || sodBids.length !== contractedCount) {
+                    return false;
                   }
+                } else {
+                  return false;
                 }
-                return false;
               }
+              
+              // Then apply search query filter
+              if (searchQuery && searchQuery.trim() !== '') {
+                const query = searchQuery.toLowerCase();
+                const catBids = bids[cat.id] || [];
+                const companyNames = catBids.map(b => b.companyName).join(' ').toLowerCase();
+                
+                // Search in: category title, description, bid company names
+                const matches = 
+                  cat.title.toLowerCase().includes(query) ||
+                  cat.description?.toLowerCase().includes(query) ||
+                  companyNames.includes(query);
+                
+                if (!matches) return false;
+              }
+              
               return true;
             })
             .map((category) => {

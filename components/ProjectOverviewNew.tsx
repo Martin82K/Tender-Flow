@@ -25,9 +25,10 @@ interface ProjectOverviewProps {
     project: ProjectDetails;
     onUpdate: (updates: Partial<ProjectDetails>) => void;
     variant?: 'full' | 'compact';
+    searchQuery?: string;
 }
 
-export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, onUpdate, variant = 'full' }) => {
+export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, onUpdate, variant = 'full', searchQuery = '' }) => {
     const contract = project.contract;
     const investor = project.investorFinancials || { sodPrice: 0, amendments: [] };
     const plannedCost = project.plannedCost || 0;
@@ -869,13 +870,31 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                     return catBids.some(b => b.status === 'sod' && b.contracted);
                 };
 
-                // Filter categories based on selected filter
+                // Filter categories based on selected filter AND search query
                 const filteredCategories = project.categories.filter(cat => {
-                    if (demandFilter === 'all') return true;
-                    if (demandFilter === 'open') return cat.status === 'open' && !hasContracts(cat); // or status != closed/sod? keeping consistent with previous logic
-                    if (demandFilter === 'closed') return cat.status === 'closed' && !hasContracts(cat);
-                    if (demandFilter === 'sod') return hasContracts(cat);
-                    return true;
+                    // First apply status filter
+                    let matchesFilter = true;
+                    if (demandFilter === 'all') matchesFilter = true;
+                    else if (demandFilter === 'open') matchesFilter = cat.status === 'open' && !hasContracts(cat);
+                    else if (demandFilter === 'closed') matchesFilter = cat.status === 'closed' && !hasContracts(cat);
+                    else if (demandFilter === 'sod') matchesFilter = hasContracts(cat);
+                    
+                    if (!matchesFilter) return false;
+                    
+                    // Then apply search query filter
+                    if (!searchQuery || searchQuery.trim() === '') return true;
+                    
+                    const query = searchQuery.toLowerCase();
+                    const catBids = project.bids?.[cat.id] || [];
+                    const winningBids = catBids.filter(b => b.status === 'sod');
+                    const winnersNames = winningBids.map(w => w.companyName).join(' ').toLowerCase();
+                    
+                    // Search in: category title, description, winner names
+                    return (
+                        cat.title.toLowerCase().includes(query) ||
+                        cat.description?.toLowerCase().includes(query) ||
+                        winnersNames.includes(query)
+                    );
                 });
 
                 // Count for each filter - "sod" counts categories with actual contracts
