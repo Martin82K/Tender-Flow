@@ -322,6 +322,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
             <p className="text-[13px] text-white/50 text-center leading-relaxed font-medium tracking-wide">
               Martin Kalkuš 2025
             </p>
+            <p className="text-[10px] text-slate-600 text-center mt-1 font-mono hover:text-slate-500 transition-colors cursor-default">
+              v0.9.0
+            </p>
           </div>
         </div>
       </div>
