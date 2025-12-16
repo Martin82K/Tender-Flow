@@ -101,9 +101,15 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
     // Sharing State
     const [sharingProjectId, setSharingProjectId] = useState<string | null>(null);
     const [shareEmail, setShareEmail] = useState('');
+    const [sharePermission, setSharePermission] = useState<'view' | 'edit'>('edit');
     const [shares, setShares] = useState<{ user_id: string, email: string, permission: string }[]>([]);
     const [isLoadingShares, setIsLoadingShares] = useState(false);
     const [isSharing, setIsSharing] = useState(false);
+
+    // Permission translation helper
+    const getPermissionLabel = (permission: string) => {
+        return permission === 'edit' ? 'Úpravy' : 'Pouze čtení';
+    };
 
     // Drag & Drop State
     const [projectOrder, setProjectOrder] = useState<string[]>([]);
@@ -209,6 +215,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
         console.log('[ProjectManager] Opening share modal for project:', projectId);
         setSharingProjectId(projectId);
         setShareEmail('');
+        setSharePermission('edit');
         setIsLoadingShares(true);
         try {
             console.log('[ProjectManager] Fetching shares...');
@@ -238,11 +245,12 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
 
         setIsSharing(true);
         try {
-            await projectService.shareProject(sharingProjectId, shareEmail);
+            await projectService.shareProject(sharingProjectId, shareEmail, sharePermission);
             // Refresh shares
             const fetchedShares = await projectService.getProjectShares(sharingProjectId);
             setShares(fetchedShares);
             setShareEmail('');
+            setSharePermission('edit');
             alert('Projekt byl úspěšně nasdílen.');
         } catch (error: any) {
             console.error('Example share error:', error);
@@ -261,6 +269,20 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
         } catch (error) {
             console.error('Error removing share:', error);
             alert('Chyba při rušení sdílení.');
+        }
+    };
+
+    const handleChangePermission = async (userId: string, newPermission: 'view' | 'edit') => {
+        if (!sharingProjectId) return;
+
+        try {
+            await projectService.updateSharePermission(sharingProjectId, userId, newPermission);
+            setShares(shares.map(s => 
+                s.user_id === userId ? { ...s, permission: newPermission } : s
+            ));
+        } catch (error) {
+            console.error('Error updating permission:', error);
+            alert('Chyba při změně oprávnění.');
         }
     };
 
@@ -452,8 +474,8 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
 
                         <div className="p-6">
                             {/* Add User Form */}
-                            <form onSubmit={handleShare} className="flex gap-2 mb-6">
-                                <div className="flex-1">
+                            <form onSubmit={handleShare} className="flex flex-wrap gap-2 mb-6">
+                                <div className="flex-1 min-w-[180px]">
                                     <label className="block text-xs text-slate-400 mb-1">Email uživatele</label>
                                     <input
                                         type="email"
@@ -463,6 +485,17 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                         placeholder="kolega@firma.cz"
                                         className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
                                     />
+                                </div>
+                                <div className="w-[140px]">
+                                    <label className="block text-xs text-slate-400 mb-1">Oprávnění</label>
+                                    <select
+                                        value={sharePermission}
+                                        onChange={(e) => setSharePermission(e.target.value as 'view' | 'edit')}
+                                        className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none h-[42px]"
+                                    >
+                                        <option value="edit">Úpravy</option>
+                                        <option value="view">Pouze čtení</option>
+                                    </select>
                                 </div>
                                 <div className="flex items-end">
                                     <button
@@ -496,16 +529,25 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                                     </div>
                                                     <div>
                                                         <p className="text-sm font-medium text-white">{share.email}</p>
-                                                        <p className="text-[10px] text-slate-500 uppercase">{share.permission}</p>
                                                     </div>
                                                 </div>
-                                                <button
-                                                    onClick={() => handleRemoveShare(share.user_id)}
-                                                    className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                                                    title="Odebrat přístup"
-                                                >
-                                                    <span className="material-symbols-outlined text-[18px]">person_remove</span>
-                                                </button>
+                                                <div className="flex items-center gap-2">
+                                                    <select
+                                                        value={share.permission}
+                                                        onChange={(e) => handleChangePermission(share.user_id, e.target.value as 'view' | 'edit')}
+                                                        className="rounded-lg bg-slate-700/50 border border-slate-600/50 px-2 py-1 text-xs text-slate-300 focus:border-blue-500/50 focus:outline-none cursor-pointer"
+                                                    >
+                                                        <option value="edit">Úpravy</option>
+                                                        <option value="view">Pouze čtení</option>
+                                                    </select>
+                                                    <button
+                                                        onClick={() => handleRemoveShare(share.user_id)}
+                                                        className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                                        title="Odebrat přístup"
+                                                    >
+                                                        <span className="material-symbols-outlined text-[18px]">person_remove</span>
+                                                    </button>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
