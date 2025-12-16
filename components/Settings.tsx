@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { Header } from './Header';
 import { Project, ProjectStatus, StatusConfig, Subcontractor } from '../types';
 import { addContactStatus, updateContactStatus, deleteContactStatus } from '../services/contactStatusService';
+import { UserManagement } from './UserManagement';
+import { EmailWhitelistManagement } from './EmailWhitelistManagement';
 
 interface SettingsProps {
     darkMode: boolean;
@@ -19,6 +21,7 @@ interface SettingsProps {
     onDeleteContacts: (ids: string[]) => void;
     contacts: Subcontractor[];
     isAdmin?: boolean;
+    isSuperAdmin?: boolean;
     onSaveSettings: () => void;
     user?: any; // Add user prop for debug
 }
@@ -37,6 +40,7 @@ export const Settings: React.FC<SettingsProps> = ({
     onDeleteContacts,
     contacts,
     isAdmin = false,
+    isSuperAdmin = false,
     onSaveSettings,
     user
 }) => {
@@ -60,6 +64,7 @@ export const Settings: React.FC<SettingsProps> = ({
     // Registration Settings State (Admin only) - loaded from database
     const [allowPublicRegistration, setAllowPublicRegistration] = useState(false);
     const [allowedDomains, setAllowedDomains] = useState('');
+    const [requireEmailWhitelist, setRequireEmailWhitelist] = useState(false);
     const [isLoadingSettings, setIsLoadingSettings] = useState(true);
     const [isSavingSettings, setIsSavingSettings] = useState(false);
 
@@ -288,6 +293,7 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                 const settings = await authService.getAppSettings();
                 setAllowPublicRegistration(settings.allowPublicRegistration);
                 setAllowedDomains(settings.allowedDomains.join(', '));
+                setRequireEmailWhitelist(settings.requireEmailWhitelist || false);
             } catch (error) {
                 console.error('Error loading registration settings:', error);
             } finally {
@@ -308,7 +314,8 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
 
             await authService.updateAppSettings({
                 allowPublicRegistration,
-                allowedDomains: domainsArray
+                allowedDomains: domainsArray,
+                requireEmailWhitelist
             });
             alert('Nastavení registrací uloženo do databáze.');
         } catch (error) {
@@ -520,47 +527,103 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
 
             <div className="p-6 lg:p-10 max-w-5xl mx-auto w-full pb-20">
 
-                {/* Profile Settings Section */}
-                <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl mb-8">
-                    <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-                        <span className="material-symbols-outlined text-emerald-400">person</span>
-                        Profil
-                    </h2>
-
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Email</label>
-                            <input
-                                type="text"
-                                value={user?.email || ''}
-                                disabled
-                                className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-slate-400"
-                            />
+                {/* Administration Header */}
+                {isAdmin && (
+                    <div className="mb-8 pb-4 border-b border-slate-800 flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-indigo-400">shield_person</span>
+                            <h2 className="text-xl font-bold text-white">
+                                Administrace systému
+                            </h2>
                         </div>
+                        <p className="text-sm text-slate-500">Správa uživatelů, registrací a nastavení AI</p>
+                    </div>
+                )}
 
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Zobrazované jméno</label>
-                            <div className="flex gap-2">
-                                <input
-                                    type="text"
-                                    value={displayName}
-                                    onChange={(e) => setDisplayName(e.target.value)}
-                                    placeholder="Např. Martin Kalkus"
-                                    className="flex-1 rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
-                                />
+                {/* Admin Only: Registration Settings */}
+                {isAdmin && (
+                    <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl mb-8">
+                        <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-red-400">admin_panel_settings</span>
+                            Nastavení registrací
+                            <span className="ml-2 px-2.5 py-1 bg-red-500/20 text-red-400 text-xs font-bold rounded-lg border border-red-500/30">Admin</span>
+                        </h2>
+
+                        <div className="space-y-6">
+                            {/* Allow Public Registration Toggle */}
+                            <div className="flex items-center justify-between pb-4 border-b border-slate-700/50">
+                                <div>
+                                    <p className="text-sm font-medium text-white">Povolit registrace všem</p>
+                                    <p className="text-xs text-slate-500">Pokud je vypnuto, pouze emaily z povolených domén se mohou registrovat.</p>
+                                </div>
                                 <button
-                                    onClick={handleSaveDisplayName}
-                                    disabled={isSavingDisplayName}
-                                    className="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                    onClick={() => setAllowPublicRegistration(!allowPublicRegistration)}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${allowPublicRegistration ? 'bg-emerald-500' : 'bg-slate-600'}`}
                                 >
-                                    {isSavingDisplayName && <span className="material-symbols-outlined animate-spin text-[18px]">sync</span>}
-                                    Uložit
+                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${allowPublicRegistration ? 'translate-x-6' : 'translate-x-1'}`} />
                                 </button>
                             </div>
-                            <p className="text-xs text-slate-500 mt-1">Toto jméno se zobrazí ostatním uživatelům při sdílení projektů</p>
+
+                            {/* Domain Whitelist */}
+                            <div className="flex flex-col gap-3">
+                                <div>
+                                    <p className="text-sm font-medium text-white">Povolit registrace na doménu (whitelist)</p>
+                                    <p className="text-xs text-slate-500 mb-2">
+                                        Zadejte domény oddělené čárkou. Např.: @baustav.cz, @firma.cz
+                                    </p>
+                                </div>
+                                <input
+                                    type="text"
+                                    value={allowedDomains}
+                                    onChange={(e) => setAllowedDomains(e.target.value)}
+                                    placeholder="@baustav.cz, @mojefirma.cz"
+                                    className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                                />
+                                <p className="text-xs text-slate-500 italic">
+                                    💡 Pokud je povoleno "Povolit registrace všem", tento whitelist se ignoruje.
+                                </p>
+                            </div>
+
+
+                            {/* Require Email Whitelist Toggle */}
+                            <div className="flex items-center justify-between pb-4 border-b border-slate-700/50">
+                                <div>
+                                    <p className="text-sm font-medium text-white">Vyžadovat whitelist emailů</p>
+                                    <p className="text-xs text-slate-500">Pokud je zapnuto, registrovat se mohou pouze emaily explicitně uvedené v seznamu povolených.</p>
+                                </div>
+                                <button
+                                    onClick={() => setRequireEmailWhitelist(!requireEmailWhitelist)}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${requireEmailWhitelist ? 'bg-emerald-500' : 'bg-slate-600'}`}
+                                >
+                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${requireEmailWhitelist ? 'translate-x-6' : 'translate-x-1'}`} />
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                </section>
+
+                        {/* Whitelist Management (Only if enabled) */}
+                        {requireEmailWhitelist && (
+                            <div className="mt-6 border-t border-slate-700/50 pt-6">
+                                <EmailWhitelistManagement isAdmin={true} />
+                            </div>
+                        )}
+
+                        <div className="mt-6 flex justify-end border-t border-slate-700/50 pt-4">
+                            <button
+                                onClick={handleSaveRegistrationSettings}
+                                disabled={isSavingSettings || isLoadingSettings}
+                                className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <span className={`material-symbols-outlined ${isSavingSettings ? 'animate-spin' : ''}`}>
+                                    {isSavingSettings ? 'sync' : 'save'}
+                                </span>
+                                {isSavingSettings ? 'Ukládám...' : 'Uložit nastavení registrací'}
+                            </button>
+                        </div>
+                    </section>
+                )}
+
+                {/* Superadmin Only: User Management */}
+                <UserManagement isSuperAdmin={isSuperAdmin} />
 
                 {/* Admin Only: AI Settings */}
                 {isAdmin && (
@@ -691,65 +754,49 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                     </section>
                 )}
 
-                {/* Admin Only: Registration Settings */}
-                {isAdmin && (
-                    <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl mb-8">
-                        <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-red-400">admin_panel_settings</span>
-                            Nastavení registrací
-                            <span className="ml-2 px-2.5 py-1 bg-red-500/20 text-red-400 text-xs font-bold rounded-lg border border-red-500/30">Admin</span>
-                        </h2>
+                {/* Profile Settings Section */}
+                <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl mb-8">
+                    <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                        <span className="material-symbols-outlined text-emerald-400">person</span>
+                        Profil
+                    </h2>
 
-                        <div className="space-y-6">
-                            {/* Allow Public Registration Toggle */}
-                            <div className="flex items-center justify-between pb-4 border-b border-slate-700/50">
-                                <div>
-                                    <p className="text-sm font-medium text-white">Povolit registrace všem</p>
-                                    <p className="text-xs text-slate-500">Pokud je vypnuto, pouze emaily z povolených domén se mohou registrovat.</p>
-                                </div>
-                                <button
-                                    onClick={() => setAllowPublicRegistration(!allowPublicRegistration)}
-                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${allowPublicRegistration ? 'bg-emerald-500' : 'bg-slate-600'}`}
-                                >
-                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${allowPublicRegistration ? 'translate-x-6' : 'translate-x-1'}`} />
-                                </button>
-                            </div>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-xs text-slate-400 mb-1">Email</label>
+                            <input
+                                type="text"
+                                value={user?.email || ''}
+                                disabled
+                                className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-slate-400"
+                            />
+                        </div>
 
-                            {/* Domain Whitelist */}
-                            <div className="flex flex-col gap-3">
-                                <div>
-                                    <p className="text-sm font-medium text-white">Povolit registrace na doménu (whitelist)</p>
-                                    <p className="text-xs text-slate-500 mb-2">
-                                        Zadejte domény oddělené čárkou. Např.: @baustav.cz, @firma.cz
-                                    </p>
-                                </div>
+                        <div>
+                            <label className="block text-xs text-slate-400 mb-1">Zobrazované jméno</label>
+                            <div className="flex gap-2">
                                 <input
                                     type="text"
-                                    value={allowedDomains}
-                                    onChange={(e) => setAllowedDomains(e.target.value)}
-                                    placeholder="@baustav.cz, @mojefirma.cz"
-                                    className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                                    value={displayName}
+                                    onChange={(e) => setDisplayName(e.target.value)}
+                                    placeholder="Např. Martin Kalkus"
+                                    className="flex-1 rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
                                 />
-                                <p className="text-xs text-slate-500 italic">
-                                    💡 Pokud je povoleno "Povolit registrace všem", tento whitelist se ignoruje.
-                                </p>
+                                <button
+                                    onClick={handleSaveDisplayName}
+                                    disabled={isSavingDisplayName}
+                                    className="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                >
+                                    {isSavingDisplayName && <span className="material-symbols-outlined animate-spin text-[18px]">sync</span>}
+                                    Uložit
+                                </button>
                             </div>
+                            <p className="text-xs text-slate-500 mt-1">Toto jméno se zobrazí ostatním uživatelům při sdílení projektů</p>
                         </div>
+                    </div>
+                </section>
 
-                        <div className="mt-6 flex justify-end border-t border-slate-700/50 pt-4">
-                            <button
-                                onClick={handleSaveRegistrationSettings}
-                                disabled={isSavingSettings || isLoadingSettings}
-                                className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                <span className={`material-symbols-outlined ${isSavingSettings ? 'animate-spin' : ''}`}>
-                                    {isSavingSettings ? 'sync' : 'save'}
-                                </span>
-                                {isSavingSettings ? 'Ukládám...' : 'Uložit nastavení registrací'}
-                            </button>
-                        </div>
-                    </section>
-                )}
+
 
                 {/* 1. Appearance Section */}
                 <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl mb-8">

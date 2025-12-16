@@ -50,7 +50,7 @@ export const authService = {
         try {
             const { data: settings, error } = await supabase
                 .from('app_settings')
-                .select('allow_public_registration, allowed_domains')
+                .select('allow_public_registration, allowed_domains, require_email_whitelist')
                 .eq('id', 'default')
                 .single();
 
@@ -74,17 +74,41 @@ export const authService = {
                 };
             }
 
-            const emailDomain = email.toLowerCase().split('@')[1];
-            const isAllowed = allowedDomains.some(domain => {
+            const emailLower = email.toLowerCase();
+            const emailDomain = emailLower.split('@')[1];
+            const isDomainAllowed = allowedDomains.some(domain => {
                 const cleanDomain = domain.replace('@', '').toLowerCase().trim();
                 return emailDomain === cleanDomain || emailDomain.endsWith('.' + cleanDomain);
             });
 
-            if (!isAllowed) {
+            if (!isDomainAllowed) {
                 return { 
                     allowed: false, 
                     reason: `Registrace je povolena pouze pro domény: ${allowedDomains.join(', ')}` 
                 };
+            }
+
+            // If email whitelist is required, check if this specific email is whitelisted
+            if (settings?.require_email_whitelist) {
+                const { data: whitelistCheck, error: whitelistError } = await supabase
+                    .rpc('check_email_whitelist', { email_input: emailLower });
+
+                if (whitelistError) {
+                    console.error('Error checking email whitelist:', whitelistError);
+                    // Fail-closed: if we can't check whitelist, deny registration
+                    return { 
+                        allowed: false, 
+                        reason: 'Nelze ověřit oprávnění. Kontaktujte administrátora.' 
+                    };
+                }
+
+                const isWhitelisted = whitelistCheck?.[0]?.is_whitelisted ?? false;
+                if (!isWhitelisted) {
+                    return { 
+                        allowed: false, 
+                        reason: 'Váš email není na seznamu povolených uživatelů. Kontaktujte administrátora pro přidání.' 
+                    };
+                }
             }
 
             return { allowed: true };
@@ -95,36 +119,38 @@ export const authService = {
         }
     },
 
-    getAppSettings: async (): Promise<{ allowPublicRegistration: boolean; allowedDomains: string[] }> => {
+    getAppSettings: async (): Promise<{ allowPublicRegistration: boolean; allowedDomains: string[]; requireEmailWhitelist: boolean }> => {
         try {
             const { data, error } = await supabase
                 .from('app_settings')
-                .select('allow_public_registration, allowed_domains')
+                .select('allow_public_registration, allowed_domains, require_email_whitelist')
                 .eq('id', 'default')
                 .single();
 
             if (error) {
                 console.error('Error fetching app_settings:', error);
-                return { allowPublicRegistration: false, allowedDomains: [] };
+                return { allowPublicRegistration: false, allowedDomains: [], requireEmailWhitelist: false };
             }
 
             return {
                 allowPublicRegistration: data?.allow_public_registration || false,
-                allowedDomains: data?.allowed_domains || []
+                allowedDomains: data?.allowed_domains || [],
+                requireEmailWhitelist: data?.require_email_whitelist || false
             };
         } catch (e) {
             console.error('Error loading app settings:', e);
-            return { allowPublicRegistration: false, allowedDomains: [] };
+            return { allowPublicRegistration: false, allowedDomains: [], requireEmailWhitelist: false };
         }
     },
 
-    updateAppSettings: async (settings: { allowPublicRegistration: boolean; allowedDomains: string[] }): Promise<void> => {
+    updateAppSettings: async (settings: { allowPublicRegistration: boolean; allowedDomains: string[]; requireEmailWhitelist?: boolean }): Promise<void> => {
         const { error } = await supabase
             .from('app_settings')
             .upsert({
                 id: 'default',
                 allow_public_registration: settings.allowPublicRegistration,
                 allowed_domains: settings.allowedDomains,
+                require_email_whitelist: settings.requireEmailWhitelist ?? false,
                 updated_at: new Date().toISOString()
             }, { onConflict: 'id' });
 

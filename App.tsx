@@ -92,6 +92,7 @@ const AppContent: React.FC = () => {
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [loadingError, setLoadingError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   // Dark Mode Management
   const [darkMode, setDarkMode] = useState(() => {
@@ -216,8 +217,9 @@ const AppContent: React.FC = () => {
       } = await supabase.auth.getSession();
 
       if (session?.user) {
-        // Hardcoded Admin Check
+        // Admin/Superadmin Check
         setIsAdmin(isUserAdmin(session.user.email));
+        setIsSuperAdmin(isUserSuperAdmin(session.user.email));
       }
 
       const [projectsResponse, metadataResponse] = await Promise.all([
@@ -1090,6 +1092,7 @@ const AppContent: React.FC = () => {
             onDeleteContacts={handleDeleteContacts}
             contacts={contacts}
             isAdmin={isAdmin}
+            isSuperAdmin={isSuperAdmin}
             onSaveSettings={() => {
               if (user) {
                 updatePreferences({
