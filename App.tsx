@@ -35,6 +35,23 @@ const DEFAULT_STATUSES: StatusConfig[] = [
   { id: "waiting", label: "Čeká", color: "yellow" },
 ];
 
+// Admin role configuration
+// Superadmins have full access to all admin features
+const SUPERADMIN_EMAILS = ["martinkalkus82@gmail.com"];
+// Admins have access to admin features within their organization
+const ADMIN_EMAILS = ["kalkus@baustav.cz"];
+
+// Helper function to check admin status
+const isUserAdmin = (email: string | undefined): boolean => {
+  if (!email) return false;
+  return SUPERADMIN_EMAILS.includes(email) || ADMIN_EMAILS.includes(email);
+};
+
+const isUserSuperAdmin = (email: string | undefined): boolean => {
+  if (!email) return false;
+  return SUPERADMIN_EMAILS.includes(email);
+};
+
 // Helper to convert Hex to RGB for Tailwind
 const hexToRgb = (hex: string) => {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -200,7 +217,7 @@ const AppContent: React.FC = () => {
 
       if (session?.user) {
         // Hardcoded Admin Check
-        setIsAdmin(session.user.email === "martinkalkus82@gmail.com");
+        setIsAdmin(isUserAdmin(session.user.email));
       }
 
       const [projectsResponse, metadataResponse] = await Promise.all([

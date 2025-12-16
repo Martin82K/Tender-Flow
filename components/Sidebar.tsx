@@ -4,6 +4,18 @@ import { useAuth } from '../context/AuthContext';
 import { View, Project } from '../types';
 import logo from '../assets/logo.png';
 
+// Admin role configuration (must match App.tsx)
+const SUPERADMIN_EMAILS = ["martinkalkus82@gmail.com"];
+const ADMIN_EMAILS = ["kalkus@baustav.cz"];
+
+// Helper function to get display role
+const getUserRole = (email: string | undefined, defaultRole?: string): string => {
+  if (!email) return defaultRole || 'User';
+  if (SUPERADMIN_EMAILS.includes(email)) return 'Superadmin';
+  if (ADMIN_EMAILS.includes(email)) return 'Admin';
+  return defaultRole || 'User';
+};
+
 interface SidebarProps {
   currentView: View;
   onViewChange: (view: View) => void;
@@ -293,7 +305,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
             )}
             <div className="flex flex-col overflow-hidden">
               <p className="text-sm font-bold text-white truncate">{displayName || user?.email?.split('@')[0] || 'User'}</p>
-              <p className="text-xs text-slate-500 truncate capitalize">{user?.role || 'User'}</p>
+              <p className="text-xs text-slate-500 truncate capitalize">{getUserRole(user?.email, user?.role)}</p>
             </div>
             <button
               onClick={logout}
