@@ -1576,6 +1576,8 @@ export const Pipeline: React.FC<PipelineProps> = ({
         <Header
           title={activeCategory.title}
           subtitle={`${projectData.title} > Průběh výběrového řízení`}
+          showSearch={false}
+          showNotifications={false}
         >
           <button
             onClick={() => setActiveCategory(null)}

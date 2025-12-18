@@ -6,9 +6,19 @@ interface HeaderProps {
   children?: React.ReactNode;
   onSearchChange?: (query: string) => void;
   searchPlaceholder?: string;
+  showSearch?: boolean;
+  showNotifications?: boolean;
 }
 
-export const Header: React.FC<HeaderProps> = ({ title, subtitle, children, onSearchChange, searchPlaceholder = "Search..." }) => {
+export const Header: React.FC<HeaderProps> = ({ 
+  title, 
+  subtitle, 
+  children, 
+  onSearchChange, 
+  searchPlaceholder = "Search...",
+  showSearch = true,
+  showNotifications = true
+}) => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -26,19 +36,23 @@ export const Header: React.FC<HeaderProps> = ({ title, subtitle, children, onSea
       <div className="flex items-center gap-4">
         {children}
         <div className="flex items-center gap-4">
-          <div className="hidden md:flex h-10 w-64 items-center rounded-lg bg-slate-100 dark:bg-slate-800 px-3">
-            <span className="material-symbols-outlined text-slate-500 dark:text-slate-400 text-[20px]">search</span>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={handleSearchChange}
-              placeholder={searchPlaceholder}
-              className="flex-1 bg-transparent border-none focus:ring-0 text-sm text-slate-800 dark:text-slate-200 placeholder-slate-500 ml-2"
-            />
-          </div>
-          <button className="flex items-center justify-center size-10 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
-            <span className="material-symbols-outlined text-[20px]">notifications</span>
-          </button>
+          {showSearch && (
+            <div className="hidden md:flex h-10 w-64 items-center rounded-lg bg-slate-100 dark:bg-slate-800 px-3">
+              <span className="material-symbols-outlined text-slate-500 dark:text-slate-400 text-[20px]">search</span>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={handleSearchChange}
+                placeholder={searchPlaceholder}
+                className="flex-1 bg-transparent border-none focus:ring-0 text-sm text-slate-800 dark:text-slate-200 placeholder-slate-500 ml-2"
+              />
+            </div>
+          )}
+          {showNotifications && (
+            <button className="flex items-center justify-center size-10 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+              <span className="material-symbols-outlined text-[20px]">notifications</span>
+            </button>
+          )}
         </div>
       </div>
     </header>
