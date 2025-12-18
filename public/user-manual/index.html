@@ -385,6 +385,10 @@
           <div class="section">
             <h2>Nastavení</h2>
             <a href="#nastaveni">Nastavení aplikace</a>
+            <a href="#administrace">Administrace systému</a>
+            <a href="#registrace">Registrace a whitelist</a>
+            <a href="#email-whitelist">Seznam povolených emailů</a>
+            <a href="#sprava-uzivatelu-roli">Správa uživatelů a rolí</a>
             <a href="#import">Import a synchronizace kontaktů</a>
             <a href="#ai">AI funkce</a>
           </div>
@@ -697,6 +701,11 @@
                 V části Správa staveb vytváříte nové stavby, měníte stav (tender/realizace),
                 archivujete a (pokud jste vlastník) můžete spravovat sdílení.
               </p>
+              <p>
+                Sdílení nyní podporuje dvě úrovně oprávnění:
+                <strong>Úpravy</strong> a <strong>Pouze čtení</strong>.
+                Uživatel s „Pouze čtení“ může projekt zobrazit, ale neměl by měnit data.
+              </p>
               <ol>
                 <li>Vyplňte název a lokaci stavby.</li>
                 <li>Zvolte status (<strong>Tender</strong> nebo <strong>Realizace</strong>).</li>
@@ -709,6 +718,15 @@
                 />
                 <figcaption>
                   Pořadí staveb v seznamu lze měnit přetažením (ukládá se lokálně v prohlížeči).
+                </figcaption>
+              </figure>
+              <figure>
+                <img
+                  src="./assets/16-project-sharing-permissions.svg"
+                  alt="Schéma sdílení: přidání uživatele a volba oprávnění Úpravy vs Pouze čtení"
+                />
+                <figcaption>
+                  Oprávnění nastavíte při sdílení a můžete ho později změnit v seznamu sdílených uživatelů.
                 </figcaption>
               </figure>
             </section>
@@ -740,6 +758,7 @@
                 <li><strong>Vzhled aplikace</strong> – tmavý režim, primární barva, pozadí.</li>
                 <li><strong>Statusy kontaktů</strong> – definice vlastních statusů a barev.</li>
                 <li><strong>Import kontaktů</strong> – CSV soubor / synchronizace z URL.</li>
+                <li><strong>Administrace</strong> – registrace, whitelist, uživatelé/role (admin/superadmin).</li>
                 <li><strong>AI nastavení</strong> – zapnutí AI a správa promptů (admin).</li>
               </ul>
               <figure>
@@ -749,6 +768,85 @@
                 />
                 <figcaption>
                   Změny vzhledu se ukládají do profilu uživatele a projeví se po celé aplikaci.
+                </figcaption>
+              </figure>
+            </section>
+
+            <section class="card" id="administrace">
+              <h2>Administrace systému</h2>
+              <p>
+                Administrace je dostupná jen vybraným účtům. V aplikaci rozlišujeme:
+              </p>
+              <ul>
+                <li><strong>Admin</strong> – správa registrací, whitelistů a AI nastavení.</li>
+                <li><strong>Superadmin</strong> – navíc správa uživatelů a rolí (oprávnění).</li>
+              </ul>
+              <div class="callout warn">
+                <strong>Tip:</strong> pokud v Nastavení nevidíte sekce „Administrace systému“, nemáte potřebná oprávnění.
+              </div>
+            </section>
+
+            <section class="card" id="registrace">
+              <h2>Registrace a whitelist</h2>
+              <p>
+                V sekci <strong>Nastavení registrací</strong> (Admin) určíte, kdo se může do Tender Flow registrovat.
+                Typicky jde o kombinaci těchto pravidel:
+              </p>
+              <ul>
+                <li><strong>Povolit registrace všem</strong> – pokud je zapnuto, registrace nejsou omezené doménami.</li>
+                <li><strong>Whitelist domén</strong> – registrace povolené jen pro vybrané domény (např. <span class="kbd">@firma.cz</span>).</li>
+                <li><strong>Vyžadovat whitelist emailů</strong> – registrace pouze pro emaily explicitně uvedené v seznamu.</li>
+              </ul>
+              <figure>
+                <img
+                  src="./assets/13-registration-settings.svg"
+                  alt="Schéma nastavení registrací: povolení registrací, whitelist domén a vyžadovat whitelist emailů"
+                />
+                <figcaption>
+                  Pro nejpřísnější režim zapněte „Vyžadovat whitelist emailů“ a spravujte seznam povolených emailů.
+                </figcaption>
+              </figure>
+            </section>
+
+            <section class="card" id="email-whitelist">
+              <h2>Seznam povolených emailů (Whitelist)</h2>
+              <p>
+                Pokud je zapnuté „Vyžadovat whitelist emailů“, mohou se registrovat pouze emaily uvedené v tomto seznamu.
+                U každého záznamu lze evidovat jméno, poznámku a nastavit aktivní/neaktivní stav.
+              </p>
+              <ol>
+                <li>Otevřete <strong>Nastavení → Administrace systému</strong>.</li>
+                <li>V sekci „Seznam povolených emailů“ vyplňte email, jméno a poznámku.</li>
+                <li>Uložte a případně přepněte stav na aktivní.</li>
+              </ol>
+              <figure>
+                <img
+                  src="./assets/14-email-whitelist.svg"
+                  alt="Schéma whitelistu emailů: přidání emailu, filtry a přepínač aktivní/neaktivní"
+                />
+                <figcaption>
+                  Praktické pro řízený onboarding: povolíte jen konkrétní adresy a máte přehled, komu je přístup určen.
+                </figcaption>
+              </figure>
+            </section>
+
+            <section class="card" id="sprava-uzivatelu-roli">
+              <h2>Správa uživatelů a rolí</h2>
+              <p>
+                Sekce Správa uživatelů je určená pro <strong>Superadmina</strong>. Umožňuje spravovat role uživatelů
+                a definovat oprávnění rolí (permissions).
+              </p>
+              <ul>
+                <li><strong>Uživatelé</strong> – seznam uživatelů, filtrování a změna role.</li>
+                <li><strong>Role a oprávnění</strong> – nastavení, co daná role může dělat v systému.</li>
+              </ul>
+              <figure>
+                <img
+                  src="./assets/15-user-management-roles.svg"
+                  alt="Schéma správy uživatelů: seznam uživatelů, přiřazení role a správa oprávnění rolí"
+                />
+                <figcaption>
+                  Doporučení: používejte role pro delegování (např. kdo může spravovat registrace, kdo jen pracuje na stavbách).
                 </figcaption>
               </figure>
             </section>

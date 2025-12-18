@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1220"/>
+      <stop offset="1" stop-color="#050a13"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="rgba(0,0,0,0.55)"/>
+    </filter>
+    <style>
+      .t { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; fill: rgba(255,255,255,0.92); }
+      .m { fill: rgba(255,255,255,0.66); font-size: 15px; }
+      .h { font-size: 26px; font-weight: 700; }
+      .cap { font-size: 12px; letter-spacing: 0.6px; text-transform: uppercase; fill: rgba(255,255,255,0.55); }
+      .stroke { stroke: rgba(255,255,255,0.14); }
+      .panel { fill: rgba(255,255,255,0.06); }
+      .card { fill: rgba(0,0,0,0.22); }
+      .chip { fill: rgba(255,255,255,0.06); stroke: rgba(255,255,255,0.12); }
+      .accent { fill: rgba(45,212,191,0.18); stroke: rgba(45,212,191,0.35); }
+      .ok { fill: rgba(34,197,94,0.16); stroke: rgba(34,197,94,0.30); }
+      .off { fill: rgba(148,163,184,0.14); stroke: rgba(148,163,184,0.28); }
+      .danger { fill: rgba(251,113,133,0.14); stroke: rgba(251,113,133,0.28); }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1200" height="700" fill="url(#bg)"/>
+  <circle cx="240" cy="120" r="200" fill="rgba(45,212,191,0.10)"/>
+  <circle cx="1030" cy="110" r="260" fill="rgba(96,165,250,0.10)"/>
+
+  <rect x="80" y="70" width="1040" height="560" rx="22" class="panel stroke" filter="url(#shadow)"/>
+  <text x="120" y="130" class="t h">Seznam povolených emailů (Whitelist)</text>
+  <text x="120" y="160" class="t m">Správa explicitně povolených adres pro registrace.</text>
+
+  <!-- Add form -->
+  <rect x="120" y="200" width="1040" height="170" rx="18" class="card stroke"/>
+  <text x="150" y="238" class="t cap">Přidat nový email</text>
+  <rect x="150" y="256" width="360" height="38" rx="12" class="chip"/>
+  <text x="165" y="281" class="t m">email@firma.cz</text>
+  <rect x="520" y="256" width="260" height="38" rx="12" class="chip"/>
+  <text x="535" y="281" class="t m">Jméno (volitelné)</text>
+  <rect x="790" y="256" width="250" height="38" rx="12" class="chip"/>
+  <text x="805" y="281" class="t m">Poznámka</text>
+  <rect x="1045" y="248" width="90" height="54" rx="14" class="accent"/>
+  <text x="1064" y="282" class="t" font-size="14" font-weight="800">Přidat</text>
+
+  <!-- Filters -->
+  <rect x="120" y="390" width="1040" height="84" rx="18" fill="rgba(0,0,0,0.18)" class="stroke"/>
+  <text x="150" y="423" class="t cap">Filtry</text>
+  <rect x="150" y="432" width="420" height="30" rx="10" class="chip"/>
+  <text x="165" y="452" class="t m">Vyhledat email / jméno</text>
+  <rect x="590" y="432" width="240" height="30" rx="10" class="chip"/>
+  <text x="605" y="452" class="t m">Doména: @firma.cz</text>
+  <rect x="850" y="432" width="280" height="30" rx="10" class="chip"/>
+  <text x="865" y="452" class="t m">Všechny domény</text>
+
+  <!-- Table -->
+  <rect x="120" y="490" width="1040" height="140" rx="18" fill="rgba(255,255,255,0.04)" class="stroke"/>
+  <text x="150" y="523" class="t cap">Seznam</text>
+
+  <rect x="150" y="540" width="980" height="40" rx="12" class="chip"/>
+  <rect x="160" y="548" width="26" height="26" rx="7" class="ok"/>
+  <text x="167" y="566" class="t" font-size="12" font-weight="800">✓</text>
+  <text x="200" y="565" class="t m">povoleny@firma.cz</text>
+  <text x="520" y="565" class="t m">Jan Novák</text>
+  <text x="740" y="565" class="t m">Pilot – 1. vlna</text>
+  <rect x="1090" y="548" width="26" height="26" rx="7" class="danger"/>
+  <text x="1097" y="566" class="t" font-size="12" font-weight="800">🗑</text>
+
+  <rect x="150" y="586" width="980" height="40" rx="12" class="chip"/>
+  <rect x="160" y="594" width="26" height="26" rx="7" class="off"/>
+  <text x="168" y="612" class="t" font-size="12" font-weight="800">⛔</text>
+  <text x="200" y="611" class="t m">blokovany@firma.cz</text>
+  <text x="520" y="611" class="t m">-</text>
+  <text x="740" y="611" class="t m">Neaktivní</text>
+</svg>
+

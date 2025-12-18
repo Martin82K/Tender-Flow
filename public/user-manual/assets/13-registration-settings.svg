@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1220"/>
+      <stop offset="1" stop-color="#050a13"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="rgba(0,0,0,0.55)"/>
+    </filter>
+    <style>
+      .t { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; fill: rgba(255,255,255,0.92); }
+      .m { fill: rgba(255,255,255,0.66); font-size: 15px; }
+      .h { font-size: 26px; font-weight: 700; }
+      .cap { font-size: 12px; letter-spacing: 0.6px; text-transform: uppercase; fill: rgba(255,255,255,0.55); }
+      .stroke { stroke: rgba(255,255,255,0.14); }
+      .panel { fill: rgba(255,255,255,0.06); }
+      .card { fill: rgba(0,0,0,0.22); }
+      .chip { fill: rgba(255,255,255,0.06); stroke: rgba(255,255,255,0.12); }
+      .toggleOn { fill: rgba(34,197,94,0.18); stroke: rgba(34,197,94,0.35); }
+      .toggleOff { fill: rgba(148,163,184,0.14); stroke: rgba(148,163,184,0.28); }
+      .warn { fill: rgba(245,158,11,0.14); stroke: rgba(245,158,11,0.28); }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1200" height="700" fill="url(#bg)"/>
+  <circle cx="240" cy="120" r="200" fill="rgba(45,212,191,0.10)"/>
+  <circle cx="1030" cy="110" r="260" fill="rgba(96,165,250,0.10)"/>
+
+  <rect x="80" y="70" width="1040" height="560" rx="22" class="panel stroke" filter="url(#shadow)"/>
+  <text x="120" y="130" class="t h">Nastavení registrací (Admin)</text>
+  <text x="120" y="160" class="t m">Určuje, kdo se může registrovat do Tender Flow.</text>
+
+  <rect x="120" y="200" width="1040" height="430" rx="18" class="card stroke"/>
+  <text x="150" y="238" class="t cap">Přepínače</text>
+
+  <!-- Allow public registration -->
+  <rect x="150" y="260" width="500" height="100" rx="16" class="chip"/>
+  <text x="175" y="295" class="t" font-size="14" font-weight="800">Povolit registrace všem</text>
+  <text x="175" y="322" class="t m">Pokud je zapnuto, whitelist domén se ignoruje.</text>
+  <rect x="540" y="285" width="86" height="34" rx="999" class="toggleOn"/>
+  <circle cx="606" cy="302" r="13" fill="rgba(255,255,255,0.90)"/>
+  <text x="560" y="308" class="t" font-size="12" font-weight="700">ON</text>
+
+  <!-- Domain whitelist -->
+  <rect x="150" y="380" width="930" height="120" rx="16" class="chip"/>
+  <text x="175" y="414" class="t" font-size="14" font-weight="800">Povolit registrace na doménu (whitelist)</text>
+  <text x="175" y="440" class="t m">Domény oddělené čárkou, např.: @baustav.cz, @firma.cz</text>
+  <rect x="175" y="454" width="720" height="34" rx="12" fill="rgba(255,255,255,0.04)" class="stroke"/>
+  <text x="190" y="477" class="t m">@baustav.cz, @firma.cz</text>
+
+  <!-- Require email whitelist -->
+  <rect x="150" y="520" width="930" height="90" rx="16" class="warn"/>
+  <text x="175" y="554" class="t" font-size="14" font-weight="800">Vyžadovat whitelist emailů</text>
+  <text x="175" y="580" class="t m">Registrace pouze pro emaily v seznamu povolených.</text>
+  <rect x="980" y="542" width="86" height="34" rx="999" class="toggleOff"/>
+  <circle cx="996" cy="559" r="13" fill="rgba(255,255,255,0.75)"/>
+  <text x="1014" y="565" class="t" font-size="12" font-weight="700">OFF</text>
+</svg>
+

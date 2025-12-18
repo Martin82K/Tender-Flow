@@ -18,6 +18,10 @@ Tato příručka popisuje práci v aplikaci Tender Flow pro řízení staveb, v�
 - [Správa staveb](#správa-staveb)
 - [Přehled staveb (analytika)](#přehled-staveb-analytika)
 - [Nastavení aplikace](#nastavení-aplikace)
+- [Administrace systému](#administrace-systému)
+- [Registrace a whitelist](#registrace-a-whitelist)
+- [Seznam povolených emailů](#seznam-povolených-emailů-whitelist)
+- [Správa uživatelů a rolí](#správa-uživatelů-a-rolí)
 - [Import a synchronizace kontaktů](#import-a-synchronizace-kontaktů)
 - [AI funkce](#ai-funkce)
 - [Časté otázky](#časté-otázky)
@@ -116,6 +120,10 @@ Slouží pro vytváření staveb, změny statusu, archivaci a sdílení (dle opr
 
 ![Schéma správy staveb](./assets/08-project-management.svg)
 
+Sdílení podporuje dvě úrovně oprávnění: **Úpravy** a **Pouze čtení**.
+
+![Schéma sdílení: oprávnění Úpravy vs Pouze čtení](./assets/16-project-sharing-permissions.svg)
+
 ## Přehled staveb (analytika)
 
 Manažerské souhrny napříč stavbami: metriky, grafy a volitelně AI analýza.
@@ -127,9 +135,48 @@ Manažerské souhrny napříč stavbami: metriky, grafy a volitelně AI analýza
 - **Vzhled** – tmavý režim, primární barva, pozadí.
 - **Statusy kontaktů** – definice statusů a barev.
 - **Import kontaktů** – synchronizace z URL, ruční CSV upload.
+- **Administrace** – registrace, whitelist, uživatelé/role (admin/superadmin).
 - **AI nastavení** – zapnutí AI a správa promptů (admin).
 
 ![Schéma nastavení](./assets/09-settings.svg)
+
+## Administrace systému
+
+Administrace je dostupná jen vybraným účtům. V aplikaci rozlišujeme:
+
+- **Admin** – správa registrací, whitelistů a AI nastavení.
+- **Superadmin** – navíc správa uživatelů a rolí (oprávnění).
+
+Tip: pokud v Nastavení nevidíte sekce „Administrace systému“, nemáte potřebná oprávnění.
+
+## Registrace a whitelist
+
+V sekci **Nastavení registrací** (Admin) určíte, kdo se může do Tender Flow registrovat:
+
+- **Povolit registrace všem** – pokud je zapnuto, registrace nejsou omezené doménami.
+- **Whitelist domén** – registrace povolené jen pro vybrané domény (např. `@firma.cz`).
+- **Vyžadovat whitelist emailů** – registrace pouze pro emaily explicitně uvedené v seznamu.
+
+![Schéma nastavení registrací](./assets/13-registration-settings.svg)
+
+## Seznam povolených emailů (Whitelist)
+
+Pokud je zapnuté „Vyžadovat whitelist emailů“, mohou se registrovat pouze emaily uvedené v tomto seznamu.
+
+1. Otevřete **Nastavení → Administrace systému**.
+2. V sekci „Seznam povolených emailů“ přidejte email, jméno a poznámku.
+3. U záznamu lze přepínat aktivní/neaktivní stav.
+
+![Schéma whitelistu emailů](./assets/14-email-whitelist.svg)
+
+## Správa uživatelů a rolí
+
+Sekce Správa uživatelů je určená pro **Superadmina**. Umožňuje:
+
+- spravovat role uživatelů (přiřazení role),
+- definovat oprávnění rolí (permissions).
+
+![Schéma správy uživatelů a rolí](./assets/15-user-management-roles.svg)
 
 ## Import a synchronizace kontaktů
 
