@@ -2,6 +2,12 @@ import React, { useState, useEffect, useRef, Suspense } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { LandingPage } from './components/LandingPage';
 import { Sidebar } from "./components/Sidebar";
+import { useLocation, navigate } from "./components/routing/router";
+import { LoginPage } from "./components/auth/LoginPage";
+import { RegisterPage } from "./components/auth/RegisterPage";
+import { ForgotPasswordPage } from "./components/auth/ForgotPasswordPage";
+import { PublicLayout } from "./components/public/PublicLayout";
+import { PublicHeader } from "./components/public/PublicHeader";
 
 // Lazy load heavy components for better code splitting
 const ProjectManager = React.lazy(() => import('./components/ProjectManager').then(m => ({ default: m.ProjectManager })));
@@ -67,12 +73,11 @@ const hexToRgb = (hex: string) => {
 const AppContent: React.FC = () => {
   const {
     isAuthenticated,
-    login,
-    register,
     updatePreferences,
     user,
     isLoading: authLoading,
   } = useAuth();
+  const { pathname, search } = useLocation();
   const [currentView, setCurrentView] = useState<View>("dashboard");
   const lastRefreshTime = useRef<number>(Date.now());
 
@@ -185,6 +190,33 @@ const AppContent: React.FC = () => {
       if (timeoutId) clearTimeout(timeoutId);
     };
   }, [isAuthenticated, authLoading]);
+
+  useEffect(() => {
+    if (authLoading) return;
+
+    const isAppPath = pathname === "/app" || pathname.startsWith("/app/");
+    const isAuthPath =
+      pathname === "/login" ||
+      pathname === "/register" ||
+      pathname === "/forgot-password";
+
+    if (!isAuthenticated && isAppPath) {
+      const next = encodeURIComponent(`${pathname}${search || ""}`);
+      navigate(`/login?next=${next}`, { replace: true });
+      return;
+    }
+
+    if (isAuthenticated && (pathname === "/" || isAuthPath)) {
+      const nextParam = new URLSearchParams(search).get("next");
+      const safeNext = nextParam?.startsWith("/") ? nextParam : "/app";
+      navigate(safeNext, { replace: true });
+      return;
+    }
+
+    if (isAuthenticated && !isAppPath) {
+      navigate("/app", { replace: true });
+    }
+  }, [authLoading, isAuthenticated, pathname, search]);
 
   // Smart Data Refresh on Visibility Change - DISABLED due to auth instability
   // useEffect(() => {
@@ -1152,7 +1184,10 @@ const AppContent: React.FC = () => {
     }
   };
 
-  if (authLoading || isDataLoading) {
+  const isAppPath = pathname === "/app" || pathname.startsWith("/app/");
+  const shouldShowLoader = (authLoading && isAppPath) || (isAuthenticated && isDataLoading);
+
+  if (shouldShowLoader) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-white gap-4">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
@@ -1193,7 +1228,34 @@ const AppContent: React.FC = () => {
   }
 
   if (!isAuthenticated) {
-    return <LandingPage onLogin={login} onRegister={register} />;
+    switch (pathname) {
+      case "/":
+        return <LandingPage />;
+      case "/login":
+        return <LoginPage />;
+      case "/register":
+        return <RegisterPage />;
+      case "/forgot-password":
+        return <ForgotPasswordPage />;
+      default:
+        return (
+          <PublicLayout>
+            <PublicHeader variant="auth" />
+            <div className="mx-auto max-w-2xl px-4 py-16 text-center">
+              <h1 className="text-2xl font-semibold text-white">Stránka nenalezena</h1>
+              <p className="mt-2 text-white/60">Zkontrolujte adresu nebo se vraťte na landing.</p>
+              <div className="mt-6">
+                <button
+                  onClick={() => navigate("/", { replace: true })}
+                  className="px-5 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-medium transition-colors shadow-lg shadow-orange-500/20"
+                >
+                  Zpět na landing
+                </button>
+              </div>
+            </div>
+          </PublicLayout>
+        );
+    }
   }
 
   return (
