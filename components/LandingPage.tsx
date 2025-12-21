@@ -64,8 +64,18 @@ export const LandingPage: React.FC = () => {
               <span className="text-orange-400">výběrových řízení</span> pro stavby.
             </h1>
             <p className="mt-5 text-white/70 leading-relaxed">
-              Řiďte výběrová řízení a své poptávky od plánu VŘ až do zasmluvnění. Generujte reporty, sdílejte ekonomická data,
+              Výběrová řízení a poptávky od plánu VŘ až do zasmluvnění. Generujte reporty, sdílejte ekonomická data,
               kontakty subdodavatele, sdílete projekty s účastníky stavby a konečně šetřete drahocený čas.
+              Generování poptávek a emailů dle dynamických šablon. Hromadné odeslání emailů účastníkům aktivních v soutěži.
+              Report o výsledku.
+            </p>
+            <p className="mt-5 text-white/70 leading-relaxed">  
+              Specializujeme se na úsporu času v opakovaných situacích a hledáme způsoby, jak ušetřit drahocený čas.
+              Vsaďte si na nás! Jsme z oboru a tak víme, co potřebujete.
+            </p>
+            <p className="mt-5 text-white/70 leading-relaxed">  
+              Vývoj určitě nezpomaluje a tak rok 2026 přinese další množství úspory času.
+              Čím více výběrových řízení a poptávek, tím více uspořených hodin Tender Flow přinese.
             </p>
 
             <div className="mt-8 flex flex-col sm:flex-row gap-3">
@@ -87,20 +97,24 @@ export const LandingPage: React.FC = () => {
             <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-3">
               <Stat label="Jeden přehled pro celý tým" value="Méně chaosu" />
               <Stat label="Sdílení svému týmu pro daný projekt" value="Informace" />
-              <Stat label="Snadný přehled soutěže i ekonomiky." value="Od soutěže k realizaci" />
+              <Stat label="úspora 2 hodiny týdně. V týmu ještě více." value="Čas" />
             </div>
           </div>
 
           <div className="rounded-3xl border border-white/10 bg-gray-950/40 backdrop-blur p-6">
             <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-6">
               <div className="flex items-center justify-between">
-                <div className="text-white font-semibold">Ukázka workflow</div>
+                <div className="text-white font-semibold">Co Tender Flow již umí?</div>
                 <div className="text-xs text-white/50">Dashboard • Projekty • Výběrová řízení</div>
               </div>
               <div className="mt-5 grid grid-cols-1 gap-3">
                 {[
                   { label: "Poptávka výběrového řízení", status: "Probíhá" },
                   { label: "Poptávka subdodavatele", status: "Generovat poptávku" },
+                  { label: "Sdílení stavby s týmem", status: "Sdíleno s: kolega@firma.cz" },
+                  { label: "Ukončené výběrové řízení", status: "Export zápisu o výběru do PDF, XLSX" },
+                  { label: "Ukončené VŘ", status: "Hromadné odeslání emailů účastníkům VŘ." },
+                  { label: "Přehled VŘ", status: "Bilance ceny proti SOD, proti plánu" },
                 ].map((row, i) => (
                   <div
                     key={i}
@@ -278,9 +292,10 @@ export const LandingPage: React.FC = () => {
               },
               {
                 title: "Starter",
-                price: "3 uživatelé",
+                price: "1500 Kč/měs",
                 items: [
                   "3 licence (uživatelé v organizaci)",
+                  "Úspora času pr. 24 hodin",
                   "Import kontaktů",
                   "Generování poptávek",
                 ],
@@ -288,19 +303,20 @@ export const LandingPage: React.FC = () => {
               },
               {
                 title: "Pro",
-                price: "Na míru",
+                price: "699 Kč/měs",
                 badge: "Nejčastější volba",
                 items: [
                   "Neomezený počet staveb a subdodavatelů",
                   "Vyhodnocení a exporty",
-                  "Sdílení staveb a přístupy",
+                  "Sdílení staveb a kontaktů",
                   "Vyšší limity a prioritní výkon",
+                  "Záloha databáze",
                 ],
                 cta: { label: "Domluvit", to: "mailto:?subject=Pro%20Tender%20Flow" },
               },
               {
-                title: "AI+",
-                price: "Doplněk",
+                title: "PRO AI+",
+                price: "99 Kč/měs",
                 badge: "Příplatek / uživatel",
                 variant: "addon",
                 items: [
