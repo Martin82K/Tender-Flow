@@ -98,6 +98,7 @@ const AppContent: React.FC = () => {
   const [loadingError, setLoadingError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // Dark Mode Management
   const [darkMode, setDarkMode] = useState(() => {
@@ -115,6 +116,23 @@ const AppContent: React.FC = () => {
   // Theme Color Management
   const [primaryColor, setPrimaryColor] = useState("#607AFB");
   const [backgroundColor, setBackgroundColor] = useState("#f5f6f8");
+
+  // Responsive Sidebar Management
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setIsSidebarOpen(false);
+      } else {
+        setIsSidebarOpen(true);
+      }
+    };
+
+    // Initial check
+    handleResize();
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Sync preferences from user profile
   useEffect(() => {
@@ -446,7 +464,7 @@ const AppContent: React.FC = () => {
 
           // Support for multiple contacts
           let contactsArray: any[] = Array.isArray(s.contacts) ? s.contacts : [];
-          
+
           // Migration/Fallback: if no contacts array but legacy fields exist
           if (contactsArray.length === 0 && (s.contact_person_name || s.phone || s.email)) {
             contactsArray = [{
@@ -1150,7 +1168,7 @@ const AppContent: React.FC = () => {
                   darkMode,
                   primaryColor,
                   backgroundColor,
-                  });
+                });
                 alert("Nastavení vzhledu bylo uloženo.");
               }
             }}
@@ -1266,8 +1284,27 @@ const AppContent: React.FC = () => {
         projects={projects.filter((p) => p.status !== "archived")}
         selectedProjectId={selectedProjectId}
         onProjectSelect={handleProjectSelect}
+        isOpen={isSidebarOpen}
+        onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
       />
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
+        {/* Toggle Button for Mobile/Hidden Sidebar */}
+        <button
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          className={`fixed top-24 left-4 z-30 flex items-center justify-center p-2 rounded-lg bg-slate-800/80 text-white border border-slate-700/50 shadow-lg transition-all hover:bg-slate-700 md:hidden ${isSidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+          title={isSidebarOpen ? "Schovat sidebar" : "Zobrazit sidebar"}
+        >
+          <span className="material-symbols-outlined">menu</span>
+        </button>
+
+        {/* Toggle Button for Desktop when Sidebar is hidden */}
+        <button
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          className={`hidden md:flex fixed top-24 left-4 z-30 items-center justify-center p-2 rounded-lg bg-slate-800/80 text-white border border-slate-700/50 shadow-lg transition-all hover:bg-slate-700 ${isSidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+          title="Zobrazit sidebar"
+        >
+          <span className="material-symbols-outlined">menu</span>
+        </button>
         <Suspense fallback={
           <div className="flex items-center justify-center h-full">
             <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
