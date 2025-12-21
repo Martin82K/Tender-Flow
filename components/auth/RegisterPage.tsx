@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { PublicLayout } from "../public/PublicLayout";
 import { PublicHeader } from "../public/PublicHeader";
 import { AuthCard } from "./AuthCard";
 import { Link, navigate } from "../routing/router";
+import { authService } from "../../services/authService";
 
 export const RegisterPage: React.FC = () => {
   const { register } = useAuth();
@@ -13,6 +14,19 @@ export const RegisterPage: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [registrationStatus, setRegistrationStatus] = useState<{
+    isOpen: boolean;
+    allowedDomains: string[];
+  } | null>(null);
+
+  useEffect(() => {
+    authService.getAppSettings().then(settings => {
+      setRegistrationStatus({
+        isOpen: settings.allowPublicRegistration,
+        allowedDomains: settings.allowedDomains
+      });
+    });
+  }, []);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +46,11 @@ export const RegisterPage: React.FC = () => {
   return (
     <PublicLayout>
       <PublicHeader variant="auth" />
-      <AuthCard title="Registrace" subtitle="Vytvořte si účet a začněte během minuty">
+      <AuthCard 
+        title="Registrace" 
+        subtitle="Vytvořte si účet a začněte během minuty"
+        registrationStatus={registrationStatus}
+      >
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
           <input
             type="text"
