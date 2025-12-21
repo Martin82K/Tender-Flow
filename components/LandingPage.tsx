@@ -104,7 +104,7 @@ export const LandingPage: React.FC = () => {
                 ))}
               </div>
               <p className="mt-5 text-xs text-white/50">
-                Systém je navržen pro maximalizaci efektivity a minimalizaci ztráty času.
+                Systém je navržen pro maximalizaci úspory času.
               </p>
             </div>
           </div>
@@ -165,7 +165,7 @@ export const LandingPage: React.FC = () => {
         <section id="workflow" className="mt-16 md:mt-24 scroll-mt-24">
           <div className="rounded-3xl border border-white/10 bg-gray-950/40 backdrop-blur p-8">
             <h2 className="text-2xl md:text-3xl font-light text-white tracking-wide">
-              Od poptávky po předání
+              Od poptávky po smlouvu.
             </h2>
             <p className="mt-2 text-white/60 max-w-3xl">
               Typický tok: Vytvořit projekt → Plán VŘ → Poptávka → Subdodavatelské nabídky → Vyhodnocení.
@@ -205,7 +205,7 @@ export const LandingPage: React.FC = () => {
                   "Autentizace přes databázi",
                   "Oddělení dat podle organizace",
                   "Role (uživatel / admin)",
-                  "Řízený přístup přes uživatelské role (Přípravář, Stavbyvedoucí, Technik apod.",
+                  "Řízený přístup přes uživatelské role (Přípravář, Stavbyvedoucí, Technik apod.)",
                 ].map((t) => (
                   <li key={t} className="flex items-start gap-2">
                     <span className="mt-0.5 text-orange-300">•</span>
@@ -248,29 +248,74 @@ export const LandingPage: React.FC = () => {
             Ceník
           </h2>
           <p className="mt-2 text-white/60 max-w-3xl">
-            Zatím nasazujeme individuálně podle firmy a rozsahu. Transparentně a bez
+            Licence = uživatel v organizaci. AI+ je příplatek za uživatele. Zatím
+            nasazujeme individuálně podle firmy a rozsahu — transparentně a bez
             „překvapení“.
           </p>
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
               {
-                title: "Starter",
-                price: "Od 0 Kč",
-                items: ["1 uživatel", "Základní workflow", "Nastavení preferencí"],
+                title: "Demo",
+                price: "Zdarma",
+                items: [
+                  "Ukázková stavba (bez dalších staveb)",
+                  "Bez importů",
+                  "Náhled workflow a UI",
+                ],
                 cta: { label: "Vyzkoušet", to: "/register" },
               },
               {
-                title: "Team",
+                title: "Starter",
                 price: "Na míru",
-                items: ["Role a přístupy", "Onboarding", "Podpora a úpravy procesu"],
-                cta: { label: "Domluvit", to: "mailto:?subject=Team%20Tender%20Flow" },
+                items: [
+                  "3 licence (uživatelé v organizaci)",
+                  "Import kontaktů",
+                  "Generování poptávek",
+                ],
+                cta: { label: "Začít", to: "/register" },
+              },
+              {
+                title: "Pro",
+                price: "Na míru",
+                badge: "Nejčastější volba",
+                items: [
+                  "Neomezený počet staveb a subdodavatelů",
+                  "Vyhodnocení a exporty",
+                  "Sdílení staveb a přístupy",
+                  "Vyšší limity a prioritní výkon",
+                ],
+                cta: { label: "Domluvit", to: "mailto:?subject=Pro%20Tender%20Flow" },
+              },
+              {
+                title: "AI+",
+                price: "Doplněk",
+                badge: "Příplatek / uživatel",
+                variant: "addon",
+                items: [
+                  "AI funkce napříč aplikací",
+                  "Shrnutí podkladů a návrhy textů",
+                  "Rychlá orientace v informacích",
+                ],
+                cta: { label: "Zjistit více", to: "mailto:?subject=AI%2B%20Tender%20Flow" },
               },
             ].map((p) => (
               <div
                 key={p.title}
-                className="rounded-3xl border border-white/10 bg-gray-950/40 backdrop-blur p-8"
+                className={[
+                  "rounded-3xl border border-white/10 backdrop-blur p-8 flex flex-col h-full",
+                  p.variant === "addon"
+                    ? "bg-gradient-to-br from-orange-500/10 via-gray-950/40 to-transparent"
+                    : "bg-gray-950/40",
+                ].join(" ")}
               >
-                <div className="text-white font-semibold">{p.title}</div>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="text-white font-semibold">{p.title}</div>
+                  {"badge" in p && p.badge ? (
+                    <div className="shrink-0 text-[11px] rounded-full px-3 py-1 border border-orange-500/30 bg-orange-500/10 text-orange-200">
+                      {p.badge}
+                    </div>
+                  ) : null}
+                </div>
                 <div className="mt-2 text-3xl text-white font-light">{p.price}</div>
                 <ul className="mt-6 space-y-2 text-sm text-white/70">
                   {p.items.map((t) => (
@@ -280,21 +325,23 @@ export const LandingPage: React.FC = () => {
                     </li>
                   ))}
                 </ul>
-                {p.cta.to.startsWith("mailto:") ? (
-                  <a
-                    href={p.cta.to}
-                    className="mt-8 inline-flex w-full justify-center px-5 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-medium transition-colors shadow-lg shadow-orange-500/20"
-                  >
-                    {p.cta.label}
-                  </a>
-                ) : (
-                  <Link
-                    to={p.cta.to}
-                    className="mt-8 inline-flex w-full justify-center px-5 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-medium transition-colors shadow-lg shadow-orange-500/20"
-                  >
-                    {p.cta.label}
-                  </Link>
-                )}
+                <div className="mt-auto pt-8">
+                  {p.cta.to.startsWith("mailto:") ? (
+                    <a
+                      href={p.cta.to}
+                      className="inline-flex w-full justify-center px-5 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-medium transition-colors shadow-lg shadow-orange-500/20"
+                    >
+                      {p.cta.label}
+                    </a>
+                  ) : (
+                    <Link
+                      to={p.cta.to}
+                      className="inline-flex w-full justify-center px-5 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-medium transition-colors shadow-lg shadow-orange-500/20"
+                    >
+                      {p.cta.label}
+                    </Link>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -306,6 +353,14 @@ export const LandingPage: React.FC = () => {
           </h2>
           <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
+              {
+                q: "Co je licence?",
+                a: "Licence = uživatel v organizaci (přístup do aplikace).",
+              },
+              {
+                q: "Jak se účtuje AI+?",
+                a: "AI+ je doplněk účtovaný jako příplatek za uživatele.",
+              },
               {
                 q: "Je to pro malou firmu i větší tým?",
                 a: "Ano. Začnete jednoduše a postupně zapnete role, procesy a integrace podle potřeby.",

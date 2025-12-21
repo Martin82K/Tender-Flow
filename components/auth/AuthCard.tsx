@@ -7,7 +7,7 @@ export const AuthCard: React.FC<{
   children: React.ReactNode;
 }> = ({ title, subtitle, children }) => {
   return (
-    <div className="w-full max-w-md mx-auto px-4 py-10">
+    <div className="w-full max-w-lg mx-auto px-4 py-12">
       <div className="flex flex-col items-center text-center mb-8">
         <img
           src={logo}
@@ -23,7 +23,7 @@ export const AuthCard: React.FC<{
         <div className="h-1 w-24 bg-orange-500 mx-auto rounded-full mt-5" />
       </div>
 
-      <div className="rounded-2xl border border-white/10 bg-gray-950/40 backdrop-blur px-6 py-6 shadow-xl shadow-black/30">
+      <div className="rounded-2xl border border-white/10 bg-gray-950/40 backdrop-blur px-6 py-6 sm:px-8 sm:py-8 shadow-xl shadow-black/30">
         {children}
       </div>
 
@@ -33,4 +33,3 @@ export const AuthCard: React.FC<{
     </div>
   );
 };
-
