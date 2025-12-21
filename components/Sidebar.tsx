@@ -290,7 +290,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all text-slate-400 hover:bg-slate-800/50 hover:text-white"
-            title="Otevře uživatelskou příručkou v nové záložce"
+            title="Otevře uživatelskou příručku v nové záložce"
           >
             <span className="material-symbols-outlined shrink-0">menu_book</span>
             <span className="text-sm font-medium break-words">Uživatelská příručka</span>

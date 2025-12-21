@@ -2,10 +2,13 @@
 
 Tato příručka popisuje práci v aplikaci Tender Flow pro řízení staveb, výběrových řízení a subdodavatelů.
 
+Verze příručky: **1.1** • Datum: **2025‑12‑21** • Aplikace: **v0.9.2**
+
 ![Tender Flow logo](./assets/logo.png)
 
 ## Obsah
 
+- [Novinky (poslední změny)](#novinky-poslední-změny)
 - [Účel a role](#účel-a-role)
 - [Přihlášení a účet](#přihlášení-a-účet)
 - [Navigace v aplikaci](#navigace-v-aplikaci)
@@ -27,6 +30,23 @@ Tato příručka popisuje práci v aplikaci Tender Flow pro řízení staveb, v�
 - [Časté otázky](#časté-otázky)
 
 ---
+
+## Novinky (poslední změny)
+
+Verzi aplikace najdete vlevo dole v sidebaru.
+
+### v0.9.2
+
+- Drobné úpravy rozhraní a stability (bez změny hlavního pracovního postupu).
+
+### v0.9.1
+
+- **Subdodavatelé**: jedna firma může mít více kontaktních osob a více specializací.
+- **Import kontaktů**: při importu/synchronizaci se záznamy slučují podle názvu firmy (bez ohledu na velikost písmen) a doplňují se specializace i kontakty bez duplicit.
+
+### v0.9.0
+
+- **Administrace systému**: řízení registrací (whitelist domén/emailů) a správa uživatelů/rolí (admin/superadmin).
 
 ## Účel a role
 
@@ -112,6 +132,9 @@ V záložce **Dokumenty** nastavíte:
 
 Databáze kontaktů pro přidávání do poptávek. Podporuje filtry, výběr více řádků a hromadné akce (např. doplnění regionu pomocí AI – pokud je povoleno).
 
+- **Více kontaktů na firmu**: u jedné firmy můžete evidovat více kontaktních osob (jméno, pozice, telefon, email).
+- **Více specializací**: specializace jsou seznam (používá se pro filtrování i výběr do poptávek).
+
 ![Schéma kontaktů](./assets/07-contacts.svg)
 
 ## Správa staveb
@@ -184,6 +207,12 @@ Kontakty lze nahrát jednorázově z CSV nebo synchronizovat z URL (např. expor
 
 Očekávaný formát (typicky): `Firma, Jméno, Specializace, Telefon, Email, IČO, Region`
 
+Poznámky k importu:
+
+- Slučuje se podle názvu firmy (case-insensitive).
+- Import doplní specializace (sloučí do seznamu) a kontaktní osoby (bez duplicit podle jména/emailu/telefonu).
+- Primární kontakt (první v seznamu) se používá pro kompatibilitu i pro akce, které potřebují email.
+
 ## AI funkce
 
 - Doplnění regionů u kontaktů (hromadně).
@@ -217,6 +246,9 @@ Bez předchozího výslovného písemného souhlasu vlastníka není dovoleno ap
 Vlastník aplikace si vyhrazuje právo na průběžné změny, úpravy funkcionality, další vývoj a změny obchodního modelu, a to bez povinnosti předchozího upozornění uživatelů.
 
 **Autor a vlastník:**
+Martin Kalkuš (martinkalkus82@gmail.com), provozovatel služby `tenderflow.cz`.
+
+© 2025 Martin Kalkuš. Všechna práva vyhrazena.
 
 Autorem a vlastníkem aplikace Tender Flow je **Martin Kalkuš** (`martinkalkus82@gmail.com`), provozovatel služby `tenderflow.cz`.
 

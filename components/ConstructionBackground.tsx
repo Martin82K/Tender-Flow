@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import logo from '../assets/logo.png';
 
 export const ConstructionBackground: React.FC = () => {
     const [mounted, setMounted] = useState(false);
@@ -81,9 +82,9 @@ export const ConstructionBackground: React.FC = () => {
                         opacity: 0.15
                     }}
                 >
-                    <img 
-                        src="/assets/logo.png" 
-                        alt="" 
+                    <img
+                        src={logo}
+                        alt=""
                         style={{
                             width: '100%',
                             height: '100%',

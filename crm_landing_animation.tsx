@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import logo from './assets/logo.png';
 
 export default function ConstructionAnimation() {
   const [mounted, setMounted] = useState(false);
@@ -11,14 +12,14 @@ export default function ConstructionAnimation() {
     <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{
       zIndex: 0
     }}>
-      
+
       {/* Grid background */}
       <div className="absolute inset-0 opacity-20" style={{
         backgroundImage: 'linear-gradient(rgba(255, 138, 51, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 138, 51, 0.03) 1px, transparent 1px)',
         backgroundSize: '50px 50px',
         animation: 'gridMove 20s linear infinite'
       }} />
-      
+
       <style>{`
         @keyframes gridMove {
           0% { background-position: 0 0; }
@@ -50,7 +51,7 @@ export default function ConstructionAnimation() {
           50% { opacity: 1; }
         }
       `}</style>
-      
+
       {/* Floating particles */}
       <div className="absolute inset-0 pointer-events-none">
         {[0, 2, 4, 6, 8].map((delay, i) => (
@@ -68,9 +69,9 @@ export default function ConstructionAnimation() {
           />
         ))}
       </div>
-      
+
       {/* Helmet logo */}
-      <div 
+      <div
         className="absolute left-1/2"
         style={{
           top: '80px',
@@ -99,7 +100,7 @@ export default function ConstructionAnimation() {
           }} />
         </div>
       </div>
-      
+
       {/* Floating logos */}
       {[[15, 12, 0, 75], [55, 'auto', 2, 60], [35, 8, 4, 68], [70, 25, 1, 52], [25, 'auto', 3, 82]].map((pos, i) => (
         <div
@@ -116,9 +117,9 @@ export default function ConstructionAnimation() {
             opacity: 0.15
           }}
         >
-          <img 
-            src="/assets/logo.png" 
-            alt="" 
+          <img
+            src={logo}
+            alt=""
             style={{
               width: '100%',
               height: '100%',
@@ -128,9 +129,9 @@ export default function ConstructionAnimation() {
           />
         </div>
       ))}
-      
+
       {/* Progress badges */}
-      <div 
+      <div
         className="absolute"
         style={{
           top: '30%',
@@ -147,8 +148,8 @@ export default function ConstructionAnimation() {
       >
         📋 V procesu
       </div>
-      
-      <div 
+
+      <div
         className="absolute"
         style={{
           top: '50%',
@@ -166,8 +167,8 @@ export default function ConstructionAnimation() {
       >
         ✓ Hotovo
       </div>
-      
-      <div 
+
+      <div
         className="absolute"
         style={{
           top: '20%',
@@ -185,8 +186,8 @@ export default function ConstructionAnimation() {
       >
         🏗️ Výběrové řízení
       </div>
-      
-      <div 
+
+      <div
         className="absolute"
         style={{
           top: '40%',
@@ -204,8 +205,8 @@ export default function ConstructionAnimation() {
       >
         📨 Poptávky
       </div>
-      
-      <div 
+
+      <div
         className="absolute"
         style={{
           top: '65%',
@@ -223,7 +224,7 @@ export default function ConstructionAnimation() {
       >
         📝 Smlouvy
       </div>
-      
+
       {/* Construction scene */}
       <div className="absolute bottom-0 left-1/2" style={{
         transform: 'translateX(-50%)',
@@ -231,7 +232,7 @@ export default function ConstructionAnimation() {
         height: '400px',
         opacity: 0.1
       }}>
-        
+
         {/* Buildings */}
         {[
           { left: 100, width: 120, height: 250, delay: 0.5 },
@@ -272,7 +273,7 @@ export default function ConstructionAnimation() {
             ))}
           </div>
         ))}
-        
+
         {/* Crane */}
         <div
           className="absolute bottom-0"
@@ -298,9 +299,9 @@ export default function ConstructionAnimation() {
             animationDelay: '2.5s'
           }} />
         </div>
-        
+
       </div>
-      
+
     </div>
   );
 }
