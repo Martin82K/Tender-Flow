@@ -46,7 +46,7 @@ export const LandingPage: React.FC = () => {
       <main className="relative mx-auto max-w-6xl px-4 py-10 md:py-16">
         <ConstructionAnimation />
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-          <div>
+          <div className="rounded-3xl border border-white/10 bg-gray-950/40 backdrop-blur p-8 md:p-12">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-gray-950/40 px-3 py-1.5 text-xs text-white/70">
               <span className="w-2 h-2 rounded-full bg-orange-500" />
               Moderní systém pro tendry a poptávky
@@ -54,7 +54,6 @@ export const LandingPage: React.FC = () => {
             <h1 className="mt-5 text-4xl md:text-5xl font-light text-white tracking-wide leading-tight">
               Tender Flow: Systém{" "}
               <span className="text-orange-400">výběrových řízení</span> pro stavby.
-
             </h1>
             <p className="mt-5 text-white/70 leading-relaxed">
               Řiďte výběrová řízení a své poptávky od plánu VŘ až do zasmluvnění. Generujte reporty, sdílejte ekonomická data,
@@ -113,7 +112,7 @@ export const LandingPage: React.FC = () => {
         </section>
 
         <section id="features" className="mt-16 md:mt-24 scroll-mt-24">
-          <div className="flex items-end justify-between gap-6 flex-wrap">
+          <div className="mb-8 rounded-3xl border border-white/10 bg-gray-950/40 backdrop-blur p-8 flex items-end justify-between gap-6 flex-wrap">
             <div>
               <h2 className="text-2xl md:text-3xl font-light text-white tracking-wide">
                 Funkce, které Vám pomůžou začít šetřit čas.
@@ -246,14 +245,16 @@ export const LandingPage: React.FC = () => {
         </section>
 
         <section id="pricing" className="mt-16 md:mt-24 scroll-mt-24">
-          <h2 className="text-2xl md:text-3xl font-light text-white tracking-wide">
-            Ceník
-          </h2>
-          <p className="mt-2 text-white/60 max-w-3xl">
-            Licence = uživatel v organizaci. AI+ je příplatek za uživatele. Zatím
-            nasazujeme individuálně podle firmy a rozsahu — transparentně a bez
-            „překvapení“.
-          </p>
+          <div className="mb-8 rounded-3xl border border-white/10 bg-gray-950/40 backdrop-blur p-8">
+            <h2 className="text-2xl md:text-3xl font-light text-white tracking-wide">
+              Ceník
+            </h2>
+            <p className="mt-2 text-white/60 max-w-3xl">
+              Licence = uživatel v organizaci. AI+ je příplatek za uživatele. Zatím
+              nasazujeme individuálně podle firmy a rozsahu — transparentně a bez
+              „překvapení“.
+            </p>
+          </div>
           <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
               {
@@ -350,9 +351,11 @@ export const LandingPage: React.FC = () => {
         </section>
 
         <section id="faq" className="mt-16 md:mt-24 scroll-mt-24">
-          <h2 className="text-2xl md:text-3xl font-light text-white tracking-wide">
-            FAQ
-          </h2>
+          <div className="mb-8 rounded-3xl border border-white/10 bg-gray-950/40 backdrop-blur p-8">
+            <h2 className="text-2xl md:text-3xl font-light text-white tracking-wide">
+              FAQ
+            </h2>
+          </div>
           <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
               {
