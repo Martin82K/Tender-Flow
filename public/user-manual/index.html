@@ -411,8 +411,8 @@
               staveb, poptávek a subdodavatelů.
             </p>
             <div class="footer" style="margin-top: 12px">
-              Verze příručky: <strong>1.1</strong> • Datum: <strong>2025‑12‑21</strong> • Aplikace:
-              <strong>v0.9.2</strong>
+              Verze příručky: <strong>1.2</strong> • Datum: <strong>2025‑12‑21</strong> • Aplikace:
+              <strong>v0.9.3</strong>
             </div>
             <div class="chips" aria-label="Rychlé štítky">
               <span class="chip">Stavby</span>
@@ -427,15 +427,36 @@
             <section class="card" id="novinky">
               <h2>Novinky (poslední změny)</h2>
               <p>Verzi aplikace najdete vlevo dole v sidebaru.</p>
+              <h3>v0.9.3</h3>
+              <ul>
+                <li>
+                  <strong>DEMO:</strong> pro ceník a možnost „DEMO“ bylo vytvořeno demo s provizorními (generovanými)
+                  daty pro možnost seznámení se s aplikací.
+                </li>
+              </ul>
               <h3>v0.9.2</h3>
               <ul>
-                <li>Drobné úpravy rozhraní a stability (bez změny hlavního pracovního postupu).</li>
+                <li>
+                  <strong>Sidebar:</strong> přidána možnost tlačítkem schovat postranní panel a získat tak větší plochu a
+                  lepší čitelnost.
+                </li>
+                <li><strong>Hlavní stránka:</strong> vytvořena nová landing page se základními informacemi o aplikaci.</li>
+                <li>
+                  <strong>Routy přihlášení/registrace:</strong> přihlášení a vytvoření účtu jsou na samostatných routách
+                  <span class="kbd">tenderflow.cz/login</span> a <span class="kbd">tenderflow.cz/register</span>.
+                </li>
               </ul>
               <h3>v0.9.1</h3>
               <ul>
                 <li>
-                  <strong>Subdodavatelé:</strong> jedna firma může mít více kontaktních osob a více specializací.
+                  <strong>Subdodavatelé:</strong> možnost přidávat další specializace bez nutnosti zdvojovat dodavatele v
+                  databázi.
                 </li>
+                <li>
+                  <strong>Kontakty:</strong> k jednomu subdodavateli lze evidovat více kontaktů (posiluje potřebu mít jen
+                  jednoho dodavatele).
+                </li>
+                <li><strong>Databáze:</strong> provedena úprava databáze v návaznosti na změny dle updatu.</li>
                 <li>
                   <strong>Import kontaktů:</strong> import/synchronizace slučuje záznamy podle názvu firmy (case-insensitive)
                   a doplňuje specializace i kontakty bez duplicit.
@@ -444,8 +465,92 @@
               <h3>v0.9.0</h3>
               <ul>
                 <li>
-                  <strong>Administrace systému:</strong> řízení registrací (whitelist domén/emailů) a správa uživatelů/rolí
-                  (admin/superadmin).
+                  <strong>Whitelist (registrace):</strong> registrace není povolena všem uživatelům, ale jen těm, kteří jsou
+                  na whitelistu (prozatímní řešení pro postupnou integraci).
+                </li>
+                <li>
+                  <strong>Poznámka:</strong> whitelist dočasně nahrazuje možnost vlastního mailového hostingu, která bude
+                  potřeba dále implementovat.
+                </li>
+                <li>
+                  <strong>Role:</strong> systém obsahuje kritickou roli <strong>admin</strong> pro možnost nastavení
+                  dodatečných rolí; každý tenant má svého „administrátora“.
+                </li>
+                <li>
+                  <strong>Seznam rolí v tomto updatu:</strong> Přípravář • Hlavní stavbyvedoucí • Stavbyvedoucí • Technik.
+                </li>
+                <li>
+                  <strong>Práva dle rolí:</strong> každá role určuje, k čemu má uživatel přístup a jaké akce může provádět;
+                  nejvyšší práva má aktuálně <strong>Přípravář</strong> (hlavní uživatel a zadavatel dat).
+                </li>
+                <li>
+                  <strong>Databáze:</strong> proběhla úprava databáze, tabulek a správy dat, aby vyhovovala nově aplikovaným
+                  procesům a funkcím.
+                </li>
+              </ul>
+              <h3>v0.8.0</h3>
+              <ul>
+                <li>
+                  <strong>Dashboard:</strong> srdcem aplikace je přístup ke všem stavbám uživatele a rychlému přehledu
+                  základních informací; možnost přepínání staveb přes rozevírací menu.
+                </li>
+                <li>
+                  <strong>Subdodavatelé:</strong> přidán nový stav „nedoporučuji“ pro možnost varování kolegů před použitím
+                  problémového subdodavatele.
+                </li>
+                <li>
+                  <strong>Správa staveb:</strong>
+                  <ul>
+                    <li>ve vašich seznamech staveb nyní vidíte i sdílení,</li>
+                    <li>
+                      archivace stavby: při archivaci se stavba přesune do archivu (pole <span class="kbd">archiv</span>),
+                      odebere se z bočního panelu Stavby,
+                    </li>
+                    <li>archivované stavby lze vrátit zpět tlačítkem pro obnovu,</li>
+                    <li>sdílení zůstává stejné; je vidět seznam sdílených osob a lze je odebrat,</li>
+                    <li>propsání stavby jinému uživateli může trvat několik minut.</li>
+                  </ul>
+                </li>
+                <li>
+                  <strong>Stavby (sidebar):</strong> nově lze stavby přesouvat a měnit jejich pořadí; funkce je
+                  experimentální (může být odebrána).
+                </li>
+                <li>
+                  <strong>Přehled stavby:</strong>
+                  <ul>
+                    <li>přepracovaný vzhled (jednodušší a přehlednější),</li>
+                    <li>panelové zobrazení poptávek nahrazeno tabulkovým zobrazením,</li>
+                    <li>přidána tabulka s bilancí výběrů a přehledem stavu,</li>
+                    <li>filtrování: všechny | poptávané | ukončené | zasmluvněné,</li>
+                    <li>probíhá testování logiky (mohou se objevovat dodatečné opravy výjimek funkčnosti).</li>
+                  </ul>
+                </li>
+                <li>
+                  <strong>Plán VŘ:</strong>
+                  <ul>
+                    <li>nový modul pro plánování výběrových řízení v čase (od–do),</li>
+                    <li>po vytvoření se vygeneruje tlačítko „Vytvořit“ a stav „čeká na vytvoření“,</li>
+                    <li>stiskem „Vytvořit“ dojde k vytvoření výběru ve Výběrových řízeních a stav se přepne na „probíhá“.</li>
+                  </ul>
+                </li>
+                <li>
+                  <strong>Výběrová řízení (dříve pipelines):</strong>
+                  <ul>
+                    <li>přejmenování pro intuitivnější navigaci,</li>
+                    <li>vlastní šablony poptávky do emailu a filtrování dle stavu,</li>
+                    <li>karta nabídky eviduje až 3 kola VŘ; aktivní kolo určuje „aktuální cenu“,</li>
+                    <li>vítězové: ikona poháru + ikona smlouvy (stav smluv i na kartě VŘ, např. 0/2),</li>
+                    <li>export do Excelu a PDF (formát dokumentu se bude dále ladit),</li>
+                    <li>email nevybraným přes výchozí emailový klient (BCC).</li>
+                  </ul>
+                </li>
+                <li>
+                  <strong>Přehled staveb:</strong>
+                  <ul>
+                    <li>pilotní analýza pomocí umělé inteligence (TenderFlow AI),</li>
+                    <li>export analýzy do PDF (časové razítko a možnost sdílení),</li>
+                    <li>analýza vychází z dostupných dat (množství informací, spuštěná VŘ, stav rozpracovanosti).</li>
+                  </ul>
                 </li>
               </ul>
             </section>
@@ -968,7 +1073,7 @@
               </ul>
 
               <div class="footer">
-                Verze příručky: <strong>1.1</strong> • Datum: <strong>2025‑12‑21</strong> •
+                Verze příručky: <strong>1.2</strong> • Datum: <strong>2025‑12‑21</strong> •
                 Umístění: <span class="kbd">/public/user-manual/index.html</span>
               </div>
             </section>

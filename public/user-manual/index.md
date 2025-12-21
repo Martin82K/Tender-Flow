@@ -2,7 +2,7 @@
 
 Tato příručka popisuje práci v aplikaci Tender Flow pro řízení staveb, výběrových řízení a subdodavatelů.
 
-Verze příručky: **1.1** • Datum: **2025‑12‑21** • Aplikace: **v0.9.2**
+Verze příručky: **1.2** • Datum: **2025‑12‑21** • Aplikace: **v0.9.3**
 
 ![Tender Flow logo](./assets/logo.png)
 
@@ -35,18 +35,73 @@ Verze příručky: **1.1** • Datum: **2025‑12‑21** • Aplikace: **v0.9.2*
 
 Verzi aplikace najdete vlevo dole v sidebaru.
 
+### v0.9.3
+
+- **DEMO**: pro ceník a možnost „DEMO“ bylo vytvořeno demo s provizorními (generovanými) daty pro možnost seznámení se s aplikací.
+
 ### v0.9.2
 
-- Drobné úpravy rozhraní a stability (bez změny hlavního pracovního postupu).
+- **Sidebar**: přidána možnost tlačítkem schovat postranní panel a získat tak větší plochu a lepší čitelnost.
+- **Hlavní stránka**: vytvořena nová landing page se základními informacemi o aplikaci.
+- **Routy přihlášení/registrace**: přihlášení a vytvoření účtu jsou na samostatných routách `tenderflow.cz/login` a `tenderflow.cz/register`.
 
 ### v0.9.1
 
-- **Subdodavatelé**: jedna firma může mít více kontaktních osob a více specializací.
-- **Import kontaktů**: při importu/synchronizaci se záznamy slučují podle názvu firmy (bez ohledu na velikost písmen) a doplňují se specializace i kontakty bez duplicit.
+- **Subdodavatelé**: možnost přidávat další specializace bez nutnosti zdvojovat dodavatele v databázi.
+- **Kontakty**: k jednomu subdodavateli lze evidovat více kontaktů (posiluje potřebu mít jen jednoho dodavatele).
+- **Databáze**: provedena úprava databáze v návaznosti na změny dle updatu.
+- **Import kontaktů**: import/synchronizace slučuje záznamy podle názvu firmy (case-insensitive) a doplňuje specializace i kontakty bez duplicit.
 
 ### v0.9.0
 
-- **Administrace systému**: řízení registrací (whitelist domén/emailů) a správa uživatelů/rolí (admin/superadmin).
+- **Whitelist (registrace)**: registrace není povolena všem uživatelům, ale jen těm, kteří jsou na whitelistu (prozatímní řešení pro postupnou integraci).
+- **Poznámka**: whitelist dočasně nahrazuje možnost vlastního mailového hostingu, která bude potřeba dále implementovat.
+- **Role**: systém obsahuje kritickou roli **admin** pro možnost nastavení dodatečných rolí; každý tenant má svého „administrátora“.
+- **Seznam rolí v tomto updatu**: Přípravář • Hlavní stavbyvedoucí • Stavbyvedoucí • Technik.
+- **Práva dle rolí**: každá role určuje, k čemu má uživatel přístup a jaké akce může provádět; nejvyšší práva má aktuálně **Přípravář** (hlavní uživatel a zadavatel dat).
+- **Databáze**: proběhla úprava databáze, tabulek a správy dat, aby vyhovovala nově aplikovaným procesům a funkcím.
+
+### v0.8.0
+
+- **Dashboard**: srdcem aplikace je přístup ke všem stavbám uživatele a rychlému přehledu základních informací; možnost přepínání staveb přes rozevírací menu.
+- **Subdodavatelé**: přidán nový stav „nedoporučuji“ pro možnost varování kolegů před použitím problémového subdodavatele.
+- **Správa staveb**:
+  - ve vašich seznamech staveb nyní vidíte i sdílení,
+  - archivace stavby: při archivaci se stavba přesune do archivu (pole `archiv`), odebere se z bočního panelu Stavby,
+  - archivované stavby lze vrátit zpět tlačítkem pro obnovu,
+  - sdílení zůstává stejné; je vidět seznam sdílených osob a lze je odebrat,
+  - propsání stavby jinému uživateli může trvat několik minut.
+- **Stavby (sidebar)**: nově lze stavby přesouvat a měnit jejich pořadí; funkce je experimentální (může být odebrána).
+- **Přehled stavby**:
+  - přepracovaný vzhled (jednodušší a přehlednější),
+  - panelové zobrazení poptávek nahrazeno tabulkovým zobrazením,
+  - přidána tabulka s bilancí výběrů a přehledem stavu,
+  - filtrování přehledu: všechny | poptávané | ukončené | zasmluvněné,
+  - probíhá testování logiky (mohou se objevovat dodatečné opravy výjimek funkčnosti).
+- **Plán VŘ** (nový modul):
+  - možnost vytvořit výběrové řízení a přidat mu průběh (od–do),
+  - po vytvoření se vygeneruje tlačítko „Vytvořit“ a stav VŘ „čeká na vytvoření“,
+  - stiskem „Vytvořit“ dojde k vytvoření výběru ve Výběrových řízeních a stav se přepne na „probíhá“,
+  - stav vždy reflektuje průběh daného výběrového řízení.
+- **Výběrová řízení (dříve pipelines)**:
+  - přejmenování pro intuitivnější navigaci,
+  - možnost vytvářet vlastní šablony poptávky do emailu,
+  - filtrování dle stavu,
+  - karta poptávky obsahuje cenu SOD v základu; pokud má výběr vítěze, přepíše se na cenu vítěznou,
+  - karta nabídky zaznamenává až 3 kola VŘ; do aktuální ceny se počítá aktivně vybrané kolo,
+  - karta subdodavatele zobrazuje všechny jeho ceny z jednotlivých kol (případně poznámku),
+  - přesunutím karty na vítězné pole se zobrazí ikona poháru (vítěz),
+  - pro vítěze se zobrazuje ikona smlouvy: šedo‑bílá → blikající odškrtnutí (smlouva vyřízena),
+  - stav smluv se zobrazuje také na kartě VŘ (např. 0/2 = dva vítězové, nula smluv),
+  - po aktivaci všech smluv se zobrazí plaketka s odškrtnutím (hotovo),
+  - uzavření výběru probíhá na kartě daného výběru,
+  - export do Excelu a PDF (formát dokumentu se bude dále ladit),
+  - email nevybraným: otevře výchozí emailový klient se zprávou pro všechny relevantní subdodavatele; odesílání je přes skrytého příjemce (BCC).
+- **Přehled staveb**:
+  - rozevírací menu pro možnost přepnutí stavby,
+  - pilotní analýza pomocí umělé inteligence (TenderFlow AI),
+  - export analýzy do PDF (časové razítko a možnost sdílení),
+  - analýza vychází z dostupných dat (množství informací, spuštěná VŘ, stav rozpracovanosti).
 
 ## Účel a role
 
@@ -256,4 +311,4 @@ Autorem a vlastníkem aplikace Tender Flow je **Martin Kalkuš** (`martinkalkus8
 
 ---
 
-Verze: **1.0** • Datum: **2025‑12‑14**
+Verze: **1.2** • Datum: **2025‑12‑21**
