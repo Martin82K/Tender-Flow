@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '../types';
 import { authService } from '../services/authService';
+import { isDemoSession, DEMO_USER, endDemoSession, startDemoSession } from '../services/demoData';
 
 interface AuthContextType {
     user: User | null;
@@ -8,6 +9,7 @@ interface AuthContextType {
     register: (name: string, email: string, password: string) => Promise<void>;
     updatePreferences: (preferences: any) => Promise<void>;
     logout: () => void;
+    loginAsDemo: () => void;
     isAuthenticated: boolean;
     isLoading: boolean;
 }
@@ -24,6 +26,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Check active session
         const initAuth = async () => {
             console.log('AuthContext: Initializing...');
+            
+            // Priority 1: Check if we are in a demo session
+            if (isDemoSession()) {
+                console.log('AuthContext: Demo session detected');
+                setUser(DEMO_USER);
+                setIsLoading(false);
+                return;
+            }
+
             try {
                 const currentUser = await authService.getCurrentUser();
                 console.log('AuthContext: User loaded', currentUser?.email);
@@ -91,13 +102,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const logout = async () => {
         try {
-            await authService.logout();
+            if (isDemoSession()) {
+                endDemoSession();
+            } else {
+                await authService.logout();
+            }
         } catch (error) {
             console.error('Logout failed:', error);
         } finally {
             // Always clear local session even if server request fails
             setUser(null);
         }
+    };
+
+    const loginAsDemo = () => {
+        startDemoSession();
+        setUser(DEMO_USER);
     };
 
     return (
@@ -107,6 +127,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             register,
             updatePreferences,
             logout,
+            loginAsDemo,
             isAuthenticated: !!user,
             isLoading
         }}>

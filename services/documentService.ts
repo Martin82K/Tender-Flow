@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { DemandDocument } from '../types';
+import { isDemoSession } from './demoData';
 
 const BUCKET_NAME = 'demand-documents';
 
@@ -13,6 +14,17 @@ export async function uploadDocument(file: File, categoryId: string): Promise<De
   // Create unique file path
   const fileExt = file.name.split('.').pop();
   const fileName = `${categoryId}/${Date.now()}_${crypto.randomUUID()}.${fileExt}`;
+
+  if (isDemoSession()) {
+    console.log('DocumentService: Mocking upload for demo session');
+    return {
+      id: crypto.randomUUID(),
+      name: file.name,
+      url: `https://mock-demo-url.com/${fileName}`, // Just a placeholder
+      size: file.size,
+      uploadedAt: new Date().toISOString()
+    };
+  }
 
   // Upload file to Supabase Storage
   const { data, error } = await supabase.storage

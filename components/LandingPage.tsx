@@ -2,8 +2,9 @@ import React, { useEffect } from "react";
 import { ShieldCheck, FileText, Users, LayoutDashboard, Sparkles } from "lucide-react";
 import { PublicLayout } from "./public/PublicLayout";
 import { PublicHeader } from "./public/PublicHeader";
-import { Link, useLocation } from "./routing/router";
+import { Link, useLocation, navigate } from "./routing/router";
 import ConstructionAnimation from "../crm_landing_animation";
+import { useAuth } from "../context/AuthContext";
 
 const Stat: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div className="rounded-2xl border border-white/10 bg-gray-950/40 backdrop-blur px-5 py-4">
@@ -28,6 +29,13 @@ const Feature: React.FC<{
 
 export const LandingPage: React.FC = () => {
   const { hash } = useLocation();
+  const { loginAsDemo } = useAuth();
+
+  const handleDemo = () => {
+    loginAsDemo();
+    navigate("/app", { replace: true });
+  };
+
 
   useEffect(() => {
     if (!hash) return;
@@ -67,6 +75,7 @@ export const LandingPage: React.FC = () => {
               >
                 Přihlásit se
               </Link>
+
               <Link
                 to="/register"
                 className="px-5 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-medium transition-colors shadow-lg shadow-orange-500/20 text-center"
@@ -265,7 +274,7 @@ export const LandingPage: React.FC = () => {
                   "Bez importů",
                   "Náhled workflow a UI",
                 ],
-                cta: { label: "Vyzkoušet", to: "/register" },
+                cta: { label: "Vyzkoušet Demo", to: "/register" },
               },
               {
                 title: "Starter",
@@ -329,7 +338,15 @@ export const LandingPage: React.FC = () => {
                   ))}
                 </ul>
                 <div className="mt-auto pt-8">
-                  {p.cta.to.startsWith("mailto:") ? (
+                  {p.title === "Demo" ? (
+                    <button
+                      onClick={handleDemo}
+                      className="inline-flex w-full justify-center items-center gap-2 px-5 py-3 rounded-xl bg-white/10 border border-white/20 hover:bg-white/20 text-white font-medium transition-all group"
+                    >
+                      <span className="material-symbols-outlined text-[20px] text-orange-400 group-hover:scale-110 transition-transform">auto_awesome</span>
+                      {p.cta.label}
+                    </button>
+                  ) : p.cta.to.startsWith("mailto:") ? (
                     <a
                       href={p.cta.to}
                       className="inline-flex w-full justify-center px-5 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-medium transition-colors shadow-lg shadow-orange-500/20"

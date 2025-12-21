@@ -33,6 +33,14 @@ import {
   syncContactsFromUrl,
 } from "./services/contactsImportService";
 import { loadContactStatuses } from "./services/contactStatusService";
+import { 
+  getDemoData, 
+  saveDemoData, 
+  DEMO_PROJECT, 
+  DEMO_PROJECT_DETAILS, 
+  DEMO_CONTACTS, 
+  DEMO_STATUSES 
+} from "./services/demoData";
 
 // Default statuses (keep these as they're configuration)
 const DEFAULT_STATUSES: StatusConfig[] = [
@@ -268,8 +276,37 @@ const AppContent: React.FC = () => {
 
       if (session?.user) {
         // Admin/Superadmin Check
-        setIsAdmin(isUserAdmin(session.user.email));
-        setIsSuperAdmin(isUserSuperAdmin(session.user.email));
+        setIsAdmin(user?.role === 'demo' || isUserAdmin(session.user.email));
+        setIsSuperAdmin(user?.role === 'demo' || isUserSuperAdmin(session.user.email));
+      }
+
+      // Handle Demo Mode Data Loading
+      if (user?.role === 'demo') {
+        let demoData = getDemoData();
+        
+        // If no demo data in localStorage, initialize with defaults
+        if (!demoData) {
+          demoData = {
+            projects: [DEMO_PROJECT],
+            projectDetails: { [DEMO_PROJECT.id]: DEMO_PROJECT_DETAILS },
+            contacts: DEMO_CONTACTS,
+            statuses: DEMO_STATUSES
+          };
+          saveDemoData(demoData);
+        }
+
+        setProjects(demoData.projects);
+        setAllProjectDetails(demoData.projectDetails);
+        setContacts(demoData.contacts);
+        setContactStatuses(demoData.statuses);
+        
+        if (demoData.projects.length > 0 && !selectedProjectId) {
+          setSelectedProjectId(demoData.projects[0].id);
+        }
+        
+        if (!silent) setIsDataLoading(false);
+        lastRefreshTime.current = Date.now();
+        return;
       }
 
       const [projectsResponse, metadataResponse] = await Promise.all([
@@ -544,8 +581,41 @@ const AppContent: React.FC = () => {
       },
     }));
 
-    // Persist to Supabase
+    // Persist to Supabase or Demo Storage
     try {
+      if (user?.role === 'demo') {
+        const demoData = getDemoData();
+        if (demoData) {
+          demoData.projects = [newProject, ...demoData.projects];
+          demoData.projectDetails[newProject.id] = {
+            title: newProject.name,
+            investor: "",
+            technicalSupervisor: "",
+            location: newProject.location,
+            finishDate: "TBD",
+            siteManager: "TBD",
+            constructionManager: "",
+            constructionTechnician: "",
+            plannedCost: 0,
+            categories: [],
+            contract: {
+              maturity: 30,
+              warranty: 60,
+              retention: "0 %",
+              siteFacilities: 0,
+              insurance: 0,
+            },
+            investorFinancials: {
+              sodPrice: 0,
+              amendments: [],
+            },
+            bids: {},
+          };
+          saveDemoData(demoData);
+        }
+        return;
+      }
+
       const { error } = await supabase.from("projects").insert({
         id: newProject.id,
         name: newProject.name,
@@ -570,8 +640,18 @@ const AppContent: React.FC = () => {
       setCurrentView("dashboard");
     }
 
-    // Persist to Supabase
+    // Persist to Supabase or Demo Storage
     try {
+      if (user?.role === 'demo') {
+        const demoData = getDemoData();
+        if (demoData) {
+          demoData.projects = demoData.projects.filter((p: Project) => p.id !== id);
+          delete demoData.projectDetails[id];
+          saveDemoData(demoData);
+        }
+        return;
+      }
+
       const projectToDelete = projects.find(p => p.id === id);
 
       if (projectToDelete?.isDemo) {
@@ -607,8 +687,22 @@ const AppContent: React.FC = () => {
       prev.map((p) => (p.id === id ? { ...p, status: newStatus } : p))
     );
 
-    // Persist to Supabase
+    // Persist to Supabase or Demo Storage
     try {
+      if (user?.role === 'demo') {
+        const demoData = getDemoData();
+        if (demoData) {
+          demoData.projects = demoData.projects.map((p: Project) => 
+            p.id === id ? { ...p, status: newStatus } : p
+          );
+          if (demoData.projectDetails[id]) {
+            demoData.projectDetails[id].status = newStatus;
+          }
+          saveDemoData(demoData);
+        }
+        return;
+      }
+
       const { error } = await supabase
         .from("projects")
         .update({ status: newStatus })
@@ -630,8 +724,29 @@ const AppContent: React.FC = () => {
       [id]: { ...prev[id], ...updates },
     }));
 
-    // Persist to Supabase
+    // Persist to Supabase or Demo Storage
     try {
+      if (user?.role === "demo") {
+        const demoData = getDemoData();
+        if (demoData) {
+          demoData.projectDetails[id] = { ...demoData.projectDetails[id], ...updates };
+          if (updates.title || updates.location || updates.status) {
+            demoData.projects = demoData.projects.map((p: Project) =>
+              p.id === id
+                ? {
+                  ...p,
+                  name: updates.title ?? p.name,
+                  location: updates.location ?? p.location,
+                  status: updates.status ?? p.status
+                }
+                : p
+            );
+          }
+          saveDemoData(demoData);
+        }
+        return;
+      }
+
       // Update main project fields
       const projectUpdates: any = {};
       if (updates.investor !== undefined)
@@ -736,8 +851,20 @@ const AppContent: React.FC = () => {
       },
     }));
 
-    // Persist to Supabase
+    // Persist to Supabase or Demo Storage
     try {
+      if (user?.role === 'demo') {
+        const demoData = getDemoData();
+        if (demoData && demoData.projectDetails[projectId]) {
+          demoData.projectDetails[projectId].categories = [
+            ...demoData.projectDetails[projectId].categories,
+            newCategory,
+          ];
+          saveDemoData(demoData);
+        }
+        return;
+      }
+
       const { error } = await supabase.from("demand_categories").insert({
         id: newCategory.id,
         project_id: projectId,
@@ -776,8 +903,19 @@ const AppContent: React.FC = () => {
       },
     }));
 
-    // Persist to Supabase
+    // Persist to Supabase or Demo Storage
     try {
+      if (user?.role === 'demo') {
+        const demoData = getDemoData();
+        if (demoData && demoData.projectDetails[projectId]) {
+          demoData.projectDetails[projectId].categories = demoData.projectDetails[projectId].categories.map(
+            (cat: DemandCategory) => (cat.id === updatedCategory.id ? updatedCategory : cat)
+          );
+          saveDemoData(demoData);
+        }
+        return;
+      }
+
       const { error } = await supabase
         .from("demand_categories")
         .update({
@@ -816,8 +954,19 @@ const AppContent: React.FC = () => {
       },
     }));
 
-    // Persist to Supabase
+    // Persist to Supabase or Demo Storage
     try {
+      if (user?.role === 'demo') {
+        const demoData = getDemoData();
+        if (demoData && demoData.projectDetails[projectId]) {
+          demoData.projectDetails[projectId].categories = demoData.projectDetails[projectId].categories.filter(
+            (cat: DemandCategory) => cat.id !== categoryId
+          );
+          saveDemoData(demoData);
+        }
+        return;
+      }
+
       const { error } = await supabase
         .from("demand_categories")
         .delete()
@@ -851,8 +1000,20 @@ const AppContent: React.FC = () => {
       }
     };
 
-    // Persist to Supabase
+    // Persist to Supabase or Demo Storage
     try {
+      if (user?.role === 'demo') {
+        const demoData = getDemoData();
+        if (demoData) {
+          demoData.contacts = mergedContacts;
+          saveDemoData(demoData);
+        }
+        alert(
+          `Demo synchronizace dokončena: \n - Přidáno nových: ${addedCount} \n - Aktualizováno: ${updatedCount} \n(Data uložena v prohlížeči)`
+        );
+        return;
+      }
+
       console.log("Starting contact import persistence...", {
         addedCount: added.length,
         updatedCount: updated.length,
@@ -932,7 +1093,17 @@ const AppContent: React.FC = () => {
     // Optimistic update
     setContacts((prev) => prev.filter((c) => !idsToDelete.includes(c.id)));
 
+    // Persist to Supabase or Demo Storage
     try {
+      if (user?.role === 'demo') {
+        const demoData = getDemoData();
+        if (demoData) {
+          demoData.contacts = demoData.contacts.filter((c: Subcontractor) => !idsToDelete.includes(c.id));
+          saveDemoData(demoData);
+        }
+        return;
+      }
+
       const { error } = await supabase
         .from("subcontractors")
         .delete()
@@ -968,7 +1139,17 @@ const AppContent: React.FC = () => {
     // Optimistic update
     setContacts((prev) => [contact, ...prev]);
 
+    // Persist to Supabase or Demo Storage
     try {
+      if (user?.role === 'demo') {
+        const demoData = getDemoData();
+        if (demoData) {
+          demoData.contacts = [contact, ...demoData.contacts];
+          saveDemoData(demoData);
+        }
+        return;
+      }
+
       const { error } = await supabase.from("subcontractors").insert({
         id: contact.id,
         company_name: contact.company,
@@ -998,7 +1179,19 @@ const AppContent: React.FC = () => {
     // Optimistic update
     setContacts((prev) => prev.map((c) => (c.id === contact.id ? contact : c)));
 
+    // Persist to Supabase or Demo Storage
     try {
+      if (user?.role === 'demo') {
+        const demoData = getDemoData();
+        if (demoData) {
+          demoData.contacts = demoData.contacts.map((c: Subcontractor) => 
+            c.id === contact.id ? contact : c
+          );
+          saveDemoData(demoData);
+        }
+        return;
+      }
+
       const { error } = await supabase
         .from("subcontractors")
         .update({
@@ -1037,7 +1230,22 @@ const AppContent: React.FC = () => {
       return newContacts;
     });
 
+    // Persist to Supabase or Demo Storage
     try {
+      if (user?.role === 'demo') {
+        const demoData = getDemoData();
+        if (demoData) {
+          updatedContacts.forEach((updated) => {
+            const index = demoData.contacts.findIndex((c: Subcontractor) => c.id === updated.id);
+            if (index !== -1) {
+              demoData.contacts[index] = updated;
+            }
+          });
+          saveDemoData(demoData);
+        }
+        return;
+      }
+
       // Process updates in parallel
       const updates = updatedContacts.map((contact) =>
         supabase
@@ -1289,6 +1497,24 @@ const AppContent: React.FC = () => {
       />
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
         {/* Toggle Button for Mobile/Hidden Sidebar */}
+        {user?.role === 'demo' && (
+          <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-4 py-2 flex items-center justify-between shadow-lg z-50">
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined animate-pulse">auto_awesome</span>
+              <div>
+                <span className="font-bold">DEMO REŽIM</span>
+                <span className="hidden sm:inline ml-2 text-orange-100 text-sm">— Data jsou uložena pouze v tomto prohlížeči a po odhlášení budou smazána.</span>
+              </div>
+            </div>
+            <button 
+              onClick={() => navigate('/register')}
+              className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded text-xs font-bold transition-colors border border-white/20"
+            >
+              Vytvořit plný účet
+            </button>
+          </div>
+        )}
+
         <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
           className={`fixed top-24 left-4 z-30 flex items-center justify-center p-2 rounded-lg bg-slate-800/80 text-white border border-slate-700/50 shadow-lg transition-all hover:bg-slate-700 md:hidden ${isSidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}

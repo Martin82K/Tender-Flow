@@ -7,7 +7,7 @@ import { Link, navigate } from "../routing/router";
 import { authService } from "../../services/authService";
 
 export const RegisterPage: React.FC = () => {
-  const { register } = useAuth();
+  const { register, loginAsDemo } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -41,6 +41,11 @@ export const RegisterPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDemo = () => {
+    loginAsDemo();
+    navigate("/app", { replace: true });
   };
 
   return (
@@ -97,6 +102,15 @@ export const RegisterPage: React.FC = () => {
             className="w-full py-3.5 px-6 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-all duration-300 transform hover:-translate-y-0.5 shadow-lg hover:shadow-orange-500/30"
           >
             {loading ? "Pracuji..." : "Vytvořit účet"}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleDemo}
+            className="w-full py-3 px-6 bg-white/5 hover:bg-white/10 text-white rounded-xl font-medium transition-all duration-300 border border-white/10 flex items-center justify-center gap-2 group"
+          >
+            <span className="material-symbols-outlined text-[20px] text-orange-400 group-hover:scale-110 transition-transform">auto_awesome</span>
+            Vyzkoušet Demo
           </button>
 
           <div className="flex items-center justify-between text-sm text-white/50 mt-2">

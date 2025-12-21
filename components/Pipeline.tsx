@@ -29,6 +29,8 @@ import {
 } from "../utils/formatters";
 import { getTemplateById } from "../services/templateService";
 import { processTemplate } from "../utils/templateUtils";
+import { useAuth } from "../context/AuthContext";
+import { getDemoData, saveDemoData } from "../services/demoData";
 
 const DEFAULT_STATUSES: StatusConfig[] = [
   { id: "available", label: "K dispozici", color: "green" },
@@ -955,14 +957,15 @@ export const Pipeline: React.FC<PipelineProps> = ({
   projectId,
   projectDetails,
   bids: initialBids,
-  contacts,
-  statuses = DEFAULT_STATUSES,
+  contacts: externalContacts,
+  statuses: externalStatuses = DEFAULT_STATUSES,
   onAddCategory,
   onEditCategory,
   onDeleteCategory,
   onBidsChange,
   searchQuery = '',
 }) => {
+  const { user } = useAuth();
   const projectData = projectDetails;
   const [activeCategory, setActiveCategory] = useState<DemandCategory | null>(
     null
@@ -978,7 +981,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
   // Let's use the prop for reading, but we need a way to update.
   // The original code had `setContacts`.
   // Let's use a local state initialized from prop for now.
-  const [localContacts, setLocalContacts] = useState<Subcontractor[]>(contacts);
+  const [localContacts, setLocalContacts] = useState<Subcontractor[]>(externalContacts);
 
   // Track whether the bids change is internal (user action) vs from props
   const isInternalBidsChange = useRef(false);
@@ -986,8 +989,8 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const pendingBidsNotification = useRef<Record<string, Bid[]> | null>(null);
 
   useEffect(() => {
-    setLocalContacts(contacts);
-  }, [contacts]);
+    setLocalContacts(externalContacts);
+  }, [externalContacts]);
 
   useEffect(() => {
     // Only update from props if not an internal change
@@ -1090,8 +1093,35 @@ export const Pipeline: React.FC<PipelineProps> = ({
         return prev;
       });
 
-      // Persist to Supabase
+      // Persist to Supabase or Demo Storage
       try {
+        if (user?.role === 'demo') {
+          const demoData = getDemoData();
+          if (demoData && demoData.projectDetails[projectData.id]) {
+            const projectBids = demoData.projectDetails[projectData.id].bids || {};
+            // Find which category this bid belongs to
+            let categoryId = "";
+            for (const [catId, catBids] of Object.entries(projectBids)) {
+              if ((catBids as Bid[]).some(b => b.id === bidId)) {
+                categoryId = catId;
+                break;
+              }
+            }
+            
+            if (categoryId) {
+              const categoryBids = projectBids[categoryId] || [];
+              const index = categoryBids.findIndex((b: Bid) => b.id === bidId);
+              if (index > -1) {
+                categoryBids[index].status = targetStatus;
+                projectBids[categoryId] = categoryBids;
+                demoData.projectDetails[projectData.id].bids = projectBids;
+                saveDemoData(demoData);
+              }
+            }
+          }
+          return;
+        }
+
         const { error } = await supabase
           .from("bids")
           .update({ status: targetStatus })
@@ -1126,8 +1156,24 @@ export const Pipeline: React.FC<PipelineProps> = ({
       return prev;
     });
 
-    // Persist to Supabase
+    // Persist to Supabase or Demo Storage
     try {
+      if (user?.role === 'demo') {
+        const demoData = getDemoData();
+        if (demoData && demoData.projectDetails[projectData.id]) {
+          const projectBids = demoData.projectDetails[projectData.id].bids || {};
+          const categoryBids = projectBids[activeCategory.id] || [];
+          const index = categoryBids.findIndex((b: Bid) => b.id === bid.id);
+          if (index > -1) {
+            categoryBids[index].contracted = newContracted;
+            projectBids[activeCategory.id] = categoryBids;
+            demoData.projectDetails[projectData.id].bids = projectBids;
+            saveDemoData(demoData);
+          }
+        }
+        return;
+      }
+
       const { error } = await supabase
         .from("bids")
         .update({ contracted: newContracted })
@@ -1176,8 +1222,22 @@ export const Pipeline: React.FC<PipelineProps> = ({
         [activeCategory.id]: [...(prev[activeCategory.id] || []), ...newBids],
       }));
 
-      // Persist to Supabase
+      // Persist to Supabase or Demo Storage
       try {
+        if (user?.role === 'demo') {
+          const demoData = getDemoData();
+          if (demoData && demoData.projectDetails[projectData.id]) {
+            const projectBids = demoData.projectDetails[projectData.id].bids || {};
+            projectBids[activeCategory.id] = [
+              ...(projectBids[activeCategory.id] || []),
+              ...newBids
+            ];
+            demoData.projectDetails[projectData.id].bids = projectBids;
+            saveDemoData(demoData);
+          }
+          return;
+        }
+
         const bidsToInsert = newBids.map((bid) => ({
           id: bid.id,
           demand_category_id: activeCategory.id,
@@ -1389,8 +1449,24 @@ export const Pipeline: React.FC<PipelineProps> = ({
       ? parseFormattedNumber(updatedBid.price.replace(/[^\d\s,.-]/g, ''))
       : null;
 
-    // Persist to Supabase
+    // Persist to Supabase or Demo Storage
     try {
+      if (user?.role === 'demo') {
+        const demoData = getDemoData();
+        if (demoData && demoData.projectDetails[projectData.id]) {
+          const projectBids = demoData.projectDetails[projectData.id].bids || {};
+          const categoryBids = projectBids[activeCategory.id] || [];
+          const index = categoryBids.findIndex((b: Bid) => b.id === updatedBid.id);
+          if (index > -1) {
+            categoryBids[index] = updatedBid;
+            projectBids[activeCategory.id] = categoryBids;
+            demoData.projectDetails[projectData.id].bids = projectBids;
+            saveDemoData(demoData);
+          }
+        }
+        return;
+      }
+
       const { error } = await supabase
         .from('bids')
         .update({
@@ -1424,8 +1500,19 @@ export const Pipeline: React.FC<PipelineProps> = ({
       return { ...prev, [activeCategory.id]: categoryBids };
     });
 
-    // Delete from Supabase
+    // Delete from Supabase or Demo Storage
     try {
+      if (user?.role === 'demo') {
+        const demoData = getDemoData();
+        if (demoData && demoData.projectDetails[projectData.id]) {
+          const projectBids = demoData.projectDetails[projectData.id].bids || {};
+          projectBids[activeCategory.id] = (projectBids[activeCategory.id] || []).filter((b: Bid) => b.id !== bidId);
+          demoData.projectDetails[projectData.id].bids = projectBids;
+          saveDemoData(demoData);
+        }
+        return;
+      }
+
       const { error } = await supabase
         .from('bids')
         .delete()
@@ -1602,8 +1689,17 @@ export const Pipeline: React.FC<PipelineProps> = ({
     setSelectedSubcontractorIds((prev) => new Set(prev).add(newContact.id));
     setIsCreateContactModalOpen(false);
 
-    // Persist to Supabase
+    // Persist to Supabase or Demo Storage
     try {
+      if (user?.role === 'demo') {
+        const demoData = getDemoData();
+        if (demoData) {
+          demoData.contacts = [...demoData.contacts, newContact];
+          saveDemoData(demoData);
+        }
+        return;
+      }
+
       const { error } = await supabase.from("subcontractors").insert({
         id: newContact.id,
         company_name: newContact.company,
@@ -2032,7 +2128,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
           <CreateContactModal
             initialName={newContactName}
             existingSpecializations={Array.from(new Set(localContacts.flatMap(c => c.specialization))).sort()}
-            statuses={statuses}
+            statuses={externalStatuses}
             onClose={() => setIsCreateContactModalOpen(false)}
             onSave={handleSaveNewContact}
           />
