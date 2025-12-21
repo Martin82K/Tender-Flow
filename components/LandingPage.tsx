@@ -3,6 +3,7 @@ import { ShieldCheck, FileText, Users, LayoutDashboard, Sparkles } from "lucide-
 import { PublicLayout } from "./public/PublicLayout";
 import { PublicHeader } from "./public/PublicHeader";
 import { Link, useLocation } from "./routing/router";
+import ConstructionAnimation from "../crm_landing_animation";
 
 const Stat: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div className="rounded-2xl border border-white/10 bg-gray-950/40 backdrop-blur px-5 py-4">
@@ -42,7 +43,8 @@ export const LandingPage: React.FC = () => {
     <PublicLayout>
       <PublicHeader variant="marketing" />
 
-      <main className="mx-auto max-w-6xl px-4 py-10 md:py-16">
+      <main className="relative mx-auto max-w-6xl px-4 py-10 md:py-16">
+        <ConstructionAnimation />
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-gray-950/40 px-3 py-1.5 text-xs text-white/70">

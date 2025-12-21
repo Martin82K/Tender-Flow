@@ -8,8 +8,8 @@ export default function ConstructionAnimation() {
   }, []);
 
   return (
-    <div className="relative min-h-screen overflow-hidden" style={{
-      background: 'linear-gradient(135deg, #1a2332 0%, #2d3748 100%)'
+    <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{
+      zIndex: 0
     }}>
       
       {/* Grid background */}
@@ -100,24 +100,33 @@ export default function ConstructionAnimation() {
         </div>
       </div>
       
-      {/* Floating documents */}
-      {[[20, 15, 0], [60, 'auto', 2], [40, 10, 4]].map((pos, i) => (
+      {/* Floating logos */}
+      {[[15, 12, 0, 75], [55, 'auto', 2, 60], [35, 8, 4, 68], [70, 25, 1, 52], [25, 'auto', 3, 82]].map((pos, i) => (
         <div
           key={i}
           className="absolute"
           style={{
             top: pos[0] + '%',
             left: typeof pos[1] === 'number' ? pos[1] + '%' : 'auto',
-            right: typeof pos[1] === 'string' ? '15%' : 'auto',
-            width: '60px',
-            height: '80px',
-            background: 'rgba(255, 138, 51, 0.1)',
-            border: '2px solid rgba(255, 138, 51, 0.3)',
-            borderRadius: '5px',
+            right: typeof pos[1] === 'string' ? (i === 1 ? '12%' : '20%') : 'auto',
+            width: pos[3] + 'px',
+            height: pos[3] + 'px',
             animation: 'floatSway 8s ease-in-out infinite',
-            animationDelay: `${pos[2]}s`
+            animationDelay: `${pos[2]}s`,
+            opacity: 0.15
           }}
-        />
+        >
+          <img 
+            src="/assets/logo.png" 
+            alt="" 
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+              filter: 'drop-shadow(0 0 10px rgba(255, 138, 51, 0.5))'
+            }}
+          />
+        </div>
       ))}
       
       {/* Progress badges */}
@@ -156,6 +165,63 @@ export default function ConstructionAnimation() {
         }}
       >
         ✓ Hotovo
+      </div>
+      
+      <div 
+        className="absolute"
+        style={{
+          top: '20%',
+          right: '15%',
+          padding: '8px 16px',
+          background: 'rgba(255, 138, 51, 0.2)',
+          border: '2px solid rgba(255, 138, 51, 0.5)',
+          borderRadius: '20px',
+          fontSize: '12px',
+          color: 'rgba(255, 138, 51, 0.9)',
+          fontWeight: 'bold',
+          animation: 'pulse 2s ease-in-out infinite',
+          animationDelay: '0.5s'
+        }}
+      >
+        🏗️ Výběrové řízení
+      </div>
+      
+      <div 
+        className="absolute"
+        style={{
+          top: '40%',
+          left: '10%',
+          padding: '8px 16px',
+          background: 'rgba(255, 138, 51, 0.2)',
+          border: '2px solid rgba(255, 138, 51, 0.5)',
+          borderRadius: '20px',
+          fontSize: '12px',
+          color: 'rgba(255, 138, 51, 0.9)',
+          fontWeight: 'bold',
+          animation: 'pulse 2s ease-in-out infinite',
+          animationDelay: '1.5s'
+        }}
+      >
+        📨 Poptávky
+      </div>
+      
+      <div 
+        className="absolute"
+        style={{
+          top: '65%',
+          left: '25%',
+          padding: '8px 16px',
+          background: 'rgba(255, 138, 51, 0.2)',
+          border: '2px solid rgba(255, 138, 51, 0.5)',
+          borderRadius: '20px',
+          fontSize: '12px',
+          color: 'rgba(255, 138, 51, 0.9)',
+          fontWeight: 'bold',
+          animation: 'pulse 2s ease-in-out infinite',
+          animationDelay: '2s'
+        }}
+      >
+        📝 Smlouvy
       </div>
       
       {/* Construction scene */}
