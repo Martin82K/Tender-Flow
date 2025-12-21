@@ -28,7 +28,7 @@ export const AuthCard: React.FC<{
       </div>
 
       <div className="mt-8 pt-6 border-t border-white/10 text-center">
-        <span className="text-xs text-white/40">verze 0.9.1</span>
+        <span className="text-xs text-white/40">verze 0.9.2</span>
       </div>
     </div>
   );

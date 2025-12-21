@@ -268,13 +268,13 @@ export const LandingPage: React.FC = () => {
               },
               {
                 title: "Starter",
-                price: "Na míru",
+                price: "3 uživatelé",
                 items: [
                   "3 licence (uživatelé v organizaci)",
                   "Import kontaktů",
                   "Generování poptávek",
                 ],
-                cta: { label: "Začít", to: "/register" },
+                cta: { label: "Domluvit", to: "mailto:?subject=AI%2B%20Tender%20Flow" },
               },
               {
                 title: "Pro",
