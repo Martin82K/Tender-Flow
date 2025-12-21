@@ -37,9 +37,12 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
   const filteredContacts = useMemo(() => {
     return contacts.filter((contact) => {
       const matchesSearch =
-        contact.name.toLowerCase().includes(searchText.toLowerCase()) ||
         contact.company.toLowerCase().includes(searchText.toLowerCase()) ||
-        contact.email.toLowerCase().includes(searchText.toLowerCase()) ||
+        contact.contacts.some(c => 
+          c.name.toLowerCase().includes(searchText.toLowerCase()) ||
+          c.email.toLowerCase().includes(searchText.toLowerCase()) ||
+          c.phone.toLowerCase().includes(searchText.toLowerCase())
+        ) ||
         contact.specialization.some(s => s.toLowerCase().includes(searchText.toLowerCase()));
 
       const matchesSpec =
@@ -309,42 +312,50 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
                       </div>
                     </td>
                     <td className="px-6 py-4 text-slate-900 dark:text-slate-200">
-                      <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[18px] text-slate-400">
-                          person
-                        </span>
-                        {contact.name !== "-" ? (
-                          contact.name
-                        ) : (
-                          <span className="text-slate-400 italic">
-                            Nezadáno
-                          </span>
+                      <div className="flex flex-col gap-1">
+                        {contact.contacts.map((c, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-[16px] text-slate-400">
+                              person
+                            </span>
+                            <span className={idx === 0 ? "font-medium" : "text-xs text-slate-500"}>
+                              {c.name !== "-" ? c.name : <span className="italic">Nezadáno</span>}
+                              {c.position && <span className="ml-1 text-[10px] opacity-70">({c.position})</span>}
+                            </span>
+                          </div>
+                        ))}
+                        {contact.contacts.length === 0 && (
+                          <span className="text-slate-400 italic">Bez kontaktu</span>
                         )}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex flex-col gap-1">
-                        {contact.phone !== "-" && (
-                          <div className="flex items-center gap-2 text-xs">
-                            <span className="material-symbols-outlined text-[14px] text-slate-400">
-                              call
-                            </span>
-                            {contact.phone}
+                      <div className="flex flex-col gap-2">
+                        {contact.contacts.map((c, idx) => (
+                          <div key={idx} className={`flex flex-col gap-0.5 ${idx > 0 ? "mt-1 pt-1 border-t border-slate-100 dark:border-slate-800/50" : ""}`}>
+                            {c.phone !== "-" && (
+                              <div className="flex items-center gap-2 text-xs">
+                                <span className="material-symbols-outlined text-[14px] text-slate-400">
+                                  call
+                                </span>
+                                {c.phone}
+                              </div>
+                            )}
+                            {c.email !== "-" && (
+                              <div className="flex items-center gap-2 text-xs">
+                                <span className="material-symbols-outlined text-[14px] text-slate-400">
+                                  mail
+                                </span>
+                                <a
+                                  href={`mailto:${c.email}`}
+                                  className="hover:text-primary hover:underline truncate max-w-[150px]"
+                                >
+                                  {c.email}
+                                </a>
+                              </div>
+                            )}
                           </div>
-                        )}
-                        {contact.email !== "-" && (
-                          <div className="flex items-center gap-2 text-xs">
-                            <span className="material-symbols-outlined text-[14px] text-slate-400">
-                              mail
-                            </span>
-                            <a
-                              href={`mailto:${contact.email}`}
-                              className="hover:text-primary hover:underline"
-                            >
-                              {contact.email}
-                            </a>
-                          </div>
-                        )}
+                        ))}
                       </div>
                     </td>
                     <td className="px-6 py-4 font-mono text-xs">

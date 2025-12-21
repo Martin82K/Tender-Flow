@@ -412,16 +412,32 @@ const AppContent: React.FC = () => {
             ? s.specialization
             : s.specialization ? [s.specialization] : ["Ostatní"];
 
+          // Support for multiple contacts
+          let contactsArray: any[] = Array.isArray(s.contacts) ? s.contacts : [];
+          
+          // Migration/Fallback: if no contacts array but legacy fields exist
+          if (contactsArray.length === 0 && (s.contact_person_name || s.phone || s.email)) {
+            contactsArray = [{
+              id: crypto.randomUUID(),
+              name: s.contact_person_name || "-",
+              phone: s.phone || "-",
+              email: s.email || "-",
+              position: "Hlavní kontakt"
+            }];
+          }
+
           return {
             id: s.id,
             company: s.company_name,
-            name: s.contact_person_name || "-",
             specialization: specArray.length > 0 ? specArray : ["Ostatní"],
-            phone: s.phone || "-",
-            email: s.email || "-",
+            contacts: contactsArray,
             ico: s.ico || "-",
             region: s.region || "-",
             status: s.status_id || "available",
+            // Keep legacy for UI compatibility during transition
+            name: s.contact_person_name || "-",
+            phone: s.phone || "-",
+            email: s.email || "-",
           };
         }
       );
@@ -906,10 +922,11 @@ const AppContent: React.FC = () => {
       const { error } = await supabase.from("subcontractors").insert({
         id: contact.id,
         company_name: contact.company,
-        contact_person_name: contact.name,
+        contact_person_name: contact.contacts[0]?.name || "-", // Mirror for legacy DB
         specialization: contact.specialization,
-        phone: contact.phone,
-        email: contact.email,
+        phone: contact.contacts[0]?.phone || "-", // Mirror for legacy DB
+        email: contact.contacts[0]?.email || "-", // Mirror for legacy DB
+        contacts: contact.contacts, // Save new JSONB array
         ico: contact.ico,
         region: contact.region,
         status_id: contact.status,
@@ -936,10 +953,11 @@ const AppContent: React.FC = () => {
         .from("subcontractors")
         .update({
           company_name: contact.company,
-          contact_person_name: contact.name,
+          contact_person_name: contact.contacts[0]?.name || "-",
           specialization: contact.specialization,
-          phone: contact.phone,
-          email: contact.email,
+          phone: contact.contacts[0]?.phone || "-",
+          email: contact.contacts[0]?.email || "-",
+          contacts: contact.contacts,
           ico: contact.ico,
           region: contact.region,
           status_id: contact.status,
@@ -976,10 +994,11 @@ const AppContent: React.FC = () => {
           .from("subcontractors")
           .update({
             company_name: contact.company,
-            contact_person_name: contact.name,
+            contact_person_name: contact.contacts[0]?.name || "-",
             specialization: contact.specialization,
-            phone: contact.phone,
-            email: contact.email,
+            phone: contact.contacts[0]?.phone || "-",
+            email: contact.contacts[0]?.email || "-",
+            contacts: contact.contacts,
             ico: contact.ico,
             region: contact.region,
             status_id: contact.status,

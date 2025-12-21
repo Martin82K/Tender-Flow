@@ -32,10 +32,8 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
     // Form State
     const [formData, setFormData] = useState<Partial<Subcontractor> & { specializationRaw?: string }>({
         company: '',
-        name: '',
         specialization: [],
-        phone: '',
-        email: '',
+        contacts: [],
         ico: '',
         region: '',
         status: 'available'
@@ -105,13 +103,10 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
     // --- CRUD Handlers ---
 
     const handleOpenAddModal = () => {
-        setEditingContact(null);
         setFormData({
             company: '',
-            name: '',
             specialization: [],
-            phone: '',
-            email: '',
+            contacts: [{ id: crypto.randomUUID(), name: '', phone: '', email: '', position: 'Hlavní kontakt' }],
             ico: '',
             region: '',
             status: 'available'
@@ -128,38 +123,70 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
     const handleSaveContact = (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!formData.company || !formData.specialization || formData.specialization.length === 0) return; // Basic validation
+        if (!formData.company || !formData.specialization || formData.specialization.length === 0) return;
+
+        const baseContact: Omit<Subcontractor, 'id'> = {
+            company: formData.company!,
+            specialization: formData.specialization!,
+            contacts: formData.contacts || [],
+            ico: formData.ico || '-',
+            region: formData.region || '-',
+            status: formData.status || 'available'
+        };
 
         if (editingContact) {
-            // Edit existing
-            const updatedContact: Subcontractor = {
-                id: editingContact.id,
-                company: formData.company!,
-                name: formData.name || '-',
-                specialization: formData.specialization!,
-                phone: formData.phone || '-',
-                email: formData.email || '-',
-                ico: formData.ico || '-',
-                region: formData.region || '-',
-                status: formData.status || 'available'
-            };
-            onUpdateContact(updatedContact);
+            onUpdateContact({ ...baseContact, id: editingContact.id } as Subcontractor);
         } else {
-            // Add new
-            const newContact: Subcontractor = {
-                id: crypto.randomUUID(),
-                company: formData.company!,
-                name: formData.name || '-',
-                specialization: formData.specialization!,
-                phone: formData.phone || '-',
-                email: formData.email || '-',
-                ico: formData.ico || '-',
-                region: formData.region || '-',
-                status: formData.status || 'available'
-            };
-            onAddContact(newContact);
+            onAddContact({ ...baseContact, id: crypto.randomUUID() } as Subcontractor);
         }
         setIsContactModalOpen(false);
+    };
+
+    const handleAddContactPerson = () => {
+        const newContact = {
+            id: crypto.randomUUID(),
+            name: '',
+            phone: '',
+            email: '',
+            position: ''
+        };
+        setFormData(prev => ({
+            ...prev,
+            contacts: [...(prev.contacts || []), newContact]
+        }));
+    };
+
+    const handleRemoveContactPerson = (id: string) => {
+        setFormData(prev => ({
+            ...prev,
+            contacts: (prev.contacts || []).filter(c => c.id !== id)
+        }));
+    };
+
+    const handleUpdateContactPerson = (id: string, updates: any) => {
+        setFormData(prev => ({
+            ...prev,
+            contacts: (prev.contacts || []).map(c => c.id === id ? { ...c, ...updates } : c)
+        }));
+    };
+
+    const handleAddSpecialization = (spec: string) => {
+        const trimmed = spec.trim();
+        if (!trimmed) return;
+        if (formData.specialization?.includes(trimmed)) return;
+        
+        setFormData(prev => ({
+            ...prev,
+            specialization: [...(prev.specialization || []), trimmed],
+            specializationRaw: '' // Clear input
+        }));
+    };
+
+    const handleRemoveSpecialization = (spec: string) => {
+        setFormData(prev => ({
+            ...prev,
+            specialization: (prev.specialization || []).filter(s => s !== spec)
+        }));
     };
 
     const handleDeleteContact = (e: React.MouseEvent) => {
@@ -265,85 +292,60 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
 
                                     {/* Specialization */}
                                     <div className="col-span-2">
-                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Specializace / Typ * (oddělte čárkou)</label>
-                                        <input
-                                            required
-                                            type="text"
-                                            autoComplete="off"
-                                            value={formData.specializationRaw ?? formData.specialization?.join(', ') ?? ''}
-                                            onChange={e => setFormData({ ...formData, specializationRaw: e.target.value })}
-                                            onBlur={e => {
-                                                const parsed = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
-                                                setFormData({ ...formData, specialization: parsed, specializationRaw: undefined });
-                                            }}
-                                            className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
-                                            placeholder="Např. Elektro Silnoproud, ZTI"
-                                        />
-                                    </div>
-
-                                    {/* Contact Person */}
-                                    <div>
-                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Jméno kontaktu</label>
-                                        <input
-                                            type="text"
-                                            value={formData.name}
-                                            onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                            onKeyDown={(e) => e.stopPropagation()}
-                                            className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
-                                            placeholder="Jméno a Příjmení"
-                                        />
-                                    </div>
-
-                                    {/* Status */}
-                                    <div>
-                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Stav</label>
-                                        <select
-                                            value={formData.status}
-                                            onChange={e => setFormData({ ...formData, status: e.target.value })}
-                                            className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
-                                        >
-                                            {statuses.map(s => (
-                                                <option key={s.id} value={s.id}>{s.label}</option>
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">Specializace / Typ *</label>
+                                        
+                                        <div className="flex flex-wrap gap-2 mb-3">
+                                            {formData.specialization?.map(spec => (
+                                                <span 
+                                                    key={spec} 
+                                                    className="inline-flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold"
+                                                >
+                                                    {spec}
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => handleRemoveSpecialization(spec)}
+                                                        className="hover:text-red-500 transition-colors"
+                                                    >
+                                                        <span className="material-symbols-outlined text-[14px]">close</span>
+                                                    </button>
+                                                </span>
                                             ))}
-                                        </select>
-                                    </div>
+                                            {( !formData.specialization || formData.specialization.length === 0 ) && (
+                                                <span className="text-xs text-slate-400 italic">Žádná specializace vybrána</span>
+                                            )}
+                                        </div>
 
-                                    {/* Phone */}
-                                    <div>
-                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Telefon</label>
-                                        <input
-                                            type="text"
-                                            value={formData.phone}
-                                            onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                                            onKeyDown={(e) => e.stopPropagation()}
-                                            className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
-                                            placeholder="+420 ..."
-                                        />
-                                    </div>
-
-                                    {/* Email */}
-                                    <div>
-                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Email</label>
-                                        <input
-                                            type="email"
-                                            value={formData.email}
-                                            onChange={e => setFormData({ ...formData, email: e.target.value })}
-                                            className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
-                                            placeholder="email@example.com"
-                                        />
-                                    </div>
-
-                                    {/* ICO */}
-                                    <div>
-                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">IČO</label>
-                                        <input
-                                            type="text"
-                                            value={formData.ico}
-                                            onChange={e => setFormData({ ...formData, ico: e.target.value })}
-                                            onKeyDown={(e) => e.stopPropagation()}
-                                            className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
-                                            placeholder="12345678"
-                                        />
+                                        <div className="flex gap-2">
+                                            <div className="relative flex-1">
+                                                <input
+                                                    type="text"
+                                                    list="available-specializations"
+                                                    value={formData.specializationRaw || ''}
+                                                    onChange={e => setFormData({ ...formData, specializationRaw: e.target.value })}
+                                                    onKeyDown={e => {
+                                                        if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            handleAddSpecialization(formData.specializationRaw || '');
+                                                        }
+                                                        e.stopPropagation();
+                                                    }}
+                                                    className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
+                                                    placeholder="Přidat specializaci (stiskněte Enter)"
+                                                />
+                                                <datalist id="available-specializations">
+                                                    {allSpecializations.filter(s => !formData.specialization?.includes(s)).map(spec => (
+                                                        <option key={spec} value={spec} />
+                                                    ))}
+                                                </datalist>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleAddSpecialization(formData.specializationRaw || '')}
+                                                className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 px-3 py-2 rounded-lg transition-colors"
+                                            >
+                                                <span className="material-symbols-outlined">add</span>
+                                            </button>
+                                        </div>
                                     </div>
 
                                     {/* Region */}
@@ -357,6 +359,92 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                                             className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
                                             placeholder="Praha, Brno..."
                                         />
+                                    </div>
+
+                                    {/* Contacts Section */}
+                                    <div className="col-span-2 mt-6">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">Kontaktní osoby</h4>
+                                            <button
+                                                type="button"
+                                                onClick={handleAddContactPerson}
+                                                className="flex items-center gap-1 text-xs font-bold text-primary hover:text-primary/80 transition-colors"
+                                            >
+                                                <span className="material-symbols-outlined text-[16px]">add</span>
+                                                Přidat osobu
+                                            </button>
+                                        </div>
+                                        
+                                        <div className="space-y-4">
+                                            {formData.contacts?.map((contact, index) => (
+                                                <div key={contact.id} className="relative p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 group">
+                                                    {formData.contacts!.length > 1 && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleRemoveContactPerson(contact.id)}
+                                                            className="absolute top-2 right-2 text-slate-400 hover:text-red-500 transition-colors"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[18px]">delete</span>
+                                                        </button>
+                                                    )}
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <div>
+                                                            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Jméno *</label>
+                                                            <input
+                                                                required
+                                                                type="text"
+                                                                value={contact.name}
+                                                                onChange={e => handleUpdateContactPerson(contact.id, { name: e.target.value })}
+                                                                className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm dark:text-white"
+                                                                placeholder="Jméno a Příjmení"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Pozice</label>
+                                                            <input
+                                                                type="text"
+                                                                value={contact.position || ''}
+                                                                onChange={e => handleUpdateContactPerson(contact.id, { position: e.target.value })}
+                                                                className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm dark:text-white"
+                                                                placeholder="Např. Obchodní zástupce"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Telefon</label>
+                                                            <input
+                                                                type="text"
+                                                                value={contact.phone}
+                                                                onChange={e => handleUpdateContactPerson(contact.id, { phone: e.target.value })}
+                                                                className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm dark:text-white"
+                                                                placeholder="+420 ..."
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Email</label>
+                                                            <input
+                                                                type="email"
+                                                                value={contact.email}
+                                                                onChange={e => handleUpdateContactPerson(contact.id, { email: e.target.value })}
+                                                                className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm dark:text-white"
+                                                                placeholder="email@example.com"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            {(!formData.contacts || formData.contacts.length === 0) && (
+                                                <div className="text-center py-8 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-800">
+                                                    <p className="text-sm text-slate-500">Žádné kontaktní osoby nebyly přidány.</p>
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleAddContactPerson}
+                                                        className="mt-2 text-xs font-bold text-primary"
+                                                    >
+                                                        Pridat první osobu
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>

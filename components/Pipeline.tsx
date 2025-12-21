@@ -722,29 +722,47 @@ const CreateContactModal: React.FC<{
     name: "",
     email: "",
     phone: "",
-    specialization: "",
+    specializationRaw: "",
     ico: "",
     region: "",
     status: "available",
   });
+  const [specializations, setSpecializations] = useState<string[]>([]);
+
+  const handleAddSpec = (spec: string) => {
+    const trimmed = spec.trim();
+    if (!trimmed) return;
+    if (specializations.includes(trimmed)) return;
+    setSpecializations([...specializations, trimmed]);
+    setForm({ ...form, specializationRaw: "" });
+  };
+
+  const handleRemoveSpec = (spec: string) => {
+    setSpecializations(specializations.filter(s => s !== spec));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Parse specialization: split by comma and trim
-    const specializationArray = form.specialization
-      ? form.specialization.split(',').map(s => s.trim()).filter(Boolean)
-      : ["Ostatní"];
+    const finalSpecs = specializations.length > 0 ? specializations : ["Ostatní"];
 
     const newContact: Subcontractor = {
       id: crypto.randomUUID(),
       company: form.company,
-      name: form.name || "-",
-      email: form.email || "-",
-      phone: form.phone || "-",
-      specialization: specializationArray.length > 0 ? specializationArray : ["Ostatní"],
+      specialization: finalSpecs,
+      contacts: [{
+        id: crypto.randomUUID(),
+        name: form.name || "-",
+        email: form.email || "-",
+        phone: form.phone || "-",
+        position: "Hlavní kontakt"
+      }],
       ico: form.ico || "-",
       region: form.region || "-",
       status: form.status || "available",
+      // Mirror legacy fields for compatibility
+      name: form.name || "-",
+      email: form.email || "-",
+      phone: form.phone || "-",
     };
     onSave(newContact);
   };
@@ -778,25 +796,62 @@ const CreateContactModal: React.FC<{
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">
-                Specializace / Typ (oddělte čárkou)
+              <label className="block text-xs font-medium text-slate-400 mb-2">
+                Specializace / Typ *
               </label>
-              <input
-                type="text"
-                list="pipeline-specializations-list"
-                value={form.specialization}
-                onChange={(e) =>
-                  setForm({ ...form, specialization: e.target.value })
-                }
-                onKeyDown={(e) => e.stopPropagation()}
-                className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
-                placeholder="Např. Strojní omítky, Elektro"
-              />
-              <datalist id="pipeline-specializations-list">
-                {existingSpecializations.map(spec => (
-                  <option key={spec} value={spec} />
+              <div className="flex flex-wrap gap-2 mb-3">
+                {specializations.map(spec => (
+                  <span 
+                    key={spec} 
+                    className="inline-flex items-center gap-1.5 bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-xs font-bold border border-emerald-500/30"
+                  >
+                    {spec}
+                    <button 
+                      type="button" 
+                      onClick={() => handleRemoveSpec(spec)}
+                      className="hover:text-red-400 transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-[14px]">close</span>
+                    </button>
+                  </span>
                 ))}
-              </datalist>
+                {specializations.length === 0 && (
+                  <span className="text-xs text-slate-500 italic">Přidejte alespoň jednu specializaci</span>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    list="pipeline-specializations-list"
+                    value={form.specializationRaw}
+                    onChange={(e) =>
+                      setForm({ ...form, specializationRaw: e.target.value })
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddSpec(form.specializationRaw);
+                      }
+                      e.stopPropagation();
+                    }}
+                    className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                    placeholder="Přidat specializaci (Enter)"
+                  />
+                  <datalist id="pipeline-specializations-list">
+                    {existingSpecializations.filter(s => !specializations.includes(s)).map(spec => (
+                      <option key={spec} value={spec} />
+                    ))}
+                  </datalist>
+                </div>
+                <button
+                   type="button"
+                   onClick={() => handleAddSpec(form.specializationRaw)}
+                   className="bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-2 rounded-lg transition-colors"
+                >
+                   <span className="material-symbols-outlined">add</span>
+                </button>
+              </div>
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-400 mb-1">
@@ -1098,13 +1153,14 @@ export const Pipeline: React.FC<PipelineProps> = ({
           (b) => b.subcontractorId === contact.id
         );
         if (!existing) {
+          const primaryContact = contact.contacts[0];
           newBids.push({
             id: `bid_${Date.now()}_${contact.id}`,
             subcontractorId: contact.id,
             companyName: contact.company,
-            contactPerson: contact.name,
-            email: contact.email,
-            phone: contact.phone,
+            contactPerson: primaryContact?.name || "-",
+            email: primaryContact?.email || "-",
+            phone: primaryContact?.phone || "-",
             price: "?",
             status: "contacted",
             tags: [],

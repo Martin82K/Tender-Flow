@@ -176,16 +176,28 @@ const parseXLSX = async (blob: Blob): Promise<ImportResult> => {
 const parseContactsData = (data: any[]): Subcontractor[] => {
   return data.map((row: any, index: number) => {
     const spec = row['Specializace'] || row['specializace'] || row['Specialization'] || row['Typ'] || 'Ostatní';
+    const name = row['Jméno'] || row['jmeno'] || row['Name'] || row['Kontakt'] || '-';
+    const email = row['Email'] || row['email'] || '-';
+    const phone = row['Telefon'] || row['telefon'] || row['Phone'] || '-';
+
     return {
       id: `import_${Date.now()}_${index}`,
       company: row['Firma'] || row['firma'] || row['Company'] || row['Dodavatel'] || '-',
-      name: row['Jméno'] || row['jmeno'] || row['Name'] || row['Kontakt'] || '-',
-      specialization: [spec], // Store as array
-      phone: row['Telefon'] || row['telefon'] || row['Phone'] || '-',
-      email: row['Email'] || row['email'] || '-',
+      specialization: [spec],
+      contacts: [{
+        id: crypto.randomUUID(),
+        name,
+        email,
+        phone,
+        position: 'Importovaný kontakt'
+      }],
       ico: row['IČO'] || row['ICO'] || row['ico'] || row['IČO (bez mezer)'] || '-',
       region: row['Region'] || row['region'] || '-',
-      status: 'available'
+      status: 'available',
+      // Legacy fields for backward compatibility
+      name,
+      email,
+      phone
     };
   }).filter(contact => contact.company !== '-' && contact.company !== undefined); // Filter out invalid rows
 };
@@ -220,15 +232,32 @@ export const mergeContacts = (existingContacts: Subcontractor[], importedContact
       // Merge specializations
       const mergedSpecializations = Array.from(new Set([...existing.specialization, ...imported.specialization]));
 
+      // Merge contacts
+      const existingContacts = existing.contacts || [];
+      const importedContactsList = imported.contacts || [];
+      
+      const mergedContactsList = [...existingContacts];
+      importedContactsList.forEach(imp => {
+          const isDuplicate = existingContacts.some(ext => 
+              (ext.name.toLowerCase() === imp.name.toLowerCase() && imp.name !== '-') ||
+              (ext.email.toLowerCase() === imp.email.toLowerCase() && imp.email !== '-') ||
+              (ext.phone === imp.phone && imp.phone !== '-')
+          );
+          if (!isDuplicate) {
+              mergedContactsList.push(imp);
+          }
+      });
+
       const updatedContact = {
         ...existing,
-        // Update fields if they are present in import and not placeholder
-        name: imported.name !== '-' ? imported.name : existing.name,
         specialization: mergedSpecializations,
-        phone: imported.phone !== '-' ? imported.phone : existing.phone,
-        email: imported.email !== '-' ? imported.email : existing.email,
-        ico: imported.ico !== '-' ? imported.ico : existing.ico,
-        region: imported.region !== '-' ? imported.region : existing.region,
+        contacts: mergedContactsList,
+        ico: (imported.ico !== '-' && imported.ico) ? imported.ico : existing.ico,
+        region: (imported.region !== '-' && imported.region) ? imported.region : existing.region,
+        // Update legacy fields from primary contact
+        name: mergedContactsList[0]?.name || existing.name,
+        phone: mergedContactsList[0]?.phone || existing.phone,
+        email: mergedContactsList[0]?.email || existing.email,
         // Preserve ID and Status
       };
 

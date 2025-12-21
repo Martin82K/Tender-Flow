@@ -17,16 +17,27 @@ export interface StatusConfig {
   color: "green" | "red" | "yellow" | "blue" | "purple" | "slate";
 }
 
-export interface Subcontractor {
+export interface ContactPerson {
   id: string;
-  name: string; // Contact Person (Jméno)
-  company: string; // Supplier (Dodavatel)
-  specialization: string[]; // Type (Typ)
+  name: string;
   phone: string;
   email: string;
+  position?: string; // Pozice / Role
+}
+
+export interface Subcontractor {
+  id: string;
+  company: string; // Supplier (Dodavatel)
+  specialization: string[]; // Type (Typ)
+  contacts: ContactPerson[];
   ico?: string; // IČ
   region?: string;
   status: string; // Dynamic ID linking to StatusConfig
+  
+  // Legacy fields for backward compatibility / migration
+  name?: string; 
+  phone?: string;
+  email?: string;
 }
 
 export interface DemandDocument {
