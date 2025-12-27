@@ -37,7 +37,9 @@ Verzi aplikace najdete vlevo dole v sidebaru.
 
 ### v0.9.3
 
-- **DEMO**: pro ceník a možnost „DEMO“ bylo vytvořeno demo s provizorními (generovanými) daty pro možnost seznámení se s aplikací.
+- **Hlavní stránka / DEMO**: pro ceník a možnost „DEMO“ bylo vytvořeno demo s provizorními (generovanými) daty pro možnost seznámení se s aplikací.
+- **Funkčnost (AI)**: úprava AI backendové části pro lepší a rychlejší fungování.
+- **Dashboard / Stavba (UX)**: vylepšený přehled poptávek pro rychlejší práci; nově je možné prokliknout se z přehledu přímo do kanbanu dané poptávky.
 
 ### v0.9.2
 
