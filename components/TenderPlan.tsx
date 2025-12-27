@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TenderPlanItem, DemandCategory } from '../types';
 import { supabase } from '../services/supabase';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface TenderPlanProps {
     projectId: string;
@@ -18,6 +19,18 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
     const [formName, setFormName] = useState('');
     const [formDateFrom, setFormDateFrom] = useState('');
     const [formDateTo, setFormDateTo] = useState('');
+
+    // Confirmation Modal State
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+    }>({ isOpen: false, title: '', message: '', onConfirm: () => { } });
+
+    const closeConfirmModal = () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+    };
 
     // Load from Supabase
     useEffect(() => {
@@ -161,7 +174,16 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Opravdu smazat tento plán?')) return;
+        setConfirmModal({
+            isOpen: true,
+            title: 'Smazat plán',
+            message: 'Opravdu smazat tento plán? Tato akce je nevratná.',
+            onConfirm: () => executeDelete(id)
+        });
+    };
+
+    const executeDelete = async (id: string) => {
+        closeConfirmModal();
 
         const previousItems = items;
         // Optimistic update
@@ -435,6 +457,16 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
                     </div>
                 </div>
             </div>
+            {/* Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={confirmModal.isOpen}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                onConfirm={confirmModal.onConfirm}
+                onCancel={closeConfirmModal}
+                confirmLabel="Smazat"
+                variant="danger"
+            />
         </div>
     );
 };

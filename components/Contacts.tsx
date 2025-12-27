@@ -3,6 +3,7 @@ import { Header } from './Header';
 import { Subcontractor, StatusConfig } from '../types';
 import { findCompanyRegions } from '../services/geminiService';
 import { SubcontractorSelector } from './SubcontractorSelector';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface ContactsProps {
     statuses: StatusConfig[];
@@ -39,6 +40,18 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
         status: 'available'
     });
 
+    // Confirmation Modal State
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+    }>({ isOpen: false, title: '', message: '', onConfirm: () => { } });
+
+    const closeConfirmModal = () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+    };
+
     // Keep editingContact in sync with updated contacts
     useEffect(() => {
         if (editingContact) {
@@ -58,7 +71,12 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
         const contactsToProcess = contacts.filter(c => selectedIds.has(c.id) && c.ico && c.ico !== '-' && (!c.region || c.region === '-'));
 
         if (contactsToProcess.length === 0) {
-            alert("Žádné vybrané kontakty nemají IČO nebo již mají region vyplněný.");
+            setConfirmModal({
+                isOpen: true,
+                title: 'Informace',
+                message: "Žádné vybrané kontakty nemají IČO nebo již mají region vyplněný.",
+                onConfirm: closeConfirmModal
+            });
             return;
         }
 
@@ -94,10 +112,16 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
     const handleDeleteSelected = () => {
         if (selectedIds.size === 0) return;
 
-        if (confirm(`Opravdu chcete smazat ${selectedIds.size} vybraných kontaktů?`)) {
-            onDeleteContacts(Array.from(selectedIds));
-            setSelectedIds(new Set());
-        }
+        setConfirmModal({
+            isOpen: true,
+            title: 'Smazat kontakty',
+            message: `Opravdu chcete smazat ${selectedIds.size} vybraných kontaktů? Tato akce je nevratná.`,
+            onConfirm: () => {
+                onDeleteContacts(Array.from(selectedIds));
+                setSelectedIds(new Set());
+                closeConfirmModal();
+            }
+        });
     };
 
     // --- CRUD Handlers ---
@@ -194,14 +218,16 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
         e.stopPropagation();
 
         if (editingContact) {
-            // Use setTimeout to decouple from the click event loop
-            // This fixes issues where the confirm dialog closes immediately in some browsers
-            setTimeout(() => {
-                if (window.confirm('Opravdu chcete smazat tento kontakt?')) {
+            setConfirmModal({
+                isOpen: true,
+                title: 'Smazat kontakt',
+                message: 'Opravdu chcete smazat tento kontakt? Tato akce je nevratná.',
+                onConfirm: () => {
                     onDeleteContacts([editingContact.id]);
                     setIsContactModalOpen(false);
+                    closeConfirmModal();
                 }
-            }, 100);
+            });
         }
     };
 
@@ -481,6 +507,16 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                     </div>
                 </div>
             )}
+            {/* Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={confirmModal.isOpen}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                onConfirm={confirmModal.onConfirm}
+                onCancel={closeConfirmModal}
+                confirmLabel="Smazat"
+                variant="danger"
+            />
         </div>
     );
 };

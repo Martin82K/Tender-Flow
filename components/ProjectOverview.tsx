@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Header } from './Header';
+import { ConfirmationModal } from './ConfirmationModal';
 import { Project, ProjectDetails, DemandCategory } from '../types';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { formatMoney, formatMoneyShort } from '../utils/formatters';
@@ -93,6 +94,18 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [hasGeneratedAI, setHasGeneratedAI] = useState(false);
     const contentRef = useRef<HTMLDivElement>(null);
+
+    // Confirmation Modal State
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+    }>({ isOpen: false, title: '', message: '', onConfirm: () => { } });
+
+    const closeConfirmModal = () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+    };
 
     // Save to localStorage when project changes
     React.useEffect(() => {
@@ -455,7 +468,12 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
             pdf.save(`analyza-${selectedProject.title.replace(/\s+/g, '-')}.pdf`);
         } catch (error) {
             console.error('PDF export error:', error);
-            alert('Chyba při exportu PDF.');
+            setConfirmModal({
+                isOpen: true,
+                title: 'Chyba exportu',
+                message: 'Nepodařilo se vygenerovat PDF soubor. Zkuste to prosím znovu.',
+                onConfirm: closeConfirmModal
+            });
         }
     };
 
@@ -833,6 +851,17 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
                     </div>
                 )}
             </div>
+
+            {/* Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={confirmModal.isOpen}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                onConfirm={confirmModal.onConfirm}
+                onCancel={closeConfirmModal}
+                confirmLabel="OK"
+                variant="danger"
+            />
         </div>
     );
 };

@@ -11,6 +11,7 @@ import {
   DemandDocument,
 } from "../types";
 import { SubcontractorSelector } from "./SubcontractorSelector";
+import { ConfirmationModal } from "./ConfirmationModal";
 import { supabase } from "../services/supabase";
 import { uploadDocument, formatFileSize } from "../services/documentService";
 import {
@@ -381,9 +382,7 @@ const BidCard: React.FC<{
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                if (confirm('Opravdu chcete odebrat tohoto dodavatele z výběrového řízení?')) {
-                  onDelete(bid.id);
-                }
+                onDelete(bid.id);
               }}
               className="text-slate-500 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
               title="Odebrat z výběrového řízení"
@@ -596,7 +595,7 @@ const CategoryCard: React.FC<{
             ? "text-red-400"
             : isUrgent
               ? "text-orange-400"
-              : "text-slate-500";
+              : "text-orange-400"; // Changed to orange for non-overdue urgent
 
           return (
             <div
@@ -980,8 +979,6 @@ export const Pipeline: React.FC<PipelineProps> = ({
   // For now, let's keep local state initialized from prop to minimize refactor,
   // BUT we need to sync back or just rely on the fact that we insert to Supabase and App.tsx might reload?
   // App.tsx doesn't auto-reload contacts on change in child.
-  // Let's use the prop for reading, but we need a way to update.
-  // The original code had `setContacts`.
   // Let's use a local state initialized from prop for now.
   const [localContacts, setLocalContacts] = useState<Subcontractor[]>(externalContacts);
 
@@ -1058,6 +1055,30 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const [isCreateContactModalOpen, setIsCreateContactModalOpen] =
     useState(false);
   const [newContactName, setNewContactName] = useState("");
+
+  // Confirmation Modal State
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({ isOpen: false, title: '', message: '', onConfirm: () => { } });
+
+  const closeConfirmModal = () => {
+    setConfirmModal(prev => ({ ...prev, isOpen: false }));
+  };
+
+  const handleDeleteBidRequest = (bidId: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Odstranit nabídku',
+      message: 'Opravdu chcete odebrat tohoto dodavatele z výběrového řízení? Tato akce je nevratná.',
+      onConfirm: () => {
+        handleDeleteBid(bidId);
+        closeConfirmModal();
+      }
+    });
+  };
 
   // Reset active category when switching projects, unless we have an initial category to open
   useEffect(() => {
@@ -1432,11 +1453,15 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const handleDeleteCategory = (categoryId: string) => {
     if (!onDeleteCategory) return;
 
-    if (
-      confirm("Opravdu chcete smazat tuto poptávku? Tato akce je nevratná.")
-    ) {
-      onDeleteCategory(categoryId);
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: 'Smazat poptávku',
+      message: 'Opravdu chcete smazat tuto poptávku? Tato akce je nevratná.',
+      onConfirm: () => {
+        onDeleteCategory(categoryId);
+        closeConfirmModal();
+      }
+    });
   };
 
   const handleSaveBid = async (updatedBid: Bid) => {
@@ -1920,7 +1945,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   bid={bid}
                   onDragStart={handleDragStart}
                   onEdit={setEditingBid}
-                  onDelete={handleDeleteBid}
+                  onDelete={handleDeleteBidRequest}
                   onGenerateInquiry={handleGenerateInquiry}
                   category={activeCategory}
                 />
@@ -1947,7 +1972,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   bid={bid}
                   onDragStart={handleDragStart}
                   onEdit={setEditingBid}
-                  onDelete={handleDeleteBid}
+                  onDelete={handleDeleteBidRequest}
                 />
               ))}
               {getBidsForColumn(activeCategory.id, "sent").length === 0 && (
@@ -1971,7 +1996,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   bid={bid}
                   onDragStart={handleDragStart}
                   onEdit={setEditingBid}
-                  onDelete={handleDeleteBid}
+                  onDelete={handleDeleteBidRequest}
                 />
               ))}
             </Column>
@@ -1990,7 +2015,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   bid={bid}
                   onDragStart={handleDragStart}
                   onEdit={setEditingBid}
-                  onDelete={handleDeleteBid}
+                  onDelete={handleDeleteBidRequest}
                 />
               ))}
             </Column>
@@ -2771,6 +2796,16 @@ export const Pipeline: React.FC<PipelineProps> = ({
           </div>
         </div>
       )}
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={closeConfirmModal}
+        confirmLabel="Odstranit"
+        variant="danger"
+      />
     </div>
   );
 };
