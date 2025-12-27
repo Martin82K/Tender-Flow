@@ -48,7 +48,8 @@ export const generateProjectInsights = async (projects: ProjectSummary[], mode: 
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-3-flash' });
+    // Use specific model version for better stability
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-001' });
 
     const projectsSummary = projects.map(p => ({
       název: p.name,

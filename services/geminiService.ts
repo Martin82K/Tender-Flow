@@ -8,7 +8,7 @@ export const getAiSuggestion = async (contextData: string): Promise<string> => {
 
     const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash',
+      model: 'gemini-2.0-flash',
       contents: `You are an intelligent assistant for a Construction Management CRM. 
       Analyze the following subcontractor data and suggest the best contact for a "rush job on internal plastering" (Vnitřní omítky). 
       Explain why briefly in Czech.
@@ -36,7 +36,7 @@ export const findCompanyRegions = async (contacts: { id: string; company: string
     const listStr = contacts.map(c => `ID: ${c.id}, Company: ${c.company}, ICO: ${c.ico || 'N/A'}`).join('\n');
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash', // Using standard flash for general logic + search
+      model: 'gemini-2.0-flash', // Using standard flash for general logic + search
       contents: `You are a data enrichment assistant. 
       For the following list of Czech companies, search the internet to find their registered headquarters region (Kraj) in the Czech Republic (e.g. "Hlavní město Praha", "Jihomoravský kraj", etc.).
       
