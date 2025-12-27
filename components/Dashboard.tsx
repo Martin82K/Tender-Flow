@@ -8,9 +8,10 @@ interface DashboardProps {
     projects: Project[];
     projectDetails: Record<string, ProjectDetails>;
     onUpdateProjectDetails?: (id: string, updates: Partial<ProjectDetails>) => void;
+    onNavigateToProject?: (projectId: string, tab: string, categoryId?: string) => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ projects, projectDetails, onUpdateProjectDetails }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ projects, projectDetails, onUpdateProjectDetails, onNavigateToProject }) => {
     const activeProjects = projects.filter(p => p.status !== 'archived');
 
     // Load last selected project from localStorage or use first active
@@ -39,7 +40,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ projects, projectDetails, 
 
         // Re-calculate metrics for export (simplified version of what was in Dashboard)
         const categories = selectedProject.categories || [];
-        const sodCategories = categories.filter(c => c.status === 'sod');
+        // const sodCategories = categories.filter(c => c.status === 'sod'); // Unused
 
         const getCategoryBidInfo = (categoryId: string) => {
             const bids = selectedProject.bids?.[categoryId] || [];
@@ -152,6 +153,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ projects, projectDetails, 
                         project={selectedProject}
                         onUpdate={(updates) => onUpdateProjectDetails?.(selectedProjectId, updates)}
                         variant="compact"
+                        onNavigateToPipeline={(categoryId) => onNavigateToProject?.(selectedProjectId, 'pipeline', categoryId)}
                     />
                 ) : (
                     <div className="flex items-center justify-center h-full text-slate-500">

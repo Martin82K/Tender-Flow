@@ -710,6 +710,7 @@ interface PipelineProps {
   onDeleteCategory?: (categoryId: string) => void;
   onBidsChange?: (bids: Record<string, Bid[]>) => void;
   searchQuery?: string;
+  initialOpenCategoryId?: string;
 }
 
 const CreateContactModal: React.FC<{
@@ -964,6 +965,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
   onDeleteCategory,
   onBidsChange,
   searchQuery = '',
+  initialOpenCategoryId,
 }) => {
   const { user } = useAuth();
   const projectData = projectDetails;
@@ -1057,10 +1059,18 @@ export const Pipeline: React.FC<PipelineProps> = ({
     useState(false);
   const [newContactName, setNewContactName] = useState("");
 
-  // Reset active category when switching projects
+  // Reset active category when switching projects, unless we have an initial category to open
   useEffect(() => {
-    setActiveCategory(null);
-  }, [projectId]);
+    if (initialOpenCategoryId) {
+      const categoryToOpen = projectDetails.categories.find(c => c.id === initialOpenCategoryId);
+      if (categoryToOpen) {
+        setActiveCategory(categoryToOpen);
+        // Scroll to view if needed? For now just opening the modal/view is enough.
+      }
+    } else {
+      setActiveCategory(null);
+    }
+  }, [projectId, initialOpenCategoryId, projectDetails.categories]);
 
 
 

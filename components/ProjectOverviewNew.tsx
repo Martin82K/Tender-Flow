@@ -26,9 +26,10 @@ interface ProjectOverviewProps {
     onUpdate: (updates: Partial<ProjectDetails>) => void;
     variant?: 'full' | 'compact';
     searchQuery?: string;
+    onNavigateToPipeline?: (categoryId: string) => void;
 }
 
-export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, onUpdate, variant = 'full', searchQuery = '' }) => {
+export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, onUpdate, variant = 'full', searchQuery = '', onNavigateToPipeline }) => {
     const contract = project.contract;
     const investor = project.investorFinancials || { sodPrice: 0, amendments: [] };
     const plannedCost = project.plannedCost || 0;
@@ -991,7 +992,11 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                                         const status = statusConfig[cat.status] || statusConfig['open'];
 
                                         return (
-                                            <tr key={cat.id} className="hover:bg-slate-800/30 transition-colors">
+                                            <tr 
+                                                key={cat.id} 
+                                                className={`hover:bg-slate-800/30 transition-colors ${onNavigateToPipeline ? 'cursor-pointer' : ''}`}
+                                                onClick={() => onNavigateToPipeline?.(cat.id)}
+                                            >
                                                 <td className="py-3 px-4 text-center">
                                                     <span className={`px-2 py-0.5 text-[9px] font-bold rounded border ${status.color}`}>
                                                         {status.label}

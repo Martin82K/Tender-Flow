@@ -102,11 +102,34 @@ const AppContent: React.FC = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [activeProjectTab, setActiveProjectTab] =
     useState<ProjectTab>("overview");
+  const [activePipelineCategoryId, setActivePipelineCategoryId] = useState<string | null>(null);
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [loadingError, setLoadingError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  const handleNavigateToProject = (projectId: string, tab: string, categoryId?: string) => {
+    // 1. Set Project
+    setSelectedProjectId(projectId);
+    
+    // 2. Set View to Project
+    setCurrentView('project');
+
+    // 3. Set Tab (assuming 'pipeline' is mapped to ProjectTab type correctly, otherwise handle mapping)
+    if (tab === 'pipeline') {
+      setActiveProjectTab('pipeline');
+    } else {
+      setActiveProjectTab('overview');
+    }
+
+    // 4. Set Category if provided
+    if (categoryId) {
+      setActivePipelineCategoryId(categoryId);
+    } else {
+      setActivePipelineCategoryId(null);
+    }
+  };
 
   // Dark Mode Management
   const [darkMode, setDarkMode] = useState(() => {
@@ -1313,6 +1336,7 @@ const AppContent: React.FC = () => {
             projects={projects}
             projectDetails={allProjectDetails}
             onUpdateProjectDetails={(id, updates) => handleUpdateProjectDetails(id, updates)}
+            onNavigateToProject={handleNavigateToProject}
           />
         );
       case "project":
@@ -1337,6 +1361,8 @@ const AppContent: React.FC = () => {
             onTabChange={setActiveProjectTab}
             contacts={contacts}
             statuses={contactStatuses}
+            initialPipelineCategoryId={activePipelineCategoryId ?? undefined}
+            onNavigateToPipeline={(categoryId) => setActivePipelineCategoryId(categoryId)}
           />
         );
       case "contacts":
@@ -1405,6 +1431,7 @@ const AppContent: React.FC = () => {
             projects={projects}
             projectDetails={allProjectDetails}
             onUpdateProjectDetails={(id, updates) => handleUpdateProjectDetails(id, updates)}
+            onNavigateToProject={handleNavigateToProject}
           />
         );
     }

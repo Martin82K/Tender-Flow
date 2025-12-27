@@ -346,11 +346,18 @@ interface ProjectLayoutProps {
     onTabChange: (tab: ProjectTab) => void;
     contacts: Subcontractor[];
     statuses?: StatusConfig[];
+    initialPipelineCategoryId?: string;
+    onNavigateToPipeline?: (categoryId: string) => void;
 }
 
-export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, projectDetails, onUpdateDetails, onAddCategory, onEditCategory, onDeleteCategory, onBidsChange, activeTab, onTabChange, contacts, statuses }) => {
+export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, projectDetails, onUpdateDetails, onAddCategory, onEditCategory, onDeleteCategory, onBidsChange, activeTab, onTabChange, contacts, statuses, initialPipelineCategoryId, onNavigateToPipeline }) => {
     const project = projectDetails;
     const [searchQuery, setSearchQuery] = useState('');
+
+    const handleLocalNavigateToPipeline = (categoryId: string) => {
+        onTabChange('pipeline');
+        onNavigateToPipeline?.(categoryId);
+    };
 
     if (!project) return <div>Project not found</div>;
 
@@ -391,7 +398,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, project
             </Header>
 
             <div className="flex-1 overflow-auto flex flex-col">
-                {activeTab === 'overview' && <ProjectOverviewNew project={project} onUpdate={onUpdateDetails} variant="compact" searchQuery={searchQuery} />}
+                {activeTab === 'overview' && <ProjectOverviewNew project={project} onUpdate={onUpdateDetails} variant="compact" searchQuery={searchQuery} onNavigateToPipeline={handleLocalNavigateToPipeline} />}
                 {activeTab === 'tender-plan' && (
                     <TenderPlan
                         projectId={projectId}
@@ -416,7 +423,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, project
                         }}
                     />
                 )}
-                {activeTab === 'pipeline' && <Pipeline projectId={projectId} projectDetails={project} bids={project.bids || {}} contacts={contacts} statuses={statuses} onAddCategory={onAddCategory} onEditCategory={onEditCategory} onDeleteCategory={onDeleteCategory} onBidsChange={(bids) => onBidsChange?.(projectId, bids)} searchQuery={searchQuery} />}
+                {activeTab === 'pipeline' && <Pipeline projectId={projectId} projectDetails={project} bids={project.bids || {}} contacts={contacts} statuses={statuses} onAddCategory={onAddCategory} onEditCategory={onEditCategory} onDeleteCategory={onDeleteCategory} onBidsChange={(bids) => onBidsChange?.(projectId, bids)} searchQuery={searchQuery} initialOpenCategoryId={initialPipelineCategoryId} />}
                 {activeTab === 'documents' && <ProjectDocuments project={project} onUpdate={onUpdateDetails} />}
             </div>
         </div>
