@@ -2,7 +2,7 @@
 
 Tato příručka popisuje práci v aplikaci Tender Flow pro řízení staveb, výběrových řízení a subdodavatelů.
 
-Verze příručky: **1.2** • Datum: **2025‑12‑21** • Aplikace: **v0.9.3**
+Verze příručky: **1.2** • Datum: **2025‑12‑27** • Aplikace: **v0.9.3**
 
 ![Tender Flow logo](./assets/logo.png)
 
@@ -311,4 +311,4 @@ Autorem a vlastníkem aplikace Tender Flow je **Martin Kalkuš** (`martinkalkus8
 
 ---
 
-Verze: **1.2** • Datum: **2025‑12‑21**
+Verze: **1.2** • Datum: **2025‑12‑27**
