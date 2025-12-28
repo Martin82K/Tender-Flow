@@ -4,10 +4,10 @@ import { Link, useLocation, navigate } from "../routing/router";
 
 const navItems = [
   { id: "features", label: "Funkce" },
-  { id: "workflow", label: "Workflow" },
-  { id: "security", label: "Bezpečnost" },
+  { id: "solution", label: "Řešení" },
+  { id: "demo", label: "Demo" },
   { id: "pricing", label: "Ceník" },
-  { id: "faq", label: "FAQ" },
+  { id: "security", label: "Bezpečnost" },
 ];
 
 export const PublicHeader: React.FC<{ variant?: "marketing" | "auth" }> = ({

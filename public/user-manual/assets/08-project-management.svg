@@ -43,7 +43,7 @@
   <text x="670" y="228" class="t" font-size="14" font-weight="700">Aktivní stavby</text>
   <text x="670" y="252" class="t m">Drag &amp; drop pořadí</text>
   <rect x="670" y="270" width="400" height="44" rx="12" fill="rgba(255,255,255,0.05)" class="stroke"/>
-  <text x="686" y="298" class="t m">⋮⋮  REKO bazén Aš  •  Akce: sdílet / archivovat</text>
+  <text x="686" y="298" class="t m">⋮⋮  Bytový dům Slunečná - DEMO  •  Akce: sdílet / archivovat</text>
   <rect x="670" y="322" width="400" height="44" rx="12" fill="rgba(255,255,255,0.05)" class="stroke"/>
   <text x="686" y="350" class="t m">⋮⋮  Bytový dům  •  Akce: sdílet / archivovat</text>
 
@@ -62,4 +62,3 @@
   <rect x="950" y="556" width="120" height="42" rx="12" class="btn"/>
   <text x="978" y="583" class="t m">Sdílet</text>
 </svg>
-

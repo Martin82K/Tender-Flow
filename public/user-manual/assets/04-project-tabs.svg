@@ -27,7 +27,7 @@
 
   <!-- Header -->
   <rect x="140" y="205" width="920" height="70" rx="18" fill="rgba(0,0,0,0.22)" class="stroke"/>
-  <text x="170" y="246" class="t" font-size="18" font-weight="700">REKO bazén Aš</text>
+  <text x="170" y="246" class="t" font-size="18" font-weight="700">Bytový dům Slunečná - DEMO</text>
   <text x="170" y="268" class="t m">Detail stavby</text>
 
   <!-- Tabs -->
@@ -49,4 +49,3 @@
   <text x="170" y="410" class="t m">Obsah vybrané záložky (metriky / tabulky / pipeline / dokumenty).</text>
   <text x="170" y="442" class="t m">Změny se ukládají do databáze (Supabase).</text>
 </svg>
-

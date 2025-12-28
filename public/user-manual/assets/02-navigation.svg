@@ -36,7 +36,7 @@
   <text x="195" y="375" class="t m">Stavby (accordion)</text>
 
   <rect x="195" y="402" width="250" height="34" rx="10" fill="rgba(96,165,250,0.12)" stroke="rgba(96,165,250,0.30)"/>
-  <text x="214" y="424" class="t m">REKO bazén Aš</text>
+  <text x="214" y="424" class="t m">Bytový dům Slunečná - DEMO</text>
 
   <rect x="195" y="444" width="250" height="34" rx="10" fill="rgba(255,255,255,0.05)" class="stroke"/>
   <text x="214" y="466" class="t m">Bytový dům – etapa 2</text>
@@ -62,4 +62,3 @@
   <rect x="470" y="210" width="6" height="370" rx="3" fill="rgba(45,212,191,0.55)"/>
   <text x="150" y="646" class="t m">Tip: šířku sidebaru lze měnit tažením za pravý okraj (resizer).</text>
 </svg>
-

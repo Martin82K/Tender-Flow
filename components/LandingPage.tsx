@@ -1,13 +1,19 @@
-import React, { useEffect } from "react";
-import { ShieldCheck, FileText, Users, LayoutDashboard, Sparkles } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import {
+  ShieldCheck,
+  FileText,
+  Users,
+  LayoutDashboard,
+  Sparkles,
+  Check,
+} from "lucide-react";
 import { PublicLayout } from "./public/PublicLayout";
 import { PublicHeader } from "./public/PublicHeader";
 import { Link, useLocation, navigate } from "./routing/router";
-import ConstructionAnimation from "../crm_landing_animation";
 import { useAuth } from "../context/AuthContext";
 
 const Stat: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <div className="rounded-2xl border border-white/10 bg-gray-950/40 backdrop-blur px-5 py-4">
+  <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4">
     <div className="text-white text-xl font-semibold">{value}</div>
     <div className="text-white/60 text-sm">{label}</div>
   </div>
@@ -30,12 +36,13 @@ const Feature: React.FC<{
 export const LandingPage: React.FC = () => {
   const { hash } = useLocation();
   const { loginAsDemo } = useAuth();
+  const [activePricingPlan, setActivePricingPlan] =
+    useState<string>("Professional");
 
   const handleDemo = () => {
     loginAsDemo();
     navigate("/app", { replace: true });
   };
-
 
   useEffect(() => {
     if (!hash) return;
@@ -52,84 +59,121 @@ export const LandingPage: React.FC = () => {
       <PublicHeader variant="marketing" />
 
       <main className="relative mx-auto max-w-6xl px-4 py-10 md:py-16">
-        <ConstructionAnimation />
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-          <div className="rounded-3xl border border-white/10 bg-gray-950/40 backdrop-blur p-8 md:p-12">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-gray-950/40 px-3 py-1.5 text-xs text-white/70">
+        <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-gray-950/30 backdrop-blur">
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(circle at 15% 25%, rgba(255, 138, 51, 0.18) 0%, transparent 55%), radial-gradient(circle at 70% 10%, rgba(255, 138, 51, 0.10) 0%, transparent 55%), linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(0,0,0,0.0) 45%, rgba(0,0,0,0.25) 100%)",
+            }}
+          />
+          <div className="relative p-10 md:p-14">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-white/70">
               <span className="w-2 h-2 rounded-full bg-orange-500" />
-              Moderní systém pro tendry a poptávky
+              v0.9.3 • Cloud-based řešení
             </div>
-            <h1 className="mt-5 text-4xl md:text-5xl font-light text-white tracking-wide leading-tight">
-              Tender Flow: Systém{" "}
-              <span className="text-orange-400">výběrových řízení</span> pro stavby.
+
+            <h1 className="mt-6 text-4xl md:text-6xl font-semibold tracking-tight text-white leading-[1.05]">
+              Staví se lépe,
+              <br />
+              když máte přehled
             </h1>
-            <p className="mt-5 text-white/70 leading-relaxed">
-              Výběrová řízení a poptávky od plánu VŘ až do zasmluvnění. Generujte reporty, sdílejte ekonomická data,
-              kontakty subdodavatele, sdílete projekty s účastníky stavby a konečně šetřete drahocený čas.
-              Generování poptávek a emailů dle dynamických šablon. Hromadné odeslání emailů účastníkům aktivních v soutěži.
-              Report o výsledku.
-            </p>
-            <p className="mt-5 text-white/70 leading-relaxed">  
-              Specializujeme se na úsporu času v opakovaných situacích a hledáme způsoby, jak ušetřit drahocený čas.
-              Vsaďte si na nás! Jsme z oboru a tak víme, co potřebujete.
-            </p>
-            <p className="mt-5 text-white/70 leading-relaxed">  
-              Vývoj určitě nezpomaluje a tak rok 2026 přinese další množství úspory času.
-              Čím více výběrových řízení a poptávek, tím více uspořených hodin Tender Flow přinese.
+
+            <p className="mt-5 text-white/65 leading-relaxed text-base md:text-lg max-w-2xl">
+              Cloud řešení pro řízení výběrových řízení ve stavebnictví. 
+              Jedno místo pro podklady, nabídky, rozhodnutí a sdílení v týmu.
+
             </p>
 
             <div className="mt-8 flex flex-col sm:flex-row gap-3">
               <Link
-                to="/login"
-                className="px-5 py-3 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-white/90 transition-colors text-center"
-              >
-                Přihlásit se
-              </Link>
-
-              <Link
                 to="/register"
-                className="px-5 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-medium transition-colors shadow-lg shadow-orange-500/20 text-center"
+                className="px-6 py-3.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-medium transition-colors shadow-lg shadow-orange-500/20 text-center"
               >
-                Začít zdarma
+                Začít zdarma →
               </Link>
+              <button
+                type="button"
+                onClick={handleDemo}
+                className="px-6 py-3.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-white/90 transition-colors text-center"
+              >
+                Vyzkoušet demo
+              </button>
             </div>
 
-            <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <Stat label="Jeden přehled pro celý tým" value="Méně chaosu" />
-              <Stat label="Sdílení svému týmu pro daný projekt" value="Informace" />
-              <Stat label="úspora 2 hodiny týdně. V týmu ještě více." value="Čas" />
+            <div className="mt-8 flex flex-wrap gap-2 text-sm text-white/70">
+              {[
+                "Projekty a pipeline poptávek",
+                "Hromadné rozesílky + šablony",
+                "Vyhodnocení a reporty",
+                "Kontakty subdodavatelů",
+              ].map((t) => (
+                <div
+                  key={t}
+                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5"
+                >
+                  <Check size={14} className="text-orange-300" />
+                  <span>{t}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-3xl">
+              <Stat
+                label="Jedno místo pro nabídky a podklady"
+                value="Přehled"
+              />
+              <Stat label="Sdílení informací v rámci projektu" value="Tým" />
+              <Stat label="Méně ruční práce a dohledávání" value="Tempo" />
             </div>
           </div>
+        </section>
 
-          <div className="rounded-3xl border border-white/10 bg-gray-950/40 backdrop-blur p-6">
-            <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-6">
-              <div className="flex items-center justify-between">
-                <div className="text-white font-semibold">Co Tender Flow již umí?</div>
-                <div className="text-xs text-white/50">Dashboard • Projekty • Výběrová řízení</div>
-              </div>
-              <div className="mt-5 grid grid-cols-1 gap-3">
+	        <section id="solution" className="mt-16 md:mt-24 scroll-mt-24">
+	          <div className="mb-8 rounded-3xl border border-white/10 bg-gray-950/40 backdrop-blur p-8">
+	            <h2 className="text-2xl md:text-3xl font-light text-white tracking-wide">
+	              Ušetřete čas na každém tendru
+		            </h2>
+		            <p className="mt-2 text-white/60 max-w-3xl">
+		              Tender Flow sjednocuje podklady, nabídky a rozhodnutí do jednoho procesu. Bez dohledávání v e-mailech a tabulkách.
+		            </p>
+	          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="rounded-3xl border border-white/10 bg-gray-950/40 backdrop-blur p-8">
+              <div className="text-white font-semibold">Bez Tender Flow</div>
+              <ul className="mt-6 space-y-2 text-sm text-white/70">
                 {[
-                  { label: "Poptávka výběrového řízení", status: "Probíhá" },
-                  { label: "Poptávka subdodavatele", status: "Generovat poptávku" },
-                  { label: "Sdílení stavby s týmem", status: "Sdíleno s: kolega@firma.cz" },
-                  { label: "Ukončené výběrové řízení", status: "Export zápisu o výběru do PDF, XLSX" },
-                  { label: "Ukončené VŘ", status: "Hromadné odeslání emailů účastníkům VŘ." },
-                  { label: "Přehled VŘ", status: "Bilance ceny proti SOD, proti plánu" },
-                ].map((row, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3"
-                  >
-                    <div className="text-sm text-white/80">{row.label}</div>
-                    <div className="text-xs rounded-full px-3 py-1 border border-orange-500/30 bg-orange-500/10 text-orange-300">
-                      {row.status}
-                    </div>
-                  </div>
+                  "Excel/Sheets pro každý projekt zvlášť",
+                  "Nabídky rozházené po e-mailech",
+                  "Ruční porovnávání cen a variant",
+                  "Nejasný stav poptávek a termínů",
+                  "Zdlouhavé reportování a exporty",
+                ].map((t) => (
+                  <li key={t} className="flex items-start gap-2">
+                    <span className="mt-0.5 text-white/30">•</span>
+                    <span>{t}</span>
+                  </li>
                 ))}
-              </div>
-              <p className="mt-5 text-xs text-white/50">
-                Systém je navržen pro maximalizaci úspory času.
-              </p>
+              </ul>
+            </div>
+
+            <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-orange-500/10 via-gray-950/40 to-transparent backdrop-blur p-8">
+              <div className="text-white font-semibold">S Tender Flow</div>
+              <ul className="mt-6 space-y-2 text-sm text-white/70">
+                {[
+                  "Vše na jednom místě v cloudu",
+                  "Šablony a jednotný výstup poptávek",
+                  "Přehledný tok od plánu VŘ po vyhodnocení",
+                  "Rychlé sdílení kontextu v týmu",
+                  "Export/report jedním klikem",
+                ].map((t) => (
+                  <li key={t} className="flex items-start gap-2">
+                    <span className="mt-0.5 text-orange-300">•</span>
+                    <span>{t}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         </section>
@@ -138,18 +182,12 @@ export const LandingPage: React.FC = () => {
           <div className="mb-8 rounded-3xl border border-white/10 bg-gray-950/40 backdrop-blur p-8 flex items-end justify-between gap-6 flex-wrap">
             <div>
               <h2 className="text-2xl md:text-3xl font-light text-white tracking-wide">
-                Funkce, které Vám pomůžou začít šetřit čas.
+                Funkce, které vám ušetří čas.
               </h2>
               <p className="mt-2 text-white/60">
-                Vše důležité na jednom místě, bez složitého nastavování.
+                Vše důležité na jednom místě, bez zbytečné administrativy.
               </p>
             </div>
-            <Link
-              to="/login"
-              className="text-sm text-orange-300 hover:text-orange-200 transition-colors"
-            >
-              Přihlásit se →
-            </Link>
           </div>
 
           <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -186,20 +224,96 @@ export const LandingPage: React.FC = () => {
           </div>
         </section>
 
+        <section id="demo" className="mt-16 md:mt-24 scroll-mt-24">
+          <div className="mb-8 rounded-3xl border border-white/10 bg-gray-950/40 backdrop-blur p-8 flex items-end justify-between gap-6 flex-wrap">
+            <div>
+              <h2 className="text-2xl md:text-3xl font-light text-white tracking-wide">
+                Vidět znamená věřit.
+              </h2>
+              <p className="mt-2 text-white/60 max-w-3xl">
+                Spusťte demo projekt a proklikejte si workflow bez rizika
+                zobrazení reálných dat.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleDemo}
+              className="px-5 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-medium transition-colors shadow-lg shadow-orange-500/20"
+            >
+              Spustit demo
+            </button>
+          </div>
+
+          <div className="rounded-3xl border border-white/10 bg-gray-950/40 backdrop-blur p-6">
+            <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-6">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-red-500/80" />
+                <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
+                <div className="w-3 h-3 rounded-full bg-green-500/80" />
+              </div>
+
+              <div className="mt-6 rounded-2xl border border-white/10 bg-gray-950/40 p-6">
+                <div className="text-white font-semibold">
+                  Demo projekt: Bytový dům Slunečná - DEMO
+                </div>
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {[
+                    { label: "ROZPOČET INVESTOR", value: "18,5 mil. Kč" },
+                    { label: "PLÁNOVANÝ NÁKLAD", value: "15,0 mil. Kč" },
+                    { label: "ZASMLUVNĚNO", value: "12,4 mil. Kč" },
+                    { label: "POSTUP", value: "3 / 5 kategorií" },
+                  ].map((m) => (
+                    <div
+                      key={m.label}
+                      className="rounded-2xl border border-white/10 bg-white/5 p-5"
+                    >
+                      <div className="text-xs text-white/50">{m.label}</div>
+                      <div className="mt-2 text-white text-2xl font-light">
+                        {m.value}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <p className="mt-5 text-sm text-white/60">
+                Demo běží lokálně v prohlížeči a nepoužívá data vaší organizace.
+              </p>
+            </div>
+          </div>
+        </section>
+
         <section id="workflow" className="mt-16 md:mt-24 scroll-mt-24">
           <div className="rounded-3xl border border-white/10 bg-gray-950/40 backdrop-blur p-8">
             <h2 className="text-2xl md:text-3xl font-light text-white tracking-wide">
-              Od poptávky po smlouvu.
+              Od poptávky po rozhodnutí.
             </h2>
             <p className="mt-2 text-white/60 max-w-3xl">
-              Typický tok: Vytvořit projekt → Plán VŘ → Poptávka → Subdodavatelské nabídky → Vyhodnocení.
+              Typický tok: Projekt → Plán VŘ → Poptávka → Nabídky → Vyhodnocení
+              a výstup.
             </p>
             <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-3">
               {[
-                { step: "1", title: "Založte projekt", text: "Kontakt, popis a kategorie." },
-                { step: "2", title: "Poptávky", text: "Plány VŘ, průběh a milníky." },
-                { step: "3", title: "Subdodavatelé", text: "Výběr, poznámky a hodnocení." },
-                { step: "4", title: "Dokumenty", text: "Dynamické šablony poptávek, reporty, zápisy." },
+                {
+                  step: "1",
+                  title: "Založte projekt",
+                  text: "Popis, kategorie a kontext pro celý tým.",
+                },
+                {
+                  step: "2",
+                  title: "Nastavte poptávku",
+                  text: "Plán VŘ, milníky, požadavky a podklady.",
+                },
+                {
+                  step: "3",
+                  title: "Oslovte subdodavatele",
+                  text: "Kontakty, rozesílky, historie spolupráce.",
+                },
+                {
+                  step: "4",
+                  title: "Vyhodnoťte nabídky",
+                  text: "Poznámky, rozhodnutí a export/report.",
+                },
               ].map((s) => (
                 <div
                   key={s.step}
@@ -221,15 +335,16 @@ export const LandingPage: React.FC = () => {
                 Bezpečnost a přístupy
               </h2>
               <p className="mt-3 text-white/60 leading-relaxed">
-                Aplikace je postavená pro práci s citlivými podklady. Připraveno na
-                firemní procesy a řízení přístupů.
+                Aplikace je postavená pro práci s citlivými podklady a firemními
+                procesy. Přístupy jsou řízené rolemi a data jsou oddělena podle
+                organizace.
               </p>
               <ul className="mt-6 space-y-2 text-sm text-white/70">
                 {[
-                  "Autentizace přes databázi",
-                  "Oddělení dat podle organizace",
-                  "Role (uživatel / admin)",
-                  "Řízený přístup přes uživatelské role (Přípravář, Stavbyvedoucí, Technik apod.)",
+                  "Autentizace a přihlášení uživatelů",
+                  "Oddělení dat mezi organizacemi",
+                  "Role a admin režim",
+                  "Přístupy podle potřeb týmu (příprava / stavba / technik)",
                 ].map((t) => (
                   <li key={t} className="flex items-start gap-2">
                     <span className="mt-0.5 text-orange-300">•</span>
@@ -240,13 +355,14 @@ export const LandingPage: React.FC = () => {
             </div>
             <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-orange-500/10 via-gray-950/40 to-transparent backdrop-blur p-8 flex flex-col justify-between">
               <div>
-                <div className="text-white font-semibold">Chcete demo pro firmu?</div>
+                <div className="text-white font-semibold">
+                  Chcete nastavení pro firmu?
+                </div>
                 <p className="mt-2 text-white/60">
-                  Nastavíme vám prostředí, role.
-                  Vytvoříme základní role admina a zaktivujeme nastavení.
-                  Spustíme databázi a provedeme implementaci.
-                  Pomůžeme s importem seznamu kontaktů a subdodavatelů.
-                  Inicializujeme modul dynamických poptávek se základní šablonou.
+                  Pomůžeme s úvodním nastavením organizace, rolí a importem
+                  kontaktů. Společně nastavíme šablony poptávek a doporučíme
+                  workflow, aby se proces ve firmě zjednodušil hned od prvního
+                  dne.
                 </p>
               </div>
               <div className="mt-6 flex gap-3">
@@ -267,84 +383,99 @@ export const LandingPage: React.FC = () => {
           </div>
         </section>
 
-        <section id="pricing" className="mt-16 md:mt-24 scroll-mt-24">
-          <div className="mb-8 rounded-3xl border border-white/10 bg-gray-950/40 backdrop-blur p-8">
-            <h2 className="text-2xl md:text-3xl font-light text-white tracking-wide">
-              Ceník
+	        <section id="pricing" className="mt-16 md:mt-24 scroll-mt-24">
+	          <div className="mb-8 rounded-3xl border border-white/10 bg-gray-950/40 backdrop-blur p-8">
+	            <h2 className="text-2xl md:text-3xl font-light text-white tracking-wide">
+	              Ceník
             </h2>
             <p className="mt-2 text-white/60 max-w-3xl">
-              Licence = uživatel v organizaci. AI+ je příplatek za uživatele. Zatím
-              nasazujeme individuálně podle firmy a rozsahu — transparentně a bez
-              „překvapení“.
+              Jednoduché tarify pro různé velikosti týmů. Ceny jsou orientační a
+              bez DPH.
             </p>
           </div>
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
               {
-                title: "Demo",
-                price: "Zdarma",
-                items: [
-                  "Ukázková stavba (bez dalších staveb)",
-                  "Bez importů",
-                  "Náhled workflow a UI",
-                ],
-                cta: { label: "Vyzkoušet Demo", to: "/register" },
-              },
-              {
                 title: "Starter",
-                price: "1500 Kč/měs",
+                price: "1 990 Kč",
+                label: "měsíčně",
                 items: [
-                  "3 licence (uživatelé v organizaci)",
-                  "Úspora času pr. 24 hodin",
-                  "Import kontaktů",
-                  "Generování poptávek",
+                  "5 aktivních projekt",
+                  "5 uživatelů",
+                  "Základní přehledy",
+                  "Databáze subdodavatelů",
+                  "Export do Excel",
                 ],
-                cta: { label: "Domluvit", to: "mailto:?subject=AI%2B%20Tender%20Flow" },
+                cta: { label: "Vyzkoušet", kind: "link" as const, to: "/register" },
               },
               {
-                title: "Pro",
-                price: "699 Kč/měs",
-                badge: "Nejčastější volba",
+                title: "Professional",
+                price: "5 000 Kč",
+                label: "měsíčně",
+                badge: "Nejvýhodnější",
+                featured: true,
                 items: [
-                  "Neomezený počet staveb a subdodavatelů",
-                  "Vyhodnocení a exporty",
-                  "Sdílení staveb a kontaktů",
-                  "Vyšší limity a prioritní výkon",
-                  "Záloha databáze",
+                  "Neomezené projekty",
+                  "15 uživatelů",
+                  "Plný dashboard + KPI",
+                  "AI analýza",
+                  "Integrace a onboarding",
+                  "Nové funkce od prvního dne",
                 ],
-                cta: { label: "Domluvit", to: "mailto:?subject=Pro%20Tender%20Flow" },
+                cta: { label: "Začít nyní", kind: "link" as const, to: "/register" },
               },
               {
-                title: "PRO AI+",
-                price: "99 Kč/měs",
-                badge: "Příplatek / uživatel",
-                variant: "addon",
+                title: "Enterprise",
+                price: "Na míru",
+                label: "individuálně",
                 items: [
-                  "AI funkce napříč aplikací",
-                  "Shrnutí podkladů a návrhy textů",
-                  "Rychlá orientace v informacích",
+                  "Neomezené projekty",
+                  "Neomezení uživatelé",
+                  "Vlastní integrace",
+                  "SLA + dedikovaná podpora",
+                  "Školení týmu",
                 ],
-                cta: { label: "Zjistit více", to: "mailto:?subject=AI%2B%20Tender%20Flow" },
+                cta: {
+                  label: "Kontaktovat",
+                  kind: "mailto" as const,
+                  to: "mailto:?subject=Enterprise%20Tender%20Flow",
+                },
               },
-            ].map((p) => (
-              <div
-                key={p.title}
-                className={[
-                  "rounded-3xl border border-white/10 backdrop-blur p-8 flex flex-col h-full",
-                  p.variant === "addon"
-                    ? "bg-gradient-to-br from-orange-500/10 via-gray-950/40 to-transparent"
-                    : "bg-gray-950/40",
-                ].join(" ")}
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="text-white font-semibold">{p.title}</div>
-                  {"badge" in p && p.badge ? (
-                    <div className="shrink-0 text-[11px] rounded-full px-3 py-1 border border-orange-500/30 bg-orange-500/10 text-orange-200">
-                      {p.badge}
-                    </div>
-                  ) : null}
+            ].map((p) => {
+              const isActive = activePricingPlan === p.title || !!p.featured;
+
+              return (
+                <div
+                  key={p.title}
+                  className={[
+                    "group relative rounded-3xl border backdrop-blur p-8 flex flex-col h-full transition-all duration-300 transform-gpu",
+                    "hover:-translate-y-1 hover:scale-[1.01] active:scale-[0.99]",
+                    p.featured
+                      ? "bg-gradient-to-br from-orange-500/15 via-gray-950/40 to-transparent"
+                      : "bg-gray-950/40",
+                    isActive
+                      ? "border-orange-500/25 bg-white/[0.06] shadow-2xl shadow-orange-500/10"
+                      : "border-white/10 hover:border-orange-500/20 hover:bg-white/[0.05] hover:shadow-2xl hover:shadow-black/40",
+                  ].join(" ")}
+                  onMouseEnter={() => setActivePricingPlan(p.title)}
+                  onFocus={() => setActivePricingPlan(p.title)}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="text-white font-semibold">{p.title}</div>
+                    {p.badge ? (
+                      <div className="shrink-0 text-[11px] rounded-full px-3 py-1 border border-orange-500/20 bg-orange-500/10 text-orange-100/90">
+                        {p.badge}
+                      </div>
+                    ) : null}
+                  </div>
+                <div className="mt-3 flex items-end gap-2">
+                  <div className="text-4xl text-white font-light leading-none">
+                    {p.price}
+                  </div>
+                  <div className="text-sm text-white/50 pb-1">{p.label}</div>
                 </div>
-                <div className="mt-2 text-3xl text-white font-light">{p.price}</div>
+
                 <ul className="mt-6 space-y-2 text-sm text-white/70">
                   {p.items.map((t) => (
                     <li key={t} className="flex items-start gap-2">
@@ -353,97 +484,68 @@ export const LandingPage: React.FC = () => {
                     </li>
                   ))}
                 </ul>
+
                 <div className="mt-auto pt-8">
-                  {p.title === "Demo" ? (
-                    <button
-                      onClick={handleDemo}
-                      className="inline-flex w-full justify-center items-center gap-2 px-5 py-3 rounded-xl bg-white/10 border border-white/20 hover:bg-white/20 text-white font-medium transition-all group"
-                    >
-                      <span className="material-symbols-outlined text-[20px] text-orange-400 group-hover:scale-110 transition-transform">auto_awesome</span>
-                      {p.cta.label}
-                    </button>
-                  ) : p.cta.to.startsWith("mailto:") ? (
+                  {p.cta.kind === "mailto" ? (
                     <a
                       href={p.cta.to}
-                      className="inline-flex w-full justify-center px-5 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-medium transition-colors shadow-lg shadow-orange-500/20"
+                      className="inline-flex w-full h-12 items-center justify-center px-5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-white/90 transition-colors"
                     >
                       {p.cta.label}
                     </a>
                   ) : (
                     <Link
                       to={p.cta.to}
-                      className="inline-flex w-full justify-center px-5 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-medium transition-colors shadow-lg shadow-orange-500/20"
+                      className="inline-flex w-full h-12 items-center justify-center px-5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-medium transition-all shadow-lg shadow-orange-500/15 group-hover:shadow-orange-500/25"
                     >
                       {p.cta.label}
                     </Link>
                   )}
                 </div>
               </div>
-            ))}
-          </div>
-        </section>
+              );
+            })}
+	          </div>
+	        </section>
 
-        <section id="faq" className="mt-16 md:mt-24 scroll-mt-24">
-          <div className="mb-8 rounded-3xl border border-white/10 bg-gray-950/40 backdrop-blur p-8">
-            <h2 className="text-2xl md:text-3xl font-light text-white tracking-wide">
-              FAQ
-            </h2>
-          </div>
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[
-              {
-                q: "Co je licence?",
-                a: "Licence = uživatel v organizaci (přístup do aplikace).",
-              },
-              {
-                q: "Jak se účtuje AI+?",
-                a: "AI+ je doplněk účtovaný jako příplatek za uživatele.",
-              },
-              {
-                q: "Je to pro malou firmu i větší tým?",
-                a: "Ano. Začnete jednoduše a postupně zapnete role, procesy a integrace podle potřeby.",
-              },
-              {
-                q: "Můžu upravit barvy a režim?",
-                a: "Ano. Aplikace má preference uživatele (tmavý režim, primární barva, pozadí).",
-              },
-              {
-                q: "Co uvidím po přihlášení?",
-                a: "Dashboard, projekty, pipeline, dokumenty, kontakty a nastavení — v jednotném UI.",
-              },
-              {
-                q: "Je možné data importovat?",
-                a: "Ano, v aplikaci existují importy a práce s tabulkami (CSV/XLSX) podle potřeby.",
-              },
-            ].map((item) => (
-              <div
-                key={item.q}
-                className="rounded-3xl border border-white/10 bg-gray-950/40 backdrop-blur p-7"
-              >
-                <div className="text-white font-semibold">{item.q}</div>
-                <div className="mt-2 text-sm text-white/60 leading-relaxed">
-                  {item.a}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
+	        <section className="mt-16 md:mt-24">
+	          <div className="rounded-[32px] border border-white/10 bg-gradient-to-br from-gray-950 via-gray-950/60 to-gray-950 p-10 md:p-16 text-center relative overflow-hidden">
+	            <div
+	              className="absolute inset-0"
+	              style={{
+	                background:
+	                  "radial-gradient(circle at 30% 20%, rgba(255, 138, 51, 0.18) 0%, transparent 55%), radial-gradient(circle at 80% 70%, rgba(255, 138, 51, 0.10) 0%, transparent 55%)",
+	              }}
+	            />
+	            <div className="relative">
+	              <h2 className="text-3xl md:text-5xl font-semibold tracking-tight text-white leading-tight">
+	                Připraveni změnit způsob,
+	                <br className="hidden md:block" />
+	                jakým řídíte výběrová řízení?
+	              </h2>
+	              <p className="mt-4 text-white/60">
+	                Začněte zdarma s demo projektem. Žádná kreditní karta není
+	                potřeba.
+	              </p>
+	              <div className="mt-8 flex justify-center">
+	                <Link
+	                  to="/register"
+	                  className="inline-flex items-center justify-center px-7 py-3.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-medium transition-colors shadow-lg shadow-orange-500/20"
+	                >
+	                  Začít hned teď →
+	                </Link>
+	              </div>
+	            </div>
+	          </div>
+	        </section>
 
-        <footer className="mt-16 md:mt-24 pb-10 border-t border-white/10 pt-8 text-sm text-white/50 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div>© {new Date().getFullYear()} Tender Flow - Martin Kalkuš</div>
-          <div className="flex items-center gap-4">
-            <Link to="/login" className="hover:text-white transition-colors">
-              Přihlášení
-            </Link>
-            <a
-              href="mailto:"
-              className="hover:text-white transition-colors"
-            >
-              Kontakt
-            </a>
-          </div>
-        </footer>
-      </main>
-    </PublicLayout>
-  );
+	        <footer className="mt-10 pb-10 border-t border-white/10 pt-8 text-sm text-white/50 text-center">
+	          <div>© {new Date().getFullYear()} Tender Flow • v0.9.3</div>
+	          <div className="mt-2 text-white/40">
+	            Cloud řešení pro správu výběrových řízení ve stavebnictví
+	          </div>
+	        </footer>
+	      </main>
+	    </PublicLayout>
+	  );
 };
