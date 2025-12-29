@@ -414,6 +414,7 @@ const AppContent: React.FC = () => {
           .eq("project_id", project.id);
 
         detailsMap[project.id] = {
+          id: project.id,
           title: project.name,
           status: project.status || "realization",
           investor: project.investor || "",
@@ -572,6 +573,21 @@ const AppContent: React.FC = () => {
       setContactStatuses(statuses);
     } catch (error) {
       console.error("Error loading initial data:", error);
+      if (!silent) {
+        const anyError = error as any;
+        const detailParts = [
+          anyError?.message ? `message=${anyError.message}` : null,
+          anyError?.code ? `code=${anyError.code}` : null,
+          anyError?.details ? `details=${anyError.details}` : null,
+          anyError?.hint ? `hint=${anyError.hint}` : null,
+        ].filter(Boolean);
+
+        setLoadingError(
+          detailParts.length > 0
+            ? `Nepodařilo se načíst data (${detailParts.join(", ")}).`
+            : "Nepodařilo se načíst data. Zkuste obnovit stránku."
+        );
+      }
     } finally {
       if (!silent) setIsDataLoading(false);
       lastRefreshTime.current = Date.now();

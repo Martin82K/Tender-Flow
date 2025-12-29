@@ -14,7 +14,6 @@ CREATE TABLE projects (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
 -- Project Contracts Table (1:1 with projects)
 CREATE TABLE project_contracts (
     project_id VARCHAR(36) PRIMARY KEY REFERENCES projects(id) ON DELETE CASCADE,
@@ -24,13 +23,11 @@ CREATE TABLE project_contracts (
     site_facilities_percent DECIMAL(5, 2),
     insurance_percent DECIMAL(5, 2)
 );
-
 -- Project Investor Financials Table (1:1 with projects)
 CREATE TABLE project_investor_financials (
     project_id VARCHAR(36) PRIMARY KEY REFERENCES projects(id) ON DELETE CASCADE,
     sod_price DECIMAL(15, 2) -- Base contract price
 );
-
 -- Project Amendments Table (1:N with projects)
 CREATE TABLE project_amendments (
     id VARCHAR(36) PRIMARY KEY,
@@ -45,7 +42,6 @@ CREATE TABLE subcontractor_statuses (
     label VARCHAR(100) NOT NULL,
     color VARCHAR(20) CHECK (color IN ('green', 'red', 'yellow', 'blue', 'purple', 'slate'))
 );
-
 -- Subcontractors Table
 CREATE TABLE subcontractors (
     id VARCHAR(36) PRIMARY KEY, -- UUID
@@ -85,7 +81,6 @@ CREATE TABLE bids (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
 -- Bid Tags Table (Many-to-Many for tags like 'Reliable', 'Cheapest')
 CREATE TABLE bid_tags (
     bid_id VARCHAR(36) REFERENCES bids(id) ON DELETE CASCADE,

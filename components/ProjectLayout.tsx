@@ -9,6 +9,9 @@ import { TemplateManager } from './TemplateManager';
 import { getTemplateById } from '../services/templateService';
 import { ProjectOverviewNew } from './ProjectOverviewNew';
 import { getDocHubProjectLinks, isProbablyUrl, resolveDocHubStructureV1 } from '../utils/docHub';
+import { supabase } from '../services/supabase';
+import { invokeAuthedFunction } from '../services/functionsClient';
+import { ConfirmationModal } from './ConfirmationModal';
 
 // --- Helper Functions ---
 const parseMoney = (valueStr: string): number => {
@@ -63,6 +66,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
     const [docHubMode, setDocHubMode] = useState<"user" | "org" | null>(null);
     const [docHubStatus, setDocHubStatus] = useState<"disconnected" | "connected" | "error">("disconnected");
     const [isEditingDocHubSetup, setIsEditingDocHubSetup] = useState(false);
+    const [isDocHubConnecting, setIsDocHubConnecting] = useState(false);
     const [selectedTemplateFile, setSelectedTemplateFile] = useState<File | null>(null);
     const [isUploadingTemplate, setIsUploadingTemplate] = useState(false);
     const [showTemplateManager, setShowTemplateManager] = useState(false);
@@ -106,11 +110,31 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
     const docHubStructure = resolveDocHubStructureV1(project.docHubStructureV1 || undefined);
     const [isEditingDocHubStructure, setIsEditingDocHubStructure] = useState(false);
     const [docHubStructureDraft, setDocHubStructureDraft] = useState(docHubStructure);
+    const [docHubNewFolderName, setDocHubNewFolderName] = useState(project.title || project.name || "");
+    const [uiModal, setUiModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        variant: 'danger' | 'info' | 'success';
+    }>({ isOpen: false, title: '', message: '', variant: 'info' });
+
+    const showModal = (args: { title: string; message: string; variant?: 'danger' | 'info' | 'success' }) => {
+        setUiModal({
+            isOpen: true,
+            title: args.title,
+            message: args.message,
+            variant: args.variant ?? 'info',
+        });
+    };
 
     useEffect(() => {
         setDocHubStructureDraft(resolveDocHubStructureV1(project.docHubStructureV1 || undefined));
         setIsEditingDocHubStructure(false);
     }, [project.docHubStructureV1]);
+
+    useEffect(() => {
+        setDocHubNewFolderName(project.title || project.name || "");
+    }, [project.title, (project as any).name]);
 
     const handleSaveDocHub = () => {
         onUpdate({
@@ -123,6 +147,232 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
             docHubStructureVersion: project.docHubStructureVersion ?? 1
         });
         setIsEditingDocHubSetup(false);
+    };
+
+    const handleConnectDocHub = async () => {
+        if (!docHubProvider || !docHubMode) {
+            showModal({ title: "DocHub", message: "Vyberte provider a režim.", variant: "info" });
+            return;
+        }
+        if (!project.id) {
+            showModal({ title: "DocHub", message: "Chybí ID projektu (nelze připojit DocHub).", variant: "danger" });
+            return;
+        }
+
+        setIsDocHubConnecting(true);
+        try {
+            const returnTo = window.location.href;
+            const data = await invokeAuthedFunction<{ url?: string }>("dochub-auth-url", {
+                body: { provider: docHubProvider, mode: docHubMode, projectId: project.id, returnTo }
+            });
+            const url = data?.url;
+            if (!url) throw new Error("Backend nevrátil autorizační URL.");
+            window.location.href = url;
+        } catch (e) {
+            const message = e instanceof Error ? e.message : "Neznámá chyba připojení";
+            showModal({
+                title: "Nelze spustit připojení",
+                message: `${message}\n\nTip: pro lokální běh je potřeba Supabase Edge Functions a nastavené OAuth env.`,
+                variant: "danger",
+            });
+        } finally {
+            setIsDocHubConnecting(false);
+        }
+    };
+
+    const handleResolveDocHubRoot = async () => {
+        if (!docHubProvider) {
+            showModal({ title: "DocHub", message: "Vyberte provider.", variant: "info" });
+            return;
+        }
+        if (!project.id) {
+            showModal({ title: "DocHub", message: "Chybí ID projektu.", variant: "danger" });
+            return;
+        }
+        if (!docHubRootLink.trim()) {
+            showModal({ title: "DocHub", message: "Zadejte odkaz na složku.", variant: "info" });
+            return;
+        }
+
+        setIsDocHubConnecting(true);
+        try {
+            const data = await invokeAuthedFunction<any>("dochub-resolve-root", {
+                body: { provider: docHubProvider, projectId: project.id, url: docHubRootLink }
+            });
+            const rootName = (data as any)?.rootName as string | undefined;
+            const rootWebUrl = (data as any)?.rootWebUrl as string | undefined;
+            if (rootName) setDocHubRootName(rootName);
+            if (rootWebUrl) setDocHubRootLink(rootWebUrl);
+            setDocHubStatus("connected");
+            onUpdate({
+                docHubEnabled: true,
+                docHubProvider,
+                docHubStatus: "connected",
+                docHubRootName: rootName || null,
+                docHubRootLink: rootWebUrl || docHubRootLink,
+                docHubRootWebUrl: rootWebUrl || null,
+                docHubRootId: (data as any)?.rootId || null,
+                docHubDriveId: (data as any)?.driveId || null
+            });
+            showModal({ title: "Hotovo", message: "Hlavní složka projektu ověřena a uložena.", variant: "success" });
+        } catch (e) {
+            const message = e instanceof Error ? e.message : "Neznámá chyba";
+            showModal({ title: "Ověření selhalo", message, variant: "danger" });
+        } finally {
+            setIsDocHubConnecting(false);
+        }
+    };
+
+    const ensureScript = (() => {
+        const loaded = new Map<string, Promise<void>>();
+        return (src: string) => {
+            if (loaded.has(src)) return loaded.get(src)!;
+            const promise = new Promise<void>((resolve, reject) => {
+                const existing = document.querySelector(`script[src="${src}"]`) as HTMLScriptElement | null;
+                if (existing?.dataset.loaded === "1") return resolve();
+                const script = existing || document.createElement("script");
+                script.src = src;
+                script.async = true;
+                script.onload = () => {
+                    script.dataset.loaded = "1";
+                    resolve();
+                };
+                script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
+                if (!existing) document.head.appendChild(script);
+            });
+            loaded.set(src, promise);
+            return promise;
+        };
+    })();
+
+    const handlePickGoogleDriveRoot = async () => {
+        if (docHubProvider !== "gdrive") {
+            showModal({ title: "DocHub", message: "Vyberte Google Drive jako provider.", variant: "info" });
+            return;
+        }
+        if (!project.id) {
+            showModal({ title: "DocHub", message: "Chybí ID projektu.", variant: "danger" });
+            return;
+        }
+        const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
+        if (!apiKey) {
+            showModal({ title: "Chybí konfigurace", message: "Chybí VITE_GOOGLE_API_KEY (Google Picker developer key).", variant: "danger" });
+            return;
+        }
+
+        setIsDocHubConnecting(true);
+        try {
+            const tokenData = await invokeAuthedFunction<{ accessToken?: string }>("dochub-google-picker-token");
+            const pickerAccessToken = tokenData?.accessToken;
+            if (!pickerAccessToken) throw new Error("Backend nevrátil accessToken.");
+
+            await ensureScript("https://apis.google.com/js/api.js");
+            const gapi = window.gapi;
+            if (!gapi?.load) throw new Error("Google API script nebyl načten správně.");
+
+            await new Promise<void>((resolve) => {
+                gapi.load("picker", { callback: resolve });
+            });
+
+            const picker = new window.google.picker.PickerBuilder()
+                .addView(
+                    new window.google.picker.DocsView(window.google.picker.ViewId.FOLDERS)
+                        .setIncludeFolders(true)
+                        .setSelectFolderEnabled(true)
+                )
+                .setOAuthToken(pickerAccessToken)
+                .setDeveloperKey(apiKey)
+                .setCallback(async (data: any) => {
+                    if (data?.action !== window.google.picker.Action.PICKED) return;
+                    const doc = data?.docs?.[0];
+                    const rootId = doc?.id as string | undefined;
+                    if (!rootId) return;
+
+                    try {
+                        const resolved = await invokeAuthedFunction<any>("dochub-resolve-root", {
+                            body: { provider: "gdrive", projectId: project.id, rootId }
+                        });
+
+                        const rootName = (resolved as any)?.rootName as string | undefined;
+                        const rootWebUrl = (resolved as any)?.rootWebUrl as string | undefined;
+                        const driveId = (resolved as any)?.driveId as string | null | undefined;
+
+                        if (rootName) setDocHubRootName(rootName);
+                        if (rootWebUrl) setDocHubRootLink(rootWebUrl);
+                        setDocHubStatus("connected");
+
+                        onUpdate({
+                            docHubEnabled: true,
+                            docHubProvider: "gdrive",
+                            docHubStatus: "connected",
+                            docHubRootName: rootName || null,
+                            docHubRootLink: rootWebUrl || docHubRootLink,
+                            docHubRootWebUrl: rootWebUrl || null,
+                            docHubRootId: (resolved as any)?.rootId || rootId,
+                            docHubDriveId: driveId ?? null
+                        });
+                        showModal({ title: "Hotovo", message: "Hlavní složka projektu vybrána a uložena.", variant: "success" });
+                    } catch (e) {
+                        const message = e instanceof Error ? e.message : "Neznámá chyba";
+                        showModal({ title: "Nelze uložit složku", message, variant: "danger" });
+                    }
+                })
+                .build();
+
+            picker.setVisible(true);
+        } catch (e) {
+            const message = e instanceof Error ? e.message : "Neznámá chyba";
+            showModal({ title: "Nelze otevřít Google Picker", message, variant: "danger" });
+        } finally {
+            setIsDocHubConnecting(false);
+        }
+    };
+
+    const handleCreateGoogleDriveRoot = async () => {
+        if (docHubProvider !== "gdrive") {
+            showModal({ title: "DocHub", message: "Vyberte Google Drive jako provider.", variant: "info" });
+            return;
+        }
+        if (!project.id) {
+            showModal({ title: "DocHub", message: "Chybí ID projektu.", variant: "danger" });
+            return;
+        }
+        const name = docHubNewFolderName.trim();
+        if (!name) {
+            showModal({ title: "DocHub", message: "Zadejte název nové složky.", variant: "info" });
+            return;
+        }
+
+        setIsDocHubConnecting(true);
+        try {
+            const created = await invokeAuthedFunction<any>("dochub-google-create-root", {
+                body: { projectId: project.id, name }
+            });
+
+            const rootName = (created as any)?.rootName as string | undefined;
+            const rootWebUrl = (created as any)?.rootWebUrl as string | undefined;
+
+            if (rootName) setDocHubRootName(rootName);
+            if (rootWebUrl) setDocHubRootLink(rootWebUrl);
+            setDocHubStatus("connected");
+
+            onUpdate({
+                docHubEnabled: true,
+                docHubProvider: "gdrive",
+                docHubStatus: "connected",
+                docHubRootName: rootName || null,
+                docHubRootLink: rootWebUrl || docHubRootLink,
+                docHubRootWebUrl: rootWebUrl || null,
+                docHubRootId: (created as any)?.rootId || null,
+                docHubDriveId: (created as any)?.driveId || null,
+            });
+            showModal({ title: "Hotovo", message: "Složka byla vytvořena a nastavena jako hlavní složka projektu.", variant: "success" });
+        } catch (e) {
+            const message = e instanceof Error ? e.message : "Neznámá chyba";
+            showModal({ title: "Nelze vytvořit složku", message, variant: "danger" });
+        } finally {
+            setIsDocHubConnecting(false);
+        }
     };
 
     const handleSaveDocHubStructure = () => {
@@ -142,7 +392,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                 setSelectedTemplateFile(null);
             } catch (error) {
                 console.error('Error uploading template:', error);
-                alert('Chyba při nahrávání šablony. Zkuste to prosím znovu.');
+                showModal({ title: "Chyba", message: "Chyba při nahrávání šablony. Zkuste to prosím znovu.", variant: "danger" });
                 setIsUploadingTemplate(false);
                 return;
             }
@@ -157,13 +407,22 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
     const hasDocsLink = project.documentationLink && project.documentationLink.trim() !== '';
     const hasLetterLink = project.inquiryLetterLink && project.inquiryLetterLink.trim() !== '';
     const hasDocHubRoot = docHubRootLink.trim() !== '';
-    const isDocHubConnected = docHubEnabled && hasDocHubRoot && docHubStatus !== "disconnected";
+    const isDocHubAuthed = docHubEnabled && docHubStatus === "connected";
+    const isDocHubConnected = isDocHubAuthed && hasDocHubRoot;
     const effectiveDocHubStructure = isEditingDocHubStructure ? docHubStructureDraft : docHubStructure;
     const docHubLinks = isDocHubConnected ? getDocHubProjectLinks(docHubRootLink, effectiveDocHubStructure) : null;
 
-    return (
-        <div className="p-6 lg:p-10 flex flex-col gap-6 overflow-y-auto h-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 min-h-screen">
-            <div className="max-w-4xl mx-auto w-full">
+	    return (
+	        <div className="p-6 lg:p-10 flex flex-col gap-6 overflow-y-auto h-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 min-h-screen">
+	            <ConfirmationModal
+	                isOpen={uiModal.isOpen}
+	                title={uiModal.title}
+	                message={uiModal.message}
+	                variant={uiModal.variant}
+	                confirmLabel="OK"
+	                onConfirm={() => setUiModal((prev) => ({ ...prev, isOpen: false }))}
+	            />
+	            <div className="max-w-4xl mx-auto w-full">
                 {/* Header Card */}
                 <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-xl p-8">
                     <div className="flex items-center gap-3 mb-6">
@@ -315,13 +574,13 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                             window.open(value, "_blank", "noopener,noreferrer");
                                             return;
                                         }
-                                        try {
-                                            await navigator.clipboard.writeText(value);
-                                            alert(`Zkopírováno: ${value}`);
-                                        } catch {
-                                            window.prompt("Zkopírujte cestu:", value);
-                                        }
-                                    }}
+	                                        try {
+	                                            await navigator.clipboard.writeText(value);
+	                                            showModal({ title: "Zkopírováno", message: value, variant: "success" });
+	                                        } catch {
+	                                            window.prompt("Zkopírujte cestu:", value);
+	                                        }
+	                                    }}
                                     className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-lg text-sm font-bold transition-colors"
                                 >
                                     {isProbablyUrl(docHubLinks.pd) ? "Otevřít" : "Zkopírovat"}
@@ -434,11 +693,21 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                                 ? 'bg-slate-700/40 text-slate-300 border-slate-600/40'
                                                 : isDocHubConnected
                                                     ? 'bg-violet-500/20 text-violet-300 border-violet-500/30'
-                                                    : docHubStatus === 'error'
-                                                        ? 'bg-red-500/20 text-red-300 border-red-500/30'
-                                                        : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                                                    : isDocHubAuthed
+                                                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                                                        : docHubStatus === 'error'
+                                                            ? 'bg-red-500/20 text-red-300 border-red-500/30'
+                                                            : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
                                                 }`}>
-                                                {!docHubEnabled ? 'Vypnuto' : isDocHubConnected ? 'Připojeno' : docHubStatus === 'error' ? 'Chyba' : 'Nepřipojeno'}
+                                                {!docHubEnabled
+                                                    ? 'Vypnuto'
+                                                    : isDocHubConnected
+                                                        ? 'Připraveno'
+                                                        : isDocHubAuthed
+                                                            ? 'Připojeno (vyberte složku)'
+                                                            : docHubStatus === 'error'
+                                                                ? 'Chyba'
+                                                                : 'Nepřipojeno'}
                                             </span>
                                         </div>
                                         <p className="text-xs text-slate-500 mt-0.5">
@@ -458,6 +727,13 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                                 onUpdate({
                                                     docHubEnabled: false,
                                                     docHubStatus: "disconnected",
+                                                });
+                                            } else {
+                                                onUpdate({
+                                                    docHubEnabled: true,
+                                                    docHubProvider,
+                                                    docHubMode,
+                                                    docHubStatus: project.docHubStatus || "disconnected",
                                                 });
                                             }
                                         }}
@@ -497,13 +773,13 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                                                 window.open(docHubRootLink, "_blank", "noopener,noreferrer");
                                                                 return;
                                                             }
-                                                            try {
-                                                                await navigator.clipboard.writeText(docHubRootLink);
-                                                                alert(`Zkopírováno: ${docHubRootLink}`);
-                                                            } catch {
-                                                                window.prompt("Zkopírujte cestu:", docHubRootLink);
-                                                            }
-                                                        }}
+	                                                            try {
+	                                                                await navigator.clipboard.writeText(docHubRootLink);
+	                                                                showModal({ title: "Zkopírováno", message: docHubRootLink, variant: "success" });
+	                                                            } catch {
+	                                                                window.prompt("Zkopírujte cestu:", docHubRootLink);
+	                                                            }
+	                                                        }}
                                                         className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-lg text-sm font-bold transition-colors"
                                                     >
                                                         {isProbablyUrl(docHubRootLink) ? "Otevřít root" : "Zkopírovat root"}
@@ -577,7 +853,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                                         </button>
                                                     </div>
                                                     <div className="text-[11px] text-slate-500">
-                                                        OAuth + picker doplníme v backend fázi.
+                                                        Google: OAuth + Picker. OneDrive: zatím přes odkaz.
                                                     </div>
                                                 </div>
 
@@ -613,6 +889,43 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                                         3) Hlavní složka projektu
                                                     </div>
                                                     <div className="space-y-2">
+                                                        {docHubProvider === "gdrive" && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={handlePickGoogleDriveRoot}
+                                                                disabled={isDocHubConnecting || !isDocHubAuthed}
+                                                                className={`w-full px-4 py-2.5 rounded-xl text-sm font-semibold border transition-colors ${isDocHubConnecting || !isDocHubAuthed
+                                                                    ? "bg-slate-800/60 text-slate-500 border-slate-700/50 cursor-not-allowed"
+                                                                    : "bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700/50"
+                                                                    }`}
+                                                                title={!isDocHubAuthed ? "Nejdřív připojte účet (OAuth)." : "Otevře Google Picker pro výběr složky"}
+                                                            >
+                                                                {isDocHubConnecting ? "Otevírám Picker..." : "Vybrat složku z Google Drive"}
+                                                            </button>
+                                                        )}
+                                                        {docHubProvider === "gdrive" && (
+                                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                                                <input
+                                                                    type="text"
+                                                                    value={docHubNewFolderName}
+                                                                    onChange={(e) => setDocHubNewFolderName(e.target.value)}
+                                                                    placeholder="Název nové složky"
+                                                                    className="sm:col-span-2 w-full bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-2.5 text-sm text-white focus:border-violet-500/50 focus:outline-none"
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={handleCreateGoogleDriveRoot}
+                                                                    disabled={isDocHubConnecting || !isDocHubAuthed || !docHubNewFolderName.trim()}
+                                                                    className={`w-full px-4 py-2.5 rounded-xl text-sm font-semibold border transition-colors ${isDocHubConnecting || !isDocHubAuthed || !docHubNewFolderName.trim()
+                                                                        ? "bg-slate-800/60 text-slate-500 border-slate-700/50 cursor-not-allowed"
+                                                                        : "bg-violet-600 hover:bg-violet-500 text-white border-violet-500/30"
+                                                                        }`}
+                                                                    title={!isDocHubAuthed ? "Nejdřív připojte účet (OAuth)." : "Vytvoří složku v Google Drive a nastaví ji jako root projektu"}
+                                                                >
+                                                                    Vytvořit
+                                                                </button>
+                                                            </div>
+                                                        )}
                                                         <input
                                                             type="text"
                                                             value={docHubRootName}
@@ -624,11 +937,23 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                                             type="text"
                                                             value={docHubRootLink}
                                                             onChange={(e) => setDocHubRootLink(e.target.value)}
-                                                            placeholder="Web URL nebo cesta (pro demo)"
+                                                            placeholder={docHubProvider === "gdrive" ? "Web URL složky (vyplní se po výběru) nebo vlož URL ručně" : "Web URL (sdílený odkaz)"}
                                                             className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-2.5 text-sm text-white focus:border-violet-500/50 focus:outline-none"
                                                         />
+                                                        <button
+                                                            type="button"
+                                                            onClick={handleResolveDocHubRoot}
+                                                            disabled={isDocHubConnecting || !docHubProvider || !docHubRootLink.trim()}
+                                                            className={`w-full px-4 py-2 rounded-lg text-sm font-bold border transition-colors ${isDocHubConnecting || !docHubProvider || !docHubRootLink.trim()
+                                                                ? "bg-slate-800/60 text-slate-500 border-slate-700/50 cursor-not-allowed"
+                                                                : "bg-violet-600 hover:bg-violet-500 text-white border-violet-500/30"
+                                                                }`}
+                                                            title="Ověří odkaz přes Drive/Graph API a uloží rootId/rootWebUrl"
+                                                        >
+                                                            Ověřit odkaz (backend)
+                                                        </button>
                                                         <div className="text-[11px] text-slate-500">
-                                                            Web neumí otevřít systémový výběr složky; zatím ruční zadání.
+                                                            Google: doporučeno vybrat přes Picker. OneDrive: zatím vložte sdílený odkaz na složku.
                                                         </div>
                                                     </div>
                                                 </div>
@@ -638,22 +963,30 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                                 <div className="flex items-center gap-2">
                                                     <button
                                                         type="button"
-                                                        disabled
-                                                        className="px-4 py-2 bg-slate-800/60 text-slate-500 rounded-lg text-sm font-bold border border-slate-700/50 cursor-not-allowed"
-                                                        title="Připojení přes OAuth + picker doplníme v backend fázi"
+                                                        onClick={handleConnectDocHub}
+                                                        disabled={isDocHubConnecting || !docHubProvider || !docHubMode}
+                                                        className={`px-4 py-2 rounded-lg text-sm font-bold border transition-colors ${isDocHubConnecting || !docHubProvider || !docHubMode
+                                                            ? "bg-slate-800/60 text-slate-500 border-slate-700/50 cursor-not-allowed"
+                                                            : "bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700/50"
+                                                        }`}
+                                                        title="Spustí OAuth autorizaci (Google Drive používá následně Picker)"
                                                     >
-                                                        Připojit přes {docHubProvider === "gdrive" ? "Google" : docHubProvider === "onedrive" ? "Microsoft" : "provider"}
+                                                        {isDocHubConnecting ? "Připojuji..." : `Připojit přes ${docHubProvider === "gdrive" ? "Google" : "Microsoft"}`}
                                                     </button>
                                                     <button
                                                         type="button"
-                                                        onClick={() => {
-                                                            if (!docHubProvider || !docHubMode || !docHubRootLink.trim()) {
-                                                                alert("Vyberte provider, režim a zadejte hlavní složku projektu (URL/cestu).");
-                                                                return;
-                                                            }
-                                                            setDocHubStatus("connected");
-                                                            handleSaveDocHub();
-                                                        }}
+	                                                        onClick={() => {
+	                                                            if (!docHubProvider || !docHubMode || !docHubRootLink.trim()) {
+	                                                                showModal({
+	                                                                    title: "DocHub",
+	                                                                    message: "Vyberte provider, režim a zadejte hlavní složku projektu (URL/cestu).",
+	                                                                    variant: "info"
+	                                                                });
+	                                                                return;
+	                                                            }
+	                                                            setDocHubStatus("connected");
+	                                                            handleSaveDocHub();
+	                                                        }}
                                                         className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-lg text-sm font-bold transition-colors"
                                                     >
                                                         Uložit (demo)
@@ -719,14 +1052,14 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                                             `/${effectiveDocHubStructure.contracts}`,
                                                             `/${effectiveDocHubStructure.realization}`,
                                                             `/${effectiveDocHubStructure.archive}`,
-                                                        ].join('\n');
-                                                        try {
-                                                            await navigator.clipboard.writeText(structure);
-                                                            alert('Struktura DocHub zkopírována do schránky.');
-                                                        } catch {
-                                                            window.prompt('Zkopírujte strukturu:', structure);
-                                                        }
-                                                    }}
+	                                                        ].join('\n');
+	                                                        try {
+	                                                            await navigator.clipboard.writeText(structure);
+	                                                            showModal({ title: "Zkopírováno", message: "Struktura DocHub zkopírována do schránky.", variant: "success" });
+	                                                        } catch {
+	                                                            window.prompt('Zkopírujte strukturu:', structure);
+	                                                        }
+	                                                    }}
                                                     className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-sm font-medium transition-colors border border-slate-700/50"
                                                 >
                                                     Zkopírovat
@@ -805,11 +1138,11 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                                         onClick={(e) => {
                                                             if (isProbablyUrl(item.href)) return;
                                                             e.preventDefault();
-                                                            navigator.clipboard
-                                                                .writeText(item.href)
-                                                                .then(() => alert(`Zkopírováno: ${item.href}`))
-                                                                .catch(() => window.prompt('Zkopírujte cestu:', item.href));
-                                                        }}
+	                                                            navigator.clipboard
+	                                                                .writeText(item.href)
+	                                                                .then(() => showModal({ title: "Zkopírováno", message: item.href, variant: "success" }))
+	                                                                .catch(() => window.prompt('Zkopírujte cestu:', item.href));
+	                                                        }}
                                                         className="block p-4 bg-slate-800/40 rounded-xl border border-slate-700/50 hover:border-violet-500/30 hover:bg-slate-700/40 transition-all"
                                                         title={isProbablyUrl(item.href) ? "Otevřít" : "Zkopírovat cestu"}
                                                     >

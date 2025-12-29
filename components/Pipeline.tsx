@@ -13,6 +13,7 @@ import {
 import { SubcontractorSelector } from "./SubcontractorSelector";
 import { ConfirmationModal } from "./ConfirmationModal";
 import { supabase } from "../services/supabase";
+import { invokeAuthedFunction } from "../services/functionsClient";
 import { uploadDocument, formatFileSize } from "../services/documentService";
 import {
   generateInquiryEmail,
@@ -984,6 +985,41 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const docHubRoot = projectDetails.docHubRootLink?.trim() || "";
   const isDocHubEnabled = !!projectDetails.docHubEnabled && docHubRoot.length > 0;
   const docHubStructure = resolveDocHubStructureV1(projectDetails.docHubStructureV1 || undefined);
+  const canUseDocHubBackend =
+    !!projectDetails.docHubProvider &&
+    !!projectDetails.docHubRootId &&
+    projectDetails.docHubStatus === "connected";
+
+  const [docHubUiModal, setDocHubUiModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    variant: "danger" | "info" | "success";
+  }>({ isOpen: false, title: "", message: "", variant: "info" });
+
+  const showDocHubModal = (args: {
+    title: string;
+    message: string;
+    variant?: "danger" | "info" | "success";
+  }) => {
+    setDocHubUiModal({
+      isOpen: true,
+      title: args.title,
+      message: args.message,
+      variant: args.variant ?? "info",
+    });
+  };
+
+  const docHubModalNode = (
+    <ConfirmationModal
+      isOpen={docHubUiModal.isOpen}
+      title={docHubUiModal.title}
+      message={docHubUiModal.message}
+      variant={docHubUiModal.variant}
+      confirmLabel="OK"
+      onConfirm={() => setDocHubUiModal((prev) => ({ ...prev, isOpen: false }))}
+    />
+  );
 
   const openOrCopyDocHubPath = async (path: string) => {
     if (!path) return;
@@ -993,9 +1029,21 @@ export const Pipeline: React.FC<PipelineProps> = ({
     }
     try {
       await navigator.clipboard.writeText(path);
-      alert(`Zkopírováno do schránky:\n${path}`);
+      showDocHubModal({ title: "Zkopírováno", message: path, variant: "success" });
     } catch {
       window.prompt("Zkopírujte cestu:", path);
+    }
+  };
+
+  const openDocHubBackendLink = async (payload: any) => {
+    try {
+      const data = await invokeAuthedFunction<any>("dochub-get-link", { body: payload });
+      const webUrl = (data as any)?.webUrl as string | undefined;
+      if (!webUrl) throw new Error("Backend nevrátil webUrl");
+      window.open(webUrl, "_blank", "noopener,noreferrer");
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Neznámá chyba";
+      showDocHubModal({ title: "DocHub chyba", message, variant: "danger" });
     }
   };
 
@@ -1680,6 +1728,17 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
   const handleOpenSupplierDocHub = (bid: Bid) => {
     if (!isDocHubEnabled || !activeCategory) return;
+    if (canUseDocHubBackend && projectData.id) {
+      openDocHubBackendLink({
+        projectId: projectData.id,
+        kind: "supplier",
+        categoryId: activeCategory.id,
+        categoryTitle: activeCategory.title,
+        supplierId: bid.subcontractorId,
+        supplierName: bid.companyName,
+      });
+      return;
+    }
     const links = getDocHubTenderLinks(docHubRoot, activeCategory.title, docHubStructure);
     openOrCopyDocHubPath(links.supplierBase(bid.companyName));
   };
@@ -1793,15 +1852,16 @@ export const Pipeline: React.FC<PipelineProps> = ({
     }
   };
 
-  if (activeCategory) {
-    // --- DETAIL VIEW (PIPELINE) ---
-    return (
-      <div className="flex flex-col h-full bg-background-light dark:bg-background-dark">
-        <Header
-          title={activeCategory.title}
-          subtitle={`${projectData.title} > Průběh výběrového řízení`}
-          showSearch={false}
-          showNotifications={false}
+	  if (activeCategory) {
+	    // --- DETAIL VIEW (PIPELINE) ---
+	    return (
+	      <div className="flex flex-col h-full bg-background-light dark:bg-background-dark">
+	        {docHubModalNode}
+	        <Header
+	          title={activeCategory.title}
+	          subtitle={`${projectData.title} > Průběh výběrového řízení`}
+	          showSearch={false}
+	          showNotifications={false}
         >
           <button
             onClick={() => setActiveCategory(null)}
@@ -1821,6 +1881,15 @@ export const Pipeline: React.FC<PipelineProps> = ({
           {isDocHubEnabled && (
             <button
               onClick={() => {
+                if (canUseDocHubBackend && projectData.id) {
+                  openDocHubBackendLink({
+                    projectId: projectData.id,
+                    kind: "tender_inquiries",
+                    categoryId: activeCategory.id,
+                    categoryTitle: activeCategory.title,
+                  });
+                  return;
+	  }
                 const links = getDocHubTenderLinks(docHubRoot, activeCategory.title, docHubStructure);
                 openOrCopyDocHubPath(links.inquiriesBase);
               }}
@@ -2239,10 +2308,11 @@ export const Pipeline: React.FC<PipelineProps> = ({
     );
   }
 
-  // --- LIST VIEW (OVERVIEW) ---
-  return (
-    <div className="flex flex-col h-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 min-h-screen">
-      <div className="p-6 lg:p-10 overflow-y-auto">
+	  // --- LIST VIEW (OVERVIEW) ---
+	  return (
+	    <div className="flex flex-col h-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 min-h-screen">
+	      {docHubModalNode}
+	      <div className="p-6 lg:p-10 overflow-y-auto">
         {/* Filter Buttons and Add Button */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-1 bg-slate-800/50 p-1 rounded-xl border border-slate-700/50">
