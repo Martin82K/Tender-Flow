@@ -331,6 +331,13 @@ export const DEMO_PROJECT_DETAILS: ProjectDetails = {
   constructionManager: 'Jan Vedoucí',
   constructionTechnician: 'Petr Technik',
   plannedCost: 15000000,
+  docHubEnabled: true,
+  docHubRootLink: 'https://example.com/Bytovy_dum_Slunecna_DEMO',
+  docHubRootName: 'Bytový dům Slunečná - DEMO',
+  docHubProvider: 'gdrive',
+  docHubMode: 'org',
+  docHubStatus: 'connected',
+  docHubStructureVersion: 1,
   categories: DEMO_CATEGORIES,
   contract: {
     maturity: 30,

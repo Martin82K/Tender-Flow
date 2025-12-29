@@ -426,6 +426,19 @@ const AppContent: React.FC = () => {
           plannedCost: project.planned_cost || 0,
           documentationLink: project.documentation_link,
           inquiryLetterLink: project.inquiry_letter_link,
+          docHubEnabled: project.dochub_enabled ?? false,
+          docHubRootLink: project.dochub_root_link ?? "",
+          docHubProvider: project.dochub_provider ?? null,
+          docHubMode: project.dochub_mode ?? null,
+          docHubRootId: project.dochub_root_id ?? null,
+          docHubRootName: project.dochub_root_name ?? null,
+          docHubDriveId: project.dochub_drive_id ?? null,
+          docHubSiteId: project.dochub_site_id ?? null,
+          docHubRootWebUrl: project.dochub_root_web_url ?? null,
+          docHubStatus: project.dochub_status ?? (project.dochub_root_link ? "connected" : "disconnected"),
+          docHubLastError: project.dochub_last_error ?? null,
+          docHubStructureV1: project.dochub_structure_v1 ?? null,
+          docHubStructureVersion: project.dochub_structure_version ?? 1,
           categories,
           contract: contractData
             ? {
@@ -792,6 +805,32 @@ const AppContent: React.FC = () => {
         projectUpdates.documentation_link = updates.documentationLink;
       if (updates.inquiryLetterLink !== undefined)
         projectUpdates.inquiry_letter_link = updates.inquiryLetterLink;
+      if (updates.docHubEnabled !== undefined)
+        projectUpdates.dochub_enabled = updates.docHubEnabled;
+      if (updates.docHubRootLink !== undefined)
+        projectUpdates.dochub_root_link = updates.docHubRootLink;
+      if (updates.docHubProvider !== undefined)
+        projectUpdates.dochub_provider = updates.docHubProvider;
+      if (updates.docHubMode !== undefined)
+        projectUpdates.dochub_mode = updates.docHubMode;
+      if (updates.docHubRootId !== undefined)
+        projectUpdates.dochub_root_id = updates.docHubRootId;
+      if (updates.docHubRootName !== undefined)
+        projectUpdates.dochub_root_name = updates.docHubRootName;
+      if (updates.docHubDriveId !== undefined)
+        projectUpdates.dochub_drive_id = updates.docHubDriveId;
+      if (updates.docHubSiteId !== undefined)
+        projectUpdates.dochub_site_id = updates.docHubSiteId;
+      if (updates.docHubRootWebUrl !== undefined)
+        projectUpdates.dochub_root_web_url = updates.docHubRootWebUrl;
+      if (updates.docHubStatus !== undefined)
+        projectUpdates.dochub_status = updates.docHubStatus;
+      if (updates.docHubLastError !== undefined)
+        projectUpdates.dochub_last_error = updates.docHubLastError;
+      if (updates.docHubStructureV1 !== undefined)
+        projectUpdates.dochub_structure_v1 = updates.docHubStructureV1;
+      if (updates.docHubStructureVersion !== undefined)
+        projectUpdates.dochub_structure_version = updates.docHubStructureVersion;
 
       if (Object.keys(projectUpdates).length > 0) {
         const { error } = await supabase

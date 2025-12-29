@@ -32,6 +32,7 @@ import { getTemplateById } from "../services/templateService";
 import { processTemplate } from "../utils/templateUtils";
 import { useAuth } from "../context/AuthContext";
 import { getDemoData, saveDemoData } from "../services/demoData";
+import { getDocHubTenderLinks, isProbablyUrl, resolveDocHubStructureV1 } from "../utils/docHub";
 
 const DEFAULT_STATUSES: StatusConfig[] = [
   { id: "available", label: "K dispozici", color: "green" },
@@ -355,8 +356,8 @@ const BidCard: React.FC<{
   onEdit: (bid: Bid) => void;
   onDelete?: (bidId: string) => void;
   onGenerateInquiry?: (bid: Bid) => void;
-  category?: DemandCategory;
-}> = ({ bid, onClick, onDragStart, onEdit, onDelete, onGenerateInquiry, category }) => {
+  onOpenDocHubFolder?: (bid: Bid) => void;
+}> = ({ bid, onClick, onDragStart, onEdit, onDelete, onGenerateInquiry, onOpenDocHubFolder }) => {
   return (
     <div
       draggable
@@ -369,6 +370,18 @@ const BidCard: React.FC<{
           <h3 className="font-bold text-white text-sm">
             {bid.companyName}
           </h3>
+          {onOpenDocHubFolder && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenDocHubFolder(bid);
+              }}
+              className="text-slate-500 hover:text-violet-400 transition-colors opacity-0 group-hover:opacity-100"
+              title="DocHub složka dodavatele"
+            >
+              <span className="material-symbols-outlined text-[16px]">folder</span>
+            </button>
+          )}
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -968,6 +981,24 @@ export const Pipeline: React.FC<PipelineProps> = ({
 }) => {
   const { user } = useAuth();
   const projectData = projectDetails;
+  const docHubRoot = projectDetails.docHubRootLink?.trim() || "";
+  const isDocHubEnabled = !!projectDetails.docHubEnabled && docHubRoot.length > 0;
+  const docHubStructure = resolveDocHubStructureV1(projectDetails.docHubStructureV1 || undefined);
+
+  const openOrCopyDocHubPath = async (path: string) => {
+    if (!path) return;
+    if (isProbablyUrl(path)) {
+      window.open(path, "_blank", "noopener,noreferrer");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(path);
+      alert(`Zkopírováno do schránky:\n${path}`);
+    } catch {
+      window.prompt("Zkopírujte cestu:", path);
+    }
+  };
+
   const [activeCategory, setActiveCategory] = useState<DemandCategory | null>(
     null
   );
@@ -1647,6 +1678,12 @@ export const Pipeline: React.FC<PipelineProps> = ({
     }, 100);
   };
 
+  const handleOpenSupplierDocHub = (bid: Bid) => {
+    if (!isDocHubEnabled || !activeCategory) return;
+    const links = getDocHubTenderLinks(docHubRoot, activeCategory.title, docHubStructure);
+    openOrCopyDocHubPath(links.supplierBase(bid.companyName));
+  };
+
   const handleExport = (format: "xlsx" | "markdown" | "pdf") => {
     if (!activeCategory) return;
 
@@ -1780,6 +1817,22 @@ export const Pipeline: React.FC<PipelineProps> = ({
             <span className="material-symbols-outlined text-[20px]">add</span>
             <span>Přidat dodavatele</span>
           </button>
+
+          {isDocHubEnabled && (
+            <button
+              onClick={() => {
+                const links = getDocHubTenderLinks(docHubRoot, activeCategory.title, docHubStructure);
+                openOrCopyDocHubPath(links.inquiriesBase);
+              }}
+              className="flex items-center gap-2 bg-violet-100 dark:bg-violet-900/30 hover:bg-violet-200 dark:hover:bg-violet-900/50 text-violet-700 dark:text-violet-300 px-4 py-2 rounded-lg text-sm font-bold transition-colors"
+              title={`DocHub: /${docHubStructure.tenders}/${activeCategory.title}/${docHubStructure.tendersInquiries}`}
+            >
+              <span className="material-symbols-outlined text-[20px]">
+                folder_open
+              </span>
+              <span>DocHub</span>
+            </button>
+          )}
 
           {/* Export Button with Dropdown */}
           <div className="relative">
@@ -1947,7 +2000,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   onEdit={setEditingBid}
                   onDelete={handleDeleteBidRequest}
                   onGenerateInquiry={handleGenerateInquiry}
-                  category={activeCategory}
+                  onOpenDocHubFolder={isDocHubEnabled ? handleOpenSupplierDocHub : undefined}
                 />
               ))}
               {getBidsForColumn(activeCategory.id, "contacted").length ===
@@ -1973,6 +2026,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   onDragStart={handleDragStart}
                   onEdit={setEditingBid}
                   onDelete={handleDeleteBidRequest}
+                  onOpenDocHubFolder={isDocHubEnabled ? handleOpenSupplierDocHub : undefined}
                 />
               ))}
               {getBidsForColumn(activeCategory.id, "sent").length === 0 && (
@@ -1997,6 +2051,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   onDragStart={handleDragStart}
                   onEdit={setEditingBid}
                   onDelete={handleDeleteBidRequest}
+                  onOpenDocHubFolder={isDocHubEnabled ? handleOpenSupplierDocHub : undefined}
                 />
               ))}
             </Column>
@@ -2016,6 +2071,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   onDragStart={handleDragStart}
                   onEdit={setEditingBid}
                   onDelete={handleDeleteBidRequest}
+                  onOpenDocHubFolder={isDocHubEnabled ? handleOpenSupplierDocHub : undefined}
                 />
               ))}
             </Column>
@@ -2054,6 +2110,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                     onDragStart={handleDragStart}
                     onEdit={setEditingBid}
                     onDelete={handleDeleteBid}
+                    onOpenDocHubFolder={isDocHubEnabled ? handleOpenSupplierDocHub : undefined}
                   />
                 </div>
               ))}
@@ -2073,6 +2130,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   onDragStart={handleDragStart}
                   onEdit={setEditingBid}
                   onDelete={handleDeleteBid}
+                  onOpenDocHubFolder={isDocHubEnabled ? handleOpenSupplierDocHub : undefined}
                 />
               ))}
             </Column>

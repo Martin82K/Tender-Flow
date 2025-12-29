@@ -63,6 +63,17 @@ export interface DemandCategory {
   realizationEnd?: string; // Termín realizace - konec (ISO date string)
 }
 
+export interface DocHubStructureV1 {
+  pd: string;
+  tenders: string;
+  contracts: string;
+  realization: string;
+  archive: string;
+  tendersInquiries: string;
+  supplierEmail: string;
+  supplierOffer: string;
+}
+
 export type BidStatus = 'contacted' | "sent" | "offer" | "shortlist" | "sod" | "rejected";
 
 export interface Bid {
@@ -140,6 +151,19 @@ export interface ProjectDetails {
   // Documents
   documentationLink?: string; // Link to shared project documentation
   inquiryLetterLink?: string; // Link to inquiry letter template
+  docHubEnabled?: boolean; // DocHub module enabled for this project
+  docHubRootLink?: string; // Root link/path to the project's DocHub folder
+  docHubProvider?: "gdrive" | "onedrive" | null; // Storage provider
+  docHubMode?: "user" | "org" | null; // User drive vs organization/shared drive
+  docHubRootId?: string | null; // Provider root folder/item ID (future backend)
+  docHubRootName?: string | null; // Human-readable name for UI
+  docHubDriveId?: string | null; // Shared drive / drive ID (provider-specific)
+  docHubSiteId?: string | null; // SharePoint site ID (OneDrive/SharePoint)
+  docHubRootWebUrl?: string | null; // Openable web URL (if available)
+  docHubStatus?: "disconnected" | "connected" | "error"; // Connection state
+  docHubLastError?: string | null; // Last error message
+  docHubStructureVersion?: number; // Structure version for future migrations (default: 1)
+  docHubStructureV1?: Partial<DocHubStructureV1> | null; // Custom folder naming (keeps structure keys)
 
   categories: DemandCategory[];
   contract?: ContractDetails;
