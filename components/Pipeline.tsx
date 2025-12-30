@@ -2711,11 +2711,11 @@ export const Pipeline: React.FC<PipelineProps> = ({
                 </div>
               </div>
 
-              <div className="p-4 bg-slate-800/50 border-t border-slate-700/50 flex justify-end gap-3 shrink-0">
+              <div className="p-4 bg-slate-50 dark:bg-slate-950/30 border-t border-slate-200 dark:border-slate-700/40 flex justify-end gap-3 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2.5 bg-slate-700/50 border border-slate-600/50 rounded-xl text-slate-300 text-sm font-medium hover:bg-slate-600/50 transition-colors"
+                  className="px-4 py-2.5 bg-white dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 rounded-xl text-slate-700 dark:text-slate-200 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
                 >
                   Zrušit
                 </button>

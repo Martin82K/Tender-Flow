@@ -594,7 +594,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                     {/* Inquiry Letter Section */}
                     {/* Inquiry Letter Section */}
                     {documentsSubTab === 'templates' && (
-                    <div className={`rounded-xl p-6 border transition-colors ${hasLetterLink ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-slate-800/30 border-slate-700/50'}`}>
+                    <div className={`rounded-xl p-6 border transition-colors ${hasLetterLink ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30' : 'bg-slate-50 dark:bg-slate-950/30 border-slate-200 dark:border-slate-700/40'}`}>
                         <div className="flex justify-between items-start mb-4">
                             <div className="flex items-center gap-2">
                                 <span className="material-symbols-outlined text-slate-400">mail</span>
@@ -608,7 +608,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
 
                             <button
                                 onClick={() => setShowTemplateManager(true)}
-                                className="px-3 py-1.5 text-sm font-medium text-emerald-400 bg-slate-800/50 border border-slate-700/50 rounded-xl hover:bg-slate-700/50 hover:border-emerald-500/30 transition-all flex items-center gap-2"
+                                className="px-3 py-1.5 text-sm font-medium text-emerald-700 dark:text-emerald-300 bg-white dark:bg-slate-950/30 border border-slate-200 dark:border-slate-700/40 rounded-xl hover:bg-emerald-50 dark:hover:bg-slate-900/50 hover:border-emerald-300 dark:hover:border-emerald-500/30 transition-all flex items-center gap-2"
                             >
                                 <span className="material-symbols-outlined text-[18px]">{hasLetterLink ? 'change_circle' : 'add_circle'}</span>
                                 {hasLetterLink ? 'Změnit šablonu' : 'Vybrat šablonu'}
@@ -619,7 +619,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                             {hasLetterLink ? (
                                 <div className="space-y-3">
                                     <div
-                                        className="block p-4 bg-slate-800/50 rounded-xl border border-slate-700/50 transition-all group"
+                                        className="block p-4 bg-white dark:bg-slate-950/30 rounded-xl border border-slate-200 dark:border-slate-700/40 transition-all group"
                                     >
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -627,14 +627,14 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                                     {project.inquiryLetterLink?.startsWith('template:') ? 'wysiwyg' : 'link'}
                                                 </span>
                                                 <div className="flex flex-col">
-                                                    <span className="text-sm font-medium text-white truncate">
+                                                    <span className="text-sm font-medium text-slate-900 dark:text-white truncate">
                                                         {project.inquiryLetterLink?.startsWith('template:')
                                                             ? (templateName || 'Načítání...')
                                                             : (project.inquiryLetterLink?.startsWith('http') ? 'Externí odkaz / Soubor' : project.inquiryLetterLink)
                                                         }
                                                     </span>
                                                     {project.inquiryLetterLink?.startsWith('template:') && (
-                                                        <span className="text-xs text-slate-500">HTML Šablona připravená k odeslání</span>
+                                                        <span className="text-xs text-slate-500">HTML šablona připravená k odeslání</span>
                                                     )}
                                                 </div>
                                             </div>
@@ -662,9 +662,9 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                     )}
                                 </div>
                             ) : (
-                                <div className="text-center py-8 border-2 border-dashed border-slate-700/50 rounded-xl">
-                                    <span className="material-symbols-outlined text-slate-600 text-5xl mb-3 block">mail_outline</span>
-                                    <p className="text-slate-400 text-sm font-medium">Žádná šablona není vybrána</p>
+                                <div className="text-center py-8 border-2 border-dashed border-slate-200 dark:border-slate-700/50 rounded-xl">
+                                    <span className="material-symbols-outlined text-slate-400 dark:text-slate-600 text-5xl mb-3 block">mail_outline</span>
+                                    <p className="text-slate-700 dark:text-slate-300 text-sm font-medium">Žádná šablona není vybrána</p>
                                     <p className="text-slate-500 text-xs mt-1 mb-4">Vyberte šablonu pro komunikaci se subdodavateli</p>
                                     <button
                                         onClick={() => setShowTemplateManager(true)}
