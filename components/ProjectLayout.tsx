@@ -822,9 +822,9 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                     {/* Setup wizard */}
                                     {(!isDocHubConnected || isEditingDocHubSetup) && (
                                         <div className="bg-slate-100 dark:bg-slate-900/20 border border-slate-300 dark:border-slate-700/50 rounded-xl p-4">
-                                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                                            <div className="flex flex-col gap-4">
                                                 {/* Step 1 */}
-                                                <div className="space-y-2">
+                                                <div className="space-y-2 bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4">
                                                     <div className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                                                         1) Provider
                                                     </div>
@@ -858,7 +858,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                                 </div>
 
                                                 {/* Step 2 */}
-                                                <div className="space-y-2">
+                                                <div className="space-y-2 bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4">
                                                     <div className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                                                         2) Režim
                                                     </div>
@@ -884,7 +884,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                                 </div>
 
                                                 {/* Step 3 */}
-                                                <div className="space-y-2">
+                                                <div className="space-y-2 bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4">
                                                     <div className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                                                         3) Hlavní složka projektu
                                                     </div>
