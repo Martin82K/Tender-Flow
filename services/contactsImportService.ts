@@ -212,18 +212,74 @@ export interface MergeResult {
 
 /**
  * Merge imported contacts with existing contacts
- * Matches by Company Name (case-insensitive)
+ * Matches by Company Name (case-insensitive) or by contact email.
  */
 export const mergeContacts = (existingContacts: Subcontractor[], importedContacts: Subcontractor[]): MergeResult => {
   const merged = [...existingContacts];
   const added: Subcontractor[] = [];
   const updated: Subcontractor[] = [];
 
+  const normalizeText = (value: string) =>
+    value
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+
+  const normalizeEmail = (value: string) => value.trim().toLowerCase();
+
+  const companyKey = (c: Subcontractor) => normalizeText(c.company || "");
+  const getEmails = (c: Subcontractor) => {
+    const emails: string[] = [];
+    for (const p of c.contacts || []) {
+      const e = normalizeEmail(p.email || "");
+      if (e && e !== "-") emails.push(e);
+    }
+    const legacy = normalizeEmail(c.email || "");
+    if (legacy && legacy !== "-") emails.push(legacy);
+    return Array.from(new Set(emails));
+  };
+
+  const contactKey = (p: { name?: string; email?: string; phone?: string }) => {
+    const e = normalizeEmail(p.email || "");
+    if (e && e !== "-") return `email:${e}`;
+    const phone = (p.phone || "").trim();
+    if (phone && phone !== "-") return `phone:${phone}`;
+    return `name:${normalizeText(p.name || "")}`;
+  };
+
+  const companyIndex = new Map<string, number>();
+  const emailIndex = new Map<string, number>();
+
+  const indexMerged = () => {
+    companyIndex.clear();
+    emailIndex.clear();
+    merged.forEach((c, idx) => {
+      const ck = companyKey(c);
+      if (ck && !companyIndex.has(ck)) companyIndex.set(ck, idx);
+      for (const e of getEmails(c)) {
+        if (!emailIndex.has(e)) emailIndex.set(e, idx);
+      }
+    });
+  };
+
+  indexMerged();
+
   importedContacts.forEach(imported => {
-    const normalizedImportName = imported.company.trim().toLowerCase();
-    const existingIndex = merged.findIndex(
-      c => c.company.trim().toLowerCase() === normalizedImportName
-    );
+    const importCompanyKey = companyKey(imported);
+    const importEmails = getEmails(imported);
+
+    let existingIndex = -1;
+    if (importCompanyKey && companyIndex.has(importCompanyKey)) {
+      existingIndex = companyIndex.get(importCompanyKey)!;
+    } else {
+      const matchedEmail = importEmails.find((e) => emailIndex.has(e));
+      if (matchedEmail) {
+        existingIndex = emailIndex.get(matchedEmail)!;
+      }
+    }
 
     if (existingIndex >= 0) {
       // Update existing contact
@@ -237,23 +293,23 @@ export const mergeContacts = (existingContacts: Subcontractor[], importedContact
       const importedContactsList = imported.contacts || [];
       
       const mergedContactsList = [...existingContacts];
+      const existingKeys = new Set(existingContacts.map(contactKey));
       importedContactsList.forEach(imp => {
-          const isDuplicate = existingContacts.some(ext => 
-              (ext.name.toLowerCase() === imp.name.toLowerCase() && imp.name !== '-') ||
-              (ext.email.toLowerCase() === imp.email.toLowerCase() && imp.email !== '-') ||
-              (ext.phone === imp.phone && imp.phone !== '-')
-          );
-          if (!isDuplicate) {
-              mergedContactsList.push(imp);
-          }
+        const key = contactKey(imp);
+        if (!existingKeys.has(key)) {
+          mergedContactsList.push(imp);
+          existingKeys.add(key);
+        }
       });
 
       const updatedContact = {
         ...existing,
+        company: (existing.company && existing.company !== "-" ? existing.company : imported.company) || existing.company,
         specialization: mergedSpecializations,
         contacts: mergedContactsList,
-        ico: (imported.ico !== '-' && imported.ico) ? imported.ico : existing.ico,
-        region: (imported.region !== '-' && imported.region) ? imported.region : existing.region,
+        ico: (imported.ico && imported.ico !== '-' && imported.ico) ? imported.ico : existing.ico,
+        region: (imported.region && imported.region !== '-' && imported.region) ? imported.region : existing.region,
+        status: (imported.status && imported.status !== '-' && imported.status !== 'available') ? imported.status : existing.status,
         // Update legacy fields from primary contact
         name: mergedContactsList[0]?.name || existing.name,
         phone: mergedContactsList[0]?.phone || existing.phone,
@@ -265,6 +321,7 @@ export const mergeContacts = (existingContacts: Subcontractor[], importedContact
       if (JSON.stringify(existing) !== JSON.stringify(updatedContact)) {
         merged[existingIndex] = updatedContact;
         updated.push(updatedContact);
+        indexMerged(); // keep indexes in sync when we mutate
       }
     } else {
       // Add new contact
@@ -272,6 +329,7 @@ export const mergeContacts = (existingContacts: Subcontractor[], importedContact
       const newContact = { ...imported };
       merged.push(newContact);
       added.push(newContact);
+      indexMerged();
     }
   });
 

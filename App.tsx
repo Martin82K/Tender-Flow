@@ -1143,14 +1143,16 @@ const AppContent: React.FC = () => {
       if (added.length > 0) {
         const payload = added.map((c) => ({
           id: c.id,
-          company_name: c.company.substring(0, 255),
-          contact_person_name: c.name.substring(0, 255),
+          company_name: (c.company || "-").substring(0, 255),
+          contact_person_name: (c.contacts?.[0]?.name || c.name || "-").substring(0, 255),
           specialization: c.specialization,
-          phone: c.phone.substring(0, 50),
-          email: c.email.substring(0, 255),
-          ico: c.ico.substring(0, 50),
-          region: c.region.substring(0, 100),
+          phone: (c.contacts?.[0]?.phone || c.phone || "-").substring(0, 50),
+          email: (c.contacts?.[0]?.email || c.email || "-").substring(0, 255),
+          contacts: c.contacts || [],
+          ico: (c.ico || "-").substring(0, 50),
+          region: (c.region || "-").substring(0, 100),
           status_id: c.status,
+          owner_id: user?.id,
         }));
         console.log("Inserting payload:", payload);
 
@@ -1176,12 +1178,14 @@ const AppContent: React.FC = () => {
             .from("subcontractors")
             .update({
               company_name: contact.company,
-              contact_person_name: contact.name,
+              contact_person_name: contact.contacts?.[0]?.name || contact.name || "-",
               specialization: contact.specialization,
-              phone: contact.phone,
-              email: contact.email,
-              ico: contact.ico,
-              region: contact.region,
+              phone: contact.contacts?.[0]?.phone || contact.phone || "-",
+              email: contact.contacts?.[0]?.email || contact.email || "-",
+              contacts: contact.contacts || [],
+              ico: contact.ico || "-",
+              region: contact.region || "-",
+              status_id: contact.status,
             })
             .eq("id", contact.id);
 
@@ -1509,39 +1513,7 @@ const AppContent: React.FC = () => {
             }}
             contactStatuses={contactStatuses}
             onUpdateStatuses={setContactStatuses}
-            onImportContacts={async (newContacts, onProgress) => {
-              console.log("Saving imported contacts...", newContacts.length);
-              // Fix: mergeContacts is sync and takes (existing, new)
-              const mergeResult = mergeContacts(contacts, newContacts);
-              
-              // Update local state
-              setContacts(mergeResult.mergedContacts);
-              
-              // Here we should ideally save to Supabase, but since previous code was confused, 
-              // we'll just reload from server if needed or leave it as optimistic update.
-              // For now, let's trigger a load to be safe if server has data, 
-              // but since we didn't write to server, this might revert changes.
-              // So, let's assume we need to WRITE to server. 
-              // Given I cannot implement full sync write now easily, I will just alert user integration is pending
-              // or just keep optimistic state.
-              
-              // Actually, best effort:
-              if (isAuthenticated && user) {
-                  // This is a placeholder for actual DB sync which seems missing/confused in original code
-                  console.warn("Contact persistence not fully implemented in this refactor step.");
-              }
-            }}
-            onSyncContacts={async (url, onProgress) => {
-                // Fix: remove onProgress arg
-                const result = await syncContactsFromUrl(url);
-                if (result.success) {
-                  // Merge and update
-                  const mergeResult = mergeContacts(contacts, result.contacts);
-                  setContacts(mergeResult.mergedContacts);
-                } else {
-                  throw new Error(result.error || "Synchronizace selhala");
-                }
-            }}
+            onImportContacts={handleImportContacts}
             onDeleteContacts={async (ids) => {
                 const { error } = await supabase.from('subcontractors').delete().in('id', ids);
                 if (error) {

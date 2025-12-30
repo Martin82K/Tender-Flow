@@ -5,6 +5,7 @@ import { Project, ProjectStatus, StatusConfig, Subcontractor } from '../types';
 import { addContactStatus, updateContactStatus, deleteContactStatus } from '../services/contactStatusService';
 import { UserManagement } from './UserManagement';
 import { EmailWhitelistManagement } from './EmailWhitelistManagement';
+import { ContactsImportWizard } from './ContactsImportWizard';
 
 interface SettingsProps {
     theme: 'light' | 'dark' | 'system';
@@ -17,7 +18,6 @@ interface SettingsProps {
     contactStatuses: StatusConfig[];
     onUpdateStatuses: (statuses: StatusConfig[]) => void;
     onImportContacts: (contacts: Subcontractor[], onProgress?: (percent: number) => void) => Promise<void>;
-    onSyncContacts: (url: string, onProgress?: (percent: number) => void) => Promise<void>;
     onDeleteContacts: (ids: string[]) => void;
     contacts: Subcontractor[];
     isAdmin?: boolean;
@@ -35,7 +35,6 @@ export const Settings: React.FC<SettingsProps> = ({
     contactStatuses,
     onUpdateStatuses,
     onImportContacts,
-    onSyncContacts,
     onDeleteContacts,
     contacts,
     isAdmin = false,
@@ -48,20 +47,9 @@ export const Settings: React.FC<SettingsProps> = ({
     const [newStatusLabel, setNewStatusLabel] = useState('');
     const [newStatusColor, setNewStatusColor] = useState<StatusConfig['color']>('blue');
 
-    // Import State
-    const [importedContacts, setImportedContacts] = useState<Subcontractor[]>([]);
-    const [fileName, setFileName] = useState('');
-    const [uploadProgress, setUploadProgress] = useState(0);
-    const [isUploading, setIsUploading] = useState(false);
-
     // Tab State
     const [activeTab, setActiveTab] = useState<'user' | 'admin'>('user');
     const [activeUserSubTab, setActiveUserSubTab] = useState<'profile' | 'contacts'>('profile');
-
-    // Auto-Sync State
-    const [importUrl, setImportUrl] = useState(() => localStorage.getItem('contactsImportUrl') || '');
-    const [lastSyncTime, setLastSyncTime] = useState(() => localStorage.getItem('contactsLastSyncTime') || '');
-    const [isSyncing, setIsSyncing] = useState(false);
 
     // Registration Settings State (Admin only) - loaded from database
     const [allowPublicRegistration, setAllowPublicRegistration] = useState(false);
@@ -351,34 +339,6 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
         }
     };
 
-    const handleSaveUrl = () => {
-        if (importUrl) {
-            localStorage.setItem('contactsImportUrl', importUrl);
-            alert('URL uložena.');
-        }
-    };
-
-    const handleSyncNow = async () => {
-        if (!importUrl) {
-            alert('Prosím zadejte URL souboru.');
-            return;
-        }
-
-        setIsSyncing(true);
-        setUploadProgress(0);
-        try {
-            await onSyncContacts(importUrl, (p) => setUploadProgress(p));
-            const now = new Date().toLocaleString('cs-CZ');
-            setLastSyncTime(now);
-            localStorage.setItem('contactsLastSyncTime', now);
-        } catch (error) {
-            console.error('Sync failed:', error);
-        } finally {
-            setIsSyncing(false);
-            setUploadProgress(0);
-        }
-    };
-
     const handleDeleteAllContacts = () => {
         if (contacts.length === 0) {
             alert('Databáze kontaktů je již prázdná.');
@@ -483,69 +443,7 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
         { label: 'Studená', color: '#f0f9ff' },
     ];
 
-    // Import Logic
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            setFileName(file.name);
-
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const text = event.target?.result as string;
-                parseCSV(text);
-            };
-            reader.readAsText(file);
-        }
-    };
-
-    const parseCSV = (csvText: string) => {
-        // Simple CSV parser
-        // Assumes format: Firma, Jméno, Specializace, Telefon, Email, IČO, Region
-        const lines = csvText.split('\n').map(l => l.trim()).filter(l => l);
-        const parsed: Subcontractor[] = [];
-
-        // Skip header if it looks like one
-        const startIndex = lines[0].toLowerCase().includes('firma') ? 1 : 0;
-
-        for (let i = startIndex; i < lines.length; i++) {
-            // Handle basic comma or semicolon separation
-            const separator = lines[i].includes(';') ? ';' : ',';
-            const cols = lines[i].split(separator).map(c => c.trim());
-
-            if (cols.length >= 3) {
-                parsed.push({
-                    id: `imp_${Date.now()}_${i}`,
-                    company: cols[0] || 'Neznámá firma',
-                    name: cols[1] || '-',
-                    specialization: [cols[2] || 'Ostatní'], // Changed to array
-                    phone: cols[3] || '-',
-                    email: cols[4] || '-',
-                    ico: cols[5] || '-',
-                    region: cols[6] || '-',
-                    status: 'available', // Default status
-                    contacts: []
-                });
-            }
-        }
-        setImportedContacts(parsed);
-    };
-
-    const handleConfirmImport = async () => {
-        if (importedContacts.length > 0) {
-            setIsUploading(true);
-            setUploadProgress(0);
-            try {
-                await onImportContacts(importedContacts, (percent) => setUploadProgress(percent));
-                setImportedContacts([]);
-                setFileName('');
-            } catch (error) {
-                console.error("Import failed", error);
-            } finally {
-                setIsUploading(false);
-                setUploadProgress(0);
-            }
-        }
-    };
+    // Import řeší wizard komponenta (XLSX/CSV + mapování + náhled)
 
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen overflow-y-auto">
@@ -973,120 +871,12 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                         )}
                     </div>
 
-                    {/* Auto-Sync from URL */}
-                    <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4 mb-6">
-                        <div className="flex items-start gap-3 mb-4">
-                            <span className="material-symbols-outlined text-purple-600 dark:text-purple-400">sync</span>
-                            <div className="flex-1">
-                                <h3 className="text-sm font-bold text-purple-900 dark:text-purple-100 mb-1">Synchronizace kontaktů z URL</h3>
-                                <p className="text-xs text-purple-700 dark:text-purple-300 mb-3">
-                                    Zadejte odkaz na CSV/XLSX soubor (např. Google Sheets export link).
-                                    Synchronizaci spustíte tlačítkem níže.
-                                </p>
-
-                                <div className="space-y-3">
-                                    <div>
-                                        <label className="block text-xs text-purple-700 dark:text-purple-300 mb-1 font-medium">URL souboru</label>
-                                        <input
-                                            type="url"
-                                            value={importUrl}
-                                            onChange={(e) => setImportUrl(e.target.value)}
-                                            placeholder="https://docs.google.com/spreadsheets/.../export?format=csv"
-                                            className="w-full rounded-lg bg-white dark:bg-slate-900 border border-purple-300 dark:border-purple-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:ring-purple-500 focus:border-purple-500"
-                                        />
-                                    </div>
-
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={handleSaveUrl}
-                                            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm"
-                                        >
-                                            Uložit URL
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={handleSyncNow}
-                                            disabled={isSyncing || !importUrl}
-                                            className="bg-white dark:bg-slate-800 border border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            <span className="flex items-center gap-2">
-                                                <span className={`material-symbols-outlined text-[18px] ${isSyncing ? 'animate-spin' : ''}`}>sync</span>
-                                                {isSyncing ? 'Synchronizuji...' : 'Synchronizovat nyní'}
-                                            </span>
-                                        </button>
-                                    </div>
-
-                                    {isSyncing && (
-                                        <div className="flex items-center gap-4 mt-2">
-                                            <div className="flex-1 h-2 bg-purple-200 dark:bg-purple-900/50 rounded-full overflow-hidden">
-                                                <div
-                                                    className="h-full bg-purple-600 transition-all duration-300 ease-out"
-                                                    style={{ width: `${uploadProgress}%` }}
-                                                />
-                                            </div>
-                                            <span className="text-sm font-bold text-purple-700 dark:text-purple-300 whitespace-nowrap">
-                                                {uploadProgress}%
-                                            </span>
-                                        </div>
-                                    )}
-
-                                    <p className="text-xs text-purple-600 dark:text-purple-400 italic">
-                                        💡 Poslední synchronizace: {lastSyncTime || 'Ještě nebyla provedena'}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Manual File Upload */}
-                    <div className="flex flex-col gap-4">
-                        <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                            <span className="material-symbols-outlined text-[20px]">info</span>
-                            <span>Nebo nahrajte soubor jednorázově:</span>
-                        </div>
-
-                        <p className="text-sm text-slate-500 dark:text-slate-400">
-                            Nahrajte CSV soubor pro hromadný import kontaktů. <br />
-                            <span className="text-xs italic">Formát: Firma, Jméno, Specializace, Telefon, Email, IČO, Region</span>
-                        </p>
-
-                        <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
-                            <label className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700">
-                                <span className="material-symbols-outlined">folder_open</span>
-                                {fileName || 'Vybrat soubor CSV'}
-                                <input type="file" accept=".csv" onChange={handleFileChange} className="hidden" />
-                            </label>
-
-                            {importedContacts.length > 0 && !isUploading && (
-                                <div className="flex items-center gap-4 flex-1">
-                                    <span className="text-sm font-medium text-green-600">
-                                        Nalezeno {importedContacts.length} kontaktů
-                                    </span>
-                                    <button
-                                        onClick={handleConfirmImport}
-                                        className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm"
-                                    >
-                                        Importovat do databáze
-                                    </button>
-                                </div>
-                            )}
-
-                            {isUploading && (
-                                <div className="flex-1 flex items-center gap-4">
-                                    <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                        <div
-                                            className="h-full bg-primary transition-all duration-300 ease-out"
-                                            style={{ width: `${uploadProgress}%` }}
-                                        />
-                                    </div>
-                                    <span className="text-sm font-bold text-primary whitespace-nowrap">
-                                        {uploadProgress}%
-                                    </span>
-                                </div>
-                            )}
-                        </div>
-                    </div>
+                    <ContactsImportWizard
+                        contacts={contacts}
+                        statuses={contactStatuses}
+                        defaultStatusId="available"
+                        onImportContacts={onImportContacts}
+                    />
                 </section>
 
                 {/* Subcontractor Status Management - User Tab */}
