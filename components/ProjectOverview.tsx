@@ -35,7 +35,7 @@ const KPICard: React.FC<{
                                 {trend === 'up' ? 'trending_up' : trend === 'down' ? 'trending_down' : 'trending_flat'}
                             </span>
                         )}
-                        <p className="text-[10px] text-slate-500">{subtitle}</p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400">{subtitle}</p>
                     </div>
                 )}
             </div>
@@ -533,7 +533,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
                 <Header title="Přehled staveb" subtitle="Detailní analýza vybraného projektu" />
                 <div className="flex-1 flex items-center justify-center">
                     <div className="text-center">
-                        <span className="material-symbols-outlined text-slate-600 text-[80px] mb-4 block">domain_disabled</span>
+                        <span className="material-symbols-outlined text-slate-600 dark:text-slate-500 text-[80px] mb-4 block">domain_disabled</span>
                         <h3 className="text-xl font-bold text-slate-400">Žádné aktivní projekty</h3>
                     </div>
                 </div>
@@ -597,7 +597,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
                 </div>
 
                 {/* AI Generation Button */}
-                <div className="flex items-center justify-between bg-slate-50 dark:bg-gradient-to-r dark:from-violet-900/30 dark:to-blue-900/30 backdrop-blur-xl rounded-xl border border-slate-200 dark:border-violet-500/20 p-4">
+                <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-950 dark:bg-gradient-to-r dark:from-violet-900/30 dark:to-blue-900/30 backdrop-blur-xl rounded-xl border border-slate-200 dark:border-violet-500/20 p-4">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-gradient-to-br from-orange-500 to-amber-600 rounded-lg flex items-center justify-center">
                             <span className="text-white text-[12px] font-black tracking-tighter">TF</span>
@@ -625,7 +625,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
                     {/* AI Analysis - Full formatted text */}
-                    <div className="bg-white dark:bg-gradient-to-br dark:from-violet-900/20 dark:to-blue-900/20 backdrop-blur-xl rounded-2xl border border-slate-200 dark:border-violet-500/20 p-5">
+                    <div className="bg-white dark:bg-slate-950 dark:bg-gradient-to-br dark:from-violet-900/20 dark:to-blue-900/20 backdrop-blur-xl rounded-2xl border border-slate-200 dark:border-violet-500/20 p-5">
                         <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                             <span className="material-symbols-outlined text-violet-400 text-[18px]">description</span>
                             Manažerská analýza projektu
@@ -651,7 +651,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
                                 }} />
                             </div>
                         ) : (
-                            <div className="flex flex-col items-center justify-center h-[350px] text-slate-500">
+                            <div className="flex flex-col items-center justify-center h-[350px] text-slate-500 dark:text-slate-400">
                                 <span className="material-symbols-outlined text-[48px] mb-2 opacity-50">psychology</span>
                                 <p className="text-xs">AI analýza se generuje automaticky...</p>
                             </div>
@@ -677,7 +677,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
                                 </BarChart>
                             </ResponsiveContainer>
                         ) : (
-                            <div className="flex items-center justify-center h-[350px] text-slate-500 text-sm">Žádné SOD kategorie</div>
+                            <div className="flex items-center justify-center h-[350px] text-slate-500 dark:text-slate-400 text-sm">Žádné SOD kategorie</div>
                         )}
                     </div>
                 </div>
@@ -716,20 +716,20 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
                             </div>
                         ) : (
                             <div className="flex flex-col items-center justify-center h-[250px]">
-                                <span className="material-symbols-outlined text-slate-600 text-[40px] mb-2">
+                                <span className="material-symbols-outlined text-slate-600 dark:text-slate-500 text-[40px] mb-2">
                                     {metrics?.contractedBidsCount > 0 ? 'handshake' : 'hourglass_empty'}
                                 </span>
-                                <p className="text-slate-500 text-sm text-center">
+                                <p className="text-slate-500 dark:text-slate-400 text-sm text-center">
                                     {metrics?.contractedBidsCount > 0
                                         ? `${metrics.contractedBidsCount} zasmluvněná nabídka`
                                         : 'Zatím žádné zasmluvněné nabídky'}
                                 </p>
-                                <p className="text-slate-600 text-xs mt-1">
+                                <p className="text-slate-600 dark:text-slate-400 text-xs mt-1">
                                     {metrics?.contractedBidsCount > 0
                                         ? `Celkem: ${formatMoneyShort(metrics.contractedBidsTotal)}`
                                         : `Celkový plán: ${formatMoneyShort(metrics?.totalPlanned || 0)}`}
                                 </p>
-                                <p className="text-slate-700 text-[10px] mt-2">
+                                <p className="text-slate-700 dark:text-slate-300 text-[10px] mt-2">
                                     Označte vítěze jako zasmluvněné v poptávkách
                                 </p>
                             </div>
@@ -764,7 +764,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
                                 </div>
                             </div>
                         ) : (
-                            <div className="flex items-center justify-center h-[180px] text-slate-500 text-xs">Žádná data</div>
+                            <div className="flex items-center justify-center h-[180px] text-slate-500 dark:text-slate-400 text-xs">Žádná data</div>
                         )}
                     </div>
 
@@ -791,13 +791,13 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
                                         <div key={idx} className="flex items-center gap-2 text-[11px]">
                                             <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
                                             <span className="text-slate-700 dark:text-slate-300 truncate flex-1">{item.name}</span>
-                                            <span className="text-slate-500">{formatMoneyShort(item.value)}</span>
+                                            <span className="text-slate-500 dark:text-slate-400">{formatMoneyShort(item.value)}</span>
                                         </div>
                                     ))}
                                 </div>
                             </div>
                         ) : (
-                            <div className="flex items-center justify-center h-[160px] text-slate-500 text-xs">Žádné SOD kategorie</div>
+                            <div className="flex items-center justify-center h-[160px] text-slate-500 dark:text-slate-400 text-xs">Žádné SOD kategorie</div>
                         )}
                     </div>
                 </div>

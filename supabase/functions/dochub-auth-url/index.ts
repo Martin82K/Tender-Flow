@@ -12,8 +12,46 @@ const json = (status: number, body: unknown) =>
 
 const randomNonce = () => crypto.randomUUID().replaceAll("-", "");
 
-const getSiteUrl = (): string =>
-  Deno.env.get("SITE_URL") || "http://localhost:5173";
+const getSiteBaseUrl = (): string => {
+  const raw = (Deno.env.get("SITE_URL") || "http://localhost:3000").trim();
+  try {
+    const u = new URL(raw);
+    return u.origin;
+  } catch {
+    return raw.replace(/\/+$/, "");
+  }
+};
+
+const defaultReturnTo = () => `${getSiteBaseUrl()}/app?dochub=1`;
+
+const sanitizeReturnTo = (raw: string | null | undefined): string => {
+  const siteBase = getSiteBaseUrl();
+  const val = (raw || "").trim();
+  if (!val) return defaultReturnTo();
+
+  try {
+    const u = new URL(val);
+
+    // Only allow returning to our own site origin (prevents open redirects).
+    if (u.origin !== siteBase) return defaultReturnTo();
+
+    // Prevent redirecting into Vite module URLs or source files (would show raw JS).
+    const p = u.pathname || "/";
+    const blockedPrefixes = ["/@vite/", "/node_modules/", "/src/"];
+    if (blockedPrefixes.some((prefix) => p.startsWith(prefix))) return defaultReturnTo();
+    if (/\.(ts|tsx|js|jsx|map)$/.test(p)) return defaultReturnTo();
+
+    // Always return into the app shell, not landing.
+    if (!p.startsWith("/app")) {
+      u.pathname = "/app";
+      u.searchParams.set("dochub", "1");
+    }
+
+    return u.toString();
+  } catch {
+    return defaultReturnTo();
+  }
+};
 
 const getProjectRef = (): string | null => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
@@ -71,10 +109,14 @@ const buildGoogleAuthUrl = (args: {
 
 const buildMicrosoftAuthUrl = (args: {
   clientId: string;
+  tenant: string;
   redirectUri: string;
   state: string;
+  loginHint?: string | null;
 }) => {
-  const url = new URL("https://login.microsoftonline.com/common/oauth2/v2.0/authorize");
+  const url = new URL(
+    `https://login.microsoftonline.com/${encodeURIComponent(args.tenant)}/oauth2/v2.0/authorize`
+  );
   url.searchParams.set("client_id", args.clientId);
   url.searchParams.set("redirect_uri", args.redirectUri);
   url.searchParams.set("response_type", "code");
@@ -89,6 +131,13 @@ const buildMicrosoftAuthUrl = (args: {
   );
   url.searchParams.set("response_mode", "query");
   url.searchParams.set("state", args.state);
+  url.searchParams.set("prompt", "select_account");
+  if (args.tenant === "organizations") {
+    url.searchParams.set("domain_hint", "organizations");
+  }
+  if (args.loginHint && args.loginHint.trim()) {
+    url.searchParams.set("login_hint", args.loginHint.trim());
+  }
   return url.toString();
 };
 
@@ -105,7 +154,7 @@ Deno.serve(async (req) => {
     const provider = (body?.provider as Provider) || null;
     const mode = (body?.mode as Mode) || null;
     const projectId = (body?.projectId as string) || null;
-    const returnTo = (body?.returnTo as string) || `${getSiteUrl()}/?dochub=1`;
+    const returnTo = sanitizeReturnTo(body?.returnTo as string);
 
     if (!provider || !["gdrive", "onedrive"].includes(provider)) {
       return json(400, { error: "Invalid provider" });
@@ -152,10 +201,22 @@ Deno.serve(async (req) => {
       Deno.env.get("MS_OAUTH_REDIRECT_URI"),
       "dochub-microsoft-callback"
     );
+    const tenant =
+      Deno.env.get("MS_OAUTH_TENANT") ||
+      Deno.env.get("MS_OAUTH_TENANT_ID") ||
+      "organizations";
     if (!clientId || !redirectUri) {
       return json(500, { error: "Missing MS_OAUTH_CLIENT_ID/MS_OAUTH_REDIRECT_URI" });
     }
-    return json(200, { url: buildMicrosoftAuthUrl({ clientId, redirectUri, state }) });
+    return json(200, {
+      url: buildMicrosoftAuthUrl({
+        clientId,
+        tenant,
+        redirectUri,
+        state,
+        loginHint: userData.user.email,
+      }),
+    });
   } catch (e) {
     return json(500, { error: e instanceof Error ? e.message : "Unknown error" });
   }

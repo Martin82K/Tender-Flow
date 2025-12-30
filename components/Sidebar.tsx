@@ -7,13 +7,11 @@ import { SIDEBAR_NAVIGATION, BOTTOM_NAVIGATION } from '../config/navigation';
 import { useFeatures } from '../context/FeatureContext';
 
 // Admin role configuration (must match App.tsx)
-const SUPERADMIN_EMAILS = ["martinkalkus82@gmail.com"];
-const ADMIN_EMAILS = ["kalkus@baustav.cz"];
+const ADMIN_EMAILS = ["martinkalkus82@gmail.com", "kalkus@baustav.cz"];
 
 // Helper function to get display role
 const getUserRole = (email: string | undefined, defaultRole?: string): string => {
   if (!email) return defaultRole || 'User';
-  if (SUPERADMIN_EMAILS.includes(email)) return 'Superadmin';
   if (ADMIN_EMAILS.includes(email)) return 'Admin';
   return defaultRole || 'User';
 };
@@ -341,7 +339,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
                 <div className="size-8 min-w-8 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400"></div>
               )}
               <div className="flex flex-col overflow-hidden">
-                <p className="text-sm font-bold text-slate-800 dark:text-white truncate">{displayName || user?.email?.split('@')[0] || 'User'}</p>
+                <p className="text-sm font-bold text-slate-800 dark:text-white break-words">{displayName || user?.email?.split('@')[0] || 'User'}</p>
                 <p className="text-xs text-slate-500 truncate capitalize">{getUserRole(user?.email, user?.role)}</p>
               </div>
               <button

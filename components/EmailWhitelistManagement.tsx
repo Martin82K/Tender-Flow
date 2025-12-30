@@ -96,7 +96,7 @@ export const EmailWhitelistManagement: React.FC<EmailWhitelistManagementProps> =
     if (!isAdmin) return null;
 
     return (
-        <section className="bg-white dark:bg-gradient-to-br dark:from-slate-900/80 dark:to-slate-950/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl mb-8">
+        <section className="bg-white dark:bg-slate-950 dark:bg-gradient-to-br dark:from-slate-900/80 dark:to-slate-950/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl mb-8">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                 <span className="material-symbols-outlined text-emerald-400">playlist_add_check</span>
                 Seznam povolených emailů (Whitelist)

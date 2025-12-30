@@ -21,7 +21,6 @@ interface SettingsProps {
     onDeleteContacts: (ids: string[]) => void;
     contacts: Subcontractor[];
     isAdmin?: boolean;
-    isSuperAdmin?: boolean;
     onSaveSettings: () => void;
     user?: any; // Add user prop for debug
 }
@@ -40,7 +39,6 @@ export const Settings: React.FC<SettingsProps> = ({
     onDeleteContacts,
     contacts,
     isAdmin = false,
-    isSuperAdmin = false,
     onSaveSettings,
     user
 }) => {
@@ -81,6 +79,9 @@ export const Settings: React.FC<SettingsProps> = ({
     // Display Name State
     const [displayName, setDisplayName] = useState('');
     const [isSavingDisplayName, setIsSavingDisplayName] = useState(false);
+
+    const [isTransferringOwnership, setIsTransferringOwnership] = useState(false);
+    const [ownershipTransferStatus, setOwnershipTransferStatus] = useState<string | null>(null);
 
     // Load display name on mount
     React.useEffect(() => {
@@ -142,6 +143,47 @@ export const Settings: React.FC<SettingsProps> = ({
             alert(`Chyba při ukládání jména: ${error?.message || 'Neznámá chyba'}`);
         } finally {
             setIsSavingDisplayName(false);
+        }
+    };
+
+    const handleAssignOwnershipToBaustav = async () => {
+        if (!isAdmin) {
+            setOwnershipTransferStatus('Nemáte oprávnění (pouze Admin).');
+            return;
+        }
+        if (!confirm('Opravdu chcete převést vlastnictví vybraných staveb na kalkus@baustav.cz?')) return;
+
+        setIsTransferringOwnership(true);
+        setOwnershipTransferStatus(null);
+        try {
+            const { supabase } = await import('../services/supabase');
+
+            const { data: targetUserId, error: userIdError } = await supabase.rpc('get_user_id_by_email', {
+                email_input: 'kalkus@baustav.cz'
+            });
+            if (userIdError) throw userIdError;
+            if (!targetUserId) throw new Error('Uživatel kalkus@baustav.cz nebyl nalezen v auth.users (musí se nejdřív zaregistrovat/přihlásit).');
+
+            const projectNames = ['Krajská nemocnice', 'REKO Bazén Aš'];
+            const updated: Array<{ name: string; count: number }> = [];
+
+            for (const name of projectNames) {
+                const { data, error } = await supabase
+                    .from('projects')
+                    .update({ owner_id: targetUserId })
+                    .ilike('name', name)
+                    .select('id');
+                if (error) throw error;
+                updated.push({ name, count: Array.isArray(data) ? data.length : 0 });
+            }
+
+            const summary = updated.map((u) => `${u.name}: ${u.count}`).join(', ');
+            setOwnershipTransferStatus(`Hotovo. Aktualizováno: ${summary}`);
+        } catch (e: any) {
+            const msg = e?.message || String(e);
+            setOwnershipTransferStatus(`Chyba: ${msg}`);
+        } finally {
+            setIsTransferringOwnership(false);
         }
     };
 
@@ -234,15 +276,6 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
 - Výstup bude zobrazen v UI, proto používej markdown formátování`;
 
     // AI Prompts State (Admin only) - with defaults
-    const [promptAchievements, setPromptAchievements] = useState(() =>
-        localStorage.getItem('aiPromptAchievements') || DEFAULT_PROMPT_ACHIEVEMENTS
-    );
-    const [promptCharts, setPromptCharts] = useState(() =>
-        localStorage.getItem('aiPromptCharts') || DEFAULT_PROMPT_CHARTS
-    );
-    const [promptReports, setPromptReports] = useState(() =>
-        localStorage.getItem('aiPromptReports') || DEFAULT_PROMPT_REPORTS
-    );
     const [promptContacts, setPromptContacts] = useState(() =>
         localStorage.getItem('aiPromptContacts') || ''
     );
@@ -252,15 +285,6 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
 
     // Initialize localStorage with defaults if empty
     React.useEffect(() => {
-        if (!localStorage.getItem('aiPromptAchievements')) {
-            localStorage.setItem('aiPromptAchievements', DEFAULT_PROMPT_ACHIEVEMENTS);
-        }
-        if (!localStorage.getItem('aiPromptCharts')) {
-            localStorage.setItem('aiPromptCharts', DEFAULT_PROMPT_CHARTS);
-        }
-        if (!localStorage.getItem('aiPromptReports')) {
-            localStorage.setItem('aiPromptReports', DEFAULT_PROMPT_REPORTS);
-        }
         if (!localStorage.getItem('aiPromptContacts')) {
             localStorage.setItem('aiPromptContacts', '');
         }
@@ -279,9 +303,6 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
 
     // Save prompts to localStorage
     const savePrompts = () => {
-        localStorage.setItem('aiPromptAchievements', promptAchievements);
-        localStorage.setItem('aiPromptCharts', promptCharts);
-        localStorage.setItem('aiPromptReports', promptReports);
         localStorage.setItem('aiPromptContacts', promptContacts);
         localStorage.setItem('aiPromptOverview', promptOverview);
         setPromptsSaved(true);
@@ -652,7 +673,7 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
 
 
 
-                        <UserManagement isSuperAdmin={isSuperAdmin} />
+                        <UserManagement isAdmin={isAdmin} />
 
                         {/* AI Settings */}
                     <section className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl mb-8">
@@ -712,45 +733,6 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                                 <p className="text-xs text-slate-500">
                                     Přizpůsobte instrukce pro AI. Prázdné pole = použije se výchozí systémový prompt.
                                 </p>
-
-                                {/* Achievements Prompt */}
-                                <div className="space-y-2">
-                                    <label className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400">
-                                        <span>🏆</span> Prompt pro Achievementy
-                                    </label>
-                                    <textarea
-                                        value={promptAchievements}
-                                        onChange={(e) => setPromptAchievements(e.target.value)}
-                                        placeholder="Výchozí: Jsi kreativní analytik stavebních projektů. Vygeneruj achievement-style insights ve stylu herních úspěchů..."
-                                        className="w-full h-24 p-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary resize-y"
-                                    />
-                                </div>
-
-                                {/* Charts Prompt */}
-                                <div className="space-y-2">
-                                    <label className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400">
-                                        <span>📊</span> Prompt pro Grafy
-                                    </label>
-                                    <textarea
-                                        value={promptCharts}
-                                        onChange={(e) => setPromptCharts(e.target.value)}
-                                        placeholder="Výchozí: Jsi dlouholetý manažer se znalostmi vedení staveb. Generuješ grafy pro analýzu staveb..."
-                                        className="w-full h-24 p-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary resize-y"
-                                    />
-                                </div>
-
-                                {/* Reports Prompt */}
-                                <div className="space-y-2">
-                                    <label className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400">
-                                        <span>📋</span> Prompt pro Reporty
-                                    </label>
-                                    <textarea
-                                        value={promptReports}
-                                        onChange={(e) => setPromptReports(e.target.value)}
-                                        placeholder="Výchozí: Jsi zkušený stavbyvedoucí. Připrav přehledný report o stavu projektů..."
-                                        className="w-full h-24 p-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary resize-y"
-                                    />
-                                </div>
 
                                 {/* Contacts Prompt */}
                                 <div className="space-y-2">

@@ -6,8 +6,17 @@ import { AuthCard } from "./AuthCard";
 import { Link, navigate, useLocation } from "../routing/router";
 
 const getNext = (search: string) => {
-  const next = new URLSearchParams(search).get("next") || "/app";
-  return next.startsWith("/") ? next : "/app";
+  const raw = new URLSearchParams(search).get("next") || "/app";
+  const decodeOnce = (val: string) => {
+    try {
+      return decodeURIComponent(val);
+    } catch {
+      return val;
+    }
+  };
+  const next = decodeOnce(raw);
+  const next2 = next.startsWith("%2F") ? decodeOnce(next) : next;
+  return next2.startsWith("/") ? next2 : "/app";
 };
 
 export const LoginPage: React.FC = () => {
@@ -18,13 +27,27 @@ export const LoginPage: React.FC = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const nextPath = getNext(search);
+  const dochubError = (() => {
+    try {
+      const u = new URL(nextPath, window.location.origin);
+      const code = u.searchParams.get("dochub_error");
+      const desc = u.searchParams.get("dochub_error_description");
+      if (!code && !desc) return null;
+      const message = [code, desc].filter(Boolean).join(": ");
+      return message || null;
+    } catch {
+      return null;
+    }
+  })();
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
       await login(email, password);
-      navigate(getNext(search), { replace: true });
+      navigate(nextPath, { replace: true });
     } catch (err: any) {
       setError(err?.message || "Nastala chyba");
     } finally {
@@ -37,6 +60,11 @@ export const LoginPage: React.FC = () => {
       <PublicHeader variant="auth" />
       <AuthCard title="Přihlášení" subtitle="Pokračujte do aplikace Tender Flow">
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
+          {dochubError ? (
+            <div className="text-amber-200 text-sm text-center bg-amber-500/10 py-2 rounded-lg border border-amber-500/20">
+              DocHub připojení (Microsoft): {dochubError}
+            </div>
+          ) : null}
           <input
             type="email"
             placeholder="Email"
@@ -81,4 +109,3 @@ export const LoginPage: React.FC = () => {
     </PublicLayout>
   );
 };
-

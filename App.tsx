@@ -52,21 +52,13 @@ const DEFAULT_STATUSES: StatusConfig[] = [
   { id: "waiting", label: "Čeká", color: "yellow" },
 ];
 
-// Admin role configuration
-// Superadmins have full access to all admin features
-const SUPERADMIN_EMAILS = ["martinkalkus82@gmail.com"];
-// Admins have access to admin features within their organization
-const ADMIN_EMAILS = ["kalkus@baustav.cz"];
+// Admin role configuration (highest role in app)
+const ADMIN_EMAILS = ["martinkalkus82@gmail.com", "kalkus@baustav.cz"];
 
 // Helper function to check admin status
 const isUserAdmin = (email: string | undefined): boolean => {
   if (!email) return false;
-  return SUPERADMIN_EMAILS.includes(email) || ADMIN_EMAILS.includes(email);
-};
-
-const isUserSuperAdmin = (email: string | undefined): boolean => {
-  if (!email) return false;
-  return SUPERADMIN_EMAILS.includes(email);
+  return ADMIN_EMAILS.includes(email);
 };
 
 // Helper to convert Hex to RGB for Tailwind
@@ -109,7 +101,6 @@ const AppContent: React.FC = () => {
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [loadingError, setLoadingError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const handleNavigateToProject = (projectId: string, tab: string, categoryId?: string) => {
@@ -214,8 +205,12 @@ const AppContent: React.FC = () => {
     if (theme === 'system') {
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
       const handler = () => applyTheme();
-      mediaQuery.addEventListener('change', handler);
-      return () => mediaQuery.removeEventListener('change', handler);
+      if (typeof mediaQuery.addEventListener === 'function') {
+        mediaQuery.addEventListener('change', handler);
+        return () => mediaQuery.removeEventListener('change', handler);
+      }
+      mediaQuery.addListener(handler);
+      return () => mediaQuery.removeListener(handler);
     }
   }, [theme]);
 
@@ -277,6 +272,17 @@ const AppContent: React.FC = () => {
       pathname === "/register" ||
       pathname === "/forgot-password";
 
+    const decodeNext = (val: string | null) => {
+      if (!val) return null;
+      try {
+        const once = decodeURIComponent(val);
+        if (once.startsWith("%2F")) return decodeURIComponent(once);
+        return once;
+      } catch {
+        return val;
+      }
+    };
+
     if (!isAuthenticated && isAppPath) {
       const next = encodeURIComponent(`${pathname}${search || ""}`);
       navigate(`/login?next=${next}`, { replace: true });
@@ -284,7 +290,7 @@ const AppContent: React.FC = () => {
     }
 
     if (isAuthenticated && (pathname === "/" || isAuthPath)) {
-      const nextParam = new URLSearchParams(search).get("next");
+      const nextParam = decodeNext(new URLSearchParams(search).get("next"));
       const safeNext = nextParam?.startsWith("/") ? nextParam : "/app";
       navigate(safeNext, { replace: true });
       return;
@@ -326,9 +332,8 @@ const AppContent: React.FC = () => {
       } = await supabase.auth.getSession();
 
       if (session?.user) {
-        // Admin/Superadmin Check
+        // Admin check (highest role)
         setIsAdmin(user?.role === 'demo' || isUserAdmin(session.user.email));
-        setIsSuperAdmin(user?.role === 'demo' || isUserSuperAdmin(session.user.email));
       }
 
       // Handle Demo Mode Data Loading
@@ -1548,7 +1553,6 @@ const AppContent: React.FC = () => {
             }}
             contacts={contacts}
             isAdmin={isAdmin}
-            isSuperAdmin={isSuperAdmin}
             onSaveSettings={async () => {
               // Manual save trigger if needed, mostly changes are auto-saved via handlers above
               // Checking if explicit save is needed for some features

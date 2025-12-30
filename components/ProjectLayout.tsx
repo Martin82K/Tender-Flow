@@ -152,7 +152,6 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
         setDocHubExtraSupplierDraft(
             Array.isArray(rawSupplier) ? rawSupplier.filter((s) => typeof s === "string" && s.trim()).map((s) => s.trim()) : []
         );
-        setDocHubAutoCreateEnabled(!!project.docHubAutoCreateEnabled);
         setIsEditingDocHubStructure(false);
     }, [project.docHubStructureV1]);
 
@@ -171,7 +170,8 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
             docHubRootName: docHubRootName || null,
             docHubProvider,
             docHubMode,
-            docHubStatus: docHubEnabled && docHubRootLink.trim() ? "connected" : "disconnected",
+            // Consider DocHub connected only after root mapping (rootId) exists.
+            docHubStatus: docHubEnabled && project.docHubRootId ? "connected" : "disconnected",
             docHubStructureVersion: project.docHubStructureVersion ?? 1
         });
         setIsEditingDocHubSetup(false);
@@ -184,6 +184,10 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
         }
         if (!isDocHubConnected) {
             showModal({ title: "DocHub", message: "Nejdřív připojte DocHub a nastavte hlavní složku projektu.", variant: "info" });
+            return;
+        }
+        if (!docHubProvider) {
+            showModal({ title: "DocHub", message: "Chybí provider DocHubu.", variant: "danger" });
             return;
         }
 
@@ -203,6 +207,37 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
         }, 60);
 
         try {
+            // Ensure we have a resolved root id (required by backend autocreate).
+            const hasRoot = !!project.docHubRootId;
+            if (!hasRoot) {
+                const urlToResolve = docHubRootLink?.trim();
+                if (!urlToResolve) {
+                    throw new Error("Chybí hlavní složka projektu. Vložte odkaz a klikněte na „Získat odkaz“.");
+                }
+
+                setDocHubAutoCreateLogs((prev) => [...prev, "Ověřuji / mapuji hlavní složku projektu…"]);
+                const resolved = await invokeAuthedFunction<any>("dochub-resolve-root", {
+                    body: { provider: docHubProvider, projectId: project.id, url: urlToResolve }
+                });
+                const rootName = (resolved as any)?.rootName as string | undefined;
+                const rootWebUrl = (resolved as any)?.rootWebUrl as string | undefined;
+                if (rootName) setDocHubRootName(rootName);
+                if (rootWebUrl) setDocHubRootLink(rootWebUrl);
+                setDocHubStatus("connected");
+                onUpdate({
+                    docHubEnabled: true,
+                    docHubProvider,
+                    docHubStatus: "connected",
+                    docHubRootName: rootName || null,
+                    docHubRootLink: rootWebUrl || urlToResolve,
+                    docHubRootWebUrl: rootWebUrl || null,
+                    docHubRootId: (resolved as any)?.rootId || null,
+                    docHubDriveId: (resolved as any)?.driveId || null,
+                    docHubSiteId: (resolved as any)?.siteId || null,
+                });
+                setDocHubAutoCreateProgress((prev) => Math.max(prev, 15));
+            }
+
             const result = await invokeAuthedFunction<any>("dochub-autocreate", {
                 body: { projectId: project.id }
             });
@@ -224,7 +259,13 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                 variant: "success"
             });
         } catch (e) {
-            const message = e instanceof Error ? e.message : "Neznámá chyba";
+            const rawMessage = e instanceof Error ? e.message : "Neznámá chyba";
+            const message =
+                rawMessage === "Missing DocHub root"
+                    ? "Chybí namapovaná hlavní složka projektu. Klikněte na „Získat odkaz“ (nebo vyberte složku) a zkuste to znovu."
+                    : rawMessage.includes("SPO license")
+                        ? "Microsoft/OneDrive: Tenhle účet (tenant) nemá licenci SharePoint Online, takže nejde pracovat se složkami přes Graph API.\n\nŘešení: v Microsoft 365 admin centru přiřaďte uživateli licenci s SharePoint Online / OneDrive for Business (např. Microsoft 365 Business Standard/E3) nebo použijte tenant/uživatele, který licenci má."
+                    : rawMessage;
             setDocHubAutoCreateEnabled(false);
             onUpdate({
                 docHubAutoCreateEnabled: false,
@@ -293,7 +334,9 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
 
         setIsDocHubConnecting(true);
         try {
-            const returnTo = window.location.href;
+            // Always return back into the SPA shell after OAuth. Redirecting to a module URL
+            // (e.g. `/App.tsx`) would make the browser render raw Vite-transformed JS.
+            const returnTo = `${window.location.origin}/app?dochub=1`;
             const data = await invokeAuthedFunction<{ url?: string }>("dochub-auth-url", {
                 body: { provider: docHubProvider, mode: docHubMode, projectId: project.id, returnTo }
             });
@@ -360,7 +403,10 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
             setDocHubResolveProgress(100);
             showModal({ title: "Hotovo", message: "Hlavní složka projektu ověřena a uložena.", variant: "success" });
         } catch (e) {
-            const message = e instanceof Error ? e.message : "Neznámá chyba";
+            const rawMessage = e instanceof Error ? e.message : "Neznámá chyba";
+            const message = rawMessage.includes("SPO license")
+                ? "Microsoft/OneDrive: Tenhle účet (tenant) nemá licenci SharePoint Online, takže nelze ověřit sdílený odkaz.\n\nŘešení: přiřaďte uživateli licenci s SharePoint Online / OneDrive for Business (např. Microsoft 365 Business Standard/E3) nebo použijte tenant/uživatele, který licenci má."
+                : rawMessage;
             showModal({ title: "Získání odkazu selhalo", message, variant: "danger" });
         } finally {
             setIsDocHubConnecting(false);
@@ -559,11 +605,60 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
 
     const hasDocsLink = project.documentationLink && project.documentationLink.trim() !== '';
     const hasLetterLink = project.inquiryLetterLink && project.inquiryLetterLink.trim() !== '';
-    const hasDocHubRoot = docHubRootLink.trim() !== '';
+    const hasDocHubRoot = !!project.docHubRootId && docHubRootLink.trim() !== '';
     const isDocHubAuthed = docHubEnabled && docHubStatus === "connected";
     const isDocHubConnected = isDocHubAuthed && hasDocHubRoot;
     const effectiveDocHubStructure = isEditingDocHubStructure ? docHubStructureDraft : docHubStructure;
-    const docHubLinks = isDocHubConnected ? getDocHubProjectLinks(docHubRootLink, effectiveDocHubStructure) : null;
+    const [docHubBaseLinks, setDocHubBaseLinks] = useState<null | {
+        pd?: string | null;
+        tenders?: string | null;
+        contracts?: string | null;
+        realization?: string | null;
+        archive?: string | null;
+    }>(null);
+    const fallbackDocHubLinks = isDocHubConnected ? getDocHubProjectLinks(docHubRootLink, effectiveDocHubStructure) : null;
+    const docHubProjectLinks = isDocHubConnected
+        ? {
+            pd: docHubBaseLinks?.pd ?? fallbackDocHubLinks?.pd ?? null,
+            tenders: docHubBaseLinks?.tenders ?? fallbackDocHubLinks?.tenders ?? null,
+            contracts: docHubBaseLinks?.contracts ?? fallbackDocHubLinks?.contracts ?? null,
+            realization: docHubBaseLinks?.realization ?? fallbackDocHubLinks?.realization ?? null,
+            archive: docHubBaseLinks?.archive ?? fallbackDocHubLinks?.archive ?? null,
+        }
+        : null;
+
+    useEffect(() => {
+        if (!isDocHubConnected || !project.id) {
+            setDocHubBaseLinks(null);
+            return;
+        }
+
+        let cancelled = false;
+        (async () => {
+            try {
+                const kinds = ["pd", "tenders", "contracts", "realization", "archive"] as const;
+                const results = await Promise.all(
+                    kinds.map(async (kind) => {
+                        const res = await invokeAuthedFunction<{ webUrl?: string | null }>("dochub-get-link", {
+                            body: { projectId: project.id, kind }
+                        });
+                        return [kind, res?.webUrl || null] as const;
+                    })
+                );
+
+                if (cancelled) return;
+                const next: any = {};
+                for (const [kind, url] of results) next[kind] = url;
+                setDocHubBaseLinks(next);
+            } catch {
+                if (!cancelled) setDocHubBaseLinks(null);
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [isDocHubConnected, project.id, project.docHubRootId, project.docHubDriveId, project.docHubStructureV1]);
 
 	    return (
 	        <div className="p-6 lg:p-10 flex flex-col gap-6 overflow-y-auto h-full bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen">
@@ -709,38 +804,38 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                         )}
                     </div>
 
-                    {isDocHubConnected && docHubLinks?.pd && (
-                        <div className="mt-4 rounded-xl p-4 border border-violet-200 dark:border-violet-500/30 bg-violet-50 dark:bg-violet-500/10">
-                            <div className="flex items-start justify-between gap-4">
-                                <div className="flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-violet-300">folder</span>
-                                    <div>
-                                        <div className="text-sm font-semibold text-violet-900 dark:text-white">DocHub /{effectiveDocHubStructure.pd}</div>
-                                        <div className="text-xs text-violet-700/70 dark:text-slate-400">Rychlý odkaz na PD složku v DocHubu</div>
-                                    </div>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={async () => {
-                                        const value = docHubLinks.pd;
-                                        if (isProbablyUrl(value)) {
-                                            window.open(value, "_blank", "noopener,noreferrer");
-                                            return;
-                                        }
-	                                        try {
-	                                            await navigator.clipboard.writeText(value);
-	                                            showModal({ title: "Zkopírováno", message: value, variant: "success" });
-	                                        } catch {
-	                                            window.prompt("Zkopírujte cestu:", value);
+                    {isDocHubConnected && docHubProjectLinks?.pd && (
+	                        <div className="mt-4 rounded-xl p-4 border border-violet-200 dark:border-violet-500/30 bg-violet-50 dark:bg-violet-500/10">
+	                            <div className="flex items-start justify-between gap-4">
+	                                <div className="flex items-center gap-2">
+	                                    <span className="material-symbols-outlined text-violet-300">folder</span>
+	                                    <div>
+	                                        <div className="text-sm font-semibold text-violet-900 dark:text-white">DocHub /{effectiveDocHubStructure.pd}</div>
+	                                        <div className="text-xs text-violet-700/70 dark:text-slate-400">Rychlý odkaz na PD složku v DocHubu</div>
+	                                    </div>
+	                                </div>
+	                                <button
+	                                    type="button"
+	                                    onClick={async () => {
+	                                        const value = docHubProjectLinks?.pd || "";
+	                                        if (isProbablyUrl(value)) {
+	                                            window.open(value, "_blank", "noopener,noreferrer");
+	                                            return;
 	                                        }
-	                                    }}
-                                    className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-lg text-sm font-bold transition-colors"
-                                >
-                                    {isProbablyUrl(docHubLinks.pd) ? "Otevřít" : "Zkopírovat"}
-                                </button>
-                            </div>
-                        </div>
-                    )}
+		                                        try {
+		                                            await navigator.clipboard.writeText(value);
+		                                            showModal({ title: "Zkopírováno", message: value, variant: "success" });
+		                                        } catch {
+		                                            window.prompt("Zkopírujte cestu:", value);
+		                                        }
+		                                    }}
+	                                    className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-lg text-sm font-bold transition-colors"
+	                                >
+	                                    {isProbablyUrl(docHubProjectLinks?.pd || "") ? "Otevřít" : "Zkopírovat"}
+	                                </button>
+	                            </div>
+	                        </div>
+	                    )}
                     </div>
                     )}
 
@@ -1543,14 +1638,14 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                             </div>
                                         )}
 
-                                        {docHubLinks && (
+                                        {docHubProjectLinks && (
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                 {[
-                                                    { label: `/${effectiveDocHubStructure.pd}`, href: docHubLinks.pd },
-                                                    { label: `/${effectiveDocHubStructure.tenders}`, href: docHubLinks.tenders },
-                                                    { label: `/${effectiveDocHubStructure.contracts}`, href: docHubLinks.contracts },
-                                                    { label: `/${effectiveDocHubStructure.realization}`, href: docHubLinks.realization },
-                                                    { label: `/${effectiveDocHubStructure.archive}`, href: docHubLinks.archive },
+                                                    { label: `/${effectiveDocHubStructure.pd}`, href: docHubProjectLinks.pd || "" },
+                                                    { label: `/${effectiveDocHubStructure.tenders}`, href: docHubProjectLinks.tenders || "" },
+                                                    { label: `/${effectiveDocHubStructure.contracts}`, href: docHubProjectLinks.contracts || "" },
+                                                    { label: `/${effectiveDocHubStructure.realization}`, href: docHubProjectLinks.realization || "" },
+                                                    { label: `/${effectiveDocHubStructure.archive}`, href: docHubProjectLinks.archive || "" },
                                                 ].map((item) => (
                                                     <a
                                                         key={item.label}

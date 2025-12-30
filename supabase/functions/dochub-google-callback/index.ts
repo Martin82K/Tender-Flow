@@ -4,7 +4,16 @@ import { createServiceClient } from "../_shared/supabase.ts";
 
 type Provider = "gdrive";
 
-const siteUrl = () => Deno.env.get("SITE_URL") || "http://localhost:5173";
+const siteBaseUrl = () => {
+  const raw = (Deno.env.get("SITE_URL") || "http://localhost:3000").trim();
+  try {
+    return new URL(raw).origin;
+  } catch {
+    return raw.replace(/\/+$/, "");
+  }
+};
+
+const defaultReturnTo = () => `${siteBaseUrl()}/app?dochub=1`;
 
 const redirect = (to: string) =>
   new Response(null, { status: 302, headers: { ...corsHeaders, location: to } });
@@ -17,6 +26,30 @@ const withQueryParam = (to: string, key: string, value: string) => {
   } catch {
     const sep = to.includes("?") ? "&" : "?";
     return `${to}${sep}${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
+  }
+};
+
+const sanitizeReturnTo = (raw: string | null | undefined) => {
+  const base = siteBaseUrl();
+  const val = (raw || "").trim();
+  if (!val) return defaultReturnTo();
+
+  try {
+    const u = new URL(val);
+    if (u.origin !== base) return defaultReturnTo();
+
+    const p = u.pathname || "/";
+    const blockedPrefixes = ["/@vite/", "/node_modules/", "/src/"];
+    if (blockedPrefixes.some((prefix) => p.startsWith(prefix))) return defaultReturnTo();
+    if (/\.(ts|tsx|js|jsx|map)$/.test(p)) return defaultReturnTo();
+
+    if (!p.startsWith("/app")) {
+      u.pathname = "/app";
+      u.searchParams.set("dochub", "1");
+    }
+    return u.toString();
+  } catch {
+    return defaultReturnTo();
   }
 };
 
@@ -76,15 +109,16 @@ Deno.serve(async (req) => {
 
     if (error) {
       const returnTo = await tryResolveReturnTo(state);
-      return redirect(withQueryParam(returnTo || `${siteUrl()}/?dochub=1`, "dochub_error", error));
+      const to = withQueryParam(sanitizeReturnTo(returnTo), "dochub_error", error);
+      return redirect(to);
     }
     if (!code || !state) {
-      return redirect(`${siteUrl()}/?dochub_error=missing_code_or_state`);
+      return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "missing_code_or_state"));
     }
 
     const [provider, nonce] = state.split(".", 2);
     if (provider !== "gdrive" || !nonce) {
-      return redirect(`${siteUrl()}/?dochub_error=invalid_state`);
+      return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "invalid_state"));
     }
 
     const service = createServiceClient();
@@ -96,7 +130,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (stateError || !stateRow) {
-      return redirect(`${siteUrl()}/?dochub_error=state_not_found`);
+      return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "state_not_found"));
     }
 
     const clientId = Deno.env.get("GOOGLE_OAUTH_CLIENT_ID") || "";
@@ -105,7 +139,7 @@ Deno.serve(async (req) => {
     const encKey = tryGetEnv("DOCHUB_TOKEN_ENCRYPTION_KEY");
 
     if (!clientId || !clientSecret || !redirectUri || !encKey) {
-      return redirect(`${siteUrl()}/?dochub_error=missing_oauth_env`);
+      return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "missing_oauth_env"));
     }
 
     const token = await tokenExchangeGoogle({ code, clientId, clientSecret, redirectUri });
@@ -144,10 +178,10 @@ Deno.serve(async (req) => {
     // One-time state; cleanup
     await service.from("dochub_oauth_states").delete().eq("id", stateRow.id);
 
-    const returnTo = stateRow.return_to || `${siteUrl()}/?dochub=1`;
+    const returnTo = sanitizeReturnTo(stateRow.return_to);
     return redirect(returnTo);
   } catch (e) {
     const message = e instanceof Error ? e.message : "unknown_error";
-    return redirect(`${siteUrl()}/?dochub_error=${encodeURIComponent(message)}`);
+    return redirect(withQueryParam(defaultReturnTo(), "dochub_error", message));
   }
 });

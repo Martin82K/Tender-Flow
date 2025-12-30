@@ -9,7 +9,14 @@ import {
   type Provider,
 } from "../_shared/dochub_providers.ts";
 
-type LinkKind = "pd" | "tender_inquiries" | "supplier";
+type LinkKind =
+  | "pd"
+  | "tenders"
+  | "contracts"
+  | "realization"
+  | "archive"
+  | "tender_inquiries"
+  | "supplier";
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
@@ -235,7 +242,20 @@ Deno.serve(async (req) => {
     const supplierName = (body?.supplierName as string) || null;
 
     if (!projectId) return json(400, { error: "Missing projectId" });
-    if (!kind || !["pd", "tender_inquiries", "supplier"].includes(kind)) return json(400, { error: "Invalid kind" });
+    if (
+      !kind ||
+      ![
+        "pd",
+        "tenders",
+        "contracts",
+        "realization",
+        "archive",
+        "tender_inquiries",
+        "supplier",
+      ].includes(kind)
+    ) {
+      return json(400, { error: "Invalid kind" });
+    }
 
     // Read project config through RLS
     const { data: project, error: projectError } = await authed
@@ -284,6 +304,49 @@ Deno.serve(async (req) => {
         name: structure.pd,
       });
       return json(200, { webUrl: pdFolder.web_url, itemId: pdFolder.item_id });
+    }
+
+    if (kind === "tenders") {
+      return json(200, { webUrl: tendersFolder.web_url, itemId: tendersFolder.item_id });
+    }
+
+    if (kind === "contracts") {
+      const folder = await ensureProjectFolder({
+        provider,
+        accessToken,
+        projectId,
+        rootId,
+        driveId,
+        kind: "contracts",
+        name: structure.contracts,
+      });
+      return json(200, { webUrl: folder.web_url, itemId: folder.item_id });
+    }
+
+    if (kind === "realization") {
+      const folder = await ensureProjectFolder({
+        provider,
+        accessToken,
+        projectId,
+        rootId,
+        driveId,
+        kind: "realization",
+        name: structure.realization,
+      });
+      return json(200, { webUrl: folder.web_url, itemId: folder.item_id });
+    }
+
+    if (kind === "archive") {
+      const folder = await ensureProjectFolder({
+        provider,
+        accessToken,
+        projectId,
+        rootId,
+        driveId,
+        kind: "archive",
+        name: structure.archive,
+      });
+      return json(200, { webUrl: folder.web_url, itemId: folder.item_id });
     }
 
     if (!categoryId || !categoryTitle) return json(400, { error: "Missing categoryId/categoryTitle" });
@@ -355,4 +418,3 @@ Deno.serve(async (req) => {
     return json(500, { error: e instanceof Error ? e.message : "Unknown error" });
   }
 });
-

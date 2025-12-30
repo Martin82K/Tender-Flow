@@ -7,10 +7,10 @@ import {
 } from '../services/userManagementService';
 
 interface UserManagementProps {
-    isSuperAdmin: boolean;
+    isAdmin: boolean;
 }
 
-export const UserManagement: React.FC<UserManagementProps> = ({ isSuperAdmin }) => {
+export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
     // Users state
     const [users, setUsers] = useState<UserWithProfile[]>([]);
     const [isLoadingUsers, setIsLoadingUsers] = useState(true);
@@ -30,11 +30,11 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isSuperAdmin }) 
 
     // Load data on mount
     useEffect(() => {
-        if (isSuperAdmin) {
+        if (isAdmin) {
             loadUsers();
             loadRoles();
         }
-    }, [isSuperAdmin]);
+    }, [isAdmin]);
 
     const loadUsers = async () => {
         setIsLoadingUsers(true);
@@ -119,17 +119,17 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isSuperAdmin }) 
         return acc;
     }, {} as Record<string, PermissionDefinition[]>);
 
-    if (!isSuperAdmin) return null;
+    if (!isAdmin) return null;
 
     return (
         <>
             {/* User Management Section */}
-            <section className="bg-white dark:bg-gradient-to-br dark:from-slate-900/80 dark:to-slate-950/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl mb-8">
+            <section className="bg-white dark:bg-slate-950 dark:bg-gradient-to-br dark:from-slate-900/80 dark:to-slate-950/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl mb-8">
                 <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                     <span className="material-symbols-outlined text-cyan-400">group</span>
                     Správa uživatelů
                     <span className="ml-2 px-2.5 py-1 bg-cyan-500/20 text-cyan-400 text-xs font-bold rounded-lg border border-cyan-500/30">
-                        Superadmin
+                        Admin
                     </span>
                 </h2>
 
@@ -269,12 +269,12 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isSuperAdmin }) 
             </section>
 
             {/* Role Permissions Section */}
-            <section className="bg-white dark:bg-gradient-to-br dark:from-slate-900/80 dark:to-slate-950/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl mb-8">
+            <section className="bg-white dark:bg-slate-950 dark:bg-gradient-to-br dark:from-slate-900/80 dark:to-slate-950/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl mb-8">
                 <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                     <span className="material-symbols-outlined text-amber-400">shield_person</span>
                     Nastavení oprávnění rolí
                     <span className="ml-2 px-2.5 py-1 bg-amber-500/20 text-amber-400 text-xs font-bold rounded-lg border border-amber-500/30">
-                        Superadmin
+                        Admin
                     </span>
                 </h2>
 

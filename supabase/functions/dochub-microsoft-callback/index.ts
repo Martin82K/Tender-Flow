@@ -4,7 +4,16 @@ import { createServiceClient } from "../_shared/supabase.ts";
 
 type Provider = "onedrive";
 
-const siteUrl = () => Deno.env.get("SITE_URL") || "http://localhost:5173";
+const siteBaseUrl = () => {
+  const raw = (Deno.env.get("SITE_URL") || "http://localhost:3000").trim();
+  try {
+    return new URL(raw).origin;
+  } catch {
+    return raw.replace(/\/+$/, "");
+  }
+};
+
+const defaultReturnTo = () => `${siteBaseUrl()}/app?dochub=1`;
 
 const redirect = (to: string) =>
   new Response(null, { status: 302, headers: { ...corsHeaders, location: to } });
@@ -17,6 +26,30 @@ const withQueryParam = (to: string, key: string, value: string) => {
   } catch {
     const sep = to.includes("?") ? "&" : "?";
     return `${to}${sep}${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
+  }
+};
+
+const sanitizeReturnTo = (raw: string | null | undefined) => {
+  const base = siteBaseUrl();
+  const val = (raw || "").trim();
+  if (!val) return defaultReturnTo();
+
+  try {
+    const u = new URL(val);
+    if (u.origin !== base) return defaultReturnTo();
+
+    const p = u.pathname || "/";
+    const blockedPrefixes = ["/@vite/", "/node_modules/", "/src/"];
+    if (blockedPrefixes.some((prefix) => p.startsWith(prefix))) return defaultReturnTo();
+    if (/\.(ts|tsx|js|jsx|map)$/.test(p)) return defaultReturnTo();
+
+    if (!p.startsWith("/app")) {
+      u.pathname = "/app";
+      u.searchParams.set("dochub", "1");
+    }
+    return u.toString();
+  } catch {
+    return defaultReturnTo();
   }
 };
 
@@ -42,6 +75,7 @@ const tokenExchangeMicrosoft = async (args: {
   clientId: string;
   clientSecret: string;
   redirectUri: string;
+  tenant: string;
 }) => {
   const body = new URLSearchParams();
   body.set("client_id", args.clientId);
@@ -54,11 +88,14 @@ const tokenExchangeMicrosoft = async (args: {
     ["offline_access", "User.Read", "Files.ReadWrite", "Sites.ReadWrite.All"].join(" ")
   );
 
-  const res = await fetch("https://login.microsoftonline.com/common/oauth2/v2.0/token", {
+  const res = await fetch(
+    `https://login.microsoftonline.com/${encodeURIComponent(args.tenant)}/oauth2/v2.0/token`,
+    {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body,
-  });
+    }
+  );
   const json = await res.json();
   if (!res.ok) throw new Error(json?.error_description || "Microsoft token exchange failed");
   return json as {
@@ -77,18 +114,26 @@ Deno.serve(async (req) => {
     const code = url.searchParams.get("code");
     const state = url.searchParams.get("state");
     const error = url.searchParams.get("error");
+    const errorDescription = url.searchParams.get("error_description");
+    const errorCodes = url.searchParams.get("error_codes");
 
     if (error) {
       const returnTo = await tryResolveReturnTo(state);
-      return redirect(withQueryParam(returnTo || `${siteUrl()}/?dochub=1`, "dochub_error", error));
+      let to = withQueryParam(sanitizeReturnTo(returnTo), "dochub_error", error);
+      if (errorCodes) to = withQueryParam(to, "dochub_error_codes", errorCodes);
+      if (errorDescription) {
+        const trimmed = errorDescription.length > 600 ? `${errorDescription.slice(0, 600)}…` : errorDescription;
+        to = withQueryParam(to, "dochub_error_description", trimmed);
+      }
+      return redirect(to);
     }
     if (!code || !state) {
-      return redirect(`${siteUrl()}/?dochub_error=missing_code_or_state`);
+      return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "missing_code_or_state"));
     }
 
     const [provider, nonce] = state.split(".", 2);
     if (provider !== "onedrive" || !nonce) {
-      return redirect(`${siteUrl()}/?dochub_error=invalid_state`);
+      return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "invalid_state"));
     }
 
     const service = createServiceClient();
@@ -100,19 +145,23 @@ Deno.serve(async (req) => {
       .single();
 
     if (stateError || !stateRow) {
-      return redirect(`${siteUrl()}/?dochub_error=state_not_found`);
+      return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "state_not_found"));
     }
 
     const clientId = Deno.env.get("MS_OAUTH_CLIENT_ID") || "";
     const clientSecret = Deno.env.get("MS_OAUTH_CLIENT_SECRET") || "";
     const redirectUri = Deno.env.get("MS_OAUTH_REDIRECT_URI") || "";
+    const tenant =
+      Deno.env.get("MS_OAUTH_TENANT") ||
+      Deno.env.get("MS_OAUTH_TENANT_ID") ||
+      "organizations";
     const encKey = tryGetEnv("DOCHUB_TOKEN_ENCRYPTION_KEY");
 
     if (!clientId || !clientSecret || !redirectUri || !encKey) {
-      return redirect(`${siteUrl()}/?dochub_error=missing_oauth_env`);
+      return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "missing_oauth_env"));
     }
 
-    const token = await tokenExchangeMicrosoft({ code, clientId, clientSecret, redirectUri });
+    const token = await tokenExchangeMicrosoft({ code, clientId, clientSecret, redirectUri, tenant });
     const expiresAt = new Date(Date.now() + token.expires_in * 1000).toISOString();
 
     const tokenCiphertext = await encryptJsonAesGcm(
@@ -147,10 +196,10 @@ Deno.serve(async (req) => {
 
     await service.from("dochub_oauth_states").delete().eq("id", stateRow.id);
 
-    const returnTo = stateRow.return_to || `${siteUrl()}/?dochub=1`;
+    const returnTo = sanitizeReturnTo(stateRow.return_to);
     return redirect(returnTo);
   } catch (e) {
     const message = e instanceof Error ? e.message : "unknown_error";
-    return redirect(`${siteUrl()}/?dochub_error=${encodeURIComponent(message)}`);
+    return redirect(withQueryParam(defaultReturnTo(), "dochub_error", message));
   }
 });
