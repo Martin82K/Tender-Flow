@@ -73,6 +73,69 @@ const hexToRgb = (hex: string) => {
     : "96 122 251"; // Default Fallback
 };
 
+const APP_BASE = "/app";
+
+const isProjectTab = (val: string | null): val is ProjectTab => {
+  return val === "overview" || val === "tender-plan" || val === "pipeline" || val === "documents";
+};
+
+const buildAppUrl = (view: View, opts?: { projectId?: string; tab?: ProjectTab; categoryId?: string | null }) => {
+  switch (view) {
+    case "dashboard":
+      return `${APP_BASE}/dashboard`;
+    case "contacts":
+      return `${APP_BASE}/contacts`;
+    case "settings":
+      return `${APP_BASE}/settings`;
+    case "project-management":
+      return `${APP_BASE}/projects`;
+    case "project-overview":
+      return `${APP_BASE}/project-overview`;
+    case "project": {
+      if (!opts?.projectId) return `${APP_BASE}/dashboard`;
+      const params = new URLSearchParams();
+      if (opts.tab) params.set("tab", opts.tab);
+      if (opts.categoryId) params.set("categoryId", opts.categoryId);
+      const qs = params.toString();
+      return `${APP_BASE}/project/${encodeURIComponent(opts.projectId)}${qs ? `?${qs}` : ""}`;
+    }
+    default:
+      return `${APP_BASE}/dashboard`;
+  }
+};
+
+const parseAppRoute = (pathname: string, search: string) => {
+  const parts = pathname.split("/").filter(Boolean);
+  if (parts[0] !== "app") return { isApp: false as const };
+
+  if (parts.length === 1) {
+    return { isApp: true as const, redirectTo: `${APP_BASE}/dashboard` };
+  }
+
+  const sub = parts[1];
+  if (sub === "dashboard") return { isApp: true as const, view: "dashboard" as const };
+  if (sub === "contacts") return { isApp: true as const, view: "contacts" as const };
+  if (sub === "settings") return { isApp: true as const, view: "settings" as const };
+  if (sub === "projects") return { isApp: true as const, view: "project-management" as const };
+  if (sub === "project-overview") return { isApp: true as const, view: "project-overview" as const };
+
+  if (sub === "project") {
+    const projectId = parts[2] ? decodeURIComponent(parts[2]) : "";
+    const params = new URLSearchParams(search);
+    const tabParam = params.get("tab");
+    const categoryIdParam = params.get("categoryId");
+    return {
+      isApp: true as const,
+      view: "project" as const,
+      projectId,
+      tab: isProjectTab(tabParam) ? tabParam : undefined,
+      categoryId: categoryIdParam || undefined,
+    };
+  }
+
+  return { isApp: true as const, redirectTo: `${APP_BASE}/dashboard` };
+};
+
 const AppContent: React.FC = () => {
   const {
     isAuthenticated,
@@ -100,29 +163,13 @@ const AppContent: React.FC = () => {
   const [activePipelineCategoryId, setActivePipelineCategoryId] = useState<string | null>(null);
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [loadingError, setLoadingError] = useState<string | null>(null);
+  const [appLoadProgress, setAppLoadProgress] = useState<{ percent: number; label?: string } | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const handleNavigateToProject = (projectId: string, tab: string, categoryId?: string) => {
-    // 1. Set Project
-    setSelectedProjectId(projectId);
-    
-    // 2. Set View to Project
-    setCurrentView('project');
-
-    // 3. Set Tab (assuming 'pipeline' is mapped to ProjectTab type correctly, otherwise handle mapping)
-    if (tab === 'pipeline') {
-      setActiveProjectTab('pipeline');
-    } else {
-      setActiveProjectTab('overview');
-    }
-
-    // 4. Set Category if provided
-    if (categoryId) {
-      setActivePipelineCategoryId(categoryId);
-    } else {
-      setActivePipelineCategoryId(null);
-    }
+    const nextTab: ProjectTab = tab === "pipeline" ? "pipeline" : "overview";
+    navigate(buildAppUrl("project", { projectId, tab: nextTab, categoryId: categoryId ?? null }));
   };
 
   // Theme Management
@@ -230,6 +277,34 @@ const AppContent: React.FC = () => {
     );
   }, [backgroundColor]);
 
+  // Sync internal state from URL (enables refresh + back button navigation inside the app)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const parsed = parseAppRoute(pathname, search);
+    if (!parsed.isApp) return;
+    if ("redirectTo" in parsed) {
+      navigate(parsed.redirectTo, { replace: true });
+      return;
+    }
+
+    if (parsed.view && parsed.view !== currentView) {
+      setCurrentView(parsed.view);
+    }
+
+    if (parsed.view === "project") {
+      if (!parsed.projectId) {
+        navigate(buildAppUrl("dashboard"), { replace: true });
+        return;
+      }
+      if (parsed.projectId !== selectedProjectId) setSelectedProjectId(parsed.projectId);
+      const nextTab = parsed.tab ?? "overview";
+      if (nextTab !== activeProjectTab) setActiveProjectTab(nextTab);
+      const nextCategoryId = parsed.categoryId ?? null;
+      if (nextCategoryId !== activePipelineCategoryId) setActivePipelineCategoryId(nextCategoryId);
+    }
+  }, [activePipelineCategoryId, activeProjectTab, currentView, isAuthenticated, pathname, search, selectedProjectId]);
+
   // Load data from Supabase on mount
   useEffect(() => {
     let mounted = true;
@@ -245,7 +320,7 @@ const AppContent: React.FC = () => {
             );
             setIsDataLoading(false);
           }
-        }, 15000); // 15 seconds timeout
+        }, 30000); // 30 seconds timeout
 
         await loadInitialData();
 
@@ -291,13 +366,13 @@ const AppContent: React.FC = () => {
 
     if (isAuthenticated && (pathname === "/" || isAuthPath)) {
       const nextParam = decodeNext(new URLSearchParams(search).get("next"));
-      const safeNext = nextParam?.startsWith("/") ? nextParam : "/app";
+      const safeNext = nextParam?.startsWith("/") ? nextParam : buildAppUrl("dashboard");
       navigate(safeNext, { replace: true });
       return;
     }
 
     if (isAuthenticated && !isAppPath) {
-      navigate("/app", { replace: true });
+      navigate(buildAppUrl("dashboard"), { replace: true });
     }
   }, [authLoading, isAuthenticated, pathname, search]);
 
@@ -323,13 +398,46 @@ const AppContent: React.FC = () => {
     if (!silent) {
       setIsDataLoading(true);
       setLoadingError(null);
+      setAppLoadProgress({ percent: 0, label: "Připravuji data…" });
     }
     console.log("Starting loadInitialData...", { silent });
     try {
+      const progress = (() => {
+        let totalOps = 1;
+        let completedOps = 0;
+        const setTotalOps = (n: number) => {
+          totalOps = Math.max(1, n);
+          if (!silent) {
+            setAppLoadProgress((prev) => (prev ? { ...prev, percent: Math.min(99, Math.round((completedOps / totalOps) * 100)) } : prev));
+          }
+        };
+        const tick = (label?: string, inc = 1) => {
+          completedOps += inc;
+          if (!silent) {
+            setAppLoadProgress({
+              percent: Math.min(99, Math.round((completedOps / totalOps) * 100)),
+              label,
+            });
+          }
+        };
+        const done = () => {
+          if (!silent) setAppLoadProgress({ percent: 100, label: "Hotovo" });
+        };
+        const track = async <T,>(
+          thenable: PromiseLike<T> | { then: (...args: any[]) => any },
+          label?: string
+        ): Promise<T> => {
+          const result = await (thenable as PromiseLike<T>);
+          tick(label);
+          return result;
+        };
+        return { setTotalOps, tick, done, track };
+      })();
+
       // Load projects
       const {
         data: { session },
-      } = await supabase.auth.getSession();
+      } = await progress.track(supabase.auth.getSession(), "Ověřuji přihlášení…");
 
       if (session?.user) {
         // Admin check (highest role)
@@ -360,14 +468,18 @@ const AppContent: React.FC = () => {
           setSelectedProjectId(demoData.projects[0].id);
         }
         
+        progress.done();
         if (!silent) setIsDataLoading(false);
         lastRefreshTime.current = Date.now();
         return;
       }
 
       const [projectsResponse, metadataResponse] = await Promise.all([
-        supabase.from("projects").select("*").order("created_at", { ascending: false }),
-        supabase.rpc("get_projects_metadata")
+        progress.track(
+          supabase.from("projects").select("*").order("created_at", { ascending: false }),
+          "Načítám projekty…"
+        ),
+        progress.track(supabase.rpc("get_projects_metadata"), "Načítám oprávnění…"),
       ]);
 
       const projectsData = projectsResponse.data;
@@ -375,6 +487,8 @@ const AppContent: React.FC = () => {
       const metadata = metadataResponse.data as { project_id: string, owner_email: string, shared_with_emails: string[] }[] || [];
 
       if (projectsError) throw projectsError;
+
+      progress.setTotalOps(6 + (projectsData?.length || 0) * 4);
 
       const metadataMap = new Map<string, { owner: string, shared: string[] }>();
       metadata.forEach(m => metadataMap.set(m.project_id, { owner: m.owner_email, shared: m.shared_with_emails || [] }));
@@ -404,47 +518,47 @@ const AppContent: React.FC = () => {
       const detailsMap: Record<string, ProjectDetails> = {};
 
       for (const project of projectsData || []) {
-        // Load categories for this project
-        const { data: categoriesData } = await supabase
-          .from("demand_categories")
-          .select("*")
-          .eq("project_id", project.id);
+        const [
+          { data: categoriesData },
+          { data: contractData },
+          { data: financialsData },
+          { data: amendmentsData },
+        ] = await Promise.all([
+          progress.track(
+            supabase.from("demand_categories").select("*").eq("project_id", project.id),
+            `Načítám kategorie (${project.name})…`
+          ),
+          progress.track(
+            supabase.from("project_contracts").select("*").eq("project_id", project.id).maybeSingle(),
+            `Načítám smlouvu (${project.name})…`
+          ),
+          progress.track(
+            supabase
+              .from("project_investor_financials")
+              .select("*")
+              .eq("project_id", project.id)
+              .maybeSingle(),
+            `Načítám finance (${project.name})…`
+          ),
+          progress.track(
+            supabase.from("project_amendments").select("*").eq("project_id", project.id),
+            `Načítám dodatky (${project.name})…`
+          ),
+        ]);
 
-        const categories: DemandCategory[] = (categoriesData || []).map(
-          (c) => ({
-            id: c.id,
-            title: c.title,
-            budget: c.budget_display || "",
-            sodBudget: c.sod_budget || 0,
-            planBudget: c.plan_budget || 0,
-            status: c.status || "open",
-            subcontractorCount: 0,
-            description: c.description || "",
-            deadline: c.deadline || undefined,
-            realizationStart: c.realization_start || undefined,
-            realizationEnd: c.realization_end || undefined,
-          })
-        );
-
-        // Load contract details
-        const { data: contractData } = await supabase
-          .from("project_contracts")
-          .select("*")
-          .eq("project_id", project.id)
-          .maybeSingle();
-
-        // Load investor financials
-        const { data: financialsData } = await supabase
-          .from("project_investor_financials")
-          .select("*")
-          .eq("project_id", project.id)
-          .maybeSingle();
-
-        // Load amendments
-        const { data: amendmentsData } = await supabase
-          .from("project_amendments")
-          .select("*")
-          .eq("project_id", project.id);
+        const categories: DemandCategory[] = (categoriesData || []).map((c) => ({
+          id: c.id,
+          title: c.title,
+          budget: c.budget_display || "",
+          sodBudget: c.sod_budget || 0,
+          planBudget: c.plan_budget || 0,
+          status: c.status || "open",
+          subcontractorCount: 0,
+          description: c.description || "",
+          deadline: c.deadline || undefined,
+          realizationStart: c.realization_start || undefined,
+          realizationEnd: c.realization_end || undefined,
+        }));
 
         detailsMap[project.id] = {
           id: project.id,
@@ -502,7 +616,10 @@ const AppContent: React.FC = () => {
       setAllProjectDetails(detailsMap);
 
       // Load all bids
-      const { data: bidsData } = await supabase.from("bids").select("*");
+      const { data: bidsData } = await progress.track(
+        supabase.from("bids").select("*"),
+        "Načítám nabídky…"
+      );
 
       // Distribute bids to projects
       if (bidsData) {
@@ -561,7 +678,10 @@ const AppContent: React.FC = () => {
 
       // Load all subcontractors
       const { data: subcontractorsData, error: subcontractorsError } =
-        await supabase.from("subcontractors").select("*").order("company_name");
+        await progress.track(
+          supabase.from("subcontractors").select("*").order("company_name"),
+          "Načítám dodavatele…"
+        );
 
       if (subcontractorsError) throw subcontractorsError;
 
@@ -605,8 +725,9 @@ const AppContent: React.FC = () => {
       setContacts(loadedContacts);
 
       // Load contact statuses from database
-      const statuses = await loadContactStatuses();
+      const statuses = await progress.track(loadContactStatuses(), "Načítám stavy kontaktů…");
       setContactStatuses(statuses);
+      progress.done();
     } catch (error) {
       console.error("Error loading initial data:", error);
       if (!silent) {
@@ -625,16 +746,28 @@ const AppContent: React.FC = () => {
         );
       }
     } finally {
-      if (!silent) setIsDataLoading(false);
+      if (!silent) {
+        setIsDataLoading(false);
+        setAppLoadProgress(null);
+      }
       lastRefreshTime.current = Date.now();
     }
   };
 
   const handleProjectSelect = (id: string) => {
-    setSelectedProjectId(id);
-    setCurrentView("project");
-    setActiveProjectTab("overview");
+    navigate(buildAppUrl("project", { projectId: id, tab: "overview" }));
   };
+
+  // If the URL points to a project that doesn't exist (or was deleted), fall back safely.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    if (currentView !== "project") return;
+    if (!projects.length) return;
+    if (selectedProjectId && projects.some((p) => p.id === selectedProjectId)) return;
+
+    const fallbackId = (projects.find((p) => p.status !== "archived") || projects[0]).id;
+    navigate(buildAppUrl("project", { projectId: fallbackId, tab: activeProjectTab }), { replace: true });
+  }, [activeProjectTab, currentView, isAuthenticated, projects, selectedProjectId]);
 
   const handleAddProject = async (newProject: Project) => {
     // Optimistic update
@@ -725,7 +858,7 @@ const AppContent: React.FC = () => {
     // Optimistic update
     setProjects((prev) => prev.filter((p) => p.id !== id));
     if (selectedProjectId === id) {
-      setCurrentView("dashboard");
+      navigate(buildAppUrl("dashboard"), { replace: true });
     }
 
     // Persist to Supabase or Demo Storage
@@ -1454,6 +1587,31 @@ const AppContent: React.FC = () => {
           />
         );
       case "project":
+        if (!selectedProjectId) {
+          return (
+            <div className="flex items-center justify-center h-full text-slate-600 dark:text-slate-300">
+              Vyberte projekt…
+            </div>
+          );
+        }
+
+        if (!allProjectDetails[selectedProjectId]) {
+          return (
+            <div className="flex flex-col items-center justify-center h-full text-center px-6 gap-4">
+              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
+              <p className="text-slate-700 dark:text-slate-200">
+                Načítám detail projektu…
+              </p>
+              <button
+                onClick={() => navigate(buildAppUrl("dashboard"), { replace: true })}
+                className="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
+              >
+                Zpět na dashboard
+              </button>
+            </div>
+          );
+        }
+
         return (
           <RequireFeature feature={FEATURES.MODULE_PROJECTS}>
             <ProjectLayout
@@ -1473,11 +1631,32 @@ const AppContent: React.FC = () => {
               }
               onBidsChange={handleBidsChange}
               activeTab={activeProjectTab}
-              onTabChange={setActiveProjectTab}
+              onTabChange={(tab) => {
+                setActiveProjectTab(tab);
+                navigate(
+                  buildAppUrl("project", {
+                    projectId: selectedProjectId,
+                    tab,
+                    categoryId: activePipelineCategoryId,
+                  }),
+                  { replace: true }
+                );
+              }}
               contacts={contacts}
               statuses={contactStatuses}
               initialPipelineCategoryId={activePipelineCategoryId ?? undefined}
-              onNavigateToPipeline={(categoryId) => setActivePipelineCategoryId(categoryId)}
+              onNavigateToPipeline={(categoryId) => {
+                setActiveProjectTab("pipeline");
+                setActivePipelineCategoryId(categoryId);
+                navigate(
+                  buildAppUrl("project", {
+                    projectId: selectedProjectId,
+                    tab: "pipeline",
+                    categoryId,
+                  }),
+                  { replace: true }
+                );
+              }}
             />
           </RequireFeature>
         );
@@ -1579,13 +1758,31 @@ const AppContent: React.FC = () => {
   const shouldShowLoader = (authLoading && isAppPath) || (isAuthenticated && isDataLoading);
 
   if (shouldShowLoader) {
+    const percent = appLoadProgress?.percent;
+    const label = appLoadProgress?.label;
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-white gap-4">
+      <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-white gap-4 px-6 text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-        <p>
-          Načítám aplikaci... {authLoading ? "(Ověřování)" : ""}{" "}
-          {isDataLoading ? "(Data)" : ""}
-        </p>
+        <div className="w-full max-w-sm">
+          <p className="text-base">
+            Načítám aplikaci… {authLoading ? "(Ověřování)" : ""}{" "}
+            {isDataLoading ? "(Data)" : ""}
+          </p>
+          {typeof percent === "number" && (
+            <div className="mt-4">
+              <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden">
+                <div
+                  className="h-full bg-primary transition-[width] duration-300"
+                  style={{ width: `${Math.max(0, Math.min(100, percent))}%` }}
+                />
+              </div>
+              <div className="mt-2 flex items-center justify-between text-sm text-white/70">
+                <span className="truncate">{label || "Načítám…"}</span>
+                <span className="tabular-nums">{percent}%</span>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -1653,7 +1850,19 @@ const AppContent: React.FC = () => {
     <div className="relative flex h-screen w-full flex-row overflow-hidden bg-background-light dark:bg-background-dark">
       <Sidebar
         currentView={currentView}
-        onViewChange={setCurrentView}
+        onViewChange={(view) => {
+          if (view === "project") {
+            const targetId =
+              selectedProjectId || projects.find((p) => p.status !== "archived")?.id;
+            if (targetId) {
+              navigate(buildAppUrl("project", { projectId: targetId, tab: activeProjectTab }));
+            } else {
+              navigate(buildAppUrl("dashboard"));
+            }
+            return;
+          }
+          navigate(buildAppUrl(view));
+        }}
         projects={projects.filter((p) => p.status !== "archived")}
         selectedProjectId={selectedProjectId}
         onProjectSelect={handleProjectSelect}
