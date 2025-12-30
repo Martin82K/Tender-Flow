@@ -9,7 +9,10 @@ export const DOC_HUB_STRUCTURE_V1 = {
   supplierOffer: "Cenova_nabidka",
 } as const;
 
-export type DocHubStructureV1 = typeof DOC_HUB_STRUCTURE_V1;
+export type DocHubStructureV1 = typeof DOC_HUB_STRUCTURE_V1 & {
+  extraTopLevel?: string[];
+  extraSupplier?: string[];
+};
 
 const stripTrailingSeparators = (value: string) => value.replace(/[\\/]+$/, "");
 

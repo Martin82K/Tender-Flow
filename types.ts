@@ -72,6 +72,8 @@ export interface DocHubStructureV1 {
   tendersInquiries: string;
   supplierEmail: string;
   supplierOffer: string;
+  extraTopLevel?: string[]; // Optional additional folders in project root
+  extraSupplier?: string[]; // Optional additional subfolders under supplier folder
 }
 
 export type BidStatus = 'contacted' | "sent" | "offer" | "shortlist" | "sod" | "rejected";
@@ -164,6 +166,9 @@ export interface ProjectDetails {
   docHubLastError?: string | null; // Last error message
   docHubStructureVersion?: number; // Structure version for future migrations (default: 1)
   docHubStructureV1?: Partial<DocHubStructureV1> | null; // Custom folder naming (keeps structure keys)
+  docHubAutoCreateEnabled?: boolean; // Auto-create & reconcile folders on toggle
+  docHubAutoCreateLastRunAt?: string | null; // ISO datetime of last auto-create run
+  docHubAutoCreateLastError?: string | null; // last auto-create error
 
   categories: DemandCategory[];
   contract?: ContractDetails;

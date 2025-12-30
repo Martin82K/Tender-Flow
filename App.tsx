@@ -468,6 +468,9 @@ const AppContent: React.FC = () => {
           docHubLastError: project.dochub_last_error ?? null,
           docHubStructureV1: project.dochub_structure_v1 ?? null,
           docHubStructureVersion: project.dochub_structure_version ?? 1,
+          docHubAutoCreateEnabled: project.dochub_autocreate_enabled ?? false,
+          docHubAutoCreateLastRunAt: project.dochub_autocreate_last_run_at ?? null,
+          docHubAutoCreateLastError: project.dochub_autocreate_last_error ?? null,
           categories,
           contract: contractData
             ? {
@@ -875,6 +878,12 @@ const AppContent: React.FC = () => {
         projectUpdates.dochub_structure_v1 = updates.docHubStructureV1;
       if (updates.docHubStructureVersion !== undefined)
         projectUpdates.dochub_structure_version = updates.docHubStructureVersion;
+      if (updates.docHubAutoCreateEnabled !== undefined)
+        projectUpdates.dochub_autocreate_enabled = updates.docHubAutoCreateEnabled;
+      if (updates.docHubAutoCreateLastRunAt !== undefined)
+        projectUpdates.dochub_autocreate_last_run_at = updates.docHubAutoCreateLastRunAt;
+      if (updates.docHubAutoCreateLastError !== undefined)
+        projectUpdates.dochub_autocreate_last_error = updates.docHubAutoCreateLastError;
 
       if (Object.keys(projectUpdates).length > 0) {
         const { error } = await supabase

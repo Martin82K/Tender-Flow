@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Header } from './Header';
 import { Pipeline } from './Pipeline';
 import { TenderPlan } from './TenderPlan';
@@ -110,7 +110,22 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
     const docHubStructure = resolveDocHubStructureV1(project.docHubStructureV1 || undefined);
     const [isEditingDocHubStructure, setIsEditingDocHubStructure] = useState(false);
     const [docHubStructureDraft, setDocHubStructureDraft] = useState(docHubStructure);
+    const [docHubAutoCreateEnabled, setDocHubAutoCreateEnabled] = useState(!!project.docHubAutoCreateEnabled);
+    const [isDocHubAutoCreating, setIsDocHubAutoCreating] = useState(false);
+    const [docHubAutoCreateProgress, setDocHubAutoCreateProgress] = useState(0);
+    const [docHubAutoCreateLogs, setDocHubAutoCreateLogs] = useState<string[]>([]);
+    const autoCreateTimerRef = useRef<number | null>(null);
+    const [docHubExtraTopLevelDraft, setDocHubExtraTopLevelDraft] = useState<string[]>(() => {
+        const raw = (project.docHubStructureV1 as any)?.extraTopLevel;
+        return Array.isArray(raw) ? raw.filter((s) => typeof s === "string" && s.trim()).map((s) => s.trim()) : [];
+    });
+    const [docHubExtraSupplierDraft, setDocHubExtraSupplierDraft] = useState<string[]>(() => {
+        const raw = (project.docHubStructureV1 as any)?.extraSupplier;
+        return Array.isArray(raw) ? raw.filter((s) => typeof s === "string" && s.trim()).map((s) => s.trim()) : [];
+    });
     const [docHubNewFolderName, setDocHubNewFolderName] = useState(project.title || project.name || "");
+    const [docHubResolveProgress, setDocHubResolveProgress] = useState(0);
+    const resolveProgressTimerRef = useRef<number | null>(null);
     const [uiModal, setUiModal] = useState<{
         isOpen: boolean;
         title: string;
@@ -129,12 +144,25 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
 
     useEffect(() => {
         setDocHubStructureDraft(resolveDocHubStructureV1(project.docHubStructureV1 || undefined));
+        const rawTop = (project.docHubStructureV1 as any)?.extraTopLevel;
+        const rawSupplier = (project.docHubStructureV1 as any)?.extraSupplier;
+        setDocHubExtraTopLevelDraft(
+            Array.isArray(rawTop) ? rawTop.filter((s) => typeof s === "string" && s.trim()).map((s) => s.trim()) : []
+        );
+        setDocHubExtraSupplierDraft(
+            Array.isArray(rawSupplier) ? rawSupplier.filter((s) => typeof s === "string" && s.trim()).map((s) => s.trim()) : []
+        );
+        setDocHubAutoCreateEnabled(!!project.docHubAutoCreateEnabled);
         setIsEditingDocHubStructure(false);
     }, [project.docHubStructureV1]);
 
     useEffect(() => {
         setDocHubNewFolderName(project.title || project.name || "");
     }, [project.title, (project as any).name]);
+
+    useEffect(() => {
+        setDocHubAutoCreateEnabled(!!project.docHubAutoCreateEnabled);
+    }, [project.docHubAutoCreateEnabled]);
 
     const handleSaveDocHub = () => {
         onUpdate({
@@ -147,6 +175,110 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
             docHubStructureVersion: project.docHubStructureVersion ?? 1
         });
         setIsEditingDocHubSetup(false);
+    };
+
+    const handleRunDocHubAutoCreate = async () => {
+        if (!project.id) {
+            showModal({ title: "DocHub", message: "Chybí ID projektu.", variant: "danger" });
+            return;
+        }
+        if (!isDocHubConnected) {
+            showModal({ title: "DocHub", message: "Nejdřív připojte DocHub a nastavte hlavní složku projektu.", variant: "info" });
+            return;
+        }
+
+        setIsDocHubAutoCreating(true);
+        setDocHubAutoCreateProgress(0);
+        setDocHubAutoCreateLogs(["Zahajuji auto‑vytváření složek…"]);
+
+        if (autoCreateTimerRef.current) {
+            window.clearInterval(autoCreateTimerRef.current);
+            autoCreateTimerRef.current = null;
+        }
+        const start = Date.now();
+        autoCreateTimerRef.current = window.setInterval(() => {
+            const elapsed = Date.now() - start;
+            const next = Math.min(90, Math.round((elapsed / 2500) * 90));
+            setDocHubAutoCreateProgress((prev) => (prev >= 90 ? prev : Math.max(prev, next)));
+        }, 60);
+
+        try {
+            const result = await invokeAuthedFunction<any>("dochub-autocreate", {
+                body: { projectId: project.id }
+            });
+            const logs = Array.isArray(result?.logs) ? result.logs : [];
+            if (logs.length) setDocHubAutoCreateLogs(logs);
+            setDocHubAutoCreateProgress(100);
+
+            setDocHubAutoCreateEnabled(true);
+            onUpdate({
+                docHubAutoCreateEnabled: true,
+                docHubAutoCreateLastRunAt: new Date().toISOString(),
+                docHubAutoCreateLastError: null,
+            });
+
+            const createdCount = typeof result?.createdCount === "number" ? result.createdCount : null;
+            showModal({
+                title: "Auto‑vytváření dokončeno",
+                message: createdCount === null ? "Složky byly zkontrolovány / doplněny." : `Složky byly zkontrolovány / doplněny. Akcí: ${createdCount}`,
+                variant: "success"
+            });
+        } catch (e) {
+            const message = e instanceof Error ? e.message : "Neznámá chyba";
+            setDocHubAutoCreateEnabled(false);
+            onUpdate({
+                docHubAutoCreateEnabled: false,
+                docHubAutoCreateLastRunAt: new Date().toISOString(),
+                docHubAutoCreateLastError: message,
+            });
+            showModal({ title: "Auto‑vytváření selhalo", message, variant: "danger" });
+        } finally {
+            setIsDocHubAutoCreating(false);
+            if (autoCreateTimerRef.current) {
+                window.clearInterval(autoCreateTimerRef.current);
+                autoCreateTimerRef.current = null;
+            }
+            window.setTimeout(() => {
+                setDocHubAutoCreateProgress(0);
+                setDocHubAutoCreateLogs([]);
+            }, 1200);
+        }
+    };
+
+    const handleToggleDocHubAutoCreate = async (enabled: boolean) => {
+        if (!enabled) {
+            setDocHubAutoCreateEnabled(false);
+            onUpdate({ docHubAutoCreateEnabled: false });
+            return;
+        }
+        if (!isDocHubConnected) {
+            showModal({ title: "DocHub", message: "Nejdřív připojte DocHub a nastavte hlavní složku projektu.", variant: "info" });
+            return;
+        }
+        setDocHubAutoCreateEnabled(true);
+        onUpdate({ docHubAutoCreateEnabled: true });
+        await handleRunDocHubAutoCreate();
+    };
+
+    const handleDisconnectDocHub = () => {
+        setDocHubRootLink("");
+        setDocHubRootName("");
+        setDocHubProvider(null);
+        setDocHubMode(null);
+        setDocHubStatus("disconnected");
+        setIsEditingDocHubSetup(false);
+        onUpdate({
+            docHubEnabled: true,
+            docHubRootLink: "",
+            docHubRootName: null,
+            docHubProvider: null,
+            docHubMode: null,
+            docHubStatus: "disconnected",
+            docHubRootId: null,
+            docHubDriveId: null,
+            docHubSiteId: null,
+            docHubRootWebUrl: null,
+        });
     };
 
     const handleConnectDocHub = async () => {
@@ -195,6 +327,17 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
         }
 
         setIsDocHubConnecting(true);
+        setDocHubResolveProgress(0);
+        if (resolveProgressTimerRef.current) {
+            window.clearInterval(resolveProgressTimerRef.current);
+            resolveProgressTimerRef.current = null;
+        }
+        const start = Date.now();
+        resolveProgressTimerRef.current = window.setInterval(() => {
+            const elapsed = Date.now() - start;
+            const next = Math.min(90, Math.round((elapsed / 1200) * 90));
+            setDocHubResolveProgress((prev) => (prev >= 90 ? prev : Math.max(prev, next)));
+        }, 50);
         try {
             const data = await invokeAuthedFunction<any>("dochub-resolve-root", {
                 body: { provider: docHubProvider, projectId: project.id, url: docHubRootLink }
@@ -214,12 +357,18 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                 docHubRootId: (data as any)?.rootId || null,
                 docHubDriveId: (data as any)?.driveId || null
             });
+            setDocHubResolveProgress(100);
             showModal({ title: "Hotovo", message: "Hlavní složka projektu ověřena a uložena.", variant: "success" });
         } catch (e) {
             const message = e instanceof Error ? e.message : "Neznámá chyba";
-            showModal({ title: "Ověření selhalo", message, variant: "danger" });
+            showModal({ title: "Získání odkazu selhalo", message, variant: "danger" });
         } finally {
             setIsDocHubConnecting(false);
+            if (resolveProgressTimerRef.current) {
+                window.clearInterval(resolveProgressTimerRef.current);
+                resolveProgressTimerRef.current = null;
+            }
+            window.setTimeout(() => setDocHubResolveProgress(0), 400);
         }
     };
 
@@ -377,7 +526,11 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
 
     const handleSaveDocHubStructure = () => {
         onUpdate({
-            docHubStructureV1: docHubStructureDraft
+            docHubStructureV1: {
+                ...(docHubStructureDraft as any),
+                extraTopLevel: docHubExtraTopLevelDraft,
+                extraSupplier: docHubExtraSupplierDraft,
+            }
         });
         setIsEditingDocHubStructure(false);
     };
@@ -794,21 +947,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                                         </button>
                                                         <button
                                                             type="button"
-                                                            onClick={() => {
-                                                                setDocHubRootLink("");
-                                                                setDocHubRootName("");
-                                                                setDocHubProvider(null);
-                                                                setDocHubMode(null);
-                                                                setDocHubStatus("disconnected");
-                                                                onUpdate({
-                                                                    docHubEnabled: true,
-                                                                    docHubRootLink: "",
-                                                                    docHubRootName: null,
-                                                                    docHubProvider: null,
-                                                                    docHubMode: null,
-                                                                    docHubStatus: "disconnected",
-                                                                });
-                                                            }}
+                                                            onClick={handleDisconnectDocHub}
                                                             className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-red-600 dark:text-red-300 rounded-lg text-sm font-medium transition-colors border border-slate-300 dark:border-slate-700/50"
                                                         >
                                                             Odpojit
@@ -944,13 +1083,22 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                                             type="button"
                                                             onClick={handleResolveDocHubRoot}
                                                             disabled={isDocHubConnecting || !docHubProvider || !docHubRootLink.trim()}
-                                                            className={`w-full px-4 py-2 rounded-lg text-sm font-bold border transition-colors ${isDocHubConnecting || !docHubProvider || !docHubRootLink.trim()
+                                                            className={`relative overflow-hidden w-full px-4 py-2 rounded-lg text-sm font-bold border transition-colors ${isDocHubConnecting || !docHubProvider || !docHubRootLink.trim()
                                                                 ? "bg-slate-200 dark:bg-slate-800/60 text-slate-500 border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
                                                                 : "bg-violet-600 hover:bg-violet-500 text-white border-violet-500/30"
                                                                 }`}
-                                                            title="Ověří odkaz přes Drive/Graph API a uloží rootId/rootWebUrl"
+                                                            title="Získá odkaz přes Drive/Graph API a uloží rootId/rootWebUrl"
                                                         >
-                                                            Ověřit odkaz (backend)
+                                                            <span
+                                                                className="absolute inset-y-0 left-0 bg-white/25"
+                                                                style={{ width: `${docHubResolveProgress}%` }}
+                                                            />
+                                                            <span className="relative z-10 flex items-center justify-center gap-2">
+                                                                <span className={`material-symbols-outlined text-[18px] ${isDocHubConnecting ? 'animate-spin' : ''}`}>
+                                                                    {isDocHubConnecting ? 'sync' : 'link'}
+                                                                </span>
+                                                                {isDocHubConnecting ? `Získávám odkaz… ${docHubResolveProgress}%` : "Získat odkaz"}
+                                                            </span>
                                                         </button>
                                                         <div className="text-[11px] text-slate-500">
                                                             Google: doporučeno vybrat přes Picker. OneDrive: zatím vložte sdílený odkaz na složku.
@@ -963,15 +1111,21 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                                 <div className="flex items-center gap-2">
                                                     <button
                                                         type="button"
-                                                        onClick={handleConnectDocHub}
-                                                        disabled={isDocHubConnecting || !docHubProvider || !docHubMode}
-                                                        className={`px-4 py-2 rounded-lg text-sm font-bold border transition-colors ${isDocHubConnecting || !docHubProvider || !docHubMode
+                                                        onClick={isDocHubAuthed ? handleDisconnectDocHub : handleConnectDocHub}
+                                                        disabled={isDocHubConnecting || (!isDocHubAuthed && (!docHubProvider || !docHubMode))}
+                                                        className={`px-4 py-2 rounded-lg text-sm font-bold border transition-colors ${isDocHubConnecting || (!isDocHubAuthed && (!docHubProvider || !docHubMode))
                                                             ? "bg-slate-200 dark:bg-slate-800/60 text-slate-500 border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
-                                                            : "bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700/50"
+                                                            : isDocHubAuthed
+                                                                ? "bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-red-600 dark:text-red-300 border-slate-300 dark:border-slate-700/50"
+                                                                : "bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700/50"
                                                         }`}
-                                                        title="Spustí OAuth autorizaci (Google Drive používá následně Picker)"
+                                                        title={isDocHubAuthed ? "Odpojí DocHub účet pro tuto stavbu" : "Spustí OAuth autorizaci (Google Drive používá následně Picker)"}
                                                     >
-                                                        {isDocHubConnecting ? "Připojuji..." : `Připojit přes ${docHubProvider === "gdrive" ? "Google" : "Microsoft"}`}
+                                                        {isDocHubConnecting
+                                                            ? "Pracuji..."
+                                                            : isDocHubAuthed
+                                                                ? "Odpojit"
+                                                                : `Připojit přes ${docHubProvider === "gdrive" ? "Google" : "Microsoft"}`}
                                                     </button>
                                                     <button
                                                         type="button"
@@ -989,7 +1143,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
 	                                                        }}
                                                         className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-lg text-sm font-bold transition-colors"
                                                     >
-                                                        Uložit (demo)
+                                                        Uložit nastavení
                                                     </button>
                                                 </div>
                                                 {isDocHubConnected && (
@@ -1030,11 +1184,21 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                                 </button>
                                                 <button
                                                     type="button"
-                                                    disabled
-                                                    className="px-3 py-2 bg-slate-200 dark:bg-slate-800/60 text-slate-500 rounded-lg text-sm font-medium border border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
-                                                    title="Automatické vytváření složek doplníme s backendem (API)"
+                                                    onClick={() => handleToggleDocHubAutoCreate(!docHubAutoCreateEnabled)}
+                                                    disabled={isDocHubAutoCreating || !isDocHubConnected}
+                                                    className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${isDocHubAutoCreating || !isDocHubConnected
+                                                        ? "bg-slate-200 dark:bg-slate-800/60 text-slate-500 border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
+                                                        : docHubAutoCreateEnabled
+                                                            ? "bg-emerald-500/15 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                                                            : "bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700/50"
+                                                    }`}
+                                                    title={!isDocHubConnected ? "Nejdřív připojte DocHub a nastavte hlavní složku projektu." : docHubAutoCreateEnabled ? "Vypnout auto‑vytváření" : "Zapnout a spustit auto‑vytváření"}
                                                 >
-                                                    Auto-vytváření: brzy
+                                                    {isDocHubAutoCreating
+                                                        ? `Auto‑vytváření… ${docHubAutoCreateProgress}%`
+                                                        : docHubAutoCreateEnabled
+                                                            ? "Auto‑vytváření: zapnuto"
+                                                            : "Auto‑vytváření: vypnuto"}
                                                 </button>
                                                 <button
                                                     type="button"
@@ -1067,34 +1231,290 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                             </div>
                                         </div>
 
+                                        {isDocHubAutoCreating && (
+                                            <div className="bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4">
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                                                        Probíhá auto‑vytváření složek
+                                                    </div>
+                                                    <div className="text-xs text-slate-500">
+                                                        {docHubAutoCreateProgress}%
+                                                    </div>
+                                                </div>
+                                                <div className="mt-3 h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+                                                    <div
+                                                        className="h-full bg-gradient-to-r from-emerald-500 to-violet-500 transition-all"
+                                                        style={{ width: `${docHubAutoCreateProgress}%` }}
+                                                    />
+                                                </div>
+                                                {docHubAutoCreateLogs.length > 0 && (
+                                                    <div className="mt-3 text-xs text-slate-600 dark:text-slate-400">
+                                                        {docHubAutoCreateLogs[docHubAutoCreateLogs.length - 1]}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
                                         {isEditingDocHubStructure && (
                                             <div className="bg-slate-100 dark:bg-slate-950/30 border border-slate-300 dark:border-slate-700/50 rounded-xl p-4">
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                    {([
-                                                        ["pd", "PD"],
-                                                        ["tenders", "Výběrová řízení"],
-                                                        ["tendersInquiries", "Poptávky"],
-                                                        ["supplierEmail", "Email"],
-                                                        ["supplierOffer", "Cenová nabídka"],
-                                                        ["contracts", "Smlouvy"],
-                                                        ["realization", "Realizace"],
-                                                        ["archive", "Archiv"],
-                                                    ] as const).map(([key, label]) => (
-                                                        <div key={key} className="space-y-1">
-                                                            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400">
-                                                                {label}
-                                                            </label>
-                                                            <input
-                                                                type="text"
-                                                                value={docHubStructureDraft[key]}
-                                                                onChange={(e) =>
-                                                                    setDocHubStructureDraft((prev) => ({ ...prev, [key]: e.target.value }))
-                                                                }
-                                                                className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-violet-500/50 focus:outline-none"
-                                                            />
+                                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                                    {/* Tree preview */}
+                                                    <div className="bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4">
+                                                        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                                                            <span className="material-symbols-outlined text-[16px] text-violet-600 dark:text-violet-300">account_tree</span>
+                                                            Náhled struktury
                                                         </div>
-                                                    ))}
+
+                                                        <div className="mt-3 text-sm">
+                                                            <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                                                                <span className="material-symbols-outlined text-[18px] text-violet-600 dark:text-violet-400">folder</span>
+                                                                <span className="font-semibold">Kořen projektu</span>
+                                                            </div>
+
+                                                            <div className="mt-2 pl-5 border-l border-slate-200 dark:border-slate-700/50 space-y-2">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="material-symbols-outlined text-[18px] text-violet-600 dark:text-violet-400">folder</span>
+                                                                    <span className="font-medium text-slate-900 dark:text-white">/{docHubStructureDraft.pd}</span>
+                                                                </div>
+
+                                                                <div className="space-y-1">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="material-symbols-outlined text-[18px] text-violet-600 dark:text-violet-400">folder</span>
+                                                                        <span className="font-medium text-slate-900 dark:text-white">/{docHubStructureDraft.tenders}</span>
+                                                                    </div>
+                                                                    <div className="pl-5 border-l border-slate-200 dark:border-slate-700/50 space-y-1">
+                                                                        <div className="flex items-center gap-2 text-xs text-slate-500">
+                                                                            <span className="material-symbols-outlined text-[16px]">subdirectory_arrow_right</span>
+                                                                            <span className="italic">VR-001_Nazev_vyberoveho_rizeni</span>
+                                                                        </div>
+                                                                        <div className="pl-5 border-l border-slate-200 dark:border-slate-700/50 space-y-1">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <span className="material-symbols-outlined text-[18px] text-violet-600 dark:text-violet-400">folder</span>
+                                                                                <span className="font-medium text-slate-900 dark:text-white">/{docHubStructureDraft.tendersInquiries}</span>
+                                                                            </div>
+                                                                            <div className="pl-5 border-l border-slate-200 dark:border-slate-700/50 space-y-1">
+                                                                                <div className="flex items-center gap-2 text-xs text-slate-500">
+                                                                                    <span className="material-symbols-outlined text-[16px]">subdirectory_arrow_right</span>
+                                                                                    <span className="italic">Dodavatel_X</span>
+                                                                                </div>
+                                                                                <div className="pl-5 border-l border-slate-200 dark:border-slate-700/50 space-y-1">
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        <span className="material-symbols-outlined text-[18px] text-violet-600 dark:text-violet-400">folder</span>
+                                                                                        <span className="text-slate-900 dark:text-white">/{docHubStructureDraft.supplierEmail}</span>
+                                                                                    </div>
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        <span className="material-symbols-outlined text-[18px] text-violet-600 dark:text-violet-400">folder</span>
+                                                                                        <span className="text-slate-900 dark:text-white">/{docHubStructureDraft.supplierOffer}</span>
+                                                                                    </div>
+                                                                                    {docHubExtraSupplierDraft.map((name, idx) => (
+                                                                                        <div key={`${name}-${idx}`} className="flex items-center gap-2">
+                                                                                            <span className="material-symbols-outlined text-[18px] text-violet-600 dark:text-violet-400">folder</span>
+                                                                                            <span className="text-slate-900 dark:text-white">/{name}</span>
+                                                                                        </div>
+                                                                                    ))}
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="material-symbols-outlined text-[18px] text-violet-600 dark:text-violet-400">folder</span>
+                                                                    <span className="font-medium text-slate-900 dark:text-white">/{docHubStructureDraft.contracts}</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="material-symbols-outlined text-[18px] text-violet-600 dark:text-violet-400">folder</span>
+                                                                    <span className="font-medium text-slate-900 dark:text-white">/{docHubStructureDraft.realization}</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="material-symbols-outlined text-[18px] text-violet-600 dark:text-violet-400">folder</span>
+                                                                    <span className="font-medium text-slate-900 dark:text-white">/{docHubStructureDraft.archive}</span>
+                                                                </div>
+
+                                                                {docHubExtraTopLevelDraft.length > 0 && (
+                                                                    <div className="pt-2 mt-2 border-t border-slate-200 dark:border-slate-700/50">
+                                                                        <div className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+                                                                            Další složky
+                                                                        </div>
+                                                                        <div className="space-y-1">
+                                                                            {docHubExtraTopLevelDraft.map((name, idx) => (
+                                                                                <div key={`${name}-${idx}`} className="flex items-center gap-2">
+                                                                                    <span className="material-symbols-outlined text-[18px] text-violet-600 dark:text-violet-400">folder</span>
+                                                                                    <span className="text-slate-900 dark:text-white">/{name}</span>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Editor */}
+                                                    <div className="space-y-4">
+                                                        <div className="bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4">
+                                                            <div className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-3">
+                                                                Kořen projektu (hlavní složky)
+                                                            </div>
+
+                                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                                {([
+                                                                    ["pd", "PD (1. úroveň)"],
+                                                                    ["tenders", "Výběrová řízení (1. úroveň)"],
+                                                                    ["contracts", "Smlouvy (1. úroveň)"],
+                                                                    ["realization", "Realizace (1. úroveň)"],
+                                                                    ["archive", "Archiv (1. úroveň)"],
+                                                                ] as const).map(([key, label]) => (
+                                                                    <div key={key} className="space-y-1">
+                                                                        <label className="block text-xs font-medium text-slate-600 dark:text-slate-400">
+                                                                            {label}
+                                                                        </label>
+                                                                        <input
+                                                                            type="text"
+                                                                            value={docHubStructureDraft[key]}
+                                                                            onChange={(e) =>
+                                                                                setDocHubStructureDraft((prev) => ({ ...prev, [key]: e.target.value }))
+                                                                            }
+                                                                            className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-violet-500/50 focus:outline-none"
+                                                                        />
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+
+                                                            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700/50">
+                                                                <div className="flex items-center justify-between gap-3 mb-2">
+                                                                    <div>
+                                                                        <div className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                                                                            Další složky v kořeni (volitelné)
+                                                                        </div>
+                                                                        <div className="text-[11px] text-slate-500">
+                                                                            Tyto složky jsou jen navíc; aplikace je zatím nepoužívá v ostatních modulech.
+                                                                        </div>
+                                                                    </div>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setDocHubExtraTopLevelDraft((prev) => [...prev, ""])}
+                                                                        className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-medium transition-colors border border-slate-300 dark:border-slate-700/50"
+                                                                    >
+                                                                        + Přidat
+                                                                    </button>
+                                                                </div>
+
+                                                                <div className="space-y-2">
+                                                                    {docHubExtraTopLevelDraft.length === 0 ? (
+                                                                        <div className="text-xs text-slate-500 italic">
+                                                                            Zatím žádné další složky.
+                                                                        </div>
+                                                                    ) : (
+                                                                        docHubExtraTopLevelDraft.map((name, idx) => (
+                                                                            <div key={idx} className="flex items-center gap-2">
+                                                                                <input
+                                                                                    type="text"
+                                                                                    value={name}
+                                                                                    onChange={(e) =>
+                                                                                        setDocHubExtraTopLevelDraft((prev) =>
+                                                                                            prev.map((v, i) => (i === idx ? e.target.value : v))
+                                                                                        )
+                                                                                    }
+                                                                                    placeholder="Název složky (např. 05_Fotky)"
+                                                                                    className="flex-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-violet-500/50 focus:outline-none"
+                                                                                />
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => setDocHubExtraTopLevelDraft((prev) => prev.filter((_, i) => i !== idx))}
+                                                                                    className="p-2 rounded-lg border border-slate-300 dark:border-slate-700/50 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors text-slate-700 dark:text-slate-200"
+                                                                                    title="Odebrat"
+                                                                                >
+                                                                                    <span className="material-symbols-outlined text-[18px]">delete</span>
+                                                                                </button>
+                                                                            </div>
+                                                                        ))
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4">
+                                                            <div className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-3">
+                                                                Výběrová řízení (podsložky)
+                                                            </div>
+                                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                                {([
+                                                                    ["tendersInquiries", "Poptávky (uvnitř VŘ)"],
+                                                                    ["supplierEmail", "Email (uvnitř Dodavatele)"],
+                                                                    ["supplierOffer", "Cenová nabídka (uvnitř Dodavatele)"],
+                                                                ] as const).map(([key, label]) => (
+                                                                    <div key={key} className="space-y-1">
+                                                                        <label className="block text-xs font-medium text-slate-600 dark:text-slate-400">
+                                                                            {label}
+                                                                        </label>
+                                                                        <input
+                                                                            type="text"
+                                                                            value={docHubStructureDraft[key]}
+                                                                            onChange={(e) =>
+                                                                                setDocHubStructureDraft((prev) => ({ ...prev, [key]: e.target.value }))
+                                                                            }
+                                                                            className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-violet-500/50 focus:outline-none"
+                                                                        />
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+
+                                                            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700/50">
+                                                                <div className="flex items-center justify-between gap-3 mb-2">
+                                                                    <div>
+                                                                        <div className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                                                                            Další podsložky u dodavatele (volitelné)
+                                                                        </div>
+                                                                        <div className="text-[11px] text-slate-500">
+                                                                            Přidá další podsložky vedle Email / Cenová nabídka.
+                                                                        </div>
+                                                                    </div>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setDocHubExtraSupplierDraft((prev) => [...prev, ""])}
+                                                                        className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-medium transition-colors border border-slate-300 dark:border-slate-700/50"
+                                                                    >
+                                                                        + Přidat
+                                                                    </button>
+                                                                </div>
+
+                                                                <div className="space-y-2">
+                                                                    {docHubExtraSupplierDraft.length === 0 ? (
+                                                                        <div className="text-xs text-slate-500 italic">
+                                                                            Zatím žádné další podsložky.
+                                                                        </div>
+                                                                    ) : (
+                                                                        docHubExtraSupplierDraft.map((name, idx) => (
+                                                                            <div key={idx} className="flex items-center gap-2">
+                                                                                <input
+                                                                                    type="text"
+                                                                                    value={name}
+                                                                                    onChange={(e) =>
+                                                                                        setDocHubExtraSupplierDraft((prev) =>
+                                                                                            prev.map((v, i) => (i === idx ? e.target.value : v))
+                                                                                        )
+                                                                                    }
+                                                                                    placeholder="Název podsložky (např. Smlouvy, Fotky...)"
+                                                                                    className="flex-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-violet-500/50 focus:outline-none"
+                                                                                />
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => setDocHubExtraSupplierDraft((prev) => prev.filter((_, i) => i !== idx))}
+                                                                                    className="p-2 rounded-lg border border-slate-300 dark:border-slate-700/50 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors text-slate-700 dark:text-slate-200"
+                                                                                    title="Odebrat"
+                                                                                >
+                                                                                    <span className="material-symbols-outlined text-[18px]">delete</span>
+                                                                                </button>
+                                                                            </div>
+                                                                        ))
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
+
                                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4">
                                                     <p className="text-xs text-slate-500">
                                                         Doporučení: měňte jen názvy složek; struktura (vazby) v aplikaci zůstává stejná.
@@ -1104,6 +1524,8 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                                             type="button"
                                                             onClick={() => {
                                                                 setDocHubStructureDraft(resolveDocHubStructureV1(null));
+                                                                setDocHubExtraTopLevelDraft([]);
+                                                                setDocHubExtraSupplierDraft([]);
                                                             }}
                                                             className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-medium transition-colors border border-slate-300 dark:border-slate-700/50"
                                                         >

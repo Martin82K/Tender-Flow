@@ -9,6 +9,8 @@ export type DocHubStructureV1 = {
   tendersInquiries: string;
   supplierEmail: string;
   supplierOffer: string;
+  extraTopLevel?: string[];
+  extraSupplier?: string[];
 };
 
 export const DEFAULT_STRUCTURE_V1: DocHubStructureV1 = {
