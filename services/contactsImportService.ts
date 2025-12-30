@@ -250,6 +250,12 @@ export const mergeContacts = (existingContacts: Subcontractor[], importedContact
     return `name:${normalizeText(p.name || "")}`;
   };
 
+  const hasValue = (value?: string) => {
+    if (!value) return false;
+    const t = value.trim();
+    return t !== "" && t !== "-";
+  };
+
   const companyIndex = new Map<string, number>();
   const emailIndex = new Map<string, number>();
 
@@ -302,18 +308,32 @@ export const mergeContacts = (existingContacts: Subcontractor[], importedContact
         }
       });
 
+      const pickPrimary = () => {
+        const list = mergedContactsList;
+        const firstNonEmpty = list.find(
+          (p) =>
+            (p.email && p.email !== "-") ||
+            (p.phone && p.phone !== "-") ||
+            (p.name && p.name !== "-")
+        );
+        return firstNonEmpty || list[0];
+      };
+
+      const primary = pickPrimary();
+
       const updatedContact = {
         ...existing,
         company: (existing.company && existing.company !== "-" ? existing.company : imported.company) || existing.company,
         specialization: mergedSpecializations,
         contacts: mergedContactsList,
-        ico: (imported.ico && imported.ico !== '-' && imported.ico) ? imported.ico : existing.ico,
-        region: (imported.region && imported.region !== '-' && imported.region) ? imported.region : existing.region,
-        status: (imported.status && imported.status !== '-' && imported.status !== 'available') ? imported.status : existing.status,
+        // Fill missing only (do not overwrite existing values)
+        ico: hasValue(existing.ico) ? existing.ico : (hasValue(imported.ico) ? imported.ico : existing.ico),
+        region: hasValue(existing.region) ? existing.region : (hasValue(imported.region) ? imported.region : existing.region),
+        status: existing.status || imported.status,
         // Update legacy fields from primary contact
-        name: mergedContactsList[0]?.name || existing.name,
-        phone: mergedContactsList[0]?.phone || existing.phone,
-        email: mergedContactsList[0]?.email || existing.email,
+        name: (existing.name && existing.name !== "-") ? existing.name : (primary?.name || existing.name),
+        phone: (existing.phone && existing.phone !== "-") ? existing.phone : (primary?.phone || existing.phone),
+        email: (existing.email && existing.email !== "-") ? existing.email : (primary?.email || existing.email),
         // Preserve ID and Status
       };
 

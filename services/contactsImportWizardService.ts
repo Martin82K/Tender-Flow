@@ -325,8 +325,13 @@ export const analyzeContactsImport = (
   mapping: FieldMapping,
   options: AnalyzeOptions
 ): AnalyzeResult => {
-  const existingCompanyKeys = new Set(options.existingContacts.map((c) => normalizeText(c.company || "")));
-  const existingEmailIndex = buildExistingEmailIndex(options.existingContacts);
+  const existingCompanyByKey = new Map(
+    options.existingContacts
+      .map((c) => [normalizeText(c.company || ""), c] as const)
+      .filter(([k]) => Boolean(k))
+  );
+  const existingCompanyKeys = new Set(existingCompanyByKey.keys());
+  const existingEmailIndex = buildExistingEmailIndex(options.existingContacts); // email -> companyKey
   const statusByLabel = new Map(options.statuses.map((s) => [normalizeText(s.label), s.id] as const));
 
   const emailOccurrences = new Map<string, number>();
@@ -400,7 +405,7 @@ export const analyzeContactsImport = (
       warnings.push("Duplicitní firma – dojde k aktualizaci existujícího záznamu.");
     }
     if (mapped.contactEmail && existingEmailIndex.has(mapped.contactEmail)) {
-      warnings.push("Duplicitní email – dojde k aktualizaci existující firmy.");
+      warnings.push("Duplicitní email – firma už existuje v databázi.");
     }
 
     if (!isEmptyValue(mapped.statusRaw)) {
@@ -410,8 +415,69 @@ export const analyzeContactsImport = (
       }
     }
 
-    const outcome: RowOutcome =
-      errors.length > 0 ? "not_imported" : warnings.length > 0 ? "imported_with_warning" : "imported";
+    // Decide whether the row would actually change anything in DB.
+    const matchedCompanyKey = (() => {
+      const ck = normalizeText(mapped.company || "");
+      if (ck && existingCompanyKeys.has(ck)) return ck;
+      if (mapped.contactEmail && existingEmailIndex.has(mapped.contactEmail)) {
+        return existingEmailIndex.get(mapped.contactEmail)!;
+      }
+      return null;
+    })();
+
+    const existing = matchedCompanyKey ? existingCompanyByKey.get(matchedCompanyKey) : undefined;
+
+    const wouldAddAnything = (() => {
+      if (!existing) return true;
+
+      const existingSpecKeys = new Set((existing.specialization || []).map((s) => normalizeText(s)));
+      const incomingSpecKeys = splitSpecializations(mapped.specializationRaw).map((s) => normalizeText(s));
+      const addsSpec = incomingSpecKeys.some((s) => s && !existingSpecKeys.has(s));
+
+      const existingContactKeys = new Set(
+        (existing.contacts || []).map((p) => {
+          const e = normalizeEmail(p.email || "");
+          if (e && e !== "-") return `email:${e}`;
+          const phone = valueAsString(p.phone || "");
+          if (phone && phone !== "-") return `phone:${phone}`;
+          return `name:${normalizeText(p.name || "")}`;
+        })
+      );
+
+      const hasAnyContactData =
+        !isEmptyValue(mapped.contactName) || !isEmptyValue(mapped.contactEmail) || !isEmptyValue(mapped.contactPhone);
+
+      const incomingContactKey = (() => {
+        if (!hasAnyContactData) return null;
+        const e = normalizeEmail(mapped.contactEmail || "");
+        if (e && e !== "-") return `email:${e}`;
+        const phone = valueAsString(mapped.contactPhone || "");
+        if (phone && phone !== "-") return `phone:${phone}`;
+        const n = normalizeText(mapped.contactName || "");
+        if (n) return `name:${n}`;
+        return null;
+      })();
+
+      const addsContact = incomingContactKey ? !existingContactKeys.has(incomingContactKey) : false;
+
+      const addsIco = !isEmptyValue(mapped.ico) && isEmptyValue(existing.ico);
+      const addsRegion = !isEmptyValue(mapped.region) && isEmptyValue(existing.region);
+
+      return addsSpec || addsContact || addsIco || addsRegion;
+    })();
+
+    let outcome: RowOutcome = "imported";
+    if (errors.length > 0) {
+      outcome = "not_imported";
+    } else if (existing && !wouldAddAnything) {
+      outcome = "not_imported";
+      warnings.push("Duplicitní řádek – v databázi už existuje (bez změn).");
+    } else if (existing) {
+      outcome = "imported_with_warning";
+      warnings.push("Firma/email už existuje – doplním jen chybějící data.");
+    } else if (warnings.length > 0) {
+      outcome = "imported_with_warning";
+    }
 
     return {
       rowIndex: idx + 1,
@@ -428,6 +494,7 @@ export const analyzeContactsImport = (
     string,
     {
       displayCompany: string;
+      canonicalKey: string;
       ico?: string;
       region?: string;
       specialization: Set<string>;
@@ -450,19 +517,31 @@ export const analyzeContactsImport = (
   for (const row of analyzedRows) {
     if (row.outcome === "not_imported") continue;
 
-    const company = ensureNonEmpty(row.mapped.company, "Neznámá firma");
-    const companyKey = normalizeText(company);
-    if (!companyKey) continue;
+    const rawCompany = ensureNonEmpty(row.mapped.company, "Neznámá firma");
+    const rowCompanyKey = normalizeText(rawCompany);
+    const matchedKeyFromEmail =
+      row.mapped.contactEmail && existingEmailIndex.has(row.mapped.contactEmail)
+        ? existingEmailIndex.get(row.mapped.contactEmail)!
+        : null;
+    const canonicalKey =
+      (rowCompanyKey && existingCompanyKeys.has(rowCompanyKey) ? rowCompanyKey : null) || matchedKeyFromEmail || rowCompanyKey;
+    if (!canonicalKey) continue;
+
+    const existing = existingCompanyByKey.get(canonicalKey);
+    const company = existing?.company || rawCompany;
 
     const statusId = (() => {
+      // For existing companies, preserve current status (incremental import).
+      if (existing?.status) return existing.status;
       if (isEmptyValue(row.mapped.statusRaw)) return options.defaultStatusId;
       const matched = statusByLabel.get(normalizeText(row.mapped.statusRaw));
       return matched || options.defaultStatusId;
     })();
 
-    if (!byCompanyKey.has(companyKey)) {
-      byCompanyKey.set(companyKey, {
+    if (!byCompanyKey.has(canonicalKey)) {
+      byCompanyKey.set(canonicalKey, {
         displayCompany: company,
+        canonicalKey,
         ico: isEmptyValue(row.mapped.ico) ? undefined : row.mapped.ico,
         region: isEmptyValue(row.mapped.region) ? undefined : row.mapped.region,
         specialization: new Set<string>(),
@@ -472,43 +551,66 @@ export const analyzeContactsImport = (
       });
     }
 
-    const entry = byCompanyKey.get(companyKey)!;
+    const entry = byCompanyKey.get(canonicalKey)!;
     entry.displayCompany = entry.displayCompany || company;
-    entry.ico = entry.ico || (isEmptyValue(row.mapped.ico) ? undefined : row.mapped.ico);
-    entry.region = entry.region || (isEmptyValue(row.mapped.region) ? undefined : row.mapped.region);
+    // Only fill missing ico/region (do not overwrite existing).
+    if (existing) {
+      entry.ico = isEmptyValue(existing.ico) ? (entry.ico || (isEmptyValue(row.mapped.ico) ? undefined : row.mapped.ico)) : existing.ico;
+      entry.region = isEmptyValue(existing.region)
+        ? (entry.region || (isEmptyValue(row.mapped.region) ? undefined : row.mapped.region))
+        : existing.region;
+    } else {
+      entry.ico = entry.ico || (isEmptyValue(row.mapped.ico) ? undefined : row.mapped.ico);
+      entry.region = entry.region || (isEmptyValue(row.mapped.region) ? undefined : row.mapped.region);
+    }
     entry.statusId = entry.statusId || statusId;
 
     const specs = splitSpecializations(row.mapped.specializationRaw);
-    for (const s of specs) entry.specialization.add(s);
-
-    const contact: ContactPerson = {
-      id: crypto.randomUUID(),
-      name: ensureNonEmpty(row.mapped.contactName, "-"),
-      email: ensureNonEmpty(row.mapped.contactEmail, "-"),
-      phone: ensureNonEmpty(row.mapped.contactPhone, "-"),
-      position: isEmptyValue(row.mapped.contactPosition) ? undefined : row.mapped.contactPosition,
-    };
-
-    const personKey = dedupePersonKey(contact);
-    const existingPersonKeys = new Set(entry.contacts.map(dedupePersonKey));
-    if (!existingPersonKeys.has(personKey)) {
-      entry.contacts.push(contact);
+    if (existing) {
+      const existingSpecKeys = new Set((existing.specialization || []).map((s) => normalizeText(s)));
+      for (const s of specs) {
+        const key = normalizeText(s);
+        if (key && !existingSpecKeys.has(key)) entry.specialization.add(s);
+      }
     } else {
-      entry.warnings.push("Duplicitní kontakt v rámci firmy byl ignorován.");
+      for (const s of specs) entry.specialization.add(s);
+    }
+
+    const hasAnyContactData =
+      !isEmptyValue(row.mapped.contactName) || !isEmptyValue(row.mapped.contactEmail) || !isEmptyValue(row.mapped.contactPhone);
+    if (hasAnyContactData) {
+      const contact: ContactPerson = {
+        id: crypto.randomUUID(),
+        name: ensureNonEmpty(row.mapped.contactName, "-"),
+        email: ensureNonEmpty(row.mapped.contactEmail, "-"),
+        phone: ensureNonEmpty(row.mapped.contactPhone, "-"),
+        position: isEmptyValue(row.mapped.contactPosition) ? undefined : row.mapped.contactPosition,
+      };
+
+      const personKey = dedupePersonKey(contact);
+      const existingPersonKeys = new Set(entry.contacts.map(dedupePersonKey));
+      if (existing) {
+        const existingDbKeys = new Set((existing.contacts || []).map(dedupePersonKey));
+        if (!existingDbKeys.has(personKey) && !existingPersonKeys.has(personKey)) {
+          entry.contacts.push(contact);
+        } else {
+          entry.warnings.push("Duplicitní kontakt – už je v databázi.");
+        }
+      } else if (!existingPersonKeys.has(personKey)) {
+        entry.contacts.push(contact);
+      } else {
+        entry.warnings.push("Duplicitní kontakt v rámci firmy byl ignorován.");
+      }
     }
   }
 
   const aggregatedContacts: Subcontractor[] = Array.from(byCompanyKey.values()).map((entry) => {
-    const contacts = entry.contacts.length > 0 ? entry.contacts : [{
-      id: crypto.randomUUID(),
-      name: "-",
-      email: "-",
-      phone: "-",
-      position: "Hlavní kontakt",
-    }];
+    const isExisting = existingCompanyByKey.has(entry.canonicalKey);
+    // Keep delta minimal: if no new contacts were detected, keep empty array.
+    const contacts = entry.contacts;
 
-    const primary = contacts[0];
-    const specialization = entry.specialization.size > 0 ? Array.from(entry.specialization) : ["Ostatní"];
+    const specialization =
+      entry.specialization.size > 0 ? Array.from(entry.specialization) : isExisting ? [] : ["Ostatní"];
 
     return {
       id: crypto.randomUUID(),
@@ -518,9 +620,9 @@ export const analyzeContactsImport = (
       ico: entry.ico || "-",
       region: entry.region || "-",
       status: entry.statusId || options.defaultStatusId,
-      name: primary?.name || "-",
-      email: primary?.email || "-",
-      phone: primary?.phone || "-",
+      name: contacts[0]?.name || "-",
+      email: contacts[0]?.email || "-",
+      phone: contacts[0]?.phone || "-",
     };
   });
 
@@ -590,4 +692,3 @@ export const buildTemplateWorkbook = () => {
 
   return wb;
 };
-

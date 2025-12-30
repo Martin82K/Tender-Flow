@@ -1104,6 +1104,17 @@ const AppContent: React.FC = () => {
     newContacts: Subcontractor[],
     onProgress?: (percent: number) => void
   ) => {
+    const pickPrimaryContact = (c: Subcontractor) => {
+      const list = c.contacts || [];
+      const firstNonEmpty = list.find(
+        (p) =>
+          (p.email && p.email !== "-") ||
+          (p.phone && p.phone !== "-") ||
+          (p.name && p.name !== "-")
+      );
+      return firstNonEmpty || list[0] || null;
+    };
+
     // Use the merge logic from service
     const { mergedContacts, added, updated, addedCount, updatedCount } =
       mergeContacts(contacts, newContacts);
@@ -1142,12 +1153,14 @@ const AppContent: React.FC = () => {
       // 1. Insert new contacts
       if (added.length > 0) {
         const payload = added.map((c) => ({
+          // NOTE: `c` might be a delta object from the import wizard.
+          // We still persist the full merged state via `mergeContacts` and the subsequent inserts/updates.
           id: c.id,
           company_name: (c.company || "-").substring(0, 255),
-          contact_person_name: (c.contacts?.[0]?.name || c.name || "-").substring(0, 255),
+          contact_person_name: (pickPrimaryContact(c)?.name || c.name || "-").substring(0, 255),
           specialization: c.specialization,
-          phone: (c.contacts?.[0]?.phone || c.phone || "-").substring(0, 50),
-          email: (c.contacts?.[0]?.email || c.email || "-").substring(0, 255),
+          phone: (pickPrimaryContact(c)?.phone || c.phone || "-").substring(0, 50),
+          email: (pickPrimaryContact(c)?.email || c.email || "-").substring(0, 255),
           contacts: c.contacts || [],
           ico: (c.ico || "-").substring(0, 50),
           region: (c.region || "-").substring(0, 100),
@@ -1178,10 +1191,10 @@ const AppContent: React.FC = () => {
             .from("subcontractors")
             .update({
               company_name: contact.company,
-              contact_person_name: contact.contacts?.[0]?.name || contact.name || "-",
+              contact_person_name: pickPrimaryContact(contact)?.name || contact.name || "-",
               specialization: contact.specialization,
-              phone: contact.contacts?.[0]?.phone || contact.phone || "-",
-              email: contact.contacts?.[0]?.email || contact.email || "-",
+              phone: pickPrimaryContact(contact)?.phone || contact.phone || "-",
+              email: pickPrimaryContact(contact)?.email || contact.email || "-",
               contacts: contact.contacts || [],
               ico: contact.ico || "-",
               region: contact.region || "-",
