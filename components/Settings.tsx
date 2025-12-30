@@ -888,7 +888,7 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                         </div>
 
                         {/* Color Theme */}
-                        <div className="flex flex-col gap-4 border-b border-slate-700/50 pb-4">
+                        <div className="flex flex-col gap-4">
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                 <div>
                                     <p className="text-sm font-medium text-white">Barevné schéma</p>
@@ -920,45 +920,16 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                             </div>
                         </div>
 
-                        {/* Background Color */}
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div>
-                                <p className="text-sm font-medium text-slate-800 dark:text-white">Barva pozadí</p>
-                                <p className="text-xs text-slate-500">Vyberte barvu podkladu aplikace (pouze pro světlý režim).</p>
-                            </div>
-                            <div className="flex flex-wrap gap-3 items-center">
-                                {backgroundColors.map(bg => (
-                                    <button
-                                        key={bg.color}
-                                        onClick={() => onSetBackgroundColor(bg.color)}
-                                        className={`size-8 rounded-full transition-all shadow-sm border border-slate-200 ${backgroundColor === bg.color ? 'ring-2 ring-offset-2 ring-slate-400 dark:ring-slate-500 scale-110' : 'hover:scale-105'}`}
-                                        style={{ backgroundColor: bg.color }}
-                                        title={bg.label}
-                                    />
-                                ))}
-                                <div className="relative flex items-center">
-                                    <label htmlFor="custom-bg" className="cursor-pointer size-8 rounded-full bg-white border border-slate-300 flex items-center justify-center hover:scale-105 transition-transform" title="Vlastní pozadí">
-                                        <span className="material-symbols-outlined text-[16px] text-slate-600">format_paint</span>
-                                    </label>
-                                    <input
-                                        id="custom-bg"
-                                        type="color"
-                                        value={backgroundColor}
-                                        onChange={(e) => onSetBackgroundColor(e.target.value)}
-                                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                                    />
-                                </div>
-                            </div>
-                        </div>
+
                     </div>
 
                     <div className="mt-6 flex justify-end border-t border-slate-100 dark:border-slate-800 pt-4">
                         <button
                             onClick={onSaveSettings}
-                            className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-2.5 rounded-lg font-bold shadow-sm transition-all hover:scale-105 active:scale-95"
+                            className="flex items-center gap-1.5 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm transition-all hover:scale-105 active:scale-95"
                         >
-                            <span className="material-symbols-outlined">save</span>
-                            Uložit nastavení vzhledu
+                            <span className="material-symbols-outlined text-[18px]">save</span>
+                            Uložit
                         </button>
                     </div>
                 </section>
