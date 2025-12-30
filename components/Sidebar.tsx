@@ -3,6 +3,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { View, Project } from '../types';
 import logo from '../assets/logo.png';
+import { SIDEBAR_NAVIGATION, BOTTOM_NAVIGATION } from '../config/navigation';
+import { useFeatures } from '../context/FeatureContext';
 
 // Admin role configuration (must match App.tsx)
 const SUPERADMIN_EMAILS = ["martinkalkus82@gmail.com"];
@@ -28,6 +30,7 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, selectedProjectId, onProjectSelect, projects, isOpen, onToggle }) => {
   const { user, logout } = useAuth();
+  const { hasFeature } = useFeatures(); // Use feature context
   const [width, setWidth] = useState(260);
   const [isResizing, setIsResizing] = useState(false);
   const [displayName, setDisplayName] = useState('');
@@ -154,6 +157,96 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
     setDraggedId(null);
   };
 
+  // Helper to render nav items
+  const renderNavItem = (item: any) => {
+    // Check feature flag
+    if (item.feature && !hasFeature(item.feature)) {
+      return null;
+    }
+
+    // Special case for projects group which acts as accordion
+    if (item.id === 'projects') {
+      return (
+        <details key={item.id} className="group" open>
+          <summary className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer list-none ${currentView === 'project'
+            ? 'text-white font-semibold'
+            : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
+            }`}>
+            <div className="flex items-center gap-3 min-w-0">
+              <span className={`material-symbols-outlined shrink-0 ${currentView === 'project' ? 'fill text-emerald-400' : ''}`}>{item.icon}</span>
+              <p className="text-sm leading-normal break-words">{item.label}</p>
+            </div>
+            <span className="material-symbols-outlined text-[20px] transition-transform group-open:rotate-180 shrink-0">expand_more</span>
+          </summary>
+
+          <div className="flex flex-col mt-1 ml-2 gap-1">
+            {orderedProjects.length === 0 && <div className="px-4 py-2 text-xs text-slate-500 italic">Žádné aktivní stavby</div>}
+            {orderedProjects.map(project => (
+              <div
+                key={project.id}
+                draggable
+                onDragStart={(e) => handleProjectDragStart(e, project.id)}
+                onDragOver={handleProjectDragOver}
+                onDrop={(e) => handleProjectDrop(e, project.id)}
+                onDragEnd={handleProjectDragEnd}
+                onClick={() => onProjectSelect(project.id)}
+                className={`flex items-center gap-2 text-left text-sm px-3 py-2 rounded-lg transition-all relative overflow-hidden cursor-move ${currentView === 'project' && selectedProjectId === project.id
+                  ? 'text-white font-medium'
+                  : 'text-slate-500 hover:text-white hover:bg-slate-800/50'
+                  } ${draggedId === project.id ? 'opacity-50' : ''}`}
+                title={project.name}
+              >
+                {/* Gradient highlight for selected project */}
+                {currentView === 'project' && selectedProjectId === project.id && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary/30 via-primary/10 to-transparent rounded-lg border-l-2 border-primary" />
+                )}
+                <span className="material-symbols-outlined text-slate-600 text-[16px] cursor-grab active:cursor-grabbing relative z-10 shrink-0">
+                  drag_indicator
+                </span>
+                <span className={`relative z-10 flex items-center justify-center size-5 rounded text-[11px] font-bold shrink-0 ${project.status === 'realization' ? 'bg-amber-500/20 text-amber-400' : 'bg-blue-500/20 text-blue-400'
+                  }`}>
+                  {project.status === 'realization' ? 'R' : 'S'}
+                </span>
+                <span className="relative z-10 break-words">{project.name}</span>
+              </div>
+            ))}
+          </div>
+        </details>
+      );
+    }
+
+    if (item.type === 'external') {
+      return (
+        <a
+          key={item.id}
+          href={item.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all text-slate-400 hover:bg-slate-800/50 hover:text-white"
+          title={item.label}
+        >
+          <span className="material-symbols-outlined shrink-0">{item.icon}</span>
+          <span className="text-sm font-medium break-words">{item.label}</span>
+          <span className="material-symbols-outlined ml-auto text-[18px] text-slate-500">open_in_new</span>
+        </a>
+      );
+    }
+
+    return (
+      <button
+        key={item.id}
+        onClick={() => onViewChange(item.view)}
+        className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all ${currentView === item.view
+          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+          : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
+          }`}
+      >
+        <span className={`material-symbols-outlined shrink-0 ${currentView === item.view ? 'fill' : ''}`}>{item.icon}</span>
+        <p className="text-sm font-medium leading-normal break-words">{item.label}</p>
+      </button>
+    );
+  };
+
   return (
     <aside
       ref={sidebarRef}
@@ -216,109 +309,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
 
             {/* Navigation */}
             <nav className="flex flex-col gap-2 mt-4">
-              <button
-                onClick={() => onViewChange('dashboard')}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${currentView === 'dashboard'
-                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                  : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
-                  }`}
-              >
-                <span className={`material-symbols-outlined shrink-0 ${currentView === 'dashboard' ? 'fill' : ''}`}>dashboard</span>
-                <p className="text-sm font-medium leading-normal break-words">Dashboard</p>
-              </button>
-
-              {/* Projects Accordion */}
-              <details className="group" open>
-                <summary className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer list-none ${currentView === 'project'
-                  ? 'text-white font-semibold'
-                  : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
-                  }`}>
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className={`material-symbols-outlined shrink-0 ${currentView === 'project' ? 'fill text-emerald-400' : ''}`}>apartment</span>
-                    <p className="text-sm leading-normal break-words">Stavby</p>
-                  </div>
-                  <span className="material-symbols-outlined text-[20px] transition-transform group-open:rotate-180 shrink-0">expand_more</span>
-                </summary>
-
-                <div className="flex flex-col mt-1 ml-2 gap-1">
-                  {orderedProjects.length === 0 && <div className="px-4 py-2 text-xs text-slate-500 italic">Žádné aktivní stavby</div>}
-                  {orderedProjects.map(project => (
-                    <div
-                      key={project.id}
-                      draggable
-                      onDragStart={(e) => handleProjectDragStart(e, project.id)}
-                      onDragOver={handleProjectDragOver}
-                      onDrop={(e) => handleProjectDrop(e, project.id)}
-                      onDragEnd={handleProjectDragEnd}
-                      onClick={() => onProjectSelect(project.id)}
-                      className={`flex items-center gap-2 text-left text-sm px-3 py-2 rounded-lg transition-all relative overflow-hidden cursor-move ${currentView === 'project' && selectedProjectId === project.id
-                        ? 'text-white font-medium'
-                        : 'text-slate-500 hover:text-white hover:bg-slate-800/50'
-                        } ${draggedId === project.id ? 'opacity-50' : ''}`}
-                      title={project.name}
-                    >
-                      {/* Gradient highlight for selected project */}
-                      {currentView === 'project' && selectedProjectId === project.id && (
-                        <div className="absolute inset-0 bg-gradient-to-r from-primary/30 via-primary/10 to-transparent rounded-lg border-l-2 border-primary" />
-                      )}
-                      <span className="material-symbols-outlined text-slate-600 text-[16px] cursor-grab active:cursor-grabbing relative z-10 shrink-0">
-                        drag_indicator
-                      </span>
-                      <span className={`relative z-10 flex items-center justify-center size-5 rounded text-[11px] font-bold shrink-0 ${project.status === 'realization' ? 'bg-amber-500/20 text-amber-400' : 'bg-blue-500/20 text-blue-400'
-                        }`}>
-                        {project.status === 'realization' ? 'R' : 'S'}
-                      </span>
-                      <span className="relative z-10 break-words">{project.name}</span>
-                    </div>
-                  ))}
-                </div>
-              </details>
-
-              <button
-                onClick={() => onViewChange('contacts')}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${currentView === 'contacts'
-                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                  : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
-                  }`}
-              >
-                <span className={`material-symbols-outlined shrink-0 ${currentView === 'contacts' ? 'fill' : ''}`}>handshake</span>
-                <p className="text-sm font-medium leading-normal break-words">Subdodavatelé</p>
-              </button>
+              {SIDEBAR_NAVIGATION.map(renderNavItem)}
             </nav>
           </div>
 
           {/* Bottom Section */}
           <div className="mt-auto p-3 space-y-2 border-t border-slate-700/50">
-            <button
-              onClick={() => onViewChange('project-overview')}
-              className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all ${currentView === 'project-overview'
-                ? 'bg-slate-800/80 text-white border border-slate-700/50'
-                : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
-                }`}
-            >
-              <span className="material-symbols-outlined shrink-0">analytics</span>
-              <span className="text-sm font-medium break-words">Přehled staveb</span>
-            </button>
-            <button
-              onClick={() => onViewChange('project-management')}
-              className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all ${currentView === 'project-management'
-                ? 'bg-slate-800/80 text-white border border-slate-700/50'
-                : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
-                }`}
-            >
-              <span className="material-symbols-outlined shrink-0">domain_add</span>
-              <span className="text-sm font-medium break-words">Správa staveb</span>
-            </button>
-            <button
-              onClick={() => onViewChange('settings')}
-              className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all ${currentView === 'settings'
-                ? 'bg-slate-800/80 text-white border border-slate-700/50'
-                : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
-                }`}
-            >
-              <span className="material-symbols-outlined shrink-0">settings</span>
-              <span className="text-sm font-medium break-words">Nastavení</span>
-            </button>
+            {BOTTOM_NAVIGATION.map(renderNavItem)}
 
             <a
               href="/user-manual/index.html"
@@ -358,7 +355,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
                 Martin Kalkuš 2025
               </p>
               <p className="text-[10px] text-slate-600 text-center mt-1 font-mono hover:text-slate-500 transition-colors cursor-default">
-                v0.9.3
+                v0.9.3-251230
               </p>
             </div>
           </div>

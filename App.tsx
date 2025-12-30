@@ -8,6 +8,9 @@ import { RegisterPage } from "./components/auth/RegisterPage";
 import { ForgotPasswordPage } from "./components/auth/ForgotPasswordPage";
 import { PublicLayout } from "./components/public/PublicLayout";
 import { PublicHeader } from "./components/public/PublicHeader";
+import { FeatureProvider } from "./context/FeatureContext";
+import { RequireFeature } from "./components/routing/RequireFeature";
+import { FEATURES } from "./config/features";
 
 // Lazy load heavy components for better code splitting
 const ProjectManager = React.lazy(() => import('./components/ProjectManager').then(m => ({ default: m.ProjectManager })));
@@ -1396,42 +1399,46 @@ const AppContent: React.FC = () => {
         );
       case "project":
         return (
-          <ProjectLayout
-            projectId={selectedProjectId}
-            projectDetails={allProjectDetails[selectedProjectId]}
-            onUpdateDetails={(updates) =>
-              handleUpdateProjectDetails(selectedProjectId, updates)
-            }
-            onAddCategory={(category) =>
-              handleAddCategory(selectedProjectId, category)
-            }
-            onEditCategory={(category) =>
-              handleEditCategory(selectedProjectId, category)
-            }
-            onDeleteCategory={(categoryId) =>
-              handleDeleteCategory(selectedProjectId, categoryId)
-            }
-            onBidsChange={handleBidsChange}
-            activeTab={activeProjectTab}
-            onTabChange={setActiveProjectTab}
-            contacts={contacts}
-            statuses={contactStatuses}
-            initialPipelineCategoryId={activePipelineCategoryId ?? undefined}
-            onNavigateToPipeline={(categoryId) => setActivePipelineCategoryId(categoryId)}
-          />
+          <RequireFeature feature={FEATURES.MODULE_PROJECTS}>
+            <ProjectLayout
+              projectId={selectedProjectId}
+              projectDetails={allProjectDetails[selectedProjectId]}
+              onUpdateDetails={(updates) =>
+                handleUpdateProjectDetails(selectedProjectId, updates)
+              }
+              onAddCategory={(category) =>
+                handleAddCategory(selectedProjectId, category)
+              }
+              onEditCategory={(category) =>
+                handleEditCategory(selectedProjectId, category)
+              }
+              onDeleteCategory={(categoryId) =>
+                handleDeleteCategory(selectedProjectId, categoryId)
+              }
+              onBidsChange={handleBidsChange}
+              activeTab={activeProjectTab}
+              onTabChange={setActiveProjectTab}
+              contacts={contacts}
+              statuses={contactStatuses}
+              initialPipelineCategoryId={activePipelineCategoryId ?? undefined}
+              onNavigateToPipeline={(categoryId) => setActivePipelineCategoryId(categoryId)}
+            />
+          </RequireFeature>
         );
       case "contacts":
         return (
-          <Contacts
-            statuses={contactStatuses}
-            contacts={contacts}
-            onContactsChange={setContacts}
-            onAddContact={handleAddContact}
-            onUpdateContact={handleUpdateContact}
-            onBulkUpdateContacts={handleBulkUpdateContacts}
-            onDeleteContacts={handleDeleteContacts}
-            isAdmin={isAdmin}
-          />
+          <RequireFeature feature={FEATURES.MODULE_CONTACTS}>
+            <Contacts
+              statuses={contactStatuses}
+              contacts={contacts}
+              onContactsChange={setContacts}
+              onAddContact={handleAddContact}
+              onUpdateContact={handleUpdateContact}
+              onBulkUpdateContacts={handleBulkUpdateContacts}
+              onDeleteContacts={handleDeleteContacts}
+              isAdmin={isAdmin}
+            />
+          </RequireFeature>
         );
       case "settings":
         return (
@@ -1475,10 +1482,12 @@ const AppContent: React.FC = () => {
         );
       case "project-overview":
         return (
-          <ProjectOverview
-            projects={projects}
-            projectDetails={allProjectDetails}
-          />
+          <RequireFeature feature={FEATURES.FEATURE_ADVANCED_REPORTING}>
+            <ProjectOverview
+              projects={projects}
+              projectDetails={allProjectDetails}
+            />
+          </RequireFeature>
         );
       default:
         return (
@@ -1628,7 +1637,9 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      <AppContent />
+      <FeatureProvider>
+        <AppContent />
+      </FeatureProvider>
     </AuthProvider>
   );
 };
