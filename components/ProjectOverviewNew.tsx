@@ -175,8 +175,8 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
     };
 
     const renderCompactDetails = () => (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 mb-6">
-            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 mb-6">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                 <span className="material-symbols-outlined text-purple-400">info</span>
                 Základní informace o stavbě
             </h3>
@@ -186,33 +186,33 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                 <div className="lg:col-span-1 border-r border-slate-800/50 pr-4">
                     <div className="flex justify-between items-center mb-2">
                         <span className="text-slate-500 font-bold uppercase text-xs tracking-wider">Údaje o stavbě</span>
-                        <button onClick={() => setEditingInfo(true)} className="text-slate-500 hover:text-white transition-colors">
+                        <button onClick={() => setEditingInfo(true)} className="text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">
                             <span className="material-symbols-outlined text-[14px]">edit</span>
                         </button>
                     </div>
                     <div className="space-y-2">
                         <div className="flex justify-between">
-                            <span className="text-slate-400">Investor:</span>
+                            <span className="text-slate-600 dark:text-slate-400">Investor:</span>
                             <span className="text-white font-medium">{project.investor || '-'}</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-slate-400">Lokace:</span>
+                            <span className="text-slate-600 dark:text-slate-400">Lokace:</span>
                             <span className="text-white font-medium">{project.location || '-'}</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-slate-400">Termín:</span>
+                            <span className="text-slate-600 dark:text-slate-400">Termín:</span>
                             <span className="text-white font-medium">{project.finishDate || '-'}</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-slate-400">Hl. stavbyvedoucí:</span>
+                            <span className="text-slate-600 dark:text-slate-400">Hl. stavbyvedoucí:</span>
                             <span className="text-white font-medium">{project.siteManager || '-'}</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-slate-400">Stavbyvedoucí:</span>
+                            <span className="text-slate-600 dark:text-slate-400">Stavbyvedoucí:</span>
                             <span className="text-white font-medium">{project.constructionManager || '-'}</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-slate-400">Technik:</span>
+                            <span className="text-slate-600 dark:text-slate-400">Technik:</span>
                             <span className="text-white font-medium">{project.constructionTechnician || '-'}</span>
                         </div>
                     </div>
@@ -223,17 +223,17 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                     {editingInfo && (
                         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
                             <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 max-w-md w-full shadow-2xl">
-                                <h3 className="text-lg font-bold text-white mb-4">Upravit informace</h3>
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Upravit informace</h3>
                                 <div className="space-y-3">
                                     {/* Simplified Form Fields */}
-                                    <div><label className="text-xs text-slate-500 block mb-1">Investor</label><input value={infoForm.investor} onChange={e => setInfoForm({ ...infoForm, investor: e.target.value })} className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white text-sm" /></div>
-                                    <div><label className="text-xs text-slate-500 block mb-1">Lokace</label><input value={infoForm.location} onChange={e => setInfoForm({ ...infoForm, location: e.target.value })} className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white text-sm" /></div>
-                                    <div><label className="text-xs text-slate-500 block mb-1">Termín</label><input value={infoForm.finishDate} onChange={e => setInfoForm({ ...infoForm, finishDate: e.target.value })} className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white text-sm" /></div>
-                                    <div><label className="text-xs text-slate-500 block mb-1">Hl. stavbyvedoucí</label><input value={infoForm.siteManager} onChange={e => setInfoForm({ ...infoForm, siteManager: e.target.value })} className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white text-sm" /></div>
-                                    <div><label className="text-xs text-slate-500 block mb-1">Stavbyvedoucí</label><input value={infoForm.constructionManager} onChange={e => setInfoForm({ ...infoForm, constructionManager: e.target.value })} className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white text-sm" /></div>
-                                    <div><label className="text-xs text-slate-500 block mb-1">Technik</label><input value={infoForm.constructionTechnician} onChange={e => setInfoForm({ ...infoForm, constructionTechnician: e.target.value })} className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white text-sm" /></div>
+                                    <div><label className="text-xs text-slate-500 block mb-1">Investor</label><input value={infoForm.investor} onChange={e => setInfoForm({ ...infoForm, investor: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded p-2 text-white text-sm" /></div>
+                                    <div><label className="text-xs text-slate-500 block mb-1">Lokace</label><input value={infoForm.location} onChange={e => setInfoForm({ ...infoForm, location: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded p-2 text-white text-sm" /></div>
+                                    <div><label className="text-xs text-slate-500 block mb-1">Termín</label><input value={infoForm.finishDate} onChange={e => setInfoForm({ ...infoForm, finishDate: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded p-2 text-white text-sm" /></div>
+                                    <div><label className="text-xs text-slate-500 block mb-1">Hl. stavbyvedoucí</label><input value={infoForm.siteManager} onChange={e => setInfoForm({ ...infoForm, siteManager: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded p-2 text-white text-sm" /></div>
+                                    <div><label className="text-xs text-slate-500 block mb-1">Stavbyvedoucí</label><input value={infoForm.constructionManager} onChange={e => setInfoForm({ ...infoForm, constructionManager: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded p-2 text-white text-sm" /></div>
+                                    <div><label className="text-xs text-slate-500 block mb-1">Technik</label><input value={infoForm.constructionTechnician} onChange={e => setInfoForm({ ...infoForm, constructionTechnician: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded p-2 text-white text-sm" /></div>
                                     <div className="flex justify-end gap-2 mt-4">
-                                        <button onClick={() => setEditingInfo(false)} className="px-3 py-1.5 text-slate-400 hover:text-white">Zrušit</button>
+                                        <button onClick={() => setEditingInfo(false)} className="px-3 py-1.5 text-slate-400 hover:text-slate-900 dark:hover:text-white">Zrušit</button>
                                         <button onClick={handleSaveInfo} className="px-3 py-1.5 bg-emerald-600 text-white rounded hover:bg-emerald-500">Uložit</button>
                                     </div>
                                 </div>
@@ -247,7 +247,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                     <div className="flex justify-between items-center mb-2">
                         <span className="text-slate-500 font-bold uppercase text-xs tracking-wider">Finance (Investor)</span>
                         {!editingInvestor ? (
-                            <button onClick={() => setEditingInvestor(true)} className="text-slate-500 hover:text-white transition-colors">
+                            <button onClick={() => setEditingInvestor(true)} className="text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">
                                 <span className="material-symbols-outlined text-[14px]">edit</span>
                             </button>
                         ) : (
@@ -263,12 +263,12 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                     </div>
                     <div className="space-y-2">
                         <div className="flex justify-between">
-                            <span className="text-slate-400">SOD Cena:</span>
+                            <span className="text-slate-600 dark:text-slate-400">SOD Cena:</span>
                             <span className="text-white font-semibold">{formatMoney(investor.sodPrice)}</span>
                         </div>
                         {investor.amendments.map((amendment) => (
                             <div key={amendment.id} className="flex justify-between">
-                                <span className="text-slate-400">{amendment.label}:</span>
+                                <span className="text-slate-600 dark:text-slate-400">{amendment.label}:</span>
                                 <span className="text-white font-medium">{formatMoney(amendment.price || 0)}</span>
                             </div>
                         ))}
@@ -281,7 +281,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                     {editingInvestor && (
                         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
                             <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 max-w-md w-full shadow-2xl">
-                                <h3 className="text-lg font-bold text-white mb-4">Upravit finance</h3>
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Upravit finance</h3>
                                 <div className="flex flex-col gap-4">
                                     <div>
                                         <label className="text-xs text-slate-500 mb-1 block">Základní cena SOD</label>
@@ -289,7 +289,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                                             type="number"
                                             value={investorForm.sodPrice}
                                             onChange={e => setInvestorForm({ ...investorForm, sodPrice: parseFloat(e.target.value) || 0 })}
-                                            className="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-sm text-white font-semibold text-right"
+                                            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded px-3 py-2 text-sm text-white font-semibold text-right"
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -300,14 +300,14 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                                                     type="text"
                                                     value={amendment.label}
                                                     onChange={e => updateAmendment(idx, 'label', e.target.value)}
-                                                    className="flex-1 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm text-white"
+                                                    className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded px-2 py-1 text-sm text-white"
                                                     placeholder="Název"
                                                 />
                                                 <input
                                                     type="number"
                                                     value={amendment.price}
                                                     onChange={e => updateAmendment(idx, 'price', parseFloat(e.target.value) || 0)}
-                                                    className="w-28 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm text-white text-right"
+                                                    className="w-28 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded px-2 py-1 text-sm text-white text-right"
                                                 />
                                                 <button onClick={() => removeAmendment(idx)} className="text-red-400 hover:text-red-600">
                                                     <span className="material-symbols-outlined text-[18px]">delete</span>
@@ -320,7 +320,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                                         </button>
                                     </div>
                                     <div className="flex justify-end gap-2 mt-4">
-                                        <button onClick={() => setEditingInvestor(false)} className="px-3 py-1.5 text-slate-400 hover:text-white">Zrušit</button>
+                                        <button onClick={() => setEditingInvestor(false)} className="px-3 py-1.5 text-slate-400 hover:text-slate-900 dark:hover:text-white">Zrušit</button>
                                         <button onClick={handleSaveInvestor} className="px-3 py-1.5 bg-emerald-600 text-white rounded hover:bg-emerald-500">Uložit</button>
                                     </div>
                                 </div>
@@ -333,17 +333,17 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                 <div className="lg:col-span-1 border-r border-slate-800/50 pr-4">
                     <div className="flex justify-between items-center mb-2">
                         <span className="text-slate-500 font-bold uppercase text-xs tracking-wider">Interní Rozpočet</span>
-                        <button onClick={() => setEditingInternal(true)} className="text-slate-500 hover:text-white transition-colors">
+                        <button onClick={() => setEditingInternal(true)} className="text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">
                             <span className="material-symbols-outlined text-[14px]">edit</span>
                         </button>
                     </div>
                     <div className="space-y-2">
                         <div className="flex justify-between">
-                            <span className="text-slate-400">Plán (Cíl):</span>
+                            <span className="text-slate-600 dark:text-slate-400">Plán (Cíl):</span>
                             <span className="text-white font-semibold">{plannedCost > 0 ? formatMoney(plannedCost) : '-'}</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-slate-400">Zasmluvněno:</span>
+                            <span className="text-slate-600 dark:text-slate-400">Zasmluvněno:</span>
                             <span className="text-white font-semibold">{formatMoney(totalContractedCost)}</span>
                         </div>
                         <div className="h-px bg-slate-800 my-1"></div>
@@ -355,10 +355,10 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                     {editingInternal && (
                         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
                             <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 max-w-sm w-full shadow-2xl">
-                                <h3 className="text-lg font-bold text-white mb-4">Upravit rozpočet</h3>
-                                <div><label className="text-xs text-slate-500 block mb-1">Plánovaný náklad</label><input type="number" value={internalForm.plannedCost} onChange={e => setInternalForm({ ...internalForm, plannedCost: parseFloat(e.target.value) || 0 })} className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white text-sm" /></div>
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Upravit rozpočet</h3>
+                                <div><label className="text-xs text-slate-500 block mb-1">Plánovaný náklad</label><input type="number" value={internalForm.plannedCost} onChange={e => setInternalForm({ ...internalForm, plannedCost: parseFloat(e.target.value) || 0 })} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded p-2 text-white text-sm" /></div>
                                 <div className="flex justify-end gap-2 mt-4">
-                                    <button onClick={() => setEditingInternal(false)} className="px-3 py-1.5 text-slate-400 hover:text-white">Zrušit</button>
+                                    <button onClick={() => setEditingInternal(false)} className="px-3 py-1.5 text-slate-400 hover:text-slate-900 dark:hover:text-white">Zrušit</button>
                                     <button onClick={handleSaveInternal} className="px-3 py-1.5 bg-emerald-600 text-white rounded hover:bg-emerald-500">Uložit</button>
                                 </div>
                             </div>
@@ -370,44 +370,44 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                 <div className="lg:col-span-1">
                     <div className="flex justify-between items-center mb-2">
                         <span className="text-slate-500 font-bold uppercase text-xs tracking-wider">Parametry Smlouvy</span>
-                        <button onClick={() => setEditingContract(true)} className="text-slate-500 hover:text-white transition-colors">
+                        <button onClick={() => setEditingContract(true)} className="text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">
                             <span className="material-symbols-outlined text-[14px]">edit</span>
                         </button>
                     </div>
                     <div className="space-y-2">
                         <div className="flex justify-between">
-                            <span className="text-slate-400">Splatnost:</span>
+                            <span className="text-slate-600 dark:text-slate-400">Splatnost:</span>
                             <span className="text-white font-medium">{project.contract?.maturity ?? 30} dní</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-slate-400">Záruka:</span>
+                            <span className="text-slate-600 dark:text-slate-400">Záruka:</span>
                             <span className="text-white font-medium">{project.contract?.warranty || 0} měsíců</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-slate-400">Pozastávka:</span>
+                            <span className="text-slate-600 dark:text-slate-400">Pozastávka:</span>
                             <span className="text-white font-medium">{project.contract?.retention || '-'}</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-slate-400">Zařízení staveniště:</span>
+                            <span className="text-slate-600 dark:text-slate-400">Zařízení staveniště:</span>
                             <span className="text-white font-medium">{project.contract?.siteFacilities || 0} %</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-slate-400">Podíl na pojištění:</span>
+                            <span className="text-slate-600 dark:text-slate-400">Podíl na pojištění:</span>
                             <span className="text-white font-medium">{project.contract?.insurance || 0} %</span>
                         </div>
                     </div>
                     {editingContract && (
                         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
                             <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 max-w-sm w-full shadow-2xl">
-                                <h3 className="text-lg font-bold text-white mb-4">Upravit smlouvu</h3>
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Upravit smlouvu</h3>
                                 <div className="space-y-3">
-                                    <div><label className="text-xs text-slate-500 block mb-1">Splatnost (dní)</label><input type="number" value={contractForm.maturity} onChange={e => setContractForm({ ...contractForm, maturity: parseInt(e.target.value) || 0 })} className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white text-sm" /></div>
-                                    <div><label className="text-xs text-slate-500 block mb-1">Záruka (měsíců)</label><input type="number" value={contractForm.warranty} onChange={e => setContractForm({ ...contractForm, warranty: parseInt(e.target.value) || 0 })} className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white text-sm" /></div>
-                                    <div><label className="text-xs text-slate-500 block mb-1">Pozastávka</label><input type="text" value={contractForm.retention} onChange={e => setContractForm({ ...contractForm, retention: e.target.value })} className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white text-sm" /></div>
-                                    <div><label className="text-xs text-slate-500 block mb-1">Zař. staveniště (%)</label><input type="number" step="0.1" value={contractForm.siteFacilities} onChange={e => setContractForm({ ...contractForm, siteFacilities: parseFloat(e.target.value) || 0 })} className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white text-sm" /></div>
-                                    <div><label className="text-xs text-slate-500 block mb-1">Pojištění (%)</label><input type="number" step="0.1" value={contractForm.insurance} onChange={e => setContractForm({ ...contractForm, insurance: parseFloat(e.target.value) || 0 })} className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white text-sm" /></div>
+                                    <div><label className="text-xs text-slate-500 block mb-1">Splatnost (dní)</label><input type="number" value={contractForm.maturity} onChange={e => setContractForm({ ...contractForm, maturity: parseInt(e.target.value) || 0 })} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded p-2 text-white text-sm" /></div>
+                                    <div><label className="text-xs text-slate-500 block mb-1">Záruka (měsíců)</label><input type="number" value={contractForm.warranty} onChange={e => setContractForm({ ...contractForm, warranty: parseInt(e.target.value) || 0 })} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded p-2 text-white text-sm" /></div>
+                                    <div><label className="text-xs text-slate-500 block mb-1">Pozastávka</label><input type="text" value={contractForm.retention} onChange={e => setContractForm({ ...contractForm, retention: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded p-2 text-white text-sm" /></div>
+                                    <div><label className="text-xs text-slate-500 block mb-1">Zař. staveniště (%)</label><input type="number" step="0.1" value={contractForm.siteFacilities} onChange={e => setContractForm({ ...contractForm, siteFacilities: parseFloat(e.target.value) || 0 })} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded p-2 text-white text-sm" /></div>
+                                    <div><label className="text-xs text-slate-500 block mb-1">Pojištění (%)</label><input type="number" step="0.1" value={contractForm.insurance} onChange={e => setContractForm({ ...contractForm, insurance: parseFloat(e.target.value) || 0 })} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded p-2 text-white text-sm" /></div>
                                     <div className="flex justify-end gap-2 mt-4">
-                                        <button onClick={() => setEditingContract(false)} className="px-3 py-1.5 text-slate-400 hover:text-white">Zrušit</button>
+                                        <button onClick={() => setEditingContract(false)} className="px-3 py-1.5 text-slate-400 hover:text-slate-900 dark:hover:text-white">Zrušit</button>
                                         <button onClick={handleSaveContract} className="px-3 py-1.5 bg-emerald-600 text-white rounded hover:bg-emerald-500">Uložit</button>
                                     </div>
                                 </div>
@@ -421,12 +421,12 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
     );
 
     return (
-        <div className="flex flex-col gap-6 p-6 min-h-full bg-slate-950">
+        <div className="flex flex-col gap-6 p-6 min-h-full bg-slate-50 dark:bg-slate-950">
             {/* Top Row: 4 KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 
                 {/* 1. Rozpočet (Investor) */}
-                <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 relative overflow-hidden group">
+                <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-5 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                         <span className="material-symbols-outlined text-4xl text-blue-500">account_balance_wallet</span>
                     </div>
@@ -437,15 +437,15 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                             </div>
                         </div>
                         <div>
-                            <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1">ROZPOČET (INVESTOR)</div>
-                            <div className="text-2xl font-bold text-white tracking-tight">{formatMoneyFull(totalBudget)}</div>
+                            <div className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold mb-1">ROZPOČET (INVESTOR)</div>
+                            <div className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{formatMoneyFull(totalBudget)}</div>
                             <div className="text-[10px] text-slate-500 mt-1">Příjem (SOD + Dodatky)</div>
                         </div>
                     </div>
                 </div>
 
                 {/* 2. Plánovaný Náklad */}
-                <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 relative overflow-hidden group">
+                <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-5 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                         <span className="material-symbols-outlined text-4xl text-indigo-500">analytics</span>
                     </div>
@@ -456,15 +456,15 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                             </div>
                         </div>
                         <div>
-                            <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1">PLÁNOVANÝ NÁKLAD</div>
-                            <div className="text-2xl font-bold text-white tracking-tight">{plannedCost > 0 ? formatMoneyFull(plannedCost) : '-'}</div>
+                            <div className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold mb-1">PLÁNOVANÝ NÁKLAD</div>
+                            <div className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{plannedCost > 0 ? formatMoneyFull(plannedCost) : '-'}</div>
                             <div className="text-[10px] text-slate-500 mt-1">Interní cíl nákladů</div>
                         </div>
                     </div>
                 </div>
 
                 {/* 3. Zasmluvněno */}
-                <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 relative overflow-hidden group">
+                <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-5 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                         <span className="material-symbols-outlined text-4xl text-emerald-500">handshake</span>
                     </div>
@@ -475,7 +475,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                             </div>
                         </div>
                         <div>
-                            <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1">ZASMLUVNĚNO</div>
+                            <div className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold mb-1">ZASMLUVNĚNO</div>
                             <div className="text-2xl font-bold text-emerald-400 tracking-tight">{formatMoneyFull(totalContractedCost)}</div>
                             <div className="text-[10px] text-emerald-500/80 mt-1 font-medium">Zbývá: {plannedBalance >= 0 ? '+' : ''}{formatMoneyFull(plannedBalance)}</div>
                         </div>
@@ -483,7 +483,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                 </div>
 
                 {/* 4. Postup Zadávání */}
-                <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 relative overflow-hidden group">
+                <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-5 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                         <span className="material-symbols-outlined text-4xl text-amber-500">check_circle</span>
                     </div>
@@ -494,8 +494,8 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                             </div>
                         </div>
                         <div>
-                            <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1">POSTUP ZADÁVÁNÍ</div>
-                            <div className="text-2xl font-bold text-white tracking-tight">{completedTasks} / {project.categories.length}</div>
+                            <div className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold mb-1">POSTUP ZADÁVÁNÍ</div>
+                            <div className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{completedTasks} / {project.categories.length}</div>
                             <div className="text-[10px] text-slate-500 mt-1">Hotové subdodávky</div>
                         </div>
                     </div>
@@ -509,11 +509,11 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
 
                     {/* Column 1: Informace o stavbě */}
                     <div className="flex flex-col">
-                        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 h-full">
+                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 h-full">
                             <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-lg font-bold text-white">Informace o stavbě</h3>
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Informace o stavbě</h3>
                                 {!editingInfo ? (
-                                    <button onClick={() => setEditingInfo(true)} className="text-slate-500 hover:text-white transition-colors">
+                                    <button onClick={() => setEditingInfo(true)} className="text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">
                                         <span className="material-symbols-outlined text-sm">edit</span>
                                     </button>
                                 ) : (
@@ -530,53 +530,53 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
 
                             {!editingInfo ? (
                                 <div className="space-y-4">
-                                    <div className="flex items-start gap-4 p-3 bg-slate-950/50 rounded-xl border border-slate-800/50">
+                                    <div className="flex items-start gap-4 p-3 bg-slate-50 dark:bg-slate-950/50 rounded-xl border border-slate-200 dark:border-slate-800/50">
                                         <span className="material-symbols-outlined text-blue-400 text-xl mt-1">corporate_fare</span>
                                         <div>
                                             <div className="text-[10px] uppercase text-slate-500 font-semibold">Investor</div>
-                                            <div className="text-sm font-bold text-white">{project.investor || '—'}</div>
+                                            <div className="text-sm font-bold text-slate-900 dark:text-white">{project.investor || '—'}</div>
                                         </div>
                                     </div>
-                                    <div className="flex items-start gap-4 p-3 bg-slate-950/50 rounded-xl border border-slate-800/50">
+                                    <div className="flex items-start gap-4 p-3 bg-slate-50 dark:bg-slate-950/50 rounded-xl border border-slate-200 dark:border-slate-800/50">
                                         <span className="material-symbols-outlined text-violet-400 text-xl mt-1">visibility</span>
                                         <div>
                                             <div className="text-[10px] uppercase text-slate-500 font-semibold">Technický dozor</div>
-                                            <div className="text-sm font-bold text-white">{project.technicalSupervisor || '—'}</div>
+                                            <div className="text-sm font-bold text-slate-900 dark:text-white">{project.technicalSupervisor || '—'}</div>
                                         </div>
                                     </div>
-                                    <div className="flex items-start gap-4 p-3 bg-slate-950/50 rounded-xl border border-slate-800/50">
+                                    <div className="flex items-start gap-4 p-3 bg-slate-50 dark:bg-slate-950/50 rounded-xl border border-slate-200 dark:border-slate-800/50">
                                         <span className="material-symbols-outlined text-emerald-400 text-xl mt-1">location_on</span>
                                         <div>
                                             <div className="text-[10px] uppercase text-slate-500 font-semibold">Lokace</div>
-                                            <div className="text-sm font-bold text-white">{project.location || '—'}</div>
+                                            <div className="text-sm font-bold text-slate-900 dark:text-white">{project.location || '—'}</div>
                                         </div>
                                     </div>
-                                    <div className="flex items-start gap-4 p-3 bg-slate-950/50 rounded-xl border border-slate-800/50">
+                                    <div className="flex items-start gap-4 p-3 bg-slate-50 dark:bg-slate-950/50 rounded-xl border border-slate-200 dark:border-slate-800/50">
                                         <span className="material-symbols-outlined text-orange-400 text-xl mt-1">calendar_today</span>
                                         <div>
                                             <div className="text-[10px] uppercase text-slate-500 font-semibold">Termín dokončení</div>
-                                            <div className="text-sm font-bold text-white">{project.finishDate || '—'}</div>
+                                            <div className="text-sm font-bold text-slate-900 dark:text-white">{project.finishDate || '—'}</div>
                                         </div>
                                     </div>
-                                    <div className="flex items-start gap-4 p-3 bg-slate-950/50 rounded-xl border border-slate-800/50">
+                                    <div className="flex items-start gap-4 p-3 bg-slate-50 dark:bg-slate-950/50 rounded-xl border border-slate-200 dark:border-slate-800/50">
                                         <span className="material-symbols-outlined text-cyan-400 text-xl mt-1">person</span>
                                         <div>
                                             <div className="text-[10px] uppercase text-slate-500 font-semibold">Hlavní stavbyvedoucí</div>
-                                            <div className="text-sm font-bold text-white">{project.siteManager || '—'}</div>
+                                            <div className="text-sm font-bold text-slate-900 dark:text-white">{project.siteManager || '—'}</div>
                                         </div>
                                     </div>
-                                    <div className="flex items-start gap-4 p-3 bg-slate-950/50 rounded-xl border border-slate-800/50">
+                                    <div className="flex items-start gap-4 p-3 bg-slate-50 dark:bg-slate-950/50 rounded-xl border border-slate-200 dark:border-slate-800/50">
                                         <span className="material-symbols-outlined text-fuchsia-400 text-xl mt-1">engineering</span>
                                         <div>
                                             <div className="text-[10px] uppercase text-slate-500 font-semibold">Stavbyvedoucí</div>
-                                            <div className="text-sm font-bold text-white">{project.constructionManager || '—'}</div>
+                                            <div className="text-sm font-bold text-slate-900 dark:text-white">{project.constructionManager || '—'}</div>
                                         </div>
                                     </div>
-                                    <div className="flex items-start gap-4 p-3 bg-slate-950/50 rounded-xl border border-slate-800/50">
+                                    <div className="flex items-start gap-4 p-3 bg-slate-50 dark:bg-slate-950/50 rounded-xl border border-slate-200 dark:border-slate-800/50">
                                         <span className="material-symbols-outlined text-rose-400 text-xl mt-1">handyman</span>
                                         <div>
                                             <div className="text-[10px] uppercase text-slate-500 font-semibold">Stavební technik</div>
-                                            <div className="text-sm font-bold text-white">{project.constructionTechnician || '—'}</div>
+                                            <div className="text-sm font-bold text-slate-900 dark:text-white">{project.constructionTechnician || '—'}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -585,32 +585,32 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                                     {/* Edit Form for Info */}
                                     <div>
                                         <label className="text-xs text-slate-500 mb-1 block">Investor</label>
-                                        <input type="text" value={infoForm.investor} onChange={e => setInfoForm({ ...infoForm, investor: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none" />
+                                        <input type="text" value={infoForm.investor} onChange={e => setInfoForm({ ...infoForm, investor: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none" />
                                     </div>
                                     <div>
                                         <label className="text-xs text-slate-500 mb-1 block">Technický dozor</label>
-                                        <input type="text" value={infoForm.technicalSupervisor} onChange={e => setInfoForm({ ...infoForm, technicalSupervisor: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none" />
+                                        <input type="text" value={infoForm.technicalSupervisor} onChange={e => setInfoForm({ ...infoForm, technicalSupervisor: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none" />
                                     </div>
                                     <div className="h-px bg-slate-800 my-1"></div>
                                     <div>
                                         <label className="text-xs text-slate-500 mb-1 block">Lokace</label>
-                                        <input type="text" value={infoForm.location} onChange={e => setInfoForm({ ...infoForm, location: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none" />
+                                        <input type="text" value={infoForm.location} onChange={e => setInfoForm({ ...infoForm, location: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none" />
                                     </div>
                                     <div>
                                         <label className="text-xs text-slate-500 mb-1 block">Termín dokončení</label>
-                                        <input type="text" value={infoForm.finishDate} onChange={e => setInfoForm({ ...infoForm, finishDate: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none" />
+                                        <input type="text" value={infoForm.finishDate} onChange={e => setInfoForm({ ...infoForm, finishDate: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none" />
                                     </div>
                                     <div>
                                         <label className="text-xs text-slate-500 mb-1 block">Hlavní stavbyvedoucí</label>
-                                        <input type="text" value={infoForm.siteManager} onChange={e => setInfoForm({ ...infoForm, siteManager: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none" />
+                                        <input type="text" value={infoForm.siteManager} onChange={e => setInfoForm({ ...infoForm, siteManager: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none" />
                                     </div>
                                     <div>
                                         <label className="text-xs text-slate-500 mb-1 block">Stavbyvedoucí</label>
-                                        <input type="text" value={infoForm.constructionManager} onChange={e => setInfoForm({ ...infoForm, constructionManager: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none" />
+                                        <input type="text" value={infoForm.constructionManager} onChange={e => setInfoForm({ ...infoForm, constructionManager: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none" />
                                     </div>
                                     <div>
                                         <label className="text-xs text-slate-500 mb-1 block">Stavební technik</label>
-                                        <input type="text" value={infoForm.constructionTechnician} onChange={e => setInfoForm({ ...infoForm, constructionTechnician: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none" />
+                                        <input type="text" value={infoForm.constructionTechnician} onChange={e => setInfoForm({ ...infoForm, constructionTechnician: e.target.value })} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none" />
                                     </div>
                                 </div>
                             )}
@@ -620,14 +620,14 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                     {/* Column 2: Financials */}
                     <div className="flex flex-col gap-6">
                         {/* Smlouva s investorem */}
-                        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6">
                             <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                     <span className="material-symbols-outlined text-emerald-400">account_balance_wallet</span>
                                     Smlouva s investorem
                                 </h3>
                                 {!editingInvestor ? (
-                                    <button onClick={() => setEditingInvestor(true)} className="text-slate-500 hover:text-white transition-colors">
+                                    <button onClick={() => setEditingInvestor(true)} className="text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">
                                         <span className="material-symbols-outlined text-sm">edit</span>
                                     </button>
                                 ) : (
@@ -644,20 +644,20 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
 
                             {!editingInvestor ? (
                                 <div className="space-y-4">
-                                    <div className="flex justify-between items-center py-2 border-b border-slate-800/50">
-                                        <span className="text-slate-400 text-sm font-medium">Základní SOD</span>
-                                        <span className="font-bold text-white">{formatMoneyFull(investor.sodPrice)}</span>
+                                    <div className="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-800/50">
+                                        <span className="text-slate-600 dark:text-slate-400 text-sm font-medium">Základní SOD</span>
+                                        <span className="font-bold text-slate-900 dark:text-white">{formatMoneyFull(investor.sodPrice)}</span>
                                     </div>
 
                                     {investor.amendments.map((amendment, idx) => (
-                                        <div key={amendment.id} className="flex justify-between items-center py-2 border-b border-slate-800/50">
-                                            <span className="text-slate-400 text-sm font-medium">{amendment.label}</span>
-                                            <span className="font-bold text-white">{formatMoneyFull(amendment.price)}</span>
+                                        <div key={amendment.id} className="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-800/50">
+                                            <span className="text-slate-600 dark:text-slate-400 text-sm font-medium">{amendment.label}</span>
+                                            <span className="font-bold text-slate-900 dark:text-white">{formatMoneyFull(amendment.price)}</span>
                                         </div>
                                     ))}
 
                                     <div className="flex justify-between items-center pt-4 mt-2">
-                                        <span className="text-slate-400 text-sm font-bold uppercase">CELKEM BEZ DPH</span>
+                                        <span className="text-slate-700 dark:text-slate-400 text-sm font-bold uppercase">CELKEM BEZ DPH</span>
                                         <span className="text-lg font-bold text-emerald-400">{formatMoneyFull(totalBudget)}</span>
                                     </div>
                                 </div>
@@ -669,7 +669,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                                             type="number"
                                             value={investorForm.sodPrice}
                                             onChange={e => setInvestorForm({ ...investorForm, sodPrice: parseFloat(e.target.value) || 0 })}
-                                            className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-2 text-sm text-white font-semibold text-right"
+                                            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-2 py-2 text-sm text-white font-semibold text-right"
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -680,14 +680,14 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                                                     type="text"
                                                     value={amendment.label}
                                                     onChange={e => updateAmendment(idx, 'label', e.target.value)}
-                                                    className="flex-1 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-sm text-white"
+                                                    className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-2 py-1 text-sm text-white"
                                                     placeholder="Název"
                                                 />
                                                 <input
                                                     type="number"
                                                     value={amendment.price}
                                                     onChange={e => updateAmendment(idx, 'price', parseFloat(e.target.value) || 0)}
-                                                    className="w-28 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-sm text-white text-right"
+                                                    className="w-28 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-2 py-1 text-sm text-white text-right"
                                                 />
                                                 <button onClick={() => removeAmendment(idx)} className="text-red-400 hover:text-red-600">
                                                     <span className="material-symbols-outlined text-[18px]">delete</span>
@@ -704,14 +704,14 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                         </div>
 
                         {/* Interní Rozpočet */}
-                        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6">
                             <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                     <span className="material-symbols-outlined text-blue-400">savings</span>
                                     Interní Rozpočet
                                 </h3>
                                 {!editingInternal ? (
-                                    <button onClick={() => setEditingInternal(true)} className="text-slate-500 hover:text-white transition-colors">
+                                    <button onClick={() => setEditingInternal(true)} className="text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">
                                         <span className="material-symbols-outlined text-sm">edit</span>
                                     </button>
                                 ) : (
@@ -728,16 +728,16 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
 
                             {!editingInternal ? (
                                 <div className="space-y-4">
-                                    <div className="flex justify-between items-center py-2 border-b border-slate-800/50">
-                                        <span className="text-slate-400 text-sm font-medium">Plánovaný náklad</span>
-                                        <span className="font-bold text-white">{plannedCost > 0 ? formatMoneyFull(plannedCost) : 'Nezadáno'}</span>
+                                    <div className="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-800/50">
+                                        <span className="text-slate-600 dark:text-slate-400 text-sm font-medium">Plánovaný náklad</span>
+                                        <span className="font-bold text-slate-900 dark:text-white">{plannedCost > 0 ? formatMoneyFull(plannedCost) : 'Nezadáno'}</span>
                                     </div>
-                                    <div className="flex justify-between items-center py-2 border-b border-slate-800/50">
-                                        <span className="text-slate-400 text-sm font-medium">Zasmluvněno</span>
-                                        <span className="font-bold text-white">{formatMoneyFull(totalContractedCost)}</span>
+                                    <div className="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-800/50">
+                                        <span className="text-slate-600 dark:text-slate-400 text-sm font-medium">Zasmluvněno</span>
+                                        <span className="font-bold text-slate-900 dark:text-white">{formatMoneyFull(totalContractedCost)}</span>
                                     </div>
                                     <div className="flex justify-between items-center pt-4 mt-2">
-                                        <span className="text-slate-400 text-sm font-bold uppercase">AKTUÁLNÍ REZERVA</span>
+                                        <span className="text-slate-700 dark:text-slate-400 text-sm font-bold uppercase">AKTUÁLNÍ REZERVA</span>
                                         <span className={`text-lg font-bold ${plannedBalance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                                             {plannedBalance >= 0 ? '+' : ''}{formatMoneyFull(plannedBalance)}
                                         </span>
@@ -746,12 +746,12 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                             ) : (
                                 <div className="flex flex-col gap-3">
                                     <div>
-                                        <label className="text-xs text-slate-400 mb-1 block">Plánovaný náklad (Cíl)</label>
+                                        <label className="text-xs text-slate-600 dark:text-slate-400 mb-1 block">Plánovaný náklad (Cíl)</label>
                                         <input
                                             type="number"
                                             value={internalForm.plannedCost}
                                             onChange={e => setInternalForm({ ...internalForm, plannedCost: parseFloat(e.target.value) || 0 })}
-                                            className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm text-white font-semibold text-right focus:border-emerald-500/50 focus:outline-none"
+                                            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-3 py-2 text-sm text-slate-900 dark:text-white font-semibold text-right focus:border-emerald-500/50 focus:outline-none"
                                         />
                                     </div>
                                 </div>
@@ -761,14 +761,14 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
 
                     {/* Column 3: Contract Parameters */}
                     <div className="flex flex-col">
-                        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 h-full">
+                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 h-full">
                             <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                     <span className="material-symbols-outlined text-amber-400">gavel</span>
                                     Parametry smlouvy
                                 </h3>
                                 {contract && !editingContract ? (
-                                    <button onClick={() => setEditingContract(true)} className="text-slate-500 hover:text-white transition-colors">
+                                    <button onClick={() => setEditingContract(true)} className="text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">
                                         <span className="material-symbols-outlined text-sm">edit</span>
                                     </button>
                                 ) : contract && (
@@ -785,25 +785,25 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
 
                             {contract && !editingContract ? (
                                 <div className="space-y-4">
-                                    <div className="flex justify-between items-center py-3 border-b border-slate-800/50">
-                                        <span className="text-slate-400 text-sm font-medium">Splatnost</span>
-                                        <span className="font-bold text-white">{contract.maturity} dní</span>
+                                    <div className="flex justify-between items-center py-3 border-b border-slate-200 dark:border-slate-800/50">
+                                        <span className="text-slate-600 dark:text-slate-400 text-sm font-medium">Splatnost</span>
+                                        <span className="font-bold text-slate-900 dark:text-white">{contract.maturity} dní</span>
                                     </div>
-                                    <div className="flex justify-between items-center py-3 border-b border-slate-800/50">
-                                        <span className="text-slate-400 text-sm font-medium">Záruka</span>
-                                        <span className="font-bold text-white">{contract.warranty} měsíců</span>
+                                    <div className="flex justify-between items-center py-3 border-b border-slate-200 dark:border-slate-800/50">
+                                        <span className="text-slate-600 dark:text-slate-400 text-sm font-medium">Záruka</span>
+                                        <span className="font-bold text-slate-900 dark:text-white">{contract.warranty} měsíců</span>
                                     </div>
-                                    <div className="flex justify-between items-center py-3 border-b border-slate-800/50">
-                                        <span className="text-slate-400 text-sm font-medium">Pozastávka</span>
-                                        <span className="font-bold text-white">{contract.retention}</span>
+                                    <div className="flex justify-between items-center py-3 border-b border-slate-200 dark:border-slate-800/50">
+                                        <span className="text-slate-600 dark:text-slate-400 text-sm font-medium">Pozastávka</span>
+                                        <span className="font-bold text-slate-900 dark:text-white">{contract.retention}</span>
                                     </div>
-                                    <div className="flex justify-between items-center py-3 border-b border-slate-800/50">
-                                        <span className="text-slate-400 text-sm font-medium">Zařízení staveniště</span>
-                                        <span className="font-bold text-white">{contract.siteFacilities} %</span>
+                                    <div className="flex justify-between items-center py-3 border-b border-slate-200 dark:border-slate-800/50">
+                                        <span className="text-slate-600 dark:text-slate-400 text-sm font-medium">Zařízení staveniště</span>
+                                        <span className="font-bold text-slate-900 dark:text-white">{contract.siteFacilities} %</span>
                                     </div>
-                                    <div className="flex justify-between items-center py-3 border-b border-slate-800/50">
-                                        <span className="text-slate-400 text-sm font-medium">Podíl na pojištění</span>
-                                        <span className="font-bold text-white">{contract.insurance} %</span>
+                                    <div className="flex justify-between items-center py-3 border-b border-slate-200 dark:border-slate-800/50">
+                                        <span className="text-slate-600 dark:text-slate-400 text-sm font-medium">Podíl na pojištění</span>
+                                        <span className="font-bold text-slate-900 dark:text-white">{contract.insurance} %</span>
                                     </div>
                                 </div>
                             ) : contract ? (
@@ -814,7 +814,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                                             type="number"
                                             value={contractForm.maturity}
                                             onChange={e => setContractForm({ ...contractForm, maturity: parseInt(e.target.value) || 0 })}
-                                            className="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-sm text-white text-right"
+                                            className="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-2 py-1 text-sm text-slate-900 dark:text-white text-right"
                                         />
                                     </div>
                                     <div className="grid grid-cols-2 gap-2 items-center">
@@ -823,7 +823,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                                             type="number"
                                             value={contractForm.warranty}
                                             onChange={e => setContractForm({ ...contractForm, warranty: parseInt(e.target.value) || 0 })}
-                                            className="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-sm text-white text-right"
+                                            className="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-2 py-1 text-sm text-slate-900 dark:text-white text-right"
                                         />
                                     </div>
                                     <div className="grid grid-cols-2 gap-2 items-center">
@@ -832,7 +832,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                                             type="text"
                                             value={contractForm.retention}
                                             onChange={e => setContractForm({ ...contractForm, retention: e.target.value })}
-                                            className="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-sm text-white text-right"
+                                            className="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-2 py-1 text-sm text-slate-900 dark:text-white text-right"
                                         />
                                     </div>
                                     <div className="grid grid-cols-2 gap-2 items-center">
@@ -842,7 +842,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                                             step="0.1"
                                             value={contractForm.siteFacilities}
                                             onChange={e => setContractForm({ ...contractForm, siteFacilities: parseFloat(e.target.value) || 0 })}
-                                            className="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-sm text-white text-right"
+                                            className="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-2 py-1 text-sm text-slate-900 dark:text-white text-right"
                                         />
                                     </div>
                                     <div className="grid grid-cols-2 gap-2 items-center">
@@ -852,7 +852,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                                             step="0.1"
                                             value={contractForm.insurance}
                                             onChange={e => setContractForm({ ...contractForm, insurance: parseFloat(e.target.value) || 0 })}
-                                            className="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-sm text-white text-right"
+                                            className="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-2 py-1 text-sm text-slate-900 dark:text-white text-right"
                                         />
                                     </div>
                                 </div>
@@ -908,19 +908,19 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                 const allCount = project.categories.length;
 
                 return (
-                    <div className="bg-slate-900 border border-slate-800 rounded-2xl mt-6">
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl mt-6">
                         <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between flex-wrap gap-4">
-                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 <span className="material-symbols-outlined text-purple-400">table_chart</span>
                                 Přehled Poptávek
                             </h3>
                             {/* Filter Buttons */}
-                            <div className="flex items-center gap-1 bg-slate-950/50 p-1 rounded-xl border border-slate-800/50">
+                            <div className="flex items-center gap-1 bg-slate-200 dark:bg-slate-950/50 p-1 rounded-xl border border-slate-300 dark:border-slate-800/50">
                                 <button
                                     onClick={() => setDemandFilter('all')}
                                     className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${demandFilter === 'all'
-                                        ? 'bg-slate-700 text-white shadow'
-                                        : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                        ? 'bg-primary text-white shadow'
+                                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-800'
                                         }`}
                                 >
                                     Všechny ({allCount})
@@ -928,8 +928,8 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                                 <button
                                     onClick={() => setDemandFilter('open')}
                                     className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${demandFilter === 'open'
-                                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                                        : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                        ? 'bg-amber-500 dark:bg-amber-500/20 text-white dark:text-amber-300 border border-amber-500 dark:border-amber-500/30'
+                                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-800'
                                         }`}
                                 >
                                     Poptávané ({openCount})
@@ -937,8 +937,8 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                                 <button
                                     onClick={() => setDemandFilter('closed')}
                                     className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${demandFilter === 'closed'
-                                        ? 'bg-teal-500/20 text-teal-300 border border-teal-500/30'
-                                        : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                        ? 'bg-teal-500 dark:bg-teal-500/20 text-white dark:text-teal-300 border border-teal-500 dark:border-teal-500/30'
+                                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-800'
                                         }`}
                                 >
                                     Ukončené ({closedCount})
@@ -946,8 +946,8 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                                 <button
                                     onClick={() => setDemandFilter('sod')}
                                     className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${demandFilter === 'sod'
-                                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                                        : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                        ? 'bg-emerald-500 dark:bg-emerald-500/20 text-white dark:text-emerald-300 border border-emerald-500 dark:border-emerald-500/30'
+                                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-800'
                                         }`}
                                 >
                                     Zasmluvněné ({sodCount})
@@ -956,7 +956,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-xs text-left">
-                                <thead className="text-[10px] uppercase text-slate-500 bg-slate-950/30 font-semibold tracking-wider">
+                                <thead className="text-[10px] uppercase text-slate-500 bg-slate-50 dark:bg-slate-950/30 font-semibold tracking-wider">
                                     <tr>
                                         <th className="py-3 px-4 text-center w-24">Stav</th>
                                         <th className="py-3 px-4">Poptávka</th>
@@ -970,7 +970,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                                         <th className="py-3 px-4">Vítěz</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-800">
+                                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                                     {[...filteredCategories].sort((a, b) => a.title.localeCompare(b.title, 'cs')).map(cat => {
                                         const catBids = project.bids?.[cat.id] || [];
                                         const winningBids = catBids.filter(b => b.status === 'sod');
@@ -994,7 +994,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                                         return (
                                             <tr 
                                                 key={cat.id} 
-                                                className={`hover:bg-slate-800/30 transition-colors ${onNavigateToPipeline ? 'cursor-pointer' : ''}`}
+                                                className={`hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors ${onNavigateToPipeline ? 'cursor-pointer' : ''}`}
                                                 onClick={() => onNavigateToPipeline?.(cat.id)}
                                             >
                                                 <td className="py-3 px-4 text-center">
@@ -1003,15 +1003,15 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                                                     </span>
                                                 </td>
                                                 <td className="py-3 px-4">
-                                                    <div className="font-medium text-white">{cat.title}</div>
+                                                    <div className="font-medium text-slate-900 dark:text-white">{cat.title}</div>
                                                 </td>
-                                                <td className="py-3 px-4 text-right text-slate-300 font-mono">
+                                                <td className="py-3 px-4 text-right text-slate-600 dark:text-slate-300 font-mono">
                                                     {cat.sodBudget ? formatMoney(cat.sodBudget) : '-'}
                                                 </td>
-                                                <td className="py-3 px-4 text-right text-slate-400 font-mono">
+                                                <td className="py-3 px-4 text-right text-slate-500 dark:text-slate-400 font-mono">
                                                     {cat.planBudget ? formatMoney(cat.planBudget) : '-'}
                                                 </td>
-                                                <td className="py-3 px-4 text-right font-mono text-white font-medium">
+                                                <td className="py-3 px-4 text-right font-mono text-slate-900 dark:text-white font-medium">
                                                     {hasWinner ? formatMoney(subPrice) : '-'}
                                                 </td>
                                                 <td className={`py-3 px-4 text-right font-mono font-bold ${hasWinner ? (diffSod >= 0 ? 'text-emerald-500' : 'text-red-500') : 'text-slate-600'}`}>
@@ -1021,7 +1021,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                                                     {hasWinner ? `${diffPlan >= 0 ? '+' : ''}${formatMoney(diffPlan)}` : '-'}
                                                 </td>
                                                 <td className="py-3 px-4 text-center">
-                                                    <span className="text-slate-400 font-medium">{bidsWithPrice.length}</span>
+                                                    <span className="text-slate-500 dark:text-slate-400 font-medium">{bidsWithPrice.length}</span>
                                                     <span className="text-slate-600"> / {catBids.length}</span>
                                                 </td>
                                                 <td className="py-3 px-4 text-center">
@@ -1033,10 +1033,10 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                                                             </div>
                                                         </div>
                                                     ) : (
-                                                        <span className="text-slate-700">-</span>
+                                                        <span className="text-slate-300 dark:text-slate-600">-</span>
                                                     )}
                                                 </td>
-                                                <td className="py-3 px-4 text-slate-400 truncate max-w-[150px]">
+                                                <td className="py-3 px-4 text-slate-500 dark:text-slate-400 truncate max-w-[150px]">
                                                     {winnersNames || '-'}
                                                 </td>
                                             </tr>
@@ -1044,7 +1044,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({ project, on
                                     })}
                                 </tbody>
                                 <tfoot>
-                                    <tr className="bg-slate-950/50 border-t border-slate-700 font-bold text-white">
+                                    <tr className="bg-slate-50 dark:bg-slate-950/50 border-t border-slate-200 dark:border-slate-700 font-bold text-slate-900 dark:text-white">
                                         <td colSpan={2} className="py-3 px-4 text-right text-[10px] uppercase text-slate-500">Celkem</td>
                                         <td className="py-3 px-4 text-right font-mono">
                                             {formatMoney(project.categories.reduce((acc, c) => acc + (c.sodBudget || 0), 0))}

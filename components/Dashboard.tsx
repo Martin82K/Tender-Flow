@@ -107,8 +107,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ projects, projectDetails, 
                 <Header title="Dashboard" subtitle="Detailní přehled projektu" />
                 <div className="flex-1 flex items-center justify-center">
                     <div className="text-center">
-                        <span className="material-symbols-outlined text-slate-600 text-[80px] mb-4 block">domain_disabled</span>
-                        <h3 className="text-xl font-bold text-slate-400">Žádné aktivní projekty</h3>
+                        <span className="material-symbols-outlined text-slate-400 dark:text-slate-600 text-[80px] mb-4 block">domain_disabled</span>
+                        <h3 className="text-xl font-bold text-slate-600 dark:text-slate-400">Žádné aktivní projekty</h3>
                         <p className="text-slate-500 mt-2">Přidejte projekt ve Správě staveb</p>
                     </div>
                 </div>
@@ -117,7 +117,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ projects, projectDetails, 
     }
 
     return (
-        <div className="flex flex-col h-full overflow-y-auto bg-background-light dark:bg-background-dark">
+        <div className="flex flex-col h-full overflow-y-auto bg-slate-50 dark:bg-slate-950">
             <Header title="Dashboard" subtitle="Detailní přehled projektu">
                 <div className="flex items-center gap-3">
                     {/* Project Selector */}
@@ -125,7 +125,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ projects, projectDetails, 
                         <select
                             value={selectedProjectId}
                             onChange={(e) => setSelectedProjectId(e.target.value)}
-                            className="appearance-none bg-slate-800 border border-slate-700 text-white px-4 py-2.5 pr-10 rounded-xl text-sm font-medium focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer min-w-[220px]"
+                            className="appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white px-4 py-2.5 pr-10 rounded-xl text-sm font-medium focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer min-w-[220px]"
                         >
                             {activeProjects.map(project => (
                                 <option key={project.id} value={project.id}>
@@ -147,7 +147,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ projects, projectDetails, 
                 </div>
             </Header>
 
-            <div className="flex-1 overflow-auto bg-slate-950">
+            <div className="flex-1 overflow-auto bg-slate-50 dark:bg-slate-950">
                 {selectedProject ? (
                     <ProjectOverviewNew
                         project={selectedProject}

@@ -170,8 +170,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
         <details key={item.id} className="group" open>
           <summary className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer list-none ${currentView === 'project'
             ? 'text-white font-semibold'
-            : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
-            }`}>
+             : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'
+             }`}>
             <div className="flex items-center gap-3 min-w-0">
               <span className={`material-symbols-outlined shrink-0 ${currentView === 'project' ? 'fill text-emerald-400' : ''}`}>{item.icon}</span>
               <p className="text-sm leading-normal break-words">{item.label}</p>
@@ -191,8 +191,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
                 onDragEnd={handleProjectDragEnd}
                 onClick={() => onProjectSelect(project.id)}
                 className={`flex items-center gap-2 text-left text-sm px-3 py-2 rounded-lg transition-all relative overflow-hidden cursor-move ${currentView === 'project' && selectedProjectId === project.id
-                  ? 'text-white font-medium'
-                  : 'text-slate-500 hover:text-white hover:bg-slate-800/50'
+                  ? 'text-slate-900 dark:text-white font-medium'
+                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50'
                   } ${draggedId === project.id ? 'opacity-50' : ''}`}
                 title={project.name}
               >
@@ -222,7 +222,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
           href={item.href}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all text-slate-400 hover:bg-slate-800/50 hover:text-white"
+          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
           title={item.label}
         >
           <span className="material-symbols-outlined shrink-0">{item.icon}</span>
@@ -238,7 +238,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
         onClick={() => onViewChange(item.view)}
         className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all ${currentView === item.view
           ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-          : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
+          : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'
           }`}
       >
         <span className={`material-symbols-outlined shrink-0 ${currentView === item.view ? 'fill' : ''}`}>{item.icon}</span>
@@ -251,7 +251,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
     <aside
       ref={sidebarRef}
       style={{ width: isOpen ? `${width}px` : '0px' }}
-      className={`relative flex h-full flex-col bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-r border-slate-700/50 flex-shrink-0 z-20 select-none group/sidebar transition-all duration-300 ease-in-out ${!isOpen ? 'overflow-hidden border-none' : ''}`}
+      className={`relative flex h-full flex-col bg-white dark:bg-gradient-to-b dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 border-r border-slate-200 dark:border-slate-700/50 flex-shrink-0 z-20 select-none group/sidebar transition-all duration-300 ease-in-out ${!isOpen ? 'overflow-hidden border-none' : ''}`}
     >
       {/* Mobile Overlay */}
       {!isOpen && (
@@ -286,13 +286,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
                 className="size-14 min-w-14 object-contain drop-shadow-md shrink-0"
               />
               <div className="flex flex-col min-w-0">
-                <h1 className="text-white text-xl font-bold leading-normal break-words">Tender Flow</h1>
+                <h1 className="text-slate-900 dark:text-white text-xl font-bold leading-normal break-words">Tender Flow</h1>
                 <p className="text-slate-500 text-[8px] font-normal break-words">Tender Management System</p>
               </div>
               {/* Close Toggle for Desktop */}
               <button
                 onClick={onToggle}
-                className="ml-auto p-1.5 text-slate-500 hover:text-white hover:bg-slate-800 rounded-lg transition-colors hidden md:flex items-center justify-center"
+                className="ml-auto p-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors hidden md:flex items-center justify-center"
                 title="Schovat sidebar"
               >
                 <span className="material-symbols-outlined text-[20px]">menu_open</span>
@@ -300,7 +300,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
               {/* Close Toggle for Mobile */}
               <button
                 onClick={onToggle}
-                className="ml-auto p-1.5 text-slate-500 hover:text-white hover:bg-slate-800 rounded-lg transition-colors md:hidden flex items-center justify-center"
+                className="ml-auto p-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors md:hidden flex items-center justify-center"
                 title="Zavřít"
               >
                 <span className="material-symbols-outlined">close</span>
@@ -314,14 +314,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
           </div>
 
           {/* Bottom Section */}
-          <div className="mt-auto p-3 space-y-2 border-t border-slate-700/50">
+          <div className="mt-auto p-3 space-y-2 border-t border-slate-200 dark:border-slate-700/50">
             {BOTTOM_NAVIGATION.map(renderNavItem)}
 
             <a
               href="/user-manual/index.html"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all text-slate-400 hover:bg-slate-800/50 hover:text-white"
+              className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
               title="Otevře uživatelskou příručku v nové záložce"
             >
               <span className="material-symbols-outlined shrink-0">menu_book</span>
@@ -329,14 +329,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
               <span className="material-symbols-outlined ml-auto text-[18px] text-slate-500">open_in_new</span>
             </a>
 
-            <div className="flex items-center gap-3 px-3 py-3 mt-1 overflow-hidden bg-slate-800/30 rounded-xl border border-slate-700/30">
+            <div className="flex items-center gap-3 px-3 py-3 mt-1 overflow-hidden bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-slate-200 dark:border-slate-700/30">
               {user?.avatarUrl ? (
                 <img src={user.avatarUrl} alt={user.name} className="size-8 min-w-8 rounded-full" />
               ) : (
                 <div className="size-8 min-w-8 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400"></div>
               )}
               <div className="flex flex-col overflow-hidden">
-                <p className="text-sm font-bold text-white truncate">{displayName || user?.email?.split('@')[0] || 'User'}</p>
+                <p className="text-sm font-bold text-slate-800 dark:text-white truncate">{displayName || user?.email?.split('@')[0] || 'User'}</p>
                 <p className="text-xs text-slate-500 truncate capitalize">{getUserRole(user?.email, user?.role)}</p>
               </div>
               <button

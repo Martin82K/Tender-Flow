@@ -229,7 +229,7 @@ export const authService = {
         }
 
         const finalPreferences = settings?.preferences || {
-            darkMode: false,
+            theme: 'system',
             primaryColor: '#607AFB',
             backgroundColor: '#f5f6f8'
         };

@@ -172,7 +172,7 @@ export interface ProjectDetails {
 }
 
 export interface UserPreferences {
-  darkMode: boolean;
+  theme: 'light' | 'dark' | 'system';
   primaryColor: string;
   backgroundColor: string;
 }

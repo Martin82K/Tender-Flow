@@ -413,7 +413,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
     const docHubLinks = isDocHubConnected ? getDocHubProjectLinks(docHubRootLink, effectiveDocHubStructure) : null;
 
 	    return (
-	        <div className="p-6 lg:p-10 flex flex-col gap-6 overflow-y-auto h-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 min-h-screen">
+	        <div className="p-6 lg:p-10 flex flex-col gap-6 overflow-y-auto h-full bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen">
 	            <ConfirmationModal
 	                isOpen={uiModal.isOpen}
 	                title={uiModal.title}
@@ -424,25 +424,25 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
 	            />
 	            <div className="max-w-4xl mx-auto w-full">
                 {/* Header Card */}
-                <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-xl p-8">
+                <div className="bg-white dark:bg-gradient-to-br dark:from-slate-800/50 dark:to-slate-900/50 backdrop-blur-xl border border-slate-200 dark:border-slate-700/50 rounded-2xl shadow-xl p-8">
                     <div className="flex items-center gap-3 mb-6">
                         <div className="size-12 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/20 flex items-center justify-center">
                             <span className="material-symbols-outlined text-emerald-400 text-2xl">folder_open</span>
                         </div>
                         <div>
-                            <h2 className="text-2xl font-bold text-white">Dokumenty</h2>
-                            <p className="text-sm text-slate-400">PD, šablony a DocHub složky projektu</p>
+                            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Dokumenty</h2>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">PD, šablony a DocHub složky projektu</p>
                         </div>
                     </div>
 
                     {/* Sub-navigation */}
-                    <div className="flex flex-wrap items-center gap-2 bg-slate-900/30 p-1 rounded-xl border border-slate-700/50 mb-6">
+                    <div className="flex flex-wrap items-center gap-2 bg-slate-100 dark:bg-slate-900/30 p-1 rounded-xl border border-slate-200 dark:border-slate-700/50 mb-6">
                         <button
                             type="button"
                             onClick={() => setDocumentsSubTab('pd')}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${documentsSubTab === 'pd'
                                 ? 'bg-primary text-white shadow-lg'
-                                : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+                                : 'text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700/50'
                                 }`}
                         >
                             PD
@@ -452,7 +452,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                             onClick={() => setDocumentsSubTab('templates')}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${documentsSubTab === 'templates'
                                 ? 'bg-primary text-white shadow-lg'
-                                : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+                                : 'text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700/50'
                                 }`}
                         >
                             Šablony
@@ -462,7 +462,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                             onClick={() => setDocumentsSubTab('dochub')}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${documentsSubTab === 'dochub'
                                 ? 'bg-primary text-white shadow-lg'
-                                : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+                                : 'text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700/50'
                                 }`}
                         >
                             DocHub
@@ -471,11 +471,11 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
 
                     {documentsSubTab === 'pd' && (
                     <div className="space-y-4">
-                    <div className={`rounded-xl p-6 border transition-colors ${hasDocsLink ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-slate-800/30 border-slate-700/50'}`}>
+                    <div className={`rounded-xl p-6 border transition-colors ${hasDocsLink ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30' : 'bg-slate-50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-700/50'}`}>
                         <div className="flex justify-between items-start mb-4">
                             <div className="flex items-center gap-2">
                                 <span className="material-symbols-outlined text-slate-400">link</span>
-                                <h3 className="font-semibold text-white">PD (projektová dokumentace)</h3>
+                                <h3 className="font-semibold text-slate-900 dark:text-white">PD (projektová dokumentace)</h3>
                                 {hasDocsLink && (
                                     <span className="ml-2 px-2.5 py-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase rounded-lg border border-emerald-500/30">
                                         Nastaveno
@@ -515,12 +515,12 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                             href={project.documentationLink}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="block p-4 bg-slate-800/50 rounded-xl border border-slate-700/50 hover:border-emerald-500/30 hover:bg-slate-700/50 transition-all group"
+                                            className="block p-4 bg-white dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50 hover:border-emerald-500/30 hover:shadow-md dark:hover:bg-slate-700/50 transition-all group"
                                         >
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                    <span className="material-symbols-outlined text-emerald-400">description</span>
-                                                    <span className="text-sm font-medium text-white truncate">
+                                                    <span className="material-symbols-outlined text-emerald-600 dark:text-emerald-400">description</span>
+                                                    <span className="text-sm font-medium text-slate-900 dark:text-white truncate">
                                                         {project.documentationLink}
                                                     </span>
                                                 </div>
@@ -547,7 +547,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                     value={docsLinkValue}
                                     onChange={(e) => setDocsLinkValue(e.target.value)}
                                     placeholder="https://example.com/project-docs"
-                                    className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-3 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                                    className="w-full bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
                                 />
                                 <p className="text-xs text-slate-500">
                                     Zadejte URL odkaz na sdílenou složku (např. Google Drive, Dropbox, SharePoint)
@@ -557,13 +557,13 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                     </div>
 
                     {isDocHubConnected && docHubLinks?.pd && (
-                        <div className="mt-4 rounded-xl p-4 border border-violet-500/30 bg-violet-500/10">
+                        <div className="mt-4 rounded-xl p-4 border border-violet-200 dark:border-violet-500/30 bg-violet-50 dark:bg-violet-500/10">
                             <div className="flex items-start justify-between gap-4">
                                 <div className="flex items-center gap-2">
                                     <span className="material-symbols-outlined text-violet-300">folder</span>
                                     <div>
-                                        <div className="text-sm font-semibold text-white">DocHub /{effectiveDocHubStructure.pd}</div>
-                                        <div className="text-xs text-slate-400">Rychlý odkaz na PD složku v DocHubu</div>
+                                        <div className="text-sm font-semibold text-violet-900 dark:text-white">DocHub /{effectiveDocHubStructure.pd}</div>
+                                        <div className="text-xs text-violet-700/70 dark:text-slate-400">Rychlý odkaz na PD složku v DocHubu</div>
                                     </div>
                                 </div>
                                 <button
@@ -598,7 +598,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                         <div className="flex justify-between items-start mb-4">
                             <div className="flex items-center gap-2">
                                 <span className="material-symbols-outlined text-slate-400">mail</span>
-                                <h3 className="font-semibold text-white">Poptávkový dopis (šablona)</h3>
+                                <h3 className="font-semibold text-slate-900 dark:text-white">Poptávkový dopis (šablona)</h3>
                                 {hasLetterLink && (
                                     <span className="ml-2 px-2.5 py-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase rounded-lg border border-emerald-500/30">
                                         Nastaveno
@@ -681,14 +681,14 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
 
                     {/* DocHub Section (Wizard) */}
                     {documentsSubTab === 'dochub' && (
-                    <div className={`rounded-xl p-6 border transition-colors ${isDocHubConnected ? 'bg-violet-500/10 border-violet-500/30' : 'bg-slate-800/30 border-slate-700/50'}`}>
+                    <div className={`rounded-xl p-6 border transition-colors ${isDocHubConnected ? 'bg-violet-500/10 border-violet-500/30' : 'bg-white dark:bg-slate-800/30 border-slate-200 dark:border-slate-700/50'}`}>
                         <div className="flex flex-col gap-5">
                             <div className="flex items-start justify-between gap-4">
                                 <div className="flex items-center gap-2">
                                     <span className="material-symbols-outlined text-slate-400">folder</span>
                                     <div>
                                         <div className="flex items-center gap-2">
-                                            <h3 className="font-semibold text-white">DocHub</h3>
+                                            <h3 className="font-semibold text-slate-900 dark:text-white">DocHub</h3>
                                             <span className={`px-2.5 py-1 text-[10px] font-bold uppercase rounded-lg border ${!docHubEnabled
                                                 ? 'bg-slate-700/40 text-slate-300 border-slate-600/40'
                                                 : isDocHubConnected
@@ -715,7 +715,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                         </p>
                                     </div>
                                 </div>
-                                <label className="flex items-center gap-2 text-sm text-slate-300 select-none">
+                                <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 select-none">
                                     <input
                                         type="checkbox"
                                         checked={docHubEnabled}
@@ -747,18 +747,18 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                 <>
                                     {/* Connected summary */}
                                     {isDocHubConnected && !isEditingDocHubSetup && (
-                                        <div className="bg-slate-900/30 border border-slate-700/50 rounded-xl p-4">
+                                        <div className="bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4">
                                             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                                                 <div className="min-w-0">
                                                     <div className="flex flex-wrap items-center gap-2 mb-2">
-                                                        <span className="px-2.5 py-1 bg-slate-800/60 border border-slate-700/50 rounded-lg text-[11px] font-semibold text-slate-200">
+                                                        <span className="px-2.5 py-1 bg-slate-200 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700/50 rounded-lg text-[11px] font-semibold text-slate-700 dark:text-slate-200">
                                                             {docHubProvider === "gdrive" ? "Google Drive" : docHubProvider === "onedrive" ? "OneDrive" : "Provider: neuvedeno"}
                                                         </span>
-                                                        <span className="px-2.5 py-1 bg-slate-800/60 border border-slate-700/50 rounded-lg text-[11px] font-semibold text-slate-200">
+                                                        <span className="px-2.5 py-1 bg-slate-200 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700/50 rounded-lg text-[11px] font-semibold text-slate-700 dark:text-slate-200">
                                                             {docHubMode === "user" ? "Můj účet" : docHubMode === "org" ? "Organizační úložiště" : "Režim: neuvedeno"}
                                                         </span>
                                                     </div>
-                                                    <div className="text-sm font-semibold text-white truncate">
+                                                    <div className="text-sm font-semibold text-slate-900 dark:text-white truncate">
                                                         {docHubRootName || "Hlavní složka projektu"}
                                                     </div>
                                                     <div className="text-xs text-slate-400 truncate mt-0.5">
@@ -809,7 +809,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                                                     docHubStatus: "disconnected",
                                                                 });
                                                             }}
-                                                            className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-red-300 rounded-lg text-sm font-medium transition-colors border border-slate-700/50"
+                                                            className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-red-600 dark:text-red-300 rounded-lg text-sm font-medium transition-colors border border-slate-300 dark:border-slate-700/50"
                                                         >
                                                             Odpojit
                                                         </button>
@@ -821,11 +821,11 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
 
                                     {/* Setup wizard */}
                                     {(!isDocHubConnected || isEditingDocHubSetup) && (
-                                        <div className="bg-slate-900/20 border border-slate-700/50 rounded-xl p-4">
+                                        <div className="bg-slate-100 dark:bg-slate-900/20 border border-slate-300 dark:border-slate-700/50 rounded-xl p-4">
                                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                                                 {/* Step 1 */}
                                                 <div className="space-y-2">
-                                                    <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                                                    <div className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                                                         1) Provider
                                                     </div>
                                                     <div className="grid grid-cols-2 gap-2">
@@ -834,22 +834,22 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                                             onClick={() => setDocHubProvider("gdrive")}
                                                             className={`p-3 rounded-xl border text-left transition-all ${docHubProvider === "gdrive"
                                                                 ? "bg-violet-500/15 border-violet-500/40"
-                                                                : "bg-slate-800/40 border-slate-700/50 hover:border-slate-600/60"
+                                                                : "bg-slate-100 dark:bg-slate-800/40 border-slate-300 dark:border-slate-700/50 hover:border-slate-400 dark:hover:border-slate-600/60"
                                                                 }`}
                                                         >
-                                                            <div className="text-sm font-semibold text-white">Google Drive</div>
-                                                            <div className="text-xs text-slate-400">My Drive / Shared Drive</div>
+                                                            <div className="text-sm font-semibold text-slate-900 dark:text-white">Google Drive</div>
+                                                            <div className="text-xs text-slate-600 dark:text-slate-400">My Drive / Shared Drive</div>
                                                         </button>
                                                         <button
                                                             type="button"
                                                             onClick={() => setDocHubProvider("onedrive")}
                                                             className={`p-3 rounded-xl border text-left transition-all ${docHubProvider === "onedrive"
                                                                 ? "bg-violet-500/15 border-violet-500/40"
-                                                                : "bg-slate-800/40 border-slate-700/50 hover:border-slate-600/60"
+                                                                : "bg-slate-100 dark:bg-slate-800/40 border-slate-300 dark:border-slate-700/50 hover:border-slate-400 dark:hover:border-slate-600/60"
                                                                 }`}
                                                         >
-                                                            <div className="text-sm font-semibold text-white">OneDrive</div>
-                                                            <div className="text-xs text-slate-400">Personal / Business</div>
+                                                            <div className="text-sm font-semibold text-slate-900 dark:text-white">OneDrive</div>
+                                                            <div className="text-xs text-slate-600 dark:text-slate-400">Personal / Business</div>
                                                         </button>
                                                     </div>
                                                     <div className="text-[11px] text-slate-500">
@@ -859,14 +859,14 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
 
                                                 {/* Step 2 */}
                                                 <div className="space-y-2">
-                                                    <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                                                    <div className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                                                         2) Režim
                                                     </div>
-                                                    <div className="flex items-center gap-1 bg-slate-800/50 p-1 rounded-xl border border-slate-700/50">
+                                                    <div className="flex items-center gap-1 bg-slate-200 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-300 dark:border-slate-700/50">
                                                         <button
                                                             type="button"
                                                             onClick={() => setDocHubMode("user")}
-                                                            className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all ${docHubMode === "user" ? "bg-violet-600 text-white shadow-lg" : "text-slate-300 hover:text-white hover:bg-slate-700/50"}`}
+                                                            className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all ${docHubMode === "user" ? "bg-violet-600 text-white shadow-lg" : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-700/50"}`}
                                                         >
                                                             Můj účet
                                                         </button>
@@ -885,7 +885,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
 
                                                 {/* Step 3 */}
                                                 <div className="space-y-2">
-                                                    <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                                                    <div className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                                                         3) Hlavní složka projektu
                                                     </div>
                                                     <div className="space-y-2">
@@ -895,8 +895,8 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                                                 onClick={handlePickGoogleDriveRoot}
                                                                 disabled={isDocHubConnecting || !isDocHubAuthed}
                                                                 className={`w-full px-4 py-2.5 rounded-xl text-sm font-semibold border transition-colors ${isDocHubConnecting || !isDocHubAuthed
-                                                                    ? "bg-slate-800/60 text-slate-500 border-slate-700/50 cursor-not-allowed"
-                                                                    : "bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700/50"
+                                                                    ? "bg-slate-200 dark:bg-slate-800/60 text-slate-500 dark:text-slate-500 border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
+                                                                    : "bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700/50"
                                                                     }`}
                                                                 title={!isDocHubAuthed ? "Nejdřív připojte účet (OAuth)." : "Otevře Google Picker pro výběr složky"}
                                                             >
@@ -910,14 +910,14 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                                                     value={docHubNewFolderName}
                                                                     onChange={(e) => setDocHubNewFolderName(e.target.value)}
                                                                     placeholder="Název nové složky"
-                                                                    className="sm:col-span-2 w-full bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-2.5 text-sm text-white focus:border-violet-500/50 focus:outline-none"
+                                                                    className="sm:col-span-2 w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-violet-500/50 focus:outline-none"
                                                                 />
                                                                 <button
                                                                     type="button"
                                                                     onClick={handleCreateGoogleDriveRoot}
                                                                     disabled={isDocHubConnecting || !isDocHubAuthed || !docHubNewFolderName.trim()}
                                                                     className={`w-full px-4 py-2.5 rounded-xl text-sm font-semibold border transition-colors ${isDocHubConnecting || !isDocHubAuthed || !docHubNewFolderName.trim()
-                                                                        ? "bg-slate-800/60 text-slate-500 border-slate-700/50 cursor-not-allowed"
+                                                                        ? "bg-slate-200 dark:bg-slate-800/60 text-slate-500 border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
                                                                         : "bg-violet-600 hover:bg-violet-500 text-white border-violet-500/30"
                                                                         }`}
                                                                     title={!isDocHubAuthed ? "Nejdřív připojte účet (OAuth)." : "Vytvoří složku v Google Drive a nastaví ji jako root projektu"}
@@ -931,21 +931,21 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                                             value={docHubRootName}
                                                             onChange={(e) => setDocHubRootName(e.target.value)}
                                                             placeholder="Název (např. Stavba RD Novák)"
-                                                            className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-2.5 text-sm text-white focus:border-violet-500/50 focus:outline-none"
+                                                            className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-violet-500/50 focus:outline-none"
                                                         />
                                                         <input
                                                             type="text"
                                                             value={docHubRootLink}
                                                             onChange={(e) => setDocHubRootLink(e.target.value)}
                                                             placeholder={docHubProvider === "gdrive" ? "Web URL složky (vyplní se po výběru) nebo vlož URL ručně" : "Web URL (sdílený odkaz)"}
-                                                            className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-2.5 text-sm text-white focus:border-violet-500/50 focus:outline-none"
+                                                            className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-violet-500/50 focus:outline-none"
                                                         />
                                                         <button
                                                             type="button"
                                                             onClick={handleResolveDocHubRoot}
                                                             disabled={isDocHubConnecting || !docHubProvider || !docHubRootLink.trim()}
                                                             className={`w-full px-4 py-2 rounded-lg text-sm font-bold border transition-colors ${isDocHubConnecting || !docHubProvider || !docHubRootLink.trim()
-                                                                ? "bg-slate-800/60 text-slate-500 border-slate-700/50 cursor-not-allowed"
+                                                                ? "bg-slate-200 dark:bg-slate-800/60 text-slate-500 border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
                                                                 : "bg-violet-600 hover:bg-violet-500 text-white border-violet-500/30"
                                                                 }`}
                                                             title="Ověří odkaz přes Drive/Graph API a uloží rootId/rootWebUrl"
@@ -966,8 +966,8 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                                         onClick={handleConnectDocHub}
                                                         disabled={isDocHubConnecting || !docHubProvider || !docHubMode}
                                                         className={`px-4 py-2 rounded-lg text-sm font-bold border transition-colors ${isDocHubConnecting || !docHubProvider || !docHubMode
-                                                            ? "bg-slate-800/60 text-slate-500 border-slate-700/50 cursor-not-allowed"
-                                                            : "bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700/50"
+                                                            ? "bg-slate-200 dark:bg-slate-800/60 text-slate-500 border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
+                                                            : "bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700/50"
                                                         }`}
                                                         title="Spustí OAuth autorizaci (Google Drive používá následně Picker)"
                                                     >
@@ -1016,7 +1016,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                     {/* Structure + quick links */}
                                     <div className="flex flex-col gap-3">
                                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                            <div className="flex items-center gap-2 text-sm text-slate-300">
+                                            <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
                                                 <span className="material-symbols-outlined text-[18px] text-violet-300">account_tree</span>
                                                 Struktura (v1)
                                             </div>
@@ -1024,14 +1024,14 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                                 <button
                                                     type="button"
                                                     onClick={() => setIsEditingDocHubStructure(!isEditingDocHubStructure)}
-                                                    className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-sm font-medium transition-colors border border-slate-700/50"
+                                                    className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-medium transition-colors border border-slate-300 dark:border-slate-700/50"
                                                 >
                                                     {isEditingDocHubStructure ? "Zavřít úpravy" : "Upravit strukturu"}
                                                 </button>
                                                 <button
                                                     type="button"
                                                     disabled
-                                                    className="px-3 py-2 bg-slate-800/60 text-slate-500 rounded-lg text-sm font-medium border border-slate-700/50 cursor-not-allowed"
+                                                    className="px-3 py-2 bg-slate-200 dark:bg-slate-800/60 text-slate-500 rounded-lg text-sm font-medium border border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
                                                     title="Automatické vytváření složek doplníme s backendem (API)"
                                                 >
                                                     Auto-vytváření: brzy
@@ -1060,7 +1060,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
 	                                                            window.prompt('Zkopírujte strukturu:', structure);
 	                                                        }
 	                                                    }}
-                                                    className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-sm font-medium transition-colors border border-slate-700/50"
+                                                    className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-medium transition-colors border border-slate-300 dark:border-slate-700/50"
                                                 >
                                                     Zkopírovat
                                                 </button>
@@ -1068,7 +1068,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                         </div>
 
                                         {isEditingDocHubStructure && (
-                                            <div className="bg-slate-950/30 border border-slate-700/50 rounded-xl p-4">
+                                            <div className="bg-slate-100 dark:bg-slate-950/30 border border-slate-300 dark:border-slate-700/50 rounded-xl p-4">
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                     {([
                                                         ["pd", "PD"],
@@ -1081,7 +1081,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                                         ["archive", "Archiv"],
                                                     ] as const).map(([key, label]) => (
                                                         <div key={key} className="space-y-1">
-                                                            <label className="block text-xs font-medium text-slate-400">
+                                                            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400">
                                                                 {label}
                                                             </label>
                                                             <input
@@ -1090,7 +1090,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                                                 onChange={(e) =>
                                                                     setDocHubStructureDraft((prev) => ({ ...prev, [key]: e.target.value }))
                                                                 }
-                                                                className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-2.5 text-sm text-white focus:border-violet-500/50 focus:outline-none"
+                                                                className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-violet-500/50 focus:outline-none"
                                                             />
                                                         </div>
                                                     ))}
@@ -1105,7 +1105,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                                             onClick={() => {
                                                                 setDocHubStructureDraft(resolveDocHubStructureV1(null));
                                                             }}
-                                                            className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-sm font-medium transition-colors border border-slate-700/50"
+                                                            className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-medium transition-colors border border-slate-300 dark:border-slate-700/50"
                                                         >
                                                             Reset
                                                         </button>
@@ -1233,17 +1233,17 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, project
     if (!project) return <div>Project not found</div>;
 
     return (
-        <div className="flex flex-col h-screen bg-background-light dark:bg-background-dark">
+        <div className="flex flex-col h-screen bg-slate-50 dark:bg-slate-950">
             <Header 
                 title={project.title} 
                 subtitle="Detail stavby"
                 onSearchChange={setSearchQuery}
                 searchPlaceholder="Hledat v projektu..."
             >
-                <div className="flex items-center gap-1 bg-slate-800/50 p-1 rounded-xl border border-slate-700/50">
+                <div className="flex items-center gap-1 bg-slate-200 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-300 dark:border-slate-700/50">
                     <button
                         onClick={() => onTabChange('overview')}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'overview' ? 'bg-primary text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-700/50'}`}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'overview' ? 'bg-primary text-white shadow-lg' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-700/50'}`}
                     >
                         Přehled
                     </button>

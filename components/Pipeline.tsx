@@ -65,33 +65,33 @@ const Column: React.FC<ColumnProps> = ({
   const colorStyles = {
     slate: {
       wrapper:
-        "border-slate-700/50 bg-slate-800/30",
-      headerBorder: "border-slate-700/50",
-      headerBg: "bg-slate-800/50",
+        "border-slate-200 dark:border-slate-700/50 bg-slate-100 dark:bg-slate-800/30",
+      headerBorder: "border-slate-200 dark:border-slate-700/50",
+      headerBg: "bg-slate-200/50 dark:bg-slate-800/50",
     },
     blue: {
       wrapper:
-        "border-blue-600/30 bg-blue-500/10",
-      headerBorder: "border-blue-600/30",
-      headerBg: "bg-blue-900/30",
+        "border-blue-200 dark:border-blue-600/30 bg-blue-50 dark:bg-blue-500/10",
+      headerBorder: "border-blue-200 dark:border-blue-600/30",
+      headerBg: "bg-blue-100/50 dark:bg-blue-900/30",
     },
     amber: {
       wrapper:
-        "border-amber-600/30 bg-amber-500/10",
-      headerBorder: "border-amber-600/30",
-      headerBg: "bg-amber-900/30",
+        "border-amber-200 dark:border-amber-600/30 bg-amber-50 dark:bg-amber-500/10",
+      headerBorder: "border-amber-200 dark:border-amber-600/30",
+      headerBg: "bg-amber-100/50 dark:bg-amber-900/30",
     },
     green: {
       wrapper:
-        "border-emerald-600/30 bg-emerald-500/10",
-      headerBorder: "border-emerald-600/30",
-      headerBg: "bg-emerald-900/30",
+        "border-emerald-200 dark:border-emerald-600/30 bg-emerald-50 dark:bg-emerald-500/10",
+      headerBorder: "border-emerald-200 dark:border-emerald-600/30",
+      headerBg: "bg-emerald-100/50 dark:bg-emerald-900/30",
     },
     red: {
       wrapper:
-        "border-red-600/30 bg-red-500/10",
-      headerBorder: "border-red-600/30",
-      headerBg: "bg-red-900/30",
+        "border-red-200 dark:border-red-600/30 bg-red-50 dark:bg-red-500/10",
+      headerBorder: "border-red-200 dark:border-red-600/30",
+      headerBg: "bg-red-100/50 dark:bg-red-900/30",
     },
   };
 
@@ -122,11 +122,11 @@ const Column: React.FC<ColumnProps> = ({
       <div
         className={`p-4 border-b ${styles.headerBorder} ${styles.headerBg} sticky top-0 rounded-t-2xl z-10 backdrop-blur-sm flex justify-between items-center transition-colors`}
       >
-        <h2 className="text-white text-sm font-bold uppercase tracking-wide">
+        <h2 className="text-slate-700 dark:text-white text-sm font-bold uppercase tracking-wide">
           {title}
         </h2>
         {count !== undefined && (
-          <span className="bg-slate-700/50 text-xs font-bold px-2.5 py-1 rounded-full text-slate-300 border border-slate-600/50">
+          <span className="bg-white dark:bg-slate-700/50 text-xs font-bold px-2.5 py-1 rounded-full text-slate-500 dark:text-slate-300 border border-slate-200 dark:border-slate-600/50">
             {count}
           </span>
         )}
@@ -212,9 +212,9 @@ const EditBidModal: React.FC<{
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-700/50 flex flex-col max-h-[90vh]">
-        <div className="p-6 border-b border-slate-700/50 flex justify-between items-center shrink-0">
-          <h3 className="text-lg font-bold text-white">
+      <div className="bg-white dark:bg-gradient-to-br dark:from-slate-800 dark:to-slate-900 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200 dark:border-slate-700/50 flex flex-col max-h-[90vh]">
+        <div className="p-6 border-b border-slate-200 dark:border-slate-700/50 flex justify-between items-center shrink-0">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white">
             Upravit nabídku
           </h3>
           <button
@@ -364,11 +364,13 @@ const BidCard: React.FC<{
       draggable
       onDragStart={(e) => onDragStart(e, bid.id)}
       onClick={onClick}
-      className="bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl rounded-xl shadow-lg p-4 border border-slate-700/50 hover:shadow-xl hover:border-emerald-500/30 transition-all cursor-grab active:cursor-grabbing group"
+
+      className="bg-white dark:bg-gradient-to-br dark:from-slate-800/80 dark:to-slate-900/80 backdrop-blur-xl rounded-xl shadow-sm dark:shadow-lg p-4 border border-slate-200 dark:border-slate-700/50 hover:shadow-md dark:hover:shadow-xl hover:border-emerald-500/30 transition-all cursor-grab active:cursor-grabbing group"
     >
       <div className="flex justify-between items-start mb-3">
         <div className="flex items-center gap-2">
-          <h3 className="font-bold text-white text-sm">
+
+          <h3 className="font-bold text-slate-900 dark:text-white text-sm">
             {bid.companyName}
           </h3>
           {onOpenDocHubFolder && (
@@ -431,7 +433,7 @@ const BidCard: React.FC<{
         )}
         {/* Price History - show previous round prices */}
         {bid.priceHistory && Object.keys(bid.priceHistory).length > 1 && (
-          <div className="mt-2 pt-2 border-t border-slate-700/50">
+          <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700/50">
             {Object.entries(bid.priceHistory)
               .sort(([a], [b]) => Number(a) - Number(b))
               .map(([round, price]) => (
@@ -454,7 +456,7 @@ const BidCard: React.FC<{
           {bid.tags.map((tag) => (
             <span
               key={tag}
-              className="text-[10px] bg-slate-700/50 text-slate-300 px-2 py-0.5 rounded-md border border-slate-600/50"
+              className="text-[10px] bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-600/50"
             >
               {tag}
             </span>
@@ -529,7 +531,7 @@ const CategoryCard: React.FC<{
           onClick();
         }
       }}
-      className="flex flex-col text-left bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-5 hover:shadow-xl hover:border-emerald-500/30 hover:shadow-emerald-500/5 transition-all group relative overflow-hidden h-full cursor-pointer"
+      className="flex flex-col text-left bg-white dark:bg-gradient-to-br dark:from-slate-800/80 dark:to-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/50 rounded-2xl p-5 hover:shadow-lg dark:hover:shadow-xl hover:border-emerald-500/30 transition-all group relative overflow-hidden h-full cursor-pointer"
     >
       <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
 
@@ -590,7 +592,7 @@ const CategoryCard: React.FC<{
         </span>
       </div>
 
-      <h3 className="text-lg font-bold text-white mb-1">
+      <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">
         {category.title}
       </h3>
 
@@ -647,22 +649,22 @@ const CategoryCard: React.FC<{
         </div>
       )}
 
-      <p className="text-sm text-slate-400 line-clamp-2 mb-4 h-10">
+      <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-4 h-10">
         {category.description}
       </p>
 
-      <div className="flex items-center justify-between w-full mt-auto pt-4 border-t border-slate-700/50">
+      <div className="flex items-center justify-between w-full mt-auto pt-4 border-t border-slate-200 dark:border-slate-700/50">
         <div className="flex flex-col">
           <span className="text-xs text-slate-500">
             {category.winningPrice ? "Vítězná cena" : "Cena SOD (Investor)"}
           </span>
-          <span className="text-sm font-semibold text-white">
+          <span className="text-sm font-semibold text-slate-900 dark:text-white">
             {formatMoney(category.winningPrice || category.sodBudget)}
           </span>
         </div>
         <div className="flex flex-col items-center">
           <span className="text-xs text-slate-500">Poptáno</span>
-          <div className="flex items-center gap-1 text-sm font-semibold text-white">
+          <div className="flex items-center gap-1 text-sm font-semibold text-slate-900 dark:text-white">
             <span className="material-symbols-outlined text-[16px]">
               groups
             </span>
@@ -671,7 +673,7 @@ const CategoryCard: React.FC<{
         </div>
         <div className="flex flex-col items-center">
           <span className="text-xs text-slate-500">CN</span>
-          <div className="flex items-center gap-1 text-sm font-semibold text-white">
+          <div className="flex items-center gap-1 text-sm font-semibold text-slate-900 dark:text-white">
             <span className="material-symbols-outlined text-[16px]">
               description
             </span>
@@ -681,7 +683,7 @@ const CategoryCard: React.FC<{
         {category.documents && category.documents.length > 0 && (
           <div className="flex flex-col items-end">
             <span className="text-xs text-slate-500">Dokumenty</span>
-            <div className="flex items-center gap-1 text-sm font-semibold text-white">
+            <div className="flex items-center gap-1 text-sm font-semibold text-slate-900 dark:text-white">
               <span className="material-symbols-outlined text-[16px]">
                 attachment
               </span>
@@ -785,14 +787,14 @@ const CreateContactModal: React.FC<{
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-700/50 flex flex-col max-h-[90vh]">
-        <div className="p-6 border-b border-slate-700/50 flex justify-between items-center shrink-0">
-          <h3 className="text-lg font-bold text-white">
+      <div className="bg-white dark:bg-gradient-to-br dark:from-slate-800 dark:to-slate-900 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 dark:border-slate-700/50 flex flex-col max-h-[90vh]">
+        <div className="p-6 border-b border-slate-200 dark:border-slate-700/50 flex justify-between items-center shrink-0">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white">
             Nový dodavatel
           </h3>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white transition-colors"
+            className="text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
           >
             <span className="material-symbols-outlined">close</span>
           </button>
@@ -800,7 +802,7 @@ const CreateContactModal: React.FC<{
         <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
           <div className="p-6 space-y-4 overflow-y-auto">
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">
+              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                 Firma / Název *
               </label>
               <input
@@ -808,11 +810,11 @@ const CreateContactModal: React.FC<{
                 type="text"
                 value={form.company}
                 onChange={(e) => setForm({ ...form, company: e.target.value })}
-                className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-2">
+              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">
                 Specializace / Typ *
               </label>
               <div className="flex flex-wrap gap-2 mb-3">
@@ -851,7 +853,7 @@ const CreateContactModal: React.FC<{
                       }
                       e.stopPropagation();
                     }}
-                    className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                    className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
                     placeholder="Přidat specializaci (Enter)"
                   />
                   <datalist id="pipeline-specializations-list">
@@ -870,74 +872,74 @@ const CreateContactModal: React.FC<{
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">
+              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                 Kontaktní osoba
               </label>
               <input
                 type="text"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                 className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">
+                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                   Email
                 </label>
                 <input
                   type="email"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                   className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">
+                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                   Telefon
                 </label>
                 <input
                   type="text"
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                   className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
                 />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">
+                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                   IČO
                 </label>
                 <input
                   type="text"
                   value={form.ico}
                   onChange={(e) => setForm({ ...form, ico: e.target.value })}
-                  className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                   className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
                   placeholder="12345678"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">
+                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                   Region
                 </label>
                 <input
                   type="text"
                   value={form.region}
                   onChange={(e) => setForm({ ...form, region: e.target.value })}
-                  className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                   className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
                   placeholder="Praha, Brno..."
                 />
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">
+              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                 Stav
               </label>
               <select
                 value={form.status}
                 onChange={(e) => setForm({ ...form, status: e.target.value })}
-                className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                 className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
               >
                 {statuses.map(s => (
                   <option key={s.id} value={s.id}>{s.label}</option>
@@ -945,7 +947,7 @@ const CreateContactModal: React.FC<{
               </select>
             </div>
           </div>
-          <div className="p-4 bg-slate-800/50 border-t border-slate-700/50 flex justify-end gap-3 shrink-0">
+          <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-700/50 flex justify-end gap-3 shrink-0">
             <button
               type="button"
               onClick={onClose}
@@ -1855,7 +1857,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
 	  if (activeCategory) {
 	    // --- DETAIL VIEW (PIPELINE) ---
 	    return (
-	      <div className="flex flex-col h-full bg-background-light dark:bg-background-dark">
+      <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950">
 	        {docHubModalNode}
 	        <Header
 	          title={activeCategory.title}
@@ -2310,17 +2312,17 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
 	  // --- LIST VIEW (OVERVIEW) ---
 	  return (
-	    <div className="flex flex-col h-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 min-h-screen">
+	    <div className="flex flex-col h-full bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen">
 	      {docHubModalNode}
 	      <div className="p-6 lg:p-10 overflow-y-auto">
         {/* Filter Buttons and Add Button */}
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-1 bg-slate-800/50 p-1 rounded-xl border border-slate-700/50">
+          <div className="flex items-center gap-1 bg-slate-200 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-300 dark:border-slate-700/50">
             <button
               onClick={() => setDemandFilter('all')}
               className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${demandFilter === 'all'
-                ? 'bg-slate-700 text-white shadow'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                ? 'bg-primary text-white shadow'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-800'
                 }`}
             >
               Všechny ({projectData.categories.length})
@@ -2328,8 +2330,8 @@ export const Pipeline: React.FC<PipelineProps> = ({
             <button
               onClick={() => setDemandFilter('open')}
               className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${demandFilter === 'open'
-                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                ? 'bg-amber-500 dark:bg-amber-500/20 text-white dark:text-amber-300 border border-amber-500 dark:border-amber-500/30'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-800'
                 }`}
             >
               Poptávané ({projectData.categories.filter(c => c.status === 'open' || c.status === 'negotiating').length})
@@ -2337,8 +2339,8 @@ export const Pipeline: React.FC<PipelineProps> = ({
             <button
               onClick={() => setDemandFilter('closed')}
               className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${demandFilter === 'closed'
-                ? 'bg-teal-500/20 text-teal-300 border border-teal-500/30'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                ? 'bg-teal-500 dark:bg-teal-500/20 text-white dark:text-teal-300 border border-teal-500 dark:border-teal-500/30'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-800'
                 }`}
             >
               Ukončené ({projectData.categories.filter(c => c.status === 'closed').length})
@@ -2346,8 +2348,8 @@ export const Pipeline: React.FC<PipelineProps> = ({
             <button
               onClick={() => setDemandFilter('sod')}
               className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${demandFilter === 'sod'
-                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                ? 'bg-emerald-500 dark:bg-emerald-500/20 text-white dark:text-emerald-300 border border-emerald-500 dark:border-emerald-500/30'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-800'
                 }`}
             >
               Zasmluvněné ({projectData.categories.filter(c => {
@@ -2458,14 +2460,14 @@ export const Pipeline: React.FC<PipelineProps> = ({
           {/* Add New Placeholder */}
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="flex flex-col items-center justify-center text-center bg-slate-800/30 border-2 border-dashed border-slate-700/50 rounded-2xl p-5 hover:bg-slate-800/50 hover:border-emerald-500/30 transition-all min-h-[200px] group"
+            className="flex flex-col items-center justify-center text-center bg-white dark:bg-slate-800/30 border-2 border-dashed border-primary dark:border-slate-700/50 rounded-2xl p-5 hover:border-primary hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:hover:border-emerald-500/30 transition-all min-h-[200px] group"
           >
-            <div className="size-12 rounded-full bg-slate-700/50 flex items-center justify-center mb-3 group-hover:scale-110 group-hover:bg-emerald-500/20 transition-all">
-              <span className="material-symbols-outlined text-slate-400 group-hover:text-emerald-400">
+            <div className="size-12 rounded-full bg-slate-100 dark:bg-slate-700/50 flex items-center justify-center mb-3 group-hover:scale-110 group-hover:bg-primary/10 dark:group-hover:bg-emerald-500/20 transition-all">
+              <span className="material-symbols-outlined text-slate-400 dark:text-slate-400 group-hover:text-primary dark:group-hover:text-emerald-400">
                 add
               </span>
             </div>
-            <h3 className="text-base font-bold text-slate-400 group-hover:text-white transition-colors">
+            <h3 className="text-base font-bold text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
               Vytvořit novou sekci
             </h3>
             <p className="text-xs text-slate-500 mt-1">
@@ -2478,14 +2480,14 @@ export const Pipeline: React.FC<PipelineProps> = ({
       {/* Create Category Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-700/50 flex flex-col max-h-[90vh]">
-            <div className="p-6 border-b border-slate-700/50 flex justify-between items-center shrink-0">
-              <h3 className="text-lg font-bold text-white">
+          <div className="bg-white dark:bg-gradient-to-br dark:from-slate-800 dark:to-slate-900 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 dark:border-slate-700/50 flex flex-col max-h-[90vh]">
+            <div className="p-6 border-b border-slate-200 dark:border-slate-700/50 flex justify-between items-center shrink-0">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                 Nová Poptávka / Sekce
               </h3>
               <button
                 onClick={() => setIsAddModalOpen(false)}
-                className="text-slate-400 hover:text-white transition-colors"
+                className="text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
               >
                 <span className="material-symbols-outlined">close</span>
               </button>
@@ -2494,7 +2496,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
             <form onSubmit={handleCreateCategory} className="flex flex-col overflow-hidden">
               <div className="p-6 space-y-4 overflow-y-auto">
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                     Název sekce *
                   </label>
                   <input
@@ -2507,13 +2509,13 @@ export const Pipeline: React.FC<PipelineProps> = ({
                         title: e.target.value,
                       })
                     }
-                    className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                    className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
                     placeholder="Např. Klempířské konstrukce"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">
+                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                       Cena SOD (Investor)
                     </label>
                     <input
@@ -2529,12 +2531,12 @@ export const Pipeline: React.FC<PipelineProps> = ({
                           });
                         }
                       }}
-                      className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                      className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
                       placeholder="500 000"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">
+                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                       Interní Plán
                     </label>
                     <input
@@ -2550,13 +2552,13 @@ export const Pipeline: React.FC<PipelineProps> = ({
                           });
                         }
                       }}
-                      className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                      className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
                       placeholder="450 000"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                     Popis prací
                   </label>
                   <textarea
@@ -2573,7 +2575,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                     Termín poptávky
                   </label>
                   <input
@@ -2586,14 +2588,14 @@ export const Pipeline: React.FC<PipelineProps> = ({
                       })
                     }
                     min={new Date().toISOString().split("T")[0]}
-                    className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                    className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
                   />
                   <p className="text-[10px] text-slate-400 mt-1">
                     Termín pro podání cenové nabídky
                   </p>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                     Termín realizace (nepovinné)
                   </label>
                   <div className="grid grid-cols-2 gap-3">
@@ -2608,7 +2610,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                             realizationStart: e.target.value,
                           })
                         }
-                        className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                        className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
                       />
                     </div>
                     <div>
@@ -2623,7 +2625,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                           })
                         }
                         min={newCategoryForm.realizationStart || undefined}
-                        className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                        className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
                       />
                     </div>
                   </div>
@@ -2738,9 +2740,9 @@ export const Pipeline: React.FC<PipelineProps> = ({
       {/* Edit Category Modal */}
       {isEditModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-700/50 flex flex-col max-h-[90vh]">
-            <div className="p-6 border-b border-slate-700/50 flex justify-between items-center shrink-0">
-              <h3 className="text-lg font-bold text-white">
+          <div className="bg-white dark:bg-gradient-to-br dark:from-slate-800 dark:to-slate-900 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 dark:border-slate-700/50 flex flex-col max-h-[90vh]">
+            <div className="p-6 border-b border-slate-200 dark:border-slate-700/50 flex justify-between items-center shrink-0">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                 Upravit Poptávku
               </h3>
               <button
@@ -2748,7 +2750,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   setIsEditModalOpen(false);
                   setEditingCategory(null);
                 }}
-                className="text-slate-400 hover:text-white transition-colors"
+                className="text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
               >
                 <span className="material-symbols-outlined">close</span>
               </button>
@@ -2757,7 +2759,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
             <form onSubmit={handleEditCategory} className="flex flex-col overflow-hidden">
               <div className="p-6 space-y-4 overflow-y-auto">
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                     Název sekce *
                   </label>
                   <input
@@ -2770,13 +2772,13 @@ export const Pipeline: React.FC<PipelineProps> = ({
                         title: e.target.value,
                       })
                     }
-                    className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                    className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
                     placeholder="Např. Klempířské konstrukce"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">
+                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                       Cena SOD (Investor)
                     </label>
                     <input
@@ -2792,12 +2794,12 @@ export const Pipeline: React.FC<PipelineProps> = ({
                           });
                         }
                       }}
-                      className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                      className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
                       placeholder="500 000"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1">
+                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                       Interní Plán
                     </label>
                     <input
@@ -2813,13 +2815,13 @@ export const Pipeline: React.FC<PipelineProps> = ({
                           });
                         }
                       }}
-                      className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                      className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
                       placeholder="450 000"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                     Popis prací
                   </label>
                   <textarea
@@ -2836,7 +2838,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                     Termín poptávky
                   </label>
                   <input
@@ -2849,14 +2851,14 @@ export const Pipeline: React.FC<PipelineProps> = ({
                       })
                     }
                     min={new Date().toISOString().split("T")[0]}
-                    className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                    className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
                   />
-                  <p className="text-[10px] text-slate-500 mt-1">
+                  <p className="text-[10px] text-slate-600 dark:text-slate-500 mt-1">
                     Termín pro podání cenové nabídky
                   </p>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                     Termín realizace (nepovinné)
                   </label>
                   <div className="grid grid-cols-2 gap-3">
@@ -2871,7 +2873,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                             realizationStart: e.target.value,
                           })
                         }
-                        className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                        className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
                       />
                     </div>
                     <div>
@@ -2886,17 +2888,17 @@ export const Pipeline: React.FC<PipelineProps> = ({
                           })
                         }
                         min={newCategoryForm.realizationStart || undefined}
-                        className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                        className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
                       />
                     </div>
                   </div>
-                  <p className="text-[10px] text-slate-500 mt-1">
+                  <p className="text-[10px] text-slate-600 dark:text-slate-500 mt-1">
                     Předpokládaný termín realizace prací
                   </p>
                 </div>
               </div>
 
-              <div className="p-4 bg-slate-800/50 border-t border-slate-700/50 flex justify-end gap-3 shrink-0">
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-700/50 flex justify-end gap-3 shrink-0">
                 <button
                   type="button"
                   onClick={() => {

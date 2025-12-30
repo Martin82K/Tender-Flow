@@ -219,7 +219,7 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
     };
 
     return (
-        <div className="p-6 lg:p-10 flex flex-col gap-6 overflow-y-auto h-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 min-h-screen">
+        <div className="p-6 lg:p-10 flex flex-col gap-6 overflow-y-auto h-full bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen">
             <div className="max-w-5xl mx-auto w-full">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
@@ -228,7 +228,7 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
                             <span className="material-symbols-outlined text-blue-400 text-2xl">event_note</span>
                         </div>
                         <div>
-                            <h2 className="text-2xl font-bold text-white">Plán výběrových řízení</h2>
+                            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Plán výběrových řízení</h2>
                             <p className="text-sm text-slate-400">Plánování a sledování VŘ</p>
                         </div>
                     </div>
@@ -243,15 +243,15 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
                 </div>
 
                 {/* Table */}
-                <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-xl overflow-hidden">
+                <div className="bg-white dark:bg-gradient-to-br dark:from-slate-800/50 dark:to-slate-900/50 backdrop-blur-xl border border-slate-200 dark:border-slate-700/50 rounded-2xl shadow-xl overflow-hidden">
                     <table className="w-full">
                         <thead>
                             <tr className="border-b border-slate-700/50">
-                                <th className="text-left px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Název VŘ</th>
-                                <th className="text-left px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Od</th>
-                                <th className="text-left px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Do</th>
+                                <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Název VŘ</th>
+                                <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Od</th>
+                                <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Do</th>
                                 <th className="text-center px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Poptávka</th>
-                                <th className="text-left px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Stav</th>
+                                <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Stav</th>
                                 <th className="text-right px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Akce</th>
                             </tr>
                         </thead>
@@ -383,15 +383,15 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
                                 return (
                                     <tr key={item.id} className="border-b border-slate-700/30 hover:bg-slate-800/30 transition-colors">
                                         <td className="px-6 py-4">
-                                            <span className="text-sm font-medium text-white">{item.name}</span>
+                                            <span className="text-sm font-medium text-slate-900 dark:text-white">{item.name}</span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className="text-sm text-slate-300">
+                                            <span className="text-sm text-slate-600 dark:text-slate-300">
                                                 {item.dateFrom ? new Date(item.dateFrom).toLocaleDateString('cs-CZ') : '-'}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className="text-sm text-slate-300">
+                                            <span className="text-sm text-slate-600 dark:text-slate-300">
                                                 {item.dateTo ? new Date(item.dateTo).toLocaleDateString('cs-CZ') : '-'}
                                             </span>
                                         </td>

@@ -7,8 +7,8 @@ import { UserManagement } from './UserManagement';
 import { EmailWhitelistManagement } from './EmailWhitelistManagement';
 
 interface SettingsProps {
-    darkMode: boolean;
-    onToggleDarkMode: () => void;
+    theme: 'light' | 'dark' | 'system';
+    onSetTheme: (theme: 'light' | 'dark' | 'system') => void;
     primaryColor: string;
     onSetPrimaryColor: (color: string) => void;
     backgroundColor: string;
@@ -27,8 +27,8 @@ interface SettingsProps {
 }
 
 export const Settings: React.FC<SettingsProps> = ({
-    darkMode,
-    onToggleDarkMode,
+    theme,
+    onSetTheme,
     primaryColor,
     onSetPrimaryColor,
     backgroundColor,
@@ -527,7 +527,7 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
     };
 
     return (
-        <div className="flex flex-col h-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 min-h-screen overflow-y-auto">
+        <div className="flex flex-col h-full bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen overflow-y-auto">
             <Header title="Nastavení" subtitle="Konfigurace aplikace a správa staveb" />
 
             <div className="p-6 lg:p-10 max-w-5xl mx-auto w-full pb-20">
@@ -563,7 +563,7 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                         <div className="pb-4 border-b border-slate-800 flex flex-col gap-1">
                             <div className="flex items-center gap-2">
                                 <span className="material-symbols-outlined text-indigo-400">shield_person</span>
-                                <h2 className="text-xl font-bold text-white">
+                                <h2 className="text-xl font-bold text-slate-900 dark:text-white">
                                     Administrace systému
                                 </h2>
                             </div>
@@ -571,8 +571,8 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                         </div>
 
                         {/* Registration Settings */}
-                    <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl mb-8">
-                        <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                    <section className="bg-white dark:bg-gradient-to-br dark:from-slate-800/50 dark:to-slate-900/50 backdrop-blur-xl border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 shadow-xl mb-8">
+                        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                             <span className="material-symbols-outlined text-red-400">admin_panel_settings</span>
                             Nastavení registrací
                             <span className="ml-2 px-2.5 py-1 bg-red-500/20 text-red-400 text-xs font-bold rounded-lg border border-red-500/30">Admin</span>
@@ -582,7 +582,7 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                             {/* Allow Public Registration Toggle */}
                             <div className="flex items-center justify-between pb-4 border-b border-slate-700/50">
                                 <div>
-                                    <p className="text-sm font-medium text-white">Povolit registrace všem</p>
+                                    <p className="text-sm font-medium text-slate-900 dark:text-white">Povolit registrace všem</p>
                                     <p className="text-xs text-slate-500">Pokud je vypnuto, pouze emaily z povolených domén se mohou registrovat.</p>
                                 </div>
                                 <button
@@ -606,7 +606,7 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                                     value={allowedDomains}
                                     onChange={(e) => setAllowedDomains(e.target.value)}
                                     placeholder="@baustav.cz, @mojefirma.cz"
-                                    className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                                    className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
                                 />
                                 <p className="text-xs text-slate-500 italic">
                                     💡 Pokud je povoleno "Povolit registrace všem", tento whitelist se ignoruje.
@@ -617,7 +617,7 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                             {/* Require Email Whitelist Toggle */}
                             <div className="flex items-center justify-between pb-4 border-b border-slate-700/50">
                                 <div>
-                                    <p className="text-sm font-medium text-white">Vyžadovat whitelist emailů</p>
+                                    <p className="text-sm font-medium text-slate-900 dark:text-white">Vyžadovat whitelist emailů</p>
                                     <p className="text-xs text-slate-500">Pokud je zapnuto, registrovat se mohou pouze emaily explicitně uvedené v seznamu povolených.</p>
                                 </div>
                                 <button
@@ -655,8 +655,8 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                         <UserManagement isSuperAdmin={isSuperAdmin} />
 
                         {/* AI Settings */}
-                    <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl mb-8">
-                        <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                    <section className="bg-white dark:bg-gradient-to-br dark:from-slate-800/50 dark:to-slate-900/50 backdrop-blur-xl border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 shadow-xl mb-8">
+                        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                             <span className="material-symbols-outlined text-violet-400">auto_awesome</span>
                             Nastavení AI funkcí
                             <span className="ml-2 px-2.5 py-1 bg-violet-500/20 text-violet-400 text-xs font-bold rounded-lg border border-violet-500/30">Admin</span>
@@ -664,7 +664,7 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
 
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm font-medium text-white">Povolit AI analýzu</p>
+                                <p className="text-sm font-medium text-slate-900 dark:text-white">Povolit AI analýzu</p>
                                 <p className="text-xs text-slate-500">Aktivuje AI Insights na Dashboardu pomocí Gemini API.</p>
                             </div>
                             <button
@@ -822,32 +822,32 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                             <>
 
                         {/* Profile Settings Section */}
-                <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl mb-8">
-                    <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                <section className="bg-white dark:bg-gradient-to-br dark:from-slate-800/50 dark:to-slate-900/50 backdrop-blur-xl border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 shadow-xl mb-8">
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
                         <span className="material-symbols-outlined text-emerald-400">person</span>
                         Profil
                     </h2>
 
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Email</label>
+                            <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">Email</label>
                             <input
                                 type="text"
                                 value={user?.email || ''}
                                 disabled
-                                className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-slate-400"
+                                className="w-full rounded-lg bg-slate-100 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-400"
                             />
                         </div>
 
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Zobrazované jméno</label>
+                            <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">Zobrazované jméno</label>
                             <div className="flex gap-2">
                                 <input
                                     type="text"
                                     value={displayName}
                                     onChange={(e) => setDisplayName(e.target.value)}
                                     placeholder="Např. Martin Kalkus"
-                                    className="flex-1 rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                                    className="flex-1 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
                                 />
                                 <button
                                     onClick={handleSaveDisplayName}
@@ -866,32 +866,61 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
 
 
                 {/* 1. Appearance Section */}
-                <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl mb-8">
-                    <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <section className="bg-white dark:bg-gradient-to-br dark:from-slate-800/50 dark:to-slate-900/50 backdrop-blur-xl border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 shadow-xl mb-8">
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                         <span className="material-symbols-outlined text-pink-400">palette</span>
                         Vzhled aplikace
                     </h2>
 
                     <div className="space-y-6">
-                        {/* Dark Mode Toggle */}
-                        <div className="flex items-center justify-between pb-4 border-b border-slate-700/50">
+                        {/* Theme Mode Selector */}
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div>
-                                <p className="text-sm font-medium text-white">Tmavý režim</p>
-                                <p className="text-xs text-slate-500">Přepnout mezi světlým a tmavým motivem.</p>
+                                <p className="text-sm font-medium text-slate-900 dark:text-white">Motiv aplikace</p>
+                                <p className="text-xs text-slate-500">Vyberte preferovaný vzhled aplikace.</p>
                             </div>
-                            <button
-                                onClick={onToggleDarkMode}
-                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${darkMode ? 'bg-emerald-500' : 'bg-slate-600'}`}
-                            >
-                                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${darkMode ? 'translate-x-6' : 'translate-x-1'}`} />
-                            </button>
+                            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                                <button
+                                    onClick={() => onSetTheme('light')}
+                                    className={`px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all ${
+                                        theme === 'light'
+                                            ? 'bg-white dark:bg-slate-700 text-primary shadow-sm'
+                                            : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                                    }`}
+                                >
+                                    <span className="material-symbols-outlined text-[16px]">light_mode</span>
+                                    Světlý
+                                </button>
+                                <button
+                                    onClick={() => onSetTheme('dark')}
+                                    className={`px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all ${
+                                        theme === 'dark'
+                                            ? 'bg-white dark:bg-slate-700 text-primary shadow-sm'
+                                            : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                                    }`}
+                                >
+                                    <span className="material-symbols-outlined text-[16px]">dark_mode</span>
+                                    Tmavý
+                                </button>
+                                <button
+                                    onClick={() => onSetTheme('system')}
+                                    className={`px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all ${
+                                        theme === 'system'
+                                            ? 'bg-white dark:bg-slate-700 text-primary shadow-sm'
+                                            : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                                    }`}
+                                >
+                                    <span className="material-symbols-outlined text-[16px]">settings_system_daydream</span>
+                                    Systém
+                                </button>
+                            </div>
                         </div>
 
                         {/* Color Theme */}
                         <div className="flex flex-col gap-4">
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                 <div>
-                                    <p className="text-sm font-medium text-white">Barevné schéma</p>
+                                    <p className="text-sm font-medium text-slate-900 dark:text-white">Barevné schéma</p>
                                     <p className="text-xs text-slate-500">Vyberte hlavní barvu aplikace (Brand Color).</p>
                                 </div>
                                 <div className="flex flex-wrap gap-3 items-center">
