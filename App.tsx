@@ -1684,19 +1684,19 @@ const AppContent: React.FC = () => {
 
         <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className={`fixed top-24 left-4 z-30 flex items-center justify-center p-2 rounded-lg bg-slate-800/80 text-white border border-slate-700/50 shadow-lg transition-all hover:bg-slate-700 md:hidden ${isSidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+          className={`fixed top-24 left-4 z-30 flex items-center justify-center p-1.5 rounded-lg bg-slate-800/80 text-white border border-slate-700/50 shadow-lg transition-all hover:bg-slate-700 md:hidden ${isSidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
           title={isSidebarOpen ? "Schovat sidebar" : "Zobrazit sidebar"}
         >
-          <span className="material-symbols-outlined">menu</span>
+          <span className="material-symbols-outlined text-[20px]">menu</span>
         </button>
 
         {/* Toggle Button for Desktop when Sidebar is hidden */}
         <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className={`hidden md:flex fixed top-24 left-4 z-30 items-center justify-center p-2 rounded-lg bg-slate-800/80 text-white border border-slate-700/50 shadow-lg transition-all hover:bg-slate-700 ${isSidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+          className={`hidden md:flex fixed top-24 left-4 z-30 items-center justify-center p-1.5 rounded-lg bg-slate-800/80 text-white border border-slate-700/50 shadow-lg transition-all hover:bg-slate-700 ${isSidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
           title="Zobrazit sidebar"
         >
-          <span className="material-symbols-outlined">menu</span>
+          <span className="material-symbols-outlined text-[20px]">menu</span>
         </button>
         <Suspense fallback={
           <div className="flex items-center justify-center h-full">
