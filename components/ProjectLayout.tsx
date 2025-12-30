@@ -1017,7 +1017,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                     <div className="flex flex-col gap-3">
                                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                             <div className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                                                <span className="material-symbols-outlined text-[18px] text-violet-300">account_tree</span>
+                                                <span className="material-symbols-outlined text-[18px] text-violet-600 dark:text-violet-300">account_tree</span>
                                                 Struktura (v1)
                                             </div>
                                             <div className="flex items-center gap-2">
@@ -1143,17 +1143,17 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
 	                                                                .then(() => showModal({ title: "Zkopírováno", message: item.href, variant: "success" }))
 	                                                                .catch(() => window.prompt('Zkopírujte cestu:', item.href));
 	                                                        }}
-                                                        className="block p-4 bg-slate-800/40 rounded-xl border border-slate-700/50 hover:border-violet-500/30 hover:bg-slate-700/40 transition-all"
+                                                        className="block p-4 bg-white dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700/50 hover:border-violet-300 dark:hover:border-violet-500/30 hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-all shadow-sm"
                                                         title={isProbablyUrl(item.href) ? "Otevřít" : "Zkopírovat cestu"}
                                                     >
                                                         <div className="flex items-center justify-between gap-3">
                                                             <div className="flex items-center gap-2 min-w-0">
-                                                                <span className="material-symbols-outlined text-violet-400">folder</span>
-                                                                <span className="text-sm font-medium text-white truncate">
+                                                                <span className="material-symbols-outlined text-violet-600 dark:text-violet-400">folder</span>
+                                                                <span className="text-sm font-medium text-slate-900 dark:text-white truncate">
                                                                     {item.label}
                                                                 </span>
                                                             </div>
-                                                            <span className="material-symbols-outlined text-slate-500">content_copy</span>
+                                                            <span className="material-symbols-outlined text-slate-400 dark:text-slate-500">content_copy</span>
                                                         </div>
                                                     </a>
                                                 ))}
