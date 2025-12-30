@@ -329,7 +329,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
               <span className="material-symbols-outlined ml-auto text-[18px] text-slate-500">open_in_new</span>
             </a>
 
-            <div className="flex items-center gap-3 px-3 py-3 mt-1 overflow-hidden bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-slate-200 dark:border-slate-700/30">
+            <div className="flex items-center gap-3 px-3 py-3 mt-1 overflow-hidden bg-slate-50 dark:bg-slate-950/30 rounded-xl border border-slate-200 dark:border-slate-700/40">
               {user?.avatarUrl ? (
                 <img src={user.avatarUrl} alt={user.name} className="size-8 min-w-8 rounded-full" />
               ) : (

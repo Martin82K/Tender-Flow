@@ -65,7 +65,7 @@ const Column: React.FC<ColumnProps> = ({
   const colorStyles = {
     slate: {
       wrapper:
-        "border-slate-200 dark:border-slate-700/50 bg-slate-100 dark:bg-slate-800/30",
+        "border-slate-200 dark:border-slate-700/40 bg-slate-100 dark:bg-slate-950/30",
       headerBorder: "border-slate-200 dark:border-slate-700/50",
       headerBg: "bg-slate-200/50 dark:bg-slate-800/50",
     },
@@ -365,7 +365,7 @@ const BidCard: React.FC<{
       onDragStart={(e) => onDragStart(e, bid.id)}
       onClick={onClick}
 
-      className="bg-white dark:bg-gradient-to-br dark:from-slate-800/80 dark:to-slate-900/80 backdrop-blur-xl rounded-xl shadow-sm dark:shadow-lg p-4 border border-slate-200 dark:border-slate-700/50 hover:shadow-md dark:hover:shadow-xl hover:border-emerald-500/30 transition-all cursor-grab active:cursor-grabbing group"
+	      className="bg-white dark:bg-slate-900/80 backdrop-blur-xl rounded-xl shadow-sm dark:shadow-lg p-4 border border-slate-200 dark:border-slate-700/40 hover:shadow-md dark:hover:shadow-xl hover:border-emerald-500/30 transition-all cursor-grab active:cursor-grabbing group"
     >
       <div className="flex justify-between items-start mb-3">
         <div className="flex items-center gap-2">
@@ -531,7 +531,7 @@ const CategoryCard: React.FC<{
           onClick();
         }
       }}
-      className="flex flex-col text-left bg-white dark:bg-gradient-to-br dark:from-slate-800/80 dark:to-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/50 rounded-2xl p-5 hover:shadow-lg dark:hover:shadow-xl hover:border-emerald-500/30 transition-all group relative overflow-hidden h-full cursor-pointer"
+      className="flex flex-col text-left bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-5 hover:shadow-lg dark:hover:shadow-xl hover:border-emerald-500/30 transition-all group relative overflow-hidden h-full cursor-pointer"
     >
       <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
 
@@ -2460,7 +2460,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
           {/* Add New Placeholder */}
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="flex flex-col items-center justify-center text-center bg-white dark:bg-slate-800/30 border-2 border-dashed border-primary dark:border-slate-700/50 rounded-2xl p-5 hover:border-primary hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:hover:border-emerald-500/30 transition-all min-h-[200px] group"
+            className="flex flex-col items-center justify-center text-center bg-white dark:bg-slate-900/60 border-2 border-dashed border-primary dark:border-slate-700/40 rounded-2xl p-5 hover:border-primary hover:bg-slate-50 dark:hover:bg-slate-900/70 dark:hover:border-emerald-500/30 transition-all min-h-[200px] group"
           >
             <div className="size-12 rounded-full bg-slate-100 dark:bg-slate-700/50 flex items-center justify-center mb-3 group-hover:scale-110 group-hover:bg-primary/10 dark:group-hover:bg-emerald-500/20 transition-all">
               <span className="material-symbols-outlined text-slate-400 dark:text-slate-400 group-hover:text-primary dark:group-hover:text-emerald-400">

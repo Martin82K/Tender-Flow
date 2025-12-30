@@ -424,7 +424,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
 	            />
 	            <div className="max-w-4xl mx-auto w-full">
                 {/* Header Card */}
-                <div className="bg-white dark:bg-gradient-to-br dark:from-slate-800/50 dark:to-slate-900/50 backdrop-blur-xl border border-slate-200 dark:border-slate-700/50 rounded-2xl shadow-xl p-8">
+                <div className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl shadow-xl p-8">
                     <div className="flex items-center gap-3 mb-6">
                         <div className="size-12 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/20 flex items-center justify-center">
                             <span className="material-symbols-outlined text-emerald-400 text-2xl">folder_open</span>
@@ -471,7 +471,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
 
                     {documentsSubTab === 'pd' && (
                     <div className="space-y-4">
-                    <div className={`rounded-xl p-6 border transition-colors ${hasDocsLink ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30' : 'bg-slate-50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-700/50'}`}>
+                    <div className={`rounded-xl p-6 border transition-colors ${hasDocsLink ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30' : 'bg-slate-50 dark:bg-slate-900/70 border-slate-200 dark:border-slate-700/40'}`}>
                         <div className="flex justify-between items-start mb-4">
                             <div className="flex items-center gap-2">
                                 <span className="material-symbols-outlined text-slate-400">link</span>
@@ -681,7 +681,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
 
                     {/* DocHub Section (Wizard) */}
                     {documentsSubTab === 'dochub' && (
-                    <div className={`rounded-xl p-6 border transition-colors ${isDocHubConnected ? 'bg-violet-500/10 border-violet-500/30' : 'bg-white dark:bg-slate-800/30 border-slate-200 dark:border-slate-700/50'}`}>
+                    <div className={`rounded-xl p-6 border transition-colors ${isDocHubConnected ? 'bg-violet-500/10 border-violet-500/30' : 'bg-white dark:bg-slate-900/70 border-slate-200 dark:border-slate-700/40'}`}>
                         <div className="flex flex-col gap-5">
                             <div className="flex items-start justify-between gap-4">
                                 <div className="flex items-center gap-2">

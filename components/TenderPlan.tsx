@@ -243,16 +243,16 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
                 </div>
 
                 {/* Table */}
-                <div className="bg-white dark:bg-gradient-to-br dark:from-slate-800/50 dark:to-slate-900/50 backdrop-blur-xl border border-slate-200 dark:border-slate-700/50 rounded-2xl shadow-xl overflow-hidden">
+                <div className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl shadow-xl overflow-hidden">
                     <table className="w-full">
                         <thead>
-                            <tr className="border-b border-slate-700/50">
+                            <tr className="border-b border-slate-200 dark:border-slate-700/40 bg-slate-50 dark:bg-slate-950/60">
                                 <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Název VŘ</th>
                                 <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Od</th>
                                 <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Do</th>
-                                <th className="text-center px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Poptávka</th>
+                                <th className="text-center px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider">Poptávka</th>
                                 <th className="text-left px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Stav</th>
-                                <th className="text-right px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Akce</th>
+                                <th className="text-right px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider">Akce</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -276,13 +276,13 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
 
                             {/* Add new row - displayed at top */}
                             {isAdding && (
-                                <tr className="border-b border-slate-700/30 bg-slate-800/30">
+                                <tr className="border-b border-slate-200 dark:border-slate-700/40 bg-slate-50 dark:bg-slate-950/30">
                                     <td className="px-6 py-4">
                                         <input
                                             type="text"
                                             value={formName}
                                             onChange={(e) => setFormName(e.target.value)}
-                                            className="w-full bg-slate-800/50 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                                            className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
                                             placeholder="Název VŘ"
                                             autoFocus
                                         />
@@ -292,7 +292,7 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
                                             type="date"
                                             value={formDateFrom}
                                             onChange={(e) => setFormDateFrom(e.target.value)}
-                                            className="bg-slate-800/50 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                                            className="bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
                                         />
                                     </td>
                                     <td className="px-6 py-4">
@@ -300,7 +300,7 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
                                             type="date"
                                             value={formDateTo}
                                             onChange={(e) => setFormDateTo(e.target.value)}
-                                            className="bg-slate-800/50 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                                            className="bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
                                         />
                                     </td>
                                     <td className="px-6 py-4 text-center">-</td>
@@ -332,13 +332,13 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
 
                                 if (isEditing) {
                                     return (
-                                        <tr key={item.id} className="border-b border-slate-700/30 bg-slate-800/30">
+                                        <tr key={item.id} className="border-b border-slate-200 dark:border-slate-700/40 bg-slate-50 dark:bg-slate-950/30">
                                             <td className="px-6 py-4">
                                                 <input
                                                     type="text"
                                                     value={formName}
                                                     onChange={(e) => setFormName(e.target.value)}
-                                                    className="w-full bg-slate-800/50 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                                                    className="bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
                                                     placeholder="Název VŘ"
                                                 />
                                             </td>
@@ -381,7 +381,7 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
                                 }
 
                                 return (
-                                    <tr key={item.id} className="border-b border-slate-700/30 hover:bg-slate-800/30 transition-colors">
+                                    <tr key={item.id} className="border-b border-slate-200 dark:border-slate-700/40 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
                                         <td className="px-6 py-4">
                                             <span className="text-sm font-medium text-slate-900 dark:text-white">{item.name}</span>
                                         </td>

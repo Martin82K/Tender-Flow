@@ -44,7 +44,7 @@ const ArchiveSection: React.FC<{
             {isExpanded && (
                 <div className="p-4 pt-0 space-y-2">
                     {projects.map(project => (
-                        <div key={project.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/30 border border-slate-200 dark:border-slate-700/30 opacity-70 hover:opacity-100 transition-opacity">
+                        <div key={project.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-950/30 border border-slate-200 dark:border-slate-700/40 opacity-70 hover:opacity-100 transition-opacity">
                             <div className="flex items-center gap-3">
                                 <div className="size-8 rounded-full bg-slate-200 dark:bg-slate-700/50 text-slate-500 flex items-center justify-center text-sm font-bold">
                                     A
@@ -293,13 +293,13 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
             <div className="p-6 lg:p-10 max-w-5xl mx-auto w-full pb-20">
 
                 {/* 1. Create New Project */}
-                <section className="bg-white dark:bg-gradient-to-br dark:from-slate-800/50 dark:to-slate-900/50 backdrop-blur-xl border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 shadow-xl mb-8">
+                <section className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl mb-8">
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
                         <span className="material-symbols-outlined text-emerald-400">add_business</span>
                         Nová stavba
                     </h2>
 
-                    <form onSubmit={handleCreateProject} className="bg-slate-50 dark:bg-slate-800/30 p-4 rounded-xl border border-slate-200 dark:border-slate-700/50">
+                    <form onSubmit={handleCreateProject} className="bg-slate-50 dark:bg-slate-950/30 p-4 rounded-xl border border-slate-200 dark:border-slate-700/40">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                             <div>
                                 <label className="block text-xs text-slate-400 mb-1">Název projektu</label>
@@ -347,7 +347,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                 </section>
 
                 {/* 2. Active Project List */}
-                <section className="bg-white dark:bg-gradient-to-br dark:from-slate-800/50 dark:to-slate-900/50 backdrop-blur-xl border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 shadow-xl mb-8">
+                <section className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl mb-8">
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
                         <span className="material-symbols-outlined text-blue-400">list_alt</span>
                         Seznam vašich a sdílených staveb
