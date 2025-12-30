@@ -96,8 +96,8 @@ export const EmailWhitelistManagement: React.FC<EmailWhitelistManagementProps> =
     if (!isAdmin) return null;
 
     return (
-        <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl mb-8">
-            <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+        <section className="bg-white dark:bg-gradient-to-br dark:from-slate-900/80 dark:to-slate-950/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl mb-8">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                 <span className="material-symbols-outlined text-emerald-400">playlist_add_check</span>
                 Seznam povolených emailů (Whitelist)
                 <span className="ml-2 px-2.5 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded-lg border border-emerald-500/30">
@@ -105,14 +105,14 @@ export const EmailWhitelistManagement: React.FC<EmailWhitelistManagementProps> =
                 </span>
             </h2>
 
-            <p className="text-sm text-slate-400 mb-6">
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
                 Pokud je zapnuta volba "Vyžadovat whitelist", mohou se registrovat POUZE emaily uvedené v tomto seznamu. 
                 Seznam je seskupen podle domén.
             </p>
 
             {/* Add New Email Form */}
-            <form onSubmit={handleAdd} className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 mb-6">
-                <h3 className="text-sm font-bold text-white mb-3">Přidat nový email</h3>
+            <form onSubmit={handleAdd} className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4 mb-6">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3">Přidat nový email</h3>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div className="md:col-span-1">
                         <input
@@ -120,7 +120,7 @@ export const EmailWhitelistManagement: React.FC<EmailWhitelistManagementProps> =
                             value={newEmail}
                             onChange={(e) => setNewEmail(e.target.value)}
                             placeholder="email@firma.cz"
-                            className="w-full rounded-lg bg-slate-900/50 border border-slate-600/50 px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                            className="w-full rounded-lg bg-white dark:bg-slate-900/50 border border-slate-300 dark:border-slate-600/50 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-emerald-500/50 focus:outline-none"
                             required
                         />
                     </div>
@@ -130,7 +130,7 @@ export const EmailWhitelistManagement: React.FC<EmailWhitelistManagementProps> =
                             value={newName}
                             onChange={(e) => setNewName(e.target.value)}
                             placeholder="Jméno (nepovinné)"
-                            className="w-full rounded-lg bg-slate-900/50 border border-slate-600/50 px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                            className="w-full rounded-lg bg-white dark:bg-slate-900/50 border border-slate-300 dark:border-slate-600/50 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-emerald-500/50 focus:outline-none"
                         />
                     </div>
                     <div className="md:col-span-1">
@@ -139,7 +139,7 @@ export const EmailWhitelistManagement: React.FC<EmailWhitelistManagementProps> =
                             value={newNotes}
                             onChange={(e) => setNewNotes(e.target.value)}
                             placeholder="Poznámka (nepovinné)"
-                            className="w-full rounded-lg bg-slate-900/50 border border-slate-600/50 px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                            className="w-full rounded-lg bg-white dark:bg-slate-900/50 border border-slate-300 dark:border-slate-600/50 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-emerald-500/50 focus:outline-none"
                         />
                     </div>
                     <div className="md:col-span-1">
@@ -163,7 +163,7 @@ export const EmailWhitelistManagement: React.FC<EmailWhitelistManagementProps> =
             <div className="flex flex-wrap gap-3 mb-4">
                 <div className="flex-1 min-w-[200px]">
                     <div className="relative">
-                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[20px]">
+                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 text-[20px]">
                             search
                         </span>
                         <input
@@ -171,7 +171,7 @@ export const EmailWhitelistManagement: React.FC<EmailWhitelistManagementProps> =
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Hledat email..."
-                            className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 pl-10 pr-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                            className="w-full rounded-lg bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 pl-10 pr-3 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-emerald-500/50 focus:outline-none"
                         />
                     </div>
                 </div>
@@ -179,7 +179,7 @@ export const EmailWhitelistManagement: React.FC<EmailWhitelistManagementProps> =
                     <select
                         value={domainFilter}
                         onChange={(e) => setDomainFilter(e.target.value)}
-                        className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                        className="w-full rounded-lg bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
                     >
                         <option value="">Všechny domény</option>
                         {uniqueDomains.map(d => (
@@ -195,31 +195,31 @@ export const EmailWhitelistManagement: React.FC<EmailWhitelistManagementProps> =
                     <span className="material-symbols-outlined animate-spin text-slate-400 text-[32px]">sync</span>
                 </div>
             ) : filteredList.length === 0 ? (
-                <div className="text-center py-8 text-slate-500 italic bg-slate-800/30 rounded-xl border border-dashed border-slate-700">
+                <div className="text-center py-8 text-slate-500 italic bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
                     Seznam je prázdný
                 </div>
             ) : (
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead>
-                            <tr className="border-b border-slate-700/50">
-                                <th className="text-left text-xs font-bold text-slate-400 uppercase tracking-wider py-3 px-2">Status</th>
-                                <th className="text-left text-xs font-bold text-slate-400 uppercase tracking-wider py-3 px-2">Email</th>
-                                <th className="text-left text-xs font-bold text-slate-400 uppercase tracking-wider py-3 px-2">Jméno</th>
-                                <th className="text-left text-xs font-bold text-slate-400 uppercase tracking-wider py-3 px-2">Poznámka</th>
-                                <th className="text-right text-xs font-bold text-slate-400 uppercase tracking-wider py-3 px-2">Akce</th>
+                            <tr className="border-b border-slate-200 dark:border-slate-700/50">
+                                <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">Status</th>
+                                <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">Email</th>
+                                <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">Jméno</th>
+                                <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">Poznámka</th>
+                                <th className="text-right text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">Akce</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filteredList.map(item => (
-                                <tr key={item.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
+                                <tr key={item.id} className="border-b border-slate-200 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                                     <td className="py-3 px-2">
                                         <button
                                             onClick={() => handleToggle(item.id, item.is_active)}
                                             className={`size-6 rounded flex items-center justify-center transition-colors ${
                                                 item.is_active 
-                                                    ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30' 
-                                                    : 'bg-slate-700/50 text-slate-500 hover:bg-slate-700'
+                                                    ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/30'
+                                                    : 'bg-slate-200 dark:bg-slate-700/50 text-slate-500 hover:bg-slate-300 dark:hover:bg-slate-700'
                                             }`}
                                             title={item.is_active ? 'Aktivní' : 'Neaktivní'}
                                         >
@@ -230,16 +230,16 @@ export const EmailWhitelistManagement: React.FC<EmailWhitelistManagementProps> =
                                     </td>
                                     <td className="py-3 px-2">
                                         <div className="flex flex-col">
-                                            <span className={`text-sm ${item.is_active ? 'text-white' : 'text-slate-500 line-through'}`}>
+                                            <span className={`text-sm ${item.is_active ? 'text-slate-900 dark:text-white' : 'text-slate-500 line-through'}`}>
                                                 {item.email}
                                             </span>
                                             <span className="text-[10px] text-slate-500">@{item.domain}</span>
                                         </div>
                                     </td>
-                                    <td className="py-3 px-2 text-sm text-slate-300">
+                                    <td className="py-3 px-2 text-sm text-slate-700 dark:text-slate-300">
                                         {item.display_name || '-'}
                                     </td>
-                                    <td className="py-3 px-2 text-sm text-slate-400 truncate max-w-[200px]">
+                                    <td className="py-3 px-2 text-sm text-slate-600 dark:text-slate-400 truncate max-w-[200px]">
                                         {item.notes || '-'}
                                     </td>
                                     <td className="py-3 px-2 text-right">

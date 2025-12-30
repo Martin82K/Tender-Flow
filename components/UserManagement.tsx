@@ -124,8 +124,8 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isSuperAdmin }) 
     return (
         <>
             {/* User Management Section */}
-            <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl mb-8">
-                <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+            <section className="bg-white dark:bg-gradient-to-br dark:from-slate-900/80 dark:to-slate-950/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl mb-8">
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                     <span className="material-symbols-outlined text-cyan-400">group</span>
                     Správa uživatelů
                     <span className="ml-2 px-2.5 py-1 bg-cyan-500/20 text-cyan-400 text-xs font-bold rounded-lg border border-cyan-500/30">
@@ -137,7 +137,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isSuperAdmin }) 
                 <div className="flex flex-wrap gap-3 mb-4">
                     <div className="flex-1 min-w-[200px]">
                         <div className="relative">
-                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[20px]">
+                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 text-[20px]">
                                 search
                             </span>
                             <input
@@ -145,7 +145,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isSuperAdmin }) 
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Hledat podle jména nebo emailu..."
-                                className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 pl-10 pr-3 py-2.5 text-sm text-white focus:border-cyan-500/50 focus:outline-none"
+                                className="w-full rounded-lg bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 pl-10 pr-3 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-cyan-500/50 focus:outline-none"
                             />
                         </div>
                     </div>
@@ -153,7 +153,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isSuperAdmin }) 
                         <select
                             value={domainFilter}
                             onChange={(e) => setDomainFilter(e.target.value)}
-                            className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-cyan-500/50 focus:outline-none"
+                            className="w-full rounded-lg bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-cyan-500/50 focus:outline-none"
                         >
                             <option value="">Všechny domény</option>
                             {domains.map(domain => (
@@ -172,20 +172,20 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isSuperAdmin }) 
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead>
-                                <tr className="border-b border-slate-700/50">
-                                    <th className="text-left text-xs font-bold text-slate-400 uppercase tracking-wider py-3 px-2">
+                                <tr className="border-b border-slate-200 dark:border-slate-700/50">
+                                    <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
                                         Email
                                     </th>
-                                    <th className="text-left text-xs font-bold text-slate-400 uppercase tracking-wider py-3 px-2">
+                                    <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
                                         Jméno
                                     </th>
-                                    <th className="text-left text-xs font-bold text-slate-400 uppercase tracking-wider py-3 px-2">
+                                    <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
                                         Doména
                                     </th>
-                                    <th className="text-left text-xs font-bold text-slate-400 uppercase tracking-wider py-3 px-2">
+                                    <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
                                         Role
                                     </th>
-                                    <th className="text-left text-xs font-bold text-slate-400 uppercase tracking-wider py-3 px-2">
+                                    <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
                                         Registrace
                                     </th>
                                 </tr>
@@ -199,22 +199,22 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isSuperAdmin }) 
                                     </tr>
                                 ) : (
                                     filteredUsers.map(user => (
-                                        <tr key={user.user_id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
+                                        <tr key={user.user_id} className="border-b border-slate-200 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                                             <td className="py-3 px-2">
                                                 <div className="flex items-center gap-2">
                                                     <div className="size-8 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-500 flex items-center justify-center text-white text-xs font-bold">
                                                         {user.email.charAt(0).toUpperCase()}
                                                     </div>
-                                                    <span className="text-sm text-white">{user.email}</span>
+                                                    <span className="text-sm text-slate-900 dark:text-white">{user.email}</span>
                                                 </div>
                                             </td>
                                             <td className="py-3 px-2">
-                                                <span className="text-sm text-slate-300">
+                                                <span className="text-sm text-slate-700 dark:text-slate-300">
                                                     {user.display_name || '-'}
                                                 </span>
                                             </td>
                                             <td className="py-3 px-2">
-                                                <span className="text-xs bg-slate-700/50 text-slate-400 px-2 py-1 rounded">
+                                                <span className="text-xs bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 px-2 py-1 rounded border border-slate-200 dark:border-slate-600/50">
                                                     @{user.email.split('@')[1]}
                                                 </span>
                                             </td>
@@ -224,7 +224,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isSuperAdmin }) 
                                                         value={user.role_id || ''}
                                                         onChange={(e) => handleRoleChange(user.user_id, e.target.value)}
                                                         disabled={updatingUserId === user.user_id}
-                                                        className="rounded-lg bg-slate-700/50 border border-slate-600/50 px-2 py-1.5 text-sm text-white focus:border-cyan-500/50 focus:outline-none disabled:opacity-50 min-w-[140px]"
+                                                        className="rounded-lg bg-white dark:bg-slate-700/50 border border-slate-300 dark:border-slate-600/50 px-2 py-1.5 text-sm text-slate-900 dark:text-white focus:border-cyan-500/50 focus:outline-none disabled:opacity-50 min-w-[140px]"
                                                     >
                                                         <option value="">Bez role</option>
                                                         {availableRoles.map(role => (
@@ -251,14 +251,14 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isSuperAdmin }) 
                     </div>
                 )}
 
-                <div className="mt-4 pt-4 border-t border-slate-700/50 flex justify-between items-center">
+                <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700/50 flex justify-between items-center">
                     <span className="text-xs text-slate-500">
                         Zobrazeno {filteredUsers.length} z {users.length} uživatelů
                     </span>
                     <button
                         onClick={loadUsers}
                         disabled={isLoadingUsers}
-                        className="flex items-center gap-1 text-xs text-slate-400 hover:text-cyan-400 transition-colors"
+                        className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
                     >
                         <span className={`material-symbols-outlined text-[16px] ${isLoadingUsers ? 'animate-spin' : ''}`}>
                             refresh
@@ -269,8 +269,8 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isSuperAdmin }) 
             </section>
 
             {/* Role Permissions Section */}
-            <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl mb-8">
-                <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+            <section className="bg-white dark:bg-gradient-to-br dark:from-slate-900/80 dark:to-slate-950/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl mb-8">
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                     <span className="material-symbols-outlined text-amber-400">shield_person</span>
                     Nastavení oprávnění rolí
                     <span className="ml-2 px-2.5 py-1 bg-amber-500/20 text-amber-400 text-xs font-bold rounded-lg border border-amber-500/30">
@@ -285,17 +285,17 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isSuperAdmin }) 
                 ) : (
                     <div className="space-y-3">
                         {roles.map(role => (
-                            <div key={role.role_id} className="border border-slate-700/50 rounded-xl overflow-hidden">
+                            <div key={role.role_id} className="border border-slate-200 dark:border-slate-700/50 rounded-xl overflow-hidden">
                                 {/* Role Header */}
                                 <button
                                     onClick={() => setExpandedRole(expandedRole === role.role_id ? null : role.role_id)}
-                                    className="w-full flex items-center justify-between p-4 bg-slate-800/30 hover:bg-slate-800/50 transition-colors"
+                                    className="w-full flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/30 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors text-slate-800 dark:text-white"
                                 >
                                     <div className="flex items-center gap-3">
                                         <span className={`material-symbols-outlined text-[20px] transition-transform ${expandedRole === role.role_id ? 'rotate-90' : ''}`}>
                                             chevron_right
                                         </span>
-                                        <span className="font-bold text-white">{role.role_label}</span>
+                                        <span className="font-bold">{role.role_label}</span>
                                         {role.role_description && (
                                             <span className="text-xs text-slate-500 hidden sm:inline">
                                                 — {role.role_description}
@@ -312,7 +312,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isSuperAdmin }) 
 
                                 {/* Role Permissions (Expanded) */}
                                 {expandedRole === role.role_id && (
-                                    <div className="p-4 bg-slate-900/30 border-t border-slate-700/50">
+                                    <div className="p-4 bg-white dark:bg-slate-900/30 border-t border-slate-200 dark:border-slate-700/50">
                                         {Object.entries(permissionsByCategory).map(([category, permissions]) => (
                                             <div key={category} className="mb-4 last:mb-0">
                                                 <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
@@ -328,7 +328,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isSuperAdmin }) 
                                                                 key={perm.key}
                                                                 className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer ${isEnabled
                                                                         ? 'bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20'
-                                                                        : 'bg-slate-800/30 border-slate-700/50 hover:bg-slate-800/50'
+                                                                        : 'bg-slate-50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-800/50'
                                                                     }`}
                                                             >
                                                                 <input
@@ -340,7 +340,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isSuperAdmin }) 
                                                                 />
                                                                 <div className={`size-5 rounded flex items-center justify-center transition-colors ${isEnabled
                                                                         ? 'bg-emerald-500 text-white'
-                                                                        : 'bg-slate-700 text-transparent'
+                                                                        : 'bg-slate-300 dark:bg-slate-700 text-transparent'
                                                                     }`}>
                                                                     {isUpdating ? (
                                                                         <span className="material-symbols-outlined animate-spin text-[14px] text-white">sync</span>
@@ -349,7 +349,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isSuperAdmin }) 
                                                                     )}
                                                                 </div>
                                                                 <div className="flex-1 min-w-0">
-                                                                    <p className={`text-sm font-medium truncate ${isEnabled ? 'text-emerald-300' : 'text-slate-300'}`}>
+                                                                    <p className={`text-sm font-medium truncate ${isEnabled ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-700 dark:text-slate-300'}`}>
                                                                         {perm.label}
                                                                     </p>
                                                                     {perm.description && (

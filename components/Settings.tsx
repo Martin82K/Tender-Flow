@@ -530,15 +530,15 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
         <div className="flex flex-col h-full bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen overflow-y-auto">
             <Header title="Nastavení" subtitle="Konfigurace aplikace a správa staveb" />
 
-            <div className="p-6 lg:p-10 max-w-5xl mx-auto w-full pb-20">
+                <div className="p-6 lg:p-10 max-w-5xl mx-auto w-full pb-20">
 
                 {/* Tab Navigation */}
-                <div className="flex items-center gap-4 mb-8 border-b border-slate-700/50">
+                <div className="flex items-center gap-4 mb-8 border-b border-slate-200 dark:border-slate-700/50">
                     <button
                         onClick={() => setActiveTab('user')}
                         className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'user'
                                 ? 'border-primary text-primary'
-                                : 'border-transparent text-slate-500 hover:text-slate-300'
+                                : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
                             }`}
                     >
                         Nastavení uživatele
@@ -548,7 +548,7 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                             onClick={() => setActiveTab('admin')}
                             className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'admin'
                                     ? 'border-primary text-primary'
-                                    : 'border-transparent text-slate-500 hover:text-slate-300'
+                                    : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
                                 }`}
                         >
                             Administrace
@@ -560,7 +560,7 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                 {activeTab === 'admin' && isAdmin && (
                     <div className="space-y-8 animate-fadeIn">
                         {/* Administration Header */}
-                        <div className="pb-4 border-b border-slate-800 flex flex-col gap-1">
+                        <div className="pb-4 border-b border-slate-200 dark:border-slate-800 flex flex-col gap-1">
                             <div className="flex items-center gap-2">
                                 <span className="material-symbols-outlined text-indigo-400">shield_person</span>
                                 <h2 className="text-xl font-bold text-slate-900 dark:text-white">
@@ -580,14 +580,14 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
 
                         <div className="space-y-6">
                             {/* Allow Public Registration Toggle */}
-                            <div className="flex items-center justify-between pb-4 border-b border-slate-700/50">
+                            <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-700/50">
                                 <div>
                                     <p className="text-sm font-medium text-slate-900 dark:text-white">Povolit registrace všem</p>
                                     <p className="text-xs text-slate-500">Pokud je vypnuto, pouze emaily z povolených domén se mohou registrovat.</p>
                                 </div>
                                 <button
                                     onClick={() => setAllowPublicRegistration(!allowPublicRegistration)}
-                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${allowPublicRegistration ? 'bg-emerald-500' : 'bg-slate-600'}`}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${allowPublicRegistration ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`}
                                 >
                                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${allowPublicRegistration ? 'translate-x-6' : 'translate-x-1'}`} />
                                 </button>
@@ -596,7 +596,7 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                             {/* Domain Whitelist */}
                             <div className="flex flex-col gap-3">
                                 <div>
-                                    <p className="text-sm font-medium text-white">Povolit registrace na doménu (whitelist)</p>
+                                    <p className="text-sm font-medium text-slate-900 dark:text-white">Povolit registrace na doménu (whitelist)</p>
                                     <p className="text-xs text-slate-500 mb-2">
                                         Zadejte domény oddělené čárkou. Např.: @baustav.cz, @firma.cz
                                     </p>
@@ -615,14 +615,14 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
 
 
                             {/* Require Email Whitelist Toggle */}
-                            <div className="flex items-center justify-between pb-4 border-b border-slate-700/50">
+                            <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-700/50">
                                 <div>
                                     <p className="text-sm font-medium text-slate-900 dark:text-white">Vyžadovat whitelist emailů</p>
                                     <p className="text-xs text-slate-500">Pokud je zapnuto, registrovat se mohou pouze emaily explicitně uvedené v seznamu povolených.</p>
                                 </div>
                                 <button
                                     onClick={() => setRequireEmailWhitelist(!requireEmailWhitelist)}
-                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${requireEmailWhitelist ? 'bg-emerald-500' : 'bg-slate-600'}`}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${requireEmailWhitelist ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`}
                                 >
                                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${requireEmailWhitelist ? 'translate-x-6' : 'translate-x-1'}`} />
                                 </button>
@@ -631,12 +631,12 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
 
                         {/* Whitelist Management (Only if enabled) */}
                         {requireEmailWhitelist && (
-                            <div className="mt-6 border-t border-slate-700/50 pt-6">
+                            <div className="mt-6 border-t border-slate-200 dark:border-slate-700/50 pt-6">
                                 <EmailWhitelistManagement isAdmin={true} />
                             </div>
                         )}
 
-                        <div className="mt-6 flex justify-end border-t border-slate-700/50 pt-4">
+                        <div className="mt-6 flex justify-end border-t border-slate-200 dark:border-slate-700/50 pt-4">
                             <button
                                 onClick={handleSaveRegistrationSettings}
                                 disabled={isSavingSettings || isLoadingSettings}
@@ -669,7 +669,7 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                             </div>
                             <button
                                 onClick={() => setAiEnabled(!aiEnabled)}
-                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${aiEnabled ? 'bg-emerald-500' : 'bg-slate-600'}`}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${aiEnabled ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`}
                             >
                                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${aiEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
                             </button>

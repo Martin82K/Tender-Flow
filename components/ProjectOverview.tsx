@@ -23,11 +23,11 @@ const KPICard: React.FC<{
     subtitle?: string;
     trend?: 'up' | 'down' | 'neutral';
 }> = ({ title, value, icon, color, subtitle, trend }) => (
-    <div className="bg-white/5 backdrop-blur-xl p-4 rounded-xl border border-white/10 shadow-lg hover:border-white/20 transition-all">
+    <div className="bg-white dark:bg-white/5 backdrop-blur-xl p-4 rounded-xl border border-slate-200 dark:border-white/10 shadow-lg hover:border-slate-300 dark:hover:border-white/20 transition-all">
         <div className="flex items-center justify-between gap-2">
             <div className="flex-1 min-w-0">
-                <p className="text-slate-400 text-[10px] font-medium uppercase tracking-wider truncate">{title}</p>
-                <h3 className="text-lg font-bold text-white truncate mt-1">{value}</h3>
+                <p className="text-slate-500 dark:text-slate-400 text-[10px] font-medium uppercase tracking-wider truncate">{title}</p>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white truncate mt-1">{value}</h3>
                 {subtitle && (
                     <div className="flex items-center gap-1 mt-0.5">
                         {trend && (
@@ -60,7 +60,7 @@ const ProgressRing: React.FC<{ progress: number; size?: number; strokeWidth?: nu
 
     return (
         <svg width={size} height={size} className="transform -rotate-90">
-            <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth={strokeWidth} />
+            <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="rgba(148,163,184,0.25)" strokeWidth={strokeWidth} />
             <circle
                 cx={size / 2} cy={size / 2} r={radius} fill="none"
                 stroke={color}
@@ -550,7 +550,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
                         <select
                             value={selectedProjectId}
                             onChange={(e) => setSelectedProjectId(e.target.value)}
-                            className="appearance-none bg-slate-800 border border-slate-700 text-white px-4 py-2.5 pr-10 rounded-xl text-sm font-medium focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer min-w-[200px]"
+                            className="appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white px-4 py-2.5 pr-10 rounded-xl text-sm font-medium focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer min-w-[200px]"
                         >
                             {activeProjects.map(project => (
                                 <option key={project.id} value={project.id}>
@@ -597,14 +597,14 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
                 </div>
 
                 {/* AI Generation Button */}
-                <div className="flex items-center justify-between bg-gradient-to-r from-violet-900/30 to-blue-900/30 backdrop-blur-xl rounded-xl border border-violet-500/20 p-4">
+                <div className="flex items-center justify-between bg-slate-50 dark:bg-gradient-to-r dark:from-violet-900/30 dark:to-blue-900/30 backdrop-blur-xl rounded-xl border border-slate-200 dark:border-violet-500/20 p-4">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-gradient-to-br from-orange-500 to-amber-600 rounded-lg flex items-center justify-center">
                             <span className="text-white text-[12px] font-black tracking-tighter">TF</span>
                         </div>
                         <div>
-                            <h3 className="text-sm font-bold text-white">TenderFlow AI Analýza</h3>
-                            <p className="text-[10px] text-slate-400">
+                            <h3 className="text-sm font-bold text-slate-900 dark:text-white">TenderFlow AI Analýza</h3>
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400">
                                 {aiInsights.length > 0 ? 'Manažerská analýza projektu' : isAnalyzing ? 'Generuji detailní analýzu...' : 'Automatická analýza projektu'}
                             </p>
                         </div>
@@ -612,7 +612,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
                     <button
                         onClick={generateAIAnalysis}
                         disabled={isAnalyzing}
-                        className="flex items-center gap-1.5 px-4 py-2 bg-violet-600 hover:bg-violet-500 disabled:bg-slate-700 text-white text-xs font-medium rounded-lg transition-colors"
+                        className="flex items-center gap-1.5 px-4 py-2 bg-violet-600 hover:bg-violet-500 disabled:bg-slate-200 dark:disabled:bg-slate-700 disabled:text-slate-600 dark:disabled:text-white text-white text-xs font-medium rounded-lg transition-colors"
                     >
                         <span className={`material-symbols-outlined text-[16px] ${isAnalyzing ? 'animate-spin' : ''}`}>
                             {isAnalyzing ? 'sync' : hasGeneratedAI ? 'refresh' : 'auto_awesome'}
@@ -625,8 +625,8 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
                     {/* AI Analysis - Full formatted text */}
-                    <div className="bg-gradient-to-br from-violet-900/20 to-blue-900/20 backdrop-blur-xl rounded-2xl border border-violet-500/20 p-5">
-                        <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                    <div className="bg-white dark:bg-gradient-to-br dark:from-violet-900/20 dark:to-blue-900/20 backdrop-blur-xl rounded-2xl border border-slate-200 dark:border-violet-500/20 p-5">
+                        <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                             <span className="material-symbols-outlined text-violet-400 text-[18px]">description</span>
                             Manažerská analýza projektu
                         </h3>
@@ -634,13 +634,13 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
                             <div className="flex items-center justify-center h-[350px]">
                                 <div className="flex flex-col items-center gap-3">
                                     <div className="w-10 h-10 border-3 border-violet-500 border-t-transparent rounded-full animate-spin" />
-                                    <p className="text-xs text-slate-400">Generuji detailní analýzu...</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">Generuji detailní analýzu...</p>
                                 </div>
                             </div>
                         ) : aiInsights.length > 0 && aiInsights[0]?.content ? (
-                            <div className="max-h-[350px] overflow-y-auto pr-2 text-sm text-slate-300 leading-relaxed prose prose-invert prose-sm max-w-none
-                                prose-headings:text-white prose-headings:font-bold prose-headings:mt-4 prose-headings:mb-2
-                                prose-strong:text-white prose-strong:font-semibold
+                            <div className="max-h-[350px] overflow-y-auto pr-2 text-sm text-slate-700 dark:text-slate-300 leading-relaxed prose dark:prose-invert prose-sm max-w-none
+                                prose-headings:text-slate-900 dark:prose-headings:text-white prose-headings:font-bold prose-headings:mt-4 prose-headings:mb-2
+                                prose-strong:text-slate-900 dark:prose-strong:text-white prose-strong:font-semibold
                                 prose-ul:my-2 prose-li:my-0.5">
                                 <div dangerouslySetInnerHTML={{
                                     __html: aiInsights[0].content
@@ -659,8 +659,8 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
                     </div>
 
                     {/* Bar Chart - Plan vs SOD */}
-                    <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-5">
-                        <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                    <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-slate-200 dark:border-white/10 p-5">
+                        <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                             <span className="material-symbols-outlined text-blue-400 text-[18px]">bar_chart</span>
                             Plán vs. Zasmluvněno (SOD)
                         </h3>
@@ -686,8 +686,8 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
 
                     {/* Profitability Pie */}
-                    <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
-                        <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2">
+                    <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-slate-200 dark:border-white/10 p-6">
+                        <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                             <span className="material-symbols-outlined text-emerald-400 text-[22px]">pie_chart</span>
                             Ziskovost vs Plán
                         </h3>
@@ -706,11 +706,11 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
                                 <div className="flex gap-6 mt-4">
                                     <div className="flex items-center gap-2 text-sm">
                                         <div className="w-3 h-3 rounded-full bg-emerald-500" />
-                                        <span className="text-slate-300">Ziskové: {formatMoneyShort(metrics?.profitableSum || 0)}</span>
+                                        <span className="text-slate-700 dark:text-slate-300">Ziskové: {formatMoneyShort(metrics?.profitableSum || 0)}</span>
                                     </div>
                                     <div className="flex items-center gap-2 text-sm">
                                         <div className="w-3 h-3 rounded-full bg-red-500" />
-                                        <span className="text-slate-300">Ztrátové: {formatMoneyShort(metrics?.unprofitableSum || 0)}</span>
+                                        <span className="text-slate-700 dark:text-slate-300">Ztrátové: {formatMoneyShort(metrics?.unprofitableSum || 0)}</span>
                                     </div>
                                 </div>
                             </div>
@@ -737,8 +737,8 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
                     </div>
 
                     {/* Status Pie */}
-                    <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-5">
-                        <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                    <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-slate-200 dark:border-white/10 p-5">
+                        <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
                             <span className="material-symbols-outlined text-amber-400 text-[18px]">donut_large</span>
                             Stav kategorií
                         </h3>
@@ -758,7 +758,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
                                     {statusChartData.map((item, idx) => (
                                         <div key={idx} className="flex items-center gap-1 text-[10px]">
                                             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
-                                            <span className="text-slate-400">{item.name}: {item.value}</span>
+                                            <span className="text-slate-600 dark:text-slate-400">{item.name}: {item.value}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -769,8 +769,8 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
                     </div>
 
                     {/* Categories Distribution Pie */}
-                    <div className="lg:col-span-2 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-5">
-                        <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                    <div className="lg:col-span-2 bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-slate-200 dark:border-white/10 p-5">
+                        <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
                             <span className="material-symbols-outlined text-violet-400 text-[18px]">data_usage</span>
                             {metrics?.sodCount > 0 ? 'Rozložení SOD nákladů' : 'Rozložení plánovaného rozpočtu'}
                         </h3>
@@ -790,7 +790,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
                                     {pieChartData.map((item, idx) => (
                                         <div key={idx} className="flex items-center gap-2 text-[11px]">
                                             <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
-                                            <span className="text-slate-300 truncate flex-1">{item.name}</span>
+                                            <span className="text-slate-700 dark:text-slate-300 truncate flex-1">{item.name}</span>
                                             <span className="text-slate-500">{formatMoneyShort(item.value)}</span>
                                         </div>
                                     ))}
@@ -804,46 +804,46 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
 
                 {/* Category Profitability Table */}
                 {metrics?.categoryProfitability && metrics.categoryProfitability.length > 0 && (
-                    <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-5">
-                        <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                    <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-slate-200 dark:border-white/10 p-5">
+                        <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                             <span className="material-symbols-outlined text-cyan-400 text-[18px]">table_chart</span>
                             Bilance kategorií vs. Plán
                         </h3>
                         <div className="overflow-x-auto">
                             <table className="w-full text-xs">
                                 <thead>
-                                    <tr className="border-b border-white/10">
-                                        <th className="text-left py-2 px-3 text-slate-400 font-medium">Kategorie</th>
-                                        <th className="text-right py-2 px-3 text-slate-400 font-medium">Plán</th>
-                                        <th className="text-right py-2 px-3 text-slate-400 font-medium">SOD</th>
-                                        <th className="text-right py-2 px-3 text-slate-400 font-medium">Rozdíl</th>
-                                        <th className="text-right py-2 px-3 text-slate-400 font-medium">%</th>
+                                    <tr className="border-b border-slate-200 dark:border-white/10">
+                                        <th className="text-left py-2 px-3 text-slate-600 dark:text-slate-400 font-medium">Kategorie</th>
+                                        <th className="text-right py-2 px-3 text-slate-600 dark:text-slate-400 font-medium">Plán</th>
+                                        <th className="text-right py-2 px-3 text-slate-600 dark:text-slate-400 font-medium">SOD</th>
+                                        <th className="text-right py-2 px-3 text-slate-600 dark:text-slate-400 font-medium">Rozdíl</th>
+                                        <th className="text-right py-2 px-3 text-slate-600 dark:text-slate-400 font-medium">%</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {metrics.categoryProfitability.map((cat, idx) => (
-                                        <tr key={idx} className="border-b border-white/5 hover:bg-white/5">
-                                            <td className="py-2 px-3 text-slate-200">{cat.title}</td>
-                                            <td className="text-right py-2 px-3 text-slate-400">{formatMoney(cat.planBudget || 0)}</td>
-                                            <td className="text-right py-2 px-3 text-slate-300">{formatMoney(cat.sodBudget || 0)}</td>
-                                            <td className={`text-right py-2 px-3 font-medium ${cat.isProfitable ? 'text-emerald-400' : 'text-red-400'}`}>
+                                        <tr key={idx} className="border-b border-slate-200 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5">
+                                            <td className="py-2 px-3 text-slate-900 dark:text-slate-200">{cat.title}</td>
+                                            <td className="text-right py-2 px-3 text-slate-600 dark:text-slate-400">{formatMoney(cat.planBudget || 0)}</td>
+                                            <td className="text-right py-2 px-3 text-slate-700 dark:text-slate-300">{formatMoney(cat.sodBudget || 0)}</td>
+                                            <td className={`text-right py-2 px-3 font-medium ${cat.isProfitable ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                                                 {cat.isProfitable ? '+' : ''}{formatMoney(cat.diffVsPlan)}
                                             </td>
-                                            <td className={`text-right py-2 px-3 ${cat.isProfitable ? 'text-emerald-400' : 'text-red-400'}`}>
+                                            <td className={`text-right py-2 px-3 ${cat.isProfitable ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                                                 {cat.profitPercent.toFixed(1)}%
                                             </td>
                                         </tr>
                                     ))}
                                 </tbody>
                                 <tfoot>
-                                    <tr className="border-t border-white/20 font-bold">
-                                        <td className="py-2 px-3 text-white">Celkem</td>
-                                        <td className="text-right py-2 px-3 text-slate-300">{formatMoney(metrics.totalPlanned)}</td>
-                                        <td className="text-right py-2 px-3 text-slate-200">{formatMoney(metrics.totalContracted)}</td>
-                                        <td className={`text-right py-2 px-3 ${metrics.balanceVsPlan >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                    <tr className="border-t border-slate-300 dark:border-white/20 font-bold">
+                                        <td className="py-2 px-3 text-slate-900 dark:text-white">Celkem</td>
+                                        <td className="text-right py-2 px-3 text-slate-700 dark:text-slate-300">{formatMoney(metrics.totalPlanned)}</td>
+                                        <td className="text-right py-2 px-3 text-slate-900 dark:text-slate-200">{formatMoney(metrics.totalContracted)}</td>
+                                        <td className={`text-right py-2 px-3 ${metrics.balanceVsPlan >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                                             {metrics.balanceVsPlan >= 0 ? '+' : ''}{formatMoney(metrics.balanceVsPlan)}
                                         </td>
-                                        <td className="text-right py-2 px-3 text-slate-400">-</td>
+                                        <td className="text-right py-2 px-3 text-slate-500 dark:text-slate-400">-</td>
                                     </tr>
                                 </tfoot>
                             </table>
