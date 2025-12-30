@@ -56,6 +56,9 @@ export const Settings: React.FC<SettingsProps> = ({
     const [uploadProgress, setUploadProgress] = useState(0);
     const [isUploading, setIsUploading] = useState(false);
 
+    // Tab State
+    const [activeTab, setActiveTab] = useState<'user' | 'admin'>('user');
+
     // Auto-Sync State
     const [importUrl, setImportUrl] = useState(() => localStorage.getItem('contactsImportUrl') || '');
     const [lastSyncTime, setLastSyncTime] = useState(() => localStorage.getItem('contactsLastSyncTime') || '');
@@ -497,7 +500,8 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                     email: cols[4] || '-',
                     ico: cols[5] || '-',
                     region: cols[6] || '-',
-                    status: 'available' // Default status
+                    status: 'available', // Default status
+                    contacts: []
                 });
             }
         }
@@ -527,21 +531,45 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
 
             <div className="p-6 lg:p-10 max-w-5xl mx-auto w-full pb-20">
 
-                {/* Administration Header */}
-                {isAdmin && (
-                    <div className="mb-8 pb-4 border-b border-slate-800 flex flex-col gap-1">
-                        <div className="flex items-center gap-2">
-                            <span className="material-symbols-outlined text-indigo-400">shield_person</span>
-                            <h2 className="text-xl font-bold text-white">
-                                Administrace systému
-                            </h2>
-                        </div>
-                        <p className="text-sm text-slate-500">Správa uživatelů, registrací a nastavení AI</p>
-                    </div>
-                )}
+                {/* Tab Navigation */}
+                <div className="flex items-center gap-4 mb-8 border-b border-slate-700/50">
+                    <button
+                        onClick={() => setActiveTab('user')}
+                        className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'user'
+                                ? 'border-primary text-primary'
+                                : 'border-transparent text-slate-500 hover:text-slate-300'
+                            }`}
+                    >
+                        Nastavení uživatele
+                    </button>
+                    {isAdmin && (
+                        <button
+                            onClick={() => setActiveTab('admin')}
+                            className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'admin'
+                                    ? 'border-primary text-primary'
+                                    : 'border-transparent text-slate-500 hover:text-slate-300'
+                                }`}
+                        >
+                            Administrace
+                        </button>
+                    )}
+                </div>
 
-                {/* Admin Only: Registration Settings */}
-                {isAdmin && (
+                {/* --- ADMIN TAB CONTENT --- */}
+                {activeTab === 'admin' && isAdmin && (
+                    <div className="space-y-8 animate-fadeIn">
+                        {/* Administration Header */}
+                        <div className="pb-4 border-b border-slate-800 flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                                <span className="material-symbols-outlined text-indigo-400">shield_person</span>
+                                <h2 className="text-xl font-bold text-white">
+                                    Administrace systému
+                                </h2>
+                            </div>
+                            <p className="text-sm text-slate-500">Správa uživatelů, registrací a nastavení AI</p>
+                        </div>
+
+                        {/* Registration Settings */}
                     <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl mb-8">
                         <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                             <span className="material-symbols-outlined text-red-400">admin_panel_settings</span>
@@ -620,13 +648,12 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                             </button>
                         </div>
                     </section>
-                )}
 
-                {/* Superadmin Only: User Management */}
-                <UserManagement isSuperAdmin={isSuperAdmin} />
 
-                {/* Admin Only: AI Settings */}
-                {isAdmin && (
+
+                        <UserManagement isSuperAdmin={isSuperAdmin} />
+
+                        {/* AI Settings */}
                     <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl mb-8">
                         <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                             <span className="material-symbols-outlined text-violet-400">auto_awesome</span>
@@ -752,9 +779,16 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                             </div>
                         )}
                     </section>
+
+
+
+                    </div>
                 )}
 
-                {/* Profile Settings Section */}
+                {/* --- USER TAB CONTENT --- */}
+                {activeTab === 'user' && (
+                    <div className="space-y-8 animate-fadeIn">
+                        {/* Profile Settings Section */}
                 <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl mb-8">
                     <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
                         <span className="material-symbols-outlined text-emerald-400">person</span>
@@ -896,84 +930,8 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                     </div>
                 </section>
 
-                {/* 2. Subcontractor Status Management - Admin Only */}
-                {isAdmin && (
-                    <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
-                        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-                            <span className="material-symbols-outlined">label</span>
-                            Správa stavů kontaktů
-                            <span className="ml-2 px-2.5 py-1 bg-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-bold rounded-lg border border-amber-500/30">Admin</span>
-                        </h2>
+                        {/* 2. Subcontractor Status Management - MOVED TO ADMIN */}
 
-                        {/* Add Status */}
-                        <form onSubmit={handleAddStatus} className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700 mb-6 flex flex-col md:flex-row gap-4 items-end">
-                            <div className="flex-1 w-full">
-                                <label className="block text-xs text-slate-500 mb-1">Název stavu</label>
-                                <input
-                                    type="text"
-                                    value={newStatusLabel}
-                                    onChange={(e) => setNewStatusLabel(e.target.value)}
-                                    placeholder="Např. Dovolená"
-                                    className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:ring-primary focus:border-primary"
-                                />
-                            </div>
-                            <div className="w-full md:w-auto">
-                                <label className="block text-xs text-slate-500 mb-1">Barva</label>
-                                <div className="flex gap-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg p-1.5 h-[38px] items-center">
-                                    {colorOptions.map(opt => (
-                                        <button
-                                            key={opt.value}
-                                            type="button"
-                                            onClick={() => setNewStatusColor(opt.value)}
-                                            className={`size-6 rounded-full ${opt.class} ${newStatusColor === opt.value ? 'ring-2 ring-offset-1 ring-slate-400 dark:ring-slate-500 scale-110' : 'opacity-70 hover:opacity-100'}`}
-                                            title={opt.value}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                            <button
-                                type="submit"
-                                disabled={!newStatusLabel}
-                                className="bg-primary hover:bg-primary/90 text-white px-4 py-2 h-[38px] rounded-lg text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full md:w-auto"
-                            >
-                                Přidat
-                            </button>
-                        </form>
-
-                        {/* Status List */}
-                        <div className="space-y-3">
-                            {contactStatuses.map(status => (
-                                <div key={status.id} className="flex items-center gap-4 p-3 rounded-lg border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                                    <div className="flex gap-1.5 items-center bg-slate-100 dark:bg-slate-800 rounded px-2 py-1">
-                                        {colorOptions.map(opt => (
-                                            <button
-                                                key={opt.value}
-                                                onClick={() => handleUpdateStatusColor(status.id, opt.value)}
-                                                className={`size-4 rounded-full ${opt.class} ${status.color === opt.value ? 'ring-2 ring-offset-1 ring-white dark:ring-slate-900' : 'opacity-40 hover:opacity-100'}`}
-                                            />
-                                        ))}
-                                    </div>
-                                    <div className="flex-1">
-                                        <input
-                                            type="text"
-                                            value={status.label}
-                                            onChange={(e) => handleUpdateStatusLabel(status.id, e.target.value)}
-                                            onBlur={(e) => handleStatusLabelBlur(status.id, e.target.value)}
-                                            className="bg-transparent border-none p-0 text-sm font-medium text-slate-900 dark:text-white focus:ring-0 w-full"
-                                        />
-                                    </div>
-                                    <button
-                                        onClick={() => handleDeleteStatus(status.id)}
-                                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
-                                        title="Smazat stav"
-                                    >
-                                        <span className="material-symbols-outlined text-[18px]">delete</span>
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    </section>
-                )}
 
                 {/* 3. Import Data Section */}
                 <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
@@ -1109,6 +1067,84 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                         </div>
                     </div>
                 </section>
+
+                {/* Subcontractor Status Management - User Tab */}
+                <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm mt-8">
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+                        <span className="material-symbols-outlined">label</span>
+                        Správa stavů kontaktů
+                    </h2>
+
+                    {/* Add Status */}
+                    <form onSubmit={handleAddStatus} className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700 mb-6 flex flex-col md:flex-row gap-4 items-end">
+                        <div className="flex-1 w-full">
+                            <label className="block text-xs text-slate-500 mb-1">Název stavu</label>
+                            <input
+                                type="text"
+                                value={newStatusLabel}
+                                onChange={(e) => setNewStatusLabel(e.target.value)}
+                                placeholder="Např. Dovolená"
+                                className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:ring-primary focus:border-primary"
+                            />
+                        </div>
+                        <div className="w-full md:w-auto">
+                            <label className="block text-xs text-slate-500 mb-1">Barva</label>
+                            <div className="flex gap-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg p-1.5 h-[38px] items-center">
+                                {colorOptions.map(opt => (
+                                    <button
+                                        key={opt.value}
+                                        type="button"
+                                        onClick={() => setNewStatusColor(opt.value)}
+                                        className={`size-6 rounded-full ${opt.class} ${newStatusColor === opt.value ? 'ring-2 ring-offset-1 ring-slate-400 dark:ring-slate-500 scale-110' : 'opacity-70 hover:opacity-100'}`}
+                                        title={opt.value}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                        <button
+                            type="submit"
+                            disabled={!newStatusLabel}
+                            className="bg-primary hover:bg-primary/90 text-white px-4 py-2 h-[38px] rounded-lg text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full md:w-auto"
+                        >
+                            Přidat
+                        </button>
+                    </form>
+
+                    {/* Status List */}
+                    <div className="space-y-3">
+                        {contactStatuses.map(status => (
+                            <div key={status.id} className="flex items-center gap-4 p-3 rounded-lg border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                                <div className="flex gap-1.5 items-center bg-slate-100 dark:bg-slate-800 rounded px-2 py-1">
+                                    {colorOptions.map(opt => (
+                                        <button
+                                            key={opt.value}
+                                            onClick={() => handleUpdateStatusColor(status.id, opt.value)}
+                                            className={`size-4 rounded-full ${opt.class} ${status.color === opt.value ? 'ring-2 ring-offset-1 ring-white dark:ring-slate-900' : 'opacity-40 hover:opacity-100'}`}
+                                        />
+                                    ))}
+                                </div>
+                                <div className="flex-1">
+                                    <input
+                                        type="text"
+                                        value={status.label}
+                                        onChange={(e) => handleUpdateStatusLabel(status.id, e.target.value)}
+                                        onBlur={(e) => handleStatusLabelBlur(status.id, e.target.value)}
+                                        className="bg-transparent border-none p-0 text-sm font-medium text-slate-900 dark:text-white focus:ring-0 w-full"
+                                    />
+                                </div>
+                                <button
+                                    onClick={() => handleDeleteStatus(status.id)}
+                                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
+                                    title="Smazat stav"
+                                >
+                                    <span className="material-symbols-outlined text-[18px]">delete</span>
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+                </div>
+            )}
 
 
             </div>
