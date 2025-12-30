@@ -285,18 +285,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
                 alt="Tender Flow Logo"
                 className="size-14 min-w-14 object-contain drop-shadow-md shrink-0"
               />
-              <div className="flex flex-col min-w-0">
-                <h1 className="text-slate-900 dark:text-white text-xl font-bold leading-normal break-words">Tender Flow</h1>
-                <p className="text-slate-500 text-[8px] font-normal break-words">Tender Management System</p>
+              <div className="flex flex-1 flex-col min-w-0">
+                <h1 className="text-slate-900 dark:text-white text-xl font-bold leading-tight whitespace-nowrap truncate">Tender Flow</h1>
+                <p className="text-slate-500 text-[8px] font-normal leading-tight whitespace-nowrap truncate">Tender Management System</p>
               </div>
-              {/* Close Toggle for Desktop */}
-              <button
-                onClick={onToggle}
-                className="ml-auto p-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors hidden md:flex items-center justify-center"
-                title="Schovat sidebar"
-              >
-                <span className="material-symbols-outlined text-[20px]">menu_open</span>
-              </button>
               {/* Close Toggle for Mobile */}
               <button
                 onClick={onToggle}
@@ -315,6 +307,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
 
           {/* Bottom Section */}
           <div className="mt-auto p-3 space-y-2 border-t border-slate-200 dark:border-slate-700/50">
+            {/* Sidebar Toggle */}
+            <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-200 dark:border-slate-700/50">
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Skrýt panel</span>
+              <button
+                onClick={onToggle}
+                className="p-1 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors inline-flex items-center justify-center"
+                title="Skrýt panel"
+                aria-label="Skrýt panel"
+              >
+                <span className="material-symbols-outlined text-[22px]">toggle_on</span>
+              </button>
+            </div>
+
             {BOTTOM_NAVIGATION.map(renderNavItem)}
 
             <a
