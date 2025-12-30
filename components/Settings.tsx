@@ -58,6 +58,7 @@ export const Settings: React.FC<SettingsProps> = ({
 
     // Tab State
     const [activeTab, setActiveTab] = useState<'user' | 'admin'>('user');
+    const [activeUserSubTab, setActiveUserSubTab] = useState<'profile' | 'contacts'>('profile');
 
     // Auto-Sync State
     const [importUrl, setImportUrl] = useState(() => localStorage.getItem('contactsImportUrl') || '');
@@ -788,6 +789,38 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                 {/* --- USER TAB CONTENT --- */}
                 {activeTab === 'user' && (
                     <div className="space-y-8 animate-fadeIn">
+                        {/* Sub-tab Navigation */}
+                        <div className="flex gap-4 mb-6 border-b border-slate-200 dark:border-slate-800 pb-2">
+                             <button
+                                onClick={() => setActiveUserSubTab('profile')}
+                                className={`pb-2 px-1 text-sm font-medium transition-colors relative ${activeUserSubTab === 'profile'
+                                    ? 'text-primary'
+                                    : 'text-slate-500 hover:text-slate-300'
+                                    }`}
+                            >
+                                Profil
+                                {activeUserSubTab === 'profile' && (
+                                    <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-t-full" />
+                                )}
+                            </button>
+                            <button
+                                onClick={() => setActiveUserSubTab('contacts')}
+                                className={`pb-2 px-1 text-sm font-medium transition-colors relative ${activeUserSubTab === 'contacts'
+                                    ? 'text-primary'
+                                    : 'text-slate-500 hover:text-slate-300'
+                                    }`}
+                            >
+                                Kontakty
+                                {activeUserSubTab === 'contacts' && (
+                                    <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-t-full" />
+                                )}
+                            </button>
+                        </div>
+
+                        {/* --- USER: PROFILE SUB-TAB --- */}
+                        {activeUserSubTab === 'profile' && (
+                            <>
+
                         {/* Profile Settings Section */}
                 <section className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl mb-8">
                     <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
@@ -929,6 +962,12 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                         </button>
                     </div>
                 </section>
+                </>
+                )}
+
+                {/* --- USER: CONTACTS SUB-TAB --- */}
+                {activeUserSubTab === 'contacts' && (
+                    <>
 
                         {/* 2. Subcontractor Status Management - MOVED TO ADMIN */}
 
@@ -1143,6 +1182,8 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                         ))}
                     </div>
                 </section>
+                </>
+                )}
                 </div>
             )}
 
