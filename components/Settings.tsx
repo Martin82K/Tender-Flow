@@ -778,7 +778,7 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                                     : 'text-slate-500 hover:text-slate-300'
                                     }`}
                             >
-                                Nástroje
+                                ExcelUnlocker Pro
                                 {activeUserSubTab === 'tools' && (
                                     <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-t-full" />
                                 )}

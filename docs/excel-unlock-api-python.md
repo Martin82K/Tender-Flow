@@ -1,6 +1,6 @@
 # Excel Unlock API (Python, openpyxl)
 
-Tento backend odemyká Excel soubory spolehlivě pomocí `openpyxl` a vrací nový soubor ke stažení. Frontend v `Nastavení → Nástroje → Odemčení excelu` volá defaultně `http://localhost:5000/unlock`.
+Tento backend odemyká Excel soubory spolehlivě pomocí `openpyxl` a vrací nový soubor ke stažení. Frontend v `Nastavení → ExcelUnlocker Pro → Odemčení excelu` volá defaultně `http://localhost:5000/unlock`.
 
 ## Spuštění
 
@@ -35,4 +35,3 @@ Příklad (curl):
 V prohlížeči lze přesměrovat endpoint přes env:
 
 - `VITE_EXCEL_UNLOCK_API=http://localhost:5000/unlock`
-

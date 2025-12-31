@@ -29,10 +29,9 @@ Nastavte `to` na reálnou URL vašeho backendu (např. Render URL).
 
 ## 3) Frontend konfigurace
 
-Frontend v `Nastavení → Nástroje → Odemčení excelu` volá:
+Frontend v `Nastavení → ExcelUnlocker Pro → Odemčení excelu` volá:
 - na produkci `/api/unlock`
 - lokálně `http://localhost:5000/unlock`
 
 Pokud chcete přepsat endpoint ručně, použijte:
 - `VITE_EXCEL_UNLOCK_API`
-
