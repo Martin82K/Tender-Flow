@@ -11,6 +11,7 @@ import { PublicHeader } from "./components/public/PublicHeader";
 import { FeatureProvider } from "./context/FeatureContext";
 import { RequireFeature } from "./components/routing/RequireFeature";
 import { FEATURES } from "./config/features";
+import { ConfirmationModal } from "./components/ConfirmationModal";
 
 // Lazy load heavy components for better code splitting
 const ProjectManager = React.lazy(() => import('./components/ProjectManager').then(m => ({ default: m.ProjectManager })));
@@ -208,6 +209,34 @@ const AppContent: React.FC = () => {
   const [backgroundWarning, setBackgroundWarning] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [uiModal, setUiModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    variant?: 'danger' | 'info' | 'success';
+    confirmLabel?: string;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    variant: 'info',
+    confirmLabel: 'Zavřít',
+  });
+
+  const showUiModal = (opts: {
+    title: string;
+    message: string;
+    variant?: 'danger' | 'info' | 'success';
+    confirmLabel?: string;
+  }) => {
+    setUiModal({
+      isOpen: true,
+      title: opts.title,
+      message: opts.message,
+      variant: opts.variant ?? 'info',
+      confirmLabel: opts.confirmLabel ?? 'Zavřít',
+    });
+  };
 
   const handleNavigateToProject = (projectId: string, tab: string, categoryId?: string) => {
     const nextTab: ProjectTab = tab === "pipeline" ? "pipeline" : "overview";
@@ -1446,9 +1475,11 @@ const AppContent: React.FC = () => {
           demoData.contacts = mergedContacts;
           saveDemoData(demoData);
         }
-        alert(
-          `Demo synchronizace dokončena: \n - Přidáno nových: ${addedCount} \n - Aktualizováno: ${updatedCount} \n(Data uložena v prohlížeči)`
-        );
+        showUiModal({
+          title: "Synchronizace dokončena",
+          message: `Demo režim:\n- Přidáno nových: ${addedCount}\n- Aktualizováno: ${updatedCount}\n\n(Data uložena v prohlížeči)`,
+          variant: "success",
+        });
         return;
       }
 
@@ -1483,7 +1514,11 @@ const AppContent: React.FC = () => {
 
         if (insertError) {
           console.error("Error inserting contacts:", insertError);
-          alert(`Chyba při vkládání kontaktů: ${insertError.message} `);
+          showUiModal({
+            title: "Import selhal",
+            message: `Chyba při vkládání kontaktů: ${insertError.message}`,
+            variant: "danger",
+          });
         } else {
           console.log("Successfully inserted contacts:", data);
           completedOps++;
@@ -1522,12 +1557,18 @@ const AppContent: React.FC = () => {
       }
 
       console.log("Import persistence completed.");
-      alert(
-        `Synchronizace dokončena: \n - Přidáno nových: ${addedCount} \n - Aktualizováno: ${updatedCount} `
-      );
+      showUiModal({
+        title: "Synchronizace dokončena",
+        message: `- Přidáno nových: ${addedCount}\n- Aktualizováno: ${updatedCount}`,
+        variant: "success",
+      });
     } catch (error: any) {
       console.error("Unexpected error persisting contacts:", error);
-      alert(`Neočekávaná chyba při ukládání: ${error.message || error} `);
+      showUiModal({
+        title: "Import selhal",
+        message: `Neočekávaná chyba při ukládání: ${error.message || error}`,
+        variant: "danger",
+      });
     }
   };
 
@@ -2061,6 +2102,14 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="relative flex h-screen w-full flex-row overflow-hidden bg-background-light dark:bg-background-dark">
+      <ConfirmationModal
+        isOpen={uiModal.isOpen}
+        title={uiModal.title}
+        message={uiModal.message}
+        variant={uiModal.variant}
+        confirmLabel={uiModal.confirmLabel}
+        onConfirm={() => setUiModal((prev) => ({ ...prev, isOpen: false }))}
+      />
       <Sidebar
         currentView={currentView}
         onViewChange={(view) => {
