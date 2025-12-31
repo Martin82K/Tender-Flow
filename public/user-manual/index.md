@@ -2,7 +2,7 @@
 
 Tato příručka popisuje práci v aplikaci Tender Flow pro řízení staveb, výběrových řízení a subdodavatelů.
 
-Verze příručky: **1.2** • Datum: **2025‑12‑27** • Aplikace: **v0.9.3**
+Verze příručky: **1.2** • Datum: **2025‑12‑31** • Aplikace: **v0.9.3-253112**
 
 ![Tender Flow logo](./assets/logo.png)
 
@@ -35,7 +35,7 @@ Verze příručky: **1.2** • Datum: **2025‑12‑27** • Aplikace: **v0.9.3*
 
 Verzi aplikace najdete vlevo dole v sidebaru.
 
-### v0.9.3
+### v0.9.3-253112
 
 - **Hlavní stránka / DEMO**: pro ceník a možnost „DEMO“ bylo vytvořeno demo s provizorními (generovanými) daty pro možnost seznámení se s aplikací.
 - **Funkčnost (AI)**: úprava AI backendové části pro lepší a rychlejší fungování; implementace cache AI, aby nedocházelo k neustálému volání a přegenerování reportů.
@@ -314,4 +314,4 @@ Autorem a vlastníkem aplikace Tender Flow je **Martin Kalkuš** (`martinkalkus8
 
 ---
 
-Verze: **1.2** • Datum: **2025‑12‑27**
+Verze: **1.2** • Datum: **2025‑12‑31**

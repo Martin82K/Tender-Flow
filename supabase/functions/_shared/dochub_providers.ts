@@ -96,7 +96,7 @@ export const findOrCreateGoogleFolder = async (args: {
   parentId: string;
   name: string;
   appProperties?: Record<string, string> | null;
-}): Promise<{ id: string; name: string; webViewLink: string }> => {
+}): Promise<{ id: string; name: string; webViewLink: string; created: boolean; duplicatesFound: number }> => {
   const escapeQueryString = (value: string) => value.replace(/'/g, "\\'");
 
   const baseQuery = [
@@ -132,17 +132,27 @@ export const findOrCreateGoogleFolder = async (args: {
     const json = await res.json();
     if (!res.ok) throw new Error(json?.error?.message || "Drive list failed");
     const files = (json.files || []) as any[];
-    if (!files.length) return null;
-    if (!appQuery) return files[0];
+    if (!files.length) return { canonical: null as any, duplicatesFound: 0 };
+    if (!appQuery) return { canonical: files[0], duplicatesFound: Math.max(0, files.length - 1) };
     const matchesAppProps = (file: any) => {
       const props = (file?.appProperties || {}) as Record<string, string>;
       return Object.entries(appProps || {}).every(([k, v]) => props?.[k] === v);
     };
-    return files.find(matchesAppProps) || files[0];
+    const matched = files.filter(matchesAppProps);
+    const canonical = matched[0] || files[0];
+    return { canonical, duplicatesFound: Math.max(0, matched.length - 1) };
   };
 
   const existing = await listOnce();
-  if (existing?.id) return { id: existing.id, name: existing.name, webViewLink: existing.webViewLink };
+  if (existing.canonical?.id) {
+    return {
+      id: existing.canonical.id,
+      name: existing.canonical.name,
+      webViewLink: existing.canonical.webViewLink,
+      created: false,
+      duplicatesFound: existing.duplicatesFound,
+    };
+  }
 
   const createUrl = new URL(`${googleApi}/files`);
   createUrl.searchParams.set("supportsAllDrives", "true");
@@ -163,9 +173,24 @@ export const findOrCreateGoogleFolder = async (args: {
   const createJson = await createRes.json();
   if (!createRes.ok) throw new Error(createJson?.error?.message || "Drive create failed");
   // Mitigate eventual consistency / race duplicates: re-list and pick canonical folder if present.
-  const created = await listOnce();
-  if (created?.id) return { id: created.id, name: created.name, webViewLink: created.webViewLink };
-  return { id: createJson.id, name: createJson.name, webViewLink: createJson.webViewLink };
+  const after = await listOnce();
+  if (after.canonical?.id) {
+    const actuallyCreated = after.canonical.id === createJson.id;
+    return {
+      id: after.canonical.id,
+      name: after.canonical.name,
+      webViewLink: after.canonical.webViewLink,
+      created: actuallyCreated,
+      duplicatesFound: after.duplicatesFound,
+    };
+  }
+  return {
+    id: createJson.id,
+    name: createJson.name,
+    webViewLink: createJson.webViewLink,
+    created: true,
+    duplicatesFound: 0,
+  };
 };
 
 export const findOrCreateMicrosoftFolder = async (args: {
@@ -173,7 +198,7 @@ export const findOrCreateMicrosoftFolder = async (args: {
   driveId: string;
   parentId: string;
   name: string;
-}): Promise<{ id: string; name: string; webUrl: string }> => {
+}): Promise<{ id: string; name: string; webUrl: string; created: boolean; duplicatesFound: number }> => {
   const listRes = await fetch(
     `${graphApi}/drives/${encodeURIComponent(args.driveId)}/items/${encodeURIComponent(
       args.parentId
@@ -183,7 +208,7 @@ export const findOrCreateMicrosoftFolder = async (args: {
   const listJson = await listRes.json();
   if (!listRes.ok) throw new Error(listJson?.error?.message || "Graph list failed");
   const existing = (listJson.value || []).find((c: any) => c?.folder && c?.name === args.name);
-  if (existing?.id) return { id: existing.id, name: existing.name, webUrl: existing.webUrl };
+  if (existing?.id) return { id: existing.id, name: existing.name, webUrl: existing.webUrl, created: false, duplicatesFound: 0 };
 
   const createRes = await fetch(
     `${graphApi}/drives/${encodeURIComponent(args.driveId)}/items/${encodeURIComponent(
@@ -210,7 +235,7 @@ export const findOrCreateMicrosoftFolder = async (args: {
     }
     throw new Error(createJson?.error?.message || "Graph create failed");
   }
-  return { id: createJson.id, name: createJson.name, webUrl: createJson.webUrl };
+  return { id: createJson.id, name: createJson.name, webUrl: createJson.webUrl, created: true, duplicatesFound: 0 };
 };
 
 export const getTenderFolderName = (title: string): string => slugifyDocHubSegment(title);

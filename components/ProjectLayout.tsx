@@ -177,13 +177,75 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
     const docHubOverviewFolders = (() => {
         const folders = new Set<string>();
         for (const line of docHubRunLogs) {
-            const m1 = line.match(/^Kontrola:\s*(\/.+)$/);
+            const m1 = line.match(/^(?:Kontrola:|✔|↻)\s*(\/.+)$/);
             if (m1?.[1]) folders.add(m1[1].trim());
             const m2 = line.match(/→\s*(\/.+)$/);
             if (m2?.[1]) folders.add(m2[1].trim());
         }
         return Array.from(folders);
     })();
+
+    const docHubRunStats = (() => {
+        const categories = docHubRunLogs.filter((l) => l.startsWith("🟩 VŘ:") || l.startsWith("VŘ:")).length;
+        const warnings = docHubRunLogs.filter((l) => l.startsWith("⚠️")).length;
+        const duplicates = docHubRunLogs.filter((l) => l.includes("Duplicitní složky")).length;
+        const created = docHubRunLogs.filter((l) => l.startsWith("✔ ")).length;
+        const reused = docHubRunLogs.filter((l) => l.startsWith("↻ ")).length;
+        const skipped = docHubRunLogs.filter((l) => l.startsWith("⏭")).length;
+        return { categories, warnings, duplicates, created, reused, skipped };
+    })();
+
+    const docHubRunSummaryLine = (() => {
+        const actionsDone = docHubBackendCounts?.done ?? null;
+        const actionsTotal = docHubBackendCounts?.total ?? null;
+        const actionsText = actionsDone === null ? null : (actionsTotal ? `${actionsDone}/${actionsTotal} akcí` : `${actionsDone} akcí`);
+        return [
+            actionsText ? `Hotovo: ${actionsText}` : "Hotovo",
+            `${docHubRunStats.categories} VŘ`,
+            `${docHubRunStats.warnings} varování`,
+            `${docHubRunStats.duplicates} duplicit`,
+            `✔ ${docHubRunStats.created}`,
+            `↻ ${docHubRunStats.reused}`,
+            `⏭ ${docHubRunStats.skipped}`,
+        ].join(" · ");
+    })();
+
+    const [docHubRunHistory, setDocHubRunHistory] = useState<Array<{
+        id: string;
+        status: 'running' | 'success' | 'error';
+        step: string | null;
+        progress_percent: number;
+        total_actions: number | null;
+        completed_actions: number;
+        logs: string[];
+        error: string | null;
+        started_at: string;
+        finished_at: string | null;
+    }>>([]);
+    const [isLoadingDocHubHistory, setIsLoadingDocHubHistory] = useState(false);
+
+    const loadDocHubHistory = async () => {
+        if (!project.id) return;
+        setIsLoadingDocHubHistory(true);
+        try {
+            const { data, error } = await supabase
+                .from("dochub_autocreate_runs")
+                .select("id,status,step,progress_percent,total_actions,completed_actions,logs,error,started_at,finished_at")
+                .eq("project_id", project.id)
+                .order("started_at", { ascending: false })
+                .limit(10);
+            if (error || !data) return;
+            setDocHubRunHistory(data as any);
+        } finally {
+            setIsLoadingDocHubHistory(false);
+        }
+    };
+
+    useEffect(() => {
+        if (!isDocHubConnected) return;
+        loadDocHubHistory();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isDocHubConnected, project.id]);
     const [docHubNewFolderName, setDocHubNewFolderName] = useState(project.title || project.name || "");
     const [docHubResolveProgress, setDocHubResolveProgress] = useState(0);
     const resolveProgressTimerRef = useRef<number | null>(null);
@@ -372,6 +434,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                 finishedAt: new Date().toISOString(),
             });
             setIsDocHubResultModalOpen(true);
+            await loadDocHubHistory();
         } catch (e) {
             const rawMessage = e instanceof Error ? e.message : "Neznámá chyba";
             const message =
@@ -1614,6 +1677,9 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
 	                                                        </button>
 	                                                    </div>
 	                                                </div>
+	                                                <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+	                                                    {docHubRunSummaryLine}
+	                                                </div>
 	                                                <div className="mt-3 max-h-60 overflow-auto rounded-lg bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-700/50 p-3 font-mono text-[11px] leading-relaxed text-slate-700 dark:text-slate-200 whitespace-pre">
 	                                                    {docHubRunLogs.join("\n")}
 	                                                </div>
@@ -1657,6 +1723,102 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
 	                                                                {path}
 	                                                            </button>
 	                                                        ))
+	                                                    )}
+	                                                </div>
+	                                            </div>
+	                                        )}
+
+	                                        {isDocHubConnected && (
+	                                            <div className="bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4">
+	                                                <div className="flex items-center justify-between gap-3">
+	                                                    <div className="text-sm font-semibold text-slate-900 dark:text-white">Historie běhů</div>
+	                                                    <button
+	                                                        type="button"
+	                                                        onClick={loadDocHubHistory}
+	                                                        disabled={isLoadingDocHubHistory}
+	                                                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${isLoadingDocHubHistory
+	                                                            ? "bg-slate-200 dark:bg-slate-800/60 text-slate-500 border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
+	                                                            : "bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700/50"
+	                                                            }`}
+	                                                    >
+	                                                        Obnovit
+	                                                    </button>
+	                                                </div>
+	                                                <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+	                                                    Logy se ukládají k projektu a můžete se k nim kdykoliv vrátit.
+	                                                </div>
+	                                                <div className="mt-3 space-y-2">
+	                                                    {docHubRunHistory.length === 0 ? (
+	                                                        <div className="text-xs text-slate-500 dark:text-slate-400">
+	                                                            {isLoadingDocHubHistory ? "Načítám…" : "Zatím žádné běhy."}
+	                                                        </div>
+	                                                    ) : (
+	                                                        docHubRunHistory.map((run) => {
+	                                                            const statusBadge =
+	                                                                run.status === "success"
+	                                                                    ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+	                                                                    : run.status === "error"
+	                                                                        ? "bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/30"
+	                                                                        : "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30";
+	                                                            const started = new Date(run.started_at).toLocaleString("cs-CZ");
+	                                                            const actionsText = run.total_actions ? `${run.completed_actions}/${run.total_actions}` : `${run.completed_actions}`;
+	                                                            const warnings = Array.isArray(run.logs) ? run.logs.filter((l) => typeof l === "string" && l.startsWith("⚠️")).length : 0;
+	                                                            const duplicates = Array.isArray(run.logs) ? run.logs.filter((l) => typeof l === "string" && l.includes("Duplicitní složky")).length : 0;
+	                                                            return (
+	                                                                <div key={run.id} className="flex items-start justify-between gap-3 bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3">
+	                                                                    <div className="min-w-0">
+	                                                                        <div className="flex flex-wrap items-center gap-2">
+	                                                                            <span className={`px-2 py-0.5 rounded-lg text-[11px] font-bold border ${statusBadge}`}>
+	                                                                                {run.status === "success" ? "Dokončeno" : run.status === "error" ? "Chyba" : "Běží"}
+	                                                                            </span>
+	                                                                            <span className="text-xs text-slate-500 dark:text-slate-400">{started}</span>
+	                                                                            <span className="text-xs text-slate-500 dark:text-slate-400">Akce: {actionsText}</span>
+	                                                                            <span className="text-xs text-slate-500 dark:text-slate-400">⚠ {warnings}</span>
+	                                                                            <span className="text-xs text-slate-500 dark:text-slate-400">🧩 {duplicates}</span>
+	                                                                        </div>
+	                                                                        <div className="mt-1 text-xs text-slate-600 dark:text-slate-400 truncate">
+	                                                                            {run.error ? run.error : (run.step || "")}
+	                                                                        </div>
+	                                                                    </div>
+	                                                                    <div className="flex shrink-0 gap-2">
+	                                                                        <button
+	                                                                            type="button"
+	                                                                            onClick={() => {
+	                                                                                setDocHubAutoCreateResult({
+	                                                                                    createdCount: null,
+	                                                                                    runId: run.id,
+	                                                                                    logs: Array.isArray(run.logs) ? (run.logs as any) : [],
+	                                                                                    finishedAt: run.finished_at || run.started_at,
+	                                                                                });
+	                                                                                setShowDocHubRunLog(true);
+	                                                                                setShowDocHubRunOverview(false);
+	                                                                                window.setTimeout(() => docHubRunLogRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+	                                                                            }}
+	                                                                            className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-medium transition-colors border border-slate-300 dark:border-slate-700/50"
+	                                                                        >
+	                                                                            Log
+	                                                                        </button>
+	                                                                        <button
+	                                                                            type="button"
+	                                                                            onClick={() => {
+	                                                                                setDocHubAutoCreateResult({
+	                                                                                    createdCount: null,
+	                                                                                    runId: run.id,
+	                                                                                    logs: Array.isArray(run.logs) ? (run.logs as any) : [],
+	                                                                                    finishedAt: run.finished_at || run.started_at,
+	                                                                                });
+	                                                                                setShowDocHubRunOverview(true);
+	                                                                                setShowDocHubRunLog(false);
+	                                                                                window.setTimeout(() => docHubRunOverviewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+	                                                                            }}
+	                                                                            className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-medium transition-colors border border-slate-300 dark:border-slate-700/50"
+	                                                                        >
+	                                                                            Přehled
+	                                                                        </button>
+	                                                                    </div>
+	                                                                </div>
+	                                                            );
+	                                                        })
 	                                                    )}
 	                                                </div>
 	                                            </div>

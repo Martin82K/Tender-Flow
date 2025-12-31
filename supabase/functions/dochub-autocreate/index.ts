@@ -57,7 +57,7 @@ const ensureFolder = async (args: {
   kind: string;
   key: string | null;
   name: string;
-}): Promise<{ id: string; webUrl: string | null; created: boolean }> => {
+}): Promise<{ id: string; webUrl: string | null; created: boolean; duplicatesFound: number }> => {
   // We intentionally don't rely on cache for correctness; Drive/Graph is the source of truth.
   if (args.provider === "gdrive") {
     const before = Date.now();
@@ -71,7 +71,7 @@ const ensureFolder = async (args: {
         dochubKey: args.key || "",
       },
     });
-    const created = Date.now() - before > 0; // no reliable signal; caller can still count as reused via heuristic later
+    const created = folder.created;
     await upsertFolder({
       projectId: args.projectId,
       provider: args.provider,
@@ -81,7 +81,7 @@ const ensureFolder = async (args: {
       driveId: null,
       webUrl: folder.webViewLink,
     });
-    return { id: folder.id, webUrl: folder.webViewLink || null, created };
+    return { id: folder.id, webUrl: folder.webViewLink || null, created, duplicatesFound: folder.duplicatesFound };
   }
 
   if (!args.driveId) throw new Error("Missing driveId for OneDrive");
@@ -92,7 +92,7 @@ const ensureFolder = async (args: {
     parentId: args.parentId,
     name: args.name,
   });
-  const created = Date.now() - before > 0;
+  const created = folder.created;
   await upsertFolder({
     projectId: args.projectId,
     provider: args.provider,
@@ -102,7 +102,7 @@ const ensureFolder = async (args: {
     driveId: args.driveId,
     webUrl: folder.webUrl,
   });
-  return { id: folder.id, webUrl: folder.webUrl || null, created };
+  return { id: folder.id, webUrl: folder.webUrl || null, created, duplicatesFound: folder.duplicatesFound };
 };
 
 Deno.serve(async (req) => {
@@ -197,6 +197,9 @@ Deno.serve(async (req) => {
     const logs: string[] = [];
     let createdCount = 0;
     let reusedCount = 0;
+    let skippedCount = 0;
+    let warningsCount = 0;
+    let duplicatesCount = 0;
 
     const pushLog = async (line: string) => {
       logs.push(line);
@@ -217,7 +220,6 @@ Deno.serve(async (req) => {
     });
 
     const ensureBase = async (kind: string, name: string) => {
-      logs.push(`Kontrola: /${name}`);
       const result = await ensureFolder({
         provider,
         accessToken,
@@ -228,8 +230,15 @@ Deno.serve(async (req) => {
         key: null,
         name,
       });
-      // We don't know if it was created or existed; treat as reused if cache already had it next time.
-      createdCount += 1;
+      if (result.duplicatesFound > 0) {
+        duplicatesCount += result.duplicatesFound;
+        warningsCount += 1;
+        await pushLog(`⚠️ Duplicitní složky detekovány pro /${name}: +${result.duplicatesFound}`);
+      }
+      const icon = result.created ? "✔" : "↻";
+      await pushLog(`${icon} /${name}`);
+      if (result.created) createdCount += 1;
+      else reusedCount += 1;
       return result.id;
     };
 
@@ -273,8 +282,7 @@ Deno.serve(async (req) => {
     await maybePersistProgress("Zakládám hlavní složky projektu…");
 
     for (const folderName of extraTopLevel) {
-      logs.push(`Kontrola: /${folderName}`);
-      await ensureFolder({
+      const extraFolder = await ensureFolder({
         provider,
         accessToken,
         projectId,
@@ -284,12 +292,19 @@ Deno.serve(async (req) => {
         key: folderName,
         name: folderName,
       });
-      createdCount += 1;
+      if (extraFolder.duplicatesFound > 0) {
+        duplicatesCount += extraFolder.duplicatesFound;
+        warningsCount += 1;
+        await pushLog(`⚠️ Duplicitní složky detekovány pro /${folderName}: +${extraFolder.duplicatesFound}`);
+      }
+      await pushLog(`${extraFolder.created ? "✔" : "↻"} /${folderName}`);
+      if (extraFolder.created) createdCount += 1;
+      else reusedCount += 1;
       completedActions += 1;
       await maybePersistProgress("Zakládám hlavní složky projektu…");
     }
 
-    await pushLog("Načítám výběrová řízení (poptávky) z databáze…");
+    await pushLog("🟦 Kontrola výběrových řízení (VŘ)…");
     await maybePersistProgress("Kontroluji existující výběrová řízení (VŘ)…", true);
     const { data: categories, error: categoriesError } = await authed
       .from("demand_categories")
@@ -299,7 +314,7 @@ Deno.serve(async (req) => {
     if (categoriesError) throw new Error(categoriesError.message || "Failed to load demand_categories");
 
     const categoryList = (categories || []) as Array<{ id: string; title: string }>;
-    await pushLog(`Nalezeno VŘ: ${categoryList.length}`);
+    await pushLog(`🟦 Nalezeno VŘ: ${categoryList.length}`);
 
     // Load suppliers for all categories (best effort)
     const categoryIds = categoryList.map((c) => c.id);
@@ -316,6 +331,7 @@ Deno.serve(async (req) => {
             .select("id, company_name")
             .in("id", supplierIds);
           if (subsError) {
+            warningsCount += 1;
             await pushLog(`⚠️ Nelze načíst dodavatele (subcontractors): ${subsError.message}`);
           } else {
             for (const sub of (subs || []) as any[]) {
@@ -345,6 +361,7 @@ Deno.serve(async (req) => {
         .in("category_id", categoryIds);
 
       if (plainBidsError) {
+        warningsCount += 1;
         await pushLog(`⚠️ Nelze načíst výběrová řízení dodavatelů (bids): ${plainBidsError.message}`);
       } else {
         await hydrateSuppliers((plainBids || []) as any[]);
@@ -361,7 +378,7 @@ Deno.serve(async (req) => {
     for (let categoryIndex = 0; categoryIndex < categoryList.length; categoryIndex++) {
       const cat = categoryList[categoryIndex];
       const tenderFolderName = getTenderFolderName(cat.title);
-      await pushLog(`VŘ: ${cat.title} → /${structure.tenders}/${tenderFolderName}`);
+      await pushLog(`🟩 VŘ: ${cat.title} → /${structure.tenders}/${tenderFolderName}`);
       await maybePersistProgress(`Zakládám VŘ ${categoryIndex + 1}/${categoryList.length}…`, true);
       const tenderFolder = await ensureFolder({
         provider,
@@ -373,7 +390,13 @@ Deno.serve(async (req) => {
         key: cat.id,
         name: tenderFolderName,
       });
-      createdCount += 1;
+      if (tenderFolder.duplicatesFound > 0) {
+        duplicatesCount += tenderFolder.duplicatesFound;
+        warningsCount += 1;
+        await pushLog(`⚠️ Duplicitní složky detekovány pro VŘ ${tenderFolderName}: +${tenderFolder.duplicatesFound}`);
+      }
+      if (tenderFolder.created) createdCount += 1;
+      else reusedCount += 1;
       completedActions += 1;
       await maybePersistProgress(`Zakládám VŘ ${categoryIndex + 1}/${categoryList.length}…`);
 
@@ -387,16 +410,23 @@ Deno.serve(async (req) => {
         key: cat.id,
         name: structure.tendersInquiries,
       });
-      createdCount += 1;
+      if (inquiriesFolder.duplicatesFound > 0) {
+        duplicatesCount += inquiriesFolder.duplicatesFound;
+        warningsCount += 1;
+        await pushLog(`⚠️ Duplicitní složky detekovány pro ${structure.tendersInquiries}: +${inquiriesFolder.duplicatesFound}`);
+      }
+      if (inquiriesFolder.created) createdCount += 1;
+      else reusedCount += 1;
       completedActions += 1;
       await maybePersistProgress(`Zakládám VŘ ${categoryIndex + 1}/${categoryList.length}…`);
 
       const suppliers = bidsByCategory[cat.id] || [];
       if (suppliers.length === 0) {
-        await pushLog(`  ↳ Dodavatelé: 0 (přeskočeno)`);
+        skippedCount += 1;
+        await pushLog(`⏭ Dodavatelé: 0 (přeskočeno)`);
         continue;
       }
-      await pushLog(`  ↳ Dodavatelé: ${suppliers.length}`);
+      await pushLog(`🟩 Dodavatelé: ${suppliers.length}`);
 
       for (const sup of suppliers) {
         const supplierFolderName = getTenderFolderName(sup.supplierName);
@@ -411,11 +441,17 @@ Deno.serve(async (req) => {
           key: supplierKey,
           name: supplierFolderName,
         });
-        createdCount += 1;
+        if (supplierFolder.duplicatesFound > 0) {
+          duplicatesCount += supplierFolder.duplicatesFound;
+          warningsCount += 1;
+          await pushLog(`⚠️ Duplicitní složky detekovány pro dodavatele ${supplierFolderName}: +${supplierFolder.duplicatesFound}`);
+        }
+        if (supplierFolder.created) createdCount += 1;
+        else reusedCount += 1;
         completedActions += 1;
         await maybePersistProgress("Zakládám složky dodavatelů…");
 
-        await ensureFolder({
+        const emailFolder = await ensureFolder({
           provider,
           accessToken,
           projectId,
@@ -425,11 +461,17 @@ Deno.serve(async (req) => {
           key: supplierKey,
           name: structure.supplierEmail,
         });
-        createdCount += 1;
+        if (emailFolder.duplicatesFound > 0) {
+          duplicatesCount += emailFolder.duplicatesFound;
+          warningsCount += 1;
+          await pushLog(`⚠️ Duplicitní složky detekovány pro ${structure.supplierEmail}: +${emailFolder.duplicatesFound}`);
+        }
+        if (emailFolder.created) createdCount += 1;
+        else reusedCount += 1;
         completedActions += 1;
         await maybePersistProgress("Zakládám složky dodavatelů…");
 
-        await ensureFolder({
+        const offerFolder = await ensureFolder({
           provider,
           accessToken,
           projectId,
@@ -439,12 +481,18 @@ Deno.serve(async (req) => {
           key: supplierKey,
           name: structure.supplierOffer,
         });
-        createdCount += 1;
+        if (offerFolder.duplicatesFound > 0) {
+          duplicatesCount += offerFolder.duplicatesFound;
+          warningsCount += 1;
+          await pushLog(`⚠️ Duplicitní složky detekovány pro ${structure.supplierOffer}: +${offerFolder.duplicatesFound}`);
+        }
+        if (offerFolder.created) createdCount += 1;
+        else reusedCount += 1;
         completedActions += 1;
         await maybePersistProgress("Zakládám složky dodavatelů…");
 
         for (const extra of extraSupplier) {
-          await ensureFolder({
+          const extraFolder = await ensureFolder({
             provider,
             accessToken,
             projectId,
@@ -454,14 +502,20 @@ Deno.serve(async (req) => {
             key: `${supplierKey}:${extra}`,
             name: extra,
           });
-          createdCount += 1;
+          if (extraFolder.duplicatesFound > 0) {
+            duplicatesCount += extraFolder.duplicatesFound;
+            warningsCount += 1;
+            await pushLog(`⚠️ Duplicitní složky detekovány pro ${extra}: +${extraFolder.duplicatesFound}`);
+          }
+          if (extraFolder.created) createdCount += 1;
+          else reusedCount += 1;
           completedActions += 1;
           await maybePersistProgress("Zakládám složky dodavatelů…");
         }
       }
     }
 
-    await pushLog("Hotovo.");
+    await pushLog(`✅ Hotovo. ✔ ${createdCount} · ↻ ${reusedCount} · ⏭ ${skippedCount} · ⚠ ${warningsCount} · 🧩 duplicit: ${duplicatesCount}`);
     await persistRun({
       status: "success",
       provider,
