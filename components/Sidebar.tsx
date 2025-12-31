@@ -5,6 +5,7 @@ import { View, Project } from '../types';
 import logo from '../assets/logo.png';
 import { SIDEBAR_NAVIGATION, BOTTOM_NAVIGATION } from '../config/navigation';
 import { useFeatures } from '../context/FeatureContext';
+import { useLocation } from './routing/router';
 
 // Admin role configuration (must match App.tsx)
 const ADMIN_EMAILS = ["martinkalkus82@gmail.com", "kalkus@baustav.cz"];
@@ -18,7 +19,10 @@ const getUserRole = (email: string | undefined, defaultRole?: string): string =>
 
 interface SidebarProps {
   currentView: View;
-  onViewChange: (view: View) => void;
+  onViewChange: (
+    view: View,
+    opts?: { settingsTab?: 'user' | 'admin'; settingsSubTab?: 'profile' | 'contacts' | 'tools' }
+  ) => void;
   selectedProjectId: string;
   onProjectSelect: (id: string) => void;
   projects: Project[];
@@ -29,10 +33,59 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, selectedProjectId, onProjectSelect, projects, isOpen, onToggle }) => {
   const { user, logout } = useAuth();
   const { hasFeature } = useFeatures(); // Use feature context
+  const { search } = useLocation();
   const [width, setWidth] = useState(260);
   const [isResizing, setIsResizing] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const sidebarRef = useRef<HTMLElement>(null);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+
+  const settingsRoute = (() => {
+    const params = new URLSearchParams(search);
+    const tabParam = params.get('tab');
+    const subTabParam = params.get('subTab');
+    const tab = tabParam === 'admin' || tabParam === 'user' ? tabParam : null;
+    const subTab =
+      subTabParam === 'profile' || subTabParam === 'contacts' || subTabParam === 'tools'
+        ? subTabParam
+        : null;
+    return { tab, subTab };
+  })();
+
+  const isNavItemEnabled = useCallback(
+    (item: any) => {
+      if (item.feature && !hasFeature(item.feature)) return false;
+      return true;
+    },
+    [hasFeature]
+  );
+
+  const isNavItemActive = useCallback(
+    (item: any): boolean => {
+      if (item.type === 'group') {
+        return Array.isArray(item.children) && item.children.some((child: any) => isNavItemEnabled(child) && isNavItemActive(child));
+      }
+
+      if (item.view !== currentView) return false;
+      if (item.view !== 'settings') return true;
+
+      const matchTab = item.settingsTab ? settingsRoute.tab === item.settingsTab : true;
+      if (item.settingsSubTab) return matchTab && settingsRoute.subTab === item.settingsSubTab;
+
+      return settingsRoute.subTab === null || settingsRoute.subTab === 'profile';
+    },
+    [currentView, isNavItemEnabled, settingsRoute.subTab, settingsRoute.tab]
+  );
+
+  useEffect(() => {
+    const shouldOpenTools =
+      currentView === 'project-management' ||
+      currentView === 'project-overview' ||
+      (currentView === 'settings' && (settingsRoute.subTab === 'contacts' || settingsRoute.subTab === 'tools'));
+
+    if (!shouldOpenTools) return;
+    setOpenGroups((prev) => (prev.tools ? prev : { ...prev, tools: true }));
+  }, [currentView, settingsRoute.subTab]);
 
   const startResizing = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -157,21 +210,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
 
   // Helper to render nav items
   const renderNavItem = (item: any) => {
-    // Check feature flag
-    if (item.feature && !hasFeature(item.feature)) {
+    if (!isNavItemEnabled(item)) {
       return null;
     }
+
+    const isItemActive = isNavItemActive(item);
 
     // Special case for projects group which acts as accordion
     if (item.id === 'projects') {
       return (
         <details key={item.id} className="group" open>
           <summary className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer list-none ${currentView === 'project'
-            ? 'text-white font-semibold'
+            ? 'bg-primary/20 text-primary border border-primary/30 font-semibold'
              : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'
              }`}>
             <div className="flex items-center gap-3 min-w-0">
-              <span className={`material-symbols-outlined shrink-0 ${currentView === 'project' ? 'fill text-emerald-400' : ''}`}>{item.icon}</span>
+              <span className={`material-symbols-outlined shrink-0 ${currentView === 'project' ? 'fill text-primary' : ''}`}>{item.icon}</span>
               <p className="text-sm leading-normal break-words">{item.label}</p>
             </div>
             <span className="material-symbols-outlined text-[20px] transition-transform group-open:rotate-180 shrink-0">expand_more</span>
@@ -213,6 +267,38 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
       );
     }
 
+    if (item.type === 'group') {
+      const isOpen = openGroups[item.id] ?? isItemActive;
+      return (
+        <details
+          key={item.id}
+          className="group"
+          open={isOpen}
+          onToggle={(e) => {
+            const nextOpen = (e.currentTarget as HTMLDetailsElement).open;
+            setOpenGroups((prev) => ({ ...prev, [item.id]: nextOpen }));
+          }}
+        >
+          <summary
+            className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer list-none ${isItemActive
+              ? 'bg-primary/20 text-primary border border-primary/30'
+              : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'
+              }`}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <span className={`material-symbols-outlined shrink-0 ${isItemActive ? 'fill' : ''}`}>{item.icon}</span>
+              <p className="text-sm font-medium leading-normal break-words">{item.label}</p>
+            </div>
+            <span className="material-symbols-outlined text-[20px] transition-transform group-open:rotate-180 shrink-0">expand_more</span>
+          </summary>
+
+          <div className="flex flex-col mt-1 ml-2 gap-1 max-h-44 overflow-y-auto pr-1">
+            {(item.children || []).map((child: any) => renderNavItem(child))}
+          </div>
+        </details>
+      );
+    }
+
     if (item.type === 'external') {
       return (
         <a
@@ -233,13 +319,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
     return (
       <button
         key={item.id}
-        onClick={() => onViewChange(item.view)}
-        className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all ${currentView === item.view
-          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+        onClick={() =>
+          onViewChange(item.view, item.view === 'settings'
+            ? { settingsTab: item.settingsTab, settingsSubTab: item.settingsSubTab }
+            : undefined
+          )
+        }
+        className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all ${isItemActive
+          ? 'bg-primary/20 text-primary border border-primary/30'
           : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'
           }`}
       >
-        <span className={`material-symbols-outlined shrink-0 ${currentView === item.view ? 'fill' : ''}`}>{item.icon}</span>
+        <span className={`material-symbols-outlined shrink-0 ${isItemActive ? 'fill' : ''}`}>{item.icon}</span>
         <p className="text-sm font-medium leading-normal break-words">{item.label}</p>
       </button>
     );
@@ -270,7 +361,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
       <div className={`flex flex-col h-full w-full min-w-[200px] ${!isOpen ? 'opacity-0 invisible' : 'opacity-100 visible'} transition-opacity duration-200`}>
         {/* Resizer Handle - only on desktop */}
         <div
-          className="hidden md:block absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-emerald-500 active:bg-emerald-500 transition-colors z-50 translate-x-[50%]"
+          className="hidden md:block absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-primary active:bg-primary transition-colors z-50 translate-x-[50%]"
           onMouseDown={startResizing}
         />
 

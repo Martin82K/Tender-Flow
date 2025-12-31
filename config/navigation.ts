@@ -10,6 +10,9 @@ export interface NavItemConfig {
   type?: 'link' | 'group' | 'external';
   children?: NavItemConfig[];
   href?: string; // For external links
+  // Optional deep-linking into Settings
+  settingsTab?: 'user' | 'admin';
+  settingsSubTab?: 'profile' | 'contacts' | 'tools';
 }
 
 export const SIDEBAR_NAVIGATION: NavItemConfig[] = [
@@ -47,18 +50,43 @@ export const SIDEBAR_NAVIGATION: NavItemConfig[] = [
 
 export const BOTTOM_NAVIGATION: NavItemConfig[] = [
   {
-    id: 'project-overview',
-    label: 'Přehled staveb',
-    icon: 'analytics',
-    view: 'project-overview',
-    feature: FEATURES.FEATURE_ADVANCED_REPORTING, // Example of feature gating
-  },
-  {
-    id: 'project-management',
-    label: 'Správa staveb',
-    icon: 'domain_add',
-    view: 'project-management',
-    feature: FEATURES.MODULE_PROJECTS,
+    id: 'tools',
+    label: 'Nástroje',
+    icon: 'build',
+    view: 'settings',
+    type: 'group',
+    children: [
+      {
+        id: 'project-management',
+        label: 'Správa staveb',
+        icon: 'domain_add',
+        view: 'project-management',
+        feature: FEATURES.MODULE_PROJECTS,
+      },
+      {
+        id: 'project-overview',
+        label: 'Přehled staveb',
+        icon: 'analytics',
+        view: 'project-overview',
+        feature: FEATURES.FEATURE_ADVANCED_REPORTING,
+      },
+      {
+        id: 'settings-contacts-import',
+        label: 'Import kontaktů',
+        icon: 'upload_file',
+        view: 'settings',
+        settingsTab: 'user',
+        settingsSubTab: 'contacts',
+      },
+      {
+        id: 'settings-excelunlocker-pro',
+        label: 'ExcelUnlocker Pro',
+        icon: 'grid_on',
+        view: 'settings',
+        settingsTab: 'user',
+        settingsSubTab: 'tools',
+      },
+    ],
   },
   {
     id: 'settings',

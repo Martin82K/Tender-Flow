@@ -80,14 +80,28 @@ const isProjectTab = (val: string | null): val is ProjectTab => {
   return val === "overview" || val === "tender-plan" || val === "pipeline" || val === "documents";
 };
 
-const buildAppUrl = (view: View, opts?: { projectId?: string; tab?: ProjectTab; categoryId?: string | null }) => {
+const buildAppUrl = (
+  view: View,
+  opts?: {
+    projectId?: string;
+    tab?: ProjectTab;
+    categoryId?: string | null;
+    settingsTab?: 'user' | 'admin';
+    settingsSubTab?: 'profile' | 'contacts' | 'tools';
+  }
+) => {
   switch (view) {
     case "dashboard":
       return `${APP_BASE}/dashboard`;
     case "contacts":
       return `${APP_BASE}/contacts`;
-    case "settings":
-      return `${APP_BASE}/settings`;
+    case "settings": {
+      const params = new URLSearchParams();
+      if (opts?.settingsTab) params.set("tab", opts.settingsTab);
+      if (opts?.settingsSubTab) params.set("subTab", opts.settingsSubTab);
+      const qs = params.toString();
+      return `${APP_BASE}/settings${qs ? `?${qs}` : ""}`;
+    }
     case "project-management":
       return `${APP_BASE}/projects`;
     case "project-overview":
@@ -2112,7 +2126,7 @@ const AppContent: React.FC = () => {
       />
       <Sidebar
         currentView={currentView}
-        onViewChange={(view) => {
+        onViewChange={(view, opts) => {
           if (view === "project") {
             const targetId =
               selectedProjectId || projects.find((p) => p.status !== "archived")?.id;
@@ -2121,6 +2135,10 @@ const AppContent: React.FC = () => {
             } else {
               navigate(buildAppUrl("dashboard"));
             }
+            return;
+          }
+          if (view === "settings") {
+            navigate(buildAppUrl("settings", opts));
             return;
           }
           navigate(buildAppUrl(view));

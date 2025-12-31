@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Header } from './Header';
 import { Project, ProjectStatus, StatusConfig, Subcontractor } from '../types';
 import { addContactStatus, updateContactStatus, deleteContactStatus } from '../services/contactStatusService';
@@ -8,6 +8,7 @@ import { EmailWhitelistManagement } from './EmailWhitelistManagement';
 import { ContactsImportWizard } from './ContactsImportWizard';
 import { unlockExcelZip } from '@/utils/excelUnlockZip';
 import logo from '../assets/logo.png';
+import { navigate, useLocation } from './routing/router';
 
 interface SettingsProps {
     theme: 'light' | 'dark' | 'system';
@@ -44,14 +45,61 @@ export const Settings: React.FC<SettingsProps> = ({
     user
 }) => {
 
+    const { search } = useLocation();
+
+    const settingsRoute = useMemo(() => {
+        const params = new URLSearchParams(search);
+        const tabParam = params.get('tab');
+        const subTabParam = params.get('subTab');
+        const tab = tabParam === 'admin' || tabParam === 'user' ? tabParam : null;
+        const subTab =
+            subTabParam === 'profile' || subTabParam === 'contacts' || subTabParam === 'tools'
+                ? subTabParam
+                : null;
+        return { tab, subTab };
+    }, [search]);
+
 
     // Status Form State
     const [newStatusLabel, setNewStatusLabel] = useState('');
     const [newStatusColor, setNewStatusColor] = useState<StatusConfig['color']>('blue');
 
     // Tab State
-    const [activeTab, setActiveTab] = useState<'user' | 'admin'>('user');
-    const [activeUserSubTab, setActiveUserSubTab] = useState<'profile' | 'contacts' | 'tools'>('profile');
+    const [activeTab, setActiveTab] = useState<'user' | 'admin'>(() => {
+        if (settingsRoute.tab === 'admin' && isAdmin) return 'admin';
+        return 'user';
+    });
+    const [activeUserSubTab, setActiveUserSubTab] = useState<'profile' | 'contacts' | 'tools'>(() => {
+        if (settingsRoute.subTab === 'contacts' || settingsRoute.subTab === 'tools') return settingsRoute.subTab;
+        return 'profile';
+    });
+
+    const updateSettingsUrl = (next: { tab: 'user' | 'admin'; subTab?: 'profile' | 'contacts' | 'tools' }, opts?: { replace?: boolean }) => {
+        const params = new URLSearchParams();
+        params.set('tab', next.tab);
+        if (next.tab === 'user') {
+            params.set('subTab', next.subTab || 'profile');
+        }
+        navigate(`/app/settings?${params.toString()}`, { replace: opts?.replace ?? true });
+    };
+
+    useEffect(() => {
+        if (settingsRoute.tab === 'admin') {
+            if (isAdmin && activeTab !== 'admin') setActiveTab('admin');
+            return;
+        }
+
+        // Default to user tab (also covers missing/invalid query)
+        if (activeTab !== 'user') setActiveTab('user');
+
+        if (settingsRoute.subTab) {
+            if (settingsRoute.subTab !== activeUserSubTab) {
+                setActiveUserSubTab(settingsRoute.subTab);
+            }
+        } else if (activeUserSubTab !== 'profile') {
+            setActiveUserSubTab('profile');
+        }
+    }, [activeTab, activeUserSubTab, isAdmin, settingsRoute.subTab, settingsRoute.tab]);
 
     // Registration Settings State (Admin only) - loaded from database
     const [allowPublicRegistration, setAllowPublicRegistration] = useState(false);
@@ -530,7 +578,10 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                 {/* Tab Navigation */}
                 <div className="flex items-center gap-4 mb-8 border-b border-slate-200 dark:border-slate-700/50">
                     <button
-                        onClick={() => setActiveTab('user')}
+                        onClick={() => {
+                            setActiveTab('user');
+                            updateSettingsUrl({ tab: 'user', subTab: activeUserSubTab });
+                        }}
                         className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'user'
                                 ? 'border-primary text-primary'
                                 : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
@@ -540,7 +591,10 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                     </button>
                     {isAdmin && (
                         <button
-                            onClick={() => setActiveTab('admin')}
+                            onClick={() => {
+                                setActiveTab('admin');
+                                updateSettingsUrl({ tab: 'admin' });
+                            }}
                             className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'admin'
                                     ? 'border-primary text-primary'
                                     : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
@@ -748,7 +802,10 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                         {/* Sub-tab Navigation */}
                         <div className="flex gap-4 mb-6 border-b border-slate-200 dark:border-slate-800 pb-2">
                              <button
-                                onClick={() => setActiveUserSubTab('profile')}
+                                onClick={() => {
+                                    setActiveUserSubTab('profile');
+                                    updateSettingsUrl({ tab: 'user', subTab: 'profile' });
+                                }}
                                 className={`pb-2 px-1 text-sm font-medium transition-colors relative ${activeUserSubTab === 'profile'
                                     ? 'text-primary'
                                     : 'text-slate-500 hover:text-slate-300'
@@ -760,7 +817,10 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                                 )}
                             </button>
                             <button
-                                onClick={() => setActiveUserSubTab('contacts')}
+                                onClick={() => {
+                                    setActiveUserSubTab('contacts');
+                                    updateSettingsUrl({ tab: 'user', subTab: 'contacts' });
+                                }}
                                 className={`pb-2 px-1 text-sm font-medium transition-colors relative ${activeUserSubTab === 'contacts'
                                     ? 'text-primary'
                                     : 'text-slate-500 hover:text-slate-300'
@@ -772,7 +832,10 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                                 )}
                             </button>
                             <button
-                                onClick={() => setActiveUserSubTab('tools')}
+                                onClick={() => {
+                                    setActiveUserSubTab('tools');
+                                    updateSettingsUrl({ tab: 'user', subTab: 'tools' });
+                                }}
                                 className={`pb-2 px-1 text-sm font-medium transition-colors relative ${activeUserSubTab === 'tools'
                                     ? 'text-primary'
                                     : 'text-slate-500 hover:text-slate-300'
