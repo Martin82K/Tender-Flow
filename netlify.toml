@@ -7,6 +7,14 @@
   publish = "dist"
 
 # SPA redirect rules - redirects all routes to index.html for client-side routing
+#
+# Excel unlock API proxy (configure the target to your deployed backend)
+[[redirects]]
+  from = "/api/unlock"
+  to = "https://YOUR-EXCEL-UNLOCK-BACKEND/unlock"
+  status = 200
+  force = true
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

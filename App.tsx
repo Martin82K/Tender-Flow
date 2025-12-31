@@ -136,6 +136,44 @@ const parseAppRoute = (pathname: string, search: string) => {
   return { isApp: true as const, redirectTo: `${APP_BASE}/dashboard` };
 };
 
+const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+
+const withTimeout = async <T,>(promise: PromiseLike<T>, ms: number, message?: string): Promise<T> => {
+  let timeoutId: number | null = null;
+  try {
+    return await Promise.race([
+      Promise.resolve(promise),
+      new Promise<T>((_, reject) => {
+        timeoutId = window.setTimeout(() => {
+          reject(new Error(message || `Timeout after ${ms}ms`));
+        }, ms);
+      }),
+    ]);
+  } finally {
+    if (timeoutId !== null) window.clearTimeout(timeoutId);
+  }
+};
+
+const withRetry = async <T,>(
+  fn: () => Promise<T>,
+  opts?: { retries?: number; baseDelayMs?: number }
+): Promise<T> => {
+  const retries = opts?.retries ?? 1;
+  const baseDelayMs = opts?.baseDelayMs ?? 300;
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err;
+      if (attempt >= retries) break;
+      await sleep(baseDelayMs * Math.pow(2, attempt));
+    }
+  }
+  throw lastError;
+};
+
 const AppContent: React.FC = () => {
   const {
     isAuthenticated,
@@ -146,6 +184,7 @@ const AppContent: React.FC = () => {
   const { pathname, search } = useLocation();
   const [currentView, setCurrentView] = useState<View>("dashboard");
   const lastRefreshTime = useRef<number>(Date.now());
+  const loadSeqRef = useRef(0);
 
   // Data States
   const [projects, setProjects] = useState<Project[]>([]);
@@ -164,6 +203,9 @@ const AppContent: React.FC = () => {
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [loadingError, setLoadingError] = useState<string | null>(null);
   const [appLoadProgress, setAppLoadProgress] = useState<{ percent: number; label?: string } | null>(null);
+  const [slowLoadWarning, setSlowLoadWarning] = useState(false);
+  const [isBackgroundLoading, setIsBackgroundLoading] = useState(false);
+  const [backgroundWarning, setBackgroundWarning] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
@@ -307,24 +349,16 @@ const AppContent: React.FC = () => {
 
   // Load data from Supabase on mount
   useEffect(() => {
-    let mounted = true;
-    let timeoutId: NodeJS.Timeout;
+    let slowTimerId: number | null = null;
 
     const load = async () => {
       if (isAuthenticated) {
-        // Set a timeout to detect hanging
-        timeoutId = setTimeout(() => {
-          if (mounted && isDataLoading) {
-            setLoadingError(
-              "Načítání dat trvá příliš dlouho. Zkontrolujte připojení k internetu nebo zkuste stránku obnovit."
-            );
-            setIsDataLoading(false);
-          }
-        }, 30000); // 30 seconds timeout
-
+        setSlowLoadWarning(false);
+        slowTimerId = window.setTimeout(() => {
+          setSlowLoadWarning(true);
+        }, 12000);
         await loadInitialData();
-
-        if (mounted) clearTimeout(timeoutId);
+        if (slowTimerId !== null) window.clearTimeout(slowTimerId);
       } else if (!authLoading) {
         setIsDataLoading(false);
       }
@@ -333,8 +367,7 @@ const AppContent: React.FC = () => {
     load();
 
     return () => {
-      mounted = false;
-      if (timeoutId) clearTimeout(timeoutId);
+      if (slowTimerId !== null) window.clearTimeout(slowTimerId);
     };
   }, [isAuthenticated, authLoading]);
 
@@ -395,105 +428,158 @@ const AppContent: React.FC = () => {
   // }, [isAuthenticated]);
 
   const loadInitialData = async (silent = false) => {
+    const seq = ++loadSeqRef.current;
+    const isCurrent = () => loadSeqRef.current === seq;
+    const safe = (fn: () => void) => {
+      if (!isCurrent()) return;
+      fn();
+    };
+
+    safe(() => {
+      setBackgroundWarning(null);
+    });
+
     if (!silent) {
-      setIsDataLoading(true);
-      setLoadingError(null);
-      setAppLoadProgress({ percent: 0, label: "Připravuji data…" });
+      safe(() => {
+        setIsDataLoading(true); // bootstrap loader only
+        setLoadingError(null);
+        setAppLoadProgress({ percent: 0, label: "Připravuji…" });
+      });
     }
-    console.log("Starting loadInitialData...", { silent });
-    try {
-      const progress = (() => {
-        let totalOps = 1;
-        let completedOps = 0;
-        const setTotalOps = (n: number) => {
-          totalOps = Math.max(1, n);
-          if (!silent) {
-            setAppLoadProgress((prev) => (prev ? { ...prev, percent: Math.min(99, Math.round((completedOps / totalOps) * 100)) } : prev));
-          }
-        };
-        const tick = (label?: string, inc = 1) => {
-          completedOps += inc;
-          if (!silent) {
+
+    console.log("Starting loadInitialData...", { silent, seq });
+
+    const progress = (() => {
+      let totalOps = 1;
+      let completedOps = 0;
+      const setTotalOps = (n: number) => {
+        totalOps = Math.max(1, n);
+        if (!silent) {
+          safe(() =>
+            setAppLoadProgress((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    percent: Math.min(99, Math.round((completedOps / totalOps) * 100)),
+                  }
+                : prev
+            )
+          );
+        }
+      };
+      const tick = (label?: string, inc = 1) => {
+        completedOps += inc;
+        if (!silent) {
+          safe(() =>
             setAppLoadProgress({
               percent: Math.min(99, Math.round((completedOps / totalOps) * 100)),
               label,
-            });
-          }
-        };
-        const done = () => {
-          if (!silent) setAppLoadProgress({ percent: 100, label: "Hotovo" });
-        };
-        const track = async <T,>(
-          thenable: PromiseLike<T> | { then: (...args: any[]) => any },
-          label?: string
-        ): Promise<T> => {
-          const result = await (thenable as PromiseLike<T>);
-          tick(label);
-          return result;
-        };
-        return { setTotalOps, tick, done, track };
-      })();
+            })
+          );
+        }
+      };
+      const done = () => {
+        if (!silent) safe(() => setAppLoadProgress({ percent: 100, label: "Hotovo" }));
+      };
+      const track = async <T,>(promise: PromiseLike<T>, label?: string): Promise<T> => {
+        const result = await promise;
+        tick(label);
+        return result;
+      };
+      return { setTotalOps, tick, done, track };
+    })();
 
-      // Load projects
-      const {
-        data: { session },
-      } = await progress.track(supabase.auth.getSession(), "Ověřuji přihlášení…");
+    const backgroundWarn = (message: string, err: unknown) => {
+      console.error(message, err);
+      safe(() => setBackgroundWarning(message));
+    };
 
-      if (session?.user) {
-        // Admin check (highest role)
-        setIsAdmin(user?.role === 'demo' || isUserAdmin(session.user.email));
+    try {
+      progress.setTotalOps(3);
+
+      const sessionResult = await progress.track(
+        withRetry(
+          () =>
+            withTimeout(
+              Promise.resolve(supabase.auth.getSession()),
+              8000,
+              "Ověření přihlášení vypršelo"
+            ),
+          { retries: 1 }
+        ),
+        "Ověřuji přihlášení…"
+      );
+
+      if (sessionResult?.data?.session?.user) {
+        safe(() => setIsAdmin(user?.role === "demo" || isUserAdmin(sessionResult.data.session.user.email)));
       }
 
-      // Handle Demo Mode Data Loading
-      if (user?.role === 'demo') {
+      // Demo mode is instant (no network)
+      if (user?.role === "demo") {
         let demoData = getDemoData();
-        
-        // If no demo data in localStorage, initialize with defaults
         if (!demoData) {
           demoData = {
             projects: [DEMO_PROJECT],
             projectDetails: { [DEMO_PROJECT.id]: DEMO_PROJECT_DETAILS },
             contacts: DEMO_CONTACTS,
-            statuses: DEMO_STATUSES
+            statuses: DEMO_STATUSES,
           };
           saveDemoData(demoData);
         }
 
-        setProjects(demoData.projects);
-        setAllProjectDetails(demoData.projectDetails);
-        setContacts(demoData.contacts);
-        setContactStatuses(demoData.statuses);
-        
-        if (demoData.projects.length > 0 && !selectedProjectId) {
-          setSelectedProjectId(demoData.projects[0].id);
-        }
-        
+        safe(() => {
+          setProjects(demoData.projects);
+          setAllProjectDetails(demoData.projectDetails);
+          setContacts(demoData.contacts);
+          setContactStatuses(demoData.statuses);
+          if (demoData.projects.length > 0 && !selectedProjectId) setSelectedProjectId(demoData.projects[0].id);
+        });
+
         progress.done();
-        if (!silent) setIsDataLoading(false);
-        lastRefreshTime.current = Date.now();
         return;
       }
 
+      // ---- BOOTSTRAP PHASE (fast): projects list + permissions ----
       const [projectsResponse, metadataResponse] = await Promise.all([
         progress.track(
-          supabase.from("projects").select("*").order("created_at", { ascending: false }),
+          withRetry(
+            () =>
+              withTimeout(
+                Promise.resolve(
+                  supabase.from("projects").select("*").order("created_at", { ascending: false })
+                ),
+                12000,
+                "Načtení projektů vypršelo"
+              ),
+            { retries: 1 }
+          ),
           "Načítám projekty…"
         ),
-        progress.track(supabase.rpc("get_projects_metadata"), "Načítám oprávnění…"),
+        progress.track(
+          withRetry(
+            () =>
+              withTimeout(
+                Promise.resolve(supabase.rpc("get_projects_metadata")),
+                12000,
+                "Načtení oprávnění vypršelo"
+              ),
+            { retries: 1 }
+          ),
+          "Načítám oprávnění…"
+        ),
       ]);
 
-      const projectsData = projectsResponse.data;
-      const projectsError = projectsResponse.error;
-      const metadata = metadataResponse.data as { project_id: string, owner_email: string, shared_with_emails: string[] }[] || [];
+      if (projectsResponse.error) throw projectsResponse.error;
 
-      if (projectsError) throw projectsError;
+      const projectsData = (projectsResponse.data || []) as any[];
+      const metadata =
+        (metadataResponse.data as { project_id: string; owner_email: string; shared_with_emails: string[] }[]) ||
+        [];
 
-      progress.setTotalOps(6 + (projectsData?.length || 0) * 4);
+      const metadataMap = new Map<string, { owner: string; shared: string[] }>();
+      metadata.forEach((m) => metadataMap.set(m.project_id, { owner: m.owner_email, shared: m.shared_with_emails || [] }));
 
-      const metadataMap = new Map<string, { owner: string, shared: string[] }>();
-      metadata.forEach(m => metadataMap.set(m.project_id, { owner: m.owner_email, shared: m.shared_with_emails || [] }));
-
-      const loadedProjects: Project[] = (projectsData || []).map((p) => {
+      const loadedProjects: Project[] = projectsData.map((p) => {
         const meta = metadataMap.get(p.id);
         return {
           id: p.id,
@@ -503,50 +589,97 @@ const AppContent: React.FC = () => {
           isDemo: p.is_demo,
           ownerId: p.owner_id,
           ownerEmail: meta?.owner,
-          sharedWith: meta?.shared
+          sharedWith: meta?.shared,
         };
       });
 
-      setProjects(loadedProjects);
+      safe(() => {
+        setProjects(loadedProjects);
+        if (!silent) {
+          // Clear old heavy data; it will hydrate progressively again.
+          setAllProjectDetails({});
+        }
+        if (loadedProjects.length > 0 && !selectedProjectId) setSelectedProjectId(loadedProjects[0].id);
+      });
 
-      // Set first project as selected if available
-      if (loadedProjects.length > 0 && !selectedProjectId) {
-        setSelectedProjectId(loadedProjects[0].id);
-      }
+      // Unblock the app UI as soon as the project list is available.
+      progress.done();
+      safe(() => {
+        if (!silent) {
+          setIsDataLoading(false);
+          setAppLoadProgress(null);
+        }
+      });
 
-      // Load project details for all projects
-      const detailsMap: Record<string, ProjectDetails> = {};
+      // ---- BACKGROUND PHASE (slow): hydrate details + bids + contacts + statuses ----
+      safe(() => {
+        setIsBackgroundLoading(true);
+        setBackgroundWarning(null);
+      });
 
-      for (const project of projectsData || []) {
+      const fetchProjectDetails = async (project: any): Promise<ProjectDetails> => {
         const [
-          { data: categoriesData },
-          { data: contractData },
-          { data: financialsData },
-          { data: amendmentsData },
+          categoriesRes,
+          contractRes,
+          financialsRes,
+          amendmentsRes,
         ] = await Promise.all([
-          progress.track(
-            supabase.from("demand_categories").select("*").eq("project_id", project.id),
-            `Načítám kategorie (${project.name})…`
+          withRetry(
+            () =>
+              withTimeout(
+                Promise.resolve(
+                  supabase.from("demand_categories").select("*").eq("project_id", project.id)
+                ),
+                12000,
+                `Načtení kategorií vypršelo (${project.name})`
+              ),
+            { retries: 1 }
           ),
-          progress.track(
-            supabase.from("project_contracts").select("*").eq("project_id", project.id).maybeSingle(),
-            `Načítám smlouvu (${project.name})…`
+          withRetry(
+            () =>
+              withTimeout(
+                Promise.resolve(
+                  supabase.from("project_contracts").select("*").eq("project_id", project.id).maybeSingle()
+                ),
+                12000,
+                `Načtení smlouvy vypršelo (${project.name})`
+              ),
+            { retries: 1 }
           ),
-          progress.track(
-            supabase
-              .from("project_investor_financials")
-              .select("*")
-              .eq("project_id", project.id)
-              .maybeSingle(),
-            `Načítám finance (${project.name})…`
+          withRetry(
+            () =>
+              withTimeout(
+                Promise.resolve(
+                  supabase
+                    .from("project_investor_financials")
+                    .select("*")
+                    .eq("project_id", project.id)
+                    .maybeSingle()
+                ),
+                12000,
+                `Načtení financí vypršelo (${project.name})`
+              ),
+            { retries: 1 }
           ),
-          progress.track(
-            supabase.from("project_amendments").select("*").eq("project_id", project.id),
-            `Načítám dodatky (${project.name})…`
+          withRetry(
+            () =>
+              withTimeout(
+                Promise.resolve(
+                  supabase.from("project_amendments").select("*").eq("project_id", project.id)
+                ),
+                12000,
+                `Načtení dodatků vypršelo (${project.name})`
+              ),
+            { retries: 1 }
           ),
         ]);
 
-        const categories: DemandCategory[] = (categoriesData || []).map((c) => ({
+        if (categoriesRes.error) throw categoriesRes.error;
+        if (contractRes.error) throw contractRes.error;
+        if (financialsRes.error) throw financialsRes.error;
+        if (amendmentsRes.error) throw amendmentsRes.error;
+
+        const categories: DemandCategory[] = (categoriesRes.data || []).map((c: any) => ({
           id: c.id,
           title: c.title,
           budget: c.budget_display || "",
@@ -560,7 +693,11 @@ const AppContent: React.FC = () => {
           realizationEnd: c.realization_end || undefined,
         }));
 
-        detailsMap[project.id] = {
+        const contractData = contractRes.data as any | null;
+        const financialsData = financialsRes.data as any | null;
+        const amendmentsData = (amendmentsRes.data || []) as any[];
+
+        return {
           id: project.id,
           title: project.name,
           status: project.status || "realization",
@@ -593,141 +730,171 @@ const AppContent: React.FC = () => {
           categories,
           contract: contractData
             ? {
-              maturity: contractData.maturity_days ?? 30,
-              warranty: contractData.warranty_months ?? 60,
-              retention: contractData.retention_terms || "",
-              siteFacilities: contractData.site_facilities_percent ?? 0,
-              insurance: contractData.insurance_percent ?? 0,
-            }
+                maturity: contractData.maturity_days ?? 30,
+                warranty: contractData.warranty_months ?? 60,
+                retention: contractData.retention_terms || "",
+                siteFacilities: contractData.site_facilities_percent ?? 0,
+                insurance: contractData.insurance_percent ?? 0,
+              }
             : undefined,
           investorFinancials: financialsData
             ? {
-              sodPrice: financialsData.sod_price || 0,
-              amendments: (amendmentsData || []).map((a) => ({
-                id: a.id,
-                label: a.label,
-                price: a.price || 0,
-              })),
-            }
+                sodPrice: financialsData.sod_price || 0,
+                amendments: amendmentsData.map((a) => ({
+                  id: a.id,
+                  label: a.label,
+                  price: a.price || 0,
+                })),
+              }
             : undefined,
         };
+      };
+
+      const projectsToHydrate = [...projectsData];
+      if (selectedProjectId) {
+        projectsToHydrate.sort((a, b) => (a.id === selectedProjectId ? -1 : b.id === selectedProjectId ? 1 : 0));
       }
 
-      setAllProjectDetails(detailsMap);
-
-      // Load all bids
-      const { data: bidsData } = await progress.track(
-        supabase.from("bids").select("*"),
-        "Načítám nabídky…"
-      );
-
-      // Distribute bids to projects
-      if (bidsData) {
-        const bidsByProject: Record<string, Record<string, Bid[]>> = {};
-
-        // We need to map bids to projects via categories.
-        // Since we don't have a direct link in the bids table (it links to demand_categories),
-        // we need to know which project a category belongs to.
-        // We already loaded categories for each project in the loop above.
-
-        // Create a map of categoryId -> projectId
-        const categoryProjectMap: Record<string, string> = {};
-        Object.entries(detailsMap).forEach(([projectId, details]) => {
-          details.categories.forEach((cat) => {
-            categoryProjectMap[cat.id] = projectId;
-          });
-        });
-
-        bidsData.forEach((bid) => {
-          const projectId = categoryProjectMap[bid.demand_category_id];
-          if (projectId) {
-            if (!bidsByProject[projectId]) bidsByProject[projectId] = {};
-            if (!bidsByProject[projectId][bid.demand_category_id])
-              bidsByProject[projectId][bid.demand_category_id] = [];
-
-            bidsByProject[projectId][bid.demand_category_id].push({
-              id: bid.id,
-              subcontractorId: bid.subcontractor_id,
-              companyName: bid.company_name,
-              contactPerson: bid.contact_person,
-              email: bid.email,
-              phone: bid.phone,
-              price: bid.price_display || (bid.price ? bid.price.toString() : null),
-              priceHistory: bid.price_history || undefined,
-              notes: bid.notes,
-              tags: bid.tags,
-              status: bid.status,
-              updateDate: bid.update_date,
-              selectionRound: bid.selection_round,
-              contracted: bid.contracted || false,
-            });
-          }
-        });
-
-        // Update project details with bids
-        setAllProjectDetails((prev) => {
-          const next = { ...prev };
-          Object.keys(next).forEach((pid) => {
-            if (bidsByProject[pid]) {
-              next[pid] = { ...next[pid], bids: bidsByProject[pid] };
-            }
-          });
-          return next;
-        });
-      }
-
-      // Load all subcontractors
-      const { data: subcontractorsData, error: subcontractorsError } =
-        await progress.track(
-          supabase.from("subcontractors").select("*").order("company_name"),
-          "Načítám dodavatele…"
-        );
-
-      if (subcontractorsError) throw subcontractorsError;
-
-      const loadedContacts: Subcontractor[] = (subcontractorsData || []).map(
-        (s) => {
-          // Database stores specialization as text[] array
-          const specArray = Array.isArray(s.specialization)
-            ? s.specialization
-            : s.specialization ? [s.specialization] : ["Ostatní"];
-
-          // Support for multiple contacts
-          let contactsArray: any[] = Array.isArray(s.contacts) ? s.contacts : [];
-
-          // Migration/Fallback: if no contacts array but legacy fields exist
-          if (contactsArray.length === 0 && (s.contact_person_name || s.phone || s.email)) {
-            contactsArray = [{
-              id: crypto.randomUUID(),
-              name: s.contact_person_name || "-",
-              phone: s.phone || "-",
-              email: s.email || "-",
-              position: "Hlavní kontakt"
-            }];
-          }
-
-          return {
-            id: s.id,
-            company: s.company_name,
-            specialization: specArray.length > 0 ? specArray : ["Ostatní"],
-            contacts: contactsArray,
-            ico: s.ico || "-",
-            region: s.region || "-",
-            status: s.status_id || "available",
-            // Keep legacy for UI compatibility during transition
-            name: s.contact_person_name || "-",
-            phone: s.phone || "-",
-            email: s.email || "-",
-          };
+      // Hydrate project details progressively (so UI fills in quickly)
+      for (const project of projectsToHydrate) {
+        if (!isCurrent()) return;
+        try {
+          const details = await fetchProjectDetails(project);
+          safe(() =>
+            setAllProjectDetails((prev) => ({
+              ...prev,
+              [project.id]: details,
+            }))
+          );
+        } catch (err) {
+          backgroundWarn(`Nepodařilo se načíst detail projektu (${project.name}).`, err);
         }
-      );
+      }
 
-      setContacts(loadedContacts);
+      // Load bids (single request) and merge into already loaded details
+      try {
+        const bidsRes = await withRetry(
+          () =>
+            withTimeout(Promise.resolve(supabase.from("bids").select("*")), 15000, "Načtení nabídek vypršelo"),
+          { retries: 1 }
+        );
+        if (bidsRes.error) throw bidsRes.error;
+        const bidsData = (bidsRes.data || []) as any[];
 
-      // Load contact statuses from database
-      const statuses = await progress.track(loadContactStatuses(), "Načítám stavy kontaktů…");
-      setContactStatuses(statuses);
-      progress.done();
+        safe(() => {
+          setAllProjectDetails((prev) => {
+            const bidsByProject: Record<string, Record<string, Bid[]>> = {};
+            const categoryProjectMap: Record<string, string> = {};
+            Object.entries(prev).forEach(([projectId, details]) => {
+              details.categories.forEach((cat) => {
+                categoryProjectMap[cat.id] = projectId;
+              });
+            });
+
+            bidsData.forEach((bid) => {
+              const projectId = categoryProjectMap[bid.demand_category_id];
+              if (!projectId) return;
+              if (!bidsByProject[projectId]) bidsByProject[projectId] = {};
+              if (!bidsByProject[projectId][bid.demand_category_id]) bidsByProject[projectId][bid.demand_category_id] = [];
+
+              bidsByProject[projectId][bid.demand_category_id].push({
+                id: bid.id,
+                subcontractorId: bid.subcontractor_id,
+                companyName: bid.company_name,
+                contactPerson: bid.contact_person,
+                email: bid.email,
+                phone: bid.phone,
+                price: bid.price_display || (bid.price ? bid.price.toString() : null),
+                priceHistory: bid.price_history || undefined,
+                notes: bid.notes,
+                tags: bid.tags,
+                status: bid.status,
+                updateDate: bid.update_date,
+                selectionRound: bid.selection_round,
+                contracted: bid.contracted || false,
+              });
+            });
+
+            const next = { ...prev };
+            Object.keys(next).forEach((pid) => {
+              if (bidsByProject[pid]) {
+                next[pid] = { ...next[pid], bids: bidsByProject[pid] };
+              }
+            });
+            return next;
+          });
+        });
+      } catch (err) {
+        backgroundWarn("Nepodařilo se načíst nabídky.", err);
+      }
+
+      // Load subcontractors (contacts) + statuses in parallel
+      await Promise.all([
+        (async () => {
+          try {
+            const subcontractorsRes = await withRetry(
+              () =>
+                withTimeout(
+                  Promise.resolve(supabase.from("subcontractors").select("*").order("company_name")),
+                  15000,
+                  "Načtení dodavatelů vypršelo"
+                ),
+              { retries: 1 }
+            );
+            if (subcontractorsRes.error) throw subcontractorsRes.error;
+
+            const subcontractorsData = (subcontractorsRes.data || []) as any[];
+            const loadedContacts: Subcontractor[] = subcontractorsData.map((s) => {
+              const specArray = Array.isArray(s.specialization)
+                ? s.specialization
+                : s.specialization
+                  ? [s.specialization]
+                  : ["Ostatní"];
+
+              let contactsArray: any[] = Array.isArray(s.contacts) ? s.contacts : [];
+              if (contactsArray.length === 0 && (s.contact_person_name || s.phone || s.email)) {
+                contactsArray = [
+                  {
+                    id: crypto.randomUUID(),
+                    name: s.contact_person_name || "-",
+                    phone: s.phone || "-",
+                    email: s.email || "-",
+                    position: "Hlavní kontakt",
+                  },
+                ];
+              }
+
+              return {
+                id: s.id,
+                company: s.company_name,
+                specialization: specArray.length > 0 ? specArray : ["Ostatní"],
+                contacts: contactsArray,
+                ico: s.ico || "-",
+                region: s.region || "-",
+                status: s.status_id || "available",
+                name: s.contact_person_name || "-",
+                phone: s.phone || "-",
+                email: s.email || "-",
+              };
+            });
+
+            safe(() => setContacts(loadedContacts));
+          } catch (err) {
+            backgroundWarn("Nepodařilo se načíst dodavatele.", err);
+          }
+        })(),
+        (async () => {
+          try {
+            const statuses = await withRetry(
+              () => withTimeout(loadContactStatuses(), 12000, "Načtení stavů kontaktů vypršelo"),
+              { retries: 1 }
+            );
+            safe(() => setContactStatuses(statuses));
+          } catch (err) {
+            backgroundWarn("Nepodařilo se načíst stavy kontaktů.", err);
+          }
+        })(),
+      ]);
     } catch (error) {
       console.error("Error loading initial data:", error);
       if (!silent) {
@@ -739,17 +906,24 @@ const AppContent: React.FC = () => {
           anyError?.hint ? `hint=${anyError.hint}` : null,
         ].filter(Boolean);
 
-        setLoadingError(
-          detailParts.length > 0
-            ? `Nepodařilo se načíst data (${detailParts.join(", ")}).`
-            : "Nepodařilo se načíst data. Zkuste obnovit stránku."
+        safe(() =>
+          setLoadingError(
+            detailParts.length > 0
+              ? `Nepodařilo se načíst data (${detailParts.join(", ")}).`
+              : "Nepodařilo se načíst data. Zkuste obnovit stránku."
+          )
         );
+      } else {
+        backgroundWarn("Nepodařilo se obnovit data na pozadí.", error);
       }
     } finally {
-      if (!silent) {
-        setIsDataLoading(false);
-        setAppLoadProgress(null);
-      }
+      safe(() => {
+        if (!silent) {
+          setIsDataLoading(false);
+          setAppLoadProgress(null);
+        }
+        setIsBackgroundLoading(false);
+      });
       lastRefreshTime.current = Date.now();
     }
   };
@@ -1760,25 +1934,64 @@ const AppContent: React.FC = () => {
   if (shouldShowLoader) {
     const percent = appLoadProgress?.percent;
     const label = appLoadProgress?.label;
+    
+    // Determine current loading phase
+    let loadingMessage = "Načítám aplikaci...";
+    if (authLoading && isDataLoading) {
+      loadingMessage = "Načítám aplikaci a data...";
+    } else if (authLoading) {
+      loadingMessage = "Ověřování přihlášení...";
+    } else if (isDataLoading) {
+      loadingMessage = "Načítám data...";
+    }
+    
+    // Calculate progress percentage
+    const displayPercent = typeof percent === "number" ? percent : (authLoading ? 30 : isDataLoading ? 60 : 0);
+    
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-white gap-4 px-6 text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
         <div className="w-full max-w-sm">
-          <p className="text-base">
-            Načítám aplikaci… {authLoading ? "(Ověřování)" : ""}{" "}
-            {isDataLoading ? "(Data)" : ""}
+          <p className="text-lg font-medium mb-4">
+            {loadingMessage}
           </p>
-          {typeof percent === "number" && (
-            <div className="mt-4">
-              <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden">
-                <div
-                  className="h-full bg-primary transition-[width] duration-300"
-                  style={{ width: `${Math.max(0, Math.min(100, percent))}%` }}
-                />
+          <div className="mt-4">
+            <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden">
+              <div
+                className="h-full bg-primary transition-[width] duration-300"
+                style={{ width: `${Math.max(0, Math.min(100, displayPercent))}%` }}
+              />
+            </div>
+            {label && (
+              <div className="mt-3 text-sm text-white/70">
+                <span className="truncate">{label}</span>
               </div>
-              <div className="mt-2 flex items-center justify-between text-sm text-white/70">
-                <span className="truncate">{label || "Načítám…"}</span>
-                <span className="tabular-nums">{percent}%</span>
+            )}
+            {typeof percent === "number" && (
+              <div className="mt-2 text-sm text-white/50 tabular-nums">
+                {percent}%
+              </div>
+            )}
+          </div>
+          {slowLoadWarning && (
+            <div className="mt-6 text-sm text-white/80">
+              <p>Načítání trvá déle než obvykle. Zkontrolujte připojení nebo zkuste znovu.</p>
+              <div className="mt-4 flex items-center justify-center gap-3">
+                <button
+                  onClick={() => {
+                    setSlowLoadWarning(false);
+                    loadInitialData(true);
+                  }}
+                  className="px-4 py-2 rounded-lg bg-white/15 hover:bg-white/20 border border-white/20 transition-colors"
+                >
+                  Zkusit znovu
+                </button>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 transition-colors"
+                >
+                  Obnovit stránku
+                </button>
               </div>
             </div>
           )}
@@ -1886,6 +2099,42 @@ const AppContent: React.FC = () => {
             >
               Vytvořit plný účet
             </button>
+          </div>
+        )}
+
+        {(isBackgroundLoading || backgroundWarning) && (
+          <div className="mx-4 mt-3 rounded-xl border border-slate-200/60 dark:border-slate-700/60 bg-white/80 dark:bg-slate-900/60 backdrop-blur px-4 py-3 flex items-start gap-3">
+            {isBackgroundLoading ? (
+              <span className="material-symbols-outlined animate-spin text-primary mt-0.5">progress_activity</span>
+            ) : (
+              <span className="material-symbols-outlined text-amber-500 mt-0.5">warning</span>
+            )}
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-medium text-slate-900 dark:text-white">
+                {isBackgroundLoading ? "Dotažuji data na pozadí…" : "Některá data se nepodařilo načíst"}
+              </div>
+              {backgroundWarning && (
+                <div className="mt-1 text-xs text-slate-600 dark:text-slate-300 break-words">
+                  {backgroundWarning}
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => loadInitialData(true)}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 text-white hover:bg-slate-800 dark:bg-white/15 dark:hover:bg-white/20 transition-colors"
+              >
+                Aktualizovat
+              </button>
+              {backgroundWarning && (
+                <button
+                  onClick={() => setBackgroundWarning(null)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-200 hover:bg-slate-300 text-slate-900 dark:bg-white/10 dark:hover:bg-white/15 dark:text-white transition-colors"
+                >
+                  Skrýt
+                </button>
+              )}
+            </div>
           </div>
         )}
 

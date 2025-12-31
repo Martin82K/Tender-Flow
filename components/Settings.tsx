@@ -6,6 +6,7 @@ import { addContactStatus, updateContactStatus, deleteContactStatus } from '../s
 import { UserManagement } from './UserManagement';
 import { EmailWhitelistManagement } from './EmailWhitelistManagement';
 import { ContactsImportWizard } from './ContactsImportWizard';
+import { unlockExcelZip } from '@/utils/excelUnlockZip';
 
 interface SettingsProps {
     theme: 'light' | 'dark' | 'system';
@@ -49,7 +50,7 @@ export const Settings: React.FC<SettingsProps> = ({
 
     // Tab State
     const [activeTab, setActiveTab] = useState<'user' | 'admin'>('user');
-    const [activeUserSubTab, setActiveUserSubTab] = useState<'profile' | 'contacts'>('profile');
+    const [activeUserSubTab, setActiveUserSubTab] = useState<'profile' | 'contacts' | 'tools'>('profile');
 
     // Registration Settings State (Admin only) - loaded from database
     const [allowPublicRegistration, setAllowPublicRegistration] = useState(false);
@@ -70,6 +71,69 @@ export const Settings: React.FC<SettingsProps> = ({
 
     const [isTransferringOwnership, setIsTransferringOwnership] = useState(false);
     const [ownershipTransferStatus, setOwnershipTransferStatus] = useState<string | null>(null);
+
+    // Tools: Excel unlocker
+    const [excelFile, setExcelFile] = useState<File | null>(null);
+    const [isUnlockingExcel, setIsUnlockingExcel] = useState(false);
+    const [excelProgress, setExcelProgress] = useState<{ percent: number; label: string } | null>(null);
+    const [excelSuccessInfo, setExcelSuccessInfo] = useState<{ outputName: string } | null>(null);
+
+    const handleUnlockExcelInBrowser = async () => {
+        if (!excelFile) {
+            alert('Vyberte prosím Excel soubor (.xlsx).');
+            return;
+        }
+
+        setIsUnlockingExcel(true);
+        setExcelSuccessInfo(null);
+        try {
+            setExcelProgress({ percent: 5, label: 'Kontroluji soubor…' });
+            if (!/\.(xlsx|xlsm)$/i.test(excelFile.name)) {
+                throw new Error('Podporované jsou pouze soubory .xlsx a .xlsm.');
+            }
+
+            const downloadFromResponse = (blob: Blob, filename: string) => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            };
+
+            const baseName = excelFile.name.replace(/\.(xlsx|xlsm)$/i, '');
+            const extMatch = excelFile.name.match(/\.(xlsx|xlsm)$/i);
+            const originalExt = (extMatch?.[1] || 'xlsx').toLowerCase();
+            const outputExt = originalExt === 'xlsm' ? 'xlsm' : 'xlsx';
+            const fallbackOutName = `${baseName}-odemceno.${outputExt}`;
+
+            setExcelProgress({ percent: 15, label: 'Načítám soubor…' });
+            const arrayBuffer = await excelFile.arrayBuffer();
+
+            const out = await unlockExcelZip(arrayBuffer, {
+                onProgress: (percent, label) => setExcelProgress({ percent, label }),
+            });
+
+            const blob = new Blob([out], {
+                type:
+                    outputExt === 'xlsm'
+                        ? 'application/vnd.ms-excel.sheet.macroEnabled.12'
+                        : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            });
+
+            downloadFromResponse(blob, fallbackOutName);
+            setExcelProgress({ percent: 100, label: 'Staženo' });
+            setExcelSuccessInfo({ outputName: fallbackOutName });
+        } catch (e: any) {
+            console.error('Excel unlock error:', e);
+            alert(`Nepodařilo se odemknout soubor: ${e?.message || 'Neznámá chyba'}`);
+            setExcelProgress(null);
+        } finally {
+            setIsUnlockingExcel(false);
+        }
+    };
 
     // Load display name on mount
     React.useEffect(() => {
@@ -695,6 +759,18 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                                     <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-t-full" />
                                 )}
                             </button>
+                            <button
+                                onClick={() => setActiveUserSubTab('tools')}
+                                className={`pb-2 px-1 text-sm font-medium transition-colors relative ${activeUserSubTab === 'tools'
+                                    ? 'text-primary'
+                                    : 'text-slate-500 hover:text-slate-300'
+                                    }`}
+                            >
+                                Nástroje
+                                {activeUserSubTab === 'tools' && (
+                                    <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-t-full" />
+                                )}
+                            </button>
                         </div>
 
                         {/* --- USER: PROFILE SUB-TAB --- */}
@@ -955,6 +1031,130 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                     </div>
                 </section>
                 </>
+                )}
+
+                {/* --- USER: TOOLS SUB-TAB --- */}
+                {activeUserSubTab === 'tools' && (
+                    <>
+                        <section className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+                            <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
+                                <span className="material-symbols-outlined">construction</span>
+                                Nástroje
+                            </h2>
+                            <p className="text-sm text-slate-600 dark:text-slate-300 mb-6">
+                                Praktické utility pro práci se soubory. Zpracování probíhá lokálně v prohlížeči.
+                            </p>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-5 shadow-sm">
+                                    <div className="flex items-start gap-4">
+                                        <div className="size-11 rounded-2xl bg-gradient-to-br from-emerald-500/25 to-cyan-500/10 text-emerald-300 flex items-center justify-center border border-emerald-500/20 shadow-inner">
+                                            <span className="material-symbols-outlined text-[22px]">lock_off</span>
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div className="text-base font-semibold text-slate-900 dark:text-white">
+                                                    Odemčení excelu
+                                                </div>
+                                                <div className="text-xs font-semibold text-slate-600 dark:text-slate-300 px-2 py-1 rounded-full bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/10">
+                                                    Tools
+                                                </div>
+                                            </div>
+                                            <div className="text-sm text-slate-600 dark:text-slate-300 mt-1">
+                                                Odstraní ochranu listů a uloží odemčený soubor ve stejném formátu jako vstup (<code className="px-1 py-0.5 bg-slate-100 dark:bg-white/10 rounded">.xlsx</code> / <code className="px-1 py-0.5 bg-slate-100 dark:bg-white/10 rounded">.xlsm</code>).
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-5 space-y-3">
+                                        <input
+                                            id="excel-file-input"
+                                            type="file"
+                                            accept=".xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12"
+                                            onChange={(e) => {
+                                                setExcelFile(e.target.files?.[0] || null);
+                                                setExcelProgress(null);
+                                                setExcelSuccessInfo(null);
+                                            }}
+                                            className="hidden"
+                                        />
+
+                                        <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+                                            <button
+                                                type="button"
+                                                onClick={() => document.getElementById('excel-file-input')?.click()}
+                                                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 text-white hover:bg-slate-800 dark:bg-white/15 dark:hover:bg-white/20 transition-colors border border-slate-900/10 dark:border-white/10"
+                                            >
+                                                <span className="material-symbols-outlined text-[18px]">upload_file</span>
+                                                Vybrat soubor
+                                            </button>
+                                            <div className="min-w-0 flex-1">
+                                                <div className="text-sm font-medium text-slate-900 dark:text-white truncate">
+                                                    {excelFile ? excelFile.name : 'Soubor nevybrán'}
+                                                </div>
+                                                <div className="text-xs text-slate-500 dark:text-slate-400">
+                                                    Podporováno: .xlsx, .xlsm
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            onClick={handleUnlockExcelInBrowser}
+                                            disabled={!excelFile || isUnlockingExcel}
+                                            className="inline-flex w-full items-center justify-center gap-2 px-4 py-3 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/20"
+                                        >
+                                            {isUnlockingExcel ? (
+                                                <>
+                                                    <span className="material-symbols-outlined animate-spin">progress_activity</span>
+                                                    Zpracovávám…
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <span className="material-symbols-outlined">download</span>
+                                                    Odemknout a stáhnout
+                                                </>
+                                            )}
+                                        </button>
+
+                                        {excelProgress && (
+                                            <div className="pt-2">
+                                                <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
+                                                    <span className="truncate">{excelProgress.label}</span>
+                                                    <span className="tabular-nums font-semibold">{excelProgress.percent}%</span>
+                                                </div>
+                                                <div className="mt-2 h-2.5 w-full rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden">
+                                                    <div
+                                                        className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-primary to-cyan-400 transition-[width] duration-300"
+                                                        style={{ width: `${Math.max(0, Math.min(100, excelProgress.percent))}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {excelSuccessInfo && (
+                                            <div className="mt-2 rounded-xl border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50/70 dark:bg-emerald-500/10 p-4">
+                                                <div className="flex items-start gap-3">
+                                                    <span className="material-symbols-outlined text-emerald-600 dark:text-emerald-300 mt-0.5">check_circle</span>
+                                                    <div className="min-w-0">
+                                                        <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                                                            Hotovo – soubor stažen
+                                                        </div>
+                                                        <div className="text-xs text-slate-600 dark:text-slate-300 mt-1">
+                                                            Staženo jako <span className="font-semibold">{excelSuccessInfo.outputName}</span>. Doporučení: smažte původní uzamčený soubor, aby nedošlo k záměně.
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="text-xs text-slate-500 dark:text-slate-400">
+                                            Pozn.: Odemčení probíhá lokálně v prohlížeči úpravou Excel ZIP struktury (odstranění <code className="px-1 py-0.5 bg-slate-100 dark:bg-white/10 rounded">&lt;sheetProtection&gt;</code>). Původní soubor se nijak nemění. Po stažení doporučujeme původní uzamčený soubor smazat, aby nedošlo k záměně.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </>
                 )}
                 </div>
             )}
