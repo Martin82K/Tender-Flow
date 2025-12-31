@@ -115,6 +115,10 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
     const [docHubAutoCreateProgress, setDocHubAutoCreateProgress] = useState(0);
     const [docHubAutoCreateLogs, setDocHubAutoCreateLogs] = useState<string[]>([]);
     const autoCreateTimerRef = useRef<number | null>(null);
+    const autoCreatePollRef = useRef<number | null>(null);
+    const [docHubAutoCreateRunId, setDocHubAutoCreateRunId] = useState<string | null>(null);
+    const [docHubBackendStep, setDocHubBackendStep] = useState<string | null>(null);
+    const [docHubBackendCounts, setDocHubBackendCounts] = useState<{ done: number; total: number | null } | null>(null);
     const [docHubExtraTopLevelDraft, setDocHubExtraTopLevelDraft] = useState<string[]>(() => {
         const raw = (project.docHubStructureV1 as any)?.extraTopLevel;
         return Array.isArray(raw) ? raw.filter((s) => typeof s === "string" && s.trim()).map((s) => s.trim()) : [];
@@ -194,6 +198,50 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
         setIsDocHubAutoCreating(true);
         setDocHubAutoCreateProgress(0);
         setDocHubAutoCreateLogs(["Zahajuji auto‑vytváření složek…"]);
+        setDocHubBackendStep(null);
+        setDocHubBackendCounts(null);
+
+        const runId = crypto.randomUUID();
+        setDocHubAutoCreateRunId(runId);
+
+        if (autoCreatePollRef.current) {
+            window.clearInterval(autoCreatePollRef.current);
+            autoCreatePollRef.current = null;
+        }
+
+        autoCreatePollRef.current = window.setInterval(async () => {
+            try {
+                const { data, error } = await supabase
+                    .from("dochub_autocreate_runs")
+                    .select("status, step, progress_percent, total_actions, completed_actions, logs, error, finished_at")
+                    .eq("id", runId)
+                    .maybeSingle();
+                if (error || !data) return;
+
+                if (typeof data.progress_percent === "number") {
+                    setDocHubAutoCreateProgress((prev) => Math.max(prev, data.progress_percent));
+                }
+                if (typeof data.step === "string" && data.step.trim()) {
+                    setDocHubBackendStep(data.step);
+                }
+                const totalActions = typeof data.total_actions === "number" ? data.total_actions : null;
+                const completedActions = typeof data.completed_actions === "number" ? data.completed_actions : 0;
+                setDocHubBackendCounts({ done: completedActions, total: totalActions });
+
+                if (Array.isArray(data.logs) && data.logs.length > 0) {
+                    setDocHubAutoCreateLogs(data.logs as string[]);
+                }
+
+                if (data.status === "success" || data.status === "error" || data.finished_at) {
+                    if (autoCreatePollRef.current) {
+                        window.clearInterval(autoCreatePollRef.current);
+                        autoCreatePollRef.current = null;
+                    }
+                }
+            } catch {
+                // Ignore polling errors (best-effort UI)
+            }
+        }, 450);
 
         if (autoCreateTimerRef.current) {
             window.clearInterval(autoCreateTimerRef.current);
@@ -239,7 +287,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
             }
 
             const result = await invokeAuthedFunction<any>("dochub-autocreate", {
-                body: { projectId: project.id }
+                body: { projectId: project.id, runId }
             });
             const logs = Array.isArray(result?.logs) ? result.logs : [];
             if (logs.length) setDocHubAutoCreateLogs(logs);
@@ -261,6 +309,11 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
         } catch (e) {
             const rawMessage = e instanceof Error ? e.message : "Neznámá chyba";
             const message =
+                rawMessage.includes("Could not find a relationship between") &&
+                rawMessage.includes("'bids'") &&
+                rawMessage.includes("'subcontractors'")
+                    ? "Auto‑vytváření narazilo na chybu Supabase/PostgREST (chybí relace `bids` ↔ `subcontractors` v schema cache).\n\nŘešení:\n- pokud používáte Supabase Edge Function `dochub-autocreate`, nasadit (deploy) její aktuální verzi z repa\n- nebo opravit/ověřit FK `bids.subcontractor_id -> subcontractors.id` a následně počkat na refresh schema cache (případně restartovat PostgREST / Supabase API)\n\nDočasně: auto‑vytváření lze spustit i bez načítání dodavatelů, ale v takovém případě se nevytvoří podsložky pro konkrétní dodavatele."
+                    :
                 rawMessage === "Missing DocHub root"
                     ? "Chybí namapovaná hlavní složka projektu. Klikněte na „Získat odkaz“ (nebo vyberte složku) a zkuste to znovu."
                     : rawMessage.includes("SPO license")
@@ -279,9 +332,16 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                 window.clearInterval(autoCreateTimerRef.current);
                 autoCreateTimerRef.current = null;
             }
+            if (autoCreatePollRef.current) {
+                window.clearInterval(autoCreatePollRef.current);
+                autoCreatePollRef.current = null;
+            }
             window.setTimeout(() => {
                 setDocHubAutoCreateProgress(0);
                 setDocHubAutoCreateLogs([]);
+                setDocHubBackendStep(null);
+                setDocHubBackendCounts(null);
+                setDocHubAutoCreateRunId(null);
             }, 1200);
         }
     };
@@ -1326,29 +1386,52 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                             </div>
                                         </div>
 
-                                        {isDocHubAutoCreating && (
-                                            <div className="bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4">
-                                                <div className="flex items-center justify-between gap-3">
-                                                    <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                                                        Probíhá auto‑vytváření složek
-                                                    </div>
-                                                    <div className="text-xs text-slate-500">
-                                                        {docHubAutoCreateProgress}%
-                                                    </div>
-                                                </div>
-                                                <div className="mt-3 h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
-                                                    <div
-                                                        className="h-full bg-gradient-to-r from-emerald-500 to-violet-500 transition-all"
+	                                        {isDocHubAutoCreating && (
+	                                            <div className="bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4">
+	                                                <div className="flex items-center justify-between gap-3">
+	                                                    <div className="text-sm font-semibold text-slate-900 dark:text-white">
+	                                                        Probíhá auto‑vytváření složek
+	                                                    </div>
+	                                                    <div className="text-xs text-slate-500">
+	                                                        {docHubAutoCreateProgress}%
+	                                                    </div>
+	                                                </div>
+	                                                <div className="mt-3 h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+	                                                    <div
+                                                        className="h-full bg-gradient-to-r from-primary to-violet-500 transition-all"
                                                         style={{ width: `${docHubAutoCreateProgress}%` }}
                                                     />
-                                                </div>
-                                                {docHubAutoCreateLogs.length > 0 && (
-                                                    <div className="mt-3 text-xs text-slate-600 dark:text-slate-400">
-                                                        {docHubAutoCreateLogs[docHubAutoCreateLogs.length - 1]}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
+	                                                </div>
+	                                                <div className="mt-3 flex items-center justify-between gap-3">
+	                                                    <div className="text-xs text-slate-600 dark:text-slate-400 truncate">
+	                                                        {docHubBackendStep || (docHubAutoCreateLogs.length > 0 ? docHubAutoCreateLogs[docHubAutoCreateLogs.length - 1] : "")}
+	                                                    </div>
+	                                                    {docHubBackendCounts && (
+	                                                        <div className="text-xs text-slate-500 shrink-0">
+	                                                            {docHubBackendCounts.total ? `${docHubBackendCounts.done}/${docHubBackendCounts.total}` : `${docHubBackendCounts.done}`}
+	                                                        </div>
+	                                                    )}
+	                                                </div>
+	                                                {docHubBackendCounts?.total && (
+	                                                    <div className="mt-2 h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+	                                                        <div
+	                                                            className="h-full bg-primary/70 transition-all"
+	                                                            style={{
+	                                                                width: `${Math.min(
+	                                                                    100,
+	                                                                    Math.round((docHubBackendCounts.done / Math.max(1, docHubBackendCounts.total)) * 100)
+	                                                                )}%`,
+	                                                            }}
+	                                                        />
+	                                                    </div>
+	                                                )}
+	                                                {docHubAutoCreateLogs.length > 0 && (
+	                                                    <div className="mt-3 text-xs text-slate-600 dark:text-slate-400">
+	                                                        {docHubAutoCreateLogs[docHubAutoCreateLogs.length - 1]}
+	                                                    </div>
+	                                                )}
+	                                            </div>
+	                                        )}
 
                                         {isEditingDocHubStructure && (
                                             <div className="bg-slate-100 dark:bg-slate-950/30 border border-slate-300 dark:border-slate-700/50 rounded-xl p-4">

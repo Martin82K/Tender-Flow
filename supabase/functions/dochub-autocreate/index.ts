@@ -14,6 +14,7 @@ type AutoCreateResult = {
   projectId: string;
   rootId: string;
   driveId: string | null;
+  runId?: string;
   logs: string[];
   createdCount: number;
   reusedCount: number;
@@ -105,14 +106,53 @@ Deno.serve(async (req) => {
 
   const rawBody = await req.json().catch(() => null);
   const requestedProjectId = (rawBody?.projectId as string) || null;
+  const requestedRunId = (rawBody?.runId as string) || null;
+  let runId: string | null = requestedRunId;
+  let runUserId: string | null = null;
 
   try {
     const authed = createAuthedUserClient(req);
     const { data: userData, error: userError } = await authed.auth.getUser();
     if (userError || !userData.user) return json(401, { error: "Unauthorized" });
+    runUserId = userData.user.id;
 
     const projectId = requestedProjectId;
     if (!projectId) return json(400, { error: "Missing projectId" });
+    if (!runId) runId = crypto.randomUUID();
+    const service = createServiceClient();
+
+    const persistRun = async (patch: Partial<{
+      status: "running" | "success" | "error";
+      provider: Provider | null;
+      step: string | null;
+      progress_percent: number;
+      total_actions: number | null;
+      completed_actions: number;
+      logs: string[];
+      error: string | null;
+      finished_at: string | null;
+    }>) => {
+      const safeLogs = (patch.logs || []).slice(-200);
+      await service
+        .from("dochub_autocreate_runs")
+        .upsert(
+          {
+            id: runId,
+            project_id: projectId,
+            user_id: runUserId,
+            provider: (patch.provider as any) ?? null,
+            status: patch.status || "running",
+            step: patch.step ?? null,
+            progress_percent: typeof patch.progress_percent === "number" ? patch.progress_percent : 0,
+            total_actions: patch.total_actions ?? null,
+            completed_actions: typeof patch.completed_actions === "number" ? patch.completed_actions : 0,
+            logs: safeLogs,
+            error: patch.error ?? null,
+            finished_at: patch.finished_at ?? null,
+          } as any,
+          { onConflict: "id" }
+        );
+    };
 
     const { data: project, error: projectError } = await authed
       .from("projects")
@@ -153,6 +193,24 @@ Deno.serve(async (req) => {
     let createdCount = 0;
     let reusedCount = 0;
 
+    const pushLog = async (line: string) => {
+      logs.push(line);
+      await persistRun({
+        status: "running",
+        provider,
+        step: line,
+        logs,
+      });
+    };
+
+    await persistRun({
+      status: "running",
+      provider,
+      step: "Zahajuji auto‑vytváření složek…",
+      progress_percent: 1,
+      logs: ["Zahajuji auto‑vytváření složek…"],
+    });
+
     const ensureBase = async (kind: string, name: string) => {
       logs.push(`Kontrola: /${name}`);
       const result = await ensureFolder({
@@ -170,12 +228,44 @@ Deno.serve(async (req) => {
       return result.id;
     };
 
-    logs.push("Zahajuji auto‑vytváření složek…");
+    const baseFoldersTotal = 5 + extraTopLevel.length;
+    let completedActions = 0;
+    let totalActions: number | null = null;
+    let lastPersistAt = 0;
+    const maybePersistProgress = async (step: string, force = false) => {
+      const now = Date.now();
+      if (!force && now - lastPersistAt < 350) return;
+      lastPersistAt = now;
+      const pct =
+        totalActions && totalActions > 0
+          ? Math.min(99, 10 + Math.round((completedActions / totalActions) * 89))
+          : Math.min(20, Math.round((completedActions / Math.max(1, baseFoldersTotal)) * 20));
+      await persistRun({
+        status: "running",
+        provider,
+        step,
+        progress_percent: pct,
+        total_actions: totalActions,
+        completed_actions: completedActions,
+        logs,
+      });
+    };
+
     const pdId = await ensureBase("pd", structure.pd);
+    completedActions += 1;
+    await maybePersistProgress("Zakládám hlavní složky projektu…");
     const tendersId = await ensureBase("tenders", structure.tenders);
+    completedActions += 1;
+    await maybePersistProgress("Zakládám hlavní složky projektu…");
     await ensureBase("contracts", structure.contracts);
+    completedActions += 1;
+    await maybePersistProgress("Zakládám hlavní složky projektu…");
     await ensureBase("realization", structure.realization);
+    completedActions += 1;
+    await maybePersistProgress("Zakládám hlavní složky projektu…");
     await ensureBase("archive", structure.archive);
+    completedActions += 1;
+    await maybePersistProgress("Zakládám hlavní složky projektu…");
 
     for (const folderName of extraTopLevel) {
       logs.push(`Kontrola: /${folderName}`);
@@ -190,9 +280,12 @@ Deno.serve(async (req) => {
         name: folderName,
       });
       createdCount += 1;
+      completedActions += 1;
+      await maybePersistProgress("Zakládám hlavní složky projektu…");
     }
 
-    logs.push("Načítám výběrová řízení (poptávky) z databáze…");
+    await pushLog("Načítám výběrová řízení (poptávky) z databáze…");
+    await maybePersistProgress("Kontroluji existující výběrová řízení (VŘ)…", true);
     const { data: categories, error: categoriesError } = await authed
       .from("demand_categories")
       .select("id,title")
@@ -201,33 +294,70 @@ Deno.serve(async (req) => {
     if (categoriesError) throw new Error(categoriesError.message || "Failed to load demand_categories");
 
     const categoryList = (categories || []) as Array<{ id: string; title: string }>;
-    logs.push(`Nalezeno VŘ: ${categoryList.length}`);
+    await pushLog(`Nalezeno VŘ: ${categoryList.length}`);
 
     // Load suppliers for all categories (best effort)
     const categoryIds = categoryList.map((c) => c.id);
     const bidsByCategory: Record<string, Array<{ supplierId: string; supplierName: string }>> = {};
     if (categoryIds.length > 0) {
-      const { data: bids, error: bidsError } = await authed
+      const hydrateSuppliers = async (rows: Array<{ category_id: string; subcontractor_id: string | null }>) => {
+        const supplierIds = Array.from(
+          new Set(rows.map((r) => r.subcontractor_id).filter((v): v is string => typeof v === "string" && v.length > 0))
+        );
+        const supplierNameById = new Map<string, string>();
+        if (supplierIds.length > 0) {
+          const { data: subs, error: subsError } = await authed
+            .from("subcontractors")
+            .select("id, company_name")
+            .in("id", supplierIds);
+          if (subsError) {
+            await pushLog(`⚠️ Nelze načíst dodavatele (subcontractors): ${subsError.message}`);
+          } else {
+            for (const sub of (subs || []) as any[]) {
+              if (sub?.id) supplierNameById.set(String(sub.id), String(sub.company_name || sub.id));
+            }
+          }
+        }
+
+        for (const row of rows) {
+          const categoryId = row.category_id;
+          const supplierId = row.subcontractor_id;
+          if (!supplierId) continue;
+          if (!bidsByCategory[categoryId]) bidsByCategory[categoryId] = [];
+          if (bidsByCategory[categoryId].some((s) => s.supplierId === supplierId)) continue;
+          bidsByCategory[categoryId].push({
+            supplierId,
+            supplierName: supplierNameById.get(supplierId) || supplierId || "Dodavatel",
+          });
+        }
+      };
+
+      // Don't rely on PostgREST relationship cache (it may be stale/missing in some environments).
+      // Fetch bids first, then hydrate supplier names via a separate query.
+      const { data: plainBids, error: plainBidsError } = await authed
         .from("bids")
-        .select("category_id, subcontractor_id, subcontractor:subcontractors(company_name)")
+        .select("category_id, subcontractor_id")
         .in("category_id", categoryIds);
-      if (bidsError) throw new Error(bidsError.message || "Failed to load bids");
-      for (const row of (bids || []) as any[]) {
-        const categoryId = row.category_id as string;
-        const supplierId = row.subcontractor_id as string | null;
-        const supplierName = (row.subcontractor?.company_name as string | undefined) || supplierId || "Dodavatel";
-        if (!supplierId) continue;
-        if (!bidsByCategory[categoryId]) bidsByCategory[categoryId] = [];
-        // Deduplicate by supplierId
-        if (bidsByCategory[categoryId].some((s) => s.supplierId === supplierId)) continue;
-        bidsByCategory[categoryId].push({ supplierId, supplierName });
+
+      if (plainBidsError) {
+        await pushLog(`⚠️ Nelze načíst výběrová řízení dodavatelů (bids): ${plainBidsError.message}`);
+      } else {
+        await hydrateSuppliers((plainBids || []) as any[]);
       }
     }
 
+    const suppliersTotal = Object.values(bidsByCategory).reduce((sum, arr) => sum + (arr?.length || 0), 0);
+    const perSupplierBase = 3 + extraSupplier.length;
+    const perCategoryBase = 2;
+    totalActions = baseFoldersTotal + categoryList.length * perCategoryBase + suppliersTotal * perSupplierBase;
+    await maybePersistProgress("Připravuji vytváření složek VŘ…", true);
+
     // Create tender folders
-    for (const cat of categoryList) {
+    for (let categoryIndex = 0; categoryIndex < categoryList.length; categoryIndex++) {
+      const cat = categoryList[categoryIndex];
       const tenderFolderName = getTenderFolderName(cat.title);
-      logs.push(`VŘ: ${cat.title} → /${structure.tenders}/${tenderFolderName}`);
+      await pushLog(`VŘ: ${cat.title} → /${structure.tenders}/${tenderFolderName}`);
+      await maybePersistProgress(`Zakládám VŘ ${categoryIndex + 1}/${categoryList.length}…`, true);
       const tenderFolder = await ensureFolder({
         provider,
         accessToken,
@@ -239,6 +369,8 @@ Deno.serve(async (req) => {
         name: tenderFolderName,
       });
       createdCount += 1;
+      completedActions += 1;
+      await maybePersistProgress(`Zakládám VŘ ${categoryIndex + 1}/${categoryList.length}…`);
 
       const inquiriesFolder = await ensureFolder({
         provider,
@@ -251,13 +383,15 @@ Deno.serve(async (req) => {
         name: structure.tendersInquiries,
       });
       createdCount += 1;
+      completedActions += 1;
+      await maybePersistProgress(`Zakládám VŘ ${categoryIndex + 1}/${categoryList.length}…`);
 
       const suppliers = bidsByCategory[cat.id] || [];
       if (suppliers.length === 0) {
-        logs.push(`  ↳ Dodavatelé: 0 (přeskočeno)`);
+        await pushLog(`  ↳ Dodavatelé: 0 (přeskočeno)`);
         continue;
       }
-      logs.push(`  ↳ Dodavatelé: ${suppliers.length}`);
+      await pushLog(`  ↳ Dodavatelé: ${suppliers.length}`);
 
       for (const sup of suppliers) {
         const supplierFolderName = getTenderFolderName(sup.supplierName);
@@ -273,6 +407,8 @@ Deno.serve(async (req) => {
           name: supplierFolderName,
         });
         createdCount += 1;
+        completedActions += 1;
+        await maybePersistProgress("Zakládám složky dodavatelů…");
 
         await ensureFolder({
           provider,
@@ -285,6 +421,8 @@ Deno.serve(async (req) => {
           name: structure.supplierEmail,
         });
         createdCount += 1;
+        completedActions += 1;
+        await maybePersistProgress("Zakládám složky dodavatelů…");
 
         await ensureFolder({
           provider,
@@ -297,6 +435,8 @@ Deno.serve(async (req) => {
           name: structure.supplierOffer,
         });
         createdCount += 1;
+        completedActions += 1;
+        await maybePersistProgress("Zakládám složky dodavatelů…");
 
         for (const extra of extraSupplier) {
           await ensureFolder({
@@ -310,24 +450,37 @@ Deno.serve(async (req) => {
             name: extra,
           });
           createdCount += 1;
+          completedActions += 1;
+          await maybePersistProgress("Zakládám složky dodavatelů…");
         }
       }
     }
 
-    logs.push("Hotovo.");
+    await pushLog("Hotovo.");
+    await persistRun({
+      status: "success",
+      provider,
+      step: "Hotovo.",
+      progress_percent: 100,
+      total_actions: totalActions,
+      completed_actions: completedActions,
+      logs,
+      finished_at: new Date().toISOString(),
+      error: null,
+    });
 
     const result: AutoCreateResult = {
       provider,
       projectId,
       rootId,
       driveId,
+      runId,
       logs,
       createdCount,
       reusedCount,
     };
 
     // Store last run status (service role)
-    const service = createServiceClient();
     await service
       .from("projects")
       .update({
@@ -352,6 +505,24 @@ Deno.serve(async (req) => {
             dochub_autocreate_last_error: message,
           })
           .eq("id", projectId);
+
+        if (runId && runUserId) {
+          await service
+            .from("dochub_autocreate_runs")
+            .upsert(
+              {
+                id: runId,
+                project_id: projectId,
+                user_id: runUserId,
+                status: "error",
+                step: "Chyba",
+                progress_percent: 100,
+                error: message,
+                finished_at: new Date().toISOString(),
+              } as any,
+              { onConflict: "id" }
+            );
+        }
       }
     } catch {
       // ignore
