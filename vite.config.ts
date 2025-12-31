@@ -7,6 +7,18 @@ export default defineConfig(() => {
     server: {
       port: 3000,
       host: '0.0.0.0',
+      proxy: {
+        '/api/merge': {
+          target: 'http://localhost:5001',
+          changeOrigin: true,
+          rewrite: (p) => p.replace(/^\/api/, ''),
+        },
+        '/api/excel-tools': {
+          target: 'http://localhost:5001',
+          changeOrigin: true,
+          rewrite: (p) => p.replace(/^\/api\/excel-tools/, ''),
+        },
+      },
     },
     plugins: [react()],
     resolve: {
