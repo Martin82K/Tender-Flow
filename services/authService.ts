@@ -165,15 +165,76 @@ export const authService = {
         if (error) throw error;
     },
 
+    // New function to get user data from an existing session (avoids extra API call)
+    getUserFromSession: async (session: any): Promise<User | null> => {
+        if (!session?.user) {
+            return null;
+        }
+        return authService._buildUserFromSession(session);
+    },
+
+    // Internal helper to build user object from session
+    _buildUserFromSession: async (session: any): Promise<User | null> => {
+        if (!session?.user) {
+            return null;
+        }
+
+        // Fetch profile for role
+        let profile = null;
+        try {
+            const { data } = await supabase
+                .from('profiles')
+                .select('is_admin')
+                .eq('id', session.user.id)
+                .single();
+            profile = data;
+            console.log('[authService] Profile loaded', { is_admin: profile?.is_admin });
+        } catch (e) {
+            console.warn('[authService] Could not fetch profile', e);
+        }
+
+        // Fetch settings
+        let settings = null;
+        try {
+            const { data, error } = await supabase
+                .from('user_settings')
+                .select('preferences')
+                .eq('user_id', session.user.id)
+                .single();
+            
+            if (error && error.code !== 'PGRST116') {
+                console.error('[authService] Error fetching user settings:', error);
+            } else if (data) {
+                settings = data;
+            }
+        } catch (e) {
+            console.error('[authService] Exception fetching settings', e);
+        }
+
+        const finalPreferences = settings?.preferences || {
+            theme: 'system',
+            primaryColor: '#607AFB',
+            backgroundColor: '#f5f6f8'
+        };
+
+        return {
+            id: session.user.id,
+            name: session.user.user_metadata.name || session.user.email?.split('@')[0] || 'User',
+            email: session.user.email || '',
+            role: profile?.is_admin ? 'admin' : 'user',
+            avatarUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(session.user.email || 'U')}&background=random`,
+            preferences: finalPreferences
+        };
+    },
+
     getCurrentUser: async (): Promise<User | null> => {
         console.log('[authService] getCurrentUser: Starting...');
         let session = null;
         try {
-
-            // Add timeout race to prevent hanging indefinitely
+            // Reduced timeout from 30s to 5s for faster fail-fast
             const sessionPromise = supabase.auth.getSession();
             const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Auth check timed out (30s)')), 30000)
+                setTimeout(() => reject(new Error('Auth check timed out (5s)')), 5000)
             );
             
             const { data } = await Promise.race([sessionPromise, timeoutPromise]) as any;
@@ -189,61 +250,8 @@ export const authService = {
             return null;
         }
 
-        // Fetch profile for role
-        let profile = null;
-        try {
-            const { data } = await supabase
-                .from('profiles')
-                .select('is_admin')
-                .eq('id', session.user.id)
-                .single();
-            profile = data;
-            console.log('[authService] getCurrentUser: Profile loaded', { is_admin: profile?.is_admin });
-        } catch (e) {
-            console.warn('[authService] getCurrentUser: Could not fetch profile', e);
-        }
-
-        // Fetch settings
-        let settings = null;
-        try {
-            console.log('[authService] getCurrentUser: Fetching user_settings for user_id:', session.user.id);
-            const { data, error } = await supabase
-                .from('user_settings')
-                .select('preferences')
-                .eq('user_id', session.user.id)
-                .single();
-            
-            if (error) {
-                // It's normal to not have settings yet, don't warn for PGRST116 (no rows)
-                if (error.code !== 'PGRST116') {
-                    console.error('[authService] getCurrentUser: Error fetching user settings:', error);
-                } else {
-                    console.log('[authService] getCurrentUser: No user_settings row found (will use defaults)');
-                }
-            } else {
-                settings = data;
-                console.log('[authService] getCurrentUser: Loaded user settings:', settings);
-            }
-        } catch (e) {
-            console.error('[authService] getCurrentUser: Exception fetching settings', e);
-        }
-
-        const finalPreferences = settings?.preferences || {
-            theme: 'system',
-            primaryColor: '#607AFB',
-            backgroundColor: '#f5f6f8'
-        };
-
-        console.log('[authService] getCurrentUser: Final preferences:', finalPreferences);
-
-        return {
-            id: session.user.id,
-            name: session.user.user_metadata.name || session.user.email?.split('@')[0] || 'User',
-            email: session.user.email || '',
-            role: profile?.is_admin ? 'admin' : 'user',
-            avatarUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(session.user.email || 'U')}&background=random`,
-            preferences: finalPreferences
-        };
+        // Reuse shared helper for building user object
+        return authService._buildUserFromSession(session);
     },
 
     updateUserPreferences: async (preferences: any): Promise<User> => {

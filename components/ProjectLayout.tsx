@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Header } from './Header';
 import { Pipeline } from './Pipeline';
 import { TenderPlan } from './TenderPlan';
@@ -223,29 +223,55 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
         finished_at: string | null;
     }>>([]);
     const [isLoadingDocHubHistory, setIsLoadingDocHubHistory] = useState(false);
+    const [docHubHistoryFilter, setDocHubHistoryFilter] = useState<{
+        onlyErrors: boolean;
+        onlyCreatedActions: boolean;
+        lastDays: number;
+    }>({
+        onlyErrors: false,
+        onlyCreatedActions: false,
+        lastDays: 30,
+    });
 
-    const loadDocHubHistory = async () => {
+    const countCreatedFromLogs = (logs: unknown): number => {
+        if (!Array.isArray(logs)) return 0;
+        return (logs as unknown[]).filter((l) => typeof l === "string" && l.startsWith("✔ ")).length;
+    };
+
+    const loadDocHubHistory = useCallback(async () => {
         if (!project.id) return;
         setIsLoadingDocHubHistory(true);
         try {
-            const { data, error } = await supabase
+            const since = new Date(Date.now() - Math.max(1, docHubHistoryFilter.lastDays) * 24 * 60 * 60 * 1000).toISOString();
+            let query = supabase
                 .from("dochub_autocreate_runs")
                 .select("id,status,step,progress_percent,total_actions,completed_actions,logs,error,started_at,finished_at")
                 .eq("project_id", project.id)
+                .gte("started_at", since)
                 .order("started_at", { ascending: false })
-                .limit(10);
+                .limit(50);
+            if (docHubHistoryFilter.onlyErrors) query = query.eq("status", "error");
+
+            const { data, error } = await query;
             if (error || !data) return;
-            setDocHubRunHistory(data as any);
+            const filtered = docHubHistoryFilter.onlyCreatedActions
+                ? (data as any[]).filter((run) => countCreatedFromLogs(run?.logs) > 0)
+                : (data as any[]);
+            setDocHubRunHistory(filtered as any);
         } finally {
             setIsLoadingDocHubHistory(false);
         }
-    };
+    }, [docHubHistoryFilter.lastDays, docHubHistoryFilter.onlyCreatedActions, docHubHistoryFilter.onlyErrors, project.id]);
 
     useEffect(() => {
-        if (!isDocHubConnected) return;
+        const isDocHubConnectedNow =
+            docHubEnabled &&
+            docHubStatus === "connected" &&
+            !!project.docHubRootId &&
+            docHubRootLink.trim() !== "";
+        if (!isDocHubConnectedNow) return;
         loadDocHubHistory();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isDocHubConnected, project.id]);
+    }, [docHubEnabled, docHubRootLink, docHubStatus, loadDocHubHistory, project.docHubRootId]);
     const [docHubNewFolderName, setDocHubNewFolderName] = useState(project.title || project.name || "");
     const [docHubResolveProgress, setDocHubResolveProgress] = useState(0);
     const resolveProgressTimerRef = useRef<number | null>(null);
@@ -1549,24 +1575,20 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
 	                                                >
 	                                                    {isEditingDocHubStructure ? "Zavřít úpravy" : "Upravit strukturu"}
 	                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleToggleDocHubAutoCreate(!docHubAutoCreateEnabled)}
-                                                    disabled={isDocHubAutoCreating || !isDocHubConnected}
-                                                    className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${isDocHubAutoCreating || !isDocHubConnected
-                                                        ? "bg-slate-200 dark:bg-slate-800/60 text-slate-500 border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
-                                                        : docHubAutoCreateEnabled
-                                                            ? "bg-emerald-500/15 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
-                                                            : "bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700/50"
-                                                    }`}
-                                                    title={!isDocHubConnected ? "Nejdřív připojte DocHub a nastavte hlavní složku projektu." : docHubAutoCreateEnabled ? "Vypnout auto‑vytváření" : "Zapnout a spustit auto‑vytváření"}
-                                                >
-                                                    {isDocHubAutoCreating
-                                                        ? `Auto‑vytváření… ${docHubAutoCreateProgress}%`
-                                                        : docHubAutoCreateEnabled
-                                                            ? "Auto‑vytváření: zapnuto"
-                                                            : "Auto‑vytváření: vypnuto"}
-                                                </button>
+	                                                <button
+	                                                    type="button"
+	                                                    onClick={() => handleRunDocHubAutoCreate()}
+	                                                    disabled={isDocHubAutoCreating || !isDocHubConnected}
+	                                                    className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${isDocHubAutoCreating || !isDocHubConnected
+	                                                        ? "bg-slate-200 dark:bg-slate-800/60 text-slate-500 border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
+	                                                        : "bg-primary/15 hover:bg-primary/20 text-primary border-primary/30"
+	                                                    }`}
+	                                                    title={!isDocHubConnected ? "Nejdřív připojte DocHub a nastavte hlavní složku projektu." : "Synchronizuje DocHub strukturu pro projekt (ručně)."}
+	                                                >
+	                                                    {isDocHubAutoCreating
+	                                                        ? `Auto‑vytváření… ${docHubAutoCreateProgress}%`
+	                                                        : "Synchronizovat"}
+	                                                </button>
                                                 <button
                                                     type="button"
                                                     onClick={async () => {
@@ -1732,17 +1754,58 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
 	                                            <div className="bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4">
 	                                                <div className="flex items-center justify-between gap-3">
 	                                                    <div className="text-sm font-semibold text-slate-900 dark:text-white">Historie běhů</div>
-	                                                    <button
-	                                                        type="button"
-	                                                        onClick={loadDocHubHistory}
-	                                                        disabled={isLoadingDocHubHistory}
-	                                                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${isLoadingDocHubHistory
-	                                                            ? "bg-slate-200 dark:bg-slate-800/60 text-slate-500 border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
-	                                                            : "bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700/50"
-	                                                            }`}
-	                                                    >
-	                                                        Obnovit
-	                                                    </button>
+	                                                    <div className="flex items-center gap-2">
+	                                                        <button
+	                                                            type="button"
+	                                                            onClick={() => {
+	                                                                setDocHubHistoryFilter((prev) => ({ ...prev, onlyErrors: !prev.onlyErrors }));
+	                                                            }}
+	                                                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${docHubHistoryFilter.onlyErrors
+	                                                                ? "bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/30"
+	                                                                : "bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700/50"
+	                                                                }`}
+	                                                            title="Zobrazí pouze běhy s chybou"
+	                                                        >
+	                                                            Jen chyby
+	                                                        </button>
+	                                                        <button
+	                                                            type="button"
+	                                                            onClick={() => {
+	                                                                setDocHubHistoryFilter((prev) => ({ ...prev, onlyCreatedActions: !prev.onlyCreatedActions }));
+	                                                            }}
+	                                                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${docHubHistoryFilter.onlyCreatedActions
+	                                                                ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+	                                                                : "bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700/50"
+	                                                                }`}
+	                                                            title="Zobrazí pouze běhy, kde došlo k vytvoření alespoň jedné složky"
+	                                                        >
+	                                                            Akce &gt; 0
+	                                                        </button>
+	                                                        <select
+	                                                            value={docHubHistoryFilter.lastDays}
+	                                                            onChange={(e) => setDocHubHistoryFilter((prev) => ({ ...prev, lastDays: Number(e.target.value) || 30 }))}
+	                                                            className="px-3 py-2 rounded-lg text-sm font-medium bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700/50 text-slate-700 dark:text-slate-200"
+	                                                            title="Poslední X dní"
+	                                                        >
+	                                                            <option value={1}>1 den</option>
+	                                                            <option value={3}>3 dny</option>
+	                                                            <option value={7}>7 dní</option>
+	                                                            <option value={14}>14 dní</option>
+	                                                            <option value={30}>30 dní</option>
+	                                                            <option value={90}>90 dní</option>
+	                                                        </select>
+	                                                        <button
+	                                                            type="button"
+	                                                            onClick={loadDocHubHistory}
+	                                                            disabled={isLoadingDocHubHistory}
+	                                                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${isLoadingDocHubHistory
+	                                                                ? "bg-slate-200 dark:bg-slate-800/60 text-slate-500 border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
+	                                                                : "bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700/50"
+	                                                                }`}
+	                                                        >
+	                                                            Obnovit
+	                                                        </button>
+	                                                    </div>
 	                                                </div>
 	                                                <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
 	                                                    Logy se ukládají k projektu a můžete se k nim kdykoliv vrátit.
@@ -1823,6 +1886,37 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
 	                                                </div>
 	                                            </div>
 	                                        )}
+
+	                                        <div className="bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4">
+	                                            <div className="flex items-center justify-between gap-3">
+	                                                <div className="text-sm font-semibold text-slate-900 dark:text-white">Automatický běh (brzy)</div>
+	                                                <span className="px-2 py-0.5 rounded-lg text-[11px] font-bold border bg-slate-200 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700/50">
+	                                                    Future
+	                                                </span>
+	                                            </div>
+	                                            <div className="mt-2 text-xs text-slate-500 dark:text-slate-400 space-y-1">
+	                                                <div>Architektura už je připravená: logy, průběh a historie běhů per projekt.</div>
+	                                                <div>Možné scénáře: „Auto‑sync každou noc“, „Po přidání nového VŘ vytvoř strukturu automaticky“.</div>
+	                                            </div>
+	                                            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+	                                                <button
+	                                                    type="button"
+	                                                    disabled
+	                                                    title="Brzy – bude možné spouštět automaticky přes plánovač."
+	                                                    className="px-3 py-2 rounded-lg text-sm font-medium border bg-slate-200 dark:bg-slate-800/60 text-slate-500 border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
+	                                                >
+	                                                    Noční auto‑sync
+	                                                </button>
+	                                                <button
+	                                                    type="button"
+	                                                    disabled
+	                                                    title="Brzy – trigger po vytvoření nového VŘ."
+	                                                    className="px-3 py-2 rounded-lg text-sm font-medium border bg-slate-200 dark:bg-slate-800/60 text-slate-500 border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
+	                                                >
+	                                                    Auto‑create po VŘ
+	                                                </button>
+	                                            </div>
+	                                        </div>
 
 	                                        {isEditingDocHubStructure && (
 	                                            <div className="bg-slate-100 dark:bg-slate-950/30 border border-slate-300 dark:border-slate-700/50 rounded-xl p-4">

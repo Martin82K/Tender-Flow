@@ -53,12 +53,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Listen for auth changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             console.log('[AuthContext] Auth State Change:', event, session?.user?.email);
-            if (event === 'SIGNED_IN') {
-                const currentUser = await authService.getCurrentUser();
-                if (currentUser) {
-                    setUser(currentUser);
-                } else {
-                    console.warn('[AuthContext] SIGNED_IN event but no user returned (timeout?). Keeping current session.');
+            if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
+                if (session) {
+                    // Use session directly from callback - no extra API call needed!
+                    const currentUser = await authService.getUserFromSession(session);
+                    if (currentUser) {
+                        setUser(currentUser);
+                        setIsLoading(false);
+                    } else {
+                        console.warn('[AuthContext] Event but could not build user from session');
+                    }
                 }
             } else if (event === 'SIGNED_OUT') {
                 console.warn('[AuthContext] Received SIGNED_OUT event from Supabase');

@@ -36,6 +36,7 @@ import {
   mergeContacts,
   syncContactsFromUrl,
 } from "./services/contactsImportService";
+import { invokeAuthedFunction } from "./services/functionsClient";
 import { loadContactStatuses } from "./services/contactStatusService";
 import { 
   getDemoData, 
@@ -200,12 +201,18 @@ const AppContent: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>("dashboard");
   const lastRefreshTime = useRef<number>(Date.now());
   const loadSeqRef = useRef(0);
+  const docHubSyncRef = useRef<{ last: Map<string, number>; timer: Map<string, number>; recent: Map<string, number> }>({
+    last: new Map(),
+    timer: new Map(),
+    recent: new Map(),
+  });
 
   // Data States
   const [projects, setProjects] = useState<Project[]>([]);
   const [allProjectDetails, setAllProjectDetails] = useState<
     Record<string, ProjectDetails>
   >({});
+  const allProjectDetailsRef = useRef<Record<string, ProjectDetails>>({});
   const [contacts, setContacts] = useState<Subcontractor[]>([]);
   const [contactStatuses, setContactStatuses] =
     useState<StatusConfig[]>(DEFAULT_STATUSES);
@@ -251,6 +258,10 @@ const AppContent: React.FC = () => {
       confirmLabel: opts.confirmLabel ?? 'Zavřít',
     });
   };
+
+  useEffect(() => {
+    allProjectDetailsRef.current = allProjectDetails;
+  }, [allProjectDetails]);
 
   const handleNavigateToProject = (projectId: string, tab: string, categoryId?: string) => {
     const nextTab: ProjectTab = tab === "pipeline" ? "pipeline" : "overview";
@@ -413,6 +424,41 @@ const AppContent: React.FC = () => {
       if (slowTimerId !== null) window.clearTimeout(slowTimerId);
     };
   }, [isAuthenticated, authLoading]);
+
+  // DocHub auto-trigger (client-side): react to VŘ create/delete and sync folder structure.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    if (user?.role === "demo") return;
+
+    const channel = supabase
+      .channel("dochub-category-sync")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "demand_categories" },
+        async (payload: any) => {
+          const projectId = payload?.new?.project_id as string | undefined;
+          const categoryId = payload?.new?.id as string | undefined;
+          const title = payload?.new?.title as string | undefined;
+          if (!projectId || !categoryId) return;
+          await maybeSyncDocHubCategoryRef.current(projectId, "upsert", categoryId, title);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "demand_categories" },
+        async (payload: any) => {
+          const projectId = payload?.old?.project_id as string | undefined;
+          const categoryId = payload?.old?.id as string | undefined;
+          if (!projectId || !categoryId) return;
+          await maybeSyncDocHubCategoryRef.current(projectId, "archive", categoryId);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isAuthenticated, user?.role]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -1352,7 +1398,11 @@ const AppContent: React.FC = () => {
       if (error) {
         console.error("Error saving category to Supabase:", error);
         // Optionally revert local state on error
+        return;
       }
+
+      // Auto-sync DocHub for this new VŘ (best-effort)
+      await maybeSyncDocHubCategory(projectId, "upsert", newCategory.id, newCategory.title);
     } catch (err) {
       console.error("Unexpected error saving category:", err);
     }
@@ -1444,11 +1494,80 @@ const AppContent: React.FC = () => {
 
       if (error) {
         console.error("Error deleting category from Supabase:", error);
+        return;
       }
+
+      // Auto-sync DocHub for removed VŘ (best-effort): move to archive and clear cached links
+      await maybeSyncDocHubCategory(projectId, "archive", categoryId);
     } catch (err) {
       console.error("Unexpected error deleting category:", err);
     }
   };
+
+  async function maybeSyncDocHubCategory(
+    projectId: string,
+    action: "upsert" | "archive",
+    categoryId: string,
+    categoryTitle?: string
+  ) {
+    const recentKey = `${projectId}:${action}:${categoryId}`;
+    const recentAt = docHubSyncRef.current.recent.get(recentKey) || 0;
+    if (Date.now() - recentAt < 15_000) return;
+    docHubSyncRef.current.recent.set(recentKey, Date.now());
+
+    const details = allProjectDetailsRef.current[projectId];
+    const isDocHubConnected =
+      !!details?.docHubEnabled && details?.docHubStatus === "connected" && !!details?.docHubRootId;
+    if (!isDocHubConnected) return;
+
+    const now = Date.now();
+    const minGapMs = 60_000;
+    const last = docHubSyncRef.current.last.get(projectId) || 0;
+    const waitMs = last + minGapMs - now;
+    if (waitMs > 0) {
+      if (!docHubSyncRef.current.timer.get(projectId)) {
+        const timerId = window.setTimeout(async () => {
+          docHubSyncRef.current.timer.delete(projectId);
+          docHubSyncRef.current.last.set(projectId, Date.now());
+          try {
+            await invokeAuthedFunction("dochub-sync-category", {
+              body: { projectId, categoryId, categoryTitle, action },
+            });
+          } catch {
+            // silent (best-effort)
+          }
+        }, waitMs);
+        docHubSyncRef.current.timer.set(projectId, timerId);
+      }
+      showUiModal({
+        title: "DocHub synchronizace",
+        message:
+          "Synchronizace je omezená kvůli limitům API. Počkejte 1 minutu a zkuste to znovu (nebo se synchronizace dokončí automaticky).",
+        variant: "info",
+      });
+      return;
+    }
+
+    docHubSyncRef.current.last.set(projectId, now);
+    try {
+      await invokeAuthedFunction("dochub-sync-category", {
+        body: { projectId, categoryId, categoryTitle, action },
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Neznámá chyba";
+      const isRate = msg.includes("Počkejte 1 minutu") || msg.includes("429") || msg.toLowerCase().includes("rate");
+      showUiModal({
+        title: "DocHub synchronizace",
+        message: isRate ? msg : `Synchronizace DocHubu selhala: ${msg}`,
+        variant: isRate ? "info" : "danger",
+      });
+    }
+  }
+
+  const maybeSyncDocHubCategoryRef = useRef(maybeSyncDocHubCategory);
+  useEffect(() => {
+    maybeSyncDocHubCategoryRef.current = maybeSyncDocHubCategory;
+  });
 
   const handleImportContacts = async (
     newContacts: Subcontractor[],
