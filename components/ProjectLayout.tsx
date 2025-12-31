@@ -119,6 +119,18 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
     const [docHubAutoCreateRunId, setDocHubAutoCreateRunId] = useState<string | null>(null);
     const [docHubBackendStep, setDocHubBackendStep] = useState<string | null>(null);
     const [docHubBackendCounts, setDocHubBackendCounts] = useState<{ done: number; total: number | null } | null>(null);
+    const [docHubBackendStatus, setDocHubBackendStatus] = useState<'running' | 'success' | 'error' | null>(null);
+    const [docHubAutoCreateResult, setDocHubAutoCreateResult] = useState<{
+        createdCount: number | null;
+        runId: string | null;
+        logs: string[];
+        finishedAt: string;
+    } | null>(null);
+    const [isDocHubResultModalOpen, setIsDocHubResultModalOpen] = useState(false);
+    const [showDocHubRunLog, setShowDocHubRunLog] = useState(false);
+    const [showDocHubRunOverview, setShowDocHubRunOverview] = useState(false);
+    const docHubRunLogRef = useRef<HTMLDivElement | null>(null);
+    const docHubRunOverviewRef = useRef<HTMLDivElement | null>(null);
     const [docHubExtraTopLevelDraft, setDocHubExtraTopLevelDraft] = useState<string[]>(() => {
         const raw = (project.docHubStructureV1 as any)?.extraTopLevel;
         return Array.isArray(raw) ? raw.filter((s) => typeof s === "string" && s.trim()).map((s) => s.trim()) : [];
@@ -127,6 +139,51 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
         const raw = (project.docHubStructureV1 as any)?.extraSupplier;
         return Array.isArray(raw) ? raw.filter((s) => typeof s === "string" && s.trim()).map((s) => s.trim()) : [];
     });
+
+    const getDocHubAutoCreatePhase = (): 'init' | 'create' | 'wait' | 'error' | 'done' => {
+        if (docHubBackendStatus === 'error') return 'error';
+        if (docHubBackendStatus === 'success') return 'done';
+        const step = (docHubBackendStep || (docHubAutoCreateLogs.length > 0 ? docHubAutoCreateLogs[docHubAutoCreateLogs.length - 1] : '')).toLowerCase();
+        if (step.includes('chyba') || step.includes('error')) return 'error';
+        if (step.includes('⚠️') || step.includes('rate') || step.includes('limit') || step.includes('retry') || step.includes('ček')) return 'wait';
+        if (step.includes('zakládám') || step.startsWith('vř:') || step.includes('dodavatel')) return 'create';
+        return 'init';
+    };
+
+    const docHubPhase = getDocHubAutoCreatePhase();
+    const docHubPhaseText =
+        docHubPhase === 'init'
+            ? 'Probíhá kontrola existujících složek, nedochází k duplicitám.'
+            : docHubPhase === 'create'
+                ? 'Zakládám pouze chybějící složky; existující zůstávají beze změny.'
+                : docHubPhase === 'wait'
+                    ? 'Čekám na odpověď API (rate limit / retry) – proces pokračuje automaticky.'
+                    : docHubPhase === 'error'
+                        ? 'Došlo k chybě během auto‑vytváření – zkontrolujte log.'
+                        : 'Dokončeno.';
+
+    const docHubPhaseOverallBarClass =
+        docHubPhase === 'init'
+            ? 'bg-gradient-to-r from-blue-500 to-violet-500'
+            : docHubPhase === 'create'
+                ? 'bg-gradient-to-r from-emerald-500 to-lime-400'
+                : docHubPhase === 'wait'
+                    ? 'bg-gradient-to-r from-amber-400 to-yellow-500'
+                    : docHubPhase === 'error'
+                        ? 'bg-gradient-to-r from-red-500 to-rose-500'
+                        : 'bg-gradient-to-r from-primary to-violet-500';
+
+    const docHubRunLogs = docHubAutoCreateResult?.logs || [];
+    const docHubOverviewFolders = (() => {
+        const folders = new Set<string>();
+        for (const line of docHubRunLogs) {
+            const m1 = line.match(/^Kontrola:\s*(\/.+)$/);
+            if (m1?.[1]) folders.add(m1[1].trim());
+            const m2 = line.match(/→\s*(\/.+)$/);
+            if (m2?.[1]) folders.add(m2[1].trim());
+        }
+        return Array.from(folders);
+    })();
     const [docHubNewFolderName, setDocHubNewFolderName] = useState(project.title || project.name || "");
     const [docHubResolveProgress, setDocHubResolveProgress] = useState(0);
     const resolveProgressTimerRef = useRef<number | null>(null);
@@ -200,6 +257,10 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
         setDocHubAutoCreateLogs(["Zahajuji auto‑vytváření složek…"]);
         setDocHubBackendStep(null);
         setDocHubBackendCounts(null);
+        setDocHubBackendStatus('running');
+        setDocHubAutoCreateResult(null);
+        setShowDocHubRunLog(false);
+        setShowDocHubRunOverview(false);
 
         const runId = crypto.randomUUID();
         setDocHubAutoCreateRunId(runId);
@@ -220,6 +281,9 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
 
                 if (typeof data.progress_percent === "number") {
                     setDocHubAutoCreateProgress((prev) => Math.max(prev, data.progress_percent));
+                }
+                if (data.status === 'running' || data.status === 'success' || data.status === 'error') {
+                    setDocHubBackendStatus(data.status);
                 }
                 if (typeof data.step === "string" && data.step.trim()) {
                     setDocHubBackendStep(data.step);
@@ -301,11 +365,13 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
             });
 
             const createdCount = typeof result?.createdCount === "number" ? result.createdCount : null;
-            showModal({
-                title: "Auto‑vytváření dokončeno",
-                message: createdCount === null ? "Složky byly zkontrolovány / doplněny." : `Složky byly zkontrolovány / doplněny. Akcí: ${createdCount}`,
-                variant: "success"
+            setDocHubAutoCreateResult({
+                createdCount,
+                runId,
+                logs,
+                finishedAt: new Date().toISOString(),
             });
+            setIsDocHubResultModalOpen(true);
         } catch (e) {
             const rawMessage = e instanceof Error ? e.message : "Neznámá chyba";
             const message =
@@ -341,6 +407,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                 setDocHubAutoCreateLogs([]);
                 setDocHubBackendStep(null);
                 setDocHubBackendCounts(null);
+                setDocHubBackendStatus(null);
                 setDocHubAutoCreateRunId(null);
             }, 1200);
         }
@@ -720,19 +787,86 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
         };
     }, [isDocHubConnected, project.id, project.docHubRootId, project.docHubDriveId, project.docHubStructureV1]);
 
-	    return (
-	        <div className="p-6 lg:p-10 flex flex-col gap-6 overflow-y-auto h-full bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen">
-	            <ConfirmationModal
-	                isOpen={uiModal.isOpen}
-	                title={uiModal.title}
-	                message={uiModal.message}
-	                variant={uiModal.variant}
-	                confirmLabel="OK"
-	                onConfirm={() => setUiModal((prev) => ({ ...prev, isOpen: false }))}
-	            />
-	            <div className="max-w-4xl mx-auto w-full">
-                {/* Header Card */}
-                <div className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl shadow-xl p-8">
+		    return (
+		        <div className="p-6 lg:p-10 flex flex-col gap-6 overflow-y-auto h-full bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen">
+		            <ConfirmationModal
+		                isOpen={uiModal.isOpen}
+		                title={uiModal.title}
+		                message={uiModal.message}
+		                variant={uiModal.variant}
+		                confirmLabel="OK"
+		                onConfirm={() => setUiModal((prev) => ({ ...prev, isOpen: false }))}
+		            />
+		            {isDocHubResultModalOpen && docHubAutoCreateResult && (
+		                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+		                    <div className="bg-white dark:bg-gradient-to-br dark:from-slate-800 dark:to-slate-900 border border-slate-200 dark:border-slate-700/50 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden scale-100 animate-in zoom-in-95 duration-200">
+		                        <div className="p-6">
+		                            <div className="flex flex-col items-center text-center">
+		                                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4 text-emerald-500">
+		                                    <span className="material-symbols-outlined text-3xl">check_circle</span>
+		                                </div>
+		                                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+		                                    Auto‑vytváření dokončeno
+		                                </h3>
+		                                <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed whitespace-pre-line">
+		                                    {docHubAutoCreateResult.createdCount === null
+		                                        ? "Složky byly zkontrolovány / doplněny."
+		                                        : `Složky byly zkontrolovány / doplněny. Akcí: ${docHubAutoCreateResult.createdCount}`}
+		                                </p>
+		                            </div>
+		                        </div>
+		                        <div className="px-6 py-4 bg-slate-50 dark:bg-slate-950/50 border-t border-slate-200 dark:border-slate-800 flex flex-col gap-2">
+		                            <div className="grid grid-cols-2 gap-2">
+		                                <button
+		                                    onClick={() => {
+		                                        if (isProbablyUrl(docHubRootLink)) {
+		                                            window.open(docHubRootLink, "_blank", "noopener,noreferrer");
+		                                            return;
+		                                        }
+		                                        navigator.clipboard.writeText(docHubRootLink).catch(() => {
+		                                            window.prompt("Zkopírujte cestu:", docHubRootLink);
+		                                        });
+		                                    }}
+		                                    className="px-4 py-2.5 bg-primary hover:bg-primary/90 text-white rounded-xl text-sm font-bold shadow-lg transition-all"
+		                                >
+		                                    Otevřít root
+		                                </button>
+		                                <button
+		                                    onClick={() => {
+		                                        setIsDocHubResultModalOpen(false);
+		                                        setShowDocHubRunLog(true);
+		                                        setShowDocHubRunOverview(false);
+		                                        window.setTimeout(() => docHubRunLogRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+		                                    }}
+		                                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 rounded-xl text-sm font-bold transition-colors"
+		                                >
+		                                    Zobrazit log
+		                                </button>
+		                                <button
+		                                    onClick={() => {
+		                                        setIsDocHubResultModalOpen(false);
+		                                        setShowDocHubRunOverview(true);
+		                                        setShowDocHubRunLog(false);
+		                                        window.setTimeout(() => docHubRunOverviewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+		                                    }}
+		                                    className="col-span-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 rounded-xl text-sm font-bold transition-colors"
+		                                >
+		                                    Přehled vytvořených složek
+		                                </button>
+		                            </div>
+		                            <button
+		                                onClick={() => setIsDocHubResultModalOpen(false)}
+		                                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold shadow-lg transition-all"
+		                            >
+		                                Zavřít
+		                            </button>
+		                        </div>
+		                    </div>
+		                </div>
+		            )}
+		            <div className="max-w-4xl mx-auto w-full">
+	                {/* Header Card */}
+	                <div className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl shadow-xl p-8">
                     <div className="flex items-center gap-3 mb-6">
                         <div className="size-12 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/20 flex items-center justify-center">
                             <span className="material-symbols-outlined text-emerald-400 text-2xl">folder_open</span>
@@ -1096,14 +1230,24 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                                         <button
                                                             type="button"
                                                             onClick={() => setIsEditingDocHubSetup(true)}
-                                                            className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-sm font-medium transition-colors border border-slate-700/50"
+                                                            disabled={isDocHubAutoCreating}
+                                                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${isDocHubAutoCreating
+                                                                ? "bg-slate-200 dark:bg-slate-800/60 text-slate-500 border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
+                                                                : "bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700/50"
+                                                                }`}
+                                                            title={isDocHubAutoCreating ? "Nelze měnit během auto‑vytváření." : undefined}
                                                         >
                                                             Změnit
                                                         </button>
                                                         <button
                                                             type="button"
                                                             onClick={handleDisconnectDocHub}
-                                                            className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-red-600 dark:text-red-300 rounded-lg text-sm font-medium transition-colors border border-slate-300 dark:border-slate-700/50"
+                                                            disabled={isDocHubAutoCreating}
+                                                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${isDocHubAutoCreating
+                                                                ? "bg-slate-200 dark:bg-slate-800/60 text-slate-500 border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
+                                                                : "bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-red-600 dark:text-red-300 border-slate-300 dark:border-slate-700/50"
+                                                                }`}
+                                                            title={isDocHubAutoCreating ? "Nelze odpojit během auto‑vytváření." : undefined}
                                                         >
                                                             Odpojit
                                                         </button>
@@ -1330,13 +1474,18 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                                 Struktura (v1)
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setIsEditingDocHubStructure(!isEditingDocHubStructure)}
-                                                    className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-medium transition-colors border border-slate-300 dark:border-slate-700/50"
-                                                >
-                                                    {isEditingDocHubStructure ? "Zavřít úpravy" : "Upravit strukturu"}
-                                                </button>
+	                                                <button
+	                                                    type="button"
+	                                                    onClick={() => setIsEditingDocHubStructure(!isEditingDocHubStructure)}
+	                                                    disabled={isDocHubAutoCreating}
+	                                                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${isDocHubAutoCreating
+	                                                        ? "bg-slate-200 dark:bg-slate-800/60 text-slate-500 border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
+	                                                        : "bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700/50"
+	                                                        }`}
+	                                                    title={isDocHubAutoCreating ? "Nelze měnit během auto‑vytváření." : undefined}
+	                                                >
+	                                                    {isEditingDocHubStructure ? "Zavřít úpravy" : "Upravit strukturu"}
+	                                                </button>
                                                 <button
                                                     type="button"
                                                     onClick={() => handleToggleDocHubAutoCreate(!docHubAutoCreateEnabled)}
@@ -1398,9 +1547,12 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
 	                                                </div>
 	                                                <div className="mt-3 h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
 	                                                    <div
-                                                        className="h-full bg-gradient-to-r from-primary to-violet-500 transition-all"
-                                                        style={{ width: `${docHubAutoCreateProgress}%` }}
-                                                    />
+	                                                        className={`h-full ${docHubPhaseOverallBarClass} transition-all`}
+	                                                        style={{ width: `${docHubAutoCreateProgress}%` }}
+	                                                    />
+	                                                </div>
+	                                                <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
+	                                                    {docHubPhaseText}
 	                                                </div>
 	                                                <div className="mt-3 flex items-center justify-between gap-3">
 	                                                    <div className="text-xs text-slate-600 dark:text-slate-400 truncate">
@@ -1433,8 +1585,85 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
 	                                            </div>
 	                                        )}
 
-                                        {isEditingDocHubStructure && (
-                                            <div className="bg-slate-100 dark:bg-slate-950/30 border border-slate-300 dark:border-slate-700/50 rounded-xl p-4">
+	                                        {docHubAutoCreateResult && showDocHubRunLog && (
+	                                            <div ref={docHubRunLogRef} className="bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4">
+	                                                <div className="flex items-center justify-between gap-3">
+	                                                    <div className="text-sm font-semibold text-slate-900 dark:text-white">Log běhu</div>
+	                                                    <div className="flex items-center gap-2">
+	                                                        <button
+	                                                            type="button"
+	                                                            onClick={async () => {
+	                                                                const text = docHubRunLogs.join("\n");
+	                                                                try {
+	                                                                    await navigator.clipboard.writeText(text);
+	                                                                    showModal({ title: "Zkopírováno", message: "Log zkopírován do schránky.", variant: "success" });
+	                                                                } catch {
+	                                                                    window.prompt("Zkopírujte log:", text);
+	                                                                }
+	                                                            }}
+	                                                            className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-medium transition-colors border border-slate-300 dark:border-slate-700/50"
+	                                                        >
+	                                                            Kopírovat
+	                                                        </button>
+	                                                        <button
+	                                                            type="button"
+	                                                            onClick={() => setShowDocHubRunLog(false)}
+	                                                            className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-medium transition-colors border border-slate-300 dark:border-slate-700/50"
+	                                                        >
+	                                                            Skrýt
+	                                                        </button>
+	                                                    </div>
+	                                                </div>
+	                                                <div className="mt-3 max-h-60 overflow-auto rounded-lg bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-700/50 p-3 font-mono text-[11px] leading-relaxed text-slate-700 dark:text-slate-200 whitespace-pre">
+	                                                    {docHubRunLogs.join("\n")}
+	                                                </div>
+	                                            </div>
+	                                        )}
+
+	                                        {docHubAutoCreateResult && showDocHubRunOverview && (
+	                                            <div ref={docHubRunOverviewRef} className="bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4">
+	                                                <div className="flex items-center justify-between gap-3">
+	                                                    <div className="text-sm font-semibold text-slate-900 dark:text-white">Přehled složek (z logu)</div>
+	                                                    <button
+	                                                        type="button"
+	                                                        onClick={() => setShowDocHubRunOverview(false)}
+	                                                        className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-medium transition-colors border border-slate-300 dark:border-slate-700/50"
+	                                                    >
+	                                                        Skrýt
+	                                                    </button>
+	                                                </div>
+	                                                <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+	                                                    Pozn.: jde o přehled z logu (zahrnuje kontrolované i doplněné složky).
+	                                                </div>
+	                                                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+	                                                    {docHubOverviewFolders.length === 0 ? (
+	                                                        <div className="text-xs text-slate-500 dark:text-slate-400">V logu nejsou žádné cesty ke složkám.</div>
+	                                                    ) : (
+	                                                        docHubOverviewFolders.map((path) => (
+	                                                            <button
+	                                                                key={path}
+	                                                                type="button"
+	                                                                onClick={async () => {
+	                                                                    try {
+	                                                                        await navigator.clipboard.writeText(path);
+	                                                                        showModal({ title: "Zkopírováno", message: path, variant: "success" });
+	                                                                    } catch {
+	                                                                        window.prompt("Zkopírujte cestu:", path);
+	                                                                    }
+	                                                                }}
+	                                                                className="text-left px-3 py-2 bg-slate-50 dark:bg-slate-950/30 border border-slate-200 dark:border-slate-700/50 rounded-lg text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/40 transition-colors"
+	                                                                title="Kliknutím zkopírujete cestu"
+	                                                            >
+	                                                                {path}
+	                                                            </button>
+	                                                        ))
+	                                                    )}
+	                                                </div>
+	                                            </div>
+	                                        )}
+
+	                                        {isEditingDocHubStructure && (
+	                                            <div className="bg-slate-100 dark:bg-slate-950/30 border border-slate-300 dark:border-slate-700/50 rounded-xl p-4">
                                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                                     {/* Tree preview */}
                                                     <div className="bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4">

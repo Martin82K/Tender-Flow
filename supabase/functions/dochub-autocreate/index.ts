@@ -65,6 +65,11 @@ const ensureFolder = async (args: {
       accessToken: args.accessToken,
       parentId: args.parentId,
       name: args.name,
+      appProperties: {
+        dochubProjectId: args.projectId,
+        dochubKind: args.kind,
+        dochubKey: args.key || "",
+      },
     });
     const created = Date.now() - before > 0; // no reliable signal; caller can still count as reused via heuristic later
     await upsertFolder({

@@ -95,25 +95,53 @@ export const findOrCreateGoogleFolder = async (args: {
   accessToken: string;
   parentId: string;
   name: string;
+  appProperties?: Record<string, string> | null;
 }): Promise<{ id: string; name: string; webViewLink: string }> => {
-  const query = [
-    `name='${args.name.replace(/'/g, "\\'")}'`,
+  const escapeQueryString = (value: string) => value.replace(/'/g, "\\'");
+
+  const baseQuery = [
     "mimeType='application/vnd.google-apps.folder'",
-    `'${args.parentId}' in parents`,
+    `'${escapeQueryString(args.parentId)}' in parents`,
     "trashed=false",
   ].join(" and ");
+
+  const nameQuery = `name='${escapeQueryString(args.name)}'`;
+  const appProps = args.appProperties || null;
+  const appQuery =
+    appProps && Object.keys(appProps).length > 0
+      ? Object.entries(appProps)
+          .filter(([, v]) => typeof v === "string" && v.length > 0)
+          .map(([k, v]) => `appProperties has { key='${escapeQueryString(k)}' and value='${escapeQueryString(v)}' }`)
+          .join(" and ")
+      : null;
+
+  // Prefer matching by appProperties (stable identity), but keep backward compatibility via name match.
+  const query = appQuery ? `${baseQuery} and (${appQuery} or ${nameQuery})` : `${baseQuery} and ${nameQuery}`;
 
   const listUrl = new URL(`${googleApi}/files`);
   listUrl.searchParams.set("supportsAllDrives", "true");
   listUrl.searchParams.set("includeItemsFromAllDrives", "true");
+  listUrl.searchParams.set("corpora", "allDrives");
   listUrl.searchParams.set("q", query);
   listUrl.searchParams.set("pageSize", "10");
-  listUrl.searchParams.set("fields", "files(id,name,webViewLink)");
+  listUrl.searchParams.set("orderBy", "createdTime");
+  listUrl.searchParams.set("fields", "files(id,name,webViewLink,createdTime,appProperties)");
 
-  const listRes = await fetch(listUrl, { headers: { Authorization: `Bearer ${args.accessToken}` } });
-  const listJson = await listRes.json();
-  if (!listRes.ok) throw new Error(listJson?.error?.message || "Drive list failed");
-  const existing = (listJson.files || [])[0];
+  const listOnce = async () => {
+    const res = await fetch(listUrl, { headers: { Authorization: `Bearer ${args.accessToken}` } });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json?.error?.message || "Drive list failed");
+    const files = (json.files || []) as any[];
+    if (!files.length) return null;
+    if (!appQuery) return files[0];
+    const matchesAppProps = (file: any) => {
+      const props = (file?.appProperties || {}) as Record<string, string>;
+      return Object.entries(appProps || {}).every(([k, v]) => props?.[k] === v);
+    };
+    return files.find(matchesAppProps) || files[0];
+  };
+
+  const existing = await listOnce();
   if (existing?.id) return { id: existing.id, name: existing.name, webViewLink: existing.webViewLink };
 
   const createUrl = new URL(`${googleApi}/files`);
@@ -129,10 +157,14 @@ export const findOrCreateGoogleFolder = async (args: {
       name: args.name,
       mimeType: "application/vnd.google-apps.folder",
       parents: [args.parentId],
+      ...(appProps && Object.keys(appProps).length ? { appProperties: appProps } : {}),
     }),
   });
   const createJson = await createRes.json();
   if (!createRes.ok) throw new Error(createJson?.error?.message || "Drive create failed");
+  // Mitigate eventual consistency / race duplicates: re-list and pick canonical folder if present.
+  const created = await listOnce();
+  if (created?.id) return { id: created.id, name: created.name, webViewLink: created.webViewLink };
   return { id: createJson.id, name: createJson.name, webViewLink: createJson.webViewLink };
 };
 

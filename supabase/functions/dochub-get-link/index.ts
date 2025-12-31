@@ -88,6 +88,11 @@ const ensureProjectFolder = async (args: {
       accessToken: args.accessToken,
       parentId: args.rootId,
       name: args.name,
+      appProperties: {
+        dochubProjectId: args.projectId,
+        dochubKind: args.kind,
+        dochubKey: "",
+      },
     });
     await upsertFolder({
       projectId: args.projectId,
@@ -142,16 +147,21 @@ const ensureTenderInquiries = async (args: {
   const tenderFolder =
     tenderExisting?.item_id && tenderExisting.web_url
       ? tenderExisting
-      : args.provider === "gdrive"
-        ? await (async () => {
-            const folder = await findOrCreateGoogleFolder({
-              accessToken: args.accessToken,
-              parentId: args.tendersFolderId,
-              name: tenderFolderName,
-            });
-            await upsertFolder({
-              projectId: args.projectId,
-              provider: args.provider,
+	          : args.provider === "gdrive"
+	        ? await (async () => {
+	            const folder = await findOrCreateGoogleFolder({
+	              accessToken: args.accessToken,
+	              parentId: args.tendersFolderId,
+	              name: tenderFolderName,
+	              appProperties: {
+	                dochubProjectId: args.projectId,
+	                dochubKind: "tender",
+	                dochubKey: tenderKey,
+	              },
+	            });
+	            await upsertFolder({
+	              projectId: args.projectId,
+	              provider: args.provider,
               kind: "tender",
               key: tenderKey,
               itemId: folder.id,
@@ -188,15 +198,20 @@ const ensureTenderInquiries = async (args: {
   });
   if (inquiriesExisting?.item_id && inquiriesExisting.web_url) return inquiriesExisting;
 
-  if (args.provider === "gdrive") {
-    const folder = await findOrCreateGoogleFolder({
-      accessToken: args.accessToken,
-      parentId: tenderFolder.item_id,
-      name: args.inquiriesName,
-    });
-    await upsertFolder({
-      projectId: args.projectId,
-      provider: args.provider,
+	  if (args.provider === "gdrive") {
+	    const folder = await findOrCreateGoogleFolder({
+	      accessToken: args.accessToken,
+	      parentId: tenderFolder.item_id,
+	      name: args.inquiriesName,
+	      appProperties: {
+	        dochubProjectId: args.projectId,
+	        dochubKind: "tender_inquiries",
+	        dochubKey: inquiriesKey,
+	      },
+	    });
+	    await upsertFolder({
+	      projectId: args.projectId,
+	      provider: args.provider,
       kind: "tender_inquiries",
       key: inquiriesKey,
       itemId: folder.id,
@@ -380,15 +395,20 @@ Deno.serve(async (req) => {
     }
 
     const supplierFolderName = getTenderFolderName(supplierName);
-    if (provider === "gdrive") {
-      const folder = await findOrCreateGoogleFolder({
-        accessToken,
-        parentId: inquiriesFolder.item_id,
-        name: supplierFolderName,
-      });
-      await upsertFolder({
-        projectId,
-        provider,
+	    if (provider === "gdrive") {
+	      const folder = await findOrCreateGoogleFolder({
+	        accessToken,
+	        parentId: inquiriesFolder.item_id,
+	        name: supplierFolderName,
+	        appProperties: {
+	          dochubProjectId: projectId,
+	          dochubKind: "supplier",
+	          dochubKey: supplierKey,
+	        },
+	      });
+	      await upsertFolder({
+	        projectId,
+	        provider,
         kind: "supplier",
         key: supplierKey,
         itemId: folder.id,
