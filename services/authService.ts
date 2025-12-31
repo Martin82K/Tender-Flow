@@ -1,6 +1,38 @@
 import { supabase } from './supabase';
 import { User } from '../types';
 
+const DEFAULT_PREFERENCES = {
+    theme: 'system',
+    primaryColor: '#607AFB',
+    backgroundColor: '#f5f6f8'
+} as const;
+
+const withTimeout = async <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> => {
+    return await Promise.race([
+        promise,
+        new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`${label} timed out (${ms}ms)`)), ms)),
+    ]);
+};
+
+const getCachedSession = (): any | null => {
+    try {
+        if (typeof window === 'undefined') return null;
+        const raw = window.localStorage?.getItem('crm-auth-token');
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+
+        // Supabase typically stores the Session object directly, but handle a few shapes defensively.
+        if (parsed?.access_token && parsed?.user) return parsed;
+        if (parsed?.currentSession?.access_token && parsed?.currentSession?.user) return parsed.currentSession;
+        if (parsed?.session?.access_token && parsed?.session?.user) return parsed.session;
+        if (parsed?.data?.session?.access_token && parsed?.data?.session?.user) return parsed.data.session;
+
+        return null;
+    } catch {
+        return null;
+    }
+};
+
 export const authService = {
     login: async (email: string, password: string): Promise<User> => {
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -11,11 +43,25 @@ export const authService = {
         if (error) throw error;
         if (!data.user) throw new Error('No user returned from login');
 
-        // Use getCurrentUser to get complete user data including saved preferences
-        const user = await authService.getCurrentUser();
-        if (!user) throw new Error('Failed to load user data after login');
-        
-        return user;
+        // Prefer the session returned by sign-in (avoids extra auth roundtrip that can hang).
+        if (data.session) {
+            try {
+                const user = await withTimeout(authService.getUserFromSession(data.session), 1000, 'User hydrate');
+                if (user) return user;
+            } catch (e) {
+                console.warn('[authService] login: hydration slow/failed, using fallback user', e);
+            }
+        }
+
+        // Fallback: return minimal user object; AuthContext auth events will hydrate further.
+        return {
+            id: data.user.id,
+            name: (data.user.user_metadata as any)?.name || data.user.email?.split('@')[0] || 'User',
+            email: data.user.email || '',
+            role: 'user',
+            avatarUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.user.email || 'U')}&background=random`,
+            preferences: DEFAULT_PREFERENCES
+        };
     },
 
     register: async (name: string, email: string, password: string): Promise<User> => {
@@ -38,12 +84,14 @@ export const authService = {
         if (error) throw error;
         if (!data.user) throw new Error('No user returned from registration');
 
-        // Profile is created by trigger automatically
-        // Use getCurrentUser to get complete user data
-        const user = await authService.getCurrentUser();
-        if (!user) throw new Error('Failed to load user data after registration');
-        
-        return user;
+        // Prefer session returned by sign-up (when email confirmation is disabled).
+        if (data.session) {
+            const user = await authService.getUserFromSession(data.session);
+            if (user) return user;
+        }
+
+        // If there's no session, user is not signed in (e.g. email confirmation required).
+        throw new Error('Registrace proběhla, ale nebyla vytvořena session. Zkontrolujte email pro potvrzení.');
     },
 
     checkRegistrationAllowed: async (email: string): Promise<{ allowed: boolean; reason?: string }> => {
@@ -170,7 +218,19 @@ export const authService = {
         if (!session?.user) {
             return null;
         }
-        return authService._buildUserFromSession(session);
+        try {
+            return await authService._buildUserFromSession(session);
+        } catch (e) {
+            console.warn('[authService] Failed to build user from session, returning fallback user', e);
+            return {
+                id: session.user.id,
+                name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
+                email: session.user.email || '',
+                role: 'user',
+                avatarUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(session.user.email || 'U')}&background=random`,
+                preferences: DEFAULT_PREFERENCES
+            };
+        }
     },
 
     // Internal helper to build user object from session
@@ -179,47 +239,63 @@ export const authService = {
             return null;
         }
 
-        // Fetch profile for role
-        let profile = null;
-        try {
-            const { data } = await supabase
-                .from('profiles')
-                .select('is_admin')
-                .eq('id', session.user.id)
-                .single();
-            profile = data;
-            console.log('[authService] Profile loaded', { is_admin: profile?.is_admin });
-        } catch (e) {
-            console.warn('[authService] Could not fetch profile', e);
-        }
+        // Hydration should never block app navigation.
+        const queryTimeoutMs = 2500;
 
-        // Fetch settings
-        let settings = null;
-        try {
-            const { data, error } = await supabase
-                .from('user_settings')
-                .select('preferences')
-                .eq('user_id', session.user.id)
-                .single();
-            
-            if (error && error.code !== 'PGRST116') {
-                console.error('[authService] Error fetching user settings:', error);
-            } else if (data) {
-                settings = data;
+        const profilePromise = (async () => {
+            try {
+                const res = await withTimeout(
+                    supabase
+                        .from('profiles')
+                        .select('is_admin')
+                        .eq('id', session.user.id)
+                        .single(),
+                    queryTimeoutMs,
+                    'Profile load'
+                );
+                const { data, error } = res as any;
+                if (error) {
+                    console.warn('[authService] Error fetching profile', error);
+                    return null;
+                }
+                console.log('[authService] Profile loaded', { is_admin: data?.is_admin });
+                return data ?? null;
+            } catch (e) {
+                console.warn('[authService] Could not fetch profile', e);
+                return null;
             }
-        } catch (e) {
-            console.error('[authService] Exception fetching settings', e);
-        }
+        })();
 
-        const finalPreferences = settings?.preferences || {
-            theme: 'system',
-            primaryColor: '#607AFB',
-            backgroundColor: '#f5f6f8'
-        };
+        const settingsPromise = (async () => {
+            try {
+                const res = await withTimeout(
+                    supabase
+                        .from('user_settings')
+                        .select('preferences')
+                        .eq('user_id', session.user.id)
+                        .single(),
+                    queryTimeoutMs,
+                    'User settings load'
+                );
+                const { data, error } = res as any;
+                if (error && error.code !== 'PGRST116') {
+                    console.error('[authService] Error fetching user settings:', error);
+                    return null;
+                }
+                return data ?? null;
+            } catch (e) {
+                console.warn('[authService] Could not fetch user settings', e);
+                return null;
+            }
+        })();
+
+        const [profile, settings] = await Promise.all([profilePromise, settingsPromise]);
+
+        const finalPreferences = settings?.preferences || DEFAULT_PREFERENCES;
 
         return {
             id: session.user.id,
-            name: session.user.user_metadata.name || session.user.email?.split('@')[0] || 'User',
+            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
             email: session.user.email || '',
             role: profile?.is_admin ? 'admin' : 'user',
             avatarUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(session.user.email || 'U')}&background=random`,
@@ -229,16 +305,21 @@ export const authService = {
 
     getCurrentUser: async (): Promise<User | null> => {
         console.log('[authService] getCurrentUser: Starting...');
+
+        // Fast path: build user from cached session in localStorage (no network / no auth locks).
+        const cachedSession = getCachedSession();
+        if (cachedSession?.user) {
+            console.log('[authService] getCurrentUser: Using cached session', cachedSession.user?.id);
+            return authService.getUserFromSession(cachedSession);
+        }
+
         let session = null;
         try {
-            // Reduced timeout from 30s to 5s for faster fail-fast
-            const sessionPromise = supabase.auth.getSession();
-            const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Auth check timed out (5s)')), 5000)
-            );
-            
-            const { data } = await Promise.race([sessionPromise, timeoutPromise]) as any;
-            session = data.session;
+            // `getSession()` may refresh tokens over network; keep timeout lenient to avoid
+            // false negatives during cold starts / slow connections.
+            const timeoutMs = 1500;
+            const { data } = await withTimeout(supabase.auth.getSession(), timeoutMs, 'Auth check') as any;
+            session = data?.session || null;
             console.log('[authService] getCurrentUser: Session loaded', session?.user?.id);
         } catch (e) {
             console.warn('[authService] getCurrentUser: Could not fetch session', e);
