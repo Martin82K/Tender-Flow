@@ -78,9 +78,9 @@ Konfigurace pro statické soubory:
 1. **server.js** - Express server s iframe podporou
 2. **railway.json** - Railway konfigurace
 3. **public/\_headers** - Statické hlavičky
-4. **middleware.js** - Middleware handler
-5. **iframe-test.html** - Testovací stránka
-6. **test-iframe-headers.js** - Test script
+4. **deploy/railway/middleware.js** - Middleware handler (volitelné / referenční)
+5. **tools/iframe/iframe-test.html** - Testovací stránka
+6. **tools/iframe/test-iframe-headers.js** - Test script
 7. **RAILWAY_IFRAME_DEPLOYMENT.md** - Deployment guide
 
 ## 🚀 Deployment postup
@@ -129,12 +129,12 @@ npm start
 
 ### 3. Otevřít testovací stránku
 
-Otevřete `iframe-test.html` v prohlížeči
+Otevřete `tools/iframe/iframe-test.html` v prohlížeči
 
 ### 4. Ověřit hlavičky
 
 ```bash
-node test-iframe-headers.js
+node tools/iframe/test-iframe-headers.js
 ```
 
 ## 📊 Technické detaily

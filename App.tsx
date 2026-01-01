@@ -201,11 +201,51 @@ const AppContent: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>("dashboard");
   const lastRefreshTime = useRef<number>(Date.now());
   const loadSeqRef = useRef(0);
+  const mainScrollRef = useRef<HTMLElement | null>(null);
   const docHubSyncRef = useRef<{ last: Map<string, number>; timer: Map<string, number>; recent: Map<string, number> }>({
     last: new Map(),
     timer: new Map(),
     recent: new Map(),
   });
+
+  useEffect(() => {
+    const isInIframe = (() => {
+      try {
+        return window.self !== window.top;
+      } catch {
+        return true;
+      }
+    })();
+
+    if (!isInIframe) return;
+
+    try {
+      if ("scrollRestoration" in window.history) {
+        window.history.scrollRestoration = "manual";
+      }
+    } catch {
+      // ignore
+    }
+
+    const scrollToTop = () => {
+      try {
+        window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      } catch {
+        // ignore
+      }
+
+      const main = mainScrollRef.current;
+      if (main) main.scrollTo({ top: 0, left: 0, behavior: "auto" });
+
+      // Some browsers still restore scroll on the root element.
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    };
+
+    scrollToTop();
+    requestAnimationFrame(scrollToTop);
+    window.setTimeout(scrollToTop, 0);
+  }, [pathname, search]);
 
   // Data States
   const [projects, setProjects] = useState<Project[]>([]);
@@ -2268,7 +2308,10 @@ const AppContent: React.FC = () => {
         isOpen={isSidebarOpen}
         onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
       />
-      <main className="flex-1 flex flex-col h-full overflow-hidden relative">
+      <main
+        ref={mainScrollRef}
+        className="flex-1 flex flex-col h-full min-h-0 overflow-y-auto overflow-x-hidden relative"
+      >
         {/* Toggle Button for Mobile/Hidden Sidebar */}
         {user?.role === 'demo' && (
           <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-4 py-2 flex items-center justify-between shadow-lg z-50">

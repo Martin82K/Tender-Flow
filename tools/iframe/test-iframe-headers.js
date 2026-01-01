@@ -6,6 +6,10 @@
 
 import http from 'http';
 
+// Run from repo root:
+//   npm start
+//   node tools/iframe/test-iframe-headers.js
+
 const PORT = process.env.PORT || 3000;
 const HOST = 'localhost';
 

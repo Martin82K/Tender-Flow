@@ -1,0 +1,54 @@
+runtime: nodejs18
+
+instance_class: F2
+
+env_variables:
+  NODE_ENV: "production"
+
+# Handlers for static files and routing
+handlers:
+  # Serve static assets with caching
+  - url: /assets
+    static_dir: dist/assets
+    secure: always
+    expiration: "1d"
+    http_headers:
+      Access-Control-Allow-Origin: "*"
+      Content-Security-Policy: "frame-ancestors *"
+
+  # Serve favicon
+  - url: /favicon.png
+    static_files: dist/favicon.png
+    upload: dist/favicon.png
+    secure: always
+
+  # All other routes go to the Node.js app
+  - url: /.*
+    script: auto
+    secure: always
+
+# Automatic scaling configuration
+automatic_scaling:
+  min_instances: 0
+  max_instances: 10
+  target_cpu_utilization: 0.65
+  target_throughput_utilization: 0.6
+
+# Network settings
+network:
+  session_affinity: false
+
+# Health check
+readiness_check:
+  path: "/"
+  check_interval_sec: 5
+  timeout_sec: 4
+  failure_threshold: 2
+  success_threshold: 2
+
+liveness_check:
+  path: "/"
+  check_interval_sec: 30
+  timeout_sec: 4
+  failure_threshold: 2
+  success_threshold: 2

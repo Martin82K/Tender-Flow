@@ -2,6 +2,10 @@
 
 # 🚀 Quick deployment script for Railway iframe support
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+cd "$REPO_ROOT"
+
 echo "🎯 Railway Iframe Support Deployment"
 echo "======================================"
 echo ""
@@ -54,7 +58,7 @@ if [ $? -eq 0 ]; then
     echo "1. Check Railway dashboard for build status"
     echo "2. Wait for deployment to complete"
     echo "3. Test iframe embedding with your Railway URL"
-    echo "4. Use iframe-test.html for testing"
+    echo "4. Use tools/iframe/iframe-test.html for testing"
     echo ""
     echo "🎉 Done!"
 else

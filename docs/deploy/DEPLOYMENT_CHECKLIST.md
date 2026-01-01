@@ -23,12 +23,12 @@
   Otevřete: http://localhost:3000
 
 - [ ] **Iframe test lokálně**
-      Otevřete `iframe-test.html` v prohlížeči
+      Otevřete `tools/iframe/iframe-test.html` v prohlížeči
 
 - [ ] **Ověření hlaviček** (volitelné)
   ```bash
   # V jiném terminálu (když běží npm start)
-  node test-iframe-headers.js
+  node tools/iframe/test-iframe-headers.js
   ```
 
 ## 🚀 Deployment na Railway
@@ -49,7 +49,7 @@
   **NEBO použijte helper script:**
 
   ```bash
-  ./deploy-to-railway.sh
+  ./scripts/deploy/deploy-to-railway.sh
   ```
 
 - [ ] **Změny pushnuty**
@@ -172,13 +172,13 @@ Pokud máte problémy:
 npm run build && npm start
 
 # Deploy na Railway
-./deploy-to-railway.sh
+./scripts/deploy/deploy-to-railway.sh
 
 # Test hlaviček (když běží server)
-node test-iframe-headers.js
+node tools/iframe/test-iframe-headers.js
 
 # Otevřít iframe test
-open iframe-test.html
+open tools/iframe/iframe-test.html
 ```
 
 ---

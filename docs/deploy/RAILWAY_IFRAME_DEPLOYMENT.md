@@ -80,7 +80,7 @@ npm start
 
 ### Otevřít testovací stránku:
 
-Otevřete `iframe-test.html` v prohlížeči pro interaktivní test iframe embedování.
+Otevřete `tools/iframe/iframe-test.html` v prohlížeči pro interaktivní test iframe embedování.
 
 ## 📝 Použití v iframe
 
@@ -144,7 +144,7 @@ Otevřete `iframe-test.html` v prohlížeči pro interaktivní test iframe embed
 - [ ] Express nainstalován (`npm install`)
 - [ ] Build funguje lokálně (`npm run build`)
 - [ ] Server funguje lokálně (`npm start`)
-- [ ] Iframe test prošel (`iframe-test.html`)
+- [ ] Iframe test prošel (`tools/iframe/iframe-test.html`)
 - [ ] Změny pushnuty na Railway
 - [ ] Railway build úspěšný
 - [ ] Aplikace dostupná v iframe
