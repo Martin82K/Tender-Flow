@@ -7,6 +7,7 @@ export const DOC_HUB_STRUCTURE_V1 = {
   tendersInquiries: "Poptavky",
   supplierEmail: "Email",
   supplierOffer: "Cenova_nabidka",
+  ceniky: "05_Ceniky",
 } as const;
 
 export type DocHubStructureV1 = typeof DOC_HUB_STRUCTURE_V1 & {
@@ -68,6 +69,7 @@ export const getDocHubProjectLinks = (
     contracts: joinDocHubPath(root, structure.contracts),
     realization: joinDocHubPath(root, structure.realization),
     archive: joinDocHubPath(root, structure.archive),
+    ceniky: joinDocHubPath(root, structure.ceniky),
   };
 };
 

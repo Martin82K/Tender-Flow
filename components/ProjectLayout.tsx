@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Header } from './Header';
 import { Pipeline } from './Pipeline';
 import { TenderPlan } from './TenderPlan';
+import { ProjectSchedule } from './ProjectSchedule';
 import { ProjectTab, ProjectDetails, ContractDetails, InvestorFinancials, DemandCategory, Bid, Subcontractor, StatusConfig, Template } from '../types';
 import { uploadDocument, formatFileSize } from '../services/documentService';
 import { TemplateManager } from './TemplateManager';
@@ -53,11 +54,12 @@ interface ProjectDocumentsProps {
 }
 
 const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }) => {
-    type DocumentsSubTab = 'pd' | 'templates' | 'dochub';
+    type DocumentsSubTab = 'pd' | 'templates' | 'dochub' | 'ceniky';
     const [isEditingDocs, setIsEditingDocs] = useState(false);
     const [isEditingLetter, setIsEditingLetter] = useState(false);
     const [documentsSubTab, setDocumentsSubTab] = useState<DocumentsSubTab>('pd');
     const [docsLinkValue, setDocsLinkValue] = useState('');
+    const [priceListLinkValue, setPriceListLinkValue] = useState('');
     const [letterLinkValue, setLetterLinkValue] = useState('');
     const [docHubEnabled, setDocHubEnabled] = useState(false);
     const [docHubRootLink, setDocHubRootLink] = useState('');
@@ -75,6 +77,11 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
     useEffect(() => {
         setDocsLinkValue(project.documentationLink || '');
     }, [project.documentationLink, isEditingDocs]);
+
+    const [isEditingPriceList, setIsEditingPriceList] = useState(false);
+    useEffect(() => {
+        setPriceListLinkValue(project.priceListLink || '');
+    }, [project.priceListLink, isEditingPriceList]);
 
     useEffect(() => {
         setLetterLinkValue(project.inquiryLetterLink || '');
@@ -105,6 +112,11 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
     const handleSaveDocs = () => {
         onUpdate({ documentationLink: docsLinkValue });
         setIsEditingDocs(false);
+    };
+
+    const handleSavePriceList = () => {
+        onUpdate({ priceListLink: priceListLinkValue });
+        setIsEditingPriceList(false);
     };
 
     const docHubStructure = resolveDocHubStructureV1(project.docHubStructureV1 || undefined);
@@ -831,6 +843,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
         contracts?: string | null;
         realization?: string | null;
         archive?: string | null;
+        ceniky?: string | null;
     }>(null);
     const fallbackDocHubLinks = isDocHubConnected ? getDocHubProjectLinks(docHubRootLink, effectiveDocHubStructure) : null;
     const docHubProjectLinks = isDocHubConnected
@@ -840,6 +853,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
             contracts: docHubBaseLinks?.contracts ?? fallbackDocHubLinks?.contracts ?? null,
             realization: docHubBaseLinks?.realization ?? fallbackDocHubLinks?.realization ?? null,
             archive: docHubBaseLinks?.archive ?? fallbackDocHubLinks?.archive ?? null,
+            ceniky: docHubBaseLinks?.ceniky ?? fallbackDocHubLinks?.ceniky ?? null,
         }
         : null;
 
@@ -997,6 +1011,16 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                                 }`}
                         >
                             DocHub
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setDocumentsSubTab('ceniky')}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${documentsSubTab === 'ceniky'
+                                ? 'bg-primary text-white shadow-lg'
+                                : 'text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700/50'
+                                }`}
+                        >
+                            Ceníky
                         </button>
                     </div>
 
@@ -2251,6 +2275,129 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                     </div>
                     )}
 
+                    {/* Price Lists Section */}
+                    {documentsSubTab === 'ceniky' && (
+                        <div className="space-y-4">
+                            <div className={`rounded-xl p-6 border transition-colors ${!!project.priceListLink ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30' : 'bg-slate-50 dark:bg-slate-950/30 border-slate-200 dark:border-slate-700/40'}`}>
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-slate-400">payments</span>
+                                        <h3 className="font-semibold text-slate-900 dark:text-white">Ceníky</h3>
+                                        {!!project.priceListLink && (
+                                            <span className="ml-2 px-2.5 py-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase rounded-lg border border-emerald-500/30">
+                                                Nastaveno
+                                            </span>
+                                        )}
+                                    </div>
+                                    {!isEditingPriceList ? (
+                                        <button
+                                            onClick={() => setIsEditingPriceList(true)}
+                                            className="p-2 hover:bg-slate-700/50 rounded-lg transition-all"
+                                        >
+                                            <span className="material-symbols-outlined text-slate-400 text-[20px]">edit</span>
+                                        </button>
+                                    ) : (
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={handleSavePriceList}
+                                                className="text-green-500 hover:text-green-600"
+                                            >
+                                                <span className="material-symbols-outlined text-[20px]">check</span>
+                                            </button>
+                                            <button
+                                                onClick={() => setIsEditingPriceList(false)}
+                                                className="text-red-500 hover:text-red-600"
+                                            >
+                                                <span className="material-symbols-outlined text-[20px]">close</span>
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {!isEditingPriceList ? (
+                                    <div>
+                                        {!!project.priceListLink ? (
+                                            <div className="space-y-3">
+                                                <a
+                                                    href={project.priceListLink}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="block p-4 bg-white dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50 hover:border-emerald-500/30 hover:shadow-md dark:hover:bg-slate-700/50 transition-all group"
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                            <span className="material-symbols-outlined text-emerald-600 dark:text-emerald-400">inventory_2</span>
+                                                            <span className="text-sm font-medium text-slate-900 dark:text-white truncate">
+                                                                {project.priceListLink}
+                                                            </span>
+                                                        </div>
+                                                        <span className="material-symbols-outlined text-slate-500 group-hover:text-emerald-400 transition-colors">open_in_new</span>
+                                                    </div>
+                                                </a>
+                                                <p className="text-xs text-slate-500 flex items-center gap-1">
+                                                    <span className="material-symbols-outlined text-[14px]">info</span>
+                                                    Klikněte pro otevření ceníků v novém okně
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-8">
+                                                <span className="material-symbols-outlined text-slate-600 text-5xl mb-3 block">payments</span>
+                                                <p className="text-slate-400 text-sm">Žádný ceník není nastaven</p>
+                                                <p className="text-slate-500 text-xs mt-1">Klikněte na ikonu úprav pro přidání odkazu</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        <input
+                                            type="url"
+                                            value={priceListLinkValue}
+                                            onChange={(e) => setPriceListLinkValue(e.target.value)}
+                                            placeholder="https://example.com/price-lists"
+                                            className="w-full bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
+                                        />
+                                        <p className="text-xs text-slate-500">
+                                            Zadejte URL odkaz na ceníky (např. Google Drive, Excel v cloudu, SharePoint)
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {isDocHubConnected && docHubProjectLinks?.ceniky && (
+                                <div className="mt-4 rounded-xl p-4 border border-violet-200 dark:border-violet-500/30 bg-violet-50 dark:bg-violet-500/10">
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div className="flex items-center gap-2">
+                                            <span className="material-symbols-outlined text-violet-300">folder</span>
+                                            <div>
+                                                <div className="text-sm font-semibold text-violet-900 dark:text-white">DocHub /{effectiveDocHubStructure.ceniky}</div>
+                                                <div className="text-xs text-violet-700/70 dark:text-slate-400">Rychlý odkaz na složku ceníků v DocHubu</div>
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                const value = docHubProjectLinks?.ceniky || "";
+                                                if (isProbablyUrl(value)) {
+                                                    window.open(value, "_blank", "noopener,noreferrer");
+                                                    return;
+                                                }
+                                                try {
+                                                    await navigator.clipboard.writeText(value);
+                                                    showModal({ title: "Zkopírováno", message: value, variant: "success" });
+                                                } catch {
+                                                    window.prompt("Zkopírujte cestu:", value);
+                                                }
+                                            }}
+                                            className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-lg text-sm font-bold transition-colors"
+                                        >
+                                            {isProbablyUrl(docHubProjectLinks?.ceniky || "") ? "Otevřít" : "Zkopírovat"}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {/* Tips Section */}
                     <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
                         <div className="flex items-start gap-3">
@@ -2325,41 +2472,47 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, project
                 onSearchChange={setSearchQuery}
                 searchPlaceholder="Hledat v projektu..."
             >
-                <div className="flex items-center gap-1 bg-slate-200 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-300 dark:border-slate-700/50">
-                    <button
-                        onClick={() => onTabChange('overview')}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'overview' ? 'bg-primary text-white shadow-lg' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-700/50'}`}
-                    >
-                        Přehled
-                    </button>
-                    <button
-                        onClick={() => onTabChange('tender-plan')}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'tender-plan' ? 'bg-primary text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-700/50'}`}
-                    >
-                        Plán VŘ
-                    </button>
-                    <button
-                        onClick={() => onTabChange('pipeline')}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'pipeline' ? 'bg-primary text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-700/50'}`}
-                    >
-                        Výběrová řízení
-                    </button>
-                    <button
-                        onClick={() => onTabChange('documents')}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'documents' ? 'bg-primary text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-700/50'}`}
-                    >
-                        Dokumenty
+	                <div className="flex items-center gap-1 bg-slate-200 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-300 dark:border-slate-700/50">
+	                    <button
+	                        onClick={() => onTabChange('overview')}
+	                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'overview' ? 'bg-primary text-white shadow-lg' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-700/50'}`}
+	                    >
+	                        Přehled
+	                    </button>
+	                    <button
+	                        onClick={() => onTabChange('tender-plan')}
+	                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'tender-plan' ? 'bg-primary text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-700/50'}`}
+	                    >
+	                        Plán VŘ
+	                    </button>
+	                    <button
+	                        onClick={() => onTabChange('pipeline')}
+	                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'pipeline' ? 'bg-primary text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-700/50'}`}
+	                    >
+	                        Výběrová řízení
+	                    </button>
+	                    <button
+	                        onClick={() => onTabChange('schedule')}
+	                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'schedule' ? 'bg-primary text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-700/50'}`}
+	                    >
+	                        Harmonogram
+	                    </button>
+	                    <button
+	                        onClick={() => onTabChange('documents')}
+	                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'documents' ? 'bg-primary text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-700/50'}`}
+	                    >
+	                        Dokumenty
                     </button>
                 </div>
             </Header>
 
             <div className="flex-1 overflow-auto flex flex-col">
-                {activeTab === 'overview' && <ProjectOverviewNew project={project} onUpdate={onUpdateDetails} variant="compact" searchQuery={searchQuery} onNavigateToPipeline={handleLocalNavigateToPipeline} />}
-                {activeTab === 'tender-plan' && (
-                    <TenderPlan
-                        projectId={projectId}
-                        categories={project.categories || []}
-                        onCreateCategory={(name, dateFrom, dateTo) => {
+	                {activeTab === 'overview' && <ProjectOverviewNew project={project} onUpdate={onUpdateDetails} variant="compact" searchQuery={searchQuery} onNavigateToPipeline={handleLocalNavigateToPipeline} />}
+	                {activeTab === 'tender-plan' && (
+	                    <TenderPlan
+	                        projectId={projectId}
+	                        categories={project.categories || []}
+	                        onCreateCategory={(name, dateFrom, dateTo) => {
                             // Switch to pipeline tab and open add category modal
                             onTabChange('pipeline');
                             // The Pipeline component will need to handle this - for now just switch tabs
@@ -2377,11 +2530,12 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, project
                             };
                             onAddCategory(newCategory);
                         }}
-                    />
-                )}
-                {activeTab === 'pipeline' && <Pipeline projectId={projectId} projectDetails={project} bids={project.bids || {}} contacts={contacts} statuses={statuses} onAddCategory={onAddCategory} onEditCategory={onEditCategory} onDeleteCategory={onDeleteCategory} onBidsChange={(bids) => onBidsChange?.(projectId, bids)} searchQuery={searchQuery} initialOpenCategoryId={initialPipelineCategoryId} />}
-                {activeTab === 'documents' && <ProjectDocuments project={project} onUpdate={onUpdateDetails} />}
-            </div>
-        </div>
-    );
-};
+	                    />
+	                )}
+	                {activeTab === 'pipeline' && <Pipeline projectId={projectId} projectDetails={project} bids={project.bids || {}} contacts={contacts} statuses={statuses} onAddCategory={onAddCategory} onEditCategory={onEditCategory} onDeleteCategory={onDeleteCategory} onBidsChange={(bids) => onBidsChange?.(projectId, bids)} searchQuery={searchQuery} initialOpenCategoryId={initialPipelineCategoryId} />}
+	                {activeTab === 'schedule' && <ProjectSchedule projectId={projectId} categories={project.categories || []} />}
+	                {activeTab === 'documents' && <ProjectDocuments project={project} onUpdate={onUpdateDetails} />}
+	            </div>
+	        </div>
+	    );
+	};

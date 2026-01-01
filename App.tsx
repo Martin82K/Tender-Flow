@@ -78,7 +78,7 @@ const hexToRgb = (hex: string) => {
 const APP_BASE = "/app";
 
 const isProjectTab = (val: string | null): val is ProjectTab => {
-  return val === "overview" || val === "tender-plan" || val === "pipeline" || val === "documents";
+  return val === "overview" || val === "tender-plan" || val === "pipeline" || val === "schedule" || val === "documents";
 };
 
 const buildAppUrl = (
@@ -304,7 +304,7 @@ const AppContent: React.FC = () => {
   }, [allProjectDetails]);
 
   const handleNavigateToProject = (projectId: string, tab: string, categoryId?: string) => {
-    const nextTab: ProjectTab = tab === "pipeline" ? "pipeline" : "overview";
+    const nextTab: ProjectTab = isProjectTab(tab) ? tab : "overview";
     navigate(buildAppUrl("project", { projectId, tab: nextTab, categoryId: categoryId ?? null }));
   };
 
@@ -840,6 +840,7 @@ const AppContent: React.FC = () => {
           plannedCost: project.planned_cost || 0,
           documentationLink: project.documentation_link,
           inquiryLetterLink: project.inquiry_letter_link,
+          priceListLink: project.price_list_link,
           docHubEnabled: project.dochub_enabled ?? false,
           docHubRootLink: project.dochub_root_link ?? "",
           docHubProvider: project.dochub_provider ?? null,
@@ -1293,6 +1294,8 @@ const AppContent: React.FC = () => {
         projectUpdates.documentation_link = updates.documentationLink;
       if (updates.inquiryLetterLink !== undefined)
         projectUpdates.inquiry_letter_link = updates.inquiryLetterLink;
+      if (updates.priceListLink !== undefined)
+        projectUpdates.price_list_link = updates.priceListLink;
       if (updates.docHubEnabled !== undefined)
         projectUpdates.dochub_enabled = updates.docHubEnabled;
       if (updates.docHubRootLink !== undefined)

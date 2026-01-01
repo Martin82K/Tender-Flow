@@ -331,6 +331,8 @@ export const DEMO_PROJECT_DETAILS: ProjectDetails = {
   constructionManager: 'Jan Vedoucí',
   constructionTechnician: 'Petr Technik',
   plannedCost: 15000000,
+  documentationLink: 'https://example.com/PD_Demo',
+  priceListLink: 'https://example.com/Ceniky_Demo',
   docHubEnabled: true,
   docHubRootLink: 'https://example.com/Bytovy_dum_Slunecna_DEMO',
   docHubRootName: 'Bytový dům Slunečná - DEMO',

@@ -6,7 +6,7 @@ export type View =
   | "project-management"
   | "project-overview";
 
-export type ProjectTab = "overview" | "tender-plan" | "pipeline" | "documents";
+export type ProjectTab = "overview" | "tender-plan" | "pipeline" | "schedule" | "documents";
 
 // Tender Plan Item
 export interface TenderPlanItem {
@@ -78,6 +78,7 @@ export interface DocHubStructureV1 {
   tendersInquiries: string;
   supplierEmail: string;
   supplierOffer: string;
+  ceniky: string;
   extraTopLevel?: string[]; // Optional additional folders in project root
   extraSupplier?: string[]; // Optional additional subfolders under supplier folder
 }
@@ -165,6 +166,7 @@ export interface ProjectDetails {
   // Documents
   documentationLink?: string; // Link to shared project documentation
   inquiryLetterLink?: string; // Link to inquiry letter template
+  priceListLink?: string; // Link to price lists (Ceníky)
   docHubEnabled?: boolean; // DocHub module enabled for this project
   docHubRootLink?: string; // Root link/path to the project's DocHub folder
   docHubProvider?: "gdrive" | "onedrive" | null; // Storage provider
