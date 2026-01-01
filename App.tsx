@@ -88,7 +88,7 @@ const buildAppUrl = (
     tab?: ProjectTab;
     categoryId?: string | null;
     settingsTab?: 'user' | 'admin';
-    settingsSubTab?: 'profile' | 'contacts' | 'tools';
+    settingsSubTab?: 'profile' | 'contacts' | 'tools' | 'excelMerger';
   }
 ) => {
   switch (view) {

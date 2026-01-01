@@ -12,7 +12,7 @@ export interface NavItemConfig {
   href?: string; // For external links
   // Optional deep-linking into Settings
   settingsTab?: 'user' | 'admin';
-  settingsSubTab?: 'profile' | 'contacts' | 'tools';
+  settingsSubTab?: 'profile' | 'contacts' | 'tools' | 'excelMerger';
 }
 
 export const SIDEBAR_NAVIGATION: NavItemConfig[] = [
@@ -85,6 +85,14 @@ export const BOTTOM_NAVIGATION: NavItemConfig[] = [
         view: 'settings',
         settingsTab: 'user',
         settingsSubTab: 'tools',
+      },
+      {
+        id: 'settings-excelmerger-pro',
+        label: 'ExcelMerger Pro',
+        icon: 'table_view',
+        view: 'settings',
+        settingsTab: 'user',
+        settingsSubTab: 'excelMerger',
       },
     ],
   },

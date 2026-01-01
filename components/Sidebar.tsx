@@ -21,7 +21,7 @@ interface SidebarProps {
   currentView: View;
   onViewChange: (
     view: View,
-    opts?: { settingsTab?: 'user' | 'admin'; settingsSubTab?: 'profile' | 'contacts' | 'tools' }
+    opts?: { settingsTab?: 'user' | 'admin'; settingsSubTab?: 'profile' | 'contacts' | 'tools' | 'excelMerger' }
   ) => void;
   selectedProjectId: string;
   onProjectSelect: (id: string) => void;
@@ -46,7 +46,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
     const subTabParam = params.get('subTab');
     const tab = tabParam === 'admin' || tabParam === 'user' ? tabParam : null;
     const subTab =
-      subTabParam === 'profile' || subTabParam === 'contacts' || subTabParam === 'tools'
+      subTabParam === 'profile' || subTabParam === 'contacts' || subTabParam === 'tools' || subTabParam === 'excelMerger'
         ? subTabParam
         : null;
     return { tab, subTab };
@@ -81,7 +81,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
     const shouldOpenTools =
       currentView === 'project-management' ||
       currentView === 'project-overview' ||
-      (currentView === 'settings' && (settingsRoute.subTab === 'contacts' || settingsRoute.subTab === 'tools'));
+      (currentView === 'settings' && (settingsRoute.subTab === 'contacts' || settingsRoute.subTab === 'tools' || settingsRoute.subTab === 'excelMerger'));
 
     if (!shouldOpenTools) return;
     setOpenGroups((prev) => (prev.tools ? prev : { ...prev, tools: true }));
@@ -269,6 +269,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
 
     if (item.type === 'group') {
       const isOpen = openGroups[item.id] ?? isItemActive;
+      const childrenMaxHeightClass = item.id === 'tools' ? 'max-h-60' : 'max-h-44';
       return (
         <details
           key={item.id}
@@ -292,7 +293,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
             <span className="material-symbols-outlined text-[20px] transition-transform group-open:rotate-180 shrink-0">expand_more</span>
           </summary>
 
-          <div className="flex flex-col mt-1 ml-2 gap-1 max-h-44 overflow-y-auto pr-1">
+          <div className={`flex flex-col mt-1 ml-2 gap-1 ${childrenMaxHeightClass} overflow-y-auto pr-1`}>
             {(item.children || []).map((child: any) => renderNavItem(child))}
           </div>
         </details>
