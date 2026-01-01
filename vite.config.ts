@@ -7,6 +7,11 @@ export default defineConfig(() => {
     server: {
       port: 3000,
       host: '0.0.0.0',
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
       proxy: {
         '/api/merge': {
           target: 'http://localhost:5001',
