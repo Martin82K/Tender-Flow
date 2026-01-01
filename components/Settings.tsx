@@ -128,13 +128,6 @@ export const Settings: React.FC<SettingsProps> = ({
     const [excelSuccessInfo, setExcelSuccessInfo] = useState<{ outputName: string } | null>(null);
     const [isExcelDropActive, setIsExcelDropActive] = useState(false);
 
-    // Tools: Excel merger
-    const [mergeExcelFile, setMergeExcelFile] = useState<File | null>(null);
-    const [isMergingExcel, setIsMergingExcel] = useState(false);
-    const [mergeExcelProgress, setMergeExcelProgress] = useState<{ percent: number; label: string } | null>(null);
-    const [mergeExcelSuccessInfo, setMergeExcelSuccessInfo] = useState<{ outputName: string } | null>(null);
-    const [isMergeExcelDropActive, setIsMergeExcelDropActive] = useState(false);
-
     const acceptExcelFile = (file: File) => {
         if (!/\.(xlsx|xlsm)$/i.test(file.name)) {
             alert('Podporované jsou pouze soubory .xlsx a .xlsm.');
@@ -202,128 +195,38 @@ export const Settings: React.FC<SettingsProps> = ({
         }
     };
 
-    const acceptMergeExcelFile = (file: File) => {
-        if (!/\.(xlsx|xlsm)$/i.test(file.name)) {
-            alert('Podporované jsou pouze soubory .xlsx a .xlsm.');
-            return;
-        }
-        setMergeExcelFile(file);
-        setMergeExcelProgress(null);
-        setMergeExcelSuccessInfo(null);
-    };
+    const excelMergerMirrorUrl = useMemo(() => {
+        const envUrl = (import.meta as any)?.env?.VITE_EXCEL_MERGER_MIRROR_URL as string | undefined;
+        return envUrl || 'https://vas-excel-merger-gcp.web.app';
+    }, []);
 
-    const getExcelMergeApiUrl = () => {
-        const envUrl = (import.meta as any)?.env?.VITE_EXCEL_MERGE_API as string | undefined;
-        if (envUrl) return envUrl;
-        return '/api/merge';
-    };
+    const ExcelMergerMirror: React.FC = () => {
+        const [isLoading, setIsLoading] = useState(true);
 
-    const checkExcelMergeBackend = async () => {
-        // In dev, allow local dev server/proxy scenarios without hard blocking UI.
-        if (!(import.meta as any)?.env?.PROD) return true;
-        try {
-            const controller = new AbortController();
-            const t = window.setTimeout(() => controller.abort(), 1200);
-            const res = await fetch('/api/excel-tools/health', { signal: controller.signal });
-            window.clearTimeout(t);
-            return res.ok;
-        } catch {
-            return false;
-        }
-    };
-
-    const handleMergeExcelInBrowser = async () => {
-        if (!mergeExcelFile) {
-            alert('Vyberte prosím Excel soubor (.xlsx nebo .xlsm).');
-            return;
-        }
-
-        const downloadFromResponse = (blob: Blob, filename: string) => {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(url);
-        };
-
-        setIsMergingExcel(true);
-        setMergeExcelSuccessInfo(null);
-        try {
-            setMergeExcelProgress({ percent: 1, label: 'Kontroluji lokální backend…' });
-            const ok = await checkExcelMergeBackend();
-            if (!ok) {
-                const hint = (import.meta as any)?.env?.PROD
-                    ? 'Na produkci je potřeba nasadit backend a nastavit Netlify redirect `netlify.toml` nebo env `VITE_EXCEL_MERGE_API`.'
-                    : 'Lokálně spusťte `cd server/excel_tools_api && npm install && npm run dev`.';
-                throw new Error(`Excel merge backend není dostupný (zkontrolujte /api/excel-tools/health). ${hint}`);
-            }
-
-            const endpoint = getExcelMergeApiUrl();
-            const form = new FormData();
-            form.append('file', mergeExcelFile, mergeExcelFile.name);
-
-            setMergeExcelProgress({ percent: 5, label: 'Nahrávám soubor…' });
-
-            const blob: Blob = await new Promise((resolve, reject) => {
-                const xhr = new XMLHttpRequest();
-                xhr.open('POST', endpoint, true);
-                xhr.responseType = 'blob';
-                xhr.timeout = 10 * 60 * 1000;
-
-                xhr.upload.onprogress = (e) => {
-                    if (!e.lengthComputable) return;
-                    const percent = Math.max(5, Math.min(55, Math.round((e.loaded / e.total) * 55)));
-                    setMergeExcelProgress({ percent, label: 'Nahrávám soubor…' });
-                };
-
-                xhr.onprogress = (e) => {
-                    if (!e.lengthComputable) {
-                        setMergeExcelProgress({ percent: 70, label: 'Zpracovávám listy…' });
-                        return;
-                    }
-                    const percent = Math.max(70, Math.min(98, 70 + Math.round((e.loaded / e.total) * 28)));
-                    setMergeExcelProgress({ percent, label: 'Stahuji výsledek…' });
-                };
-
-                xhr.onload = () => {
-                    if (xhr.status >= 200 && xhr.status < 300) {
-                        resolve(xhr.response);
-                        return;
-                    }
-                    const resp = xhr.response;
-                    if (resp instanceof Blob) {
-                        resp.text()
-                            .then((t) => reject(new Error(t || `HTTP ${xhr.status}`)))
-                            .catch(() => reject(new Error(`HTTP ${xhr.status}`)));
-                        return;
-                    }
-                    reject(new Error(typeof xhr.responseText === 'string' && xhr.responseText ? xhr.responseText : `HTTP ${xhr.status}`));
-                };
-                xhr.onerror = () => reject(new Error('Network error'));
-                xhr.ontimeout = () => reject(new Error('Request timeout'));
-                xhr.send(form);
-            });
-
-            const baseName = mergeExcelFile.name.replace(/\.(xlsx|xlsm)$/i, '') || 'excel';
-            const outName = `${baseName}_combined_final.xlsx`;
-            downloadFromResponse(blob, outName);
-            setMergeExcelProgress({ percent: 100, label: 'Staženo' });
-            setMergeExcelSuccessInfo({ outputName: outName });
-        } catch (e: any) {
-            console.error('Excel merge error:', e);
-            alert(
-                `Nepodařilo se sloučit soubor: ${e?.message || 'Neznámá chyba'}\n\n` +
-                `ExcelMerger Pro pro zachování formátování používá lokální backend.\n` +
-                `Spusťte: cd server/excel_tools_api && npm install && npm run dev\n` +
-                `Pokud běží Vite na :3000, proxy je na /api/merge.`
-            );
-            setMergeExcelProgress(null);
-        } finally {
-            setIsMergingExcel(false);
-        }
+        return (
+            <div className="relative w-full h-[800px] mt-6 rounded-3xl border border-slate-200/70 dark:border-white/10 overflow-hidden bg-white/70 dark:bg-white/5 backdrop-blur">
+                {isLoading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-white/70 dark:bg-slate-950/70 z-50">
+                        <div className="flex flex-col items-center gap-4 text-center px-6">
+                            <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                            <div className="space-y-1">
+                                <p className="font-black text-slate-900 dark:text-white">Propojování s ExcelMerger Pro…</p>
+                                <p className="text-sm text-slate-600 dark:text-slate-300">
+                                    Načítám externí aplikaci ve vestavěném okně.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                <iframe
+                    src={excelMergerMirrorUrl}
+                    className="w-full h-full border-none"
+                    onLoad={() => setIsLoading(false)}
+                    sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-downloads"
+                    referrerPolicy="no-referrer"
+                />
+            </div>
+        );
     };
 
     // Load display name on mount
@@ -1521,169 +1424,26 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                                     </div>
                                 </div>
 
-                                <div className="mt-8 grid gap-6 lg:grid-cols-12">
-                                    <div className="lg:col-span-7">
-                                        <div className="rounded-3xl border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-white/5 backdrop-blur p-6 sm:p-8">
-                                            <div className="text-lg font-bold text-slate-900 dark:text-white">
-                                                Sloučit soubory
-                                            </div>
-                                            <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                                                Nahrajte 1 Excel soubor. Výstup je jeden `.xlsx` s jedním listem <span className="font-semibold">Kombinovane</span> (sloupec A = název zdrojového listu).
-                                            </div>
-
-                                            <div
-                                                className={`mt-6 rounded-3xl border-2 border-dashed p-6 sm:p-8 transition-all ${
-                                                    isMergeExcelDropActive
-                                                        ? 'border-primary bg-primary/10'
-                                                        : 'border-slate-300/70 dark:border-white/10 bg-slate-50/60 dark:bg-white/5'
-                                                }`}
-                                                onDragEnter={(e) => {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    setIsMergeExcelDropActive(true);
-                                                }}
-                                                onDragOver={(e) => {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    setIsMergeExcelDropActive(true);
-                                                }}
-                                                onDragLeave={(e) => {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    setIsMergeExcelDropActive(false);
-                                                }}
-                                                onDrop={(e) => {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    setIsMergeExcelDropActive(false);
-                                                    const file = e.dataTransfer.files?.[0];
-                                                    if (file) acceptMergeExcelFile(file);
-                                                }}
-                                            >
-                                                <div className="flex flex-col items-center text-center">
-                                                    <div className="size-14 rounded-2xl bg-white dark:bg-white/10 border border-slate-200/70 dark:border-white/10 flex items-center justify-center shadow-sm">
-                                                        <span className="material-symbols-outlined text-2xl text-primary">upload_file</span>
-                                                    </div>
-                                                    <div className="mt-4 text-base font-semibold text-slate-900 dark:text-white">
-                                                        Klikněte pro výběr nebo přetáhněte soubor
-                                                    </div>
-                                                    <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                                                        Podporováno: .xlsx, .xlsm (makra se mohou ztratit)
-                                                    </div>
-
-                                                    <label className="mt-5 inline-flex items-center gap-2 rounded-xl bg-primary text-white px-4 py-2 text-sm font-bold shadow-sm hover:brightness-110 cursor-pointer">
-                                                        <span className="material-symbols-outlined text-[18px]">folder_open</span>
-                                                        Vybrat soubor
-                                                        <input
-                                                            type="file"
-                                                            accept=".xlsx,.xlsm"
-                                                            className="hidden"
-                                                            onChange={(e) => {
-                                                                const file = e.target.files?.[0];
-                                                                if (file) acceptMergeExcelFile(file);
-                                                                e.target.value = '';
-                                                            }}
-                                                        />
-                                                    </label>
-                                                </div>
-                                            </div>
-
-                                            {mergeExcelFile && (
-                                                <div className="mt-5 rounded-2xl border border-slate-200/70 dark:border-white/10 bg-white dark:bg-white/5 p-4">
-                                                    <div className="text-xs font-semibold text-slate-700 dark:text-slate-200 mb-2">
-                                                        Vybraný soubor
-                                                    </div>
-                                                    <div className="max-h-36 overflow-auto no-scrollbar space-y-1 text-xs text-slate-600 dark:text-slate-300">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="material-symbols-outlined text-[16px] text-primary">description</span>
-                                                            <span className="truncate">{mergeExcelFile.name}</span>
-                                                        </div>
-                                                    </div>
-                                                    <div className="mt-3 flex items-center justify-between gap-3">
-                                                        <button
-                                                            onClick={() => {
-                                                                setMergeExcelFile(null);
-                                                                setMergeExcelProgress(null);
-                                                                setMergeExcelSuccessInfo(null);
-                                                            }}
-                                                            disabled={isMergingExcel}
-                                                            className="text-xs text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white disabled:opacity-50"
-                                                        >
-                                                            Vymazat výběr
-                                                        </button>
-                                                        <button
-                                                            onClick={handleMergeExcelInBrowser}
-                                                            disabled={isMergingExcel || !mergeExcelFile}
-                                                            className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white px-5 py-2.5 text-sm font-bold transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                                                        >
-                                                            {isMergingExcel ? (
-                                                                <span className="material-symbols-outlined animate-spin text-[18px]">sync</span>
-                                                            ) : (
-                                                                <span className="material-symbols-outlined text-[18px]">merge</span>
-                                                            )}
-                                                            Synchronizovat (sloučit)
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {mergeExcelProgress && (
-                                                <div className="mt-5">
-                                                    <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-300 mb-2">
-                                                        <span>{mergeExcelProgress.label}</span>
-                                                        <span className="tabular-nums">{mergeExcelProgress.percent}%</span>
-                                                    </div>
-                                                    <div className="h-2.5 rounded-full bg-slate-200/70 dark:bg-white/10 overflow-hidden">
-                                                        <div
-                                                            className="h-full rounded-full bg-gradient-to-r from-primary to-emerald-500 transition-all"
-                                                            style={{ width: `${mergeExcelProgress.percent}%` }}
-                                                        />
-                                                    </div>
-                                                    <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                                                        Probíhá sloučení listů (lokálně). Skryté listy a listy „Rekapitulace stavby“ / „Pokyny pro vyplnění“ se vynechají.
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {mergeExcelSuccessInfo && (
-                                                <div className="mt-5 rounded-2xl border border-emerald-200/70 dark:border-emerald-500/30 bg-emerald-50/70 dark:bg-emerald-500/10 p-4">
-                                                    <div className="flex items-start gap-3">
-                                                        <span className="material-symbols-outlined text-emerald-600 dark:text-emerald-300 mt-0.5">check_circle</span>
-                                                        <div className="min-w-0">
-                                                            <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                                                                Hotovo – soubor stažen
-                                                            </div>
-                                                            <div className="text-xs text-slate-600 dark:text-slate-300 mt-1">
-                                                                Staženo jako <span className="font-semibold">{mergeExcelSuccessInfo.outputName}</span>.
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
+                                <div className="mt-8">
+                                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                                        <div className="text-sm text-slate-600 dark:text-slate-300">
+                                            ExcelMerger Pro je prolinkovaný do této aplikace. Otevře se ve vestavěném okně a zůstane zachovaná vaše barva a styl.
                                         </div>
+                                        <a
+                                            href={excelMergerMirrorUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="inline-flex items-center justify-center gap-2 rounded-xl bg-white/80 dark:bg-white/10 border border-slate-200/70 dark:border-white/10 px-4 py-2 text-sm font-bold text-slate-900 dark:text-white hover:bg-white dark:hover:bg-white/15 transition"
+                                        >
+                                            <span className="material-symbols-outlined text-[18px]">open_in_new</span>
+                                            Otevřít v nové kartě
+                                        </a>
                                     </div>
 
-                                    <div className="lg:col-span-5">
-                                        <div className="rounded-3xl border border-slate-200/70 dark:border-white/10 bg-white/70 dark:bg-white/5 backdrop-blur p-6 sm:p-8">
-                                            <div className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                                                <span className="material-symbols-outlined text-[18px] text-slate-500 dark:text-slate-300">info</span>
-                                                Co nástroj dělá
-                                            </div>
-                                            <ul className="mt-4 space-y-3 text-sm text-slate-600 dark:text-slate-300">
-                                                <li className="flex gap-3">
-                                                    <span className="material-symbols-outlined text-[18px] text-emerald-600 dark:text-emerald-400 mt-0.5">task_alt</span>
-                                                    Sloučí více listů z jednoho Excel souboru do jednoho listu <span className="font-semibold">Kombinovane</span>.
-                                                </li>
-                                                <li className="flex gap-3">
-                                                    <span className="material-symbols-outlined text-[18px] text-emerald-600 dark:text-emerald-400 mt-0.5">task_alt</span>
-                                                    Přidá sloupec <span className="font-semibold">List</span> (zdrojový list) + modré oddělovače <span className="font-semibold">=== NázevListu ===</span>.
-                                                </li>
-                                                <li className="flex gap-3">
-                                                    <span className="material-symbols-outlined text-[18px] text-amber-600 dark:text-amber-400 mt-0.5">warning</span>
-                                                    U `.xlsm` se makra nemusí zachovat (výstup je `.xlsx`).
-                                                </li>
-                                            </ul>
-                                        </div>
+                                    <ExcelMergerMirror />
+
+                                    <div className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+                                        Pokud se obsah nenačte, zkontrolujte prosím, že hostovaná aplikace povoluje vložení do iframe (CSP/X-Frame-Options).
                                     </div>
                                 </div>
                             </div>
