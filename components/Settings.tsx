@@ -46,6 +46,7 @@ export const Settings: React.FC<SettingsProps> = ({
 }) => {
 
     const { search } = useLocation();
+    const EXCEL_MERGER_MIRROR_URL_STORAGE_KEY = 'excelMergerMirrorUrl';
 
     const settingsRoute = useMemo(() => {
         const params = new URLSearchParams(search);
@@ -195,13 +196,37 @@ export const Settings: React.FC<SettingsProps> = ({
         }
     };
 
-    const excelMergerMirrorUrl = useMemo(() => {
+    const normalizeExternalUrl = (value: string) => {
+        const trimmed = value.trim();
+        if (!trimmed) return '';
+        if (trimmed.startsWith('/')) return trimmed;
+        if (/^https?:\/\//i.test(trimmed)) return trimmed;
+        if (/^[a-z0-9.-]+(:\d+)?(\/|$)/i.test(trimmed)) return `http://${trimmed}`;
+        return trimmed;
+    };
+
+    const getStoredExcelMergerMirrorUrl = () => localStorage.getItem(EXCEL_MERGER_MIRROR_URL_STORAGE_KEY) || '';
+
+    const defaultExcelMergerMirrorUrl = useMemo(() => {
         const envUrl = (import.meta as any)?.env?.VITE_EXCEL_MERGER_MIRROR_URL as string | undefined;
         return envUrl || 'https://vas-excel-merger-gcp.web.app';
     }, []);
 
+    const [excelMergerMirrorUrlDraft, setExcelMergerMirrorUrlDraft] = useState(() => getStoredExcelMergerMirrorUrl());
+    const [excelMergerMirrorUrlOverride, setExcelMergerMirrorUrlOverride] = useState(() => getStoredExcelMergerMirrorUrl());
+
+    const excelMergerMirrorUrl = useMemo(() => {
+        const raw = excelMergerMirrorUrlOverride.trim();
+        if (!raw) return defaultExcelMergerMirrorUrl;
+        return normalizeExternalUrl(raw);
+    }, [defaultExcelMergerMirrorUrl, excelMergerMirrorUrlOverride]);
+
     const ExcelMergerMirror: React.FC = () => {
         const [isLoading, setIsLoading] = useState(true);
+
+        useEffect(() => {
+            setIsLoading(true);
+        }, [excelMergerMirrorUrl]);
 
         return (
             <div className="relative w-full h-[800px] mt-6 rounded-3xl border border-slate-200/70 dark:border-white/10 overflow-hidden bg-white/70 dark:bg-white/5 backdrop-blur">
@@ -219,6 +244,7 @@ export const Settings: React.FC<SettingsProps> = ({
                     </div>
                 )}
                 <iframe
+                    key={excelMergerMirrorUrl}
                     src={excelMergerMirrorUrl}
                     className="w-full h-full border-none"
                     onLoad={() => setIsLoading(false)}
@@ -1425,6 +1451,61 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                                 </div>
 
                                 <div className="mt-8">
+                                    <div className="rounded-2xl border border-slate-200/70 dark:border-white/10 bg-white/60 dark:bg-white/5 p-4">
+                                        <div className="flex flex-col md:flex-row md:items-end gap-3">
+                                            <div className="flex-1">
+                                                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                                                    Adresa ExcelMerger Pro (např. <span className="font-mono">http://localhost:8080</span>)
+                                                </label>
+                                                <input
+                                                    value={excelMergerMirrorUrlDraft}
+                                                    onChange={(e) => setExcelMergerMirrorUrlDraft(e.target.value)}
+                                                    placeholder={defaultExcelMergerMirrorUrl}
+                                                    className="w-full rounded-xl bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary"
+                                                />
+                                                <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                                    Aktuálně načítám: <span className="font-mono">{excelMergerMirrorUrl}</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => {
+                                                        const normalized = normalizeExternalUrl(excelMergerMirrorUrlDraft);
+                                                        if (!normalized) {
+                                                            localStorage.removeItem(EXCEL_MERGER_MIRROR_URL_STORAGE_KEY);
+                                                            setExcelMergerMirrorUrlOverride('');
+                                                            setExcelMergerMirrorUrlDraft('');
+                                                            return;
+                                                        }
+                                                        try {
+                                                            new URL(normalized, window.location.origin);
+                                                        } catch {
+                                                            alert('Neplatná adresa. Zadejte prosím URL ve formátu např. http://localhost:8080');
+                                                            return;
+                                                        }
+                                                        localStorage.setItem(EXCEL_MERGER_MIRROR_URL_STORAGE_KEY, normalized);
+                                                        setExcelMergerMirrorUrlOverride(normalized);
+                                                    }}
+                                                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary text-white px-4 py-2.5 text-sm font-bold hover:opacity-90 transition"
+                                                >
+                                                    <span className="material-symbols-outlined text-[18px]">save</span>
+                                                    Uložit
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        localStorage.removeItem(EXCEL_MERGER_MIRROR_URL_STORAGE_KEY);
+                                                        setExcelMergerMirrorUrlOverride('');
+                                                        setExcelMergerMirrorUrlDraft('');
+                                                    }}
+                                                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-white/80 dark:bg-white/10 border border-slate-200/70 dark:border-white/10 px-4 py-2.5 text-sm font-bold text-slate-900 dark:text-white hover:bg-white dark:hover:bg-white/15 transition"
+                                                >
+                                                    <span className="material-symbols-outlined text-[18px]">restart_alt</span>
+                                                    Reset
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                                         <div className="text-sm text-slate-600 dark:text-slate-300">
                                             ExcelMerger Pro je prolinkovaný do této aplikace. Otevře se ve vestavěném okně a zůstane zachovaná vaše barva a styl.
