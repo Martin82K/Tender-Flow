@@ -1,7 +1,7 @@
 {
   "name": "construction-crm",
   "private": true,
-  "version": "0.9.3-253112",
+  "version": "0.9.3-260101",
   "type": "module",
   "scripts": {
     "dev": "vite",

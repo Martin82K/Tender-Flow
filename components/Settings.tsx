@@ -214,6 +214,7 @@ export const Settings: React.FC<SettingsProps> = ({
 
     const [excelMergerMirrorUrlDraft, setExcelMergerMirrorUrlDraft] = useState(() => getStoredExcelMergerMirrorUrl());
     const [excelMergerMirrorUrlOverride, setExcelMergerMirrorUrlOverride] = useState(() => getStoredExcelMergerMirrorUrl());
+    const [isExcelMergerAddressSettingsOpen, setIsExcelMergerAddressSettingsOpen] = useState(false);
 
     const excelMergerMirrorUrl = useMemo(() => {
         const raw = excelMergerMirrorUrlOverride.trim();
@@ -1427,47 +1428,72 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                                         </div>
 
                                         <h3 className="mt-6 text-4xl sm:text-5xl font-black tracking-tight text-slate-900 dark:text-white">
-                                            Sloučte listy z <span className="text-primary">Excel</span> do jednoho výstupu
+                                            Sloučení listů <span className="text-primary">Excel</span> do jednoho výstupu
                                         </h3>
                                         <p className="mt-4 max-w-2xl text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed">
-                                            Načtěte jeden Excel soubor se seznamem listů a stáhněte jeden výstupní soubor s listem <span className="font-semibold">Kombinovane</span>. Zpracování probíhá lokálně v prohlížeči.
+                                            Načtěte Excel, vyberte listy a spojte do jednoho listu. Můžete přidat hlavičku, ukotvit ji a klidně přidat filtry.
                                         </p>
 
-                                        <div className="mt-6 flex flex-wrap gap-3">
-                                            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 dark:border-white/10 bg-white/70 dark:bg-white/5 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 backdrop-blur">
-                                                <span className="material-symbols-outlined text-[18px] text-emerald-600 dark:text-emerald-400">verified_user</span>
-                                                Lokální zpracování
+                                        <div className="mt-6 grid gap-3 md:grid-cols-[1fr_auto_1fr] md:items-center">
+                                            <div className="hidden md:block" />
+
+                                            <div className="flex flex-wrap justify-center gap-3">
+                                                <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 dark:border-white/10 bg-white/70 dark:bg-white/5 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 backdrop-blur">
+                                                    <span className="material-symbols-outlined text-[18px] text-emerald-600 dark:text-emerald-400">verified_user</span>
+                                                    Lokální zpracování
+                                                </div>
+                                                <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 dark:border-white/10 bg-white/70 dark:bg-white/5 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 backdrop-blur">
+                                                    <span className="material-symbols-outlined text-[18px] text-amber-600 dark:text-amber-400">info</span>
+                                                    Makra (.xlsm) se nemusí zachovat
+                                                </div>
+                                                <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 dark:border-white/10 bg-white/70 dark:bg-white/5 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 backdrop-blur">
+                                                    <span className="material-symbols-outlined text-[18px] text-primary">description</span>
+                                                    .xlsx & .xlsm
+                                                </div>
                                             </div>
-                                            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 dark:border-white/10 bg-white/70 dark:bg-white/5 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 backdrop-blur">
-                                                <span className="material-symbols-outlined text-[18px] text-amber-600 dark:text-amber-400">info</span>
-                                                Makra (.xlsm) se nemusí zachovat
-                                            </div>
-                                            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 dark:border-white/10 bg-white/70 dark:bg-white/5 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 backdrop-blur">
-                                                <span className="material-symbols-outlined text-[18px] text-primary">description</span>
-                                                .xlsx & .xlsm
+
+                                            <div className="flex items-center justify-center md:justify-end gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsExcelMergerAddressSettingsOpen((v) => !v)}
+                                                    aria-expanded={isExcelMergerAddressSettingsOpen}
+                                                    className="inline-flex items-center justify-center gap-2 rounded-full bg-white/80 dark:bg-white/10 border border-slate-200/70 dark:border-white/10 px-4 py-2 text-sm font-bold text-slate-900 dark:text-white hover:bg-white dark:hover:bg-white/15 transition"
+                                                >
+                                                    <span className="material-symbols-outlined text-[18px]">settings</span>
+                                                    Nastavení
+                                                </button>
+                                                <a
+                                                    href={excelMergerMirrorUrl}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    aria-label="Otevřít v nové kartě"
+                                                    title="Otevřít v nové kartě"
+                                                    className="inline-flex items-center justify-center size-10 rounded-xl bg-white/80 dark:bg-white/10 border border-slate-200/70 dark:border-white/10 text-slate-900 dark:text-white hover:bg-white dark:hover:bg-white/15 transition"
+                                                >
+                                                    <span className="material-symbols-outlined text-[20px]">open_in_new</span>
+                                                    <span className="sr-only">Otevřít v nové kartě</span>
+                                                </a>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="mt-8">
-                                    <div className="rounded-2xl border border-slate-200/70 dark:border-white/10 bg-white/60 dark:bg-white/5 p-4">
-                                        <div className="flex flex-col md:flex-row md:items-end gap-3">
-                                            <div className="flex-1">
-                                                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                                                    Adresa ExcelMerger Pro (např. <span className="font-mono">http://localhost:8080</span>)
-                                                </label>
+                                <div className="mt-8 space-y-3">
+                                    {isExcelMergerAddressSettingsOpen && (
+                                        <div className="rounded-2xl border border-slate-200/70 dark:border-white/10 bg-white/60 dark:bg-white/5 p-4">
+                                            <div className="text-sm text-slate-600 dark:text-slate-300 mb-3">
+                                                ExcelMerger Pro je prolinkovaný do této aplikace. Otevře se ve vestavěném okně. Vložte adresu na které běží tool.
+                                            </div>
+                                            <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-2">
+                                                Adresa ExcelMerger Pro (např. <span className="font-mono">http://localhost:8080</span>)
+                                            </label>
+                                            <div className="flex flex-wrap items-center gap-2">
                                                 <input
                                                     value={excelMergerMirrorUrlDraft}
                                                     onChange={(e) => setExcelMergerMirrorUrlDraft(e.target.value)}
                                                     placeholder={defaultExcelMergerMirrorUrl}
-                                                    className="w-full rounded-xl bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary"
+                                                    className="min-w-[260px] flex-1 rounded-xl bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 px-3 py-2.5 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary"
                                                 />
-                                                <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                                                    Aktuálně načítám: <span className="font-mono">{excelMergerMirrorUrl}</span>
-                                                </div>
-                                            </div>
-                                            <div className="flex gap-2">
                                                 <button
                                                     onClick={() => {
                                                         const normalized = normalizeExternalUrl(excelMergerMirrorUrlDraft);
@@ -1503,23 +1529,11 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                                                     Reset
                                                 </button>
                                             </div>
+                                            <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                                                Aktuálně načítám: <span className="font-mono">{excelMergerMirrorUrl}</span>
+                                            </div>
                                         </div>
-                                    </div>
-
-                                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                                        <div className="text-sm text-slate-600 dark:text-slate-300">
-                                            ExcelMerger Pro je prolinkovaný do této aplikace. Otevře se ve vestavěném okně a zůstane zachovaná vaše barva a styl.
-                                        </div>
-                                        <a
-                                            href={excelMergerMirrorUrl}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="inline-flex items-center justify-center gap-2 rounded-xl bg-white/80 dark:bg-white/10 border border-slate-200/70 dark:border-white/10 px-4 py-2 text-sm font-bold text-slate-900 dark:text-white hover:bg-white dark:hover:bg-white/15 transition"
-                                        >
-                                            <span className="material-symbols-outlined text-[18px]">open_in_new</span>
-                                            Otevřít v nové kartě
-                                        </a>
-                                    </div>
+                                    )}
 
                                     <ExcelMergerMirror />
 

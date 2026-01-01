@@ -70,7 +70,7 @@ export const LandingPage: React.FC = () => {
           <div className="relative p-10 md:p-14">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-white/70">
               <span className="w-2 h-2 rounded-full bg-orange-500" />
-              v0.9.3-253112 • Cloud-based řešení
+              v0.9.3-260101 • Cloud-based řešení
             </div>
 
             <h1 className="mt-6 text-4xl md:text-6xl font-semibold tracking-tight text-white leading-[1.05]">
@@ -546,7 +546,7 @@ export const LandingPage: React.FC = () => {
 	        </section>
 
 	        <footer className="mt-10 pb-10 border-t border-white/10 pt-8 text-sm text-white/50 text-center">
-	          <div>© {new Date().getFullYear()} Tender Flow • v0.9.3-253112</div>
+	          <div>© {new Date().getFullYear()} Tender Flow • v0.9.3-260101</div>
 	          <div className="mt-2 text-white/40">
 	            Cloud řešení pro správu výběrových řízení ve stavebnictví
 	          </div>
