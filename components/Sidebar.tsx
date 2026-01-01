@@ -425,13 +425,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
             </a>
 
             <div className="flex items-center gap-3 px-3 py-3 mt-1 overflow-hidden bg-slate-50 dark:bg-slate-950/30 rounded-xl border border-slate-200 dark:border-slate-700/40">
-              {user?.avatarUrl ? (
+              {user?.subscriptionTier ? (
+                <div className="size-8 min-w-8 flex items-center justify-center">
+                  <span className={`badge-neon badge-neon-${user.subscriptionTier}`}>
+                    {user.subscriptionTier === 'admin' ? 'BOSS' : user.subscriptionTier}
+                  </span>
+                </div>
+              ) : user?.avatarUrl ? (
                 <img src={user.avatarUrl} alt={user.name} className="size-8 min-w-8 rounded-full" />
               ) : (
                 <div className="size-8 min-w-8 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400"></div>
               )}
-              <div className="flex flex-col overflow-hidden">
-                <p className="text-sm font-bold text-slate-800 dark:text-white break-words">{displayName || user?.email?.split('@')[0] || 'User'}</p>
+              <div className="flex flex-col overflow-hidden flex-1">
+                <p className="text-sm font-bold text-slate-800 dark:text-white break-words truncate">{displayName || user?.email?.split('@')[0] || 'User'}</p>
                 <p className="text-xs text-slate-500 truncate capitalize">{getUserRole(user?.email, user?.role)}</p>
               </div>
               <button

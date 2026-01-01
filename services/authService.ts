@@ -14,6 +14,9 @@ const withTimeout = async <T,>(promise: Promise<T>, ms: number, label: string): 
     ]);
 };
 
+// Admin email configuration (matches Sidebar.tsx)
+const ADMIN_EMAILS = ["martinkalkus82@gmail.com", "kalkus@baustav.cz"];
+
 const getCachedSession = (): any | null => {
     try {
         if (typeof window === 'undefined') return null;
@@ -54,11 +57,13 @@ export const authService = {
         }
 
         // Fallback: return minimal user object; AuthContext auth events will hydrate further.
+        const isSystemAdmin = data.user.email ? ADMIN_EMAILS.includes(data.user.email) : false;
         return {
             id: data.user.id,
             name: (data.user.user_metadata as any)?.name || data.user.email?.split('@')[0] || 'User',
             email: data.user.email || '',
-            role: 'user',
+            role: isSystemAdmin ? 'admin' : 'user',
+            subscriptionTier: isSystemAdmin ? 'admin' : 'free',
             avatarUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.user.email || 'U')}&background=random`,
             preferences: DEFAULT_PREFERENCES
         };
@@ -222,11 +227,13 @@ export const authService = {
             return await authService._buildUserFromSession(session);
         } catch (e) {
             console.warn('[authService] Failed to build user from session, returning fallback user', e);
+            const isSystemAdmin = session.user.email ? ADMIN_EMAILS.includes(session.user.email) : false;
             return {
                 id: session.user.id,
                 name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
                 email: session.user.email || '',
-                role: 'user',
+                role: isSystemAdmin ? 'admin' : 'user',
+                subscriptionTier: isSystemAdmin ? 'admin' : 'free',
                 avatarUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(session.user.email || 'U')}&background=random`,
                 preferences: DEFAULT_PREFERENCES
             };
@@ -245,11 +252,11 @@ export const authService = {
         const profilePromise = (async () => {
             try {
                 const res = await withTimeout(
-                    supabase
+                    Promise.resolve(supabase
                         .from('profiles')
                         .select('is_admin')
                         .eq('id', session.user.id)
-                        .single(),
+                        .single()),
                     queryTimeoutMs,
                     'Profile load'
                 );
@@ -269,11 +276,11 @@ export const authService = {
         const settingsPromise = (async () => {
             try {
                 const res = await withTimeout(
-                    supabase
+                    Promise.resolve(supabase
                         .from('user_settings')
                         .select('preferences')
                         .eq('user_id', session.user.id)
-                        .single(),
+                        .single()),
                     queryTimeoutMs,
                     'User settings load'
                 );
@@ -291,13 +298,43 @@ export const authService = {
 
         const [profile, settings] = await Promise.all([profilePromise, settingsPromise]);
 
+        // Attempt to get organization subscription tier
+        let subscriptionTier: any = 'free';
+        try {
+            const { data: orgMember } = await supabase
+                .from('organization_members')
+                .select('organization_id')
+                .eq('user_id', session.user.id)
+                .limit(1)
+                .maybeSingle();
+
+            if (orgMember?.organization_id) {
+                const { data: org } = await supabase
+                    .from('organizations')
+                    .select('subscription_tier')
+                    .eq('id', orgMember.organization_id)
+                    .single();
+                
+                if (org?.subscription_tier) {
+                    subscriptionTier = org.subscription_tier;
+                }
+            }
+        } catch (e) {
+            console.warn('[authService] Could not fetch org subscription tier', e);
+        }
+
+        const isSystemAdmin = session.user.email ? ADMIN_EMAILS.includes(session.user.email) : false;
+        const finalRole = isSystemAdmin ? 'admin' : (profile?.is_admin ? 'admin' : 'user');
+        const finalTier = isSystemAdmin ? 'admin' : subscriptionTier;
+
         const finalPreferences = settings?.preferences || DEFAULT_PREFERENCES;
 
         return {
             id: session.user.id,
             name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
             email: session.user.email || '',
-            role: profile?.is_admin ? 'admin' : 'user',
+            role: finalRole as any,
+            subscriptionTier: finalTier as any,
             avatarUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(session.user.email || 'U')}&background=random`,
             preferences: finalPreferences
         };

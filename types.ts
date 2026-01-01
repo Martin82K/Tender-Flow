@@ -1,14 +1,20 @@
-export type View = "dashboard" | "project" | "contacts" | "settings" | "project-management" | "project-overview";
+export type View =
+  | "dashboard"
+  | "project"
+  | "contacts"
+  | "settings"
+  | "project-management"
+  | "project-overview";
 
 export type ProjectTab = "overview" | "tender-plan" | "pipeline" | "documents";
 
 // Tender Plan Item
 export interface TenderPlanItem {
   id: string;
-  name: string;           // Název VŘ
-  dateFrom: string;       // Od (datum)
-  dateTo: string;         // Do (datum)
-  categoryId?: string;    // Linked demand category ID (if created)
+  name: string; // Název VŘ
+  dateFrom: string; // Od (datum)
+  dateTo: string; // Do (datum)
+  categoryId?: string; // Linked demand category ID (if created)
 }
 
 export interface StatusConfig {
@@ -33,9 +39,9 @@ export interface Subcontractor {
   ico?: string; // IČ
   region?: string;
   status: string; // Dynamic ID linking to StatusConfig
-  
+
   // Legacy fields for backward compatibility / migration
-  name?: string; 
+  name?: string;
   phone?: string;
   email?: string;
 }
@@ -76,7 +82,13 @@ export interface DocHubStructureV1 {
   extraSupplier?: string[]; // Optional additional subfolders under supplier folder
 }
 
-export type BidStatus = 'contacted' | "sent" | "offer" | "shortlist" | "sod" | "rejected";
+export type BidStatus =
+  | "contacted"
+  | "sent"
+  | "offer"
+  | "shortlist"
+  | "sod"
+  | "rejected";
 
 export interface Bid {
   id: string;
@@ -177,16 +189,19 @@ export interface ProjectDetails {
 }
 
 export interface UserPreferences {
-  theme: 'light' | 'dark' | 'system';
+  theme: "light" | "dark" | "system";
   primaryColor: string;
   backgroundColor: string;
 }
+
+export type SubscriptionTier = "free" | "pro" | "enterprise" | "admin";
 
 export interface User {
   id: string;
   name: string;
   email: string;
   role: "admin" | "user" | "demo";
+  subscriptionTier?: SubscriptionTier;
   avatarUrl?: string;
   preferences?: UserPreferences;
 }
