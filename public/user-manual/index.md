@@ -2,7 +2,7 @@
 
 Tato příručka popisuje práci v aplikaci Tender Flow pro řízení staveb, výběrových řízení a subdodavatelů.
 
-Verze příručky: **1.2** • Datum: **2026‑01‑01** • Aplikace: **v0.9.3-260101**
+Verze příručky: **1.2** • Datum: **2026‑01‑02** • Aplikace: **v0.9.4-260102**
 
 ![Tender Flow logo](./assets/logo.png)
 
@@ -34,6 +34,11 @@ Verze příručky: **1.2** • Datum: **2026‑01‑01** • Aplikace: **v0.9.3-
 ## Novinky (poslední změny)
 
 Verzi aplikace najdete vlevo dole v sidebaru.
+
+### v0.9.4-260102
+
+- **Dokumenty / Ceníky**: Přidána nová podsekce „Ceníky“ pro správu odkazů na projektové ceníky a rychlou integraci s odpovídající složkou v DocHubu.
+- **Perzistence dat**: Implementováno ukládání odkazů na dokumentaci a ceníky přímo do databáze projektu.
 
 ### v0.9.3-260101
 

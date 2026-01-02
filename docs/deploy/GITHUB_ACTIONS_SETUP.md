@@ -214,4 +214,4 @@ gcloud builds describe BUILD_ID
 ---
 
 **Datum:** 2026-01-01  
-**Verze:** 0.9.3-260101
+**Verze:** 0.9.4-260102

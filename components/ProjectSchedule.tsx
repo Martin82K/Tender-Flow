@@ -80,6 +80,51 @@ const formatRangeLabel = (start: Date, end: Date) => {
 };
 
 const buildRows = (categories: DemandCategory[], tenderPlans: TenderPlanItem[], includeRealization: boolean): Row[] => {
+  if (includeRealization) {
+    const entries = categories.map((category) => {
+      const rStart = parseIsoDate(category.realizationStart);
+      const rEnd = parseIsoDate(category.realizationEnd);
+      const hasRange = !!rStart || !!rEnd;
+      const start = hasRange ? rStart ?? rEnd! : null;
+      const end = hasRange ? rEnd ?? rStart! : null;
+      const range = start && end ? clampRange(start, end) : null;
+      const sortTime = range ? Math.min(range.start.getTime(), range.end.getTime()) : Number.POSITIVE_INFINITY;
+      return { category, range, sortTime };
+    });
+
+    entries.sort((a, b) => a.sortTime - b.sortTime || a.category.title.localeCompare(b.category.title, "cs"));
+
+    return entries.map(({ category, range }) => {
+      if (range) {
+        return {
+          id: `${category.id}:realization`,
+          groupKey: category.id,
+          record: { type: "category_realization", categoryId: category.id },
+          label: category.title,
+          subLabel: "Realizace",
+          indent: 0,
+          kind: range.start.getTime() === range.end.getTime() ? "milestone" : "bar",
+          start: range.start,
+          end: range.end,
+          color: "emerald",
+        } satisfies Row;
+      }
+
+      return {
+        id: `${category.id}:realization`,
+        groupKey: category.id,
+        record: { type: "category_realization", categoryId: category.id },
+        label: category.title,
+        subLabel: "Realizace",
+        indent: 0,
+        kind: "empty",
+        start: null,
+        end: null,
+        color: "slate",
+      } satisfies Row;
+    });
+  }
+
   const categoryById = new Map(categories.map((c) => [c.id, c]));
   const categoryByName = new Map(categories.map((c) => [normalizeKey(c.title), c]));
 
@@ -94,14 +139,13 @@ const buildRows = (categories: DemandCategory[], tenderPlans: TenderPlanItem[], 
         deadline?: Date | null;
         source: "plan" | "category";
       };
-      realization?: { start: Date; end: Date };
     }
   >();
 
   const ensureGroup = (key: string, title: string) => {
     const existing = groups.get(key);
     if (existing) return existing;
-    const created = { title, tender: undefined as any, realization: undefined as any };
+    const created = { title, tender: undefined as any };
     groups.set(key, created);
     return created;
   };
@@ -124,35 +168,13 @@ const buildRows = (categories: DemandCategory[], tenderPlans: TenderPlanItem[], 
       deadline: fallbackDeadline,
       source: "plan",
     };
-
-    if (includeRealization && category) {
-      const rStart = parseIsoDate(category.realizationStart);
-      const rEnd = parseIsoDate(category.realizationEnd);
-      if (rStart || rEnd) {
-        const start = rStart ?? rEnd!;
-        const end = rEnd ?? rStart!;
-        group.realization = clampRange(start, end);
-      }
-    }
   }
 
   for (const category of categories) {
     const groupKey = category.id;
     const group = ensureGroup(groupKey, category.title);
     const deadline = parseIsoDate(category.deadline);
-    if (!group.tender && deadline) {
-      group.tender = { start: null, end: null, deadline, source: "category" };
-    }
-
-    if (includeRealization) {
-      const rStart = parseIsoDate(category.realizationStart);
-      const rEnd = parseIsoDate(category.realizationEnd);
-      if (rStart || rEnd) {
-        const start = rStart ?? rEnd!;
-        const end = rEnd ?? rStart!;
-        group.realization = clampRange(start, end);
-      }
-    }
+    if (!group.tender && deadline) group.tender = { start: null, end: null, deadline, source: "category" };
   }
 
   const groupEntries = Array.from(groups.entries()).map(([groupKey, group]) => {
@@ -160,8 +182,6 @@ const buildRows = (categories: DemandCategory[], tenderPlans: TenderPlanItem[], 
     if (group.tender?.start) dates.push(group.tender.start);
     if (group.tender?.end) dates.push(group.tender.end);
     if (group.tender?.deadline) dates.push(group.tender.deadline);
-    if (group.realization?.start) dates.push(group.realization.start);
-    if (group.realization?.end) dates.push(group.realization.end);
     const sortTime = dates.length ? Math.min(...dates.map((d) => d.getTime())) : Number.POSITIVE_INFINITY;
     return { groupKey, group, sortTime };
   });
@@ -173,75 +193,45 @@ const buildRows = (categories: DemandCategory[], tenderPlans: TenderPlanItem[], 
   for (const entry of groupEntries) {
     const { groupKey, group } = entry;
     const tender = group.tender;
-    {
-      const start = tender?.start ?? tender?.end ?? tender?.deadline ?? null;
-      const end = tender?.end ?? tender?.start ?? tender?.deadline ?? null;
-      if (start && end) {
-        const clamped = clampRange(start, end);
-        const isMilestone = clamped.start.getTime() === clamped.end.getTime();
-        rows.push({
-          id: `${groupKey}:tender`,
-          groupKey,
-          record:
-            tender?.source === "plan" && tender.id
-              ? { type: "tender_plan", id: tender.id }
-              : tender?.source === "category"
-                ? { type: "category_deadline", categoryId: groupKey }
-                : { type: "tender_plan_new", categoryId: groupKey, name: group.title },
-          label: group.title,
-          subLabel: "VŘ",
-          indent: 0,
-          kind: isMilestone ? "milestone" : "bar",
-          start: clamped.start,
-          end: clamped.end,
-          deadline: tender?.deadline ?? null,
-          color: "blue",
-        });
-      } else {
-        // Always show every VŘ even when no dates are filled yet.
-        rows.push({
-          id: `${groupKey}:tender`,
-          groupKey,
-          record: { type: "tender_plan_new", categoryId: groupKey, name: group.title },
-          label: group.title,
-          subLabel: "VŘ",
-          indent: 0,
-          kind: "empty",
-          start: null,
-          end: null,
-          color: "slate",
-        });
-      }
+    const start = tender?.start ?? tender?.end ?? tender?.deadline ?? null;
+    const end = tender?.end ?? tender?.start ?? tender?.deadline ?? null;
+
+    if (start && end) {
+      const clamped = clampRange(start, end);
+      const isMilestone = clamped.start.getTime() === clamped.end.getTime();
+      rows.push({
+        id: `${groupKey}:tender`,
+        groupKey,
+        record:
+          tender?.source === "plan" && tender.id
+            ? { type: "tender_plan", id: tender.id }
+            : tender?.source === "category"
+              ? { type: "category_deadline", categoryId: groupKey }
+              : { type: "tender_plan_new", categoryId: groupKey, name: group.title },
+        label: group.title,
+        subLabel: "VŘ",
+        indent: 0,
+        kind: isMilestone ? "milestone" : "bar",
+        start: clamped.start,
+        end: clamped.end,
+        deadline: tender?.deadline ?? null,
+        color: "blue",
+      });
+      continue;
     }
 
-    if (group.realization) {
-      rows.push({
-        id: `${groupKey}:realization`,
-        groupKey,
-        record: { type: "category_realization", categoryId: groupKey },
-        label: group.title,
-        subLabel: "Realizace",
-        indent: 1,
-        kind: "bar",
-        start: group.realization.start,
-        end: group.realization.end,
-        color: "emerald",
-      });
-    } else if (includeRealization) {
-      // Show empty realization row only when enabled (helps with editing).
-      rows.push({
-        id: `${groupKey}:realization`,
-        groupKey,
-        record: { type: "category_realization", categoryId: groupKey },
-        label: group.title,
-        subLabel: "Realizace",
-        indent: 1,
-        kind: "empty",
-        start: null,
-        end: null,
-        color: "slate",
-      });
-    }
+    rows.push({
+      id: `${groupKey}:tender`,
+      groupKey,
+      record: { type: "tender_plan_new", categoryId: groupKey, name: group.title },
+      label: group.title,
+      subLabel: "VŘ",
+      indent: 0,
+      kind: "empty",
+      start: null,
+      end: null,
+      color: "slate",
+    });
   }
 
   return rows;
@@ -502,7 +492,7 @@ export const ProjectSchedule: React.FC<{ projectId: string; categories: DemandCa
   }, [chartWidth, rows.length, zoom]);
 
   return (
-    <div className="p-4 lg:p-6 flex flex-col gap-4 h-full min-h-0 bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <div className="p-4 lg:p-6 flex flex-col gap-4 flex-1 min-h-0 bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <div className="w-full flex flex-col gap-4 flex-1 min-h-0">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -607,7 +597,7 @@ export const ProjectSchedule: React.FC<{ projectId: string; categories: DemandCa
                 </button>
               )}
 
-              <div ref={scrollRef} className="overflow-auto flex-1 min-h-0">
+              <div ref={scrollRef} className="overflow-x-auto overflow-y-auto flex-1 min-h-0">
                 <div className="min-w-max">
                   {/* Axis header */}
                   <div className="flex sticky top-0 z-20 bg-white dark:bg-slate-950/70 border-b border-slate-200 dark:border-slate-800">
@@ -723,11 +713,10 @@ export const ProjectSchedule: React.FC<{ projectId: string; categories: DemandCa
                                   style={{ left, width }}
                                   title={`${fmtDay.format(row.start)} – ${fmtDay.format(row.end)}${editable ? " (klikněte pro úpravu)" : ""}`}
                                 />
-                              ) : (
+                              ) : editable ? (
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    if (!editable) return;
                                     openEditModal(row);
                                   }}
                                   className={`absolute top-1/2 -translate-y-1/2 h-7 px-3 rounded-xl border border-dashed text-xs font-bold shadow-sm ${editable
@@ -739,7 +728,7 @@ export const ProjectSchedule: React.FC<{ projectId: string; categories: DemandCa
                                 >
                                   {editable ? "Nastavit" : "Bez termínu"}
                                 </button>
-                              )}
+                              ) : null}
                             </div>
                           </div>
                         </div>
