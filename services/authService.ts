@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { User } from '../types';
+import { SubscriptionTier, User } from '../types';
 
 const DEFAULT_PREFERENCES = {
     theme: 'system',
@@ -298,39 +298,66 @@ export const authService = {
 
         const [profile, settings] = await Promise.all([profilePromise, settingsPromise]);
 
-        // Attempt to get organization subscription tier
-        let subscriptionTier: any = 'free';
+        // Attempt to get organization subscription tier (with optional per-user override)
+        let subscriptionTier: SubscriptionTier = 'free';
+        let subscriptionTierOverride: SubscriptionTier | null = null;
         try {
-            const orgMemberRes = await withTimeout(
+            const overrideRes = await withTimeout(
                 Promise.resolve(
                     supabase
-                        .from('organization_members')
-                        .select('organization_id')
+                        .from('user_profiles')
+                        .select('subscription_tier_override')
                         .eq('user_id', session.user.id)
-                        .limit(1)
                         .maybeSingle()
                 ),
                 queryTimeoutMs,
-                'Org member load'
+                'Subscription override load'
             );
-            const { data: orgMember } = orgMemberRes as any;
+            const { data: overrideRow, error: overrideError } = overrideRes as any;
+            if (!overrideError) {
+                const override = String(overrideRow?.subscription_tier_override || '').trim().toLowerCase();
+                if (override === 'free' || override === 'pro' || override === 'enterprise' || override === 'admin') {
+                    subscriptionTierOverride = override as SubscriptionTier;
+                }
+            }
 
-            if (orgMember?.organization_id) {
-                const orgRes = await withTimeout(
+            if (subscriptionTierOverride) {
+                subscriptionTier = subscriptionTierOverride;
+            } else {
+                const orgMemberRes = await withTimeout(
                     Promise.resolve(
                         supabase
-                            .from('organizations')
-                            .select('subscription_tier')
-                            .eq('id', orgMember.organization_id)
-                            .single()
+                            .from('organization_members')
+                            .select('organization_id')
+                            .eq('user_id', session.user.id)
+                            .limit(1)
+                            .maybeSingle()
                     ),
                     queryTimeoutMs,
-                    'Organization load'
+                    'Org member load'
                 );
-                const { data: org } = orgRes as any;
-                
-                if (org?.subscription_tier) {
-                    subscriptionTier = org.subscription_tier;
+                const { data: orgMember } = orgMemberRes as any;
+
+                if (orgMember?.organization_id) {
+                    const orgRes = await withTimeout(
+                        Promise.resolve(
+                            supabase
+                                .from('organizations')
+                                .select('subscription_tier')
+                                .eq('id', orgMember.organization_id)
+                                .single()
+                        ),
+                        queryTimeoutMs,
+                        'Organization load'
+                    );
+                    const { data: org } = orgRes as any;
+
+                    if (org?.subscription_tier) {
+                        const tier = String(org.subscription_tier || '').trim().toLowerCase();
+                        if (tier === 'free' || tier === 'pro' || tier === 'enterprise' || tier === 'admin') {
+                            subscriptionTier = tier as SubscriptionTier;
+                        }
+                    }
                 }
             }
         } catch (e) {

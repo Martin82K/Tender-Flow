@@ -11,6 +11,9 @@ export interface UserWithProfile {
     last_sign_in: string | null;
     auth_provider?: string | null;
     login_type?: string | null;
+    org_subscription_tier?: string | null;
+    subscription_tier_override?: string | null;
+    effective_subscription_tier?: string | null;
 }
 
 export interface Role {
@@ -73,6 +76,24 @@ export const userManagementService = {
 
         if (error) {
             console.error('Error updating user login type:', error);
+            throw new Error(error.message);
+        }
+
+        return data;
+    },
+
+    /**
+     * Update a user's subscription tier override (admin only)
+     * - null = auto (derived from organization tier)
+     */
+    updateUserSubscriptionTier: async (userId: string, tier: string | null): Promise<boolean> => {
+        const { data, error } = await supabase.rpc('update_user_subscription_tier', {
+            target_user_id: userId,
+            new_subscription_tier: tier
+        });
+
+        if (error) {
+            console.error('Error updating user subscription tier:', error);
             throw new Error(error.message);
         }
 

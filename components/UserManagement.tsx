@@ -27,6 +27,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
     // Loading state for individual updates
     const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
     const [updatingLoginTypeUserId, setUpdatingLoginTypeUserId] = useState<string | null>(null);
+    const [updatingSubscriptionUserId, setUpdatingSubscriptionUserId] = useState<string | null>(null);
     const [updatingPermission, setUpdatingPermission] = useState<string | null>(null);
 
     // Load data on mount
@@ -99,6 +100,21 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
             alert('Chyba při změně typu přihlášení');
         } finally {
             setUpdatingLoginTypeUserId(null);
+        }
+    };
+
+    const handleSubscriptionTierChange = async (userId: string, tier: string) => {
+        setUpdatingSubscriptionUserId(userId);
+        try {
+            const normalized = tier.trim().toLowerCase();
+            const next = normalized ? normalized : null;
+            await userManagementService.updateUserSubscriptionTier(userId, next);
+            setUsers(prev => prev.map(u => (u.user_id === userId ? { ...u, subscription_tier_override: next, effective_subscription_tier: next || u.org_subscription_tier || 'free' } : u)));
+        } catch (error) {
+            console.error('Failed to update subscription tier:', error);
+            alert('Chyba při změně předplatného');
+        } finally {
+            setUpdatingSubscriptionUserId(null);
         }
     };
 
@@ -205,6 +221,9 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
 	                                        Přihlášení
 	                                    </th>
 	                                    <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
+	                                        Předplatné
+	                                    </th>
+	                                    <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
 	                                        Registrace
 	                                    </th>
 	                                </tr>
@@ -212,7 +231,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
 	                            <tbody>
 	                                {filteredUsers.length === 0 ? (
 	                                    <tr>
-	                                        <td colSpan={6} className="text-center py-8 text-slate-500 italic">
+	                                        <td colSpan={7} className="text-center py-8 text-slate-500 italic">
 	                                            Žádní uživatelé nenalezeni
 	                                        </td>
 	                                    </tr>
@@ -273,6 +292,27 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
 	                                                        <option value="saml">SAML</option>
 	                                                    </select>
 	                                                    {updatingLoginTypeUserId === user.user_id && (
+	                                                        <span className="absolute right-2 top-1/2 -translate-y-1/2 material-symbols-outlined animate-spin text-cyan-400 text-[16px]">
+	                                                            sync
+	                                                        </span>
+	                                                    )}
+	                                                </div>
+	                                            </td>
+	                                            <td className="py-3 px-2">
+	                                                <div className="relative">
+	                                                    <select
+	                                                        value={(user.subscription_tier_override || '').toLowerCase()}
+	                                                        onChange={(e) => handleSubscriptionTierChange(user.user_id, e.target.value)}
+	                                                        disabled={updatingSubscriptionUserId === user.user_id}
+	                                                        className="rounded-lg bg-white dark:bg-slate-700/50 border border-slate-300 dark:border-slate-600/50 px-2 py-1.5 text-sm text-slate-900 dark:text-white focus:border-cyan-500/50 focus:outline-none disabled:opacity-50 min-w-[160px]"
+	                                                    >
+	                                                        <option value="">{`Auto (${(user.org_subscription_tier || 'free').toLowerCase()})`}</option>
+	                                                        <option value="free">Free</option>
+	                                                        <option value="pro">Pro</option>
+	                                                        <option value="enterprise">Enterprise</option>
+	                                                        <option value="admin">Admin</option>
+	                                                    </select>
+	                                                    {updatingSubscriptionUserId === user.user_id && (
 	                                                        <span className="absolute right-2 top-1/2 -translate-y-1/2 material-symbols-outlined animate-spin text-cyan-400 text-[16px]">
 	                                                            sync
 	                                                        </span>
