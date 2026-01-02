@@ -275,6 +275,7 @@ export const ProjectSchedule: React.FC<{ projectId: string; categories: DemandCa
   }>({ isOpen: false, row: null, start: "", end: "", isSaving: false, error: null });
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const didAutoFocusRef = useRef(false);
   const [canScroll, setCanScroll] = useState({ left: false, right: false });
 
   useEffect(() => {
@@ -335,7 +336,13 @@ export const ProjectSchedule: React.FC<{ projectId: string; categories: DemandCa
     const max = new Date(Math.max(...dates.map((d) => d.getTime())));
     const paddedStart = addDays(startOfMonth(min), -7);
     const paddedEnd = addDays(endOfMonth(max), 7);
-    return { rangeStart: paddedStart, rangeEnd: paddedEnd };
+    const today = startOfDay(new Date());
+    const todayStart = addDays(startOfMonth(today), -7);
+    const todayEnd = addDays(endOfMonth(today), 7);
+    return {
+      rangeStart: new Date(Math.min(paddedStart.getTime(), todayStart.getTime())),
+      rangeEnd: new Date(Math.max(paddedEnd.getTime(), todayEnd.getTime())),
+    };
   }, [rows]);
 
   const dayWidth = zoom === "month" ? 6 : 16;
@@ -358,6 +365,24 @@ export const ProjectSchedule: React.FC<{ projectId: string; categories: DemandCa
   }, [dayWidth]);
 
   const leftWidth = 320;
+
+  useEffect(() => {
+    if (didAutoFocusRef.current) return;
+    if (isLoading || rows.length === 0) return;
+    if (todayX.x < 0 || todayX.x > chartWidth) return;
+
+    const el = scrollRef.current;
+    if (!el) return;
+
+    didAutoFocusRef.current = true;
+    requestAnimationFrame(() => {
+      const chartViewportWidth = Math.max(0, el.clientWidth - leftWidth);
+      const rawTarget = todayX.x - chartViewportWidth / 2;
+      const maxScroll = Math.max(0, el.scrollWidth - el.clientWidth);
+      const target = Math.max(0, Math.min(rawTarget, maxScroll));
+      el.scrollTo({ left: target, behavior: "auto" });
+    });
+  }, [isLoading, rows.length, todayX.x, chartWidth]);
 
   const isRowEditable = (row: Row) => {
     if (!isEditMode) return false;

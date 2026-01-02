@@ -9,6 +9,8 @@ export interface UserWithProfile {
     role_label: string | null;
     created_at: string;
     last_sign_in: string | null;
+    auth_provider?: string | null;
+    login_type?: string | null;
 }
 
 export interface Role {
@@ -53,6 +55,24 @@ export const userManagementService = {
 
         if (error) {
             console.error('Error updating user role:', error);
+            throw new Error(error.message);
+        }
+
+        return data;
+    },
+
+    /**
+     * Update a user's login type label (admin only)
+     * - null = auto (derived from Supabase auth provider)
+     */
+    updateUserLoginType: async (userId: string, loginType: string | null): Promise<boolean> => {
+        const { data, error } = await supabase.rpc('update_user_login_type', {
+            target_user_id: userId,
+            new_login_type: loginType
+        });
+
+        if (error) {
+            console.error('Error updating user login type:', error);
             throw new Error(error.message);
         }
 

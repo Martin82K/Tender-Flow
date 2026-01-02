@@ -22,6 +22,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 	    const [user, setUser] = useState<User | null>(null);
 	    const [isLoading, setIsLoading] = useState(true);
 	    const authEventRef = useRef(false);
+        const lastHydratedTokenRef = useRef<string | null>(null);
 
 	    useEffect(() => {
 	        console.log('AuthContext: Initializing...');
@@ -40,11 +41,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 	            authEventRef.current = true;
 	            if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
 	                if (session) {
+                        const token = (session as any)?.access_token || null;
+                        if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && token && lastHydratedTokenRef.current === token) {
+                            return;
+                        }
 	                    // Use session directly from callback - no extra API call needed!
 	                    const currentUser = await authService.getUserFromSession(session);
                     if (currentUser) {
                         setUser(currentUser);
                         setIsLoading(false);
+                        if (token) lastHydratedTokenRef.current = token;
                     } else {
                         console.warn('[AuthContext] Event but could not build user from session');
                     }
@@ -56,7 +62,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         });
 
 	        // Best-effort active session load, but never block UI indefinitely.
-	        const initTimeoutMs = 3500;
+	        const initTimeoutMs = 8000;
 	        let finished = false;
 	        const finish = () => {
 	            if (finished) return;

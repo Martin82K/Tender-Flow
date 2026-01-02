@@ -198,6 +198,20 @@ export interface UserPreferences {
 
 export type SubscriptionTier = "free" | "pro" | "enterprise" | "admin";
 
+export interface SubscriptionFeature {
+  key: string;
+  name: string;
+  description?: string | null;
+  category?: string | null;
+  sortOrder?: number;
+}
+
+export interface SubscriptionTierFeatureFlag {
+  tier: SubscriptionTier;
+  featureKey: string;
+  enabled: boolean;
+}
+
 export interface User {
   id: string;
   name: string;

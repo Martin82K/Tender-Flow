@@ -26,6 +26,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
 
     // Loading state for individual updates
     const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+    const [updatingLoginTypeUserId, setUpdatingLoginTypeUserId] = useState<string | null>(null);
     const [updatingPermission, setUpdatingPermission] = useState<string | null>(null);
 
     // Load data on mount
@@ -83,6 +84,21 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
             alert('Chyba při změně role');
         } finally {
             setUpdatingUserId(null);
+        }
+    };
+
+    const handleLoginTypeChange = async (userId: string, loginType: string) => {
+        setUpdatingLoginTypeUserId(userId);
+        try {
+            const normalized = loginType.trim().toLowerCase();
+            const next = normalized ? normalized : null;
+            await userManagementService.updateUserLoginType(userId, next);
+            setUsers(prev => prev.map(u => (u.user_id === userId ? { ...u, login_type: next } : u)));
+        } catch (error) {
+            console.error('Failed to update login type:', error);
+            alert('Chyba při změně typu přihlášení');
+        } finally {
+            setUpdatingLoginTypeUserId(null);
         }
     };
 
@@ -171,35 +187,38 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full">
-                            <thead>
-                                <tr className="border-b border-slate-200 dark:border-slate-700/50">
-                                    <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
-                                        Email
-                                    </th>
+	                            <thead>
+	                                <tr className="border-b border-slate-200 dark:border-slate-700/50">
+	                                    <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
+	                                        Email
+	                                    </th>
                                     <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
                                         Jméno
                                     </th>
                                     <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
                                         Doména
                                     </th>
-                                    <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
-                                        Role
-                                    </th>
-                                    <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
-                                        Registrace
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredUsers.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={5} className="text-center py-8 text-slate-500 italic">
-                                            Žádní uživatelé nenalezeni
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    filteredUsers.map(user => (
-                                        <tr key={user.user_id} className="border-b border-slate-200 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+	                                    <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
+	                                        Role
+	                                    </th>
+	                                    <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
+	                                        Přihlášení
+	                                    </th>
+	                                    <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
+	                                        Registrace
+	                                    </th>
+	                                </tr>
+	                            </thead>
+	                            <tbody>
+	                                {filteredUsers.length === 0 ? (
+	                                    <tr>
+	                                        <td colSpan={6} className="text-center py-8 text-slate-500 italic">
+	                                            Žádní uživatelé nenalezeni
+	                                        </td>
+	                                    </tr>
+	                                ) : (
+	                                    filteredUsers.map(user => (
+	                                        <tr key={user.user_id} className="border-b border-slate-200 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                                             <td className="py-3 px-2">
                                                 <div className="flex items-center gap-2">
                                                     <div className="size-8 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-500 flex items-center justify-center text-white text-xs font-bold">
@@ -218,38 +237,60 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
                                                     @{user.email.split('@')[1]}
                                                 </span>
                                             </td>
-                                            <td className="py-3 px-2">
-                                                <div className="relative">
-                                                    <select
-                                                        value={user.role_id || ''}
-                                                        onChange={(e) => handleRoleChange(user.user_id, e.target.value)}
-                                                        disabled={updatingUserId === user.user_id}
-                                                        className="rounded-lg bg-white dark:bg-slate-700/50 border border-slate-300 dark:border-slate-600/50 px-2 py-1.5 text-sm text-slate-900 dark:text-white focus:border-cyan-500/50 focus:outline-none disabled:opacity-50 min-w-[140px]"
-                                                    >
-                                                        <option value="">Bez role</option>
-                                                        {availableRoles.map(role => (
-                                                            <option key={role.id} value={role.id}>{role.label}</option>
-                                                        ))}
-                                                    </select>
-                                                    {updatingUserId === user.user_id && (
-                                                        <span className="absolute right-2 top-1/2 -translate-y-1/2 material-symbols-outlined animate-spin text-cyan-400 text-[16px]">
-                                                            sync
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td className="py-3 px-2">
-                                                <span className="text-xs text-slate-500">
-                                                    {new Date(user.created_at).toLocaleDateString('cs-CZ')}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
+	                                            <td className="py-3 px-2">
+	                                                <div className="relative">
+	                                                    <select
+	                                                        value={user.role_id || ''}
+	                                                        onChange={(e) => handleRoleChange(user.user_id, e.target.value)}
+	                                                        disabled={updatingUserId === user.user_id}
+	                                                        className="rounded-lg bg-white dark:bg-slate-700/50 border border-slate-300 dark:border-slate-600/50 px-2 py-1.5 text-sm text-slate-900 dark:text-white focus:border-cyan-500/50 focus:outline-none disabled:opacity-50 min-w-[140px]"
+	                                                    >
+	                                                        <option value="">Bez role</option>
+	                                                        {availableRoles.map(role => (
+	                                                            <option key={role.id} value={role.id}>{role.label}</option>
+	                                                        ))}
+	                                                    </select>
+	                                                    {updatingUserId === user.user_id && (
+	                                                        <span className="absolute right-2 top-1/2 -translate-y-1/2 material-symbols-outlined animate-spin text-cyan-400 text-[16px]">
+	                                                            sync
+	                                                        </span>
+	                                                    )}
+	                                                </div>
+	                                            </td>
+	                                            <td className="py-3 px-2">
+	                                                <div className="relative">
+	                                                    <select
+	                                                        value={(user.login_type || '').toLowerCase()}
+	                                                        onChange={(e) => handleLoginTypeChange(user.user_id, e.target.value)}
+	                                                        disabled={updatingLoginTypeUserId === user.user_id}
+	                                                        className="rounded-lg bg-white dark:bg-slate-700/50 border border-slate-300 dark:border-slate-600/50 px-2 py-1.5 text-sm text-slate-900 dark:text-white focus:border-cyan-500/50 focus:outline-none disabled:opacity-50 min-w-[160px]"
+	                                                    >
+	                                                        <option value="">{`Auto (${(user.auth_provider || 'email').toLowerCase()})`}</option>
+	                                                        <option value="email">Email</option>
+	                                                        <option value="google">Google</option>
+	                                                        <option value="azure">Microsoft (Azure)</option>
+	                                                        <option value="github">GitHub</option>
+	                                                        <option value="saml">SAML</option>
+	                                                    </select>
+	                                                    {updatingLoginTypeUserId === user.user_id && (
+	                                                        <span className="absolute right-2 top-1/2 -translate-y-1/2 material-symbols-outlined animate-spin text-cyan-400 text-[16px]">
+	                                                            sync
+	                                                        </span>
+	                                                    )}
+	                                                </div>
+	                                            </td>
+	                                            <td className="py-3 px-2">
+	                                                <span className="text-xs text-slate-500">
+	                                                    {new Date(user.created_at).toLocaleDateString('cs-CZ')}
+	                                                </span>
+	                                            </td>
+	                                        </tr>
+	                                    ))
+	                                )}
+	                            </tbody>
+	                        </table>
+	                    </div>
+	                )}
 
                 <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700/50 flex justify-between items-center">
                     <span className="text-xs text-slate-500">

@@ -247,7 +247,7 @@ export const authService = {
         }
 
         // Hydration should never block app navigation.
-        const queryTimeoutMs = 2500;
+        const queryTimeoutMs = 6000;
 
         const profilePromise = (async () => {
             try {
@@ -301,19 +301,33 @@ export const authService = {
         // Attempt to get organization subscription tier
         let subscriptionTier: any = 'free';
         try {
-            const { data: orgMember } = await supabase
-                .from('organization_members')
-                .select('organization_id')
-                .eq('user_id', session.user.id)
-                .limit(1)
-                .maybeSingle();
+            const orgMemberRes = await withTimeout(
+                Promise.resolve(
+                    supabase
+                        .from('organization_members')
+                        .select('organization_id')
+                        .eq('user_id', session.user.id)
+                        .limit(1)
+                        .maybeSingle()
+                ),
+                queryTimeoutMs,
+                'Org member load'
+            );
+            const { data: orgMember } = orgMemberRes as any;
 
             if (orgMember?.organization_id) {
-                const { data: org } = await supabase
-                    .from('organizations')
-                    .select('subscription_tier')
-                    .eq('id', orgMember.organization_id)
-                    .single();
+                const orgRes = await withTimeout(
+                    Promise.resolve(
+                        supabase
+                            .from('organizations')
+                            .select('subscription_tier')
+                            .eq('id', orgMember.organization_id)
+                            .single()
+                    ),
+                    queryTimeoutMs,
+                    'Organization load'
+                );
+                const { data: org } = orgRes as any;
                 
                 if (org?.subscription_tier) {
                     subscriptionTier = org.subscription_tier;
@@ -354,7 +368,7 @@ export const authService = {
         try {
             // `getSession()` may refresh tokens over network; keep timeout lenient to avoid
             // false negatives during cold starts / slow connections.
-            const timeoutMs = 1500;
+            const timeoutMs = 3000;
             const { data } = await withTimeout(supabase.auth.getSession(), timeoutMs, 'Auth check') as any;
             session = data?.session || null;
             console.log('[authService] getCurrentUser: Session loaded', session?.user?.id);

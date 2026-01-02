@@ -5,6 +5,7 @@ import { Project, ProjectStatus, StatusConfig, Subcontractor } from '../types';
 import { addContactStatus, updateContactStatus, deleteContactStatus } from '../services/contactStatusService';
 import { UserManagement } from './UserManagement';
 import { EmailWhitelistManagement } from './EmailWhitelistManagement';
+import { SubscriptionFeaturesManagement } from './SubscriptionFeaturesManagement';
 import { ContactsImportWizard } from './ContactsImportWizard';
 import { unlockExcelZip } from '@/utils/excelUnlockZip';
 import logo from '../assets/logo.png';
@@ -763,6 +764,8 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
 
 
                         <UserManagement isAdmin={isAdmin} />
+
+                        <SubscriptionFeaturesManagement />
 
                         {/* AI Settings */}
                     <section className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl mb-8">
