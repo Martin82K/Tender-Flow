@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { LandingPage } from './components/LandingPage';
 import { Sidebar } from "./components/Sidebar";
 import { useLocation, navigate } from "./components/routing/router";
+import { buildAppUrl, parseAppRoute, isProjectTab } from "./components/routing/routeUtils";
 import { LoginPage } from "./components/auth/LoginPage";
 import { RegisterPage } from "./components/auth/RegisterPage";
 import { ForgotPasswordPage } from "./components/auth/ForgotPasswordPage";
@@ -12,6 +13,9 @@ import { FeatureProvider } from "./context/FeatureContext";
 import { RequireFeature } from "./components/routing/RequireFeature";
 import { FEATURES } from "./config/features";
 import { ConfirmationModal } from "./components/ConfirmationModal";
+import { DEFAULT_STATUSES, ADMIN_EMAILS } from "./config/constants";
+import { isUserAdmin, hexToRgb, sleep, withTimeout, withRetry } from "./utils/helpers";
+import { useTheme, useUIState } from "./hooks";
 
 // Lazy load heavy components for better code splitting
 const ProjectManager = React.lazy(() => import('./components/ProjectManager').then(m => ({ default: m.ProjectManager })));
@@ -38,157 +42,14 @@ import {
 } from "./services/contactsImportService";
 import { invokeAuthedFunction } from "./services/functionsClient";
 import { loadContactStatuses } from "./services/contactStatusService";
-import { 
-  getDemoData, 
-  saveDemoData, 
-  DEMO_PROJECT, 
-  DEMO_PROJECT_DETAILS, 
-  DEMO_CONTACTS, 
-  DEMO_STATUSES 
+import {
+  getDemoData,
+  saveDemoData,
+  DEMO_PROJECT,
+  DEMO_PROJECT_DETAILS,
+  DEMO_CONTACTS,
+  DEMO_STATUSES
 } from "./services/demoData";
-
-// Default statuses (keep these as they're configuration)
-const DEFAULT_STATUSES: StatusConfig[] = [
-  { id: "available", label: "K dispozici", color: "green" },
-  { id: "busy", label: "Zaneprázdněn", color: "red" },
-  { id: "waiting", label: "Čeká", color: "yellow" },
-];
-
-// Admin role configuration (highest role in app)
-const ADMIN_EMAILS = ["martinkalkus82@gmail.com", "kalkus@baustav.cz"];
-
-// Helper function to check admin status
-const isUserAdmin = (email: string | undefined): boolean => {
-  if (!email) return false;
-  return ADMIN_EMAILS.includes(email);
-};
-
-// Helper to convert Hex to RGB for Tailwind
-const hexToRgb = (hex: string) => {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result
-    ? `${parseInt(result[1], 16)} ${parseInt(result[2], 16)} ${parseInt(
-      result[3],
-      16
-    )
-    } `
-    : "96 122 251"; // Default Fallback
-};
-
-const APP_BASE = "/app";
-
-const isProjectTab = (val: string | null): val is ProjectTab => {
-  return val === "overview" || val === "tender-plan" || val === "pipeline" || val === "schedule" || val === "documents";
-};
-
-const buildAppUrl = (
-  view: View,
-  opts?: {
-    projectId?: string;
-    tab?: ProjectTab;
-    categoryId?: string | null;
-    settingsTab?: 'user' | 'admin';
-    settingsSubTab?: 'profile' | 'contacts' | 'tools' | 'excelMerger';
-  }
-) => {
-  switch (view) {
-    case "dashboard":
-      return `${APP_BASE}/dashboard`;
-    case "contacts":
-      return `${APP_BASE}/contacts`;
-    case "settings": {
-      const params = new URLSearchParams();
-      if (opts?.settingsTab) params.set("tab", opts.settingsTab);
-      if (opts?.settingsSubTab) params.set("subTab", opts.settingsSubTab);
-      const qs = params.toString();
-      return `${APP_BASE}/settings${qs ? `?${qs}` : ""}`;
-    }
-    case "project-management":
-      return `${APP_BASE}/projects`;
-    case "project-overview":
-      return `${APP_BASE}/project-overview`;
-    case "project": {
-      if (!opts?.projectId) return `${APP_BASE}/dashboard`;
-      const params = new URLSearchParams();
-      if (opts.tab) params.set("tab", opts.tab);
-      if (opts.categoryId) params.set("categoryId", opts.categoryId);
-      const qs = params.toString();
-      return `${APP_BASE}/project/${encodeURIComponent(opts.projectId)}${qs ? `?${qs}` : ""}`;
-    }
-    default:
-      return `${APP_BASE}/dashboard`;
-  }
-};
-
-const parseAppRoute = (pathname: string, search: string) => {
-  const parts = pathname.split("/").filter(Boolean);
-  if (parts[0] !== "app") return { isApp: false as const };
-
-  if (parts.length === 1) {
-    return { isApp: true as const, redirectTo: `${APP_BASE}/dashboard` };
-  }
-
-  const sub = parts[1];
-  if (sub === "dashboard") return { isApp: true as const, view: "dashboard" as const };
-  if (sub === "contacts") return { isApp: true as const, view: "contacts" as const };
-  if (sub === "settings") return { isApp: true as const, view: "settings" as const };
-  if (sub === "projects") return { isApp: true as const, view: "project-management" as const };
-  if (sub === "project-overview") return { isApp: true as const, view: "project-overview" as const };
-
-  if (sub === "project") {
-    const projectId = parts[2] ? decodeURIComponent(parts[2]) : "";
-    const params = new URLSearchParams(search);
-    const tabParam = params.get("tab");
-    const categoryIdParam = params.get("categoryId");
-    return {
-      isApp: true as const,
-      view: "project" as const,
-      projectId,
-      tab: isProjectTab(tabParam) ? tabParam : undefined,
-      categoryId: categoryIdParam || undefined,
-    };
-  }
-
-  return { isApp: true as const, redirectTo: `${APP_BASE}/dashboard` };
-};
-
-const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
-
-const withTimeout = async <T,>(promise: PromiseLike<T>, ms: number, message?: string): Promise<T> => {
-  let timeoutId: number | null = null;
-  try {
-    return await Promise.race([
-      Promise.resolve(promise),
-      new Promise<T>((_, reject) => {
-        timeoutId = window.setTimeout(() => {
-          reject(new Error(message || `Timeout after ${ms}ms`));
-        }, ms);
-      }),
-    ]);
-  } finally {
-    if (timeoutId !== null) window.clearTimeout(timeoutId);
-  }
-};
-
-const withRetry = async <T,>(
-  fn: () => Promise<T>,
-  opts?: { retries?: number; baseDelayMs?: number }
-): Promise<T> => {
-  const retries = opts?.retries ?? 1;
-  const baseDelayMs = opts?.baseDelayMs ?? 300;
-  let lastError: unknown;
-
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      return await fn();
-    } catch (err) {
-      lastError = err;
-      if (attempt >= retries) break;
-      await sleep(baseDelayMs * Math.pow(2, attempt));
-    }
-  }
-  throw lastError;
-};
 
 const AppContent: React.FC = () => {
   const {
@@ -308,26 +169,22 @@ const AppContent: React.FC = () => {
     navigate(buildAppUrl("project", { projectId, tab: nextTab, categoryId: categoryId ?? null }));
   };
 
-  // Theme Management
-  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>(() => {
-    if (typeof window !== "undefined") {
-      const storedTheme = localStorage.getItem('theme');
-      if (storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system') {
-        return storedTheme;
-      }
-      // Fallback for migration: check old darkMode key
-      const oldDarkMode = localStorage.getItem('darkMode');
-      if (oldDarkMode !== null) {
-        return oldDarkMode === 'true' ? 'dark' : 'light';
-      }
-      return 'system';
-    }
-    return 'system';
+  // Theme Management - using extracted hook
+  const {
+    theme,
+    primaryColor,
+    backgroundColor,
+    setTheme,
+    setPrimaryColor,
+    setBackgroundColor,
+  } = useTheme({
+    user,
+    onPreferencesUpdate: (prefs) => {
+      // Theme updates are handled by the hook's internal CSS sync
+      console.log("[App.tsx] Theme preferences updated:", prefs);
+    },
   });
 
-  // Theme Color Management
-  const [primaryColor, setPrimaryColor] = useState("#607AFB");
-  const [backgroundColor, setBackgroundColor] = useState("#f5f6f8");
 
   // Responsive Sidebar Management
   useEffect(() => {
@@ -346,72 +203,8 @@ const AppContent: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Sync preferences from user profile
-  useEffect(() => {
-    console.log("[App.tsx] User preferences changed:", user?.preferences);
-    if (user?.preferences) {
-      console.log("[App.tsx] Applying preferences:", {
-        theme: user.preferences.theme,
-        primaryColor: user.preferences.primaryColor,
-        backgroundColor: user.preferences.backgroundColor,
-      });
-      // Handle legacy user preferences if they exist
-      if ((user.preferences as any).darkMode !== undefined && !user.preferences.theme) {
-         setTheme((user.preferences as any).darkMode ? 'dark' : 'light');
-      } else {
-         setTheme(user.preferences.theme || 'system');
-      }
-      setPrimaryColor(user.preferences.primaryColor);
-      setBackgroundColor(user.preferences.backgroundColor);
-      console.log("[App.tsx] Preferences applied successfully");
-    } else {
-      console.log("[App.tsx] No user preferences to apply");
-    }
-  }, [user]);
+  // Note: Theme sync and CSS variables are now handled by useTheme hook
 
-  useEffect(() => {
-    const applyTheme = () => {
-      const isDark =
-        theme === 'dark' ||
-        (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-
-      if (isDark) {
-        document.documentElement.classList.add("dark");
-      } else {
-        document.documentElement.classList.remove("dark");
-      }
-    };
-
-    applyTheme();
-
-    // Listen for system changes if theme is system
-    if (theme === 'system') {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      const handler = () => applyTheme();
-      if (typeof mediaQuery.addEventListener === 'function') {
-        mediaQuery.addEventListener('change', handler);
-        return () => mediaQuery.removeEventListener('change', handler);
-      }
-      mediaQuery.addListener(handler);
-      return () => mediaQuery.removeListener(handler);
-    }
-  }, [theme]);
-
-  // Update CSS Variable when color changes
-  useEffect(() => {
-    document.documentElement.style.setProperty(
-      "--color-primary",
-      hexToRgb(primaryColor)
-    );
-  }, [primaryColor]);
-
-  // Update Background CSS Variable
-  useEffect(() => {
-    document.documentElement.style.setProperty(
-      "--color-background",
-      backgroundColor
-    );
-  }, [backgroundColor]);
 
   // Sync internal state from URL (enables refresh + back button navigation inside the app)
   useEffect(() => {
@@ -588,9 +381,9 @@ const AppContent: React.FC = () => {
             setAppLoadProgress((prev) =>
               prev
                 ? {
-                    ...prev,
-                    percent: Math.min(99, Math.round((completedOps / totalOps) * 100)),
-                  }
+                  ...prev,
+                  percent: Math.min(99, Math.round((completedOps / totalOps) * 100)),
+                }
                 : prev
             )
           );
@@ -861,22 +654,22 @@ const AppContent: React.FC = () => {
           categories,
           contract: contractData
             ? {
-                maturity: contractData.maturity_days ?? 30,
-                warranty: contractData.warranty_months ?? 60,
-                retention: contractData.retention_terms || "",
-                siteFacilities: contractData.site_facilities_percent ?? 0,
-                insurance: contractData.insurance_percent ?? 0,
-              }
+              maturity: contractData.maturity_days ?? 30,
+              warranty: contractData.warranty_months ?? 60,
+              retention: contractData.retention_terms || "",
+              siteFacilities: contractData.site_facilities_percent ?? 0,
+              insurance: contractData.insurance_percent ?? 0,
+            }
             : undefined,
           investorFinancials: financialsData
             ? {
-                sodPrice: financialsData.sod_price || 0,
-                amendments: amendmentsData.map((a) => ({
-                  id: a.id,
-                  label: a.label,
-                  price: a.price || 0,
-                })),
-              }
+              sodPrice: financialsData.sod_price || 0,
+              amendments: amendmentsData.map((a) => ({
+                id: a.id,
+                label: a.label,
+                price: a.price || 0,
+              })),
+            }
             : undefined,
         };
       };
@@ -1218,7 +1011,7 @@ const AppContent: React.FC = () => {
       if (user?.role === 'demo') {
         const demoData = getDemoData();
         if (demoData) {
-          demoData.projects = demoData.projects.map((p: Project) => 
+          demoData.projects = demoData.projects.map((p: Project) =>
             p.id === id ? { ...p, status: newStatus } : p
           );
           if (demoData.projectDetails[id]) {
@@ -1881,7 +1674,7 @@ const AppContent: React.FC = () => {
       if (user?.role === 'demo') {
         const demoData = getDemoData();
         if (demoData) {
-          demoData.contacts = demoData.contacts.map((c: Subcontractor) => 
+          demoData.contacts = demoData.contacts.map((c: Subcontractor) =>
             c.id === contact.id ? contact : c
           );
           saveDemoData(demoData);
@@ -2111,7 +1904,7 @@ const AppContent: React.FC = () => {
               localStorage.setItem('theme', newTheme);
               // Convert trinary theme to legacy boolean for backward compat if needed, or just remove legacy key
               localStorage.removeItem('darkMode');
-              
+
               if (user) {
                 updatePreferences({ theme: newTheme });
               }
@@ -2134,13 +1927,13 @@ const AppContent: React.FC = () => {
             onUpdateStatuses={setContactStatuses}
             onImportContacts={handleImportContacts}
             onDeleteContacts={async (ids) => {
-                const { error } = await supabase.from('subcontractors').delete().in('id', ids);
-                if (error) {
-                  console.error("Error deleting contacts:", error);
-                  alert("Chyba při mazání kontaktů: " + error.message);
-                } else {
-                  setContacts(prev => prev.filter(c => !ids.includes(c.id)));
-                }
+              const { error } = await supabase.from('subcontractors').delete().in('id', ids);
+              if (error) {
+                console.error("Error deleting contacts:", error);
+                alert("Chyba při mazání kontaktů: " + error.message);
+              } else {
+                setContacts(prev => prev.filter(c => !ids.includes(c.id)));
+              }
             }}
             contacts={contacts}
             isAdmin={isAdmin}
@@ -2187,7 +1980,7 @@ const AppContent: React.FC = () => {
   if (shouldShowLoader) {
     const percent = appLoadProgress?.percent;
     const label = appLoadProgress?.label;
-    
+
     // Determine current loading phase
     let loadingMessage = "Načítám aplikaci...";
     if (authLoading && isDataLoading) {
@@ -2197,10 +1990,10 @@ const AppContent: React.FC = () => {
     } else if (isDataLoading) {
       loadingMessage = "Načítám data...";
     }
-    
+
     // Calculate progress percentage
     const displayPercent = typeof percent === "number" ? percent : (authLoading ? 30 : isDataLoading ? 60 : 0);
-    
+
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-white gap-4 px-6 text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
@@ -2361,7 +2154,7 @@ const AppContent: React.FC = () => {
                 <span className="hidden sm:inline ml-2 text-orange-100 text-sm">— Data jsou uložena pouze v tomto prohlížeči a po odhlášení budou smazána.</span>
               </div>
             </div>
-            <button 
+            <button
               onClick={() => navigate('/register')}
               className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded text-xs font-bold transition-colors border border-white/20"
             >
