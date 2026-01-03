@@ -80,4 +80,46 @@ export const subscriptionFeaturesService = {
     const { error } = await supabase.from('subscription_features').delete().eq('key', key);
     if (error) throw error;
   },
+
+  // ============================================================================
+  // Backend Feature Checking (uses RPC functions for secure server-side validation)
+  // ============================================================================
+
+  /**
+   * Get all features enabled for the current user based on their subscription tier.
+   * This calls the backend RPC which cannot be bypassed.
+   */
+  getUserEnabledFeatures: async (): Promise<{ key: string; name: string; description: string | null; category: string | null }[]> => {
+    const { data, error } = await supabase.rpc('get_user_enabled_features');
+    if (error) throw error;
+    return (data || []).map((row: any) => ({
+      key: row.feature_key,
+      name: row.feature_name,
+      description: row.feature_description,
+      category: row.feature_category,
+    }));
+  },
+
+  /**
+   * Check if current user has access to a specific feature.
+   * Returns tier info and access status from the backend.
+   */
+  checkFeatureAccess: async (featureKey: string): Promise<{ feature: string; tier: string; hasAccess: boolean }> => {
+    const { data, error } = await supabase.rpc('check_feature_access', { feature_key: featureKey });
+    if (error) throw error;
+    return {
+      feature: data?.feature || featureKey,
+      tier: data?.tier || 'free',
+      hasAccess: data?.hasAccess || false,
+    };
+  },
+
+  /**
+   * Get current user's effective subscription tier from the backend.
+   */
+  getUserSubscriptionTier: async (): Promise<string> => {
+    const { data, error } = await supabase.rpc('get_user_subscription_tier', { target_user_id: (await supabase.auth.getUser()).data.user?.id });
+    if (error) throw error;
+    return data || 'free';
+  },
 };

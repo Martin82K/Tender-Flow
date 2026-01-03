@@ -19,34 +19,34 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 import { supabase } from '../services/supabase';
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-	    const [user, setUser] = useState<User | null>(null);
-	    const [isLoading, setIsLoading] = useState(true);
-	    const authEventRef = useRef(false);
-        const lastHydratedTokenRef = useRef<string | null>(null);
+    const [user, setUser] = useState<User | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const authEventRef = useRef(false);
+    const lastHydratedTokenRef = useRef<string | null>(null);
 
-	    useEffect(() => {
-	        console.log('AuthContext: Initializing...');
+    useEffect(() => {
+        console.log('AuthContext: Initializing...');
 
-            // Priority 1: Demo session
-            if (isDemoSession()) {
-                console.log('AuthContext: Demo session detected');
-                setUser(DEMO_USER);
-                setIsLoading(false);
-                return;
-            }
+        // Priority 1: Demo session
+        if (isDemoSession()) {
+            console.log('AuthContext: Demo session detected');
+            setUser(DEMO_USER);
+            setIsLoading(false);
+            return;
+        }
 
-	        // Listen for auth changes first (so INITIAL_SESSION can hydrate even if getCurrentUser hangs)
-	        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-	            console.log('[AuthContext] Auth State Change:', event, session?.user?.email);
-	            authEventRef.current = true;
-	            if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
-	                if (session) {
-                        const token = (session as any)?.access_token || null;
-                        if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && token && lastHydratedTokenRef.current === token) {
-                            return;
-                        }
-	                    // Use session directly from callback - no extra API call needed!
-	                    const currentUser = await authService.getUserFromSession(session);
+        // Listen for auth changes first (so INITIAL_SESSION can hydrate even if getCurrentUser hangs)
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log('[AuthContext] Auth State Change:', event, session?.user?.email);
+            authEventRef.current = true;
+            if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
+                if (session) {
+                    const token = (session as any)?.access_token || null;
+                    if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && token && lastHydratedTokenRef.current === token) {
+                        return;
+                    }
+                    // Use session directly from callback - no extra API call needed!
+                    const currentUser = await authService.getUserFromSession(session);
                     if (currentUser) {
                         setUser(currentUser);
                         setIsLoading(false);
@@ -61,35 +61,35 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }
         });
 
-	        // Best-effort active session load, but never block UI indefinitely.
-	        const initTimeoutMs = 8000;
-	        let finished = false;
-	        const finish = () => {
-	            if (finished) return;
-	            finished = true;
-	            setIsLoading(false);
-	            console.log('AuthContext: Loading finished');
-	        };
-	        const timer = window.setTimeout(() => {
-	            console.warn(`[AuthContext] initAuth timed out (${initTimeoutMs}ms)`);
-	            finish();
-	        }, initTimeoutMs);
+        // Best-effort active session load, but never block UI indefinitely.
+        const initTimeoutMs = 8000;
+        let finished = false;
+        const finish = () => {
+            if (finished) return;
+            finished = true;
+            setIsLoading(false);
+            console.log('AuthContext: Loading finished');
+        };
+        const timer = window.setTimeout(() => {
+            console.warn(`[AuthContext] initAuth timed out (${initTimeoutMs}ms)`);
+            finish();
+        }, initTimeoutMs);
 
-	        (async () => {
-	            try {
-	                const currentUser = await authService.getCurrentUser();
-	                console.log('AuthContext: User loaded', currentUser?.email);
-	                if (!authEventRef.current || currentUser) {
-	                    setUser(currentUser);
-	                }
-	            } catch (error) {
-	                console.error('Error loading user:', error);
-	                if (!authEventRef.current) setUser(null);
-	            } finally {
-	                window.clearTimeout(timer);
-	                finish();
-	            }
-	        })();
+        (async () => {
+            try {
+                const currentUser = await authService.getCurrentUser();
+                console.log('AuthContext: User loaded', currentUser?.email);
+                if (!authEventRef.current || currentUser) {
+                    setUser(currentUser);
+                }
+            } catch (error) {
+                console.error('Error loading user:', error);
+                if (!authEventRef.current) setUser(null);
+            } finally {
+                window.clearTimeout(timer);
+                finish();
+            }
+        })();
 
         return () => {
             // Cleanup
@@ -154,6 +154,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         } finally {
             // Always clear local session even if server request fails
             setUser(null);
+            // Redirect to tenderflow.cz after logout
+            window.location.href = 'https://tenderflow.cz';
         }
     };
 
