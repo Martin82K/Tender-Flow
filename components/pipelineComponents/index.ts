@@ -17,3 +17,10 @@ export type { CategoryCardProps } from './CategoryCard';
 
 export { CreateContactModal } from './CreateContactModal';
 export type { CreateContactModalProps } from './CreateContactModal';
+
+export { CategoryFormModal } from './CategoryFormModal';
+export type { CategoryFormData } from './CategoryFormModal';
+
+export { SubcontractorSelectorModal } from './SubcontractorSelectorModal';
+
+export { PipelineOverview } from './PipelineOverview';

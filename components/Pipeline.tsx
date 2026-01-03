@@ -41,6 +41,10 @@ import {
   EditBidModal,
   CategoryCard,
   CreateContactModal,
+  SubcontractorSelectorModal,
+  PipelineOverview,
+  CategoryFormModal,
+  CategoryFormData,
 } from "./pipelineComponents";
 
 // --- Components ---
@@ -604,6 +608,91 @@ export const Pipeline: React.FC<PipelineProps> = ({
       realizationEnd: "",
     });
     setSelectedFiles([]);
+    setEditingCategory(null);
+    setIsEditModalOpen(false);
+  };
+
+  // Wrapper for CategoryFormModal - Create mode
+  const handleCreateCategoryFromModal = async (formData: CategoryFormData, files: File[]) => {
+    if (!onAddCategory) return;
+
+    const sod = parseFloat(formData.sodBudget) || 0;
+    const categoryId = `cat_${Date.now()}`;
+
+    // Upload documents if any
+    let uploadedDocuments: DemandDocument[] = [];
+    if (files.length > 0) {
+      try {
+        uploadedDocuments = await Promise.all(
+          files.map((file) => uploadDocument(file, categoryId))
+        );
+      } catch (error) {
+        console.error("Error uploading documents:", error);
+        alert("Chyba při nahrávání dokumentů. Zkuste to prosím znovu.");
+        return;
+      }
+    }
+
+    const newCat: DemandCategory = {
+      id: categoryId,
+      title: formData.title,
+      budget:
+        "~" +
+        new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 0 }).format(sod) +
+        " Kč",
+      sodBudget: sod,
+      planBudget: parseFloat(formData.planBudget) || 0,
+      description: formData.description,
+      status: "open",
+      subcontractorCount: 0,
+      documents: uploadedDocuments.length > 0 ? uploadedDocuments : undefined,
+      deadline: formData.deadline || undefined,
+      realizationStart: formData.realizationStart || undefined,
+      realizationEnd: formData.realizationEnd || undefined,
+    };
+
+    onAddCategory(newCat);
+    setIsAddModalOpen(false);
+  };
+
+  // Wrapper for CategoryFormModal - Edit mode
+  const handleEditCategoryFromModal = async (formData: CategoryFormData, files: File[]) => {
+    if (!onEditCategory || !editingCategory) return;
+
+    const sod = parseFloat(formData.sodBudget) || 0;
+
+    // Upload documents if any new files selected
+    let uploadedDocuments: DemandDocument[] = editingCategory.documents || [];
+    if (files.length > 0) {
+      try {
+        const newDocs = await Promise.all(
+          files.map((file) => uploadDocument(file, editingCategory.id))
+        );
+        uploadedDocuments = [...uploadedDocuments, ...newDocs];
+      } catch (error) {
+        console.error("Error uploading documents:", error);
+        alert("Chyba při nahrávání dokumentů. Zkuste to prosím znovu.");
+        return;
+      }
+    }
+
+    const updatedCat: DemandCategory = {
+      ...editingCategory,
+      title: formData.title,
+      budget:
+        "~" +
+        new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 0 }).format(sod) +
+        " Kč",
+      sodBudget: sod,
+      planBudget: parseFloat(formData.planBudget) || 0,
+      description: formData.description,
+      documents: uploadedDocuments.length > 0 ? uploadedDocuments : undefined,
+      deadline: formData.deadline || undefined,
+      realizationStart: formData.realizationStart || undefined,
+      realizationEnd: formData.realizationEnd || undefined,
+    };
+
+    onEditCategory(updatedCat);
     setEditingCategory(null);
     setIsEditModalOpen(false);
   };
@@ -1338,86 +1427,18 @@ export const Pipeline: React.FC<PipelineProps> = ({
           </div>
         </div>
 
-        {isSubcontractorModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div
-              className={`bg-white dark:bg-slate-900 shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col transition-all duration-200 ${isSubcontractorModalMaximized
-                ? "fixed inset-0 rounded-none w-full h-full"
-                : "rounded-2xl max-w-4xl w-full h-[80vh]"
-                }`}
-            >
-              <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shrink-0">
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                  Vybrat subdodavatele
-                </h3>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() =>
-                      setIsSubcontractorModalMaximized(
-                        !isSubcontractorModalMaximized
-                      )
-                    }
-                    className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                    title={
-                      isSubcontractorModalMaximized
-                        ? "Obnovit velikost"
-                        : "Zvětšit na celou obrazovku"
-                    }
-                  >
-                    <span className="material-symbols-outlined">
-                      {isSubcontractorModalMaximized
-                        ? "close_fullscreen"
-                        : "fullscreen"}
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => setIsSubcontractorModalOpen(false)}
-                    className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                  >
-                    <span className="material-symbols-outlined">close</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex-1 overflow-hidden p-6 flex flex-col min-h-0">
-                <SubcontractorSelector
-                  contacts={localContacts}
-                  statuses={DEFAULT_STATUSES}
-                  selectedIds={selectedSubcontractorIds}
-                  onSelectionChange={setSelectedSubcontractorIds}
-                  onAddContact={handleCreateContactRequest}
-                  className="flex-1 min-h-0"
-                />
-              </div>
-
-              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center shrink-0">
-                <div className="text-sm text-slate-500">
-                  Vybráno:{" "}
-                  <span className="font-bold text-slate-900 dark:text-white">
-                    {selectedSubcontractorIds.size}
-                  </span>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setIsSubcontractorModalOpen(false)}
-                    className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-300 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700"
-                  >
-                    Zrušit
-                  </button>
-                  <button
-                    onClick={handleAddSubcontractors}
-                    disabled={selectedSubcontractorIds.size === 0}
-                    className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-sm font-bold shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Přenést do pipeline
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Create Contact Modal */}
+        <SubcontractorSelectorModal
+          isOpen={isSubcontractorModalOpen}
+          isMaximized={isSubcontractorModalMaximized}
+          contacts={localContacts}
+          statuses={DEFAULT_STATUSES}
+          selectedIds={selectedSubcontractorIds}
+          onSelectionChange={setSelectedSubcontractorIds}
+          onToggleMaximize={() => setIsSubcontractorModalMaximized(!isSubcontractorModalMaximized)}
+          onClose={() => setIsSubcontractorModalOpen(false)}
+          onConfirm={handleAddSubcontractors}
+          onAddContact={handleCreateContactRequest}
+        />
         {isCreateContactModalOpen && (
           <CreateContactModal
             initialName={newContactName}
@@ -1444,766 +1465,41 @@ export const Pipeline: React.FC<PipelineProps> = ({
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen">
       {docHubModalNode}
-      <div className="p-6 lg:p-10 overflow-y-auto">
-        {/* Filter Buttons and Add Button */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-1 bg-slate-200 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-300 dark:border-slate-700/50">
-            <button
-              onClick={() => setDemandFilter('all')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${demandFilter === 'all'
-                ? 'bg-primary text-white shadow'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-800'
-                }`}
-            >
-              Všechny ({projectData.categories.length})
-            </button>
-            <button
-              onClick={() => setDemandFilter('open')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${demandFilter === 'open'
-                ? 'bg-amber-500 dark:bg-amber-500/20 text-white dark:text-amber-300 border border-amber-500 dark:border-amber-500/30'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-800'
-                }`}
-            >
-              Poptávané ({projectData.categories.filter(c => c.status === 'open' || c.status === 'negotiating').length})
-            </button>
-            <button
-              onClick={() => setDemandFilter('closed')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${demandFilter === 'closed'
-                ? 'bg-teal-500 dark:bg-teal-500/20 text-white dark:text-teal-300 border border-teal-500 dark:border-teal-500/30'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-800'
-                }`}
-            >
-              Ukončené ({projectData.categories.filter(c => c.status === 'closed').length})
-            </button>
-            <button
-              onClick={() => setDemandFilter('sod')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${demandFilter === 'sod'
-                ? 'bg-emerald-500 dark:bg-emerald-500/20 text-white dark:text-emerald-300 border border-emerald-500 dark:border-emerald-500/30'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-800'
-                }`}
-            >
-              Zasmluvněné ({projectData.categories.filter(c => {
-                if (c.status === 'sod') return true;
-                if (c.status === 'closed') {
-                  const sodBids = (bids[c.id] || []).filter(b => b.status === 'sod');
-                  return sodBids.length > 0 && sodBids.every(b => b.contracted);
-                }
-                return false;
-              }).length})
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 bg-slate-200 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-300 dark:border-slate-700/50">
-              <button
-                type="button"
-                onClick={() => setViewMode('grid')}
-                className={`px-2.5 py-2 text-xs font-semibold rounded-lg transition-all ${viewMode === 'grid'
-                  ? 'bg-primary text-white shadow'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-800'
-                  }`}
-                title="Zobrazení: Karty (Grid)"
-                aria-label="Zobrazení: Karty (Grid)"
-              >
-                <span className="material-symbols-outlined text-[18px] leading-none">grid_view</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('table')}
-                className={`px-2.5 py-2 text-xs font-semibold rounded-lg transition-all ${viewMode === 'table'
-                  ? 'bg-primary text-white shadow'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-800'
-                  }`}
-                title="Zobrazení: Tabulka"
-                aria-label="Zobrazení: Tabulka"
-              >
-                <span className="material-symbols-outlined text-[18px] leading-none">table_rows</span>
-              </button>
-            </div>
-
-            <button
-              onClick={() => setIsAddModalOpen(true)}
-              className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-lg transition-colors"
-            >
-              <span className="material-symbols-outlined text-[20px]">
-                add_home_work
-              </span>
-              <span className="hidden sm:inline">Nová Poptávka</span>
-            </button>
-          </div>
-        </div>
-
-        {(() => {
-          const filteredCategories = [...projectData.categories]
-            .sort((a, b) => a.title.localeCompare(b.title, 'cs'))
-            .filter((cat) => {
-              // First apply status filter
-              if (demandFilter === 'all') {
-                // continue
-              } else if (demandFilter === 'open') {
-                if (cat.status !== 'open' && cat.status !== 'negotiating') return false;
-              } else if (demandFilter === 'closed') {
-                if (cat.status !== 'closed') return false;
-              } else if (demandFilter === 'sod') {
-                // SOD filter includes:
-                // 1. Explicit 'sod' status
-                // 2. 'closed' status IF fully contracted (all winning bids have contracts)
-                if (cat.status === 'sod') {
-                  // continue
-                } else if (cat.status === 'closed') {
-                  const catBids = bids[cat.id] || [];
-                  const sodBids = catBids.filter((b) => b.status === 'sod');
-                  const contractedCount = sodBids.filter((b) => b.contracted).length;
-                  if (sodBids.length === 0 || sodBids.length !== contractedCount) return false;
-                } else {
-                  return false;
-                }
-              }
-
-              // Then apply search query filter
-              if (searchQuery && searchQuery.trim() !== '') {
-                const query = searchQuery.toLowerCase();
-                const catBids = bids[cat.id] || [];
-                const companyNames = catBids.map((b) => b.companyName).join(' ').toLowerCase();
-                const matches =
-                  cat.title.toLowerCase().includes(query) ||
-                  cat.description?.toLowerCase().includes(query) ||
-                  companyNames.includes(query);
-                if (!matches) return false;
-              }
-
-              return true;
-            });
-
-          const getCategoryStats = (categoryId: string) => {
-            const categoryBids = bids[categoryId] || [];
-            const bidCount = categoryBids.length;
-            const priceOfferCount = categoryBids.filter((b) => b.price && b.price !== '?' && b.price.trim() !== '').length;
-            const sodBids = categoryBids.filter((b) => b.status === 'sod');
-            const sodBidsCount = sodBids.length;
-            const contractedCount = sodBids.filter((b) => b.contracted).length;
-            const winningPrice = sodBids.reduce((sum, bid) => {
-              const numericPrice = typeof bid.price === 'string' ? parseFloat(bid.price.replace(/[^\d]/g, '')) : 0;
-              return sum + (isNaN(numericPrice) ? 0 : numericPrice);
-            }, 0);
-            return { bidCount, priceOfferCount, sodBidsCount, contractedCount, winningPrice: winningPrice > 0 ? winningPrice : undefined };
-          };
-
-          const statusLabels: Record<string, string> = {
-            open: 'Poptávání',
-            negotiating: 'Vyjednávání',
-            closed: 'Uzavřeno',
-            sod: 'V realizaci',
-          };
-          const statusClass: Record<string, string> = {
-            open: 'bg-blue-500/10 text-blue-400 border border-blue-500/20',
-            negotiating: 'bg-amber-500/10 text-amber-300 border border-amber-500/20',
-            closed: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
-            sod: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
-          };
-          const getNormalizedStatus = (raw: DemandCategory['status']) =>
-            raw === 'sod' ? 'sod' : raw === 'closed' ? 'closed' : raw === 'negotiating' ? 'negotiating' : 'open';
-
-          if (viewMode === 'table') {
-            return (
-              <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="min-w-[900px] w-full text-sm">
-                    <thead className="bg-slate-100 dark:bg-slate-950/40 border-b border-slate-200 dark:border-slate-700/40">
-                      <tr className="text-left text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                        <th className="px-4 py-3">Stav</th>
-                        <th className="px-4 py-3">Poptávka</th>
-                        <th className="px-4 py-3">Termín</th>
-                        <th className="px-4 py-3">Realizace</th>
-                        <th className="px-4 py-3 text-right">Cena</th>
-                        <th className="px-4 py-3 text-right">Poptáno</th>
-                        <th className="px-4 py-3 text-right">CN</th>
-                        <th className="px-4 py-3 text-right">Smlouvy</th>
-                        <th className="px-4 py-3 text-right">Akce</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200 dark:divide-slate-700/40">
-                      {filteredCategories.map((category) => {
-                        const stats = getCategoryStats(category.id);
-                        const normalizedStatus = getNormalizedStatus(category.status);
-                        const deadline = category.deadline ? new Date(category.deadline).toLocaleDateString('cs-CZ') : '—';
-                        const realization =
-                          category.realizationStart || category.realizationEnd
-                            ? `${category.realizationStart ? new Date(category.realizationStart).toLocaleDateString('cs-CZ') : '?'} – ${category.realizationEnd ? new Date(category.realizationEnd).toLocaleDateString('cs-CZ') : '?'}`
-                            : '—';
-                        const priceValue = stats.winningPrice ?? category.sodBudget;
-                        const price = formatMoney(priceValue);
-                        return (
-                          <tr
-                            key={category.id}
-                            className="hover:bg-slate-50 dark:hover:bg-slate-950/30 cursor-pointer"
-                            onClick={() => setActiveCategory(category)}
-                          >
-                            <td className="px-4 py-3">
-                              <span className={`inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-bold uppercase ${statusClass[normalizedStatus]}`}>
-                                {statusLabels[normalizedStatus]}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3">
-                              <div className="font-bold text-slate-900 dark:text-white">{category.title}</div>
-                              {category.description && (
-                                <div className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1">{category.description}</div>
-                              )}
-                            </td>
-                            <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{deadline}</td>
-                            <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{realization}</td>
-                            <td className="px-4 py-3 text-right font-semibold text-slate-900 dark:text-white">{price}</td>
-                            <td className="px-4 py-3 text-right text-slate-700 dark:text-slate-200">{stats.bidCount}</td>
-                            <td className="px-4 py-3 text-right text-slate-700 dark:text-slate-200">{stats.priceOfferCount}</td>
-                            <td className="px-4 py-3 text-right text-slate-700 dark:text-slate-200">
-                              {stats.sodBidsCount > 0 ? `${stats.contractedCount}/${stats.sodBidsCount}` : '—'}
-                            </td>
-                            <td className="px-4 py-3">
-                              <div className="flex justify-end gap-2">
-                                {handleToggleCategoryComplete && (
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleToggleCategoryComplete(category);
-                                    }}
-                                    className={`p-2 rounded-lg transition-colors ${category.status === 'closed'
-                                      ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400'
-                                      : 'bg-slate-200/70 dark:bg-slate-800/60 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300'
-                                      }`}
-                                    title={category.status === 'closed' ? 'Označit jako otevřenou' : 'Označit jako ukončenou'}
-                                  >
-                                    <span className="material-symbols-outlined text-[18px]">
-                                      {category.status === 'closed' ? 'check_circle' : 'task_alt'}
-                                    </span>
-                                  </button>
-                                )}
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleEditCategoryClick(category);
-                                  }}
-                                  className="p-2 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 transition-colors"
-                                  title="Upravit"
-                                >
-                                  <span className="material-symbols-outlined text-[18px]">edit</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteCategory(category.id);
-                                  }}
-                                  className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors"
-                                  title="Smazat"
-                                >
-                                  <span className="material-symbols-outlined text-[18px]">delete</span>
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            );
-          }
-
-          return (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredCategories.map((category) => {
-                const stats = getCategoryStats(category.id);
-                const categoryWithPrice = { ...category, winningPrice: stats.winningPrice };
-                return (
-                  <CategoryCard
-                    key={category.id}
-                    category={categoryWithPrice}
-                    bidCount={stats.bidCount}
-                    priceOfferCount={stats.priceOfferCount}
-                    contractedCount={stats.contractedCount}
-                    sodBidsCount={stats.sodBidsCount}
-                    onClick={() => setActiveCategory(category)}
-                    onEdit={handleEditCategoryClick}
-                    onDelete={handleDeleteCategory}
-                    onToggleComplete={handleToggleCategoryComplete}
-                  />
-                );
-              })}
-
-              {/* Add New Placeholder */}
-              <button
-                onClick={() => setIsAddModalOpen(true)}
-                className="flex flex-col items-center justify-center text-center bg-white dark:bg-slate-900/60 border-2 border-dashed border-primary dark:border-slate-700/40 rounded-2xl p-5 hover:border-primary hover:bg-slate-50 dark:hover:bg-slate-900/70 dark:hover:border-emerald-500/30 transition-all min-h-[200px] group"
-              >
-                <div className="size-12 rounded-full bg-slate-100 dark:bg-slate-700/50 flex items-center justify-center mb-3 group-hover:scale-110 group-hover:bg-primary/10 dark:group-hover:bg-emerald-500/20 transition-all">
-                  <span className="material-symbols-outlined text-slate-400 dark:text-slate-400 group-hover:text-primary dark:group-hover:text-emerald-400">
-                    add
-                  </span>
-                </div>
-                <h3 className="text-base font-bold text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
-                  Vytvořit novou sekci
-                </h3>
-                <p className="text-xs text-slate-500 mt-1">
-                  Např. Klempířské práce
-                </p>
-              </button>
-            </div>
-          );
-        })()}
-      </div>
+      <PipelineOverview
+        categories={projectData.categories}
+        bids={bids}
+        searchQuery={searchQuery}
+        demandFilter={demandFilter}
+        viewMode={viewMode}
+        onFilterChange={setDemandFilter}
+        onViewModeChange={setViewMode}
+        onCategoryClick={setActiveCategory}
+        onAddClick={() => setIsAddModalOpen(true)}
+        onEditCategory={handleEditCategoryClick}
+        onDeleteCategory={handleDeleteCategory}
+        onToggleCategoryComplete={handleToggleCategoryComplete}
+      />
 
       {/* Create Category Modal */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-gradient-to-br dark:from-slate-800 dark:to-slate-900 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 dark:border-slate-700/50 flex flex-col max-h-[90vh]">
-            <div className="p-6 border-b border-slate-200 dark:border-slate-700/50 flex justify-between items-center shrink-0">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                Nová Poptávka / Sekce
-              </h3>
-              <button
-                onClick={() => setIsAddModalOpen(false)}
-                className="text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
-              >
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateCategory} className="flex flex-col overflow-hidden">
-              <div className="p-6 space-y-4 overflow-y-auto">
-                <div>
-                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                    Název sekce *
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    value={newCategoryForm.title}
-                    onChange={(e) =>
-                      setNewCategoryForm({
-                        ...newCategoryForm,
-                        title: e.target.value,
-                      })
-                    }
-                    className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
-                    placeholder="Např. Klempířské konstrukce"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                      Cena SOD (Investor)
-                    </label>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={formatInputNumber(newCategoryForm.sodBudget)}
-                      onChange={(e) => {
-                        const raw = e.target.value.replace(/\s/g, "");
-                        if (/^\d*$/.test(raw)) {
-                          setNewCategoryForm({
-                            ...newCategoryForm,
-                            sodBudget: raw,
-                          });
-                        }
-                      }}
-                      className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
-                      placeholder="500 000"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                      Interní Plán
-                    </label>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={formatInputNumber(newCategoryForm.planBudget)}
-                      onChange={(e) => {
-                        const raw = e.target.value.replace(/\s/g, "");
-                        if (/^\d*$/.test(raw)) {
-                          setNewCategoryForm({
-                            ...newCategoryForm,
-                            planBudget: raw,
-                          });
-                        }
-                      }}
-                      className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
-                      placeholder="450 000"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                    Popis prací
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={newCategoryForm.description}
-                    onChange={(e) =>
-                      setNewCategoryForm({
-                        ...newCategoryForm,
-                        description: e.target.value,
-                      })
-                    }
-                    className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white resize-none"
-                    placeholder="Detailní popis požadovaných prací..."
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                    Termín poptávky
-                  </label>
-                  <input
-                    type="date"
-                    value={newCategoryForm.deadline}
-                    onChange={(e) =>
-                      setNewCategoryForm({
-                        ...newCategoryForm,
-                        deadline: e.target.value,
-                      })
-                    }
-                    min={new Date().toISOString().split("T")[0]}
-                    className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
-                  />
-                  <p className="text-[10px] text-slate-400 mt-1">
-                    Termín pro podání cenové nabídky
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                    Termín realizace (nepovinné)
-                  </label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <p className="text-[10px] text-slate-400 mb-1">Od</p>
-                      <input
-                        type="date"
-                        value={newCategoryForm.realizationStart}
-                        onChange={(e) =>
-                          setNewCategoryForm({
-                            ...newCategoryForm,
-                            realizationStart: e.target.value,
-                          })
-                        }
-                        className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-slate-400 mb-1">Do</p>
-                      <input
-                        type="date"
-                        value={newCategoryForm.realizationEnd}
-                        onChange={(e) =>
-                          setNewCategoryForm({
-                            ...newCategoryForm,
-                            realizationEnd: e.target.value,
-                          })
-                        }
-                        min={newCategoryForm.realizationStart || undefined}
-                        className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                  <p className="text-[10px] text-slate-400 mt-1">
-                    Předpokládaný termín realizace prací
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">
-                    Dokumenty
-                  </label>
-                  <div className="flex flex-col gap-3">
-                    <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg cursor-pointer bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                      <div className="flex flex-col items-center justify-center">
-                        <span className="material-symbols-outlined text-slate-400 text-[28px] mb-1">
-                          upload_file
-                        </span>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                          Klikněte pro výběr souborů
-                        </p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">
-                          PDF, Word, Excel, obrázky (max 10MB)
-                        </p>
-                      </div>
-                      <input
-                        type="file"
-                        multiple
-                        className="hidden"
-                        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-                        onChange={(e) => {
-                          if (e.target.files) {
-                            const newFiles = Array.from(e.target.files).filter(
-                              (f: File) => f.size <= 10 * 1024 * 1024
-                            );
-                            if (newFiles.length < e.target.files.length) {
-                              alert(
-                                "Některé soubory překročily limit 10MB a nebyly přidány."
-                              );
-                            }
-                            setSelectedFiles((prev) => [...prev, ...newFiles]);
-                          }
-                        }}
-                      />
-                    </label>
-                    {selectedFiles.length > 0 && (
-                      <div className="space-y-2">
-                        {selectedFiles.map((file, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center justify-between bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2"
-                          >
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <span className="material-symbols-outlined text-slate-400 text-[18px]">
-                                description
-                              </span>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs font-medium text-slate-700 dark:text-slate-200 truncate">
-                                  {file.name}
-                                </p>
-                                <p className="text-[10px] text-slate-400">
-                                  {formatFileSize(file.size)}
-                                </p>
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setSelectedFiles((prev) =>
-                                  prev.filter((_, i) => i !== index)
-                                )
-                              }
-                              className="text-slate-400 hover:text-red-500 transition-colors ml-2"
-                            >
-                              <span className="material-symbols-outlined text-[18px]">
-                                close
-                              </span>
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 bg-slate-50 dark:bg-slate-950/30 border-t border-slate-200 dark:border-slate-700/40 flex justify-end gap-3 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2.5 bg-white dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 rounded-xl text-slate-700 dark:text-slate-200 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
-                >
-                  Zrušit
-                </button>
-                <button
-                  type="submit"
-                  disabled={uploadingFiles}
-                  className="px-4 py-2.5 bg-primary hover:bg-primary/90 text-white rounded-xl text-sm font-bold shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  {uploadingFiles && (
-                    <span className="material-symbols-outlined animate-spin text-[16px]">
-                      progress_activity
-                    </span>
-                  )}
-                  {uploadingFiles ? "Nahrávání..." : "Vytvořit poptávku"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <CategoryFormModal
+        isOpen={isAddModalOpen}
+        mode="create"
+        onClose={() => setIsAddModalOpen(false)}
+        onSubmit={handleCreateCategoryFromModal}
+      />
 
       {/* Edit Category Modal */}
-      {isEditModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-gradient-to-br dark:from-slate-800 dark:to-slate-900 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 dark:border-slate-700/50 flex flex-col max-h-[90vh]">
-            <div className="p-6 border-b border-slate-200 dark:border-slate-700/50 flex justify-between items-center shrink-0">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                Upravit Poptávku
-              </h3>
-              <button
-                onClick={() => {
-                  setIsEditModalOpen(false);
-                  setEditingCategory(null);
-                }}
-                className="text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
-              >
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
-
-            <form onSubmit={handleEditCategory} className="flex flex-col overflow-hidden">
-              <div className="p-6 space-y-4 overflow-y-auto">
-                <div>
-                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                    Název sekce *
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    value={newCategoryForm.title}
-                    onChange={(e) =>
-                      setNewCategoryForm({
-                        ...newCategoryForm,
-                        title: e.target.value,
-                      })
-                    }
-                    className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
-                    placeholder="Např. Klempířské konstrukce"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                      Cena SOD (Investor)
-                    </label>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={formatInputNumber(newCategoryForm.sodBudget)}
-                      onChange={(e) => {
-                        const raw = e.target.value.replace(/\s/g, "");
-                        if (/^\d*$/.test(raw)) {
-                          setNewCategoryForm({
-                            ...newCategoryForm,
-                            sodBudget: raw,
-                          });
-                        }
-                      }}
-                      className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
-                      placeholder="500 000"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                      Interní Plán
-                    </label>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={formatInputNumber(newCategoryForm.planBudget)}
-                      onChange={(e) => {
-                        const raw = e.target.value.replace(/\s/g, "");
-                        if (/^\d*$/.test(raw)) {
-                          setNewCategoryForm({
-                            ...newCategoryForm,
-                            planBudget: raw,
-                          });
-                        }
-                      }}
-                      className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
-                      placeholder="450 000"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                    Popis prací
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={newCategoryForm.description}
-                    onChange={(e) =>
-                      setNewCategoryForm({
-                        ...newCategoryForm,
-                        description: e.target.value,
-                      })
-                    }
-                    className="w-full rounded-lg bg-slate-800/50 border border-slate-700/50 px-3 py-2.5 text-sm text-white focus:border-emerald-500/50 focus:outline-none resize-none"
-                    placeholder="Detailní popis požadovaných prací..."
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                    Termín poptávky
-                  </label>
-                  <input
-                    type="date"
-                    value={newCategoryForm.deadline}
-                    onChange={(e) =>
-                      setNewCategoryForm({
-                        ...newCategoryForm,
-                        deadline: e.target.value,
-                      })
-                    }
-                    min={new Date().toISOString().split("T")[0]}
-                    className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
-                  />
-                  <p className="text-[10px] text-slate-600 dark:text-slate-500 mt-1">
-                    Termín pro podání cenové nabídky
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                    Termín realizace (nepovinné)
-                  </label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <p className="text-[10px] text-slate-500 mb-1">Od</p>
-                      <input
-                        type="date"
-                        value={newCategoryForm.realizationStart}
-                        onChange={(e) =>
-                          setNewCategoryForm({
-                            ...newCategoryForm,
-                            realizationStart: e.target.value,
-                          })
-                        }
-                        className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-slate-500 mb-1">Do</p>
-                      <input
-                        type="date"
-                        value={newCategoryForm.realizationEnd}
-                        onChange={(e) =>
-                          setNewCategoryForm({
-                            ...newCategoryForm,
-                            realizationEnd: e.target.value,
-                          })
-                        }
-                        min={newCategoryForm.realizationStart || undefined}
-                        className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                  <p className="text-[10px] text-slate-600 dark:text-slate-500 mt-1">
-                    Předpokládaný termín realizace prací
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-700/50 flex justify-end gap-3 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsEditModalOpen(false);
-                    setEditingCategory(null);
-                  }}
-                  className="px-4 py-2.5 bg-slate-700/50 border border-slate-600/50 rounded-xl text-slate-300 text-sm font-medium hover:bg-slate-600/50 transition-colors"
-                >
-                  Zrušit
-                </button>
-                <button
-                  type="submit"
-                  disabled={uploadingFiles}
-                  className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white rounded-xl text-sm font-bold shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  {uploadingFiles && (
-                    <span className="material-symbols-outlined animate-spin text-[16px]">
-                      progress_activity
-                    </span>
-                  )}
-                  {uploadingFiles ? "Ukládání..." : "Uložit změny"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <CategoryFormModal
+        isOpen={isEditModalOpen}
+        mode="edit"
+        initialData={editingCategory || undefined}
+        existingDocuments={editingCategory?.documents}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingCategory(null);
+        }}
+        onSubmit={handleEditCategoryFromModal}
+      />
       {/* Confirmation Modal */}
       <ConfirmationModal
         isOpen={confirmModal.isOpen}
