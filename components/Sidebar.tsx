@@ -21,7 +21,7 @@ interface SidebarProps {
   currentView: View;
   onViewChange: (
     view: View,
-    opts?: { settingsTab?: 'user' | 'admin'; settingsSubTab?: 'profile' | 'contacts' | 'tools' | 'excelMerger' }
+    opts?: { settingsTab?: 'user' | 'admin'; settingsSubTab?: 'profile' | 'contacts' | 'excelUnlocker' | 'excelMerger' | 'registration' | 'users' | 'subscriptions' | 'ai' | 'tools' }
   ) => void;
   selectedProjectId: string;
   onProjectSelect: (id: string) => void;
@@ -45,11 +45,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
     const tabParam = params.get('tab');
     const subTabParam = params.get('subTab');
     const tab = tabParam === 'admin' || tabParam === 'user' ? tabParam : null;
-    const subTab =
-      subTabParam === 'profile' || subTabParam === 'contacts' || subTabParam === 'tools' || subTabParam === 'excelMerger'
+    const rawSubTab =
+      subTabParam === 'profile' ||
+        subTabParam === 'contacts' ||
+        subTabParam === 'excelUnlocker' ||
+        subTabParam === 'excelMerger' ||
+        subTabParam === 'registration' ||
+        subTabParam === 'users' ||
+        subTabParam === 'subscriptions' ||
+        subTabParam === 'ai' ||
+        subTabParam === 'tools' // legacy
         ? subTabParam
         : null;
-    return { tab, subTab };
+    const subTab = rawSubTab === 'tools' ? 'excelUnlocker' : rawSubTab;
+    return { tab, subTab: subTab as typeof rawSubTab };
   })();
 
   const isNavItemEnabled = useCallback(
@@ -81,7 +90,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
     const shouldOpenTools =
       currentView === 'project-management' ||
       currentView === 'project-overview' ||
-      (currentView === 'settings' && (settingsRoute.subTab === 'contacts' || settingsRoute.subTab === 'tools' || settingsRoute.subTab === 'excelMerger'));
+      (currentView === 'settings' && (settingsRoute.subTab === 'contacts' || settingsRoute.subTab === 'excelUnlocker' || settingsRoute.subTab === 'excelMerger' || settingsRoute.subTab === 'registration' || settingsRoute.subTab === 'users' || settingsRoute.subTab === 'subscriptions' || settingsRoute.subTab === 'ai'));
 
     if (!shouldOpenTools) return;
     setOpenGroups((prev) => (prev.tools ? prev : { ...prev, tools: true }));

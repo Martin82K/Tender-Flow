@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { SubscriptionFeature, SubscriptionTier } from '../types';
 import { subscriptionFeaturesService } from '../services/subscriptionFeaturesService';
+import { useUI } from '../context/UIContext';
 
 type FlagKey = `${SubscriptionTier}:${string}`;
 
@@ -17,6 +18,7 @@ const DISPLAY_TIERS: { tier: Exclude<SubscriptionTier, 'admin'>; label: string; 
 const ALL_TIERS: { tier: SubscriptionTier }[] = [...DISPLAY_TIERS, { tier: 'admin' }];
 
 export const SubscriptionFeaturesManagement: React.FC = () => {
+  const { showAlert, showConfirm } = useUI();
   const [isLoading, setIsLoading] = useState(true);
   const [features, setFeatures] = useState<SubscriptionFeature[]>([]);
   const [flags, setFlags] = useState<Record<FlagKey, boolean>>({});
@@ -124,7 +126,7 @@ export const SubscriptionFeaturesManagement: React.FC = () => {
     } catch (e) {
       console.error('Failed to save flag:', e);
       setFlags((m) => ({ ...m, [k]: !!prev }));
-      alert('Nepodařilo se uložit změnu');
+      showAlert({ title: 'Chyba', message: 'Nepodařilo se uložit změnu.', variant: 'danger' });
     } finally {
       setSavingFlag(null);
     }
@@ -133,11 +135,11 @@ export const SubscriptionFeaturesManagement: React.FC = () => {
   const createFeature = async () => {
     const key = normalizeKey(newKey);
     if (!key || !isValidFeatureKey(key)) {
-      alert('Klíč funkce musí obsahovat jen a-z, 0-9 a _.');
+      showAlert({ title: 'Neplatný klíč', message: 'Klíč funkce musí obsahovat jen a-z, 0-9 a _.', variant: 'danger' });
       return;
     }
     if (!newName.trim()) {
-      alert('Zadejte název funkce.');
+      showAlert({ title: 'Chybí název', message: 'Zadejte název funkce.', variant: 'danger' });
       return;
     }
 
@@ -166,7 +168,7 @@ export const SubscriptionFeaturesManagement: React.FC = () => {
       await loadAll();
     } catch (e) {
       console.error('Failed to create feature:', e);
-      alert('Nepodařilo se vytvořit funkci');
+      showAlert({ title: 'Chyba', message: 'Nepodařilo se vytvořit funkci.', variant: 'danger' });
     } finally {
       setIsCreating(false);
     }
@@ -175,7 +177,7 @@ export const SubscriptionFeaturesManagement: React.FC = () => {
   const saveEdit = async () => {
     if (!editingKey) return;
     if (!editName.trim()) {
-      alert('Zadejte název funkce.');
+      showAlert({ title: 'Chybí název', message: 'Zadejte název funkce.', variant: 'danger' });
       return;
     }
 
@@ -191,14 +193,20 @@ export const SubscriptionFeaturesManagement: React.FC = () => {
       cancelEdit();
     } catch (e) {
       console.error('Failed to update feature:', e);
-      alert('Nepodařilo se uložit změny');
+      showAlert({ title: 'Chyba', message: 'Nepodařilo se uložit změny.', variant: 'danger' });
     } finally {
       setIsSavingFeature(false);
     }
   };
 
   const deleteFeature = async (key: string) => {
-    const ok = confirm(`Smazat funkci "${key}"?`);
+    const ok = await showConfirm({
+      title: 'Smazat funkci?',
+      message: `Smazat funkci "${key}"?`,
+      variant: 'danger',
+      confirmLabel: 'Smazat',
+      cancelLabel: 'Zrušit',
+    });
     if (!ok) return;
 
     setDeletingKey(key);
@@ -208,7 +216,7 @@ export const SubscriptionFeaturesManagement: React.FC = () => {
       if (editingKey === key) cancelEdit();
     } catch (e) {
       console.error('Failed to delete feature:', e);
-      alert('Nepodařilo se smazat funkci');
+      showAlert({ title: 'Chyba', message: 'Nepodařilo se smazat funkci.', variant: 'danger' });
     } finally {
       setDeletingKey(null);
     }

@@ -14,6 +14,9 @@ interface MainLayoutProps {
         message: string;
         variant: 'danger' | 'info' | 'success';
         confirmLabel?: string;
+        cancelLabel?: string;
+        onConfirm?: () => void;
+        onCancel?: () => void;
     };
     closeUiModal: () => void;
     isSidebarOpen: boolean;
@@ -77,7 +80,9 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                 message={uiModal.message}
                 variant={uiModal.variant}
                 confirmLabel={uiModal.confirmLabel}
-                onConfirm={closeUiModal}
+                cancelLabel={uiModal.cancelLabel}
+                onConfirm={uiModal.onConfirm ?? closeUiModal}
+                onCancel={uiModal.onCancel}
             />
             <Sidebar
                 currentView={currentView}

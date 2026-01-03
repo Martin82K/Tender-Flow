@@ -5,7 +5,6 @@ import { useAuth } from "../../context/AuthContext";
 import { CONTACT_KEYS } from "../queries/useContactsQuery";
 import { getDemoData, saveDemoData } from "../../services/demoData";
 import { mergeContacts } from "../../services/contactsImportService";
-import { useUIState } from "../useUIState";
 
 export const useAddContactMutation = () => {
     const queryClient = useQueryClient();

@@ -6,17 +6,16 @@ import { navigate, useLocation } from './routing/router';
 // Sub-components
 import { AdminSettings } from './settings/AdminSettings';
 import { AISettings } from './settings/AISettings';
-import { ToolsSettings } from './settings/ToolsSettings';
 import { ProfileSettings } from './settings/ProfileSettings';
 import { ContactsImportWizard } from './ContactsImportWizard';
+import { ExcelUnlockerProSettings } from './settings/ExcelUnlockerProSettings';
+import { ExcelMergerProSettings } from './settings/ExcelMergerProSettings';
 
 interface SettingsProps {
     theme: 'light' | 'dark' | 'system';
     onSetTheme: (theme: 'light' | 'dark' | 'system') => void;
     primaryColor: string;
     onSetPrimaryColor: (color: string) => void;
-    backgroundColor: string;
-    onSetBackgroundColor: (color: string) => void;
 
     contactStatuses: StatusConfig[];
     onUpdateStatuses: (statuses: StatusConfig[]) => void;
@@ -33,8 +32,6 @@ export const Settings: React.FC<SettingsProps> = ({
     onSetTheme,
     primaryColor,
     onSetPrimaryColor,
-    backgroundColor,
-    onSetBackgroundColor,
     contactStatuses,
     onUpdateStatuses,
     onImportContacts,
@@ -45,6 +42,8 @@ export const Settings: React.FC<SettingsProps> = ({
     user
 }) => {
     const { search } = useLocation();
+    type UserSubTab = 'profile' | 'contacts' | 'excelUnlocker' | 'excelMerger';
+    type AdminSubTab = 'registration' | 'users' | 'subscriptions' | 'ai';
 
     // -------------------------------------------------------------------------
     // Routing Logic
@@ -54,11 +53,25 @@ export const Settings: React.FC<SettingsProps> = ({
         const tabParam = params.get('tab');
         const subTabParam = params.get('subTab');
         const tab = tabParam === 'admin' || tabParam === 'user' ? tabParam : null;
-        // Allowed sub-tabs
-        const subTab =
-            subTabParam === 'profile' || subTabParam === 'contacts' || subTabParam === 'tools' || subTabParam === 'excelMerger'
-                ? subTabParam
-                : null;
+        let subTab: string | null = null;
+        if (tab === 'user') {
+            subTab =
+                subTabParam === 'profile' ||
+                    subTabParam === 'contacts' ||
+                    subTabParam === 'excelUnlocker' ||
+                    subTabParam === 'excelMerger' ||
+                    subTabParam === 'tools' // legacy
+                    ? subTabParam
+                    : null;
+        } else if (tab === 'admin') {
+            subTab =
+                subTabParam === 'registration' ||
+                    subTabParam === 'users' ||
+                    subTabParam === 'subscriptions' ||
+                    subTabParam === 'ai'
+                    ? subTabParam
+                    : null;
+        }
         return { tab, subTab };
     }, [search]);
 
@@ -67,23 +80,31 @@ export const Settings: React.FC<SettingsProps> = ({
         if (settingsRoute.tab === 'admin' && isAdmin) return 'admin';
         return 'user';
     });
-    const [activeUserSubTab, setActiveUserSubTab] = useState<'profile' | 'contacts' | 'tools' | 'excelMerger'>(() => {
-        if (settingsRoute.subTab === 'contacts' || settingsRoute.subTab === 'tools' || settingsRoute.subTab === 'excelMerger') return settingsRoute.subTab;
+    const [activeUserSubTab, setActiveUserSubTab] = useState<UserSubTab>(() => {
+        if (settingsRoute.subTab === 'contacts' || settingsRoute.subTab === 'excelMerger') return settingsRoute.subTab;
+        if (settingsRoute.subTab === 'excelUnlocker') return settingsRoute.subTab;
+        if (settingsRoute.subTab === 'tools') return 'excelUnlocker';
         return 'profile';
     });
+    const [activeAdminSubTab, setActiveAdminSubTab] = useState<AdminSubTab>(() => {
+        if (settingsRoute.subTab === 'users' || settingsRoute.subTab === 'subscriptions' || settingsRoute.subTab === 'ai') {
+            return settingsRoute.subTab;
+        }
+        return 'registration';
+    });
 
-    const updateSettingsUrl = (next: { tab: 'user' | 'admin'; subTab?: 'profile' | 'contacts' | 'tools' | 'excelMerger' }, opts?: { replace?: boolean }) => {
+    const updateSettingsUrl = (next: { tab: 'user' | 'admin'; subTab?: UserSubTab | AdminSubTab }, opts?: { replace?: boolean }) => {
         const params = new URLSearchParams();
         params.set('tab', next.tab);
-        if (next.tab === 'user') {
-            params.set('subTab', next.subTab || 'profile');
-        }
+        params.set('subTab', next.subTab || (next.tab === 'user' ? 'profile' : 'registration'));
         navigate(`/app/settings?${params.toString()}`, { replace: opts?.replace ?? true });
     };
 
     useEffect(() => {
         if (settingsRoute.tab === 'admin') {
             if (isAdmin && activeTab !== 'admin') setActiveTab('admin');
+            const normalizedAdminSubTab = (settingsRoute.subTab as AdminSubTab) || 'registration';
+            if (normalizedAdminSubTab !== activeAdminSubTab) setActiveAdminSubTab(normalizedAdminSubTab);
             return;
         }
 
@@ -91,23 +112,23 @@ export const Settings: React.FC<SettingsProps> = ({
         if (activeTab !== 'user') setActiveTab('user');
 
         if (settingsRoute.subTab) {
-            if (settingsRoute.subTab !== activeUserSubTab) {
-                setActiveUserSubTab(settingsRoute.subTab);
-            }
+            const normalizedSubTab =
+                settingsRoute.subTab === 'tools' ? 'excelUnlocker' : (settingsRoute.subTab as any);
+            if (normalizedSubTab !== activeUserSubTab) setActiveUserSubTab(normalizedSubTab);
         } else if (activeUserSubTab !== 'profile') {
             setActiveUserSubTab('profile');
         }
-    }, [activeTab, activeUserSubTab, isAdmin, settingsRoute.subTab, settingsRoute.tab]);
+    }, [activeAdminSubTab, activeTab, activeUserSubTab, isAdmin, settingsRoute.subTab, settingsRoute.tab]);
 
 
     // -------------------------------------------------------------------------
     // Render
     // -------------------------------------------------------------------------
     return (
-        <div className="flex flex-col h-full bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen overflow-y-auto">
+            <div className="flex flex-col h-full bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen overflow-y-auto">
             <Header title="Nastavení" subtitle="Konfigurace aplikace a správa staveb" />
 
-            <div className="p-6 lg:p-10 max-w-5xl mx-auto w-full pb-20">
+            <div className="p-6 lg:p-10 w-full pb-20">
 
                 {/* Main Tab Navigation (Top Level) */}
                 <div className="flex items-center gap-4 mb-8 border-b border-slate-200 dark:border-slate-700/50">
@@ -121,13 +142,13 @@ export const Settings: React.FC<SettingsProps> = ({
                             : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
                             }`}
                     >
-                        Nastavení uživatele
+                        Prostředí uživatele
                     </button>
                     {isAdmin && (
                         <button
                             onClick={() => {
                                 setActiveTab('admin');
-                                updateSettingsUrl({ tab: 'admin' });
+                                updateSettingsUrl({ tab: 'admin', subTab: activeAdminSubTab });
                             }}
                             className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'admin'
                                 ? 'border-primary text-primary'
@@ -141,9 +162,77 @@ export const Settings: React.FC<SettingsProps> = ({
 
                 {/* --- ADMIN TAB CONTENT --- */}
                 {activeTab === 'admin' && isAdmin && (
-                    <div className="space-y-8 animate-fadeIn">
-                        <AdminSettings isAdmin={isAdmin} />
-                        <AISettings isAdmin={isAdmin} />
+                    <div className="flex flex-col md:flex-row gap-8 animate-fadeIn">
+                        <aside className="w-full md:w-64 flex-shrink-0">
+                            <nav className="flex flex-col gap-2">
+                                <button
+                                    onClick={() => updateSettingsUrl({ tab: 'admin', subTab: 'registration' })}
+                                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${activeAdminSubTab === 'registration'
+                                        ? 'bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700'
+                                        : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                                        }`}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <span className="material-symbols-outlined text-[20px]">admin_panel_settings</span>
+                                        Registrace
+                                    </div>
+                                </button>
+
+                                <button
+                                    onClick={() => updateSettingsUrl({ tab: 'admin', subTab: 'users' })}
+                                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${activeAdminSubTab === 'users'
+                                        ? 'bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700'
+                                        : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                                        }`}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <span className="material-symbols-outlined text-[20px]">group</span>
+                                        Uživatelé
+                                    </div>
+                                </button>
+
+                                <button
+                                    onClick={() => updateSettingsUrl({ tab: 'admin', subTab: 'subscriptions' })}
+                                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${activeAdminSubTab === 'subscriptions'
+                                        ? 'bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700'
+                                        : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                                        }`}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <span className="material-symbols-outlined text-[20px]">tune</span>
+                                        Předplatné
+                                    </div>
+                                </button>
+
+                                <button
+                                    onClick={() => updateSettingsUrl({ tab: 'admin', subTab: 'ai' })}
+                                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${activeAdminSubTab === 'ai'
+                                        ? 'bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700'
+                                        : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                                        }`}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <span className="material-symbols-outlined text-[20px]">auto_awesome</span>
+                                        AI
+                                    </div>
+                                </button>
+                            </nav>
+                        </aside>
+
+                        <main className="flex-1 min-w-0">
+                            {activeAdminSubTab === 'registration' && (
+                                <AdminSettings isAdmin={isAdmin} section="registration" />
+                            )}
+                            {activeAdminSubTab === 'users' && (
+                                <AdminSettings isAdmin={isAdmin} section="users" />
+                            )}
+                            {activeAdminSubTab === 'subscriptions' && (
+                                <AdminSettings isAdmin={isAdmin} section="subscriptions" />
+                            )}
+                            {activeAdminSubTab === 'ai' && (
+                                <AISettings isAdmin={isAdmin} />
+                            )}
+                        </main>
                     </div>
                 )}
 
@@ -181,15 +270,28 @@ export const Settings: React.FC<SettingsProps> = ({
                                 </button>
 
                                 <button
-                                    onClick={() => updateSettingsUrl({ tab: 'user', subTab: 'tools' })}
-                                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${activeUserSubTab === 'tools'
+                                    onClick={() => updateSettingsUrl({ tab: 'user', subTab: 'excelUnlocker' })}
+                                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${activeUserSubTab === 'excelUnlocker'
                                         ? 'bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700'
                                         : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50'
                                         }`}
                                 >
                                     <div className="flex items-center gap-3">
-                                        <span className="material-symbols-outlined text-[20px]">handyman</span>
-                                        Nástroje
+                                        <span className="material-symbols-outlined text-[20px]">lock_open</span>
+                                        Excel Unlocker PRO
+                                    </div>
+                                </button>
+
+                                <button
+                                    onClick={() => updateSettingsUrl({ tab: 'user', subTab: 'excelMerger' })}
+                                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${activeUserSubTab === 'excelMerger'
+                                        ? 'bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700'
+                                        : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                                        }`}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <span className="material-symbols-outlined text-[20px]">table_view</span>
+                                        Excel Merger PRO
                                     </div>
                                 </button>
                             </nav>
@@ -203,8 +305,6 @@ export const Settings: React.FC<SettingsProps> = ({
                                     onSetTheme={onSetTheme}
                                     primaryColor={primaryColor}
                                     onSetPrimaryColor={onSetPrimaryColor}
-                                    backgroundColor={backgroundColor}
-                                    onSetBackgroundColor={onSetBackgroundColor}
                                     contactStatuses={contactStatuses}
                                     onUpdateStatuses={onUpdateStatuses}
                                     onDeleteContacts={onDeleteContacts}
@@ -231,8 +331,12 @@ export const Settings: React.FC<SettingsProps> = ({
                                 </section>
                             )}
 
-                            {activeUserSubTab === 'tools' && (
-                                <ToolsSettings />
+                            {activeUserSubTab === 'excelUnlocker' && (
+                                <ExcelUnlockerProSettings />
+                            )}
+
+                            {activeUserSubTab === 'excelMerger' && (
+                                <ExcelMergerProSettings />
                             )}
                         </main>
                     </div>

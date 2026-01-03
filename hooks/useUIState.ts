@@ -12,6 +12,9 @@ export interface UiModalState {
     message: string;
     variant?: 'danger' | 'info' | 'success';
     confirmLabel?: string;
+    cancelLabel?: string;
+    onConfirm?: () => void;
+    onCancel?: () => void;
 }
 
 export interface ShowModalOptions {
@@ -19,12 +22,17 @@ export interface ShowModalOptions {
     message: string;
     variant?: 'danger' | 'info' | 'success';
     confirmLabel?: string;
+    cancelLabel?: string;
+    onConfirm?: () => void;
+    onCancel?: () => void;
 }
 
 export interface UseUIStateReturn {
     // Modal
     uiModal: UiModalState;
     showUiModal: (opts: ShowModalOptions) => void;
+    showAlert: (opts: Omit<ShowModalOptions, 'cancelLabel' | 'onCancel'>) => void;
+    showConfirm: (opts: ShowModalOptions) => Promise<boolean>;
     closeUiModal: () => void;
 
     // Sidebar
@@ -45,7 +53,7 @@ export const useUIState = (): UseUIStateReturn => {
         title: '',
         message: '',
         variant: 'info',
-        confirmLabel: 'Zavřít',
+        confirmLabel: 'OK',
     });
 
     // Sidebar state
@@ -68,20 +76,54 @@ export const useUIState = (): UseUIStateReturn => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
+    const closeUiModal = useCallback(() => {
+        setUiModal(prev => ({
+            ...prev,
+            isOpen: false,
+            cancelLabel: undefined,
+            onConfirm: undefined,
+            onCancel: undefined,
+        }));
+    }, []);
+
     // Modal functions
     const showUiModal = useCallback((opts: ShowModalOptions) => {
+        const shouldShowCancel = Boolean(opts.cancelLabel || opts.onCancel);
         setUiModal({
             isOpen: true,
             title: opts.title,
             message: opts.message,
             variant: opts.variant ?? 'info',
-            confirmLabel: opts.confirmLabel ?? 'Zavřít',
+            confirmLabel: opts.confirmLabel ?? 'OK',
+            cancelLabel: shouldShowCancel ? (opts.cancelLabel ?? 'Zrušit') : undefined,
+            onConfirm: () => {
+                closeUiModal();
+                opts.onConfirm?.();
+            },
+            onCancel: shouldShowCancel
+                ? () => {
+                    closeUiModal();
+                    opts.onCancel?.();
+                }
+                : undefined,
         });
-    }, []);
+    }, [closeUiModal]);
 
-    const closeUiModal = useCallback(() => {
-        setUiModal(prev => ({ ...prev, isOpen: false }));
-    }, []);
+    const showAlert = useCallback((opts: Omit<ShowModalOptions, 'cancelLabel' | 'onCancel'>) => {
+        showUiModal({ ...opts, cancelLabel: undefined, onCancel: undefined });
+    }, [showUiModal]);
+
+    const showConfirm = useCallback((opts: ShowModalOptions) => {
+        return new Promise<boolean>((resolve) => {
+            showUiModal({
+                ...opts,
+                cancelLabel: opts.cancelLabel ?? 'Zrušit',
+                confirmLabel: opts.confirmLabel ?? 'OK',
+                onConfirm: () => resolve(true),
+                onCancel: () => resolve(false),
+            });
+        });
+    }, [showUiModal]);
 
     // Sidebar functions
     const toggleSidebar = useCallback(() => {
@@ -91,6 +133,8 @@ export const useUIState = (): UseUIStateReturn => {
     return {
         uiModal,
         showUiModal,
+        showAlert,
+        showConfirm,
         closeUiModal,
         isSidebarOpen,
         setIsSidebarOpen,

@@ -6,7 +6,6 @@ import { PROJECT_KEYS } from "../queries/useProjectsQuery";
 import { PROJECT_DETAILS_KEYS } from "../queries/useProjectDetailsQuery";
 import { getDemoData, saveDemoData } from "../../services/demoData";
 import { invokeAuthedFunction } from "../../services/functionsClient";
-import { useUIState } from "../useUIState";
 
 // Helper for DocHub Sync
 const syncDocHubCategory = async (projectId: string, action: "upsert" | "archive", categoryId: string, categoryTitle?: string) => {

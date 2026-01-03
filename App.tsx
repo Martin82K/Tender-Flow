@@ -4,7 +4,8 @@ import { MainLayout } from "./components/layouts/MainLayout";
 import { AuthLayout } from "./components/layouts/AuthLayout";
 import { useAppData } from "./hooks/useAppData";
 import { useAuth } from "./context/AuthContext";
-import { useUIState } from "./hooks/useUIState";
+import { useUI } from "./context/UIContext";
+import { useTheme } from "./hooks/useTheme";
 import { useLocation, navigate } from "./components/routing/router";
 import { buildAppUrl, parseAppRoute } from "./components/routing/routeUtils";
 import { View } from "./types";
@@ -27,7 +28,7 @@ import { ForgotPasswordPage } from "./components/auth/ForgotPasswordPage";
 
 function AppContent() {
   const { user, isAuthenticated, isLoading: authLoading, logout, updatePreferences } = useAuth();
-  const { showUiModal, uiModal, closeUiModal } = useUIState();
+  const { showUiModal, uiModal, closeUiModal } = useUI();
   const { pathname, search } = useLocation();
 
   // Data Hook
@@ -61,10 +62,11 @@ function AppContent() {
     }
   }, [pathname, search, isAuthenticated]);
 
-  // Theme
-  const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "system");
-  const [primaryColor, setPrimaryColor] = useState("orange");
-  const [backgroundColor, setBackgroundColor] = useState("slate");
+  // Theme - using useTheme hook for proper CSS variable application
+  const { theme, setTheme, primaryColor, setPrimaryColor } = useTheme({
+    user,
+    onPreferencesUpdate: (prefs) => updatePreferences(prefs),
+  });
 
   // Scroll Restoration
   useEffect(() => {
@@ -176,7 +178,7 @@ function AppContent() {
       case "contacts":
         return <RequireFeature feature={FEATURES.MODULE_CONTACTS}><Contacts statuses={state.contactStatuses} contacts={state.contacts} onContactsChange={actions.setContacts} onAddContact={actions.handleAddContact} onUpdateContact={actions.handleUpdateContact} onBulkUpdateContacts={actions.handleBulkUpdateContacts} onDeleteContacts={actions.handleDeleteContacts} isAdmin={state.isAdmin} /></RequireFeature>;
       case "settings":
-        return <Settings theme={theme} onSetTheme={(t) => { setTheme(t); localStorage.setItem('theme', t); localStorage.removeItem('darkMode'); if (user) updatePreferences({ theme: t }); }} primaryColor={primaryColor} onSetPrimaryColor={(c) => { setPrimaryColor(c); if (user) updatePreferences({ primaryColor: c }); }} backgroundColor={backgroundColor} onSetBackgroundColor={(c) => { setBackgroundColor(c); if (user) updatePreferences({ backgroundColor: c }); }} contactStatuses={state.contactStatuses} onUpdateStatuses={actions.setContactStatuses} onImportContacts={actions.handleImportContacts} onDeleteContacts={actions.handleDeleteContacts} contacts={state.contacts} isAdmin={state.isAdmin} onSaveSettings={async () => { }} user={user} />;
+        return <Settings theme={theme} onSetTheme={setTheme} primaryColor={primaryColor} onSetPrimaryColor={setPrimaryColor} contactStatuses={state.contactStatuses} onUpdateStatuses={actions.setContactStatuses} onImportContacts={actions.handleImportContacts} onDeleteContacts={actions.handleDeleteContacts} contacts={state.contacts} isAdmin={state.isAdmin} onSaveSettings={async () => { }} user={user} />;
       case "project-management":
         return <ProjectManager projects={state.projects} onAddProject={actions.handleAddProject} onDeleteProject={actions.handleDeleteProject} onArchiveProject={actions.handleArchiveProject} />;
       case "project-overview":

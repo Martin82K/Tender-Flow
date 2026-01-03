@@ -12,7 +12,7 @@ export interface NavItemConfig {
   href?: string; // For external links
   // Optional deep-linking into Settings
   settingsTab?: 'user' | 'admin';
-  settingsSubTab?: 'profile' | 'contacts' | 'tools' | 'excelMerger';
+  settingsSubTab?: 'profile' | 'contacts' | 'excelUnlocker' | 'excelMerger' | 'registration' | 'users' | 'subscriptions' | 'ai' | 'tools';
 }
 
 export const SIDEBAR_NAVIGATION: NavItemConfig[] = [
@@ -80,15 +80,15 @@ export const BOTTOM_NAVIGATION: NavItemConfig[] = [
       },
       {
         id: 'settings-excelunlocker-pro',
-        label: 'ExcelUnlocker Pro',
-        icon: 'grid_on',
+        label: 'Excel Unlocker PRO',
+        icon: 'lock_open',
         view: 'settings',
         settingsTab: 'user',
-        settingsSubTab: 'tools',
+        settingsSubTab: 'excelUnlocker',
       },
       {
         id: 'settings-excelmerger-pro',
-        label: 'ExcelMerger Pro',
+        label: 'Excel Merger PRO',
         icon: 'table_view',
         view: 'settings',
         settingsTab: 'user',

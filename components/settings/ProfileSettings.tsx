@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { StatusConfig, Subcontractor } from '../../types';
 import { addContactStatus, updateContactStatus, deleteContactStatus } from '../../services/contactStatusService';
+import { useUI } from '../../context/UIContext';
 
 interface ProfileSettingsProps {
     theme: 'light' | 'dark' | 'system';
     onSetTheme: (theme: 'light' | 'dark' | 'system') => void;
     primaryColor: string;
     onSetPrimaryColor: (color: string) => void;
-    backgroundColor: string;
-    onSetBackgroundColor: (color: string) => void;
     contactStatuses: StatusConfig[];
     onUpdateStatuses: (statuses: StatusConfig[]) => void;
     onDeleteContacts: (ids: string[]) => void;
@@ -21,14 +20,13 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
     onSetTheme,
     primaryColor,
     onSetPrimaryColor,
-    backgroundColor,
-    onSetBackgroundColor,
     contactStatuses,
     onUpdateStatuses,
     onDeleteContacts,
     contacts,
     user
 }) => {
+    const { showAlert, showConfirm } = useUI();
     // Status Form State
     const [newStatusLabel, setNewStatusLabel] = useState('');
     const [newStatusColor, setNewStatusColor] = useState<StatusConfig['color']>('blue');
@@ -68,7 +66,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
 
     const handleSaveDisplayName = async () => {
         if (!user?.id) {
-            alert('Uživatel není přihlášen');
+            showAlert({ title: 'Nejste přihlášen', message: 'Uživatel není přihlášen.', variant: 'danger' });
             return;
         }
 
@@ -91,27 +89,41 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                 throw error;
             }
 
-            alert('Zobrazované jméno bylo uloženo');
+            showAlert({ title: 'Hotovo', message: 'Zobrazované jméno bylo uloženo.', variant: 'success' });
         } catch (error: any) {
             console.error('Error saving display name:', error);
-            alert(`Chyba při ukládání jména: ${error?.message || 'Neznámá chyba'}`);
+            showAlert({ title: 'Chyba', message: `Chyba při ukládání jména: ${error?.message || 'Neznámá chyba'}`, variant: 'danger' });
         } finally {
             setIsSavingDisplayName(false);
         }
     };
 
-    const handleDeleteAllContacts = () => {
+    const handleDeleteAllContacts = async () => {
         if (contacts.length === 0) {
-            alert('Databáze kontaktů je již prázdná.');
+            showAlert({ title: 'Nic ke smazání', message: 'Databáze kontaktů je již prázdná.', variant: 'info' });
             return;
         }
 
-        if (confirm(`VAROVÁNÍ: Opravdu chcete smazat VŠECHNY kontakty (${contacts.length}) z databáze? Tuto akci nelze vrátit zpět!`)) {
-            if (confirm('Opravdu? Jste si naprosto jistí?')) {
-                const allIds = contacts.map(c => c.id);
-                onDeleteContacts(allIds);
-            }
-        }
+        const ok = await showConfirm({
+            title: 'Smazat všechny kontakty?',
+            message: `VAROVÁNÍ: Opravdu chcete smazat VŠECHNY kontakty (${contacts.length}) z databáze?\n\nTuto akci nelze vrátit zpět!`,
+            variant: 'danger',
+            confirmLabel: 'Smazat',
+            cancelLabel: 'Zrušit',
+        });
+        if (!ok) return;
+
+        const ok2 = await showConfirm({
+            title: 'Opravdu smazat?',
+            message: 'Opravdu? Jste si naprosto jistí?',
+            variant: 'danger',
+            confirmLabel: 'Ano, smazat',
+            cancelLabel: 'Zrušit',
+        });
+        if (!ok2) return;
+
+        const allIds = contacts.map(c => c.id);
+        onDeleteContacts(allIds);
     };
 
     const handleAddStatus = async (e: React.FormEvent) => {
@@ -133,20 +145,27 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
         // Persist to database
         const success = await addContactStatus(newStatus);
         if (!success) {
-            alert('Chyba při ukládání stavu do databáze.');
+            showAlert({ title: 'Chyba', message: 'Chyba při ukládání stavu do databáze.', variant: 'danger' });
         }
     };
 
     const handleDeleteStatus = async (id: string) => {
-        if (confirm('Opravdu smazat tento status? Kontakty s tímto statusem budou muset být přeřazeny.')) {
-            // Optimistic update
-            onUpdateStatuses(contactStatuses.filter(s => s.id !== id));
+        const ok = await showConfirm({
+            title: 'Smazat status?',
+            message: 'Opravdu smazat tento status?\n\nKontakty s tímto statusem budou muset být přeřazeny.',
+            variant: 'danger',
+            confirmLabel: 'Smazat',
+            cancelLabel: 'Zrušit',
+        });
+        if (!ok) return;
 
-            // Persist to database
-            const success = await deleteContactStatus(id);
-            if (!success) {
-                alert('Chyba při mazání stavu z databáze.');
-            }
+        // Optimistic update
+        onUpdateStatuses(contactStatuses.filter(s => s.id !== id));
+
+        // Persist to database
+        const success = await deleteContactStatus(id);
+        if (!success) {
+            showAlert({ title: 'Chyba', message: 'Chyba při mazání stavu z databáze.', variant: 'danger' });
         }
     };
 
@@ -158,7 +177,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
     const handleStatusLabelBlur = async (id: string, newLabel: string) => {
         const success = await updateContactStatus(id, { label: newLabel });
         if (!success) {
-            alert('Chyba při ukládání změny do databáze.');
+            showAlert({ title: 'Chyba', message: 'Chyba při ukládání změny do databáze.', variant: 'danger' });
         }
     };
 
@@ -169,7 +188,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
         // Persist to database
         const success = await updateContactStatus(id, { color: newColor });
         if (!success) {
-            alert('Chyba při ukládání barvy do databáze.');
+            showAlert({ title: 'Chyba', message: 'Chyba při ukládání barvy do databáze.', variant: 'danger' });
         }
     };
 
@@ -191,13 +210,6 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
         '#8B5CF6', // Violet
         '#EC4899', // Pink
         '#6366F1', // Indigo
-    ];
-
-    const backgroundColors = [
-        { label: 'Výchozí', color: '#f5f6f8' },
-        { label: 'Čistá bílá', color: '#ffffff' },
-        { label: 'Teplá', color: '#fbf7f1' },
-        { label: 'Studená', color: '#f0f9ff' },
     ];
 
     return (
@@ -312,34 +324,6 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                     </div>
                 </div>
 
-                <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">
-                        Pozadí stránek
-                    </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                        {backgroundColors.map((bg) => (
-                            <button
-                                key={bg.color}
-                                onClick={() => onSetBackgroundColor(bg.color)}
-                                className={`
-                                    group relative overflow-hidden rounded-xl border-2 transition-all p-3 text-left
-                                    ${backgroundColor === bg.color
-                                        ? 'border-primary bg-primary/5'
-                                        : 'border-transparent bg-slate-50 dark:bg-slate-800 hover:border-slate-200 dark:hover:border-slate-700'
-                                    }
-                                `}
-                            >
-                                <div
-                                    className="w-full h-12 rounded-lg mb-2 shadow-sm border border-slate-200 dark:border-slate-700"
-                                    style={{ backgroundColor: bg.color }}
-                                />
-                                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
-                                    {bg.label}
-                                </span>
-                            </button>
-                        ))}
-                    </div>
-                </div>
             </section>
 
             {/* Contact Statuses Management */}

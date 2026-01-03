@@ -19,7 +19,7 @@ export const buildAppUrl = (
         tab?: ProjectTab;
         categoryId?: string | null;
         settingsTab?: 'user' | 'admin';
-        settingsSubTab?: 'profile' | 'contacts' | 'tools' | 'excelMerger';
+        settingsSubTab?: 'profile' | 'contacts' | 'excelUnlocker' | 'excelMerger' | 'registration' | 'users' | 'subscriptions' | 'ai' | 'tools';
     }
 ): string => {
     switch (view) {

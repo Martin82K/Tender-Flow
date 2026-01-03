@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { userManagementService, WhitelistedEmail } from '../services/userManagementService';
+import { useUI } from '../context/UIContext';
 
 interface EmailWhitelistManagementProps {
     isAdmin: boolean;
 }
 
 export const EmailWhitelistManagement: React.FC<EmailWhitelistManagementProps> = ({ isAdmin }) => {
+    const { showAlert, showConfirm } = useUI();
     const [whitelist, setWhitelist] = useState<WhitelistedEmail[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [newEmail, setNewEmail] = useState('');
@@ -37,7 +39,7 @@ export const EmailWhitelistManagement: React.FC<EmailWhitelistManagementProps> =
     const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newEmail || !newEmail.includes('@')) {
-            alert('Zadejte platný email');
+            showAlert({ title: 'Neplatný email', message: 'Zadejte platný email.', variant: 'danger' });
             return;
         }
 
@@ -50,21 +52,28 @@ export const EmailWhitelistManagement: React.FC<EmailWhitelistManagementProps> =
             await loadWhitelist();
         } catch (error: any) {
             console.error('Failed to add email:', error);
-            alert(`Chyba: ${error.message || 'Nepodařilo se přidat email'}`);
+            showAlert({ title: 'Chyba', message: `Chyba: ${error.message || 'Nepodařilo se přidat email'}`, variant: 'danger' });
         } finally {
             setIsAdding(false);
         }
     };
 
     const handleDelete = async (id: string, email: string) => {
-        if (!confirm(`Opravdu chcete odebrat ${email} ze seznamu povolených?`)) return;
+        const ok = await showConfirm({
+            title: 'Odebrat email?',
+            message: `Opravdu chcete odebrat ${email} ze seznamu povolených?`,
+            variant: 'danger',
+            confirmLabel: 'Odebrat',
+            cancelLabel: 'Zrušit',
+        });
+        if (!ok) return;
 
         try {
             await userManagementService.removeWhitelistedEmail(id);
             setWhitelist(prev => prev.filter(item => item.id !== id));
         } catch (error) {
             console.error('Failed to remove email:', error);
-            alert('Nepodařilo se odebrat email');
+            showAlert({ title: 'Chyba', message: 'Nepodařilo se odebrat email.', variant: 'danger' });
         }
     };
 
@@ -76,7 +85,7 @@ export const EmailWhitelistManagement: React.FC<EmailWhitelistManagementProps> =
             ));
         } catch (error) {
             console.error('Failed to toggle status:', error);
-            alert('Nepodařilo se změnit stav');
+            showAlert({ title: 'Chyba', message: 'Nepodařilo se změnit stav.', variant: 'danger' });
         }
     };
 

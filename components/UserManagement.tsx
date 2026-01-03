@@ -5,12 +5,14 @@ import {
     Role,
     PermissionDefinition
 } from '../services/userManagementService';
+import { useUI } from '../context/UIContext';
 
 interface UserManagementProps {
     isAdmin: boolean;
 }
 
 export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
+    const { showAlert } = useUI();
     // Users state
     const [users, setUsers] = useState<UserWithProfile[]>([]);
     const [isLoadingUsers, setIsLoadingUsers] = useState(true);
@@ -45,7 +47,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
             setUsers(data);
         } catch (error) {
             console.error('Failed to load users:', error);
-            alert('Chyba při načítání uživatelů');
+            showAlert({ title: 'Chyba', message: 'Chyba při načítání uživatelů.', variant: 'danger' });
         } finally {
             setIsLoadingUsers(false);
         }
@@ -64,7 +66,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
             setPermissionDefs(defsData);
         } catch (error) {
             console.error('Failed to load roles:', error);
-            alert('Chyba při načítání rolí');
+            showAlert({ title: 'Chyba', message: 'Chyba při načítání rolí.', variant: 'danger' });
         } finally {
             setIsLoadingRoles(false);
         }
@@ -82,7 +84,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
             ));
         } catch (error) {
             console.error('Failed to update role:', error);
-            alert('Chyba při změně role');
+            showAlert({ title: 'Chyba', message: 'Chyba při změně role.', variant: 'danger' });
         } finally {
             setUpdatingUserId(null);
         }
@@ -97,7 +99,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
             setUsers(prev => prev.map(u => (u.user_id === userId ? { ...u, login_type: next } : u)));
         } catch (error) {
             console.error('Failed to update login type:', error);
-            alert('Chyba při změně typu přihlášení');
+            showAlert({ title: 'Chyba', message: 'Chyba při změně typu přihlášení.', variant: 'danger' });
         } finally {
             setUpdatingLoginTypeUserId(null);
         }
@@ -112,7 +114,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
             setUsers(prev => prev.map(u => (u.user_id === userId ? { ...u, subscription_tier_override: next, effective_subscription_tier: next || u.org_subscription_tier || 'free' } : u)));
         } catch (error) {
             console.error('Failed to update subscription tier:', error);
-            alert('Chyba při změně předplatného');
+            showAlert({ title: 'Chyba', message: 'Chyba při změně předplatného.', variant: 'danger' });
         } finally {
             setUpdatingSubscriptionUserId(null);
         }
@@ -131,7 +133,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
             ));
         } catch (error) {
             console.error('Failed to update permission:', error);
-            alert('Chyba při změně oprávnění');
+            showAlert({ title: 'Chyba', message: 'Chyba při změně oprávnění.', variant: 'danger' });
         } finally {
             setUpdatingPermission(null);
         }
