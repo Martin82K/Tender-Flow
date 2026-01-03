@@ -10,6 +10,7 @@ import { ProfileSettings } from './settings/ProfileSettings';
 import { ContactsImportWizard } from './ContactsImportWizard';
 import { ExcelUnlockerProSettings } from './settings/ExcelUnlockerProSettings';
 import { ExcelMergerProSettings } from './settings/ExcelMergerProSettings';
+import { ExcelMergerAdminSettings } from './settings/ExcelMergerAdminSettings';
 
 interface SettingsProps {
     theme: 'light' | 'dark' | 'system';
@@ -221,7 +222,10 @@ export const Settings: React.FC<SettingsProps> = ({
 
                         <main className="flex-1 min-w-0">
                             {activeAdminSubTab === 'registration' && (
-                                <AdminSettings isAdmin={isAdmin} section="registration" />
+                                <>
+                                    <AdminSettings isAdmin={isAdmin} section="registration" />
+                                    <ExcelMergerAdminSettings isAdmin={isAdmin} />
+                                </>
                             )}
                             {activeAdminSubTab === 'users' && (
                                 <AdminSettings isAdmin={isAdmin} section="users" />

@@ -213,6 +213,76 @@ export const authService = {
         }
     },
 
+    getExcelMergerMirrorUrl: async (): Promise<string | null> => {
+        try {
+            const { data, error } = await supabase
+                .from('app_settings')
+                .select('excel_merger_mirror_url')
+                .eq('id', 'default')
+                .single();
+            if (error) {
+                // Missing column or no permission should not break the app.
+                console.warn('Error fetching excel_merger_mirror_url:', error);
+                return null;
+            }
+            const url = (data as any)?.excel_merger_mirror_url as string | null | undefined;
+            return url ? String(url) : null;
+        } catch (e) {
+            console.warn('Error loading excel_merger_mirror_url:', e);
+            return null;
+        }
+    },
+
+    updateExcelMergerMirrorUrl: async (url: string | null): Promise<void> => {
+        const { error } = await supabase
+            .from('app_settings')
+            .upsert(
+                {
+                    id: 'default',
+                    excel_merger_mirror_url: url,
+                    updated_at: new Date().toISOString(),
+                } as any,
+                { onConflict: 'id' }
+            );
+
+        if (error) {
+            console.error('Error updating excel_merger_mirror_url:', error);
+            const message = String((error as any)?.message || '');
+            const code = String((error as any)?.code || '');
+            const lower = message.toLowerCase();
+
+            const missingColumn =
+                code === '42703' ||
+                (lower.includes('schema cache') && lower.includes('excel_merger_mirror_url')) ||
+                (lower.includes('column') &&
+                    lower.includes('excel_merger_mirror_url') &&
+                    (lower.includes('does not exist') || lower.includes('not exist')));
+
+            if (missingColumn) {
+                throw new Error(
+                    "V databázi chybí sloupec `app_settings.excel_merger_mirror_url` (nebo ještě není načtený v schema cache).\n\n1) Nahraj migraci `supabase/migrations/20260103000100_excel_merger_url_app_settings.sql` do Supabase.\n2) Obnov schema cache (Supabase Dashboard → Settings → API → Reload schema cache), případně spusť SQL: `select pg_notify('pgrst', 'reload schema');`.\n3) Zkus uložit znovu."
+                );
+            }
+
+            const permissionDenied =
+                code === '42501' ||
+                lower.includes('permission denied') ||
+                lower.includes('insufficient_privilege') ||
+                lower.includes('violates row-level security');
+
+            if (permissionDenied) {
+                throw new Error(
+                    'Nemáš oprávnění uložit hodnotu do `app_settings`. Zkontroluj RLS/policies pro tabulku `app_settings` (update/upsert pro admina).'
+                );
+            }
+
+            const details = String((error as any)?.details || '').trim();
+            const hint = String((error as any)?.hint || '').trim();
+            const tail = [details, hint].filter(Boolean).join('\n');
+            throw new Error(tail ? `${message}\n${tail}` : (message || 'Neznámá chyba'));
+        }
+    },
+
     logout: async (): Promise<void> => {
         const { error } = await supabase.auth.signOut();
         if (error) throw error;
