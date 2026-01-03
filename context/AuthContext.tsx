@@ -154,8 +154,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         } finally {
             // Always clear local session even if server request fails
             setUser(null);
-            // Redirect to tenderflow.cz after logout
-            window.location.href = 'https://tenderflow.cz';
+            // Navigate to landing page using router
+            window.location.href = '/';
         }
     };
 
