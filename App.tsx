@@ -130,35 +130,16 @@ const AppContent: React.FC = () => {
   const [isBackgroundLoading, setIsBackgroundLoading] = useState(false);
   const [backgroundWarning, setBackgroundWarning] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [uiModal, setUiModal] = useState<{
-    isOpen: boolean;
-    title: string;
-    message: string;
-    variant?: 'danger' | 'info' | 'success';
-    confirmLabel?: string;
-  }>({
-    isOpen: false,
-    title: '',
-    message: '',
-    variant: 'info',
-    confirmLabel: 'Zavřít',
-  });
 
-  const showUiModal = (opts: {
-    title: string;
-    message: string;
-    variant?: 'danger' | 'info' | 'success';
-    confirmLabel?: string;
-  }) => {
-    setUiModal({
-      isOpen: true,
-      title: opts.title,
-      message: opts.message,
-      variant: opts.variant ?? 'info',
-      confirmLabel: opts.confirmLabel ?? 'Zavřít',
-    });
-  };
+  // UI State Management - using extracted hook
+  const {
+    uiModal,
+    showUiModal,
+    closeUiModal,
+    isSidebarOpen,
+    setIsSidebarOpen,
+  } = useUIState();
+
 
   useEffect(() => {
     allProjectDetailsRef.current = allProjectDetails;
@@ -185,26 +166,7 @@ const AppContent: React.FC = () => {
     },
   });
 
-
-  // Responsive Sidebar Management
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 768) {
-        setIsSidebarOpen(false);
-      } else {
-        setIsSidebarOpen(true);
-      }
-    };
-
-    // Initial check
-    handleResize();
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // Note: Theme sync and CSS variables are now handled by useTheme hook
-
+  // Note: Theme sync handled by useTheme, UI state by useUIState
 
   // Sync internal state from URL (enables refresh + back button navigation inside the app)
   useEffect(() => {
@@ -2113,7 +2075,7 @@ const AppContent: React.FC = () => {
         message={uiModal.message}
         variant={uiModal.variant}
         confirmLabel={uiModal.confirmLabel}
-        onConfirm={() => setUiModal((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={closeUiModal}
       />
       <Sidebar
         currentView={currentView}
