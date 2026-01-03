@@ -107,7 +107,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, project
                 {activeTab === 'pipeline' && <Pipeline projectId={projectId} projectDetails={project} bids={project.bids || {}} contacts={contacts} statuses={statuses} onAddCategory={onAddCategory} onEditCategory={onEditCategory} onDeleteCategory={onDeleteCategory} onBidsChange={(bids) => onBidsChange?.(projectId, bids)} searchQuery={searchQuery} initialOpenCategoryId={initialPipelineCategoryId} />}
                 {activeTab === 'schedule' && (
                     <div className="flex-1 min-h-0">
-                        <ProjectSchedule projectId={projectId} categories={project.categories || []} />
+                        <ProjectSchedule projectId={projectId} projectTitle={project.title} categories={project.categories || []} />
                     </div>
                 )}
                 {activeTab === 'documents' && <ProjectDocuments project={project} onUpdate={onUpdateDetails} />}

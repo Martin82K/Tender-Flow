@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { DemandCategory, TenderPlanItem } from "../types";
 import { supabase } from "../services/supabase";
+import { exportScheduleToXLSX, exportScheduleToPDF, exportScheduleWithTimelineToXLSX } from "../services/scheduleExportService";
 
-type Zoom = "month" | "week";
+type Zoom = "month" | "week" | "day";
 
 type Row = {
   id: string;
@@ -239,6 +240,19 @@ const buildRows = (categories: DemandCategory[], tenderPlans: TenderPlanItem[], 
 
 const buildAxis = (rangeStart: Date, rangeEnd: Date, zoom: Zoom) => {
   const segments: { key: string; label: string; days: number }[] = [];
+  
+  if (zoom === "day") {
+    // Daily segments
+    let cursor = startOfDay(rangeStart);
+    const end = startOfDay(rangeEnd);
+    const dayFormatter = new Intl.DateTimeFormat('cs-CZ', { day: '2-digit', month: '2-digit' });
+    while (cursor.getTime() <= end.getTime()) {
+      segments.push({ key: cursor.toISOString(), label: dayFormatter.format(cursor), days: 1 });
+      cursor = addDays(cursor, 1);
+    }
+    return segments;
+  }
+  
   if (zoom === "week") {
     let cursor = startOfWeekMonday(rangeStart);
     const end = startOfWeekMonday(rangeEnd);
@@ -258,7 +272,7 @@ const buildAxis = (rangeStart: Date, rangeEnd: Date, zoom: Zoom) => {
   return segments;
 };
 
-export const ProjectSchedule: React.FC<{ projectId: string; categories: DemandCategory[] }> = ({ projectId, categories }) => {
+export const ProjectSchedule: React.FC<{ projectId: string; projectTitle?: string; categories: DemandCategory[] }> = ({ projectId, projectTitle, categories }) => {
   const [tenderPlans, setTenderPlans] = useState<TenderPlanItem[]>([]);
   const [localCategories, setLocalCategories] = useState<DemandCategory[]>(categories);
   const [isLoading, setIsLoading] = useState(true);
@@ -275,8 +289,11 @@ export const ProjectSchedule: React.FC<{ projectId: string; categories: DemandCa
   }>({ isOpen: false, row: null, start: "", end: "", isSaving: false, error: null });
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const chartContainerRef = useRef<HTMLDivElement | null>(null);
   const didAutoFocusRef = useRef(false);
   const [canScroll, setCanScroll] = useState({ left: false, right: false });
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setLocalCategories(categories);
@@ -345,7 +362,7 @@ export const ProjectSchedule: React.FC<{ projectId: string; categories: DemandCa
     };
   }, [rows]);
 
-  const dayWidth = zoom === "month" ? 6 : 16;
+  const dayWidth = zoom === "month" ? 6 : zoom === "week" ? 16 : 24;
   const totalDays = Math.max(1, diffDaysUtc(rangeStart, rangeEnd) + 1);
   const chartWidth = totalDays * dayWidth;
 
@@ -383,6 +400,23 @@ export const ProjectSchedule: React.FC<{ projectId: string; categories: DemandCa
       el.scrollTo({ left: target, behavior: "auto" });
     });
   }, [isLoading, rows.length, todayX.x, chartWidth]);
+
+  // Auto-scroll to today when zoom level changes
+  useEffect(() => {
+    if (isLoading || rows.length === 0) return;
+    if (todayX.x < 0 || todayX.x > chartWidth) return;
+
+    const el = scrollRef.current;
+    if (!el) return;
+
+    requestAnimationFrame(() => {
+      const chartViewportWidth = Math.max(0, el.clientWidth - leftWidth);
+      const rawTarget = todayX.x - chartViewportWidth / 2;
+      const maxScroll = Math.max(0, el.scrollWidth - el.clientWidth);
+      const target = Math.max(0, Math.min(rawTarget, maxScroll));
+      el.scrollTo({ left: target, behavior: "smooth" });
+    });
+  }, [zoom]);
 
   const isRowEditable = (row: Row) => {
     if (!isEditMode) return false;
@@ -516,6 +550,21 @@ export const ProjectSchedule: React.FC<{ projectId: string; categories: DemandCa
     };
   }, [chartWidth, rows.length, zoom]);
 
+  // Close export menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)) {
+        setShowExportMenu(false);
+      }
+    };
+    if (showExportMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showExportMenu]);
+
   return (
     <div className="p-4 lg:p-6 flex flex-col gap-4 flex-1 min-h-0 bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <div className="w-full flex flex-col gap-4 flex-1 min-h-0">
@@ -564,6 +613,16 @@ export const ProjectSchedule: React.FC<{ projectId: string; categories: DemandCa
               >
                 Týdny
               </button>
+              <button
+                type="button"
+                onClick={() => setZoom("day")}
+                className={`px-3 py-2 rounded-lg text-xs font-bold transition-all ${zoom === "day"
+                  ? "bg-primary text-white shadow-lg"
+                  : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700/50"
+                  }`}
+              >
+                Dny
+              </button>
             </div>
 
             <label className="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900/60 text-xs font-bold text-slate-700 dark:text-slate-200">
@@ -575,6 +634,97 @@ export const ProjectSchedule: React.FC<{ projectId: string; categories: DemandCa
               />
               Realizace
             </label>
+
+            {/* Export button */}
+            <div className="relative" ref={exportMenuRef}>
+              <button
+                type="button"
+                onClick={() => setShowExportMenu((v) => !v)}
+                className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900/60 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all flex items-center gap-1"
+              >
+                <span className="material-symbols-outlined text-[16px] align-[-3px]">download</span>
+                Export
+                <span className="material-symbols-outlined text-[14px] align-[-2px]">expand_more</span>
+              </button>
+              {showExportMenu && (
+                <div className="absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-xl border border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900 shadow-xl overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowExportMenu(false);
+                      const exportRows = rows.map((r) => ({
+                        label: r.label,
+                        subLabel: r.subLabel,
+                        start: r.start,
+                        end: r.end,
+                        kind: r.kind,
+                      }));
+                      exportScheduleToXLSX(
+                        exportRows,
+                        projectTitle || 'Harmonogram',
+                        rangeStart,
+                        rangeEnd,
+                        includeRealization ? 'realization' : 'tender'
+                      );
+                    }}
+                    className="w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">table_chart</span>
+                    Export XLSX
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowExportMenu(false);
+                      const exportRows = rows.map((r) => ({
+                        label: r.label,
+                        subLabel: r.subLabel,
+                        start: r.start,
+                        end: r.end,
+                        kind: r.kind,
+                      }));
+                      exportScheduleToPDF(
+                        exportRows,
+                        projectTitle || 'Harmonogram',
+                        rangeStart,
+                        rangeEnd,
+                        includeRealization ? 'realization' : 'tender'
+                      );
+                    }}
+                    className="w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">picture_as_pdf</span>
+                    Export PDF
+                  </button>
+                  <div className="border-t border-slate-200 dark:border-slate-700/50" />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setShowExportMenu(false);
+                      const exportRows = rows.map((r) => ({
+                        label: r.label,
+                        subLabel: r.subLabel,
+                        start: r.start,
+                        end: r.end,
+                        kind: r.kind,
+                      }));
+                      await exportScheduleWithTimelineToXLSX(
+                        exportRows,
+                        projectTitle || 'Harmonogram',
+                        rangeStart,
+                        rangeEnd,
+                        includeRealization ? 'realization' : 'tender',
+                        zoom
+                      );
+                    }}
+                    className="w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">insert_chart</span>
+                    Export XLSX s grafem
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -622,7 +772,7 @@ export const ProjectSchedule: React.FC<{ projectId: string; categories: DemandCa
                 </button>
               )}
 
-              <div ref={scrollRef} className="overflow-x-auto overflow-y-auto flex-1 min-h-0">
+              <div ref={(el) => { scrollRef.current = el; chartContainerRef.current = el; }} className="overflow-x-auto overflow-y-auto flex-1 min-h-0" style={{ maxHeight: 'calc(100vh - 280px)' }}>
                 <div className="min-w-max">
                   {/* Axis header */}
                   <div className="flex sticky top-0 z-20 bg-white dark:bg-slate-950/70 border-b border-slate-200 dark:border-slate-800">
@@ -646,32 +796,34 @@ export const ProjectSchedule: React.FC<{ projectId: string; categories: DemandCa
                       </div>
                       <div className="absolute inset-0 pointer-events-none opacity-60" style={gridBg} />
                       {todayX.x >= 0 && todayX.x <= chartWidth && (
-                        <>
-                          <div
-                            className="absolute top-0 bottom-0 w-px bg-rose-500/70 pointer-events-none"
-                            style={{ left: todayX.x }}
-                          />
-                        </>
+                        <div
+                          className="absolute top-0 bottom-0 w-px bg-rose-500/70 pointer-events-none"
+                          style={{ left: todayX.x }}
+                        />
                       )}
                     </div>
                   </div>
+
+                  {/* Date flag below axis header */}
+                  {todayX.x >= 0 && todayX.x <= chartWidth && (
+                    <div className="relative h-0" style={{ left: leftWidth, width: chartWidth }}>
+                      <div
+                        className="absolute top-1 pointer-events-none z-10"
+                        style={{ left: Math.max(6, Math.min(chartWidth - 100, todayX.x - 45)) }}
+                      >
+                        <div className="px-2 py-1 rounded-lg bg-rose-500/15 border border-rose-500/25 text-[10px] font-bold text-rose-300 backdrop-blur">
+                          Dnes: {todayX.label}
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Rows */}
                   <div className="relative">
                     <div className="absolute inset-y-0 pointer-events-none" style={{ left: leftWidth, width: chartWidth }}>
                       <div className="absolute inset-0 opacity-40" style={gridBg} />
                       {todayX.x >= 0 && todayX.x <= chartWidth && (
-                        <>
-                          <div className="absolute top-0 bottom-0 w-px bg-rose-500/60" style={{ left: todayX.x }} />
-                          <div
-                            className="absolute top-1/2 -translate-y-1/2 pointer-events-none"
-                            style={{ left: Math.max(6, Math.min(chartWidth - 90, todayX.x + 8)) }}
-                          >
-                            <div className="px-2 py-1 rounded-lg bg-rose-500/15 border border-rose-500/25 text-[10px] font-bold text-rose-300 backdrop-blur">
-                              Dnes: {todayX.label}
-                            </div>
-                          </div>
-                        </>
+                        <div className="absolute top-0 bottom-0 w-px bg-rose-500/60" style={{ left: todayX.x }} />
                       )}
                     </div>
 
