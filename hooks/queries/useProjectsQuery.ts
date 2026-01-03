@@ -16,8 +16,10 @@ export const useProjectsQuery = () => {
     const { user } = useAuth();
 
     return useQuery({
-        queryKey: PROJECT_KEYS.list(),
+        queryKey: [...PROJECT_KEYS.list(), user?.id],
+        enabled: !!user,
         queryFn: async () => {
+
             if (user?.role === "demo") {
                 const demoData = getDemoData();
                 return demoData ? demoData.projects : [];

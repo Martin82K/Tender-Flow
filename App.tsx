@@ -34,7 +34,7 @@ function AppContent() {
   const { state, actions } = useAppData(showUiModal);
 
   // UI State
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [currentView, setCurrentView] = useState<View>("dashboard");
   const [activeProjectTab, setActiveProjectTab] = useState<string>("overview");
   const [activePipelineCategoryId, setActivePipelineCategoryId] = useState<string | null>(null);

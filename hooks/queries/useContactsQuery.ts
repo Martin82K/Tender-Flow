@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../../services/supabase";
 import { withRetry, withTimeout } from "../../utils/helpers";
 import { Subcontractor } from "../../types";
+import { useAuth } from "../../context/AuthContext";
 
 export const CONTACT_KEYS = {
     all: ["contacts"] as const,
@@ -9,8 +10,10 @@ export const CONTACT_KEYS = {
 };
 
 export const useContactsQuery = () => {
+    const { user } = useAuth();
     return useQuery({
-        queryKey: CONTACT_KEYS.list(),
+        queryKey: [...CONTACT_KEYS.list(), user?.id],
+        enabled: !!user,
         queryFn: async () => {
             const subcontractorsRes = await withRetry(
                 () =>
