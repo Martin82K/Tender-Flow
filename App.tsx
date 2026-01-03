@@ -840,6 +840,7 @@ const AppContent: React.FC = () => {
           plannedCost: project.planned_cost || 0,
           documentationLink: project.documentation_link,
           inquiryLetterLink: project.inquiry_letter_link,
+          losersEmailTemplateLink: project.losers_email_template_link,
           priceListLink: project.price_list_link,
           docHubEnabled: project.dochub_enabled ?? false,
           docHubRootLink: project.dochub_root_link ?? "",
@@ -1243,6 +1244,9 @@ const AppContent: React.FC = () => {
     id: string,
     updates: Partial<ProjectDetails>
   ) => {
+    const hadLosersEmailTemplateUpdate = Object.prototype.hasOwnProperty.call(updates, "losersEmailTemplateLink");
+    const previousLosersEmailTemplateLink = allProjectDetails[id]?.losersEmailTemplateLink;
+
     // Optimistic update
     setAllProjectDetails((prev) => ({
       ...prev,
@@ -1294,6 +1298,8 @@ const AppContent: React.FC = () => {
         projectUpdates.documentation_link = updates.documentationLink;
       if (updates.inquiryLetterLink !== undefined)
         projectUpdates.inquiry_letter_link = updates.inquiryLetterLink;
+      if (updates.losersEmailTemplateLink !== undefined)
+        projectUpdates.losers_email_template_link = updates.losersEmailTemplateLink;
       if (updates.priceListLink !== undefined)
         projectUpdates.price_list_link = updates.priceListLink;
       if (updates.docHubEnabled !== undefined)
@@ -1335,7 +1341,37 @@ const AppContent: React.FC = () => {
           .update(projectUpdates)
           .eq("id", id);
 
-        if (error) console.error("Error updating project:", error);
+        if (error) {
+          // If the instance hasn't been migrated yet (or schema cache is stale), don't block other updates.
+          if (
+            error.code === "PGRST204" &&
+            typeof error.message === "string" &&
+            error.message.includes("losers_email_template_link")
+          ) {
+            const { losers_email_template_link, ...rest } = projectUpdates;
+            if (Object.keys(rest).length > 0) {
+              const { error: retryError } = await supabase
+                .from("projects")
+                .update(rest)
+                .eq("id", id);
+              if (retryError) console.error("Error updating project (retry):", retryError);
+            }
+            console.warn(
+              "[Project] Missing column losers_email_template_link. Apply migration supabase/migrations/20260103000200_add_losers_email_template_to_projects.sql and refresh PostgREST schema cache."
+            );
+            if (hadLosersEmailTemplateUpdate) {
+              setAllProjectDetails((prev) => ({
+                ...prev,
+                [id]: { ...prev[id], losersEmailTemplateLink: previousLosersEmailTemplateLink },
+              }));
+              alert(
+                "Nelze uložit šablonu emailu nevybraným: v databázi chybí sloupec losers_email_template_link. Nahrajte migraci a poté obnovte schema cache (Supabase)."
+              );
+            }
+          } else {
+            console.error("Error updating project:", error);
+          }
+        }
       }
 
       // Update contract if provided

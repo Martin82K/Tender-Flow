@@ -166,6 +166,7 @@ export interface ProjectDetails {
   // Documents
   documentationLink?: string; // Link to shared project documentation
   inquiryLetterLink?: string; // Link to inquiry letter template
+  losersEmailTemplateLink?: string; // Link to email template for non-selected participants
   priceListLink?: string; // Link to price lists (Ceníky)
   docHubEnabled?: boolean; // DocHub module enabled for this project
   docHubRootLink?: string; // Root link/path to the project's DocHub folder

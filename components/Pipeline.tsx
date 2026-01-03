@@ -1664,9 +1664,11 @@ export const Pipeline: React.FC<PipelineProps> = ({
     let subject = "";
     let body = "";
 
+    const templateLink = projectDetails.inquiryLetterLink || "";
+
     // Check if using new template system
-    if (projectDetails.inquiryLetterLink?.startsWith('template:')) {
-      const templateId = projectDetails.inquiryLetterLink.split(':')[1];
+    if (templateLink.startsWith('template:')) {
+      const templateId = templateLink.split(':')[1];
       const template = await getTemplateById(templateId);
 
       if (template) {
@@ -1781,7 +1783,24 @@ export const Pipeline: React.FC<PipelineProps> = ({
   };
 
   // Handle sending email to losers (non-winners with at least one price)
-  const handleEmailLosers = () => {
+  const htmlToPlainText = (html: string) =>
+    html
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<\/p>/gi, "\n\n")
+      .replace(/<p[^>]*>/gi, "")
+      .replace(/<li[^>]*>/gi, "• ")
+      .replace(/<\/li>/gi, "\n")
+      .replace(/<\/ul>/gi, "\n")
+      .replace(/<\/ol>/gi, "\n")
+      .replace(/<[^>]+>/g, "")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+
+  const handleEmailLosers = async () => {
     if (!activeCategory) return;
 
     const categoryBids = bids[activeCategory.id] || [];
@@ -1813,18 +1832,27 @@ export const Pipeline: React.FC<PipelineProps> = ({
       return;
     }
 
-    // Create mailto link with BCC
-    const subject = encodeURIComponent(`${projectDetails.title} - ${activeCategory.title} - Výsledek výběrového řízení`);
-    const body = encodeURIComponent(
+    let subject = `${projectDetails.title} - ${activeCategory.title} - Výsledek výběrového řízení`;
+    let body =
       `Vážený obchodní partnere,\n\n` +
       `děkujeme za Vaši nabídku v rámci výběrového řízení na zakázku "${projectDetails.title}" - ${activeCategory.title}.\n\n` +
       `Po pečlivém zvážení všech nabídek jsme se rozhodli pokračovat s jiným dodavatelem.\n\n` +
       `Věříme, že budeme mít možnost spolupracovat na dalších projektech v budoucnosti.\n\n` +
-      `S pozdravem`
-    );
+      `S pozdravem`;
+
+    const templateLink = projectDetails.losersEmailTemplateLink || "";
+    if (templateLink.startsWith("template:")) {
+      const templateId = templateLink.split(":")[1];
+      const template = await getTemplateById(templateId);
+      if (template) {
+        subject = processTemplate(template.subject, projectDetails, activeCategory);
+        const processed = processTemplate(template.content, projectDetails, activeCategory);
+        body = htmlToPlainText(processed);
+      }
+    }
 
     // Open mailto with BCC to all losers
-    window.location.href = `mailto:?bcc=${emails.join(',')}&subject=${subject}&body=${body}`;
+    window.location.href = `mailto:?bcc=${emails.join(',')}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 
   const handleSaveNewContact = async (newContact: Subcontractor) => {

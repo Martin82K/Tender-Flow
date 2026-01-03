@@ -1192,57 +1192,52 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                     <div className="space-y-8 animate-fadeIn">
                         <section className="relative overflow-hidden rounded-[2.5rem] border border-slate-200/60 dark:border-white/10 bg-white/40 dark:bg-slate-900/40 backdrop-blur-3xl shadow-2xl shadow-slate-200/50 dark:shadow-none">
                             {/* Animated Background Elements */}
-                            <div className="pointer-events-none absolute inset-0 overflow-hidden">
-                                <div className="absolute -top-[10%] -left-[10%] size-[40rem] rounded-full bg-gradient-to-br from-emerald-400/20 to-transparent blur-[120px] dark:from-emerald-500/15 animate-pulse" />
-                                <div className="absolute -bottom-[15%] -right-[5%] size-[35rem] rounded-full bg-gradient-to-tr from-primary/20 to-transparent blur-[100px] dark:from-primary/10" />
-                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(0,0,0,0.03)_1px,transparent_1px)] dark:bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.03)_1px,transparent_1px)] [background-size:24px_24px]" />
-                            </div>
+	                            <div className="pointer-events-none absolute inset-0 overflow-hidden">
+	                                <div className="absolute -top-[10%] -left-[10%] size-[40rem] rounded-full bg-gradient-to-br from-primary/20 to-transparent blur-[120px] dark:from-primary/10 animate-pulse" />
+	                                <div className="absolute -bottom-[15%] -right-[5%] size-[35rem] rounded-full bg-gradient-to-tr from-primary/20 to-transparent blur-[100px] dark:from-primary/10" />
+	                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(0,0,0,0.03)_1px,transparent_1px)] dark:bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.03)_1px,transparent_1px)] [background-size:24px_24px]" />
+	                            </div>
 
                             <div className="relative px-8 py-12 sm:px-14 sm:py-16">
                                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-10">
-                                    <div className="flex-1 space-y-6">
-                                        <div className="inline-flex items-center gap-3 px-4 py-2 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400">
-                                            <span className="material-symbols-outlined text-[20px]">verified</span>
-                                            <span className="text-sm font-bold tracking-wide uppercase">Enterprise Tool</span>
-                                        </div>
-                                        
-                                        <div className="space-y-4">
-                                            <h3 className="text-5xl sm:text-6xl font-black tracking-tight text-slate-950 dark:text-white leading-[1.1]">
-                                                Excel<span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-emerald-400">Unlocker</span> <span className="relative">Pro<span className="absolute -right-8 -top-2 flex h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span></span></span>
-                                            </h3>
-                                            <p className="max-w-xl text-lg sm:text-xl text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-                                                Profesionální nástroj pro <span className="text-slate-900 dark:text-white font-bold underline decoration-emerald-500/30">okamžité odstranění ochrany listu</span>. Vše probíhá bezpečně ve vašem prohlížeči.
-                                            </p>
-                                        </div>
+	                                    <div className="flex-1 space-y-6">
+	                                        <div className="space-y-4">
+		                                            <h3 className="text-5xl sm:text-6xl font-black tracking-tight text-slate-950 dark:text-white leading-[1.1]">
+		                                                Excel<span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/70">Unlocker</span> Pro
+		                                            </h3>
+	                                            <p className="max-w-xl text-lg sm:text-xl text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+	                                                Profesionální nástroj pro <span className="text-slate-900 dark:text-white font-bold">okamžité odstranění ochrany listu</span>. Vše probíhá bezpečně ve vašem prohlížeči.
+	                                            </p>
+	                                        </div>
 
-                                        <div className="flex flex-wrap gap-4 pt-4">
-                                            {[
-                                                { icon: 'shield_lock', label: '100% Soukromé', color: 'emerald' },
-                                                { icon: 'bolt', label: 'Ultra Rychlé', color: 'amber' },
-                                                { icon: 'description', label: 'Full Protocol Support', color: 'primary' }
-                                            ].map((badge) => (
-                                                <div key={badge.label} className="flex items-center gap-2.5 px-5 py-2.5 rounded-2xl bg-white/50 dark:bg-white/5 border border-slate-200/50 dark:border-white/10 backdrop-blur-xl shadow-sm">
-                                                    <span className={`material-symbols-outlined text-[20px] text-${badge.color}-600 dark:text-${badge.color}-400`}>{badge.icon}</span>
-                                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-200">{badge.label}</span>
-                                                </div>
-                                            ))}
-                                        </div>
+	                                        <div className="flex flex-wrap gap-4 pt-4">
+	                                            {[
+	                                                { icon: 'shield_lock', label: '100% Soukromé', iconClassName: 'text-primary' },
+	                                                { icon: 'bolt', label: 'Ultra Rychlé', iconClassName: 'text-amber-600 dark:text-amber-400' },
+	                                                { icon: 'description', label: 'Full Protocol Support', iconClassName: 'text-primary' }
+	                                            ].map((badge) => (
+	                                                <div key={badge.label} className="flex items-center gap-2.5 px-5 py-2.5 rounded-2xl bg-white/50 dark:bg-white/5 border border-slate-200/50 dark:border-white/10 backdrop-blur-xl shadow-sm">
+	                                                    <span className={`material-symbols-outlined text-[20px] ${badge.iconClassName}`}>{badge.icon}</span>
+	                                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-200">{badge.label}</span>
+	                                                </div>
+	                                            ))}
+	                                        </div>
                                     </div>
 
-                                    <div className="hidden lg:flex flex-col items-center gap-4">
-                                        <div className="size-24 rounded-[2rem] bg-slate-950 flex items-center justify-center border-4 border-slate-800 shadow-2xl shadow-emerald-500/20 rotate-3 hover:rotate-0 transition-transform duration-500">
-                                            <img src={logo} alt="Tender Flow" className="h-16 w-auto object-contain p-2" />
-                                        </div>
-                                        <div className="h-12 w-1 border-l-2 border-dashed border-slate-300 dark:border-slate-700" />
-                                        <div className="size-16 rounded-3xl bg-emerald-600 text-white flex items-center justify-center shadow-lg transform -rotate-3 hover:rotate-0 transition-transform duration-500">
-                                            <span className="material-symbols-outlined text-3xl">grid_on</span>
-                                        </div>
-                                    </div>
+	                                    <div className="hidden lg:flex flex-col items-center gap-4">
+	                                        <div className="size-24 rounded-[2rem] bg-slate-950 flex items-center justify-center border-4 border-slate-800 shadow-2xl rotate-3 hover:rotate-0 transition-transform duration-500">
+	                                            <img src={logo} alt="Tender Flow" className="h-16 w-auto object-contain p-2" />
+	                                        </div>
+	                                        <div className="h-12 w-1 border-l-2 border-dashed border-slate-300 dark:border-slate-700" />
+	                                        <div className="size-16 rounded-3xl bg-primary text-white flex items-center justify-center shadow-lg transform -rotate-3 hover:rotate-0 transition-transform duration-500">
+	                                            <span className="material-symbols-outlined text-3xl">grid_on</span>
+	                                        </div>
+	                                    </div>
                                 </div>
 
                                 <div className="mt-16 grid grid-cols-1 lg:grid-cols-12 gap-8">
                                     <div className="lg:col-span-7">
-                                        <div className="group relative rounded-[2.5rem] border border-slate-200/70 dark:border-white/10 bg-white/90 dark:bg-slate-950/60 backdrop-blur-2xl shadow-2xl p-8 transition-all duration-500 hover:shadow-emerald-500/10">
+	                                        <div className="group relative rounded-[2.5rem] border border-slate-200/70 dark:border-white/10 bg-white/90 dark:bg-slate-950/60 backdrop-blur-2xl shadow-2xl p-8 transition-all duration-500 hover:shadow-[0_24px_60px_rgb(var(--color-primary)_/_0.08)]">
                                             <div className="flex items-center justify-between mb-8">
                                                 <div>
                                                     <h4 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Odemknout soubor</h4>
@@ -1271,14 +1266,14 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                                                 onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsExcelDropActive(true); }}
                                                 onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsExcelDropActive(false); }}
                                                 onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setIsExcelDropActive(false); const file = e.dataTransfer.files?.[0]; if (file) acceptExcelFile(file); }}
-                                                className={`group/drop mt-6 w-full rounded-[2rem] border-2 border-dashed transition-all duration-500 px-8 py-14 text-center ${isExcelDropActive
-                                                    ? 'border-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/10 scale-[0.99]'
-                                                    : 'border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/5 hover:border-emerald-500/50 hover:bg-emerald-500/5'
-                                                    }`}
-                                            >
-                                                <div className={`mx-auto size-20 rounded-[1.75rem] border flex items-center justify-center shadow-inner transition-all duration-500 ${
-                                                    isExcelDropActive ? 'bg-emerald-500 text-white border-emerald-400 rotate-12' : 'bg-white dark:bg-white/5 text-emerald-600 dark:text-emerald-400 border-slate-200/60 dark:border-white/10 group-hover/drop:scale-110 group-hover/drop:rotate-6'
-                                                }`}>
+	                                                className={`group/drop mt-6 w-full rounded-[2rem] border-2 border-dashed transition-all duration-500 px-8 py-14 text-center ${isExcelDropActive
+	                                                    ? 'border-primary bg-primary/5 dark:bg-primary/10 scale-[0.99]'
+	                                                    : 'border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/5 hover:border-primary/50 hover:bg-primary/5'
+	                                                    }`}
+	                                            >
+	                                                <div className={`mx-auto size-20 rounded-[1.75rem] border flex items-center justify-center shadow-inner transition-all duration-500 ${
+	                                                    isExcelDropActive ? 'bg-primary text-white border-primary/60 rotate-12' : 'bg-white dark:bg-white/5 text-primary border-slate-200/60 dark:border-white/10 group-hover/drop:scale-110 group-hover/drop:rotate-6'
+	                                                }`}>
                                                     <span className={`material-symbols-outlined text-[36px] ${isExcelDropActive ? 'animate-bounce' : ''}`}>
                                                         {excelFile ? 'description' : 'cloud_upload'}
                                                     </span>
@@ -1298,7 +1293,7 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                                                 disabled={!excelFile || isUnlockingExcel}
                                                 className="group/btn mt-8 relative w-full inline-flex items-center justify-center gap-3 px-8 py-5 rounded-3xl bg-slate-950 dark:bg-white dark:text-slate-950 text-white font-black text-lg shadow-2xl transition-all duration-500 hover:scale-[1.02] hover:-translate-y-1 active:scale-95 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed overflow-hidden"
                                             >
-                                                <div className="absolute inset-0 bg-gradient-to-r from-emerald-600 to-primary opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500" />
+	                                                <div className="absolute inset-0 bg-gradient-to-r from-primary to-primary/60 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500" />
                                                 <div className="relative flex items-center gap-3">
                                                     {isUnlockingExcel ? (
                                                         <>
@@ -1318,31 +1313,31 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                                                 <div className="mt-8 space-y-3">
                                                     <div className="flex items-center justify-between px-1">
                                                         <span className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">{excelProgress.label}</span>
-                                                        <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 tabular-nums">{excelProgress.percent}%</span>
-                                                    </div>
-                                                    <div className="h-3 w-full rounded-full bg-slate-100 dark:bg-white/5 p-0.5 border border-slate-200/50 dark:border-white/5">
-                                                        <div
-                                                            className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-emerald-400 to-primary shadow-[0_0_12px_rgba(16,185,129,0.4)] transition-[width] duration-700 ease-out"
-                                                            style={{ width: `${Math.max(0, Math.min(100, excelProgress.percent))}%` }}
-                                                        />
-                                                    </div>
-                                                </div>
+	                                                        <span className="text-xs font-black text-primary tabular-nums">{excelProgress.percent}%</span>
+	                                                    </div>
+	                                                    <div className="h-3 w-full rounded-full bg-slate-100 dark:bg-white/5 p-0.5 border border-slate-200/50 dark:border-white/5">
+	                                                        <div
+	                                                            className="h-full rounded-full bg-gradient-to-r from-primary via-primary/80 to-primary/60 shadow-[0_0_12px_rgb(var(--color-primary)_/_0.4)] transition-[width] duration-700 ease-out"
+	                                                            style={{ width: `${Math.max(0, Math.min(100, excelProgress.percent))}%` }}
+	                                                        />
+	                                                    </div>
+	                                                </div>
                                             )}
 
                                             {excelSuccessInfo && (
                                                 <div className="mt-8 animate-fadeInUp">
-                                                    <div className="rounded-3xl border border-emerald-500/30 bg-emerald-500/10 dark:bg-emerald-500/20 p-6 flex items-start gap-4 shadow-xl shadow-emerald-500/10">
-                                                        <div className="size-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shrink-0">
-                                                            <span className="material-symbols-outlined text-2xl">check_circle</span>
-                                                        </div>
-                                                        <div>
-                                                            <h5 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">Odemčeno a staženo</h5>
-                                                            <p className="text-xs font-medium text-slate-600 dark:text-emerald-100/80 mt-1 leading-relaxed">
-                                                                Soubor <span className="text-emerald-700 dark:text-emerald-300 font-bold">{excelSuccessInfo.outputName}</span> byl vytvořen. Původní soubor můžete smazat.
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                </div>
+	                                                    <div className="rounded-3xl border border-primary/30 bg-primary/10 dark:bg-primary/20 p-6 flex items-start gap-4 shadow-xl">
+	                                                        <div className="size-12 rounded-2xl bg-primary text-white flex items-center justify-center shrink-0">
+	                                                            <span className="material-symbols-outlined text-2xl">check_circle</span>
+	                                                        </div>
+	                                                        <div>
+	                                                            <h5 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">Odemčeno a staženo</h5>
+	                                                            <p className="text-xs font-medium text-slate-600 dark:text-slate-200/80 mt-1 leading-relaxed">
+	                                                                Soubor <span className="text-primary font-bold">{excelSuccessInfo.outputName}</span> byl vytvořen. Původní soubor můžete smazat.
+	                                                            </p>
+	                                                        </div>
+	                                                    </div>
+	                                                </div>
                                             )}
                                         </div>
                                     </div>
@@ -1361,15 +1356,15 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                                                     { 
                                                         icon: 'verified_user', 
                                                         title: 'Odstraňuje ochranu listů', 
-                                                        desc: 'Cíleně maže tag <sheetProtection> v XML struktuře souboru.',
-                                                        color: 'text-emerald-500'
-                                                    },
-                                                    { 
-                                                        icon: 'history_edu', 
-                                                        title: 'Integrita dat zachována', 
-                                                        desc: 'Obsah a formátování zůstávají beze změny, upravují se pouze metadata.',
-                                                        color: 'text-emerald-500'
-                                                    },
+	                                                        desc: 'Cíleně maže tag <sheetProtection> v XML struktuře souboru.',
+	                                                        color: 'text-primary'
+	                                                    },
+	                                                    { 
+	                                                        icon: 'history_edu', 
+	                                                        title: 'Integrita dat zachována', 
+	                                                        desc: 'Obsah a formátování zůstávají beze změny, upravují se pouze metadata.',
+	                                                        color: 'text-primary'
+	                                                    },
                                                     { 
                                                         icon: 'report_problem', 
                                                         title: 'Limitace šifrování', 
@@ -1392,12 +1387,12 @@ Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku 
                                                     <span className="material-symbols-outlined text-4xl">lightbulb</span>
                                                 </div>
                                                 <div className="relative">
-                                                    <div className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400 mb-2">Expert Tip</div>
-                                                    <p className="text-xs font-medium leading-relaxed text-slate-300">
-                                                        Není nutné ručně měnit koncovky souborů. Pokud nahráváte <span className="text-white font-bold">.xlsm</span>, systém vrátí korektní makro-soubor se zachovanou vnitřní strukturou.
-                                                    </p>
-                                                </div>
-                                            </div>
+	                                                    <div className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-2">Expert Tip</div>
+	                                                    <p className="text-xs font-medium leading-relaxed text-slate-300">
+	                                                        Není nutné ručně měnit koncovky souborů. Pokud nahráváte <span className="text-white font-bold">.xlsm</span>, systém vrátí korektní makro-soubor se zachovanou vnitřní strukturou.
+	                                                    </p>
+	                                                </div>
+	                                            </div>
                                         </div>
                                     </div>
                                 </div>

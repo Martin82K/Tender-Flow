@@ -7,9 +7,10 @@ interface TemplateManagerProps {
     project?: ProjectDetails;
     onSelectTemplate?: (template: Template) => void;
     onClose?: () => void;
+    initialTemplateId?: string | null;
 }
 
-export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSelectTemplate, onClose }) => {
+export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSelectTemplate, onClose, initialTemplateId }) => {
     const [templates, setTemplates] = useState<Template[]>([]);
     const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
     const [editMode, setEditMode] = useState(false);
@@ -27,9 +28,8 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
         try {
             const data = await getTemplates();
             setTemplates(data);
-            if (!selectedTemplateId && data.length > 0) {
-                setSelectedTemplateId(data[0].id);
-            }
+            const preferredId = initialTemplateId && data.some((t) => t.id === initialTemplateId) ? initialTemplateId : null;
+            if (!selectedTemplateId && data.length > 0) setSelectedTemplateId(preferredId || data[0].id);
         } catch (error) {
             console.error('Failed to load templates:', error);
         } finally {

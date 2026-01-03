@@ -13,6 +13,7 @@ CREATE TABLE projects (
     planned_cost DECIMAL(15, 2),
     documentation_link TEXT, -- Link to project documentation
     inquiry_letter_link TEXT, -- Link to inquiry letter template
+    losers_email_template_link TEXT, -- Link to email template for non-selected participants
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

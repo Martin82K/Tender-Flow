@@ -4,7 +4,7 @@ import { Header } from './Header';
 import { Pipeline } from './Pipeline';
 import { TenderPlan } from './TenderPlan';
 import { ProjectSchedule } from './ProjectSchedule';
-import { ProjectTab, ProjectDetails, ContractDetails, InvestorFinancials, DemandCategory, Bid, Subcontractor, StatusConfig, Template } from '../types';
+import { ProjectTab, ProjectDetails, ContractDetails, InvestorFinancials, DemandCategory, Bid, Subcontractor, StatusConfig } from '../types';
 import { uploadDocument, formatFileSize } from '../services/documentService';
 import { TemplateManager } from './TemplateManager';
 import { getTemplateById } from '../services/templateService';
@@ -73,6 +73,28 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
     const [isUploadingTemplate, setIsUploadingTemplate] = useState(false);
     const [showTemplateManager, setShowTemplateManager] = useState(false);
     const [templateName, setTemplateName] = useState<string | null>(null);
+    const [losersTemplateName, setLosersTemplateName] = useState<string | null>(null);
+    const [templateManagerTarget, setTemplateManagerTarget] = useState<
+        | { kind: 'inquiry' }
+        | { kind: 'losers' }
+        | null
+    >(null);
+    const [templateManagerInitialId, setTemplateManagerInitialId] = useState<string | null>(null);
+
+    const extractTemplateId = (link: string | null | undefined) => {
+        if (!link) return null;
+        if (!link.startsWith('template:')) return null;
+        return link.split(':')[1] || null;
+    };
+
+    const openTemplateManager = (opts: {
+        target: { kind: 'inquiry' } | { kind: 'losers' } | null;
+        initialLink?: string | null;
+    }) => {
+        setTemplateManagerTarget(opts.target);
+        setTemplateManagerInitialId(extractTemplateId(opts.initialLink));
+        setShowTemplateManager(true);
+    };
 
     useEffect(() => {
         setDocsLinkValue(project.documentationLink || '');
@@ -108,6 +130,17 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
             setTemplateName(null);
         }
     }, [project.inquiryLetterLink]);
+
+    useEffect(() => {
+        if (project.losersEmailTemplateLink?.startsWith('template:')) {
+            const templateId = project.losersEmailTemplateLink.split(':')[1];
+            getTemplateById(templateId).then(template => {
+                setLosersTemplateName(template?.name || 'Neznámá šablona');
+            });
+        } else {
+            setLosersTemplateName(null);
+        }
+    }, [project.losersEmailTemplateLink]);
 
     const handleSaveDocs = () => {
         onUpdate({ documentationLink: docsLinkValue });
@@ -1146,92 +1179,100 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                     </div>
                     )}
 
-                    {/* Inquiry Letter Section */}
-                    {/* Inquiry Letter Section */}
                     {documentsSubTab === 'templates' && (
-                    <div className={`rounded-xl p-6 border transition-colors ${hasLetterLink ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30' : 'bg-slate-50 dark:bg-slate-950/30 border-slate-200 dark:border-slate-700/40'}`}>
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="flex items-center gap-2">
-                                <span className="material-symbols-outlined text-slate-400">mail</span>
-                                <h3 className="font-semibold text-slate-900 dark:text-white">Poptávkový dopis (šablona)</h3>
-                                {hasLetterLink && (
-                                    <span className="ml-2 px-2.5 py-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase rounded-lg border border-emerald-500/30">
-                                        Nastaveno
-                                    </span>
-                                )}
+                        <div className="rounded-xl border bg-white dark:bg-slate-950/30 border-slate-200 dark:border-slate-700/40 overflow-hidden">
+                            <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800">
+                                <h3 className="font-semibold text-slate-900 dark:text-white">Šablony</h3>
+                                <p className="text-xs text-slate-500 mt-1">Nastavení pro generování poptávky a email nevybraným.</p>
                             </div>
 
-                            <button
-                                onClick={() => setShowTemplateManager(true)}
-                                className="px-3 py-1.5 text-sm font-medium text-emerald-700 dark:text-emerald-300 bg-white dark:bg-slate-950/30 border border-slate-200 dark:border-slate-700/40 rounded-xl hover:bg-emerald-50 dark:hover:bg-slate-900/50 hover:border-emerald-300 dark:hover:border-emerald-500/30 transition-all flex items-center gap-2"
-                            >
-                                <span className="material-symbols-outlined text-[18px]">{hasLetterLink ? 'change_circle' : 'add_circle'}</span>
-                                {hasLetterLink ? 'Změnit šablonu' : 'Vybrat šablonu'}
-                            </button>
-                        </div>
-
-                        <div>
-                            {hasLetterLink ? (
-                                <div className="space-y-3">
-                                    <div
-                                        className="block p-4 bg-white dark:bg-slate-950/30 rounded-xl border border-slate-200 dark:border-slate-700/40 transition-all group"
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                <span className="material-symbols-outlined text-emerald-400">
-                                                    {project.inquiryLetterLink?.startsWith('template:') ? 'wysiwyg' : 'link'}
-                                                </span>
-                                                <div className="flex flex-col">
-                                                    <span className="text-sm font-medium text-slate-900 dark:text-white truncate">
-                                                        {project.inquiryLetterLink?.startsWith('template:')
-                                                            ? (templateName || 'Načítání...')
-                                                            : (project.inquiryLetterLink?.startsWith('http') ? 'Externí odkaz / Soubor' : project.inquiryLetterLink)
-                                                        }
-                                                    </span>
-                                                    {project.inquiryLetterLink?.startsWith('template:') && (
-                                                        <span className="text-xs text-slate-500">HTML šablona připravená k odeslání</span>
-                                                    )}
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full text-sm">
+                                    <thead className="bg-slate-50 dark:bg-slate-900/40 text-slate-600 dark:text-slate-300">
+                                        <tr>
+                                            <th className="text-left px-5 py-3 font-semibold">Typ</th>
+                                            <th className="text-left px-5 py-3 font-semibold">Aktivní šablona</th>
+                                            <th className="text-right px-5 py-3 font-semibold">Akce</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                                        <tr className="hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors">
+                                            <td className="px-5 py-4">
+                                                <div className="flex items-start gap-3">
+                                                    <span className="material-symbols-outlined text-slate-400 mt-0.5">mail</span>
+                                                    <div>
+                                                        <div className="font-medium text-slate-900 dark:text-white">Šablona poptávek</div>
+                                                        <div className="text-xs text-slate-500">Použije se pro akci „Generovat poptávku“.</div>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div className="flex gap-2">
+                                            </td>
+                                            <td className="px-5 py-4">
+                                                {project.inquiryLetterLink ? (
+                                                    <div className="flex items-center gap-2 min-w-0">
+                                                        <span className="material-symbols-outlined text-emerald-400 text-[18px]">
+                                                            {project.inquiryLetterLink.startsWith('template:') ? 'wysiwyg' : 'link'}
+                                                        </span>
+                                                        <span className="text-slate-900 dark:text-white font-medium truncate">
+                                                            {project.inquiryLetterLink.startsWith('template:')
+                                                                ? (templateName || 'Načítání...')
+                                                                : (project.inquiryLetterLink.startsWith('http') ? 'Externí odkaz / Soubor' : project.inquiryLetterLink)}
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-slate-500">Nenastaveno</span>
+                                                )}
+                                            </td>
+                                            <td className="px-5 py-4 text-right whitespace-nowrap">
                                                 <button
-                                                    onClick={() => setShowTemplateManager(true)}
-                                                    className="p-2 text-slate-500 hover:text-emerald-400 transition-colors"
-                                                    title="Upravit / Zobrazit"
+                                                    onClick={() => openTemplateManager({ target: { kind: 'inquiry' }, initialLink: project.inquiryLetterLink || '' })}
+                                                    className="px-3 py-1.5 text-sm font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50/60 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-500/15 transition-colors inline-flex items-center gap-2"
                                                 >
-                                                    <span className="material-symbols-outlined">visibility</span>
+                                                    <span className="material-symbols-outlined text-[18px]">{project.inquiryLetterLink ? 'edit' : 'add_circle'}</span>
+                                                    {project.inquiryLetterLink ? 'Změnit' : 'Vybrat'}
                                                 </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {project.inquiryLetterLink?.startsWith('template:') ? (
-                                        <p className="text-xs text-slate-500 flex items-center gap-1">
-                                            <span className="material-symbols-outlined text-[14px]">info</span>
-                                            Tato šablona bude použita pro generování emailů subdodavatelům.
-                                        </p>
-                                    ) : (
-                                        <p className="text-xs text-amber-400 flex items-center gap-1">
-                                            <span className="material-symbols-outlined text-[14px]">warning</span>
-                                            Používáte starý formát odkazu. Doporučujeme přejít na systémovou šablonu.
-                                        </p>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="text-center py-8 border-2 border-dashed border-slate-200 dark:border-slate-700/50 rounded-xl">
-                                    <span className="material-symbols-outlined text-slate-400 dark:text-slate-600 text-5xl mb-3 block">mail_outline</span>
-                                    <p className="text-slate-700 dark:text-slate-300 text-sm font-medium">Žádná šablona není vybrána</p>
-                                    <p className="text-slate-500 text-xs mt-1 mb-4">Vyberte šablonu pro komunikaci se subdodavateli</p>
-                                    <button
-                                        onClick={() => setShowTemplateManager(true)}
-                                        className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white rounded-xl transition-all inline-flex items-center gap-2 text-sm font-medium shadow-lg"
-                                    >
-                                        <span className="material-symbols-outlined text-[18px]">add_circle</span>
-                                        Vytvořit nebo vybrat šablonu
-                                    </button>
-                                </div>
-                            )}
+                                            </td>
+                                        </tr>
+
+                                        <tr className="hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors">
+                                            <td className="px-5 py-4">
+                                                <div className="flex items-start gap-3">
+                                                    <span className="material-symbols-outlined text-slate-400 mt-0.5">mark_email_unread</span>
+                                                    <div>
+                                                        <div className="font-medium text-slate-900 dark:text-white">Šablona emailu nevybraným</div>
+                                                        <div className="text-xs text-slate-500">Vloží se do emailu při „Email nevybraným“.</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-5 py-4">
+                                                {project.losersEmailTemplateLink ? (
+                                                    <div className="flex items-center gap-2 min-w-0">
+                                                        <span className="material-symbols-outlined text-emerald-400 text-[18px]">
+                                                            {project.losersEmailTemplateLink.startsWith('template:') ? 'wysiwyg' : 'link'}
+                                                        </span>
+                                                        <span className="text-slate-900 dark:text-white font-medium truncate">
+                                                            {project.losersEmailTemplateLink.startsWith('template:')
+                                                                ? (losersTemplateName || 'Načítání...')
+                                                                : (project.losersEmailTemplateLink.startsWith('http') ? 'Externí odkaz / Soubor' : project.losersEmailTemplateLink)}
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-slate-500">Nenastaveno (použije se výchozí text)</span>
+                                                )}
+                                            </td>
+                                            <td className="px-5 py-4 text-right whitespace-nowrap">
+                                                <button
+                                                    onClick={() => openTemplateManager({ target: { kind: 'losers' }, initialLink: project.losersEmailTemplateLink || '' })}
+                                                    className="px-3 py-1.5 text-sm font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50/60 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-500/15 transition-colors inline-flex items-center gap-2"
+                                                >
+                                                    <span className="material-symbols-outlined text-[18px]">{project.losersEmailTemplateLink ? 'edit' : 'add_circle'}</span>
+                                                    {project.losersEmailTemplateLink ? 'Změnit' : 'Vybrat'}
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-                    </div>
                     )}
 
                     {/* DocHub Section (Wizard) */}
@@ -2422,11 +2463,26 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({ project, onUpdate }
                     <div className="bg-white dark:bg-slate-900 rounded-xl w-full max-w-6xl h-[85vh] shadow-2xl">
                         <TemplateManager
                             project={project}
-                            onClose={() => setShowTemplateManager(false)}
-                            onSelectTemplate={(template) => {
-                                onUpdate({ inquiryLetterLink: `template:${template.id}` });
+                            initialTemplateId={templateManagerInitialId}
+                            onClose={() => {
                                 setShowTemplateManager(false);
+                                setTemplateManagerTarget(null);
+                                setTemplateManagerInitialId(null);
                             }}
+                            onSelectTemplate={
+                                templateManagerTarget
+                                    ? (template) => {
+                                        if (templateManagerTarget.kind === 'inquiry') {
+                                            onUpdate({ inquiryLetterLink: `template:${template.id}` });
+                                        } else if (templateManagerTarget.kind === 'losers') {
+                                            onUpdate({ losersEmailTemplateLink: `template:${template.id}` });
+                                        }
+                                        setShowTemplateManager(false);
+                                        setTemplateManagerTarget(null);
+                                        setTemplateManagerInitialId(null);
+                                    }
+                                    : undefined
+                            }
                         />
                     </div>
                 </div>
