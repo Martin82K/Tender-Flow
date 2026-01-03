@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from './Header';
+import { Button } from './ui/Button';
 import { Project, ProjectDetails } from '../types';
 import { ProjectOverviewNew } from './ProjectOverviewNew';
 import * as XLSX from 'xlsx';
@@ -137,13 +138,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ projects, projectDetails, 
                     </div>
 
                     {/* Export Button */}
-                    <button
+                    <Button
+                        variant="success"
                         onClick={handleExport}
-                        className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
+                        leftIcon={<span className="material-symbols-outlined text-[18px]">download</span>}
+                        className="rounded-xl"
                     >
-                        <span className="material-symbols-outlined text-[18px]">download</span>
                         Export XLSX
-                    </button>
+                    </Button>
                 </div>
             </Header>
 

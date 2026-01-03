@@ -1,7 +1,8 @@
 import React, { Suspense } from 'react';
 import { Sidebar } from '../Sidebar';
 import { ConfirmationModal } from '../ConfirmationModal';
-import { navigate, buildAppUrl } from '../routing/router'; // Assuming router.tsx is in components/routing/
+import { navigate } from '../routing/router';
+import { buildAppUrl } from '../routing/routeUtils';
 import { Project, View, User } from '../../types';
 
 interface MainLayoutProps {
