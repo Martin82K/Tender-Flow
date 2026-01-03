@@ -197,7 +197,7 @@ export interface UserPreferences {
   backgroundColor: string;
 }
 
-export type SubscriptionTier = "free" | "pro" | "enterprise" | "admin";
+export type SubscriptionTier = "demo" | "free" | "pro" | "enterprise" | "admin";
 
 export interface SubscriptionFeature {
   key: string;

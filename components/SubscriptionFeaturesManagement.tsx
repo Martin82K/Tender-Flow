@@ -6,7 +6,8 @@ import { useUI } from '../context/UIContext';
 type FlagKey = `${SubscriptionTier}:${string}`;
 
 const DISPLAY_TIERS: { tier: Exclude<SubscriptionTier, 'admin'>; label: string; badgeClass: string }[] = [
-  { tier: 'free', label: 'Free', badgeClass: 'bg-slate-500/15 text-slate-600 dark:text-slate-300 border-slate-500/20' },
+  { tier: 'demo', label: 'Demo', badgeClass: 'bg-sky-500/15 text-sky-600 dark:text-sky-300 border-sky-500/20' },
+  { tier: 'free', label: 'Starter', badgeClass: 'bg-slate-500/15 text-slate-600 dark:text-slate-300 border-slate-500/20' },
   { tier: 'pro', label: 'Pro', badgeClass: 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 border-indigo-500/20' },
   {
     tier: 'enterprise',
@@ -344,15 +345,13 @@ export const SubscriptionFeaturesManagement: React.FC = () => {
                       <button
                         onClick={() => setFlag(t.tier, feature.key, !checked)}
                         disabled={busy}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                          checked ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'
-                        } ${busy ? 'opacity-60 cursor-not-allowed' : ''}`}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${checked ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'
+                          } ${busy ? 'opacity-60 cursor-not-allowed' : ''}`}
                         title={checked ? 'Zapnuto' : 'Vypnuto'}
                       >
                         <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                            checked ? 'translate-x-6' : 'translate-x-1'
-                          }`}
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${checked ? 'translate-x-6' : 'translate-x-1'
+                            }`}
                         />
                       </button>
                     </td>
