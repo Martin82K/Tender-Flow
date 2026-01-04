@@ -44,7 +44,21 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, project
                 onSearchChange={setSearchQuery}
                 searchPlaceholder="Hledat v projektu..."
             >
-                <div className="flex items-center gap-1 bg-slate-200 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-300 dark:border-slate-700/50">
+                {/* Mobile dropdown tabs */}
+                <select 
+                    value={activeTab}
+                    onChange={(e) => onTabChange(e.target.value as ProjectTab)}
+                    className="md:hidden w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white px-4 py-2.5 rounded-xl text-sm font-medium focus:border-primary focus:ring-2 focus:ring-primary/20"
+                >
+                    <option value="overview">Přehled</option>
+                    <option value="tender-plan">Plán VŘ</option>
+                    <option value="pipeline">Výběrová řízení</option>
+                    <option value="schedule">Harmonogram</option>
+                    <option value="documents">Dokumenty</option>
+                </select>
+
+                {/* Desktop horizontal tabs */}
+                <div className="hidden md:flex items-center gap-1 bg-slate-200 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-300 dark:border-slate-700/50">
                     <button
                         onClick={() => onTabChange('overview')}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'overview' ? 'bg-primary text-white shadow-lg' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-700/50'}`}

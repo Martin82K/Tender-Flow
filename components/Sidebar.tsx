@@ -42,6 +42,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
   const sidebarRef = useRef<HTMLElement>(null);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
+  // Helper to close sidebar on mobile after navigation
+  const closeMobileMenu = () => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768 && isOpen) {
+      onToggle();
+    }
+  };
+
   const settingsRoute = (() => {
     const params = new URLSearchParams(search);
     const tabParam = params.get('tab');
@@ -257,7 +264,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
                 onDragOver={handleProjectDragOver}
                 onDrop={(e) => handleProjectDrop(e, project.id)}
                 onDragEnd={handleProjectDragEnd}
-                onClick={() => onProjectSelect(project.id)}
+                onClick={() => { onProjectSelect(project.id); closeMobileMenu(); }}
                 className={`flex items-center gap-2 text-left text-sm px-3 py-2 rounded-lg transition-all relative overflow-hidden cursor-move ${currentView === 'project' && selectedProjectId === project.id
                   ? 'text-slate-900 dark:text-white font-medium'
                   : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50'
@@ -336,12 +343,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
     return (
       <button
         key={item.id}
-        onClick={() =>
+        onClick={() => {
           onViewChange(item.view, item.view === 'settings'
             ? { settingsTab: item.settingsTab, settingsSubTab: item.settingsSubTab }
             : undefined
-          )
-        }
+          );
+          closeMobileMenu();
+        }}
         className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all ${isItemActive
           ? 'bg-primary/20 text-primary border border-primary/30'
           : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'
@@ -357,19 +365,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
     <aside
       ref={sidebarRef}
       style={{ width: isOpen ? `${width}px` : '0px' }}
-      className={`relative flex h-full flex-col bg-white dark:bg-gradient-to-b dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 border-r border-slate-200 dark:border-slate-700/50 flex-shrink-0 z-20 select-none group/sidebar transition-all duration-300 ease-in-out ${!isOpen ? 'overflow-hidden border-none' : ''}`}
+      className={`relative flex h-full flex-col bg-white dark:bg-gradient-to-b dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 border-r border-slate-200 dark:border-slate-700/50 flex-shrink-0 z-20 select-none group/sidebar transition-all duration-300 ease-in-out max-md:fixed max-md:inset-0 max-md:z-50 max-md:!w-full ${!isOpen ? 'overflow-hidden border-none max-md:pointer-events-none max-md:opacity-0' : 'max-md:opacity-100'}`}
     >
-      {/* Mobile Overlay */}
-      {!isOpen && (
-        <style>{`
-          @media (max-width: 767px) {
-            .sidebar-overlay { display: none; }
-          }
-        `}</style>
-      )}
+      {/* Mobile Overlay - not needed for fullscreen */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-10 md:hidden sidebar-overlay"
+          className="fixed inset-0 bg-black/50 z-[-1] md:hidden"
           onClick={onToggle}
         />
       )}
