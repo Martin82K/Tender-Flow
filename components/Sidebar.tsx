@@ -382,10 +382,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
           onMouseDown={startResizing}
         />
 
-        <div className="flex h-full flex-col justify-between p-4 overflow-hidden">
-          <div className="flex flex-col gap-4 flex-1">
+        <div className="flex h-full flex-col p-4 overflow-y-auto">
+          <div className="flex flex-col gap-4 flex-1 min-h-0">
             {/* Logo */}
-            <div className="flex items-center gap-3 p-2 min-w-0">
+            <div className="flex items-center gap-3 p-2 min-w-0 shrink-0">
               <img
                 src={logo}
                 alt="Tender Flow Logo"
@@ -406,7 +406,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
             </div>
 
             {/* Navigation */}
-            <nav className="flex flex-col gap-2 mt-4">
+            <nav className="flex flex-col gap-2 mt-4 flex-1 overflow-y-auto">
               {SIDEBAR_NAVIGATION.map(renderNavItem)}
             </nav>
           </div>

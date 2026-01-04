@@ -28,10 +28,10 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-slate-800 px-6 py-4 bg-white/80 dark:bg-background-dark/90 backdrop-blur-md sticky top-0 z-10 shrink-0">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-slate-900 dark:text-slate-100 text-xl font-bold leading-tight">{title}</h1>
-        {subtitle && <p className="text-slate-500 dark:text-slate-400 text-sm font-normal leading-normal">{subtitle}</p>}
+    <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-slate-800 pl-14 pr-6 md:px-6 py-4 bg-white/80 dark:bg-background-dark/90 backdrop-blur-md sticky top-0 z-10 shrink-0">
+      <div className="flex flex-col gap-1 min-w-0">
+        <h1 className="text-slate-900 dark:text-slate-100 text-xl font-bold leading-tight truncate">{title}</h1>
+        {subtitle && <p className="text-slate-500 dark:text-slate-400 text-sm font-normal leading-normal truncate">{subtitle}</p>}
       </div>
       <div className="flex items-center gap-4">
         {children}
