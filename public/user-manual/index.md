@@ -2,38 +2,49 @@
 
 Tato příručka popisuje práci v aplikaci Tender Flow pro řízení staveb, výběrových řízení a subdodavatelů.
 
-Verze příručky: **1.2** • Datum: **2026‑01‑02** • Aplikace: **v0.9.4-260102**
+Verze příručky: **1.3** • Datum: **2026‑01‑04** • Aplikace: **v0.9.4-260104 v4**
 
-![Tender Flow logo](./assets/logo.png)
+<p class="manualLogoWrap">
+  <img class="manualLogo" src="./assets/logo.png" alt="Tender Flow logo" />
+</p>
 
 ## Obsah
 
-- [Novinky (poslední změny)](#novinky-poslední-změny)
-- [Účel a role](#účel-a-role)
-- [Přihlášení a účet](#přihlášení-a-účet)
+- [Novinky (poslední změny)](#novinky-posledni-zmeny)
+- [Účel a role](#ucel-a-role)
+- [Přihlášení a účet](#prihlaseni-a-ucet)
+- [Organizace a předplatné](#organizace-a-predplatne)
 - [Navigace v aplikaci](#navigace-v-aplikaci)
 - [Dashboard](#dashboard)
-- [Detail stavby (záložky)](#detail-stavby-záložky)
-- [Plán VŘ](#plán-vř)
-- [Výběrová řízení (Pipeline)](#výběrová-řízení-pipeline)
-- [Dokumenty a šablony](#dokumenty-a-šablony)
-- [Subdodavatelé (Kontakty)](#subdodavatelé-kontakty)
+- [Detail stavby (záložky)](#detail-stavby-zalozky)
+- [Plán VŘ](#plan-vr)
+- [Výběrová řízení (Pipeline)](#vyberova-rizeni-pipeline)
+- [Harmonogram](#harmonogram)
+- [Dokumenty a šablony](#dokumenty-a-sablony)
+- [Subdodavatelé (Kontakty)](#subdodavatele-kontakty)
 - [Správa staveb](#správa-staveb)
-- [Přehled staveb (analytika)](#přehled-staveb-analytika)
-- [Nastavení aplikace](#nastavení-aplikace)
-- [Administrace systému](#administrace-systému)
+- [Přehled staveb (analytika)](#prehled-staveb-analytika)
+- [Nastavení aplikace](#nastaveni-aplikace)
+- [Administrace systému](#administrace-systemu)
 - [Registrace a whitelist](#registrace-a-whitelist)
-- [Seznam povolených emailů](#seznam-povolených-emailů-whitelist)
-- [Správa uživatelů a rolí](#správa-uživatelů-a-rolí)
-- [Import a synchronizace kontaktů](#import-a-synchronizace-kontaktů)
+- [Seznam povolených emailů](#seznam-povolenych-emailu-whitelist)
+- [Správa uživatelů a rolí](#sprava-uzivatelu-a-roli)
+- [Import a synchronizace kontaktů](#import-a-synchronizace-kontaktu)
 - [AI funkce](#ai-funkce)
-- [Časté otázky](#časté-otázky)
+- [Časté otázky](#caste-otazky)
 
 ---
 
 ## Novinky (poslední změny)
 
 Verzi aplikace najdete vlevo dole v sidebaru.
+
+### v0.9.4-260104
+
+- **Harmonogram**: Přidána záložka „Harmonogram“ v detailu stavby (Gantt) včetně exportů (XLSX/PDF).
+- **Organizace (tenant)**: Uživatel je automaticky přiřazen do organizace; pro osobní emaily se vytváří osobní organizace.
+- **Statusy kontaktů**: Statusy jsou nyní oddělené po organizacích (každá organizace má své nastavení).
+- **Administrace**: Admin je nejvyšší role (sjednocení oprávnění pro správu uživatelů/registrací).
 
 ### v0.9.4-260102
 
@@ -125,6 +136,20 @@ Pozn.: odeslání emailu probíhá přes váš výchozí emailový klient (funkc
 
 ![Schéma přihlášení](./assets/01-login.svg)
 
+## Organizace a předplatné
+
+Tender Flow funguje jako multi-tenant aplikace: každý uživatel patří do **organizace** (tenant) a data jsou mezi organizacemi oddělená.
+
+- **Firemní email**: typicky se přidáte do organizace podle domény (nebo se pro doménu vytvoří nová organizace).
+- **Osobní email (např. Gmail/Seznam)**: vytvoří se osobní organizace pro vaše použití.
+
+Organizace ovlivňuje zejména:
+
+- **Předplatné** (dostupnost vybraných funkcí v menu).
+- **Statusy kontaktů** (každá organizace má vlastní seznam a barvy).
+
+Tip: pokud některou část aplikace nevidíte (např. Import kontaktů, Přehled staveb, Excel nástroje), je pravděpodobně skrytá kvůli nastavení předplatného / oprávnění.
+
 ## Navigace v aplikaci
 
 V levém panelu (sidebar) přepínáte hlavní části aplikace a vybíráte konkrétní stavbu.
@@ -132,9 +157,8 @@ V levém panelu (sidebar) přepínáte hlavní části aplikace a vybíráte kon
 - **Dashboard** – přehled vybrané stavby a export.
 - **Stavby** – seznam staveb (projekty).
 - **Subdodavatelé** – databáze kontaktů.
-- **Přehled staveb** – analytika napříč stavbami.
-- **Správa staveb** – vytváření, archivace, sdílení.
-- **Nastavení** – vzhled, statusy kontaktů, import.
+- **Nástroje** – skupina doplňků (např. Správa staveb, Přehled staveb, Import kontaktů, Excel nástroje; dle předplatného).
+- **Nastavení** – profil, vzhled, statusy kontaktů, administrace (dle oprávnění).
 
 ![Schéma navigace](./assets/02-navigation.svg)
 
@@ -151,6 +175,7 @@ Po kliknutí na stavbu v sidebaru se otevře detail se záložkami:
 - **Přehled** – rozpočty, stav, metriky.
 - **Plán VŘ** – plánování výběrových řízení.
 - **Výběrová řízení** – pipeline poptávek a nabídek.
+- **Harmonogram** – Gantt navázaný na termíny výběrových řízení.
 - **Dokumenty** – odkazy na dokumentaci a šablony poptávek.
 
 ![Schéma záložek stavby](./assets/04-project-tabs.svg)
@@ -182,12 +207,31 @@ Na kartě nabídky evidujete cenu, tagy, poznámky a případně generujete popt
 
 ![Schéma karty nabídky](./assets/06-bid-card.svg)
 
+## Harmonogram
+
+Harmonogram je Ganttův přehled termínů, který se automaticky naplňuje z dat v projektu.
+
+- **Jak se plní**: doplňte termíny v **Plán VŘ** (od–do) nebo termín v detailu **Výběrových řízení** (deadline).
+- **Zobrazení**: přepínání měřítka **Měsíce / Týdny / Dny**, volitelně přepínač **Realizace**.
+- **Editace**: tlačítko **Editace** umožní upravit termíny přímo v harmonogramu.
+- **Export**: menu **Export** nabízí `XLSX`, `PDF` a `XLSX s grafem`.
+
+![Ukázka harmonogramu](../screenshots/harmonogram.png)
+
 ## Dokumenty a šablony
 
-V záložce **Dokumenty** nastavíte:
+V záložce **Dokumenty** najdete podzáložky:
+
+- **PD** – odkaz na projektovou dokumentaci (Drive/SharePoint apod.).
+- **Šablony** – šablona poptávky a šablona „email nevybraným“ (lze použít interní editor šablon, nebo externí odkaz/soubor).
+- **DocHub** – napojení na strukturu složek projektu (pokud je povoleno).
+- **Ceníky** – odkaz na projektové ceníky + rychlý odkaz na složku `Ceníky` v DocHubu (pokud je připojen).
+
+V praxi zde typicky nastavíte:
 
 - odkaz na dokumentaci stavby (Drive/SharePoint apod.),
-- šablonu poptávkového dopisu (URL, nahraný soubor nebo výběr ze správce šablon).
+- šablony emailů (poptávka / nevybraní),
+- ceníky a související složky.
 
 ![Schéma dokumentů a šablon](./assets/10-documents-templates.svg)
 
@@ -218,11 +262,11 @@ Manažerské souhrny napříč stavbami: metriky, grafy a volitelně AI analýza
 
 ## Nastavení aplikace
 
-- **Vzhled** – tmavý režim, primární barva, pozadí.
-- **Statusy kontaktů** – definice statusů a barev.
-- **Import kontaktů** – synchronizace z URL, ruční CSV upload.
-- **Administrace** – registrace, whitelist, uživatelé/role (admin/superadmin).
-- **AI nastavení** – zapnutí AI a správa promptů (admin).
+- **Profil** – zobrazované jméno, vzhled (tmavý režim, primární barva, pozadí) a správa statusů kontaktů.
+- **Import kontaktů** – synchronizace z URL / ruční upload (může být v sekci **Nástroje** dle předplatného).
+- **Excel Unlocker PRO** – odemknutí `.xlsx/.xlsm` lokálně v prohlížeči (soubor se nikam neodesílá; dle předplatného).
+- **Excel Merger PRO** – externí aplikace ve vestavěném okně; musí být nakonfigurována administrátorem (dle předplatného).
+- **Administrace systému (Admin)** – registrace, whitelist, uživatelé, předplatné, AI.
 
 ![Schéma nastavení](./assets/09-settings.svg)
 
@@ -230,8 +274,7 @@ Manažerské souhrny napříč stavbami: metriky, grafy a volitelně AI analýza
 
 Administrace je dostupná jen vybraným účtům. V aplikaci rozlišujeme:
 
-- **Admin** – správa registrací, whitelistů a AI nastavení.
-- **Superadmin** – navíc správa uživatelů a rolí (oprávnění).
+- **Admin** – správa registrací, whitelistů, uživatelů, předplatného a AI nastavení.
 
 Tip: pokud v Nastavení nevidíte sekce „Administrace systému“, nemáte potřebná oprávnění.
 
@@ -257,7 +300,7 @@ Pokud je zapnuté „Vyžadovat whitelist emailů“, mohou se registrovat pouze
 
 ## Správa uživatelů a rolí
 
-Sekce Správa uživatelů je určená pro **Superadmina**. Umožňuje:
+Sekce Správa uživatelů je určená pro **Admina**. Umožňuje:
 
 - spravovat role uživatelů (přiřazení role),
 - definovat oprávnění rolí (permissions).
@@ -289,7 +332,11 @@ Zkontrolujte výchozí emailový klient v systému. Funkce „Generovat poptávk
 
 ### Některé volby nevidím
 
-Některé sekce jsou dostupné jen pro administrátory.
+Některé sekce jsou dostupné jen pro administrátory nebo jsou skryté dle předplatného.
+
+### Excel Merger PRO píše „Funkce není dostupná“
+
+Excel Merger PRO vyžaduje, aby Admin nastavil URL externí aplikace v **Nastavení → Administrace → Registrace**.
 
 ---
 
@@ -308,15 +355,8 @@ Bez předchozího výslovného písemného souhlasu vlastníka není dovoleno ap
 
 Vlastník aplikace si vyhrazuje právo na průběžné změny, úpravy funkcionality, další vývoj a změny obchodního modelu, a to bez povinnosti předchozího upozornění uživatelů.
 
-**Autor a vlastník:**
-Martin Kalkuš (martinkalkus82@gmail.com), provozovatel služby `tenderflow.cz`.
+**Autor a vlastník:** Martin Kalkuš (martinkalkus82@gmail.com), provozovatel služby `tenderflow.cz`.
 
 © 2025 Martin Kalkuš. Všechna práva vyhrazena.
 
-Autorem a vlastníkem aplikace Tender Flow je **Martin Kalkuš** (`martinkalkus82@gmail.com`), provozovatel služby `tenderflow.cz`.
-
-© `2025` Martin Kalkuš. Všechna práva vyhrazena.
-
 ---
-
-Verze: **1.2** • Datum: **2025‑12‑31**

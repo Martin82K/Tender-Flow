@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:user-manual": "node scripts/build-user-manual.mjs",
     "preview": "vite preview",
     "start": "node server.js",
     "test": "vitest",
@@ -45,6 +46,7 @@
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.22",
     "jsdom": "^27.4.0",
+    "marked": "^12.0.2",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.17",
     "typescript": "~5.8.2",

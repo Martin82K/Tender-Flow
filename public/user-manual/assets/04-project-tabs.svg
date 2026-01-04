@@ -32,17 +32,20 @@
 
   <!-- Tabs -->
   <rect x="140" y="295" width="920" height="60" rx="18" fill="rgba(0,0,0,0.18)" class="stroke"/>
-  <rect x="170" y="310" width="150" height="32" rx="12" class="tabOn"/>
-  <text x="212" y="332" class="t m">Přehled</text>
+  <rect x="170" y="310" width="140" height="32" rx="12" class="tabOn"/>
+  <text x="205" y="332" class="t m">Přehled</text>
 
-  <rect x="330" y="310" width="150" height="32" rx="12" class="tab"/>
-  <text x="372" y="332" class="t m">Plán VŘ</text>
+  <rect x="320" y="310" width="140" height="32" rx="12" class="tab"/>
+  <text x="358" y="332" class="t m">Plán VŘ</text>
 
-  <rect x="490" y="310" width="190" height="32" rx="12" class="tab"/>
-  <text x="512" y="332" class="t m">Výběrová řízení</text>
+  <rect x="470" y="310" width="190" height="32" rx="12" class="tab"/>
+  <text x="492" y="332" class="t m">Výběrová řízení</text>
 
-  <rect x="690" y="310" width="150" height="32" rx="12" class="tab"/>
-  <text x="728" y="332" class="t m">Dokumenty</text>
+  <rect x="670" y="310" width="160" height="32" rx="12" class="tab"/>
+  <text x="700" y="332" class="t m">Harmonogram</text>
+
+  <rect x="840" y="310" width="150" height="32" rx="12" class="tab"/>
+  <text x="878" y="332" class="t m">Dokumenty</text>
 
   <!-- Content area -->
   <rect x="140" y="370" width="920" height="230" rx="18" fill="rgba(255,255,255,0.04)" class="stroke"/>
