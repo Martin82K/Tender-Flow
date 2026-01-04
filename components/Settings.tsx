@@ -11,6 +11,8 @@ import { ContactsImportWizard } from './ContactsImportWizard';
 import { ExcelUnlockerProSettings } from './settings/ExcelUnlockerProSettings';
 import { ExcelMergerProSettings } from './settings/ExcelMergerProSettings';
 import { ExcelMergerAdminSettings } from './settings/ExcelMergerAdminSettings';
+import { useFeatures } from '../context/FeatureContext';
+import { FEATURES } from '../config/features';
 
 interface SettingsProps {
     theme: 'light' | 'dark' | 'system';
@@ -43,6 +45,7 @@ export const Settings: React.FC<SettingsProps> = ({
     user
 }) => {
     const { search } = useLocation();
+    const { hasFeature, isLoading: isFeaturesLoading } = useFeatures();
     type UserSubTab = 'profile' | 'contacts' | 'excelUnlocker' | 'excelMerger';
     type AdminSubTab = 'registration' | 'users' | 'subscriptions' | 'ai';
 
@@ -100,6 +103,25 @@ export const Settings: React.FC<SettingsProps> = ({
         params.set('subTab', next.subTab || (next.tab === 'user' ? 'profile' : 'registration'));
         navigate(`/app/settings?${params.toString()}`, { replace: opts?.replace ?? true });
     };
+
+    const canContactsImport = hasFeature(FEATURES.CONTACTS_IMPORT);
+    const canExcelUnlocker = hasFeature(FEATURES.EXCEL_UNLOCKER);
+    const canExcelMerger = hasFeature(FEATURES.EXCEL_MERGER);
+
+    useEffect(() => {
+        if (isFeaturesLoading) return;
+        if (activeTab !== 'user') return;
+
+        const isGated =
+            (activeUserSubTab === 'contacts' && !canContactsImport) ||
+            (activeUserSubTab === 'excelUnlocker' && !canExcelUnlocker) ||
+            (activeUserSubTab === 'excelMerger' && !canExcelMerger);
+
+        if (!isGated) return;
+
+        setActiveUserSubTab('profile');
+        updateSettingsUrl({ tab: 'user', subTab: 'profile' }, { replace: true });
+    }, [activeTab, activeUserSubTab, canContactsImport, canExcelMerger, canExcelUnlocker, isFeaturesLoading]);
 
     useEffect(() => {
         if (settingsRoute.tab === 'admin') {
@@ -260,44 +282,50 @@ export const Settings: React.FC<SettingsProps> = ({
                                     </div>
                                 </button>
 
-                                <button
-                                    onClick={() => updateSettingsUrl({ tab: 'user', subTab: 'contacts' })}
-                                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${activeUserSubTab === 'contacts'
-                                        ? 'bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700'
-                                        : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50'
-                                        }`}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <span className="material-symbols-outlined text-[20px]">import_contacts</span>
-                                        Import Kontaktů
-                                    </div>
-                                </button>
+                                {canContactsImport && (
+                                    <button
+                                        onClick={() => updateSettingsUrl({ tab: 'user', subTab: 'contacts' })}
+                                        className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${activeUserSubTab === 'contacts'
+                                            ? 'bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700'
+                                            : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                                            }`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <span className="material-symbols-outlined text-[20px]">import_contacts</span>
+                                            Import Kontaktů
+                                        </div>
+                                    </button>
+                                )}
 
-                                <button
-                                    onClick={() => updateSettingsUrl({ tab: 'user', subTab: 'excelUnlocker' })}
-                                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${activeUserSubTab === 'excelUnlocker'
-                                        ? 'bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700'
-                                        : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50'
-                                        }`}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <span className="material-symbols-outlined text-[20px]">lock_open</span>
-                                        Excel Unlocker PRO
-                                    </div>
-                                </button>
+                                {canExcelUnlocker && (
+                                    <button
+                                        onClick={() => updateSettingsUrl({ tab: 'user', subTab: 'excelUnlocker' })}
+                                        className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${activeUserSubTab === 'excelUnlocker'
+                                            ? 'bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700'
+                                            : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                                            }`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <span className="material-symbols-outlined text-[20px]">lock_open</span>
+                                            Excel Unlocker PRO
+                                        </div>
+                                    </button>
+                                )}
 
-                                <button
-                                    onClick={() => updateSettingsUrl({ tab: 'user', subTab: 'excelMerger' })}
-                                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${activeUserSubTab === 'excelMerger'
-                                        ? 'bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700'
-                                        : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50'
-                                        }`}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <span className="material-symbols-outlined text-[20px]">table_view</span>
-                                        Excel Merger PRO
-                                    </div>
-                                </button>
+                                {canExcelMerger && (
+                                    <button
+                                        onClick={() => updateSettingsUrl({ tab: 'user', subTab: 'excelMerger' })}
+                                        className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${activeUserSubTab === 'excelMerger'
+                                            ? 'bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700'
+                                            : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                                            }`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <span className="material-symbols-outlined text-[20px]">table_view</span>
+                                            Excel Merger PRO
+                                        </div>
+                                    </button>
+                                )}
                             </nav>
                         </aside>
 
@@ -317,7 +345,7 @@ export const Settings: React.FC<SettingsProps> = ({
                                 />
                             )}
 
-                            {activeUserSubTab === 'contacts' && (
+                            {activeUserSubTab === 'contacts' && canContactsImport && (
                                 <section className="space-y-6">
                                     <div className="pb-4 border-b border-slate-200 dark:border-slate-800 flex flex-col gap-1">
                                         <div className="flex items-center gap-2">
@@ -335,11 +363,11 @@ export const Settings: React.FC<SettingsProps> = ({
                                 </section>
                             )}
 
-                            {activeUserSubTab === 'excelUnlocker' && (
+                            {activeUserSubTab === 'excelUnlocker' && canExcelUnlocker && (
                                 <ExcelUnlockerProSettings />
                             )}
 
-                            {activeUserSubTab === 'excelMerger' && (
+                            {activeUserSubTab === 'excelMerger' && canExcelMerger && (
                                 <ExcelMergerProSettings />
                             )}
                         </main>

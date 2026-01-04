@@ -37,6 +37,7 @@ function Probe() {
       <div data-testid="dashboard">{String(hasFeature(FEATURES.MODULE_DASHBOARD))}</div>
       <div data-testid="projects">{String(hasFeature(FEATURES.MODULE_PROJECTS))}</div>
       <div data-testid="contacts">{String(hasFeature(FEATURES.MODULE_CONTACTS))}</div>
+      <div data-testid="excelMerger">{String(hasFeature(FEATURES.EXCEL_MERGER))}</div>
     </div>
   );
 }
@@ -53,6 +54,7 @@ describe('FeatureProvider (demo mode)', () => {
     expect(screen.getByTestId('dashboard').textContent).toBe('true');
     expect(screen.getByTestId('projects').textContent).toBe('true');
     expect(screen.getByTestId('contacts').textContent).toBe('true');
+    expect(screen.getByTestId('excelMerger').textContent).toBe('false');
     expect(subscriptionServiceMocks.getUserEnabledFeatures).not.toHaveBeenCalled();
     expect(subscriptionServiceMocks.getUserSubscriptionTier).not.toHaveBeenCalled();
   });

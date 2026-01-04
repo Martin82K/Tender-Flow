@@ -16,6 +16,16 @@ export const FEATURES = {
   FEATURE_ADVANCED_REPORTING: 'feature_advanced_reporting',
   FEATURE_TEAM_COLLABORATION: 'feature_team_collaboration',
   FEATURE_API_ACCESS: 'feature_api_access',
+
+  // Subscription-gated Tools (keys match subscription_features.key in Supabase)
+  CONTACTS_IMPORT: 'contacts_import',
+  EXCEL_UNLOCKER: 'excel_unlocker',
+  EXCEL_MERGER: 'excel_merger',
+  PROJECT_SCHEDULE: 'project_schedule',
+  EXPORT_PDF: 'export_pdf',
+  EXPORT_EXCEL: 'export_excel',
+  DOC_HUB: 'doc_hub',
+  AI_INSIGHTS: 'ai_insights',
 } as const;
 
 export type FeatureKey = typeof FEATURES[keyof typeof FEATURES];
@@ -44,6 +54,13 @@ export const PLANS = {
       FEATURES.MODULE_PIPELINE,
       FEATURES.FEATURE_AI_INSIGHTS,
       FEATURES.FEATURE_ADVANCED_REPORTING,
+      FEATURES.CONTACTS_IMPORT,
+      FEATURES.EXCEL_UNLOCKER,
+      FEATURES.EXCEL_MERGER,
+      FEATURES.PROJECT_SCHEDULE,
+      FEATURES.EXPORT_PDF,
+      FEATURES.EXPORT_EXCEL,
+      FEATURES.AI_INSIGHTS,
     ]
   },
   ENTERPRISE: {

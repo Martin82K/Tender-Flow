@@ -30,10 +30,10 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
 
     // Demo mode has no Supabase auth session, so backend RPC feature checks will fail.
-    // Provide a sane local feature set so core navigation is visible.
+    // Use a local "demo plan" feature set (acts like a subscription tier for demo).
     if (user.role === 'demo') {
       setIsLoading(false);
-      setEnabledFeatures(PLANS.PRO.features as FeatureKey[]);
+      setEnabledFeatures(PLANS.FREE.features as FeatureKey[]);
       setCurrentPlan('demo');
       return;
     }
