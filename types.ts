@@ -221,6 +221,9 @@ export interface User {
   subscriptionTier?: SubscriptionTier;
   avatarUrl?: string;
   preferences?: UserPreferences;
+  organizationId?: string;
+  organizationType?: 'personal' | 'business';
+  organizationName?: string;
 }
 
 export interface Template {

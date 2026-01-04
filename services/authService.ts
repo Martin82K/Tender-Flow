@@ -371,6 +371,12 @@ export const authService = {
         // Attempt to get organization subscription tier (with optional per-user override)
         let subscriptionTier: SubscriptionTier = 'free';
         let subscriptionTierOverride: SubscriptionTier | null = null;
+        
+        // Organization info - declared outside try block for proper scope
+        let organizationId: string | undefined;
+        let organizationType: 'personal' | 'business' | undefined;
+        let organizationName: string | undefined;
+        
         try {
             const overrideRes = await withTimeout(
                 Promise.resolve(
@@ -393,36 +399,44 @@ export const authService = {
 
             if (subscriptionTierOverride) {
                 subscriptionTier = subscriptionTierOverride;
-            } else {
-                const orgMemberRes = await withTimeout(
+            }
+            
+            // Always try to get organization info
+            const orgMemberRes = await withTimeout(
+                Promise.resolve(
+                    supabase
+                        .from('organization_members')
+                        .select('organization_id')
+                        .eq('user_id', session.user.id)
+                        .limit(1)
+                        .maybeSingle()
+                ),
+                queryTimeoutMs,
+                'Org member load'
+            );
+            const { data: orgMember } = orgMemberRes as any;
+
+            if (orgMember?.organization_id) {
+                organizationId = orgMember.organization_id;
+                
+                const orgRes = await withTimeout(
                     Promise.resolve(
                         supabase
-                            .from('organization_members')
-                            .select('organization_id')
-                            .eq('user_id', session.user.id)
-                            .limit(1)
-                            .maybeSingle()
+                            .from('organizations')
+                            .select('subscription_tier, type, name')
+                            .eq('id', orgMember.organization_id)
+                            .single()
                     ),
                     queryTimeoutMs,
-                    'Org member load'
+                    'Organization load'
                 );
-                const { data: orgMember } = orgMemberRes as any;
+                const { data: org } = orgRes as any;
 
-                if (orgMember?.organization_id) {
-                    const orgRes = await withTimeout(
-                        Promise.resolve(
-                            supabase
-                                .from('organizations')
-                                .select('subscription_tier')
-                                .eq('id', orgMember.organization_id)
-                                .single()
-                        ),
-                        queryTimeoutMs,
-                        'Organization load'
-                    );
-                    const { data: org } = orgRes as any;
-
-                    if (org?.subscription_tier) {
+                if (org) {
+                    organizationType = org.type as 'personal' | 'business' | undefined;
+                    organizationName = org.name;
+                    
+                    if (!subscriptionTierOverride && org.subscription_tier) {
                         const tier = String(org.subscription_tier || '').trim().toLowerCase();
                         if (tier === 'free' || tier === 'pro' || tier === 'enterprise' || tier === 'admin') {
                             subscriptionTier = tier as SubscriptionTier;
@@ -447,7 +461,10 @@ export const authService = {
             role: finalRole as any,
             subscriptionTier: finalTier as any,
             avatarUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(session.user.email || 'U')}&background=random`,
-            preferences: finalPreferences
+            preferences: finalPreferences,
+            organizationId,
+            organizationType,
+            organizationName
         };
     },
 
