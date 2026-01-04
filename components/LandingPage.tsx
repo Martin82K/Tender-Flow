@@ -15,7 +15,7 @@ import { APP_VERSION } from "../config/version";
 
 const Stat: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4">
-    <div className="text-white text-xl font-semibold">{value}</div>
+    <div className="text-orange-500 text-xl font-semibold">{value}</div>
     <div className="text-white/60 text-sm">{label}</div>
   </div>
 );
@@ -79,37 +79,25 @@ export const LandingPage: React.FC = () => {
             <h1 className="mt-6 text-4xl md:text-6xl font-semibold tracking-tight text-white leading-[1.05]">
               Staví se lépe,
               <br />
-              když máte přehled
+              když máte <span className="text-orange-500">přehled</span>
             </h1>
 
             <p className="mt-5 text-white/65 leading-relaxed text-base md:text-lg max-w-2xl">
-              Cloud řešení pro řízení výběrových řízení ve stavebnictví. 
+              Cloud řešení pro řízení výběrových řízení ve stavebnictví.
+              <br />
               Jedno místo pro podklady, nabídky, rozhodnutí a sdílení v týmu.
-
+              <br />
             </p>
 
-            <div className="mt-8 flex flex-col sm:flex-row gap-3">
-              <Link
-                to="/register"
-                className="px-6 py-3.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-medium transition-colors shadow-lg shadow-orange-500/20 text-center"
-              >
-                Začít zdarma →
-              </Link>
-              <button
-                type="button"
-                onClick={handleDemo}
-                className="px-6 py-3.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-white/90 transition-colors text-center"
-              >
-                Vyzkoušet demo
-              </button>
-            </div>
+
 
             <div className="mt-8 flex flex-wrap gap-2 text-sm text-white/70">
               {[
-                "Projekty a pipeline poptávek",
+                "Kanban poptávek",
                 "Hromadné rozesílky + šablony",
                 "Vyhodnocení a reporty",
-                "Kontakty subdodavatelů",
+                "Adresář kontaktů",
+                "Harmonogram",
               ].map((t) => (
                 <div
                   key={t}
@@ -121,26 +109,16 @@ export const LandingPage: React.FC = () => {
               ))}
             </div>
 
-            <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-3xl">
+            <div className="mt-10 grid grid-cols-1 sm:grid-cols-1 gap-3 max-w-3xl">
               <Stat
-                label="Jedno místo pro nabídky a podklady"
-                value="Přehled"
+                label="Mnoholeté zkušenosti nás přivádějí až sem, ke snížení repetitivních úkonů. Tohle je náš způsob, jak to změnit."
+                value="Čas je mnohdy to nejdražší."
               />
-              <Stat label="Sdílení informací v rámci projektu" value="Tým" />
-              <Stat label="Méně ruční práce a dohledávání" value="Tempo" />
             </div>
           </div>
         </section>
 
-	        <section id="solution" className="mt-16 md:mt-24 scroll-mt-24">
-	          <div className="mb-8 rounded-3xl border border-white/10 bg-gray-950/40 backdrop-blur p-8">
-	            <h2 className="text-2xl md:text-3xl font-light text-white tracking-wide">
-	              Ušetřete čas na každém tendru
-		            </h2>
-		            <p className="mt-2 text-white/60 max-w-3xl">
-		              Tender Flow sjednocuje podklady, nabídky a rozhodnutí do jednoho procesu. Bez dohledávání v e-mailech a tabulkách.
-		            </p>
-	          </div>
+	        <section id="solution" className="mt-16 md:mt-24 scroll-mt-24">          
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="rounded-3xl border border-white/10 bg-gray-950/40 backdrop-blur p-8">
@@ -151,7 +129,9 @@ export const LandingPage: React.FC = () => {
                   "Nabídky rozházené po e-mailech",
                   "Ruční porovnávání cen a variant",
                   "Nejasný stav poptávek a termínů",
-                  "Zdlouhavé reportování a exporty",
+                  "Ruční sumarizace přehledy všech dat a reporty",
+                  "Zdlouhavé hledání ve složkách, která má pokaždé jinou strukturu",
+                  "Ruční tvoření aúpravy harmonogramu"
                 ].map((t) => (
                   <li key={t} className="flex items-start gap-2">
                     <span className="mt-0.5 text-white/30">•</span>
@@ -167,9 +147,14 @@ export const LandingPage: React.FC = () => {
                 {[
                   "Vše na jednom místě v cloudu",
                   "Šablony a jednotný výstup poptávek",
+                  "Plánování poptávek / Výběrových řízení",
+                  "Automatická tvorba poptávek",
+                  "Automatická tvorba harmonogramu v závislosti na poptávkách",
                   "Přehledný tok od plánu VŘ po vyhodnocení",
                   "Rychlé sdílení kontextu v týmu",
                   "Export/report jedním klikem",
+                  "Hodnocení dodavatelů",
+                  "Dynamické šablony a jejich vlastní editor",
                 ].map((t) => (
                   <li key={t} className="flex items-start gap-2">
                     <span className="mt-0.5 text-orange-300">•</span>
@@ -181,17 +166,7 @@ export const LandingPage: React.FC = () => {
           </div>
         </section>
 
-        <section id="features" className="mt-16 md:mt-24 scroll-mt-24">
-          <div className="mb-8 rounded-3xl border border-white/10 bg-gray-950/40 backdrop-blur p-8 flex items-end justify-between gap-6 flex-wrap">
-            <div>
-              <h2 className="text-2xl md:text-3xl font-light text-white tracking-wide">
-                Funkce, které vám ušetří čas.
-              </h2>
-              <p className="mt-2 text-white/60">
-                Vše důležité na jednom místě, bez zbytečné administrativy.
-              </p>
-            </div>
-          </div>
+        <section id="features" className="mt-16 md:mt-24 scroll-mt-24">          
 
           <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <Feature
@@ -216,13 +191,13 @@ export const LandingPage: React.FC = () => {
             />
             <Feature
               icon={<Sparkles size={20} />}
-              title="AI podpora (volitelně)"
-              text="Pomoc s texty, shrnutím podkladů a rychlou orientací v informacích."
+              title="Harmonogram"
+              text="Generuje se sám na základě dat v plánu výběrů subdodavatelů. Základ snadno upravujete."
             />
             <Feature
               icon={<span className="text-lg">⚙️</span>}
-              title="Přizpůsobení"
-              text="Tmavý režim, barvy a preference uživatele bez rozbití jednotného vzhledu."
+              title="Nástroje"
+              text="Už jen naše nástroje pro práci s excel nástroji vám ušetří hodiny času."
             />
           </div>
         </section>
@@ -352,51 +327,6 @@ export const LandingPage: React.FC = () => {
           </div>
         </section>
 
-        <section id="workflow" className="mt-16 md:mt-24 scroll-mt-24">
-          <div className="rounded-3xl border border-white/10 bg-gray-950/40 backdrop-blur p-8">
-            <h2 className="text-2xl md:text-3xl font-light text-white tracking-wide">
-              Od poptávky po rozhodnutí.
-            </h2>
-            <p className="mt-2 text-white/60 max-w-3xl">
-              Typický tok: Projekt → Plán VŘ → Poptávka → Nabídky → Vyhodnocení
-              a výstup.
-            </p>
-            <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-3">
-              {[
-                {
-                  step: "1",
-                  title: "Založte projekt",
-                  text: "Popis, kategorie a kontext pro celý tým.",
-                },
-                {
-                  step: "2",
-                  title: "Nastavte poptávku",
-                  text: "Plán VŘ, milníky, požadavky a podklady.",
-                },
-                {
-                  step: "3",
-                  title: "Oslovte subdodavatele",
-                  text: "Kontakty, rozesílky, historie spolupráce.",
-                },
-                {
-                  step: "4",
-                  title: "Vyhodnoťte nabídky",
-                  text: "Poznámky, rozhodnutí a export/report.",
-                },
-              ].map((s) => (
-                <div
-                  key={s.step}
-                  className="rounded-2xl border border-white/10 bg-white/5 p-5"
-                >
-                  <div className="text-xs text-orange-300">Krok {s.step}</div>
-                  <div className="mt-2 text-white font-semibold">{s.title}</div>
-                  <div className="mt-1 text-sm text-white/60">{s.text}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
         <section id="security" className="mt-16 md:mt-24 scroll-mt-24">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="rounded-3xl border border-white/10 bg-gray-950/40 backdrop-blur p-8">
@@ -437,7 +367,7 @@ export const LandingPage: React.FC = () => {
                 <br/>
                  <ul className="mt-6 space-y-2 text-sm text-white/70">
                 {[
-                  "AJe možné sestavení docker image pro nasazení na vlastní servery.",
+                  "Je možné sestavení docker image pro nasazení na vlastní servery.",
                   "Aplikace tak poběží nezávisle na externích službách.",
                   "V tomto případě je nutné vlastní dodatečnou konfiguraci API klíčů a domén služeb.",
                   "Tender Flow neručí za data a jejich bezpečnost.",
@@ -451,28 +381,12 @@ export const LandingPage: React.FC = () => {
                 </ul>           
                 </p>
               </div>
-              <div className="mt-6 flex gap-3">
-                <a
-                  href="mailto:?subject=Demo%20Tender%20Flow"
-                  className="px-5 py-3 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-white/90 transition-colors"
-                >
-                  Kontaktovat vývojáře
-                </a>
-              </div>
             </div>
           </div>
         </section>
 
 	        <section id="pricing" className="mt-16 md:mt-24 scroll-mt-24">
-	          <div className="mb-8 rounded-3xl border border-white/10 bg-gray-950/40 backdrop-blur p-8">
-	            <h2 className="text-2xl md:text-3xl font-light text-white tracking-wide">
-	              Ceník
-            </h2>
-            <p className="mt-2 text-white/60 max-w-3xl">
-              Jednoduché tarify pro různé velikosti týmů. Ceny jsou orientační a
-              bez DPH.
-            </p>
-          </div>
+	          
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
