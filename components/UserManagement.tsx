@@ -203,8 +203,8 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
                         <span className="material-symbols-outlined animate-spin text-slate-400 text-[32px]">sync</span>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
+                    <div className="table-responsive">
+                        <table className="w-full min-w-[800px]">
 	                            <thead>
 	                                <tr className="border-b border-slate-200 dark:border-slate-700/50">
 	                                    <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">

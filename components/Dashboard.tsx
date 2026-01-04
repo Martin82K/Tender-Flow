@@ -127,13 +127,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ projects, projectDetails, 
     return (
         <div className="flex flex-col h-full overflow-y-auto bg-slate-50 dark:bg-slate-950">
             <Header title="Dashboard" subtitle="Detailní přehled projektu">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                     {/* Project Selector */}
-                    <div className="relative">
+                    <div className="relative flex-1 min-w-[180px] sm:min-w-[220px] sm:flex-none">
                         <select
                             value={selectedProjectId}
                             onChange={(e) => setSelectedProjectId(e.target.value)}
-                            className="appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white px-4 py-2.5 pr-10 rounded-xl text-sm font-medium focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer min-w-[220px]"
+                            className="appearance-none w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white px-4 py-2.5 pr-10 rounded-xl text-sm font-medium focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
                         >
                             {activeProjects.map(project => (
                                 <option key={project.id} value={project.id}>
@@ -149,9 +149,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ projects, projectDetails, 
                         variant="success"
                         onClick={handleExport}
                         leftIcon={<span className="material-symbols-outlined text-[18px]">download</span>}
-                        className="rounded-xl"
+                        className="rounded-xl whitespace-nowrap"
                     >
-                        Export XLSX
+                        <span className="hidden sm:inline">Export XLSX</span>
+                        <span className="sm:hidden">Export</span>
                     </Button>
                 </div>
             </Header>

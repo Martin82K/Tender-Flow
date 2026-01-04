@@ -154,10 +154,10 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
 
                 <button
                     onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                    className={`fixed top-24 left-4 z-30 flex items-center justify-center p-1.5 rounded-lg bg-slate-800/80 text-white border border-slate-700/50 shadow-lg transition-all hover:bg-slate-700 md:hidden ${isSidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+                    className={`fixed top-4 left-4 z-40 flex items-center justify-center p-2 rounded-xl bg-slate-800/90 text-white border border-slate-700/50 shadow-lg transition-all hover:bg-slate-700 md:hidden ${isSidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
                     title={isSidebarOpen ? "Schovat sidebar" : "Zobrazit sidebar"}
                 >
-                    <span className="material-symbols-outlined text-[20px]">menu</span>
+                    <span className="material-symbols-outlined text-[22px]">menu</span>
                 </button>
 
                 {/* Toggle Button for Desktop when Sidebar is hidden */}
