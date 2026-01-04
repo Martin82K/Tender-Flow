@@ -1,5 +1,6 @@
 import React from "react";
 import logo from "../../assets/logo.png";
+import { APP_VERSION } from "../../config/version";
 
 interface RegistrationStatus {
   isOpen: boolean;
@@ -34,7 +35,7 @@ export const AuthCard: React.FC<{
       </div>
 
       <div className="mt-8 pt-6 border-t border-white/10 text-center space-y-2">
-        <span className="text-xs text-white/40">verze 0.9.4-260102</span>
+        <span className="text-xs text-white/40">verze {APP_VERSION}</span>
 
         {registrationStatus !== undefined && registrationStatus !== null && (
           <div className="flex flex-col items-center gap-1">

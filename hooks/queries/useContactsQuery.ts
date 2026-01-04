@@ -4,6 +4,8 @@ import { withRetry, withTimeout } from "../../utils/helpers";
 import { Subcontractor } from "../../types";
 import { useAuth } from "../../context/AuthContext";
 
+import { getDemoData, DEMO_CONTACTS } from "../../services/demoData";
+
 export const CONTACT_KEYS = {
     all: ["contacts"] as const,
     list: () => [...CONTACT_KEYS.all, "list"] as const,
@@ -15,6 +17,13 @@ export const useContactsQuery = () => {
         queryKey: [...CONTACT_KEYS.list(), user?.id],
         enabled: !!user,
         queryFn: async () => {
+            if (user?.role === "demo") {
+                const demoData = getDemoData();
+                return (demoData && demoData.contacts && demoData.contacts.length > 0)
+                    ? demoData.contacts
+                    : DEMO_CONTACTS;
+            }
+
             const subcontractorsRes = await withRetry(
                 () =>
                     withTimeout(

@@ -33,6 +33,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ projects, projectDetails, 
         }
     }, [selectedProjectId]);
 
+    // Auto-select first project if none selected and projects available
+    useEffect(() => {
+        if (!selectedProjectId && activeProjects.length > 0) {
+            setSelectedProjectId(activeProjects[0].id);
+        }
+    }, [activeProjects, selectedProjectId]);
+
     const selectedProject = projectDetails[selectedProjectId];
 
     // Helper for Export (duplicated logic for now to preserve functionality without rendering)

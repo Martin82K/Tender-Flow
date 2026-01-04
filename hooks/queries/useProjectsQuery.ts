@@ -3,7 +3,7 @@ import { supabase } from "../../services/supabase";
 import { withRetry, withTimeout } from "../../utils/helpers";
 import { Project } from "../../types";
 import { useAuth } from "../../context/AuthContext";
-import { getDemoData } from "../../services/demoData";
+import { getDemoData, DEMO_PROJECT } from "../../services/demoData";
 
 export const PROJECT_KEYS = {
     all: ["projects"] as const,
@@ -22,7 +22,9 @@ export const useProjectsQuery = () => {
 
             if (user?.role === "demo") {
                 const demoData = getDemoData();
-                return demoData ? demoData.projects : [];
+                return (demoData && demoData.projects && demoData.projects.length > 0) 
+                    ? demoData.projects 
+                    : [DEMO_PROJECT];
             }
 
             const [projectsResponse, metadataResponse] = await Promise.all([

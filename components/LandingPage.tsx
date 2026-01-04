@@ -11,6 +11,7 @@ import { PublicLayout } from "./public/PublicLayout";
 import { PublicHeader } from "./public/PublicHeader";
 import { Link, useLocation, navigate } from "./routing/router";
 import { useAuth } from "../context/AuthContext";
+import { APP_VERSION } from "../config/version";
 
 const Stat: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4">
@@ -38,6 +39,8 @@ export const LandingPage: React.FC = () => {
   const { loginAsDemo } = useAuth();
   const [activePricingPlan, setActivePricingPlan] =
     useState<string>("Professional");
+  const [activeDemoTab, setActiveDemoTab] = useState<string>("prehled");
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   const handleDemo = () => {
     loginAsDemo();
@@ -70,7 +73,7 @@ export const LandingPage: React.FC = () => {
           <div className="relative p-10 md:p-14">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-white/70">
               <span className="w-2 h-2 rounded-full bg-orange-500" />
-              v0.9.4-260102 • Cloud-based řešení
+              v{APP_VERSION} • Cloud-based řešení
             </div>
 
             <h1 className="mt-6 text-4xl md:text-6xl font-semibold tracking-tight text-white leading-[1.05]">
@@ -231,8 +234,8 @@ export const LandingPage: React.FC = () => {
                 Vidět znamená věřit.
               </h2>
               <p className="mt-2 text-white/60 max-w-3xl">
-                Spusťte demo projekt a proklikejte si workflow bez rizika
-                zobrazení reálných dat.
+                Podívejte se na ukázky přímo z aplikace. Přehledný design a
+                intuitivní ovládání.
               </p>
             </div>
             <button
@@ -246,39 +249,105 @@ export const LandingPage: React.FC = () => {
 
           <div className="rounded-3xl border border-white/10 bg-gray-950/40 backdrop-blur p-6">
             <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-6">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-red-500/80" />
-                <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-                <div className="w-3 h-3 rounded-full bg-green-500/80" />
-              </div>
-
-              <div className="mt-6 rounded-2xl border border-white/10 bg-gray-950/40 p-6">
-                <div className="text-white font-semibold">
-                  Demo projekt: Bytový dům Slunečná - DEMO
+              {/* Browser window header */}
+              <div className="flex items-center justify-between gap-4 mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-red-500/80" />
+                  <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
+                  <div className="w-3 h-3 rounded-full bg-green-500/80" />
                 </div>
-                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                
+                {/* Tab navigation */}
+                <div className="flex items-center gap-1 bg-slate-900/50 p-1 rounded-xl border border-white/10 flex-wrap">
                   {[
-                    { label: "ROZPOČET INVESTOR", value: "18,5 mil. Kč" },
-                    { label: "PLÁNOVANÝ NÁKLAD", value: "15,0 mil. Kč" },
-                    { label: "ZASMLUVNĚNO", value: "12,4 mil. Kč" },
-                    { label: "POSTUP", value: "3 / 5 kategorií" },
-                  ].map((m) => (
-                    <div
-                      key={m.label}
-                      className="rounded-2xl border border-white/10 bg-white/5 p-5"
+                    { id: "prehled", label: "Přehled Poptávek", icon: "table_chart" },
+                    { id: "karty", label: "Výběrová Řízení", icon: "dashboard" },
+                    { id: "kanban", label: "Kanban Pipeline", icon: "view_kanban" },
+                    { id: "harmonogram", label: "Harmonogram", icon: "calendar_month" },
+                    { id: "slozkomat", label: "Složkomat", icon: "folder_open" },
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setActiveDemoTab(tab.id)}
+                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+                        activeDemoTab === tab.id
+                          ? "bg-orange-500 text-white shadow-lg"
+                          : "text-white/60 hover:text-white hover:bg-white/5"
+                      }`}
                     >
-                      <div className="text-xs text-white/50">{m.label}</div>
-                      <div className="mt-2 text-white text-2xl font-light">
-                        {m.value}
-                      </div>
-                    </div>
+                      <span className="material-symbols-outlined text-[16px]">{tab.icon}</span>
+                      <span className="hidden sm:inline">{tab.label}</span>
+                    </button>
                   ))}
                 </div>
               </div>
 
-              <p className="mt-5 text-sm text-white/60">
-                Demo běží lokálně v prohlížeči a nepoužívá data vaší organizace.
-              </p>
+              {/* Screenshot display */}
+              <div className="mt-4 rounded-xl border border-white/10 bg-slate-950/50 overflow-hidden">
+                <div className="relative w-full overflow-auto max-h-[400px] cursor-zoom-in" onClick={() => {
+                  const srcMap: Record<string, string> = {
+                    prehled: "/screenshots/prehled-poptavek.png",
+                    karty: "/screenshots/vyberove-rizeni.png",
+                    kanban: "/screenshots/kanban.png",
+                    harmonogram: "/screenshots/harmonogram.png",
+                    slozkomat: "/screenshots/slozkomat.png",
+                  };
+                  setLightboxImage(srcMap[activeDemoTab] || srcMap.prehled);
+                }}>
+                  {activeDemoTab === "prehled" && (
+                    <img
+                      src="/screenshots/prehled-poptavek.png"
+                      alt="Přehled poptávek - tabulkové zobrazení všech poptávek s cenami a stavy"
+                      className="w-full h-auto"
+                    />
+                  )}
+                  {activeDemoTab === "karty" && (
+                    <img
+                      src="/screenshots/vyberove-rizeni.png"
+                      alt="Výběrová řízení - kartové zobrazení s detaily jednotlivých poptávek"
+                      className="w-full h-auto"
+                    />
+                  )}
+                  {activeDemoTab === "kanban" && (
+                    <img
+                      src="/screenshots/kanban.png"
+                      alt="Kanban pipeline - přehled fází výběrového řízení od oslovení po smlouvu"
+                      className="w-full h-auto"
+                    />
+                  )}
+                  {activeDemoTab === "harmonogram" && (
+                    <img
+                      src="/screenshots/harmonogram.png"
+                      alt="Harmonogram - Ganttův diagram s přehledem termínů výběrových řízení"
+                      className="w-full h-auto"
+                    />
+                  )}
+                  {activeDemoTab === "slozkomat" && (
+                    <img
+                      src="/screenshots/slozkomat.png"
+                      alt="Složkomat - propojení s Google Drive a OneDrive pro správu dokumentů"
+                      className="w-full h-auto"
+                    />
+                  )}
+                  <div className="absolute bottom-2 right-2 bg-black/60 text-white/80 text-xs px-2 py-1 rounded-lg flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[14px]">zoom_in</span>
+                    Kliknutím zvětšíte
+                  </div>
+                </div>
+              </div>
+
+              {/* Caption */}
+              <div className="mt-4 flex items-center justify-between text-sm text-white/60">
+                <span>
+                  {activeDemoTab === "prehled" && "Přehledná tabulka všech poptávek s cenami, stavy a smlouvami"}
+                  {activeDemoTab === "karty" && "Kartové zobrazení výběrových řízení s rychlým přehledem stavu"}
+                  {activeDemoTab === "kanban" && "Kanban pipeline pro vizuální sledování průběhu výběrového řízení"}
+                  {activeDemoTab === "harmonogram" && "Ganttův diagram s přehledem termínů a exportem do XLSX/PDF"}
+                  {activeDemoTab === "slozkomat" && "Napojení na Google Drive a OneDrive pro automatickou správu dokumentů"}
+                </span>
+                <span className="text-xs text-white/40">Tender Flow v{APP_VERSION}</span>
+              </div>
             </div>
           </div>
         </section>
@@ -345,6 +414,8 @@ export const LandingPage: React.FC = () => {
                   "Oddělení dat mezi organizacemi",
                   "Role a admin režim",
                   "Přístupy podle potřeb týmu (příprava / stavba / technik)",
+                  "Šifrovaný přenos dat",
+                  "Šifrované uložení dat",
                 ].map((t) => (
                   <li key={t} className="flex items-start gap-2">
                     <span className="mt-0.5 text-orange-300">•</span>
@@ -356,27 +427,36 @@ export const LandingPage: React.FC = () => {
             <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-orange-500/10 via-gray-950/40 to-transparent backdrop-blur p-8 flex flex-col justify-between">
               <div>
                 <div className="text-white font-semibold">
-                  Chcete nastavení pro firmu?
+                  <h2 className="text-2xl md:text-3xl font-light text-white tracking-wide">
+                    Chcete samostatné vydání?
+                  </h2>
                 </div>
                 <p className="mt-2 text-white/60">
-                  Pomůžeme s úvodním nastavením organizace, rolí a importem
-                  kontaktů. Společně nastavíme šablony poptávek a doporučíme
-                  workflow, aby se proces ve firmě zjednodušil hned od prvního
-                  dne.
+                  Pokud potřebujete vlastní řešení pro svou firmu, jste tu správně. I toto je možné.
+                <br/>   
+                <br/>
+                 <ul className="mt-6 space-y-2 text-sm text-white/70">
+                {[
+                  "AJe možné sestavení docker image pro nasazení na vlastní servery.",
+                  "Aplikace tak poběží nezávisle na externích službách.",
+                  "V tomto případě je nutné vlastní dodatečnou konfiguraci API klíčů a domén služeb.",
+                  "Tender Flow neručí za data a jejich bezpečnost.",
+                  "Nákup je jednorázový a nezahrnuje další aktualizace a nové funkcionality.",
+                ].map((t) => (
+                  <li key={t} className="flex items-start gap-2">
+                    <span className="mt-0.5 text-orange-300">•</span>
+                    <span>{t}</span>
+                  </li>
+                ))}
+                </ul>           
                 </p>
               </div>
               <div className="mt-6 flex gap-3">
-                <Link
-                  to="/register"
-                  className="px-5 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-medium transition-colors shadow-lg shadow-orange-500/20"
-                >
-                  Začít
-                </Link>
                 <a
                   href="mailto:?subject=Demo%20Tender%20Flow"
                   className="px-5 py-3 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-white/90 transition-colors"
                 >
-                  Kontakt
+                  Kontaktovat vývojáře
                 </a>
               </div>
             </div>
@@ -420,7 +500,7 @@ export const LandingPage: React.FC = () => {
                   "10 uživatelů",
                   "Dashboard + KPI",
 				          "Plán výběrových řízení",
-                  "AI analýza",
+                  "AI rerporty a doplnění informací kontaktů",
                   "Excel Merger PRO",
                   "Excel Unlocker PRO",
 				          "Document Hub - složkomat",
@@ -434,15 +514,14 @@ export const LandingPage: React.FC = () => {
                 price: "Na míru",
                 label: "individuálně",
                 items: [
-                  "Neomezené projekty",
-                  "Neomezení uživatelé",
+                  "Stejné co v Professional",
+                  "plus k tomu navíc:",
+                  "Možnost in house řešení",
+                  "Sestavení Docker image",
                   "Vlastní integrace",
                   "Možnost návrhu funkcí",
-                  "Vylepšení databáze",
-				  "Přístup ke connectorům",
-				  "Přístup k API",
-				  "Přístup k dokumentaci",
-				  "Document Hub",
+                  "Onboarding asistence",
+                  "Vývoj vlastního modulu API",
                 ],
                 cta: {
                   label: "Kontaktovat",
@@ -548,12 +627,34 @@ export const LandingPage: React.FC = () => {
 	        </section>
 
 	        <footer className="mt-10 pb-10 border-t border-white/10 pt-8 text-sm text-white/50 text-center">
-	          <div>© {new Date().getFullYear()} Tender Flow • v0.9.4-260102</div>
+	          <div>© {new Date().getFullYear()} Tender Flow • v{APP_VERSION}</div>
 	          <div className="mt-2 text-white/40">
 	            Cloud řešení pro správu výběrových řízení ve stavebnictví
 	          </div>
 	        </footer>
 	      </main>
-	    </PublicLayout>
+
+      {/* Lightbox Modal */}
+      {lightboxImage && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 cursor-zoom-out"
+          onClick={() => setLightboxImage(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setLightboxImage(null)}
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+          >
+            <span className="material-symbols-outlined">close</span>
+          </button>
+          <img
+            src={lightboxImage}
+            alt="Zvětšený screenshot aplikace"
+            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+    </PublicLayout>
 	  );
 };

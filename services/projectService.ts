@@ -1,9 +1,15 @@
 import { supabase } from "./supabase";
 import { Project } from "../types";
+import { isDemoSession, DEMO_PROJECT } from "./demoData";
 
 export const projectService = {
   // Fetch projects (will only return owned or shared due to RLS)
   getProjects: async (): Promise<Project[]> => {
+    // If in demo session, return demo project only
+    if (isDemoSession()) {
+      return [DEMO_PROJECT];
+    }
+
     const { data, error } = await supabase
       .from("projects")
       .select("*")

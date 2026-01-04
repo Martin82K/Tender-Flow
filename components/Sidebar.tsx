@@ -7,6 +7,8 @@ import { SIDEBAR_NAVIGATION, BOTTOM_NAVIGATION } from '../config/navigation';
 import { useFeatures } from '../context/FeatureContext';
 import { useLocation } from './routing/router';
 
+import { APP_VERSION } from '../config/version';
+
 // Admin role configuration (must match App.tsx)
 const ADMIN_EMAILS = ["martinkalkus82@gmail.com", "kalkus@baustav.cz"];
 
@@ -34,7 +36,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
   const { user, logout } = useAuth();
   const { hasFeature } = useFeatures(); // Use feature context
   const { search } = useLocation();
-  const [width, setWidth] = useState(260);
+  const [width, setWidth] = useState(300);
   const [isResizing, setIsResizing] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const sidebarRef = useRef<HTMLElement>(null);
@@ -135,6 +137,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
   }, [user?.id]);
 
   const loadDisplayName = async () => {
+    if (user.role === 'demo') {
+      setDisplayName('Demo Uživatel');
+      return;
+    }
+
     try {
       const { supabase } = await import('../services/supabase');
       const { data, error } = await supabase
@@ -465,7 +472,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, sel
                 Martin Kalkuš 2025
               </p>
               <p className="text-[10px] text-slate-600 text-center mt-1 font-mono hover:text-slate-500 transition-colors cursor-default">
-                v0.9.4-260102
+                v{APP_VERSION}
               </p>
             </div>
           </div>

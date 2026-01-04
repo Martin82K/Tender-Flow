@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { FeatureKey } from '../config/features';
+import { FeatureKey, PLANS } from '../config/features';
 import { useAuth } from './AuthContext';
 import { subscriptionFeaturesService } from '../services/subscriptionFeaturesService';
 
@@ -26,6 +26,15 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setEnabledFeatures([]);
       setCurrentPlan('free');
       setIsLoading(false);
+      return;
+    }
+
+    // Demo mode has no Supabase auth session, so backend RPC feature checks will fail.
+    // Provide a sane local feature set so core navigation is visible.
+    if (user.role === 'demo') {
+      setIsLoading(false);
+      setEnabledFeatures(PLANS.PRO.features as FeatureKey[]);
+      setCurrentPlan('demo');
       return;
     }
 

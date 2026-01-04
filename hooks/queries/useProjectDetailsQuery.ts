@@ -2,6 +2,7 @@ import { useQuery, useQueries, UseQueryOptions } from "@tanstack/react-query";
 import { supabase } from "../../services/supabase";
 import { withRetry, withTimeout } from "../../utils/helpers";
 import { Project, ProjectDetails, DemandCategory, Bid } from "../../types";
+import { isDemoSession, DEMO_PROJECT_DETAILS, DEMO_PROJECT } from "../../services/demoData";
 
 export const PROJECT_DETAILS_KEYS = {
     all: ["projectDetails"] as const,
@@ -10,6 +11,22 @@ export const PROJECT_DETAILS_KEYS = {
 
 // Helper: Fetch details for a single project
 const fetchProjectDetails = async (projectId: string): Promise<ProjectDetails> => {
+    // Check for demo project
+    if (isDemoSession() || projectId === DEMO_PROJECT.id || projectId === 'demo-project-1') {
+        const demoData = localStorage.getItem('demo_data');
+        if (demoData) {
+             try {
+                 const parsed = JSON.parse(demoData);
+                 if (parsed.projectDetails && parsed.projectDetails[projectId]) {
+                     return parsed.projectDetails[projectId];
+                 }
+             } catch (e) {
+                 console.error("Failed to parse demo data", e);
+             }
+        }
+        return DEMO_PROJECT_DETAILS;
+    }
+
     // 1. Fetch metadata in parallel
     const [
         projectRes,
