@@ -309,7 +309,8 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
 	                                                        className="rounded-lg bg-white dark:bg-slate-700/50 border border-slate-300 dark:border-slate-600/50 px-2 py-1.5 text-sm text-slate-900 dark:text-white focus:border-cyan-500/50 focus:outline-none disabled:opacity-50 min-w-[160px]"
 	                                                    >
 	                                                        <option value="">{`Auto (${(user.org_subscription_tier || 'free').toLowerCase()})`}</option>
-	                                                        <option value="free">Free</option>
+	                                                        <option value="demo">Demo</option>
+	                                                        <option value="free">Starter</option>
 	                                                        <option value="pro">Pro</option>
 	                                                        <option value="enterprise">Enterprise</option>
 	                                                        <option value="admin">Admin</option>
