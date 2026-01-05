@@ -1,4 +1,8 @@
 import React, { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+
+// Query key for contact statuses (mirrored from useContactStatusesQuery)
+const CONTACT_STATUSES_KEY = ["statuses", "contact"] as const;
 import { StatusConfig, Subcontractor } from "../../types";
 import {
   addContactStatus,
@@ -32,6 +36,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
   user,
 }) => {
   const { showAlert, showConfirm } = useUI();
+  const queryClient = useQueryClient();
   const { updatePreferences } = useAuth();
   // Status Form State
   const [newStatusLabel, setNewStatusLabel] = useState("");
@@ -180,6 +185,10 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
         message: "Chyba při ukládání stavu do databáze.",
         variant: "danger",
       });
+    } else {
+      queryClient.invalidateQueries({
+        queryKey: CONTACT_STATUSES_KEY,
+      });
     }
   };
 
@@ -205,6 +214,10 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
         message: "Chyba při mazání stavu z databáze.",
         variant: "danger",
       });
+    } else {
+      queryClient.invalidateQueries({
+        queryKey: CONTACT_STATUSES_KEY,
+      });
     }
   };
 
@@ -222,6 +235,10 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
         title: "Chyba",
         message: "Chyba při ukládání změny do databáze.",
         variant: "danger",
+      });
+    } else {
+      queryClient.invalidateQueries({
+        queryKey: CONTACT_STATUSES_KEY,
       });
     }
   };
@@ -242,6 +259,10 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
         title: "Chyba",
         message: "Chyba při ukládání barvy do databáze.",
         variant: "danger",
+      });
+    } else {
+      queryClient.invalidateQueries({
+        queryKey: CONTACT_STATUSES_KEY,
       });
     }
   };
@@ -397,176 +418,19 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
         </div>
       </section>
 
-      {/* Email Client Settings */}
-      <section className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl">
-        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-          <span className="material-symbols-outlined text-emerald-500">
-            mail
-          </span>
-          Nastavení emailů
-        </h2>
-
-        <div className="space-y-4">
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-            Způsob odesílání poptávek
-          </label>
-          <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
-            {[
-              {
-                id: "mailto",
-                icon: "send",
-                label: "Klasický (Mailto)",
-                desc: "Rychlé, odkazy viditelné",
-              },
-              {
-                id: "eml",
-                icon: "draft",
-                label: "Formátovaný (EML)",
-                desc: "HTML, skryté odkazy, vyžaduje stažení",
-              },
-            ].map((opt) => {
-              const isActive =
-                (user?.preferences?.emailClientMode || "mailto") === opt.id;
-
-              return (
-                <button
-                  key={opt.id}
-                  onClick={() => updatePreferences({ emailClientMode: opt.id })}
-                  className={`
-                    flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-lg text-sm font-medium transition-all
-                    ${
-                      isActive
-                        ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
-                        : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-                    }
-                `}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[18px]">
-                      {opt.icon}
-                    </span>
-                    <span>{opt.label}</span>
-                  </div>
-                  <span className="text-[10px] opacity-70 font-normal">
-                    {opt.desc}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-          <p className="text-xs text-slate-500 mt-2">
-            {user?.preferences?.emailClientMode === "eml"
-              ? 'Tip: Pro automatické otevírání nastavte v prohlížeči "Vždy otevírat soubory tohoto typu" u staženého souboru.'
-              : "Klasický způsob otevře vašeho emailového klienta přímo. Odkazy budou v textové podobě."}
-          </p>
-
-          <div className="pt-4 border-t border-slate-200 dark:border-slate-700/50">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-              Váš emailový podpis
-            </label>
-            <textarea
-              value={user?.preferences?.signature || ""}
-              onChange={(e) => updatePreferences({ signature: e.target.value })}
-              placeholder="S pozdravem,&#10;Jméno Příjmení&#10;Pozice&#10;Firma s.r.o."
-              className="w-full rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-3 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/50 outline-none transition-all h-32 resize-none"
-            />
-            <p className="text-xs text-slate-500 mt-1">
-              Tento podpis bude automaticky vložen na konec generovaných emailů
-              (zastoupí proměnnou <code>{"{PODPIS_UZIVATELE}"}</code>).
-              Podporuje <strong>HTML kód</strong> (např. zkopírovaný z Outlook
-              podpisu).
-            </p>
-
-            {/* Signature Preview */}
-            <div className="mt-4">
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                Náhled podpisu (HTML)
-              </label>
-              <div
-                className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm min-h-[100px] text-sm text-slate-900"
-                dangerouslySetInnerHTML={{
-                  __html: (user?.preferences?.signature || "").match(
-                    /<[a-z][\s\S]*>/i
-                  )
-                    ? user?.preferences?.signature
-                    : (user?.preferences?.signature || "").replace(
-                        /\n/g,
-                        "<br>"
-                      ),
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* URL Shortener Settings */}
-      <section className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl">
-        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-          <span className="material-symbols-outlined text-indigo-500">
-            link
-          </span>
-          Zkracovač odkazů
-        </h2>
-
-        <div className="space-y-4">
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-            Poskytovatel služby
-          </label>
-          <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
-            {[
-              {
-                id: "tfurl",
-                label: "URL Zkracovač",
-                desc: "Interní řešení (vlastní doména)",
-              },
-              {
-                id: "tinyurl",
-                label: "TinyURL",
-                desc: "Externí služba (tinyurl.com)",
-              },
-            ].map((opt) => {
-              const isActive =
-                (user?.preferences?.urlShortenerProvider || "tfurl") === opt.id;
-
-              return (
-                <button
-                  key={opt.id}
-                  onClick={() =>
-                    updatePreferences({ urlShortenerProvider: opt.id as any })
-                  }
-                  className={`
-                    flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-lg text-sm font-medium transition-all
-                    ${
-                      isActive
-                        ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
-                        : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-                    }
-                `}
-                >
-                  <span className="text-base">{opt.label}</span>
-                  <span className="text-xs opacity-70 font-normal">
-                    {opt.desc}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-          <p className="text-xs text-slate-500 mt-2">
-            Vyberte službu, která bude použita pro zkracování dlouhých odkazů v
-            aplikaci.
-          </p>
-        </div>
-      </section>
-
       {/* Contact Statuses Management */}
       <section className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl">
         <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
           <span className="material-symbols-outlined text-blue-500">label</span>
-          Stavy kontaktů (CRM)
+          Typy kontaktů
         </h2>
 
         <div className="space-y-4 mb-8">
+          {contactStatuses.length === 0 && (
+            <div className="text-center py-8 text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+              Použijte formulář níže pro přidání prvního stavu.
+            </div>
+          )}
           {contactStatuses.map((status) => (
             <div
               key={status.id}
@@ -657,28 +521,6 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
             Přidat
           </button>
         </form>
-      </section>
-
-      {/* Danger Zone */}
-      <section className="bg-red-50/50 dark:bg-red-900/10 backdrop-blur-xl border border-red-200/60 dark:border-red-900/30 rounded-2xl p-6">
-        <h2 className="text-lg font-bold text-red-700 dark:text-red-400 mb-4 flex items-center gap-2">
-          <span className="material-symbols-outlined">warning</span>
-          Nebezpečná zóna
-        </h2>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-slate-900 dark:text-white">
-              Smazat všechny kontakty
-            </p>
-            <p className="text-xs text-slate-500">Tato akce je nevratná.</p>
-          </div>
-          <button
-            onClick={handleDeleteAllContacts}
-            className="px-4 py-2 bg-white dark:bg-red-950 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 rounded-lg text-sm font-bold hover:bg-red-50 dark:hover:bg-red-900/50 transition-colors"
-          >
-            Smazat vše
-          </button>
-        </div>
       </section>
     </div>
   );
