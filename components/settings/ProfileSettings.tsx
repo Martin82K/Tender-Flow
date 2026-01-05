@@ -500,6 +500,65 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
         </div>
       </section>
 
+      {/* URL Shortener Settings */}
+      <section className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl">
+        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+          <span className="material-symbols-outlined text-indigo-500">
+            link
+          </span>
+          Zkracovač odkazů
+        </h2>
+
+        <div className="space-y-4">
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+            Poskytovatel služby
+          </label>
+          <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+            {[
+              {
+                id: "tfurl",
+                label: "TF URL",
+                desc: "Interní řešení (vlastní doména)",
+              },
+              {
+                id: "tinyurl",
+                label: "TinyURL",
+                desc: "Externí služba (tinyurl.com)",
+              },
+            ].map((opt) => {
+              const isActive =
+                (user?.preferences?.urlShortenerProvider || "tfurl") === opt.id;
+
+              return (
+                <button
+                  key={opt.id}
+                  onClick={() =>
+                    updatePreferences({ urlShortenerProvider: opt.id as any })
+                  }
+                  className={`
+                    flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-lg text-sm font-medium transition-all
+                    ${
+                      isActive
+                        ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+                        : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                    }
+                `}
+                >
+                  <span className="text-base">{opt.label}</span>
+                  <span className="text-xs opacity-70 font-normal">
+                    {opt.desc}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-xs text-slate-500 mt-2">
+            Vyberte službu, která bude použita pro zkracování dlouhých odkazů v
+            aplikaci.
+          </p>
+        </div>
+      </section>
+
       {/* Contact Statuses Management */}
       <section className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl">
         <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">

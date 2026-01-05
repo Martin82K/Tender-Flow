@@ -207,6 +207,7 @@ export interface UserPreferences {
   primaryColor: string;
   backgroundColor: string;
   emailClientMode?: "mailto" | "eml"; // 'mailto' = Text, 'eml' = File/HTML
+  urlShortenerProvider?: "tinyurl" | "tfurl"; // Service provider for URL shortening
   signature?: string; // HTML compatible signature
 }
 
@@ -246,4 +247,12 @@ export interface Template {
   content: string;
   isDefault: boolean;
   lastModified: string;
+}
+
+export interface ShortUrl {
+  id: string; // The short code
+  originalUrl: string;
+  createdAt: string;
+  createdBy?: string;
+  clicks: number;
 }

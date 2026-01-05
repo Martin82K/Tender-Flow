@@ -72,8 +72,8 @@ export const LandingPage: React.FC = () => {
           />
           <div className="relative p-10 md:p-14">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-white/70">
-              <span className="w-2 h-2 rounded-full bg-orange-500" />
-              v{APP_VERSION} • Cloud-based řešení
+              <span className="w-2 h-2 rounded-full bg-orange-500" />v
+              {APP_VERSION} • Cloud-based řešení
             </div>
 
             <h1 className="mt-6 text-4xl md:text-6xl font-semibold tracking-tight text-white leading-[1.05]">
@@ -88,8 +88,6 @@ export const LandingPage: React.FC = () => {
               Jedno místo pro podklady, nabídky, rozhodnutí a sdílení v týmu.
               <br />
             </p>
-
-
 
             <div className="mt-8 flex flex-wrap gap-2 text-sm text-white/70">
               {[
@@ -118,8 +116,7 @@ export const LandingPage: React.FC = () => {
           </div>
         </section>
 
-	        <section id="solution" className="mt-16 md:mt-24 scroll-mt-24">          
-
+        <section id="solution" className="mt-16 md:mt-24 scroll-mt-24">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="rounded-3xl border border-white/10 bg-gray-950/40 backdrop-blur p-8">
               <div className="text-white font-semibold">Bez Tender Flow</div>
@@ -131,7 +128,7 @@ export const LandingPage: React.FC = () => {
                   "Nejasný stav poptávek a termínů",
                   "Ruční sumarizace přehledy všech dat a reporty",
                   "Zdlouhavé hledání ve složkách, která má pokaždé jinou strukturu",
-                  "Ruční tvoření aúpravy harmonogramu"
+                  "Ruční tvoření aúpravy harmonogramu",
                 ].map((t) => (
                   <li key={t} className="flex items-start gap-2">
                     <span className="mt-0.5 text-white/30">•</span>
@@ -166,8 +163,7 @@ export const LandingPage: React.FC = () => {
           </div>
         </section>
 
-        <section id="features" className="mt-16 md:mt-24 scroll-mt-24">          
-
+        <section id="features" className="mt-16 md:mt-24 scroll-mt-24">
           <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <Feature
               icon={<LayoutDashboard size={20} />}
@@ -231,15 +227,35 @@ export const LandingPage: React.FC = () => {
                   <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
                   <div className="w-3 h-3 rounded-full bg-green-500/80" />
                 </div>
-                
+
                 {/* Tab navigation */}
                 <div className="flex items-center gap-1 bg-slate-900/50 p-1 rounded-xl border border-white/10 flex-wrap">
                   {[
-                    { id: "prehled", label: "Přehled Poptávek", icon: "table_chart" },
-                    { id: "karty", label: "Výběrová Řízení", icon: "dashboard" },
-                    { id: "kanban", label: "Kanban Pipeline", icon: "view_kanban" },
-                    { id: "harmonogram", label: "Harmonogram", icon: "calendar_month" },
-                    { id: "slozkomat", label: "Složkomat", icon: "folder_open" },
+                    {
+                      id: "prehled",
+                      label: "Přehled Poptávek",
+                      icon: "table_chart",
+                    },
+                    {
+                      id: "karty",
+                      label: "Výběrová Řízení",
+                      icon: "dashboard",
+                    },
+                    {
+                      id: "kanban",
+                      label: "Kanban Pipeline",
+                      icon: "view_kanban",
+                    },
+                    {
+                      id: "harmonogram",
+                      label: "Harmonogram",
+                      icon: "calendar_month",
+                    },
+                    {
+                      id: "slozkomat",
+                      label: "Složkomat",
+                      icon: "folder_open",
+                    },
                   ].map((tab) => (
                     <button
                       key={tab.id}
@@ -251,7 +267,9 @@ export const LandingPage: React.FC = () => {
                           : "text-white/60 hover:text-white hover:bg-white/5"
                       }`}
                     >
-                      <span className="material-symbols-outlined text-[16px]">{tab.icon}</span>
+                      <span className="material-symbols-outlined text-[16px]">
+                        {tab.icon}
+                      </span>
                       <span className="hidden sm:inline">{tab.label}</span>
                     </button>
                   ))}
@@ -260,16 +278,19 @@ export const LandingPage: React.FC = () => {
 
               {/* Screenshot display */}
               <div className="mt-4 rounded-xl border border-white/10 bg-slate-950/50 overflow-hidden">
-                <div className="relative w-full overflow-auto max-h-[400px] cursor-zoom-in" onClick={() => {
-                  const srcMap: Record<string, string> = {
-                    prehled: "/screenshots/prehled-poptavek.png",
-                    karty: "/screenshots/vyberove-rizeni.png",
-                    kanban: "/screenshots/kanban.png",
-                    harmonogram: "/screenshots/harmonogram.png",
-                    slozkomat: "/screenshots/slozkomat.png",
-                  };
-                  setLightboxImage(srcMap[activeDemoTab] || srcMap.prehled);
-                }}>
+                <div
+                  className="relative w-full overflow-auto max-h-[400px] cursor-zoom-in"
+                  onClick={() => {
+                    const srcMap: Record<string, string> = {
+                      prehled: "/screenshots/prehled-poptavek.png",
+                      karty: "/screenshots/vyberove-rizeni.png",
+                      kanban: "/screenshots/kanban.png",
+                      harmonogram: "/screenshots/harmonogram.png",
+                      slozkomat: "/screenshots/slozkomat.png",
+                    };
+                    setLightboxImage(srcMap[activeDemoTab] || srcMap.prehled);
+                  }}
+                >
                   {activeDemoTab === "prehled" && (
                     <img
                       src="/screenshots/prehled-poptavek.png"
@@ -306,7 +327,9 @@ export const LandingPage: React.FC = () => {
                     />
                   )}
                   <div className="absolute bottom-2 right-2 bg-black/60 text-white/80 text-xs px-2 py-1 rounded-lg flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[14px]">zoom_in</span>
+                    <span className="material-symbols-outlined text-[14px]">
+                      zoom_in
+                    </span>
                     Kliknutím zvětšíte
                   </div>
                 </div>
@@ -315,13 +338,20 @@ export const LandingPage: React.FC = () => {
               {/* Caption */}
               <div className="mt-4 flex items-center justify-between text-sm text-white/60">
                 <span>
-                  {activeDemoTab === "prehled" && "Přehledná tabulka všech poptávek s cenami, stavy a smlouvami"}
-                  {activeDemoTab === "karty" && "Kartové zobrazení výběrových řízení s rychlým přehledem stavu"}
-                  {activeDemoTab === "kanban" && "Kanban pipeline pro vizuální sledování průběhu výběrového řízení"}
-                  {activeDemoTab === "harmonogram" && "Ganttův diagram s přehledem termínů a exportem do XLSX/PDF"}
-                  {activeDemoTab === "slozkomat" && "Napojení na Google Drive a OneDrive pro automatickou správu dokumentů"}
+                  {activeDemoTab === "prehled" &&
+                    "Přehledná tabulka všech poptávek s cenami, stavy a smlouvami"}
+                  {activeDemoTab === "karty" &&
+                    "Kartové zobrazení výběrových řízení s rychlým přehledem stavu"}
+                  {activeDemoTab === "kanban" &&
+                    "Kanban pipeline pro vizuální sledování průběhu výběrového řízení"}
+                  {activeDemoTab === "harmonogram" &&
+                    "Ganttův diagram s přehledem termínů a exportem do XLSX/PDF"}
+                  {activeDemoTab === "slozkomat" &&
+                    "Napojení na Google Drive a OneDrive pro automatickou správu dokumentů"}
                 </span>
-                <span className="text-xs text-white/40">Tender Flow v{APP_VERSION}</span>
+                <span className="text-xs text-white/40">
+                  Tender Flow v{APP_VERSION}
+                </span>
               </div>
             </div>
           </div>
@@ -361,33 +391,32 @@ export const LandingPage: React.FC = () => {
                     Chcete samostatné vydání?
                   </h2>
                 </div>
-                <p className="mt-2 text-white/60">
-                  Pokud potřebujete vlastní řešení pro svou firmu, jste tu správně. I toto je možné.
-                <br/>   
-                <br/>
-                 <ul className="mt-6 space-y-2 text-sm text-white/70">
-                {[
-                  "Je možné sestavení docker image pro nasazení na vlastní servery.",
-                  "Aplikace tak poběží nezávisle na externích službách.",
-                  "V tomto případě je nutné vlastní dodatečnou konfiguraci API klíčů a domén služeb.",
-                  "Tender Flow neručí za data a jejich bezpečnost.",
-                  "Nákup je jednorázový a nezahrnuje další aktualizace a nové funkcionality.",
-                ].map((t) => (
-                  <li key={t} className="flex items-start gap-2">
-                    <span className="mt-0.5 text-orange-300">•</span>
-                    <span>{t}</span>
-                  </li>
-                ))}
-                </ul>           
-                </p>
+                <div className="mt-2 text-white/60">
+                  Pokud potřebujete vlastní řešení pro svou firmu, jste tu
+                  správně. I toto je možné.
+                  <br />
+                  <br />
+                  <ul className="mt-6 space-y-2 text-sm text-white/70">
+                    {[
+                      "Je možné sestavení docker image pro nasazení na vlastní servery.",
+                      "Aplikace tak poběží nezávisle na externích službách.",
+                      "V tomto případě je nutné vlastní dodatečnou konfiguraci API klíčů a domén služeb.",
+                      "Tender Flow neručí za data a jejich bezpečnost.",
+                      "Nákup je jednorázový a nezahrnuje další aktualizace a nové funkcionality.",
+                    ].map((t) => (
+                      <li key={t} className="flex items-start gap-2">
+                        <span className="mt-0.5 text-orange-300">•</span>
+                        <span>{t}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
-	        <section id="pricing" className="mt-16 md:mt-24 scroll-mt-24">
-	          
-
+        <section id="pricing" className="mt-16 md:mt-24 scroll-mt-24">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
               {
@@ -401,7 +430,11 @@ export const LandingPage: React.FC = () => {
                   "Databáze subdodavatelů",
                   "Export do Excel",
                 ],
-                cta: { label: "Vyzkoušet", kind: "link" as const, to: "/register" },
+                cta: {
+                  label: "Vyzkoušet",
+                  kind: "link" as const,
+                  to: "/register",
+                },
               },
               {
                 title: "Professional",
@@ -413,15 +446,19 @@ export const LandingPage: React.FC = () => {
                   "Neomezené projekty",
                   "10 uživatelů",
                   "Dashboard + KPI",
-				          "Plán výběrových řízení",
+                  "Plán výběrových řízení",
                   "AI rerporty a doplnění informací kontaktů",
                   "Excel Merger PRO",
                   "Excel Unlocker PRO",
-				          "Document Hub - složkomat",
+                  "Document Hub - složkomat",
                   "Harmonogram s grafem",
                   "Exporty harmonogramu",
                 ],
-                cta: { label: "Začít nyní", kind: "link" as const, to: "/register" },
+                cta: {
+                  label: "Začít nyní",
+                  kind: "link" as const,
+                  to: "/register",
+                },
               },
               {
                 title: "Enterprise",
@@ -470,87 +507,89 @@ export const LandingPage: React.FC = () => {
                       </div>
                     ) : null}
                   </div>
-                <div className="mt-3 flex items-end gap-2">
-                  <div className="text-4xl text-white font-light leading-none">
-                    {p.price}
+                  <div className="mt-3 flex items-end gap-2">
+                    <div className="text-4xl text-white font-light leading-none">
+                      {p.price}
+                    </div>
+                    <div className="text-sm text-white/50 pb-1">{p.label}</div>
                   </div>
-                  <div className="text-sm text-white/50 pb-1">{p.label}</div>
-                </div>
 
-                <ul className="mt-6 space-y-2 text-sm text-white/70">
-                  {p.items.map((t) => (
-                    <li key={t} className="flex items-start gap-2">
-                      <span className="mt-0.5 text-orange-300">•</span>
-                      <span>{t}</span>
-                    </li>
-                  ))}
-                </ul>
+                  <ul className="mt-6 space-y-2 text-sm text-white/70">
+                    {p.items.map((t) => (
+                      <li key={t} className="flex items-start gap-2">
+                        <span className="mt-0.5 text-orange-300">•</span>
+                        <span>{t}</span>
+                      </li>
+                    ))}
+                  </ul>
 
-                <div className="mt-auto pt-8">
-                  {p.cta.kind === "mailto" ? (
-                    <a
-                      href={p.cta.to}
-                      className="inline-flex w-full h-12 items-center justify-center px-5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-white/90 transition-colors"
-                    >
-                      {p.cta.label}
-                    </a>
-                  ) : (
-                    <Link
-                      to={p.cta.to}
-                      className="inline-flex w-full h-12 items-center justify-center px-5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-medium transition-all shadow-lg shadow-orange-500/15 group-hover:shadow-orange-500/25"
-                    >
-                      {p.cta.label}
-                    </Link>
-                  )}
+                  <div className="mt-auto pt-8">
+                    {p.cta.kind === "mailto" ? (
+                      <a
+                        href={p.cta.to}
+                        className="inline-flex w-full h-12 items-center justify-center px-5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-white/90 transition-colors"
+                      >
+                        {p.cta.label}
+                      </a>
+                    ) : (
+                      <Link
+                        to={p.cta.to}
+                        className="inline-flex w-full h-12 items-center justify-center px-5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-medium transition-all shadow-lg shadow-orange-500/15 group-hover:shadow-orange-500/25"
+                      >
+                        {p.cta.label}
+                      </Link>
+                    )}
+                  </div>
                 </div>
-              </div>
               );
             })}
-	          </div>
-	        </section>
+          </div>
+        </section>
 
-	        <section className="mt-16 md:mt-24">
-	          <div className="rounded-[32px] border border-white/10 bg-gradient-to-br from-gray-950 via-gray-950/60 to-gray-950 p-10 md:p-16 text-center relative overflow-hidden">
-	            <div
-	              className="absolute inset-0"
-	              style={{
-	                background:
-	                  "radial-gradient(circle at 30% 20%, rgba(255, 138, 51, 0.18) 0%, transparent 55%), radial-gradient(circle at 80% 70%, rgba(255, 138, 51, 0.10) 0%, transparent 55%)",
-	              }}
-	            />
-	            <div className="relative">
-	              <h2 className="text-3xl md:text-5xl font-semibold tracking-tight text-white leading-tight">
-	                Připraveni změnit způsob,
-	                <br className="hidden md:block" />
-	                jakým řídíte výběrová řízení?
-	              </h2>
-	              <p className="mt-4 text-white/60">
-	                Začněte zdarma s demo projektem. Žádná kreditní karta není
-	                potřeba.
-	              </p>
-	              <div className="mt-8 flex justify-center">
-	                <Link
-	                  to="/register"
-	                  className="inline-flex items-center justify-center px-7 py-3.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-medium transition-colors shadow-lg shadow-orange-500/20"
-	                >
-	                  Začít hned teď →
-	                </Link>
-	              </div>
-	            </div>
-	          </div>
-	        </section>
+        <section className="mt-16 md:mt-24">
+          <div className="rounded-[32px] border border-white/10 bg-gradient-to-br from-gray-950 via-gray-950/60 to-gray-950 p-10 md:p-16 text-center relative overflow-hidden">
+            <div
+              className="absolute inset-0"
+              style={{
+                background:
+                  "radial-gradient(circle at 30% 20%, rgba(255, 138, 51, 0.18) 0%, transparent 55%), radial-gradient(circle at 80% 70%, rgba(255, 138, 51, 0.10) 0%, transparent 55%)",
+              }}
+            />
+            <div className="relative">
+              <h2 className="text-3xl md:text-5xl font-semibold tracking-tight text-white leading-tight">
+                Připraveni změnit způsob,
+                <br className="hidden md:block" />
+                jakým řídíte výběrová řízení?
+              </h2>
+              <p className="mt-4 text-white/60">
+                Začněte zdarma s demo projektem. Žádná kreditní karta není
+                potřeba.
+              </p>
+              <div className="mt-8 flex justify-center">
+                <Link
+                  to="/register"
+                  className="inline-flex items-center justify-center px-7 py-3.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-medium transition-colors shadow-lg shadow-orange-500/20"
+                >
+                  Začít hned teď →
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
 
-	        <footer className="mt-10 pb-10 border-t border-white/10 pt-8 text-sm text-white/50 text-center">
-	          <div>© {new Date().getFullYear()} Tender Flow • v{APP_VERSION}</div>
-	          <div className="mt-2 text-white/40">
-	            Cloud řešení pro správu výběrových řízení ve stavebnictví
-	          </div>
-	        </footer>
-	      </main>
+        <footer className="mt-10 pb-10 border-t border-white/10 pt-8 text-sm text-white/50 text-center">
+          <div>
+            © {new Date().getFullYear()} Tender Flow • v{APP_VERSION}
+          </div>
+          <div className="mt-2 text-white/40">
+            Cloud řešení pro správu výběrových řízení ve stavebnictví
+          </div>
+        </footer>
+      </main>
 
       {/* Lightbox Modal */}
       {lightboxImage && (
-        <div 
+        <div
           className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 cursor-zoom-out"
           onClick={() => setLightboxImage(null)}
         >
@@ -570,5 +609,5 @@ export const LandingPage: React.FC = () => {
         </div>
       )}
     </PublicLayout>
-	  );
+  );
 };

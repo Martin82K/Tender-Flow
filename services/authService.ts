@@ -317,8 +317,10 @@ export const authService = {
         }
 
         // Hydration should never block app navigation.
-        const queryTimeoutMs = 6000;
+        const queryTimeoutMs = 10000;
 
+        // BATCH 1: Core User Data + Manual Override
+        // Prioritize manual override to ensure correct tiering even if Org data fails/lags.
         const profilePromise = (async () => {
             try {
                 const res = await withTimeout(
@@ -335,7 +337,6 @@ export const authService = {
                     console.warn('[authService] Error fetching profile', error);
                     return null;
                 }
-                console.log('[authService] Profile loaded', { is_admin: data?.is_admin });
                 return data ?? null;
             } catch (e) {
                 console.warn('[authService] Could not fetch profile', e);
@@ -366,65 +367,86 @@ export const authService = {
             }
         })();
 
-        const [profile, settings] = await Promise.all([profilePromise, settingsPromise]);
+        const overridePromise = (async () => {
+             try {
+                 const res = await withTimeout(
+                     Promise.resolve(
+                         supabase
+                             .from('user_profiles')
+                             .select('subscription_tier_override')
+                             .eq('user_id', session.user.id)
+                             .maybeSingle()
+                     ),
+                     queryTimeoutMs,
+                     'Subscription override load'
+                 );
+                 const { data, error } = res as any;
+                 if (error) return null;
+                 return data?.subscription_tier_override || null;
+             } catch (e) {
+                 console.warn('[authService] Could not fetch subscription override', e);
+                 return null;
+             }
+         })();
 
-        // Attempt to get organization subscription tier (with optional per-user override)
+        // Await Batch 1
+        const [profile, settings, subscriptionOverride] = await Promise.all([
+            profilePromise, 
+            settingsPromise, 
+            overridePromise
+        ]);
+
+        // BATCH 2: Extended Data (Org Member)
+        // Org member data is heavy (potentially) but secondary if we have an override.
+        const orgMemberPromise = (async () => {
+             try {
+                const res = await withTimeout(
+                    Promise.resolve(
+                        supabase
+                            .from('organization_members')
+                            .select('organization_id')
+                            .eq('user_id', session.user.id)
+                            .limit(1)
+                            .maybeSingle()
+                    ),
+                    queryTimeoutMs,
+                    'Org member load'
+                );
+                const { data, error } = res as any;
+                 if (error) return null;
+                 return data?.organization_id || null;
+            } catch (e) {
+                console.warn('[authService] Could not fetch org member', e);
+                return null;
+            }
+        })();
+
+        // Await Batch 2
+        const organizationId = await orgMemberPromise;
+
+        // Attempt to get organization subscription tier (dependent on organizationId)
         let subscriptionTier: SubscriptionTier = 'free';
-        let subscriptionTierOverride: SubscriptionTier | null = null;
-        
-        // Organization info - declared outside try block for proper scope
-        let organizationId: string | undefined;
         let organizationType: 'personal' | 'business' | undefined;
         let organizationName: string | undefined;
-        
-        try {
-            const overrideRes = await withTimeout(
-                Promise.resolve(
-                    supabase
-                        .from('user_profiles')
-                        .select('subscription_tier_override')
-                        .eq('user_id', session.user.id)
-                        .maybeSingle()
-                ),
-                queryTimeoutMs,
-                'Subscription override load'
-            );
-            const { data: overrideRow, error: overrideError } = overrideRes as any;
-            if (!overrideError) {
-                const override = String(overrideRow?.subscription_tier_override || '').trim().toLowerCase();
-                if (override === 'free' || override === 'pro' || override === 'enterprise' || override === 'admin') {
-                    subscriptionTierOverride = override as SubscriptionTier;
-                }
-            }
 
-            if (subscriptionTierOverride) {
-                subscriptionTier = subscriptionTierOverride;
-            }
-            
-            // Always try to get organization info
-            const orgMemberRes = await withTimeout(
-                Promise.resolve(
-                    supabase
-                        .from('organization_members')
-                        .select('organization_id')
-                        .eq('user_id', session.user.id)
-                        .limit(1)
-                        .maybeSingle()
-                ),
-                queryTimeoutMs,
-                'Org member load'
-            );
-            const { data: orgMember } = orgMemberRes as any;
+        // Apply override if present
+        if (subscriptionOverride) {
+            const override = String(subscriptionOverride).trim().toLowerCase();
+             if (['free', 'pro', 'enterprise', 'admin'].includes(override)) {
+                 subscriptionTier = override as SubscriptionTier;
+             }
+        }
 
-            if (orgMember?.organization_id) {
-                organizationId = orgMember.organization_id;
-                
+        // 5. Fetch Organization Details (Dependent) - only if we have an ID and no direct override
+        // (Actually we should fetch org details anyway for name/type even if override exists)
+        if (organizationId) {
+             try {
                 const orgRes = await withTimeout(
                     Promise.resolve(
                         supabase
                             .from('organizations')
                             .select('subscription_tier, type, name')
-                            .eq('id', orgMember.organization_id)
+                            .eq('id', organizationId)
                             .single()
                     ),
                     queryTimeoutMs,
@@ -435,17 +457,18 @@ export const authService = {
                 if (org) {
                     organizationType = org.type as 'personal' | 'business' | undefined;
                     organizationName = org.name;
-                    
-                    if (!subscriptionTierOverride && org.subscription_tier) {
-                        const tier = String(org.subscription_tier || '').trim().toLowerCase();
-                        if (tier === 'free' || tier === 'pro' || tier === 'enterprise' || tier === 'admin') {
+
+                    // Only apply org tier if no user-specific override
+                    if (!subscriptionOverride && org.subscription_tier) {
+                        const tier = String(org.subscription_tier).trim().toLowerCase();
+                        if (['free', 'pro', 'enterprise', 'admin'].includes(tier)) {
                             subscriptionTier = tier as SubscriptionTier;
                         }
                     }
                 }
+            } catch (e) {
+                console.warn('[authService] Could not fetch organization details', e);
             }
-        } catch (e) {
-            console.warn('[authService] Could not fetch org subscription tier', e);
         }
 
         const isSystemAdmin = session.user.email ? ADMIN_EMAILS.includes(session.user.email) : false;
@@ -462,7 +485,7 @@ export const authService = {
             subscriptionTier: finalTier as any,
             avatarUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(session.user.email || 'U')}&background=random`,
             preferences: finalPreferences,
-            organizationId,
+            organizationId: organizationId || undefined,
             organizationType,
             organizationName
         };
