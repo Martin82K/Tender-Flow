@@ -17,6 +17,54 @@ const withTimeout = async <T,>(promise: Promise<T>, ms: number, label: string): 
 // Admin email configuration (matches Sidebar.tsx)
 const ADMIN_EMAILS = ["martinkalkus82@gmail.com", "kalkus@baustav.cz"];
 
+// Cache keys for localStorage
+const USER_CACHE_KEY = 'crm-user-cache';
+const USER_CACHE_TTL = 1000 * 60 * 60; // 1 hour
+
+// Cache user data to localStorage for fast startup
+const cacheUserData = (user: User): void => {
+    try {
+        if (typeof window === 'undefined') return;
+        const cacheData = {
+            user,
+            timestamp: Date.now()
+        };
+        window.localStorage?.setItem(USER_CACHE_KEY, JSON.stringify(cacheData));
+    } catch (e) {
+        console.warn('[authService] Could not cache user data', e);
+    }
+};
+
+// Get cached user data from localStorage
+const getCachedUserData = (): User | null => {
+    try {
+        if (typeof window === 'undefined') return null;
+        const raw = window.localStorage?.getItem(USER_CACHE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        
+        // Check TTL - if cache is too old, ignore it
+        if (parsed?.timestamp && Date.now() - parsed.timestamp > USER_CACHE_TTL) {
+            window.localStorage?.removeItem(USER_CACHE_KEY);
+            return null;
+        }
+        
+        return parsed?.user || null;
+    } catch {
+        return null;
+    }
+};
+
+// Clear user cache on logout
+const clearUserCache = (): void => {
+    try {
+        if (typeof window === 'undefined') return;
+        window.localStorage?.removeItem(USER_CACHE_KEY);
+    } catch {
+        // Ignore
+    }
+};
+
 const getCachedSession = (): any | null => {
     try {
         if (typeof window === 'undefined') return null;
@@ -284,6 +332,7 @@ export const authService = {
     },
 
     logout: async (): Promise<void> => {
+        clearUserCache(); // Clear cached user data
         const { error } = await supabase.auth.signOut();
         if (error) throw error;
     },
@@ -293,10 +342,42 @@ export const authService = {
         if (!session?.user) {
             return null;
         }
+        
+        // Try to get cached user data first for fast startup
+        const cachedUser = getCachedUserData();
+        const sessionUserId = session.user.id;
+        
+        // If we have cached data for this user, use it while refreshing in background
+        if (cachedUser && cachedUser.id === sessionUserId) {
+            console.log('[authService] getUserFromSession: Using cached user data for fast startup');
+            
+            // Refresh in background (fire and forget)
+            authService._buildUserFromSession(session).then(freshUser => {
+                if (freshUser) {
+                    cacheUserData(freshUser);
+                }
+            }).catch(e => {
+                console.warn('[authService] Background refresh failed', e);
+            });
+            
+            return cachedUser;
+        }
+        
         try {
-            return await authService._buildUserFromSession(session);
+            const user = await authService._buildUserFromSession(session);
+            if (user) {
+                cacheUserData(user); // Cache for next time
+            }
+            return user;
         } catch (e) {
-            console.warn('[authService] Failed to build user from session, returning fallback user', e);
+            console.warn('[authService] Failed to build user from session, using fallback', e);
+            
+            // If we have cached data, use it
+            if (cachedUser && cachedUser.id === sessionUserId) {
+                return cachedUser;
+            }
+            
+            // Otherwise return minimal fallback user
             const isSystemAdmin = session.user.email ? ADMIN_EMAILS.includes(session.user.email) : false;
             return {
                 id: session.user.id,
@@ -316,8 +397,8 @@ export const authService = {
             return null;
         }
 
-        // Hydration should never block app navigation.
-        const queryTimeoutMs = 10000;
+        // Reduced timeout for faster fallback - 3s instead of 10s
+        const queryTimeoutMs = 3000;
 
         // BATCH 1: Core User Data + Manual Override
         // Prioritize manual override to ensure correct tiering even if Org data fails/lags.

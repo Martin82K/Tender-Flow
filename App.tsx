@@ -190,26 +190,19 @@ function AppContent() {
 
   if (!isAuthenticated) {
     if (pathname === "/") return <LandingPage />;
+
+    // For unknown routes, redirect to login with the original path as next parameter
+    if (!["/login", "/register", "/forgot-password", "/"].includes(pathname)) {
+      const nextUrl = encodeURIComponent(pathname + search);
+      navigate(`/login?next=${nextUrl}`, { replace: true });
+      return null;
+    }
+
     return (
       <AuthLayout>
         {pathname === "/login" && <LoginPage />}
         {pathname === "/register" && <RegisterPage />}
         {pathname === "/forgot-password" && <ForgotPasswordPage />}
-        {!["/login", "/register", "/forgot-password", "/"].includes(
-          pathname
-        ) && (
-          <div className="mx-auto max-w-2xl px-4 py-16 text-center">
-            <h1 className="text-2xl font-semibold text-white">
-              Stránka nenalezena
-            </h1>
-            <button
-              onClick={() => navigate("/", { replace: true })}
-              className="mt-6 px-5 py-3 rounded-xl bg-orange-500 text-white font-medium"
-            >
-              Zpět na landing
-            </button>
-          </div>
-        )}
       </AuthLayout>
     );
   }
