@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { ProjectDetails, DocumentLink } from "../../../types";
 import { isProbablyUrl } from "../../../utils/docHub";
+import { shortenUrl } from "../../../services/urlShortenerService";
 
 interface DocsLinkSectionProps {
   project: ProjectDetails;
@@ -42,10 +43,11 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
     dateAdded: string;
   }>({ label: "", url: "", dateAdded: "" });
   const [isAddingNew, setIsAddingNew] = useState(false);
+  const [isShortening, setIsShortening] = useState(false);
 
   const documentLinks = project.documentLinks || [];
 
-  const handleAddLink = () => {
+  const handleAddLink = async () => {
     if (!newLink.label.trim() || !newLink.url.trim()) {
       showModal({
         title: "Chyba",
@@ -54,10 +56,29 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
       });
       return;
     }
+
+    let finalUrl = newLink.url.trim();
+
+    // Auto-shorten if it's a URL (not local path)
+    if (isProbablyUrl(finalUrl)) {
+      setIsShortening(true);
+      try {
+        const result = await shortenUrl(finalUrl);
+        if (result.success && result.shortUrl) {
+          finalUrl = result.shortUrl;
+        }
+      } catch (error) {
+        console.error("URL shortening failed:", error);
+        // Continue with original URL
+      } finally {
+        setIsShortening(false);
+      }
+    }
+
     const link: DocumentLink = {
       id: crypto.randomUUID(),
       label: newLink.label.trim(),
-      url: newLink.url.trim(),
+      url: finalUrl,
       dateAdded: newLink.dateAdded || new Date().toISOString().split("T")[0],
     };
     onUpdate({ documentLinks: [...documentLinks, link] });
@@ -248,9 +269,15 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
                 </button>
                 <button
                   onClick={handleAddLink}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-lg transition-colors"
+                  disabled={isShortening}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-wait text-white text-sm font-bold rounded-lg transition-colors flex items-center gap-2"
                 >
-                  Přidat
+                  {isShortening && (
+                    <span className="material-symbols-outlined animate-spin text-[16px]">
+                      progress_activity
+                    </span>
+                  )}
+                  {isShortening ? "Zkracuji..." : "Přidat"}
                 </button>
               </div>
             </div>

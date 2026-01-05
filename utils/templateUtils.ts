@@ -50,8 +50,16 @@ export const getPreviewData = (project?: ProjectDetails, category?: DemandCatego
             : 'Dle dohody';
 
         const signature = userSignature || project.siteManager || 'S pozdravem Tým';
-        // If HTML format and signature contains newlines, they should be converted to <br> if not already HTML
-        const formattedSignature = format === 'html' ? signature.replace(/\n/g, '<br>') : signature;
+        
+        // Auto-detect HTML: if it contains tags like <p, <div, <br, <span, <a, assume it's HTML.
+        const isHtmlSignature = /<[a-z][\s\S]*>/i.test(signature);
+
+        // If HTML format requested:
+        // - If signature IS HTML, leave it alone (user provided HTML source)
+        // - If signature is NOT HTML, convert newlines to <br>
+        const formattedSignature = format === 'html' 
+            ? (isHtmlSignature ? signature : signature.replace(/\n/g, '<br>')) 
+            : signature;
 
         return {
             '{NAZEV_STAVBY}': project.title || 'Můj Projekt',

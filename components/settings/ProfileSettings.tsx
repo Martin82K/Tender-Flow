@@ -473,7 +473,29 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
             <p className="text-xs text-slate-500 mt-1">
               Tento podpis bude automaticky vložen na konec generovaných emailů
               (zastoupí proměnnou <code>{"{PODPIS_UZIVATELE}"}</code>).
+              Podporuje <strong>HTML kód</strong> (např. zkopírovaný z Outlook
+              podpisu).
             </p>
+
+            {/* Signature Preview */}
+            <div className="mt-4">
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                Náhled podpisu (HTML)
+              </label>
+              <div
+                className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm min-h-[100px] text-sm text-slate-900"
+                dangerouslySetInnerHTML={{
+                  __html: (user?.preferences?.signature || "").match(
+                    /<[a-z][\s\S]*>/i
+                  )
+                    ? user?.preferences?.signature
+                    : (user?.preferences?.signature || "").replace(
+                        /\n/g,
+                        "<br>"
+                      ),
+                }}
+              />
+            </div>
           </div>
         </div>
       </section>
