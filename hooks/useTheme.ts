@@ -57,14 +57,24 @@ export const useTheme = (options: UseThemeOptions = {}): UseThemeReturn => {
     const [backgroundColor, setBackgroundColorState] = useState("#f5f6f8");
 
     // Sync preferences from user profile
+    // Priority: localStorage > user.preferences (to avoid overwriting user's local choice)
     useEffect(() => {
         if (user?.preferences) {
-            // Handle legacy user preferences if they exist
-            if ((user.preferences as any).darkMode !== undefined && !user.preferences.theme) {
-                setThemeState((user.preferences as any).darkMode ? 'dark' : 'light');
-            } else {
-                setThemeState(user.preferences.theme || 'system');
+            // Only sync theme from user profile if localStorage doesn't have a value
+            // This prevents the theme from being overwritten when user has already set it locally
+            const storedTheme = localStorage.getItem('theme');
+            const hasLocalTheme = storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system';
+
+            if (!hasLocalTheme) {
+                // Handle legacy user preferences if they exist
+                if ((user.preferences as any).darkMode !== undefined && !user.preferences.theme) {
+                    setThemeState((user.preferences as any).darkMode ? 'dark' : 'light');
+                } else if (user.preferences.theme) {
+                    setThemeState(user.preferences.theme);
+                }
             }
+
+            // Always sync colors (these don't have localStorage persistence)
             if (user.preferences.primaryColor) {
                 setPrimaryColorState(user.preferences.primaryColor);
             }
