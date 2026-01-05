@@ -4,7 +4,8 @@ export type View =
   | "contacts"
   | "settings"
   | "project-management"
-  | "project-overview";
+  | "project-overview"
+  | "url-shortener";
 
 export type ProjectTab = "overview" | "tender-plan" | "pipeline" | "schedule" | "documents";
 

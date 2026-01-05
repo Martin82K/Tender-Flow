@@ -26,6 +26,7 @@ export const FEATURES = {
   EXPORT_EXCEL: 'export_excel',
   DOC_HUB: 'doc_hub',
   AI_INSIGHTS: 'ai_insights',
+  URL_SHORTENER: 'url_shortener',
 } as const;
 
 export type FeatureKey = typeof FEATURES[keyof typeof FEATURES];
@@ -42,6 +43,7 @@ export const PLANS = {
       FEATURES.MODULE_DASHBOARD,
       FEATURES.MODULE_PROJECTS, // Limited probably in real SaaS logic
       FEATURES.MODULE_CONTACTS,
+      FEATURES.URL_SHORTENER,
     ]
   },
   PRO: {
@@ -61,6 +63,7 @@ export const PLANS = {
       FEATURES.EXPORT_PDF,
       FEATURES.EXPORT_EXCEL,
       FEATURES.AI_INSIGHTS,
+      FEATURES.URL_SHORTENER,
     ]
   },
   ENTERPRISE: {

@@ -517,7 +517,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
             {[
               {
                 id: "tfurl",
-                label: "TF URL",
+                label: "URL Zkracovač",
                 desc: "Interní řešení (vlastní doména)",
               },
               {

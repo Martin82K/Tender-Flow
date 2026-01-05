@@ -33,7 +33,7 @@
 [[redirects]]
   from = "/s/*"
   to = "/.netlify/functions/redirect"
-  status = 200 # This effectively rewrites the URL to the function, letting the function handle the response (including 301)
+  status = 200
   force = true
 
 [[redirects]]

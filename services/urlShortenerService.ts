@@ -200,3 +200,135 @@ export async function getOriginalUrl(code: string): Promise<{ url: string | null
 export async function shortenUrls(urls: string[]): Promise<ShortenResult[]> {
   return Promise.all(urls.map(shortenUrl));
 }
+
+// ============================================================================
+// New Functions for URL Shortener Redesign
+// ============================================================================
+
+export interface UserLinkStats {
+  totalLinks: number;
+  totalClicks: number;
+}
+
+export interface UserLink {
+  id: string;
+  originalUrl: string;
+  shortUrl: string;
+  clicks: number;
+  createdAt: string;
+  title?: string;
+}
+
+/**
+ * Get all links created by the current user
+ */
+export async function getUserLinks(): Promise<{ links: UserLink[]; error?: string }> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { links: [], error: 'Not authenticated' };
+
+    const { data, error } = await supabase
+      .from('short_urls')
+      .select('id, original_url, clicks, created_at, title')
+      .eq('created_by', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    const links: UserLink[] = (data || []).map((row: any) => ({
+      id: row.id,
+      originalUrl: row.original_url,
+      shortUrl: `${SHORT_URL_BASE}${row.id}`,
+      clicks: row.clicks || 0,
+      createdAt: row.created_at,
+      title: row.title,
+    }));
+
+    return { links };
+  } catch (error) {
+    console.error('Error fetching user links:', error);
+    return { links: [], error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
+
+/**
+ * Get stats for the current user's links
+ */
+export async function getUserLinkStats(): Promise<UserLinkStats> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { totalLinks: 0, totalClicks: 0 };
+
+    const { data, error } = await supabase
+      .from('short_urls')
+      .select('clicks')
+      .eq('created_by', user.id);
+
+    if (error) throw error;
+
+    const totalLinks = data?.length || 0;
+    const totalClicks = data?.reduce((sum: number, row: any) => sum + (row.clicks || 0), 0) || 0;
+
+    return { totalLinks, totalClicks };
+  } catch (error) {
+    console.error('Error fetching user link stats:', error);
+    return { totalLinks: 0, totalClicks: 0 };
+  }
+}
+
+/**
+ * Delete a short URL by its code
+ */
+export async function deleteShortUrl(code: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error } = await supabase
+      .from('short_urls')
+      .delete()
+      .eq('id', code);
+
+    if (error) throw error;
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting short URL:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
+
+/**
+ * Shorten a URL with an optional custom alias (TF URL only)
+ */
+export async function shortenUrlWithAlias(
+  url: string, 
+  customAlias?: string
+): Promise<ShortenResult> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (customAlias) {
+      if (!/^[a-zA-Z0-9_-]+$/.test(customAlias)) {
+        return { success: false, originalUrl: url, error: 'Alias může obsahovat pouze písmena, čísla, pomlčky a podtržítka' };
+      }
+      if (customAlias.length < 3 || customAlias.length > 20) {
+        return { success: false, originalUrl: url, error: 'Alias musí mít 3-20 znaků' };
+      }
+      
+      const { data } = await supabase.from('short_urls').select('id').eq('id', customAlias).single();
+      if (data) {
+        return { success: false, originalUrl: url, error: 'Tento alias už je používán' };
+      }
+    }
+
+    const code = customAlias || generateShortCode();
+
+    const { error } = await supabase
+      .from('short_urls')
+      .insert({ id: code, original_url: url, created_by: user?.id, clicks: 0 });
+
+    if (error) throw error;
+
+    return { success: true, shortUrl: `${SHORT_URL_BASE}${code}`, code, originalUrl: url, provider: 'tfurl' };
+  } catch (error) {
+    console.error('TF URL error:', error);
+    return { success: false, originalUrl: url, error: error instanceof Error ? error.message : 'Unknown error', provider: 'tfurl' };
+  }
+}

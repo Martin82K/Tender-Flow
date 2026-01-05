@@ -97,6 +97,13 @@ export const BOTTOM_NAVIGATION: NavItemConfig[] = [
         settingsTab: 'user',
         settingsSubTab: 'excelMerger',
       },
+      {
+        id: 'url-shortener',
+        label: 'URL Zkracovač',
+        icon: 'link',
+        view: 'url-shortener' as View,
+        feature: FEATURES.URL_SHORTENER,
+      },
     ],
   },
   {

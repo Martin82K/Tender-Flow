@@ -37,6 +37,11 @@ const ProjectOverview = React.lazy(() =>
     default: m.ProjectOverview,
   }))
 );
+const UrlShortener = React.lazy(() =>
+  import("./components/tools/UrlShortener").then((m) => ({
+    default: m.UrlShortener,
+  }))
+);
 
 // Auth Pages
 import { LandingPage } from "./components/LandingPage";
@@ -340,6 +345,8 @@ function AppContent() {
             />
           </RequireFeature>
         );
+      case "url-shortener":
+        return <UrlShortener />;
       default:
         return (
           <Dashboard
