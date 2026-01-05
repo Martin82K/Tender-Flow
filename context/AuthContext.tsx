@@ -132,7 +132,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
   const login = async (email: string, password: string) => {
     try {
-      const timeoutMs = 4000;
+      const timeoutMs = 10000;
       const user = await Promise.race([
         authService.login(email, password),
         new Promise<User>((resolve) =>

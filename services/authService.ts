@@ -49,7 +49,7 @@ export const authService = {
         // Prefer the session returned by sign-in (avoids extra auth roundtrip that can hang).
         if (data.session) {
             try {
-                const user = await withTimeout(authService.getUserFromSession(data.session), 1000, 'User hydrate');
+                const user = await withTimeout(authService.getUserFromSession(data.session), 5000, 'User hydrate');
                 if (user) return user;
             } catch (e) {
                 console.warn('[authService] login: hydration slow/failed, using fallback user', e);

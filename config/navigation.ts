@@ -12,7 +12,7 @@ export interface NavItemConfig {
   href?: string; // For external links
   // Optional deep-linking into Settings
   settingsTab?: 'user' | 'admin';
-  settingsSubTab?: 'profile' | 'contacts' | 'excelUnlocker' | 'excelMerger' | 'registration' | 'users' | 'subscriptions' | 'ai' | 'tools';
+  settingsSubTab?: 'profile' | 'contacts' | 'excelUnlocker' | 'excelMerger' | 'urlShortener' | 'registration' | 'users' | 'subscriptions' | 'ai' | 'tools';
 }
 
 export const SIDEBAR_NAVIGATION: NavItemConfig[] = [
@@ -98,11 +98,13 @@ export const BOTTOM_NAVIGATION: NavItemConfig[] = [
         settingsSubTab: 'excelMerger',
       },
       {
-        id: 'url-shortener',
+        id: 'settings-url-shortener',
         label: 'URL Zkracovač',
         icon: 'link',
-        view: 'url-shortener' as View,
+        view: 'settings',
         feature: FEATURES.URL_SHORTENER,
+        settingsTab: 'user',
+        settingsSubTab: 'urlShortener',
       },
     ],
   },
