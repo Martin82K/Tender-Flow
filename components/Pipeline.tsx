@@ -17,7 +17,9 @@ import { invokeAuthedFunction } from "../services/functionsClient";
 import { uploadDocument, formatFileSize } from "../services/documentService";
 import {
   generateInquiryEmail,
+  generateInquiryEmailHtml,
   createMailtoLink,
+  downloadEmlFile,
 } from "../services/inquiryService";
 import {
   exportToXLSX,
@@ -33,7 +35,11 @@ import { getTemplateById } from "../services/templateService";
 import { processTemplate } from "../utils/templateUtils";
 import { useAuth } from "../context/AuthContext";
 import { getDemoData, saveDemoData } from "../services/demoData";
-import { getDocHubTenderLinks, isProbablyUrl, resolveDocHubStructureV1 } from "../utils/docHub";
+import {
+  getDocHubTenderLinks,
+  isProbablyUrl,
+  resolveDocHubStructureV1,
+} from "../utils/docHub";
 import { DEFAULT_STATUSES } from "../config/constants";
 import {
   Column,
@@ -64,7 +70,7 @@ interface PipelineProps {
   initialOpenCategoryId?: string;
 }
 
-type PipelineViewMode = 'grid' | 'table';
+type PipelineViewMode = "grid" | "table";
 
 export const Pipeline: React.FC<PipelineProps> = ({
   projectId,
@@ -76,14 +82,17 @@ export const Pipeline: React.FC<PipelineProps> = ({
   onEditCategory,
   onDeleteCategory,
   onBidsChange,
-  searchQuery = '',
+  searchQuery = "",
   initialOpenCategoryId,
 }) => {
   const { user } = useAuth();
   const projectData = projectDetails;
   const docHubRoot = projectDetails.docHubRootLink?.trim() || "";
-  const isDocHubEnabled = !!projectDetails.docHubEnabled && docHubRoot.length > 0;
-  const docHubStructure = resolveDocHubStructureV1(projectDetails.docHubStructureV1 || undefined);
+  const isDocHubEnabled =
+    !!projectDetails.docHubEnabled && docHubRoot.length > 0;
+  const docHubStructure = resolveDocHubStructureV1(
+    projectDetails.docHubStructureV1 || undefined
+  );
   const canUseDocHubBackend =
     !!projectDetails.docHubProvider &&
     !!projectDetails.docHubRootId &&
@@ -128,7 +137,11 @@ export const Pipeline: React.FC<PipelineProps> = ({
     }
     try {
       await navigator.clipboard.writeText(path);
-      showDocHubModal({ title: "Zkopírováno", message: path, variant: "success" });
+      showDocHubModal({
+        title: "Zkopírováno",
+        message: path,
+        variant: "success",
+      });
     } catch {
       window.prompt("Zkopírujte cestu:", path);
     }
@@ -136,7 +149,9 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
   const openDocHubBackendLink = async (payload: any) => {
     try {
-      const data = await invokeAuthedFunction<any>("dochub-get-link", { body: payload });
+      const data = await invokeAuthedFunction<any>("dochub-get-link", {
+        body: payload,
+      });
       const webUrl = (data as any)?.webUrl as string | undefined;
       if (!webUrl) throw new Error("Backend nevrátil webUrl");
       window.open(webUrl, "_blank", "noopener,noreferrer");
@@ -149,11 +164,13 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const [activeCategory, setActiveCategory] = useState<DemandCategory | null>(
     null
   );
-  const [demandFilter, setDemandFilter] = useState<'all' | 'open' | 'closed' | 'sod'>('all');
-  const PIPELINE_VIEW_MODE_STORAGE_KEY = 'tender_pipeline_view_mode';
+  const [demandFilter, setDemandFilter] = useState<
+    "all" | "open" | "closed" | "sod"
+  >("all");
+  const PIPELINE_VIEW_MODE_STORAGE_KEY = "tender_pipeline_view_mode";
   const [viewMode, setViewMode] = useState<PipelineViewMode>(() => {
     const stored = localStorage.getItem(PIPELINE_VIEW_MODE_STORAGE_KEY);
-    return stored === 'table' || stored === 'grid' ? stored : 'grid';
+    return stored === "table" || stored === "grid" ? stored : "grid";
   });
   const [bids, setBids] = useState<Record<string, Bid[]>>(initialBids);
   // const [contacts, setContacts] = useState<Subcontractor[]>(ALL_CONTACTS); // Use prop directly or state if we modify it locally?
@@ -163,7 +180,8 @@ export const Pipeline: React.FC<PipelineProps> = ({
   // BUT we need to sync back or just rely on the fact that we insert to Supabase and App.tsx might reload?
   // App.tsx doesn't auto-reload contacts on change in child.
   // Let's use a local state initialized from prop for now.
-  const [localContacts, setLocalContacts] = useState<Subcontractor[]>(externalContacts);
+  const [localContacts, setLocalContacts] =
+    useState<Subcontractor[]>(externalContacts);
 
   // Track whether the bids change is internal (user action) vs from props
   const isInternalBidsChange = useRef(false);
@@ -195,9 +213,11 @@ export const Pipeline: React.FC<PipelineProps> = ({
   });
 
   // Helper to update bids and mark as internal change
-  const updateBidsInternal = (updater: (prev: Record<string, Bid[]>) => Record<string, Bid[]>) => {
+  const updateBidsInternal = (
+    updater: (prev: Record<string, Bid[]>) => Record<string, Bid[]>
+  ) => {
     isInternalBidsChange.current = true;
-    setBids(prev => {
+    setBids((prev) => {
       const newBids = updater(prev);
       // Store for notification after render (not during render)
       pendingBidsNotification.current = newBids;
@@ -249,28 +269,31 @@ export const Pipeline: React.FC<PipelineProps> = ({
     title: string;
     message: string;
     onConfirm: () => void;
-  }>({ isOpen: false, title: '', message: '', onConfirm: () => { } });
+  }>({ isOpen: false, title: "", message: "", onConfirm: () => {} });
 
   const closeConfirmModal = () => {
-    setConfirmModal(prev => ({ ...prev, isOpen: false }));
+    setConfirmModal((prev) => ({ ...prev, isOpen: false }));
   };
 
   const handleDeleteBidRequest = (bidId: string) => {
     setConfirmModal({
       isOpen: true,
-      title: 'Odstranit nabídku',
-      message: 'Opravdu chcete odebrat tohoto dodavatele z výběrového řízení? Tato akce je nevratná.',
+      title: "Odstranit nabídku",
+      message:
+        "Opravdu chcete odebrat tohoto dodavatele z výběrového řízení? Tato akce je nevratná.",
       onConfirm: () => {
         handleDeleteBid(bidId);
         closeConfirmModal();
-      }
+      },
     });
   };
 
   // Reset active category when switching projects, unless we have an initial category to open
   useEffect(() => {
     if (initialOpenCategoryId) {
-      const categoryToOpen = projectDetails.categories.find(c => c.id === initialOpenCategoryId);
+      const categoryToOpen = projectDetails.categories.find(
+        (c) => c.id === initialOpenCategoryId
+      );
       if (categoryToOpen) {
         setActiveCategory(categoryToOpen);
         // Scroll to view if needed? For now just opening the modal/view is enough.
@@ -279,8 +302,6 @@ export const Pipeline: React.FC<PipelineProps> = ({
       setActiveCategory(null);
     }
   }, [projectId, initialOpenCategoryId, projectDetails.categories]);
-
-
 
   const getBidsForColumn = (categoryId: string, status: BidStatus) => {
     return (bids[categoryId] || []).filter((bid) => bid.status === status);
@@ -313,14 +334,15 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
       // Persist to Supabase or Demo Storage
       try {
-        if (user?.role === 'demo') {
+        if (user?.role === "demo") {
           const demoData = getDemoData();
           if (demoData && demoData.projectDetails[projectData.id]) {
-            const projectBids = demoData.projectDetails[projectData.id].bids || {};
+            const projectBids =
+              demoData.projectDetails[projectData.id].bids || {};
             // Find which category this bid belongs to
             let categoryId = "";
             for (const [catId, catBids] of Object.entries(projectBids)) {
-              if ((catBids as Bid[]).some(b => b.id === bidId)) {
+              if ((catBids as Bid[]).some((b) => b.id === bidId)) {
                 categoryId = catId;
                 break;
               }
@@ -367,7 +389,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
       if (index > -1) {
         categoryBids[index] = {
           ...categoryBids[index],
-          contracted: newContracted
+          contracted: newContracted,
         };
         return { ...prev, [activeCategory.id]: categoryBids };
       }
@@ -376,10 +398,11 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
     // Persist to Supabase or Demo Storage
     try {
-      if (user?.role === 'demo') {
+      if (user?.role === "demo") {
         const demoData = getDemoData();
         if (demoData && demoData.projectDetails[projectData.id]) {
-          const projectBids = demoData.projectDetails[projectData.id].bids || {};
+          const projectBids =
+            demoData.projectDetails[projectData.id].bids || {};
           const categoryBids = projectBids[activeCategory.id] || [];
           const index = categoryBids.findIndex((b: Bid) => b.id === bid.id);
           if (index > -1) {
@@ -442,13 +465,14 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
       // Persist to Supabase or Demo Storage
       try {
-        if (user?.role === 'demo') {
+        if (user?.role === "demo") {
           const demoData = getDemoData();
           if (demoData && demoData.projectDetails[projectData.id]) {
-            const projectBids = demoData.projectDetails[projectData.id].bids || {};
+            const projectBids =
+              demoData.projectDetails[projectData.id].bids || {};
             projectBids[activeCategory.id] = [
               ...(projectBids[activeCategory.id] || []),
-              ...newBids
+              ...newBids,
             ];
             demoData.projectDetails[projectData.id].bids = projectBids;
             saveDemoData(demoData);
@@ -471,9 +495,15 @@ export const Pipeline: React.FC<PipelineProps> = ({
           tags: bid.tags || [],
         }));
 
-        console.log("🔵 Attempting to insert bids:", JSON.stringify(bidsToInsert, null, 2));
+        console.log(
+          "🔵 Attempting to insert bids:",
+          JSON.stringify(bidsToInsert, null, 2)
+        );
 
-        const { data, error } = await supabase.from("bids").insert(bidsToInsert).select();
+        const { data, error } = await supabase
+          .from("bids")
+          .insert(bidsToInsert)
+          .select();
 
         if (error) {
           console.error("🔴 Error inserting bids:", {
@@ -481,9 +511,13 @@ export const Pipeline: React.FC<PipelineProps> = ({
             code: error.code,
             details: error.details,
             hint: error.hint,
-            fullError: JSON.stringify(error, null, 2)
+            fullError: JSON.stringify(error, null, 2),
           });
-          alert(`Chyba při ukládání nabídek: ${error.message}\n\nKód: ${error.code}\nDetail: ${error.details || 'N/A'}\nHint: ${error.hint || 'N/A'}`);
+          alert(
+            `Chyba při ukládání nabídek: ${error.message}\n\nKód: ${
+              error.code
+            }\nDetail: ${error.details || "N/A"}\nHint: ${error.hint || "N/A"}`
+          );
         } else {
           console.log("🟢 Successfully inserted bids:", data);
         }
@@ -613,7 +647,10 @@ export const Pipeline: React.FC<PipelineProps> = ({
   };
 
   // Wrapper for CategoryFormModal - Create mode
-  const handleCreateCategoryFromModal = async (formData: CategoryFormData, files: File[]) => {
+  const handleCreateCategoryFromModal = async (
+    formData: CategoryFormData,
+    files: File[]
+  ) => {
     if (!onAddCategory) return;
 
     const sod = parseFloat(formData.sodBudget) || 0;
@@ -638,7 +675,9 @@ export const Pipeline: React.FC<PipelineProps> = ({
       title: formData.title,
       budget:
         "~" +
-        new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 0 }).format(sod) +
+        new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 0 }).format(
+          sod
+        ) +
         " Kč",
       sodBudget: sod,
       planBudget: parseFloat(formData.planBudget) || 0,
@@ -656,7 +695,10 @@ export const Pipeline: React.FC<PipelineProps> = ({
   };
 
   // Wrapper for CategoryFormModal - Edit mode
-  const handleEditCategoryFromModal = async (formData: CategoryFormData, files: File[]) => {
+  const handleEditCategoryFromModal = async (
+    formData: CategoryFormData,
+    files: File[]
+  ) => {
     if (!onEditCategory || !editingCategory) return;
 
     const sod = parseFloat(formData.sodBudget) || 0;
@@ -681,7 +723,9 @@ export const Pipeline: React.FC<PipelineProps> = ({
       title: formData.title,
       budget:
         "~" +
-        new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 0 }).format(sod) +
+        new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 0 }).format(
+          sod
+        ) +
         " Kč",
       sodBudget: sod,
       planBudget: parseFloat(formData.planBudget) || 0,
@@ -714,10 +758,10 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
   const handleToggleCategoryComplete = (category: DemandCategory) => {
     // Toggle between 'open' and 'closed' status
-    const newStatus = category.status === 'closed' ? 'open' : 'closed';
+    const newStatus = category.status === "closed" ? "open" : "closed";
     const updatedCategory: DemandCategory = {
       ...category,
-      status: newStatus
+      status: newStatus,
     };
     onEditCategory?.(updatedCategory);
   };
@@ -727,12 +771,12 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
     setConfirmModal({
       isOpen: true,
-      title: 'Smazat poptávku',
-      message: 'Opravdu chcete smazat tuto poptávku? Tato akce je nevratná.',
+      title: "Smazat poptávku",
+      message: "Opravdu chcete smazat tuto poptávku? Tato akce je nevratná.",
       onConfirm: () => {
         onDeleteCategory(categoryId);
         closeConfirmModal();
-      }
+      },
     });
   };
 
@@ -753,17 +797,20 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
     // Parse numeric price from display string
     const numericPrice = updatedBid.price
-      ? parseFormattedNumber(updatedBid.price.replace(/[^\d\s,.-]/g, ''))
+      ? parseFormattedNumber(updatedBid.price.replace(/[^\d\s,.-]/g, ""))
       : null;
 
     // Persist to Supabase or Demo Storage
     try {
-      if (user?.role === 'demo') {
+      if (user?.role === "demo") {
         const demoData = getDemoData();
         if (demoData && demoData.projectDetails[projectData.id]) {
-          const projectBids = demoData.projectDetails[projectData.id].bids || {};
+          const projectBids =
+            demoData.projectDetails[projectData.id].bids || {};
           const categoryBids = projectBids[activeCategory.id] || [];
-          const index = categoryBids.findIndex((b: Bid) => b.id === updatedBid.id);
+          const index = categoryBids.findIndex(
+            (b: Bid) => b.id === updatedBid.id
+          );
           if (index > -1) {
             categoryBids[index] = updatedBid;
             projectBids[activeCategory.id] = categoryBids;
@@ -775,7 +822,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
       }
 
       const { error } = await supabase
-        .from('bids')
+        .from("bids")
         .update({
           contact_person: updatedBid.contactPerson,
           email: updatedBid.email,
@@ -786,15 +833,15 @@ export const Pipeline: React.FC<PipelineProps> = ({
           notes: updatedBid.notes,
           status: updatedBid.status,
           update_date: updatedBid.updateDate || null,
-          selection_round: updatedBid.selectionRound || null
+          selection_round: updatedBid.selectionRound || null,
         })
-        .eq('id', updatedBid.id);
+        .eq("id", updatedBid.id);
 
       if (error) {
-        console.error('Error updating bid:', error);
+        console.error("Error updating bid:", error);
       }
     } catch (err) {
-      console.error('Unexpected error updating bid:', err);
+      console.error("Unexpected error updating bid:", err);
     }
   };
 
@@ -803,33 +850,35 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
     // Optimistic update
     updateBidsInternal((prev) => {
-      const categoryBids = (prev[activeCategory.id] || []).filter(b => b.id !== bidId);
+      const categoryBids = (prev[activeCategory.id] || []).filter(
+        (b) => b.id !== bidId
+      );
       return { ...prev, [activeCategory.id]: categoryBids };
     });
 
     // Delete from Supabase or Demo Storage
     try {
-      if (user?.role === 'demo') {
+      if (user?.role === "demo") {
         const demoData = getDemoData();
         if (demoData && demoData.projectDetails[projectData.id]) {
-          const projectBids = demoData.projectDetails[projectData.id].bids || {};
-          projectBids[activeCategory.id] = (projectBids[activeCategory.id] || []).filter((b: Bid) => b.id !== bidId);
+          const projectBids =
+            demoData.projectDetails[projectData.id].bids || {};
+          projectBids[activeCategory.id] = (
+            projectBids[activeCategory.id] || []
+          ).filter((b: Bid) => b.id !== bidId);
           demoData.projectDetails[projectData.id].bids = projectBids;
           saveDemoData(demoData);
         }
         return;
       }
 
-      const { error } = await supabase
-        .from('bids')
-        .delete()
-        .eq('id', bidId);
+      const { error } = await supabase.from("bids").delete().eq("id", bidId);
 
       if (error) {
-        console.error('Error deleting bid:', error);
+        console.error("Error deleting bid:", error);
       }
     } catch (err) {
-      console.error('Unexpected error deleting bid:', err);
+      console.error("Unexpected error deleting bid:", err);
     }
   };
 
@@ -841,74 +890,111 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const handleGenerateInquiry = async (bid: Bid) => {
     if (!activeCategory) return;
 
+    // Determine mode based on user preference, default to 'mailto'
+    const mode = user?.preferences?.emailClientMode || "mailto";
+
     let subject = "";
     let body = "";
+    let htmlBody = ""; // used for EML mode
 
     const templateLink = projectDetails.inquiryLetterLink || "";
 
-    // Check if using new template system
-    if (templateLink.startsWith('template:')) {
-      const templateId = templateLink.split(':')[1];
+    // A) Using Template System
+    if (templateLink.startsWith("template:")) {
+      const templateId = templateLink.split(":")[1];
       const template = await getTemplateById(templateId);
 
       if (template) {
-        // Prepare data for template
-        // We pass 'bid' related info indirectly via dummy or generic if needed, 
-        // but TemplateUtils currently supports Project and Category. 
-        // We might want to extend it to support Bid info later (e.g. {OSLOVENI}, {FIRMA}),
-        // but for now the user asked to connect it.
-        // NOTE: processTemplate now takes project and category.
-        // Let's create a combined data object if we want to support bid details later?
-        // actually looking at templateUtils, it works with ProjectDetails and DemandCategory.
+        // Shared logic: process subject
+        subject = processTemplate(
+          template.subject,
+          projectDetails,
+          activeCategory
+        );
 
-        // We should add bid info to template if we want to be perfect, but for now let's just use what we have.
-        // Actually I should check if processTemplate generates the BODY directly or if we need to wrap it.
-        // Content IS the body.
+        if (mode === "eml") {
+          // EML Mode: Process as HTML, convert newlines to <br> if needed
+          const rawBody = processTemplate(
+            template.content,
+            projectDetails,
+            activeCategory,
+            "html"
+          );
+          // If the template doesn't contain HTML tags for structure, we assume it's text-like and convert newlines.
+          // But if it has <div> or <p>, we might damage it.
+          // Simple heuristic: if it doesn't have <p> or <div>, replace \n with <br>.
+          // However, processTemplate('html') only affects variable expansion (e.g. links).
+          // Let's assume standard templates are plain-text formatted.
+          htmlBody = rawBody.replace(/\n/g, "<br>");
 
-        // We need to HTML-to-Text for mailto body if possible, OR just put HTML. 
-        // Mailto only supports plain text. We must strip HTML or just use newlines.
-        // The user put HTML in the template editor. 
-        // A simple strip-tags or replacement of <br> with %0D%0A is needed for mailto.
+          // Wrap in basic HTML structure
+          htmlBody = `<!DOCTYPE html><html><body style="font-family: Arial, sans-serif; color: #333;">${htmlBody}</body></html>`;
+        } else {
+          // Mailto Mode: Plain text
+          let processedBody = processTemplate(
+            template.content,
+            projectDetails,
+            activeCategory,
+            "text"
+          );
 
-        let rawSubject = template.subject;
-        let rawContent = template.content;
-
-        // Process variables
-        subject = processTemplate(rawSubject, projectDetails, activeCategory);
-
-        // For body, we need to be careful. Mailto doesn't support HTML.
-        // We will try to convert basic HTML to text.
-        // <br> -> \n
-        // <b>, <i> -> remove tags
-        let processedBody = processTemplate(rawContent, projectDetails, activeCategory);
-
-        // Simple HTML to Text conversion for Mailto
-        body = processedBody
-          .replace(/<br\s*\/?>/gi, '\n')
-          .replace(/<[^>]+>/g, '') // Strip other tags
-          .replace(/&nbsp;/g, ' ');
-
+          // Cleanup HTML tags if any (legacy safety)
+          body = processedBody
+            .replace(/<br\s*\/?>/gi, "\n")
+            .replace(/<[^>]+>/g, "")
+            .replace(/&nbsp;/g, " ");
+        }
       } else {
-        // Template not found fallback
-        const result = generateInquiryEmail(activeCategory, projectDetails, bid);
+        // Template ID found but fetch failed -> Fallback to legacy
+        if (mode === "eml") {
+          const meta = generateInquiryEmail(
+            activeCategory,
+            projectDetails,
+            bid
+          ); // to get subject
+          subject = meta.subject;
+          htmlBody = generateInquiryEmailHtml(
+            activeCategory,
+            projectDetails,
+            bid
+          );
+        } else {
+          const result = generateInquiryEmail(
+            activeCategory,
+            projectDetails,
+            bid
+          );
+          subject = result.subject;
+          body = result.body;
+        }
+      }
+    }
+    // B) No Template (Legacy hardcoded)
+    else {
+      if (mode === "eml") {
+        const meta = generateInquiryEmail(activeCategory, projectDetails, bid);
+        subject = meta.subject;
+        htmlBody = generateInquiryEmailHtml(
+          activeCategory,
+          projectDetails,
+          bid
+        );
+      } else {
+        const result = generateInquiryEmail(
+          activeCategory,
+          projectDetails,
+          bid
+        );
         subject = result.subject;
         body = result.body;
       }
-    } else {
-      // Legacy way
-      const result = generateInquiryEmail(activeCategory, projectDetails, bid);
-      subject = result.subject;
-      body = result.body;
     }
 
-    // Create mailto link
-    const mailtoLink = createMailtoLink(bid.email || "", subject, body);
-
-    // Open email client
-    window.location.href = mailtoLink;
-
-    // Move bid to 'sent' status
-    setTimeout(() => {
+    // Execute based on mode
+    if (mode === "eml") {
+      // Download EML file
+      downloadEmlFile(bid.email || "", subject, htmlBody);
+      // Optimistic update status
       updateBidsInternal((prev) => {
         const categoryBids = [...(prev[activeCategory.id] || [])];
         const index = categoryBids.findIndex((b) => b.id === bid.id);
@@ -918,7 +1004,24 @@ export const Pipeline: React.FC<PipelineProps> = ({
         }
         return prev;
       });
-    }, 100);
+    } else {
+      // Mailto
+      const mailtoLink = createMailtoLink(bid.email || "", subject, body);
+      window.location.href = mailtoLink;
+
+      // Optimistic update status
+      setTimeout(() => {
+        updateBidsInternal((prev) => {
+          const categoryBids = [...(prev[activeCategory.id] || [])];
+          const index = categoryBids.findIndex((b) => b.id === bid.id);
+          if (index > -1) {
+            categoryBids[index] = { ...categoryBids[index], status: "sent" };
+            return { ...prev, [activeCategory.id]: categoryBids };
+          }
+          return prev;
+        });
+      }, 100);
+    }
   };
 
   const handleOpenSupplierDocHub = (bid: Bid) => {
@@ -934,7 +1037,11 @@ export const Pipeline: React.FC<PipelineProps> = ({
       });
       return;
     }
-    const links = getDocHubTenderLinks(docHubRoot, activeCategory.title, docHubStructure);
+    const links = getDocHubTenderLinks(
+      docHubRoot,
+      activeCategory.title,
+      docHubStructure
+    );
     openOrCopyDocHubPath(links.supplierBase(bid.companyName));
   };
 
@@ -986,29 +1093,28 @@ export const Pipeline: React.FC<PipelineProps> = ({
     const categoryBids = bids[activeCategory.id] || [];
 
     // Filter bids: not in "sod" status AND has at least one price (in price or priceHistory)
-    const loserBids = categoryBids.filter(bid => {
+    const loserBids = categoryBids.filter((bid) => {
       // Exclude winners (SOD status)
-      if (bid.status === 'sod') return false;
+      if (bid.status === "sod") return false;
 
       // Must have at least one valid price
-      const hasMainPrice = bid.price && bid.price !== '?' && bid.price !== '-';
-      const hasPriceHistory = bid.priceHistory && Object.keys(bid.priceHistory).length > 0;
+      const hasMainPrice = bid.price && bid.price !== "?" && bid.price !== "-";
+      const hasPriceHistory =
+        bid.priceHistory && Object.keys(bid.priceHistory).length > 0;
 
       return hasMainPrice || hasPriceHistory;
     });
 
     if (loserBids.length === 0) {
-      alert('Nejsou žádní nevybráni účastníci s cenou.');
+      alert("Nejsou žádní nevybráni účastníci s cenou.");
       return;
     }
 
     // Get emails
-    const emails = loserBids
-      .filter(bid => bid.email)
-      .map(bid => bid.email);
+    const emails = loserBids.filter((bid) => bid.email).map((bid) => bid.email);
 
     if (emails.length === 0) {
-      alert('Žádný z nevybraných účastníků nemá uvedený email.');
+      alert("Žádný z nevybraných účastníků nemá uvedený email.");
       return;
     }
 
@@ -1025,14 +1131,24 @@ export const Pipeline: React.FC<PipelineProps> = ({
       const templateId = templateLink.split(":")[1];
       const template = await getTemplateById(templateId);
       if (template) {
-        subject = processTemplate(template.subject, projectDetails, activeCategory);
-        const processed = processTemplate(template.content, projectDetails, activeCategory);
+        subject = processTemplate(
+          template.subject,
+          projectDetails,
+          activeCategory
+        );
+        const processed = processTemplate(
+          template.content,
+          projectDetails,
+          activeCategory
+        );
         body = htmlToPlainText(processed);
       }
     }
 
     // Open mailto with BCC to all losers
-    window.location.href = `mailto:?bcc=${emails.join(',')}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = `mailto:?bcc=${emails.join(
+      ","
+    )}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 
   const handleSaveNewContact = async (newContact: Subcontractor) => {
@@ -1043,7 +1159,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
     // Persist to Supabase or Demo Storage
     try {
-      if (user?.role === 'demo') {
+      if (user?.role === "demo") {
         const demoData = getDemoData();
         if (demoData) {
           demoData.contacts = [...demoData.contacts, newContact];
@@ -1111,7 +1227,11 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   });
                   return;
                 }
-                const links = getDocHubTenderLinks(docHubRoot, activeCategory.title, docHubStructure);
+                const links = getDocHubTenderLinks(
+                  docHubRoot,
+                  activeCategory.title,
+                  docHubStructure
+                );
                 openOrCopyDocHubPath(links.inquiriesBase);
               }}
               className="flex items-center gap-2 bg-violet-100 dark:bg-violet-900/30 hover:bg-violet-200 dark:hover:bg-violet-900/50 text-violet-700 dark:text-violet-300 px-4 py-2 rounded-lg text-sm font-bold transition-colors"
@@ -1223,9 +1343,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
             className="flex items-center gap-2 bg-orange-100 dark:bg-orange-900/30 hover:bg-orange-200 dark:hover:bg-orange-900/50 text-orange-700 dark:text-orange-300 px-4 py-2 rounded-lg text-sm font-bold transition-colors"
             title="Odeslat email nevybraným účastníkům s cenou"
           >
-            <span className="material-symbols-outlined text-[20px]">
-              mail
-            </span>
+            <span className="material-symbols-outlined text-[20px]">mail</span>
             <span>Email nevybraným</span>
           </button>
         </Header>
@@ -1290,15 +1408,17 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   onEdit={setEditingBid}
                   onDelete={handleDeleteBidRequest}
                   onGenerateInquiry={handleGenerateInquiry}
-                  onOpenDocHubFolder={isDocHubEnabled ? handleOpenSupplierDocHub : undefined}
+                  onOpenDocHubFolder={
+                    isDocHubEnabled ? handleOpenSupplierDocHub : undefined
+                  }
                 />
               ))}
               {getBidsForColumn(activeCategory.id, "contacted").length ===
                 0 && (
-                  <div className="text-center p-4 text-slate-400 text-sm italic">
-                    Žádní dodavatelé v této fázi
-                  </div>
-                )}
+                <div className="text-center p-4 text-slate-400 text-sm italic">
+                  Žádní dodavatelé v této fázi
+                </div>
+              )}
             </Column>
 
             {/* 2. Odesláno (Sent) */}
@@ -1316,7 +1436,9 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   onDragStart={handleDragStart}
                   onEdit={setEditingBid}
                   onDelete={handleDeleteBidRequest}
-                  onOpenDocHubFolder={isDocHubEnabled ? handleOpenSupplierDocHub : undefined}
+                  onOpenDocHubFolder={
+                    isDocHubEnabled ? handleOpenSupplierDocHub : undefined
+                  }
                 />
               ))}
               {getBidsForColumn(activeCategory.id, "sent").length === 0 && (
@@ -1341,7 +1463,9 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   onDragStart={handleDragStart}
                   onEdit={setEditingBid}
                   onDelete={handleDeleteBidRequest}
-                  onOpenDocHubFolder={isDocHubEnabled ? handleOpenSupplierDocHub : undefined}
+                  onOpenDocHubFolder={
+                    isDocHubEnabled ? handleOpenSupplierDocHub : undefined
+                  }
                 />
               ))}
             </Column>
@@ -1361,7 +1485,9 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   onDragStart={handleDragStart}
                   onEdit={setEditingBid}
                   onDelete={handleDeleteBidRequest}
-                  onOpenDocHubFolder={isDocHubEnabled ? handleOpenSupplierDocHub : undefined}
+                  onOpenDocHubFolder={
+                    isDocHubEnabled ? handleOpenSupplierDocHub : undefined
+                  }
                 />
               ))}
             </Column>
@@ -1385,14 +1511,19 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   {/* Contract icon - clickable */}
                   <button
                     onClick={() => handleToggleContracted(bid)}
-                    className={`absolute -top-2 right-6 rounded-full p-1 z-10 shadow-sm transition-all hover:scale-110 ${bid.contracted
-                      ? 'bg-yellow-400 text-yellow-900 ring-2 ring-yellow-300 animate-pulse'
-                      : 'bg-slate-600 text-slate-300 hover:bg-slate-500'
-                      }`}
-                    title={bid.contracted ? 'Zasmluvněno ✓' : 'Označit jako zasmluvněno'}
+                    className={`absolute -top-2 right-6 rounded-full p-1 z-10 shadow-sm transition-all hover:scale-110 ${
+                      bid.contracted
+                        ? "bg-yellow-400 text-yellow-900 ring-2 ring-yellow-300 animate-pulse"
+                        : "bg-slate-600 text-slate-300 hover:bg-slate-500"
+                    }`}
+                    title={
+                      bid.contracted
+                        ? "Zasmluvněno ✓"
+                        : "Označit jako zasmluvněno"
+                    }
                   >
                     <span className="material-symbols-outlined text-[16px] block">
-                      {bid.contracted ? 'task_alt' : 'description'}
+                      {bid.contracted ? "task_alt" : "description"}
                     </span>
                   </button>
                   <BidCard
@@ -1400,7 +1531,9 @@ export const Pipeline: React.FC<PipelineProps> = ({
                     onDragStart={handleDragStart}
                     onEdit={setEditingBid}
                     onDelete={handleDeleteBid}
-                    onOpenDocHubFolder={isDocHubEnabled ? handleOpenSupplierDocHub : undefined}
+                    onOpenDocHubFolder={
+                      isDocHubEnabled ? handleOpenSupplierDocHub : undefined
+                    }
                   />
                 </div>
               ))}
@@ -1420,7 +1553,9 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   onDragStart={handleDragStart}
                   onEdit={setEditingBid}
                   onDelete={handleDeleteBid}
-                  onOpenDocHubFolder={isDocHubEnabled ? handleOpenSupplierDocHub : undefined}
+                  onOpenDocHubFolder={
+                    isDocHubEnabled ? handleOpenSupplierDocHub : undefined
+                  }
                 />
               ))}
             </Column>
@@ -1434,7 +1569,9 @@ export const Pipeline: React.FC<PipelineProps> = ({
           statuses={DEFAULT_STATUSES}
           selectedIds={selectedSubcontractorIds}
           onSelectionChange={setSelectedSubcontractorIds}
-          onToggleMaximize={() => setIsSubcontractorModalMaximized(!isSubcontractorModalMaximized)}
+          onToggleMaximize={() =>
+            setIsSubcontractorModalMaximized(!isSubcontractorModalMaximized)
+          }
           onClose={() => setIsSubcontractorModalOpen(false)}
           onConfirm={handleAddSubcontractors}
           onAddContact={handleCreateContactRequest}
@@ -1442,7 +1579,9 @@ export const Pipeline: React.FC<PipelineProps> = ({
         {isCreateContactModalOpen && (
           <CreateContactModal
             initialName={newContactName}
-            existingSpecializations={Array.from(new Set(localContacts.flatMap(c => c.specialization))).sort()}
+            existingSpecializations={Array.from(
+              new Set(localContacts.flatMap((c) => c.specialization))
+            ).sort()}
             statuses={externalStatuses}
             onClose={() => setIsCreateContactModalOpen(false)}
             onSave={handleSaveNewContact}
@@ -1457,6 +1596,17 @@ export const Pipeline: React.FC<PipelineProps> = ({
             onSave={handleSaveBid}
           />
         )}
+
+        {/* Confirmation Modal - Shared */}
+        <ConfirmationModal
+          isOpen={confirmModal.isOpen}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          onConfirm={confirmModal.onConfirm}
+          onCancel={closeConfirmModal}
+          confirmLabel="Odstranit"
+          variant="danger"
+        />
       </div>
     );
   }

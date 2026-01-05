@@ -31,9 +31,10 @@ export const TEMPLATE_VARIABLES: TemplateVariable[] = [
     { code: '{DATUM_ODESLANI}', description: 'Datum odeslání', category: 'Project' },
     { code: '{TERMIN_REALIZACE}', description: 'Termín realizace', category: 'Project' },
     { code: '{TERMIN_POPTAVKY}', description: 'Termín pro podání nabídky', category: 'Project' },
+    { code: '{PODPIS_UZIVATELE}', description: 'Váš podpis (z nastavení)', category: 'Contact' },
 ];
 
-export const getPreviewData = (project?: ProjectDetails, category?: DemandCategory) => {
+export const getPreviewData = (project?: ProjectDetails, category?: DemandCategory, format: 'text' | 'html' = 'text', userSignature?: string) => {
     const today = new Date().toLocaleDateString('cs-CZ');
 
     if (project) {
@@ -47,6 +48,10 @@ export const getPreviewData = (project?: ProjectDetails, category?: DemandCatego
         const bidDeadline = cat && cat.deadline 
             ? new Date(cat.deadline).toLocaleDateString('cs-CZ')
             : 'Dle dohody';
+
+        const signature = userSignature || project.siteManager || 'S pozdravem Tým';
+        // If HTML format and signature contains newlines, they should be converted to <br> if not already HTML
+        const formattedSignature = format === 'html' ? signature.replace(/\n/g, '<br>') : signature;
 
         return {
             '{NAZEV_STAVBY}': project.title || 'Můj Projekt',
@@ -62,7 +67,16 @@ export const getPreviewData = (project?: ProjectDetails, category?: DemandCatego
             
             '{OPRAVNENA_OSOBA}': 'Ing. Petr Svoboda', 
             '{TECHNICKY_DOZOR}': project.technicalSupervisor || 'Ing. Kontrola',
-            '{ODKAZ_DOKUMENTACE}': project.documentationLink || 'https://drive.google.com/...',
+            '{ODKAZ_DOKUMENTACE}': (() => {
+                if (project.documentLinks && project.documentLinks.length > 0) {
+                    if (format === 'html') {
+                        return project.documentLinks.map(l => `📂 <a href="${l.url}">${l.label}</a>`).join('<br>');    
+                    }
+                    return project.documentLinks.map(l => `📂 ${l.label}: ${l.url}`).join('\n');
+                }
+                const link = project.documentationLink || 'https://drive.google.com/...';
+                return format === 'html' ? `<a href="${link}">Odkaz na dokumentaci</a>` : link;
+            })(),
             
             '{SOD_CENA}': project.investorFinancials?.sodPrice ? `${project.investorFinancials.sodPrice.toLocaleString('cs-CZ')} Kč` : '1 000 000 Kč',
             '{SPLATNOST}': project.contract?.maturity ? `${project.contract.maturity} dnů` : '30 dnů',
@@ -75,6 +89,7 @@ export const getPreviewData = (project?: ProjectDetails, category?: DemandCatego
             '{DATUM_ODESLANI}': today,
             '{TERMIN_REALIZACE}': realizationDate,
             '{TERMIN_POPTAVKY}': bidDeadline,
+            '{PODPIS_UZIVATELE}': formattedSignature,
         };
     }
     
@@ -91,7 +106,7 @@ export const getPreviewData = (project?: ProjectDetails, category?: DemandCatego
         '{STAVEBNI_TECHNIK}': 'Tomáš Technik',
         '{OPRAVNENA_OSOBA}': 'Ing. Petr Ředitel',
         '{TECHNICKY_DOZOR}': 'TDI Servis s.r.o.',
-        '{ODKAZ_DOKUMENTACE}': 'https://sharepoint.com/project-123',
+        '{ODKAZ_DOKUMENTACE}': format === 'html' ? '<a href="https://sharepoint.com/project-123">Odkaz na dokumentaci</a>' : 'https://sharepoint.com/project-123',
         
         '{SOD_CENA}': '15 500 000 Kč',
         '{SPLATNOST}': '45 dnů',
@@ -104,19 +119,25 @@ export const getPreviewData = (project?: ProjectDetails, category?: DemandCatego
         '{DATUM_ODESLANI}': today,
         '{TERMIN_REALIZACE}': '01.03.2024 - 15.04.2024',
         '{TERMIN_POPTAVKY}': '20.01.2024',
+        '{PODPIS_UZIVATELE}': userSignature || 'S pozdravem,\nJan Novák',
     };
 };
 
-export const processTemplate = (template: string, projectOrData: ProjectDetails | Record<string, string>, category?: DemandCategory): string => {
+export const processTemplate = (template: string, projectOrData: ProjectDetails | Record<string, string>, category?: DemandCategory, format: 'text' | 'html' = 'text', userSignature?: string): string => {
     let data: Record<string, string>;
     
     // Check if projectOrData is strict ProjectDetails (has 'id', 'title' etc) or just a Record
     if ('title' in projectOrData && 'investor' in projectOrData) {
         // It's ProjectDetails
-        data = getPreviewData(projectOrData as ProjectDetails, category);
+        data = getPreviewData(projectOrData as ProjectDetails, category, format, userSignature);
     } else {
         // It's already the map
         data = projectOrData as Record<string, string>;
+        // If extra variables are needed here, we assume they are already in the map.
+        // But if userSignature is passed and not in map, we could inject it?
+        if (userSignature && !data['{PODPIS_UZIVATELE}']) {
+            data['{PODPIS_UZIVATELE}'] = format === 'html' ? userSignature.replace(/\n/g, '<br>') : userSignature;
+        }
     }
 
     let result = template;

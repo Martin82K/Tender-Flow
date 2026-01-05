@@ -40,7 +40,7 @@ export const useDocHubIntegration = (
     const [enabled, setEnabled] = useState(!!project.docHubEnabled);
     const [rootLink, setRootLink] = useState(project.docHubRootLink || '');
     const [rootName, setRootName] = useState(project.docHubRootName || '');
-    const [provider, setProvider] = useState<"gdrive" | "onedrive" | null>(project.docHubProvider ?? null);
+    const [provider, setProvider] = useState<"gdrive" | "onedrive" | "local" | null>(project.docHubProvider ?? null);
     const [mode, setMode] = useState<"user" | "org" | null>(project.docHubMode ?? null);
     const [status, setStatus] = useState<"disconnected" | "connected" | "error">(project.docHubStatus || "disconnected");
     const [isEditingSetup, setIsEditingSetup] = useState(false);
@@ -108,7 +108,8 @@ export const useDocHubIntegration = (
 
     // Derived State
     const isAuthed = enabled && status === "connected";
-    const isConnected = isAuthed && !!project.docHubRootId && rootLink.trim() !== '';
+    const isLocalProvider = provider === "local";
+    const isConnected = isAuthed && (isLocalProvider ? rootLink.trim() !== '' : !!project.docHubRootId && rootLink.trim() !== '');
     const effectiveStructure = isEditingStructure ? structureDraft : resolveDocHubStructureV1((project.docHubStructureV1 as any) || undefined);
 
     // Cleanup timers
@@ -361,6 +362,53 @@ export const useDocHubIntegration = (
         }
     }, [provider, project.id, rootLink, showMessage, onUpdate]);
 
+    const pickLocalFolder = useCallback(async () => {
+        if (provider !== "local") {
+            showMessage("DocHub", "Vyberte 'Lokální složka' jako provider.", "info");
+            return;
+        }
+        setIsConnecting(true);
+        try {
+            // Check if File System Access API is supported
+            if ('showDirectoryPicker' in window) {
+                const dirHandle = await (window as any).showDirectoryPicker({ mode: 'read' });
+                const folderName = dirHandle.name;
+                // For local folders, we store the name as the "link" - actual path is not accessible from browser
+                // User will need to know the full path on their system
+                setRootName(folderName);
+                setRootLink(folderName);
+                setStatus("connected");
+                onUpdate({
+                    docHubEnabled: true,
+                    docHubProvider: "local",
+                    docHubStatus: "connected",
+                    docHubRootName: folderName,
+                    docHubRootLink: folderName,
+                    docHubRootWebUrl: null,
+                    docHubRootId: `local:${folderName}`,
+                    docHubDriveId: null,
+                    docHubSiteId: null,
+                });
+                showMessage("Hotovo", `Složka "${folderName}" byla vybrána. Pro plnou funkčnost zadejte cestu ručně.`, "success");
+            } else {
+                // Fallback for unsupported browsers - prompt for manual path
+                showMessage(
+                    "Nepodporovaný prohlížeč",
+                    "Váš prohlížeč nepodporuje výběr složky. Zadejte cestu ke složce ručně do pole níže (např. C:\\Projekty\\Stavba).",
+                    "info"
+                );
+            }
+        } catch (e: any) {
+            if (e.name === 'AbortError') {
+                // User cancelled - do nothing
+                return;
+            }
+            showMessage("Chyba výběru", e.message || "Nelze vybrat složku", "danger");
+        } finally {
+            setIsConnecting(false);
+        }
+    }, [provider, showMessage, onUpdate]);
+
     const runAutoCreate = useCallback(async () => {
         if (!project.id) { showMessage("DocHub", "Chybí ID projektu.", "danger"); return; }
         if (status !== 'connected' && !project.docHubRootId && !rootLink) { showMessage("DocHub", "Nejdřív připojte DocHub.", "info"); return; }
@@ -488,7 +536,7 @@ export const useDocHubIntegration = (
             autoCreateEnabled, isAutoCreating, autoCreateProgress, autoCreateLogs, backendStep, backendCounts, backendStatus, autoCreateResult, isResultModalOpen,
             structureDraft, extraTopLevelDraft, extraSupplierDraft, isEditingStructure,
             history, isLoadingHistory, modalRequest,
-            newFolderName, resolveProgress, links, isConnected
+            newFolderName, resolveProgress, links, isConnected, isLocalProvider
         },
         setters: {
             setEnabled, setRootLink, setRootName, setProvider, setMode, setStatus, setIsEditingSetup,
@@ -504,7 +552,8 @@ export const useDocHubIntegration = (
             saveStructure: handleSaveStructure,
             pickGoogleRoot,
             createGoogleRoot,
-            resolveRoot
+            resolveRoot,
+            pickLocalFolder
         }
     };
 };

@@ -124,6 +124,7 @@ const fetchProjectDetails = async (projectId: string): Promise<ProjectDetails> =
         constructionTechnician: project.construction_technician || "",
         plannedCost: project.planned_cost || 0,
         documentationLink: project.documentation_link,
+        documentLinks: project.document_links || [],
         inquiryLetterLink: project.inquiry_letter_link,
         losersEmailTemplateLink: project.losers_email_template_link,
         priceListLink: project.price_list_link,

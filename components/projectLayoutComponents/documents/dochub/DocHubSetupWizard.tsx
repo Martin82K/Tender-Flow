@@ -13,7 +13,7 @@ interface DocHubSetupWizardProps {
 export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({ state, actions, setters, showModal }) => {
     const {
         provider, mode, rootName, rootLink, isConnecting, status,
-        newFolderName, resolveProgress, isEditingSetup
+        newFolderName, resolveProgress, isEditingSetup, isLocalProvider
     } = state;
 
     // Derived state for local UI logic
@@ -30,7 +30,7 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({ state, act
                     <div className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                         1) Provider
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-3 gap-2">
                         <button
                             type="button"
                             onClick={() => setters.setProvider("gdrive")}
@@ -40,7 +40,7 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({ state, act
                                 }`}
                         >
                             <div className="text-sm font-semibold text-slate-900 dark:text-white">Google Drive</div>
-                            <div className="text-xs text-slate-600 dark:text-slate-400">My Drive / Shared Drive</div>
+                            <div className="text-xs text-slate-600 dark:text-slate-400">My Drive / Shared</div>
                         </button>
                         <button
                             type="button"
@@ -53,13 +53,25 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({ state, act
                             <div className="text-sm font-semibold text-slate-900 dark:text-white">OneDrive</div>
                             <div className="text-xs text-slate-600 dark:text-slate-400">Personal / Business</div>
                         </button>
+                        <button
+                            type="button"
+                            onClick={() => setters.setProvider("local")}
+                            className={`p-3 rounded-xl border text-left transition-all ${provider === "local"
+                                ? "bg-emerald-500/15 border-emerald-500/40"
+                                : "bg-slate-100 dark:bg-slate-800/40 border-slate-300 dark:border-slate-700/50 hover:border-slate-400 dark:hover:border-slate-600/60"
+                                }`}
+                        >
+                            <div className="text-sm font-semibold text-slate-900 dark:text-white">Lokální disk</div>
+                            <div className="text-xs text-slate-600 dark:text-slate-400">Složka na PC</div>
+                        </button>
                     </div>
                     <div className="text-[11px] text-slate-500">
-                        Google: OAuth + Picker. OneDrive: zatím přes odkaz.
+                        {isLocalProvider ? "Lokální složka na vašem disku. Bez cloud synchronizace." : "Google: OAuth + Picker. OneDrive: zatím přes odkaz."}
                     </div>
                 </div>
 
-                {/* Step 2 */}
+                {/* Step 2 - hidden for local provider */}
+                {!isLocalProvider && (
                 <div className="space-y-2 bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4">
                     <div className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                         2) Režim
@@ -81,14 +93,15 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({ state, act
                         </button>
                     </div>
                     <div className="text-[11px] text-slate-500">
-                        U Google je “Organizace” typicky Shared Drive.
+                        U Google je "Organizace" typicky Shared Drive.
                     </div>
                 </div>
+                )}
 
-                {/* Step 3 */}
+                {/* Step 3 (or 2 for local) */}
                 <div className="space-y-2 bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4">
                     <div className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                        3) Hlavní složka projektu
+                        {isLocalProvider ? "2)" : "3)"} Hlavní složka projektu
                     </div>
                     <div className="space-y-2">
                         {provider === "gdrive" && (
@@ -128,6 +141,20 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({ state, act
                                 </button>
                             </div>
                         )}
+                        {isLocalProvider && (
+                            <button
+                                type="button"
+                                onClick={actions.pickLocalFolder}
+                                disabled={isConnecting}
+                                className={`w-full px-4 py-2.5 rounded-xl text-sm font-semibold border transition-colors ${isConnecting
+                                    ? "bg-slate-200 dark:bg-slate-800/60 text-slate-500 dark:text-slate-500 border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
+                                    : "bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500/30"
+                                    }`}
+                                title="Otevře systémový dialog pro výběr složky"
+                            >
+                                {isConnecting ? "Vybírám..." : "Vybrat složku z disku"}
+                            </button>
+                        )}
                         <input
                             type="text"
                             value={rootName}
@@ -139,9 +166,10 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({ state, act
                             type="text"
                             value={rootLink}
                             onChange={(e) => setters.setRootLink(e.target.value)}
-                            placeholder={provider === "gdrive" ? "Web URL složky (vyplní se po výběru) nebo vlož URL ručně" : "Web URL (sdílený odkaz)"}
+                            placeholder={isLocalProvider ? "Cesta ke složce (např. C:\\Projekty\\Stavba)" : provider === "gdrive" ? "Web URL složky (vyplní se po výběru) nebo vlož URL ručně" : "Web URL (sdílený odkaz)"}
                             className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-violet-500/50 focus:outline-none"
                         />
+                        {!isLocalProvider && (
                         <button
                             type="button"
                             onClick={actions.resolveRoot}
@@ -163,8 +191,9 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({ state, act
                                 {isConnecting ? `Získávám odkaz… ${resolveProgress}%` : "Získat odkaz"}
                             </span>
                         </button>
+                        )}
                         <div className="text-[11px] text-slate-500">
-                            Google: doporučeno vybrat přes Picker. OneDrive: zatím vložte sdílený odkaz na složku.
+                            {isLocalProvider ? "Zadejte cestu ke složce nebo použijte tlačítko výše." : "Google: doporučeno vybrat přes Picker. OneDrive: zatím vložte sdílený odkaz na složku."}
                         </div>
                     </div>
                 </div>
@@ -174,21 +203,23 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({ state, act
                 <div className="flex items-center gap-2">
                     <button
                         type="button"
-                        onClick={isConnectedStatus ? actions.disconnect : actions.connect}
-                        disabled={isConnecting || (!isConnectedStatus && (!provider || !mode))}
-                        className={`px-4 py-2 rounded-lg text-sm font-bold border transition-colors ${isConnecting || (!isConnectedStatus && (!provider || !mode))
+                        onClick={isConnectedStatus ? actions.disconnect : (isLocalProvider ? actions.saveSetup : actions.connect)}
+                        disabled={isConnecting || (!isConnectedStatus && (!provider || (!isLocalProvider && !mode)))}
+                        className={`px-4 py-2 rounded-lg text-sm font-bold border transition-colors ${isConnecting || (!isConnectedStatus && (!provider || (!isLocalProvider && !mode)))
                             ? "bg-slate-200 dark:bg-slate-800/60 text-slate-500 border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
                             : isConnectedStatus
                                 ? "bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-red-600 dark:text-red-300 border-slate-300 dark:border-slate-700/50"
                                 : "bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700/50"
                             }`}
-                        title={isConnectedStatus ? "Odpojí DocHub účet pro tuto stavbu" : "Spustí OAuth autorizaci (Google Drive používá následně Picker)"}
+                        title={isConnectedStatus ? "Odpojí DocHub účet pro tuto stavbu" : isLocalProvider ? "Uloží nastavení lokální složky" : "Spustí OAuth autorizaci"}
                     >
                         {isConnecting
                             ? "Pracuji..."
                             : isConnectedStatus
                                 ? "Odpojit"
-                                : `Připojit přes ${provider === "gdrive" ? "Google" : "Microsoft"}`}
+                                : isLocalProvider
+                                    ? "Připojit složku"
+                                    : `Připojit přes ${provider === "gdrive" ? "Google" : "Microsoft"}`}
                     </button>
                     <button
                         type="button"

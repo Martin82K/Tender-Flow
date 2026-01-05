@@ -146,6 +146,16 @@ export interface InvestorFinancials {
   amendments: Amendment[];
 }
 
+// Document link with label for multi-link document management
+export interface DocumentLink {
+  id: string;           // UUID
+  label: string;        // Display name (e.g., "PD Hlavní budova")
+  url: string;          // URL or local path
+  category?: string;    // Optional category (PD, Statika, TZ...)
+  dateAdded?: string;   // ISO date string - date of submission/change
+  notes?: string;       // Optional notes
+}
+
 export interface ProjectDetails {
   id?: string; // Optional linkage
   title: string;
@@ -164,13 +174,14 @@ export interface ProjectDetails {
   plannedCost?: number; // Interní plánovaný náklad (Cíl)
 
   // Documents
-  documentationLink?: string; // Link to shared project documentation
+  documentationLink?: string; // Link to shared project documentation (legacy, kept for compatibility)
+  documentLinks?: DocumentLink[]; // Multiple document links with labels
   inquiryLetterLink?: string; // Link to inquiry letter template
   losersEmailTemplateLink?: string; // Link to email template for non-selected participants
   priceListLink?: string; // Link to price lists (Ceníky)
   docHubEnabled?: boolean; // DocHub module enabled for this project
   docHubRootLink?: string; // Root link/path to the project's DocHub folder
-  docHubProvider?: "gdrive" | "onedrive" | null; // Storage provider
+  docHubProvider?: "gdrive" | "onedrive" | "local" | null; // Storage provider
   docHubMode?: "user" | "org" | null; // User drive vs organization/shared drive
   docHubRootId?: string | null; // Provider root folder/item ID (future backend)
   docHubRootName?: string | null; // Human-readable name for UI
@@ -195,6 +206,8 @@ export interface UserPreferences {
   theme: "light" | "dark" | "system";
   primaryColor: string;
   backgroundColor: string;
+  emailClientMode?: "mailto" | "eml"; // 'mailto' = Text, 'eml' = File/HTML
+  signature?: string; // HTML compatible signature
 }
 
 export type SubscriptionTier = "demo" | "free" | "pro" | "enterprise" | "admin";

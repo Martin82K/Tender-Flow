@@ -162,6 +162,7 @@ export const useUpdateProjectDetailsMutation = () => {
             if (updates.finishDate !== undefined) projectUpdates.finish_date = updates.finishDate;
             if (updates.plannedCost !== undefined) projectUpdates.planned_cost = updates.plannedCost;
             if (updates.documentationLink !== undefined) projectUpdates.documentation_link = updates.documentationLink;
+            if (updates.documentLinks !== undefined) projectUpdates.document_links = updates.documentLinks;
             if (updates.inquiryLetterLink !== undefined) projectUpdates.inquiry_letter_link = updates.inquiryLetterLink;
             if (updates.losersEmailTemplateLink !== undefined) projectUpdates.losers_email_template_link = updates.losersEmailTemplateLink;
             if (updates.priceListLink !== undefined) projectUpdates.price_list_link = updates.priceListLink;
