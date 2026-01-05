@@ -128,22 +128,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     [currentView, isNavItemEnabled, settingsRoute.subTab, settingsRoute.tab]
   );
 
-  useEffect(() => {
-    const shouldOpenTools =
-      currentView === "project-management" ||
-      currentView === "project-overview" ||
-      (currentView === "settings" &&
-        (settingsRoute.subTab === "contacts" ||
-          settingsRoute.subTab === "excelUnlocker" ||
-          settingsRoute.subTab === "excelMerger" ||
-          settingsRoute.subTab === "registration" ||
-          settingsRoute.subTab === "users" ||
-          settingsRoute.subTab === "subscriptions" ||
-          settingsRoute.subTab === "ai"));
-
-    if (!shouldOpenTools) return;
-    setOpenGroups((prev) => (prev.tools ? prev : { ...prev, tools: true }));
-  }, [currentView, settingsRoute.subTab]);
+  // Note: Removed auto-open effect for tools group to allow manual close behavior
 
   const startResizing = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -272,7 +257,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   // Helper to render nav items
-  const renderNavItem = (item: any) => {
+  const renderNavItem = (item: any, parentId?: string) => {
     if (!isNavItemEnabled(item)) {
       return null;
     }
@@ -358,9 +343,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }
 
     if (item.type === "group") {
-      const isOpen = openGroups[item.id] ?? isItemActive;
+      const isOpen = item.id in openGroups ? openGroups[item.id] : isItemActive;
       const childrenMaxHeightClass =
-        item.id === "tools" ? "max-h-60" : "max-h-44";
+        item.id === "tools" ? "max-h-96" : "max-h-44";
       return (
         <details
           key={item.id}
@@ -398,7 +383,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div
             className={`flex flex-col mt-1 ml-2 gap-1 ${childrenMaxHeightClass} overflow-y-auto pr-1`}
           >
-            {(item.children || []).map((child: any) => renderNavItem(child))}
+            {(item.children || []).map((child: any) =>
+              renderNavItem(child, item.id)
+            )}
           </div>
         </details>
       );
@@ -429,6 +416,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <button
         key={item.id}
         onClick={() => {
+          // Close parent group before navigation
+          if (parentId) {
+            setOpenGroups((prev) => ({ ...prev, [parentId]: false }));
+          }
           onViewChange(
             item.view,
             item.view === "settings"
@@ -519,7 +510,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
             {/* Navigation */}
             <nav className="flex flex-col gap-2 mt-4 flex-1 overflow-y-auto">
-              {SIDEBAR_NAVIGATION.map(renderNavItem)}
+              {SIDEBAR_NAVIGATION.map((item) => renderNavItem(item))}
             </nav>
           </div>
 
@@ -542,7 +533,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </button>
             </div>
 
-            {BOTTOM_NAVIGATION.map(renderNavItem)}
+            {BOTTOM_NAVIGATION.map((item) => renderNavItem(item))}
 
             <a
               href="/user-manual/index.html"
