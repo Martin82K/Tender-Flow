@@ -213,6 +213,7 @@ export interface UserPreferences {
 }
 
 export type SubscriptionTier = "demo" | "free" | "pro" | "enterprise" | "admin";
+// Note: For new code, prefer importing SubscriptionTierId from config/subscriptionTiers.ts
 
 export interface SubscriptionFeature {
   key: string;
