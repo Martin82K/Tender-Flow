@@ -182,7 +182,7 @@ export interface ProjectDetails {
   priceListLink?: string; // Link to price lists (Ceníky)
   docHubEnabled?: boolean; // DocHub module enabled for this project
   docHubRootLink?: string; // Root link/path to the project's DocHub folder
-  docHubProvider?: "gdrive" | "onedrive" | "local" | null; // Storage provider
+  docHubProvider?: "gdrive" | "onedrive" | "local" | "mcp" | null; // Storage provider
   docHubMode?: "user" | "org" | null; // User drive vs organization/shared drive
   docHubRootId?: string | null; // Provider root folder/item ID (future backend)
   docHubRootName?: string | null; // Human-readable name for UI
