@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "MCP Bridge Server for CRM DocHub - enables local filesystem access",
   "main": "index.js",
-  "type": "module",
   "bin": "index.js",
   "pkg": {
     "targets": [
