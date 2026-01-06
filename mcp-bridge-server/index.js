@@ -23,7 +23,13 @@ const PORT = 3847;
 
 // Middleware
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'],
+    origin: [
+        'http://localhost:5173',
+        'http://localhost:3000',
+        'http://127.0.0.1:5173',
+        'https://tenderflow.cz',
+        'https://www.tenderflow.cz'
+    ],
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -251,9 +257,34 @@ Tuto chybu může způsobovat:
         console.error('❌ CHYBA SERVERU:', e);
     }
 
-    // Keep process alive so user can read the error on Windows
-    console.log('\nStiskněte libovolnou klávesu pro ukončení...');
-    process.stdin.setRawMode(true);
-    process.stdin.resume();
-    process.stdin.on('data', process.exit.bind(process, 1));
+    keepAlive();
+});
+
+// Keep process alive so user can read errors (works in pkg exe)
+function keepAlive() {
+    console.log('\nOkno se zavře za 60 sekund. Stiskněte Ctrl+C pro ukončení...');
+
+    // Try stdin approach (works in terminal, may fail in pkg)
+    try {
+        if (process.stdin.isTTY) {
+            process.stdin.setRawMode(true);
+            process.stdin.resume();
+            process.stdin.on('data', () => process.exit(1));
+        }
+    } catch {
+        // Fallback: just wait
+    }
+
+    // Fallback: keep alive for 60 seconds regardless
+    setTimeout(() => process.exit(1), 60000);
+}
+
+// Global error handlers to prevent silent crashes
+process.on('uncaughtException', (e) => {
+    console.error('❌ NEOČEKÁVANÁ CHYBA:', e);
+    keepAlive();
+});
+
+process.on('unhandledRejection', (reason) => {
+    console.error('❌ NEOŠETŘENÝ PROMISE:', reason);
 });
