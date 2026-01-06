@@ -3,67 +3,27 @@ import { DemandCategory, ProjectDetails, Bid } from '../types';
 /**
  * Generate email inquiry from template
  */
+/**
+ * Generate email inquiry from template
+ * @deprecated Use templateService and processTemplate instead
+ */
 export function generateInquiryEmail(
   category: DemandCategory,
   project: ProjectDetails,
   bid: Bid,
   signature?: string
 ): { subject: string; body: string } {
-  const subject = `Poptávka - ${category.title} - ${project.title}`;
-  
-  const footer = signature || project.siteManager;
-
-  // Basic template with dynamic variables
-  let template = `Dobrý den,
-
-obracíme se na Vás s poptávkou subdodávky pro stavbu ${project.title}.
-
-INFORMACE O STAVBĚ:
-- Investor: ${project.investor || '-'}
-- Lokace: ${project.location}
-- Termín dokončení: ${project.finishDate}
-- Stavbyvedoucí: ${project.siteManager}
-${project.technicalSupervisor ? `- Technický dozor: ${project.technicalSupervisor}` : ''}
-
-POPTÁVANÁ KATEGORIE:
-${category.title}
-
-POPIS PRACÍ:
-${category.description || 'Detailní popis prací viz příloha.'}
-
-PODMÍNKY SOD:
-${project.contract ? `- Splatnost: ${project.contract.maturity} dnů
-- Záruka: ${project.contract.warranty} měsíců
-- Pozastávka: ${project.contract.retention}${project.contract.siteFacilities ? `
-- Zařízení staveniště: ${project.contract.siteFacilities}%` : ''}${project.contract.insurance ? `
-- Pojištění: ${project.contract.insurance}%` : ''}` : '- Budou specifikovány v SOD'}
-
-ODKAZ NA DOKUMENTACI:
-${(() => {
-    if (project.documentLinks && project.documentLinks.length > 0) {
-      return project.documentLinks.map(l => `📂 ${l.label}: ${l.url}`).join('\n');
-    }
-    return project.documentationLink || 'Odkaz bude upřesněn.';
-  })()}
-
-Prosíme o zaslání cenové nabídky do [DATUM].
-
-S pozdravem,
-${footer}`;
-
-  // Replace dynamic variables if custom template is used (this is a placeholder for future custom template logic)
-  // For now, we just ensure the default template has the link. 
-  // If we were loading a custom template string, we would do:
-  // template = template.replace('{{odkaz_dokumentace}}', project.documentationLink || '');
-
+  // This is legacy fallback. We should not be using this.
+  // But to satisfy types if referenced elsewhere:
   return {
-    subject,
-    body: template
+    subject: `Poptávka - ${category.title} - ${project.title}`,
+    body: "Error: No template selected."
   };
 }
 
 /**
  * Generate email inquiry from template (HTML version with hidden links)
+ * @deprecated Use templateService and processTemplate instead
  */
 export function generateInquiryEmailHtml(
   category: DemandCategory,
@@ -71,54 +31,7 @@ export function generateInquiryEmailHtml(
   bid: Bid,
   signature?: string
 ): string {
-  
-  const footer = signature ? signature.replace(/\n/g, '<br>') : `<p>${project.siteManager}</p>`;
-
-  // Basic template with dynamic variables
-  let template = `<p>Dobrý den,</p>
-<p>obracíme se na Vás s poptávkou subdodávky pro stavbu <strong>${project.title}</strong>.</p>
-
-<h3>INFORMACE O STAVBĚ:</h3>
-<ul>
-<li>Investor: ${project.investor || '-'}</li>
-<li>Lokace: ${project.location}</li>
-<li>Termín dokončení: ${project.finishDate}</li>
-<li>Stavbyvedoucí: ${project.siteManager}</li>
-${project.technicalSupervisor ? `<li>Technický dozor: ${project.technicalSupervisor}</li>` : ''}
-</ul>
-
-<h3>POPTÁVANÁ KATEGORIE:</h3>
-<p>${category.title}</p>
-
-<h3>POPIS PRACÍ:</h3>
-<p>${(category.description || 'Detailní popis prací viz příloha.').replace(/\n/g, '<br>')}</p>
-
-<h3>PODMÍNKY SOD:</h3>
-<ul>
-${project.contract ? `<li>Splatnost: ${project.contract.maturity} dnů</li>
-<li>Záruka: ${project.contract.warranty} měsíců</li>
-<li>Pozastávka: ${project.contract.retention}</li>${project.contract.siteFacilities ? `
-<li>Zařízení staveniště: ${project.contract.siteFacilities}%</li>` : ''}${project.contract.insurance ? `
-<li>Pojištění: ${project.contract.insurance}%</li>` : ''}` : '<li>Budou specifikovány v SOD</li>'}
-</ul>
-
-<h3>ODKAZ NA DOKUMENTACI:</h3>
-<p>
-${(() => {
-    if (project.documentLinks && project.documentLinks.length > 0) {
-      return project.documentLinks.map(l => `📂 <a href="${l.url}">${l.label}</a>`).join('<br>');
-    }
-    const link = project.documentationLink || '#';
-    return link !== '#' ? `<a href="${link}">Odkaz na dokumentaci</a>` : 'Odkaz bude upřesněn.';
-  })()}
-</p>
-
-<p>Prosíme o zaslání cenové nabídky do <strong>[DATUM]</strong>.</p>
-
-<p>S pozdravem,</p>
-${footer.startsWith('<') ? footer : `<p>${footer}</p>`}`;
-
-  return template;
+  return "<p>Error: No template selected.</p>";
 }
 
 /**
@@ -131,7 +44,7 @@ export function createMailtoLink(
 ): string {
   const encodedSubject = encodeURIComponent(subject);
   const encodedBody = encodeURIComponent(body);
-  
+
   return `mailto:${email}?subject=${encodedSubject}&body=${encodedBody}`;
 }
 
@@ -194,7 +107,7 @@ export function downloadEmlFile(
 
   const blob = new Blob([emlContentBase64], { type: "message/rfc822" });
   const url = URL.createObjectURL(blob);
-  
+
   const link = document.createElement("a");
   link.href = url;
   link.download = `Poptavka_${new Date().getTime()}.eml`;

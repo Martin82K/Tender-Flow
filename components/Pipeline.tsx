@@ -31,7 +31,8 @@ import {
   formatInputNumber,
   parseFormattedNumber,
 } from "../utils/formatters";
-import { getTemplateById } from "../services/templateService";
+import { getTemplateById, getDefaultTemplate } from "../services/templateService";
+import { Template } from "../types";
 import { processTemplate } from "../utils/templateUtils";
 import { useAuth } from "../context/AuthContext";
 import { getDemoData, saveDemoData } from "../services/demoData";
@@ -269,7 +270,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
     title: string;
     message: string;
     onConfirm: () => void;
-  }>({ isOpen: false, title: "", message: "", onConfirm: () => {} });
+  }>({ isOpen: false, title: "", message: "", onConfirm: () => { } });
 
   const closeConfirmModal = () => {
     setConfirmModal((prev) => ({ ...prev, isOpen: false }));
@@ -514,8 +515,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
             fullError: JSON.stringify(error, null, 2),
           });
           alert(
-            `Chyba při ukládání nabídek: ${error.message}\n\nKód: ${
-              error.code
+            `Chyba při ukládání nabídek: ${error.message}\n\nKód: ${error.code
             }\nDetail: ${error.details || "N/A"}\nHint: ${error.hint || "N/A"}`
           );
         } else {
@@ -899,95 +899,57 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
     const templateLink = projectDetails.inquiryLetterLink || "";
 
-    // A) Using Template System
+    // Determine which template to use
+    let template: Template | undefined;
+
     if (templateLink.startsWith("template:")) {
+      // A) Project has a specific template configured
       const templateId = templateLink.split(":")[1];
-      const template = await getTemplateById(templateId);
-
-      if (template) {
-        // Shared logic: process subject
-        subject = processTemplate(
-          template.subject,
-          projectDetails,
-          activeCategory
-        );
-
-        if (mode === "eml") {
-          // EML Mode: Process as HTML, convert newlines to <br> if needed
-          const rawBody = processTemplate(
-            template.content,
-            projectDetails,
-            activeCategory,
-            "html"
-          );
-          // If the template doesn't contain HTML tags for structure, we assume it's text-like and convert newlines.
-          // But if it has <div> or <p>, we might damage it.
-          // Simple heuristic: if it doesn't have <p> or <div>, replace \n with <br>.
-          // However, processTemplate('html') only affects variable expansion (e.g. links).
-          // Let's assume standard templates are plain-text formatted.
-          htmlBody = rawBody.replace(/\n/g, "<br>");
-
-          // Wrap in basic HTML structure
-          htmlBody = `<!DOCTYPE html><html><body style="font-family: Arial, sans-serif; color: #333;">${htmlBody}</body></html>`;
-        } else {
-          // Mailto Mode: Plain text
-          let processedBody = processTemplate(
-            template.content,
-            projectDetails,
-            activeCategory,
-            "text"
-          );
-
-          // Cleanup HTML tags if any (legacy safety)
-          body = processedBody
-            .replace(/<br\s*\/?>/gi, "\n")
-            .replace(/<[^>]+>/g, "")
-            .replace(/&nbsp;/g, " ");
-        }
-      } else {
-        // Template ID found but fetch failed -> Fallback to legacy
-        if (mode === "eml") {
-          const meta = generateInquiryEmail(
-            activeCategory,
-            projectDetails,
-            bid
-          ); // to get subject
-          subject = meta.subject;
-          htmlBody = generateInquiryEmailHtml(
-            activeCategory,
-            projectDetails,
-            bid
-          );
-        } else {
-          const result = generateInquiryEmail(
-            activeCategory,
-            projectDetails,
-            bid
-          );
-          subject = result.subject;
-          body = result.body;
-        }
-      }
+      template = await getTemplateById(templateId);
+    } else {
+      // B) No project-specific template, try to load default template
+      template = await getDefaultTemplate();
     }
-    // B) No Template (Legacy hardcoded)
-    else {
-      if (mode === "eml") {
-        const meta = generateInquiryEmail(activeCategory, projectDetails, bid);
-        subject = meta.subject;
-        htmlBody = generateInquiryEmailHtml(
-          activeCategory,
-          projectDetails,
-          bid
-        );
-      } else {
-        const result = generateInquiryEmail(
-          activeCategory,
-          projectDetails,
-          bid
-        );
-        subject = result.subject;
-        body = result.body;
-      }
+
+    if (!template) {
+      alert("Nepodařilo se načíst šablonu emailu. Prosím zkontrolujte nastavení šablon.");
+      return;
+    }
+
+    // Use template system
+    subject = processTemplate(
+      template.subject,
+      projectDetails,
+      activeCategory
+    );
+
+    if (mode === "eml") {
+      // EML Mode: Process as HTML, convert newlines to <br> if needed
+      const rawBody = processTemplate(
+        template.content,
+        projectDetails,
+        activeCategory,
+        "html"
+      );
+      // Let's assume standard templates are plain-text formatted.
+      htmlBody = rawBody.replace(/\n/g, "<br>");
+
+      // Wrap in basic HTML structure
+      htmlBody = `<!DOCTYPE html><html><body style="font-family: Arial, sans-serif; color: #333;">${htmlBody}</body></html>`;
+    } else {
+      // Mailto Mode: Plain text
+      let processedBody = processTemplate(
+        template.content,
+        projectDetails,
+        activeCategory,
+        "text"
+      );
+
+      // Cleanup HTML tags if any (legacy safety)
+      body = processedBody
+        .replace(/<br\s*\/?>/gi, "\n")
+        .replace(/<[^>]+>/g, "")
+        .replace(/&nbsp;/g, " ");
     }
 
     // Execute based on mode
@@ -1415,10 +1377,10 @@ export const Pipeline: React.FC<PipelineProps> = ({
               ))}
               {getBidsForColumn(activeCategory.id, "contacted").length ===
                 0 && (
-                <div className="text-center p-4 text-slate-400 text-sm italic">
-                  Žádní dodavatelé v této fázi
-                </div>
-              )}
+                  <div className="text-center p-4 text-slate-400 text-sm italic">
+                    Žádní dodavatelé v této fázi
+                  </div>
+                )}
             </Column>
 
             {/* 2. Odesláno (Sent) */}
@@ -1511,11 +1473,10 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   {/* Contract icon - clickable */}
                   <button
                     onClick={() => handleToggleContracted(bid)}
-                    className={`absolute -top-2 right-6 rounded-full p-1 z-10 shadow-sm transition-all hover:scale-110 ${
-                      bid.contracted
-                        ? "bg-yellow-400 text-yellow-900 ring-2 ring-yellow-300 animate-pulse"
-                        : "bg-slate-600 text-slate-300 hover:bg-slate-500"
-                    }`}
+                    className={`absolute -top-2 right-6 rounded-full p-1 z-10 shadow-sm transition-all hover:scale-110 ${bid.contracted
+                      ? "bg-yellow-400 text-yellow-900 ring-2 ring-yellow-300 animate-pulse"
+                      : "bg-slate-600 text-slate-300 hover:bg-slate-500"
+                      }`}
                     title={
                       bid.contracted
                         ? "Zasmluvněno ✓"
