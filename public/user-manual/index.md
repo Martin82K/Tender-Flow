@@ -235,6 +235,26 @@ V praxi zde typicky nastavíte:
 
 ![Schéma dokumentů a šablon](./assets/10-documents-templates.svg)
 
+### DocHub: MCP Bridge (lokální disk)
+
+MCP Bridge je malý lokální server, který umožní vytvářet složky DocHubu přímo na disku uživatele.
+
+**Distribuce MCP Bridge:**
+- **Windows**: předat `tender-flow-mcp-bridge-win-x64.exe` (doporučené umístění např. `C:\Programy\TenderFlow\`).
+- **macOS**: předat `tender-flow-mcp-bridge-macos-arm64` (Apple Silicon) nebo `tender-flow-mcp-bridge-macos-x64` (Intel).
+- Alternativně lze použít skripty `mcp-bridge-server/start-bridge.bat` (Windows) a `run-bridge.command` (macOS) ze zdrojového balíčku.
+
+**Spuštění a kontrola:**
+1. Spusťte MCP Bridge (dvojklikem / terminál).
+2. Nechte terminál otevřený.
+3. Ověřte stav: `http://localhost:3847/health` (musí vrátit `{"status":"ok"}`).
+
+**Nastavení v aplikaci:**
+1. Projekt → **Dokumenty** → **DocHub**.
+2. Provider: **MCP Bridge**.
+3. Zadejte absolutní cestu ke kořenové složce projektu.
+4. Klikněte **Připojit** a poté **Synchronizovat**.
+
 ## Subdodavatelé (Kontakty)
 
 Databáze kontaktů pro přidávání do poptávek. Podporuje filtry, výběr více řádků a hromadné akce (např. doplnění regionu pomocí AI – pokud je povoleno).
