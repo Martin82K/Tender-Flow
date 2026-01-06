@@ -37,7 +37,7 @@ app.get('/health', (req, res) => {
 // Create a single folder
 app.post('/create-folder', (req, res) => {
     const { folderPath } = req.body;
-    
+
     if (!folderPath) {
         return res.status(400).json({ error: 'Missing folderPath' });
     }
@@ -45,9 +45,9 @@ app.post('/create-folder', (req, res) => {
     // Security: Ensure path is within user's home directory or Documents
     const resolvedPath = path.resolve(folderPath);
     const homeDir = process.env.HOME || process.env.USERPROFILE || '';
-    
+
     if (!resolvedPath.startsWith(homeDir)) {
-        return res.status(403).json({ 
+        return res.status(403).json({
             error: 'Access denied: path must be within home directory',
             homeDir,
             resolvedPath
@@ -56,13 +56,13 @@ app.post('/create-folder', (req, res) => {
 
     try {
         fs.mkdirSync(resolvedPath, { recursive: true });
-        res.json({ 
-            success: true, 
+        res.json({
+            success: true,
             path: resolvedPath,
-            created: !fs.existsSync(resolvedPath) 
+            created: !fs.existsSync(resolvedPath)
         });
     } catch (error) {
-        res.status(500).json({ 
+        res.status(500).json({
             error: error instanceof Error ? error.message : 'Unknown error',
             path: resolvedPath
         });
@@ -71,8 +71,8 @@ app.post('/create-folder', (req, res) => {
 
 // Ensure DocHub folder structure
 app.post('/ensure-structure', (req, res) => {
-    const { 
-        rootPath, 
+    const {
+        rootPath,
         structure,
         categories = [],
         suppliers = {}
@@ -85,10 +85,10 @@ app.post('/ensure-structure', (req, res) => {
     // Security check
     const resolvedRoot = path.resolve(rootPath);
     const homeDir = process.env.HOME || process.env.USERPROFILE || '';
-    
+
     if (!resolvedRoot.startsWith(homeDir)) {
-        return res.status(403).json({ 
-            error: 'Access denied: path must be within home directory' 
+        return res.status(403).json({
+            error: 'Access denied: path must be within home directory'
         });
     }
 
@@ -111,7 +111,7 @@ app.post('/ensure-structure', (req, res) => {
     const ensureFolder = (folderPath, logPrefix = '') => {
         const resolved = path.resolve(folderPath);
         const exists = fs.existsSync(resolved);
-        
+
         if (!exists) {
             fs.mkdirSync(resolved, { recursive: true });
             createdCount++;
@@ -141,7 +141,7 @@ app.post('/ensure-structure', (req, res) => {
                 path.join(tendersPath, categoryFolderName),
                 `${defaultStructure.tenders}/`
             );
-            
+
             // Create inquiries folder
             const inquiriesPath = ensureFolder(
                 path.join(categoryPath, defaultStructure.tendersInquiries),
@@ -189,15 +189,15 @@ app.post('/ensure-structure', (req, res) => {
 // Check if folder exists
 app.post('/folder-exists', (req, res) => {
     const { folderPath } = req.body;
-    
+
     if (!folderPath) {
         return res.status(400).json({ error: 'Missing folderPath' });
     }
 
     const resolvedPath = path.resolve(folderPath);
     const exists = fs.existsSync(resolvedPath);
-    
-    res.json({ 
+
+    res.json({
         exists,
         path: resolvedPath,
         isDirectory: exists && fs.statSync(resolvedPath).isDirectory()
@@ -217,7 +217,7 @@ function slugify(value) {
 }
 
 // Start server
-app.listen(PORT, '127.0.0.1', () => {
+const server = app.listen(PORT, '127.0.0.1', () => {
     console.log(`
 ╔══════════════════════════════════════════════════════════╗
 ║         CRM MCP Bridge Server                            ║
@@ -230,4 +230,30 @@ app.listen(PORT, '127.0.0.1', () => {
 ║  local disk. Keep this terminal open while using CRM.    ║
 ╚══════════════════════════════════════════════════════════╝
     `);
+});
+
+// Handle startup errors (e.g., port in use)
+server.on('error', (e) => {
+    if (e.code === 'EADDRINUSE') {
+        console.error(`
+❌ CHYBA: Port ${PORT} je již obsazen!
+
+Pravděpodobně již mcp-bridge-server běží v jiném okně.
+Tuto chybu může způsobovat:
+  1. Jiné běžící okno "CRM MCP Bridge"
+  2. Zaseklý proces na pozadí
+
+Řešení:
+  - Zkontrolujte ostatní otevřená okna
+  - Restartujte počítač pokud problém přetrvává
+        `);
+    } else {
+        console.error('❌ CHYBA SERVERU:', e);
+    }
+
+    // Keep process alive so user can read the error on Windows
+    console.log('\nStiskněte libovolnou klávesu pro ukončení...');
+    process.stdin.setRawMode(true);
+    process.stdin.resume();
+    process.stdin.on('data', process.exit.bind(process, 1));
 });

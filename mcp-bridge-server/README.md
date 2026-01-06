@@ -31,33 +31,32 @@ Aplikace pro automatické vytváření složek DocHub na vašem lokálním disku
 
 ## Pro macOS uživatele
 
-### Instalace
+### Rychlý start (Doporučeno)
+
+Nejjednodušší způsob, jak spustit server bez problémů s bezpečnostním upozorněním (nepodepsaný vývojář):
+
+1. Jděte do hlavní složky projektu (`/Users/martin/CRM/CRM`)
+2. Dvojklikem spusťte soubor **`run-bridge.command`**
+3. Otevře se terminál a server se spustí. Nechte okno otevřené.
+
+Alternativně přes terminál:
+```bash
+npm run mcp
+```
+
+### Klasická instalace (Binárka)
+*Tato metoda může vyžadovat povolení v nastavení zabezpečení (System Preferences -> Security & Privacy).*
 
 1. Stáhněte příslušný soubor:
    - **Apple Silicon** (M1/M2/M3): `crm-mcp-bridge-macos-arm64`
    - **Intel Mac**: `crm-mcp-bridge-macos-x64`
 2. Přesuňte soubor do složky (např. `/Applications/` nebo `~/Apps/`)
-
-### První spuštění
-
-1. Otevřete **Terminál** (Finder → Aplikace → Utility → Terminal)
-2. Přejděte do složky s aplikací:
-   ```bash
-   cd /cesta/ke/složce
-   ```
-3. Přidejte oprávnění ke spuštění:
+3. Spusťte:
    ```bash
    chmod +x crm-mcp-bridge-macos-arm64
-   ```
-4. Spusťte aplikaci:
-   ```bash
    ./crm-mcp-bridge-macos-arm64
    ```
-
-> **Poznámka:** Pokud macOS zobrazí "cannot be opened because the developer cannot be verified":
->
-> - Přejděte do **System Preferences** → **Security & Privacy**
-> - Klikněte na **"Open Anyway"**
+4. Pokud macOS blokuje spuštění, musíte aplikaci povolit v "Security & Privacy".
 
 ### Použití v CRM
 

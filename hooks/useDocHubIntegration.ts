@@ -58,6 +58,7 @@ export const useDocHubIntegration = (
     const [backendStep, setBackendStep] = useState<string | null>(null);
     const [backendCounts, setBackendCounts] = useState<{ done: number; total: number | null } | null>(null);
     const [backendStatus, setBackendStatus] = useState<'running' | 'success' | 'error' | null>(null);
+    const [mcpBridgeStatus, setMcpBridgeStatus] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
     const [autoCreateRunId, setAutoCreateRunId] = useState<string | null>(null);
     const [autoCreateResult, setAutoCreateResult] = useState<{
         createdCount: number | null;
@@ -121,6 +122,26 @@ export const useDocHubIntegration = (
             if (autoCreatePollRef.current) window.clearInterval(autoCreatePollRef.current);
         };
     }, []);
+
+    // Poll MCP Bridge status when MCP provider is active
+    useEffect(() => {
+        if (!isMcpProvider) {
+            setMcpBridgeStatus('unknown');
+            return;
+        }
+
+        const checkStatus = async () => {
+            const running = await isMcpBridgeRunning();
+            setMcpBridgeStatus(running ? 'connected' : 'disconnected');
+        };
+
+        // Initial check
+        checkStatus();
+
+        // Poll every 5 seconds
+        const interval = window.setInterval(checkStatus, 5000);
+        return () => window.clearInterval(interval);
+    }, [isMcpProvider]);
 
     // Load Links (skip for local/MCP providers - they don't use cloud APIs)
     useEffect(() => {
@@ -524,11 +545,11 @@ export const useDocHubIntegration = (
                 }
 
                 setAutoCreateLogs(prev => [...prev, "Vytvářím složky přes MCP Bridge…"]);
-                
+
                 // Prepare categories and suppliers data
                 const categories = project.categories?.map(c => ({ id: c.id, title: c.title })) || [];
                 const suppliers: Record<string, Array<{ id: string; name: string }>> = {};
-                
+
                 if (project.bids) {
                     for (const [categoryId, bids] of Object.entries(project.bids)) {
                         suppliers[categoryId] = bids.map(b => ({ id: b.subcontractorId, name: b.companyName }));
@@ -644,7 +665,7 @@ export const useDocHubIntegration = (
             autoCreateEnabled, isAutoCreating, autoCreateProgress, autoCreateLogs, backendStep, backendCounts, backendStatus, autoCreateResult, isResultModalOpen,
             structureDraft, extraTopLevelDraft, extraSupplierDraft, isEditingStructure,
             history, isLoadingHistory, modalRequest,
-            newFolderName, resolveProgress, links, isConnected, isLocalProvider, isMcpProvider
+            newFolderName, resolveProgress, links, isConnected, isLocalProvider, isMcpProvider, mcpBridgeStatus
         },
         setters: {
             setEnabled, setRootLink, setRootName, setProvider, setMode, setStatus, setIsEditingSetup,
