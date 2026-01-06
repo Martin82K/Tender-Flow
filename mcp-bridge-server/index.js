@@ -1,7 +1,7 @@
 /**
- * MCP Bridge Server for CRM DocHub
+ * MCP Bridge Server for Tender Flow DocHub
  * 
- * This local server enables the CRM web application to create folders
+ * This local server enables the Tender Flow application to create folders
  * on the local filesystem. It runs on localhost only and is designed
  * to be simple and lightweight.
  * 
@@ -16,7 +16,9 @@
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
+
 const path = require('path');
+const { exec } = require('child_process');
 
 const app = express();
 const PORT = 3847;
@@ -26,10 +28,11 @@ app.use(cors({
     origin: [
         'http://localhost:5173',
         'http://localhost:3000',
-        'http://127.0.0.1:5173',
         'https://tenderflow.cz',
-        'https://www.tenderflow.cz'
+        'https://www.tenderflow.cz',
+        'https://app.tenderflow.cz'
     ],
+
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -84,6 +87,11 @@ app.post('/ensure-structure', (req, res) => {
         suppliers = {}
     } = req.body;
 
+    console.log('[MCP] /ensure-structure called');
+    console.log('Root:', rootPath);
+    console.log('Categories:', categories?.length);
+    console.log('Suppliers:', Object.keys(suppliers).length);
+
     if (!rootPath) {
         return res.status(400).json({ error: 'Missing rootPath' });
     }
@@ -98,21 +106,12 @@ app.post('/ensure-structure', (req, res) => {
         });
     }
 
-    const defaultStructure = {
-        pd: '01_PD',
-        tenders: '02_Vyberova_rizeni',
-        contracts: '03_Smlouvy',
-        realization: '04_Realizace',
-        archive: '99_Archiv',
-        tendersInquiries: 'Poptavky',
-        supplierEmail: 'Email',
-        supplierOffer: 'Cenova_nabidka',
-        ...(structure || {})
-    };
+    const effectiveStructure = (structure && typeof structure === 'object') ? structure : {};
 
     const logs = [];
     let createdCount = 0;
     let reusedCount = 0;
+    const treeLines = [];
 
     const ensureFolder = (folderPath, logPrefix = '') => {
         const resolved = path.resolve(folderPath);
@@ -132,48 +131,152 @@ app.post('/ensure-structure', (req, res) => {
     try {
         // Create root folder
         ensureFolder(resolvedRoot);
+        treeLines.push(`Root: ${resolvedRoot}`);
 
         // Create base folders
-        ensureFolder(path.join(resolvedRoot, defaultStructure.pd));
-        const tendersPath = ensureFolder(path.join(resolvedRoot, defaultStructure.tenders));
-        ensureFolder(path.join(resolvedRoot, defaultStructure.contracts));
-        ensureFolder(path.join(resolvedRoot, defaultStructure.realization));
-        ensureFolder(path.join(resolvedRoot, defaultStructure.archive));
+        // Actually, let's respect the hierarchy for Tenders branch only. The base folders (PD, Contracts, etc.) stay fixed for now (root level).
+        // The hierarchy controls what happens INSIDE "02_Vyberova_rizeni" (or whatever the tenders list is rooted at? No, user wants full control?)
+        // Let's assume hierarchy controls the TENDERS branch specifically.
+        // Wait, the default hierarchy includes "tenders" key which labels "Výběrová řízení (Root)".
+        // So we should NOT force create it here if it's in the hierarchy.
 
-        // Create category folders (VŘ)
-        for (const category of categories) {
-            const categoryFolderName = slugify(category.title);
-            const categoryPath = ensureFolder(
-                path.join(tendersPath, categoryFolderName),
-                `${defaultStructure.tenders}/`
-            );
+        // Helper to get ALL unique suppliers
+        const getAllSuppliers = () => {
+            const all = new Map();
+            Object.values(suppliers).flat().forEach(s => {
+                if (s && s.id) all.set(s.id, s);
+            });
+            return Array.from(all.values());
+        };
 
-            // Create inquiries folder
-            const inquiriesPath = ensureFolder(
-                path.join(categoryPath, defaultStructure.tendersInquiries),
-                `${defaultStructure.tenders}/${categoryFolderName}/`
-            );
+        // Helper to get suppliers for a category
+        const getSuppliersForCategory = (catId) => suppliers[catId] || [];
 
-            // Create supplier folders
-            const categorySuppliers = suppliers[category.id] || [];
-            for (const supplier of categorySuppliers) {
-                const supplierFolderName = slugify(supplier.name);
-                const supplierPath = ensureFolder(
-                    path.join(inquiriesPath, supplierFolderName),
-                    `.../${defaultStructure.tendersInquiries}/`
-                );
+        // Helper to get categories for a supplier
+        const getCategoriesForSupplier = (supId) => {
+            return categories.filter(cat => {
+                const catSups = suppliers[cat.id] || [];
+                return catSups.some(s => s.id === supId);
+            });
+        };
 
-                // Create Email and Cenova_nabidka folders
-                ensureFolder(
-                    path.join(supplierPath, defaultStructure.supplierEmail),
-                    `.../${supplierFolderName}/`
-                );
-                ensureFolder(
-                    path.join(supplierPath, defaultStructure.supplierOffer),
-                    `.../${supplierFolderName}/`
-                );
+        const addTreeLine = (depth, name) => {
+            const indent = '  '.repeat(Math.max(0, depth));
+            treeLines.push(`${indent}- ${name}`);
+        };
+
+        // Recursive processor for Tree Structure
+        const processHierarchyNodes = (currentPath, nodes, context = {}, treeDepth = 0) => {
+            console.log('[MCP] Processing nodes at path:', currentPath, 'nodes:', JSON.stringify(nodes?.map(n => ({ key: n.key, name: n.name, enabled: n.enabled })) || []));
+
+            if (!nodes || nodes.length === 0) {
+                return;
             }
-        }
+
+            for (const level of nodes) {
+                if (!level.enabled) continue;
+
+                const displayName = level.name || `<${level.key}>`;
+                console.log(`[MCP] Processing level: ${level.key} name: ${displayName}`);
+
+                // Recursive helper to process children of this node
+                const processChildren = (parentPath, newContext) => {
+                    // If this node has defined children in the hierarchy, process them
+                    if (level.children && level.children.length > 0) {
+                        processHierarchyNodes(parentPath, level.children, newContext, treeDepth + 1);
+                    }
+                };
+
+                switch (level.key) {
+                    case 'tenders':
+                        const tendersName = level.name
+                            ? slugify(level.name)
+                            : (effectiveStructure.tenders ? slugify(effectiveStructure.tenders) : null);
+                        if (tendersName) {
+                            addTreeLine(treeDepth, tendersName);
+                            const tPath = ensureFolder(path.join(currentPath, tendersName));
+                            processChildren(tPath, context);
+                        }
+                        break;
+
+                    case 'tendersInquiries':
+                        const inquiriesName = level.name
+                            ? slugify(level.name)
+                            : (effectiveStructure.tendersInquiries ? slugify(effectiveStructure.tendersInquiries) : null);
+                        if (inquiriesName) {
+                            addTreeLine(treeDepth, inquiriesName);
+                            const iPath = ensureFolder(path.join(currentPath, inquiriesName));
+                            processChildren(iPath, context);
+                        }
+                        break;
+
+                    case 'category':
+                        let catsToProcess = categories;
+                        if (context.supplier) {
+                            catsToProcess = getCategoriesForSupplier(context.supplier.id);
+                        }
+                        for (const cat of catsToProcess) {
+                            if (!cat || !cat.title) continue;
+                            const catFolder = slugify(cat.title);
+                            addTreeLine(treeDepth, catFolder);
+                            const nextPath = ensureFolder(path.join(currentPath, catFolder));
+                            processChildren(nextPath, { ...context, category: cat });
+                        }
+                        break;
+
+                    case 'supplier':
+                        let supsToProcess = [];
+                        if (context.category) {
+                            supsToProcess = getSuppliersForCategory(context.category.id);
+                        } else {
+                            supsToProcess = getAllSuppliers();
+                        }
+                        for (const sup of supsToProcess) {
+                            if (!sup || !sup.name) continue;
+                            const supFolder = slugify(sup.name);
+                            addTreeLine(treeDepth, supFolder);
+                            const nextPath = ensureFolder(path.join(currentPath, supFolder));
+                            processChildren(nextPath, { ...context, supplier: sup });
+                        }
+                        break;
+
+                    case 'custom':
+                        if (level.name) {
+                            const customName = slugify(level.name);
+                            addTreeLine(treeDepth, customName);
+                            const customPath = ensureFolder(path.join(currentPath, customName));
+                            processChildren(customPath, context);
+                        }
+                        break;
+
+                    default:
+                        if (level.name) {
+                            const customName = slugify(level.name);
+                            addTreeLine(treeDepth, customName);
+                            const customPath = ensureFolder(path.join(currentPath, customName));
+                            processChildren(customPath, context);
+                        }
+                        break;
+                }
+            }
+        };
+
+
+        // Static Root Folders - REMOVED
+        // Now all folders are controlled by the hierarchy editor
+        // The user can add static folders by adding custom items with key='custom' at depth 0
+
+        // Start dynamic processing from Root
+        // If hierarchy is not provided or empty, use legacy linear default
+        const hierarchyInput = req.body.hierarchy || [];
+
+        // Handle legacy flat array if sent by older client (backwards compatibilityish)
+        // Actually, let's just assume we will update client to send tree. 
+        // But if strict array passed, we might need to convert?
+        // Let's assume client sends proper tree.
+
+        processHierarchyNodes(resolvedRoot, hierarchyInput, {});
+        console.log('[MCP] Tree output:\n' + treeLines.join('\n'));
 
         logs.push(`✅ Hotovo. ✔ ${createdCount} · ↻ ${reusedCount}`);
 
@@ -185,6 +288,7 @@ app.post('/ensure-structure', (req, res) => {
             logs
         });
     } catch (error) {
+        console.error('[MCP] /ensure-structure FAILED:', error);
         res.status(500).json({
             error: error instanceof Error ? error.message : 'Unknown error',
             logs
@@ -203,6 +307,8 @@ app.post('/folder-exists', (req, res) => {
     const resolvedPath = path.resolve(folderPath);
     const exists = fs.existsSync(resolvedPath);
 
+    console.log(`[MCP] Connection check for: "${folderPath}" -> ${exists ? 'Exists' : 'Not found (will create)'}`);
+
     res.json({
         exists,
         path: resolvedPath,
@@ -210,8 +316,45 @@ app.post('/folder-exists', (req, res) => {
     });
 });
 
+// Pick folder via native dialog
+app.post('/pick-folder', (req, res) => {
+    console.log('[MCP] /pick-folder called - attempting to open dialog...');
+    // PowerShell command to open FolderBrowserDialog
+
+    const scriptPath = path.join(__dirname, 'pick-folder.ps1');
+    // Use -sta, -executionpolicy bypass and -file for robustness
+    const command = `powershell -sta -noprofile -executionpolicy bypass -file "${scriptPath}"`;
+
+    console.log('[MCP] Executing PowerShell script:', scriptPath);
+    exec(command, (error, stdout, stderr) => {
+        if (stderr) {
+            console.error('[MCP] PowerShell stderr:', stderr);
+        }
+        if (error) {
+            console.error('[MCP] Pick folder error:', error);
+            return res.status(500).json({ error: 'Failed to open dialog', details: stderr || error.message });
+        }
+
+        console.log('[MCP] Dialog closed. Selected:', stdout.trim() || '(Cancelled)');
+
+        const selectedPath = stdout.trim();
+        if (!selectedPath) {
+            return res.json({ cancelled: true });
+        }
+        res.json({ path: selectedPath });
+    });
+});
+
 // Helper: Slugify folder name (same as docHub.ts)
 function slugify(value) {
+    if (!value) return 'Neznamy';
+    if (typeof value !== 'string') {
+        try {
+            value = String(value);
+        } catch {
+            return 'Neznamy';
+        }
+    }
     return value
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
@@ -226,14 +369,17 @@ function slugify(value) {
 const server = app.listen(PORT, '127.0.0.1', () => {
     console.log(`
 ╔══════════════════════════════════════════════════════════╗
-║         CRM MCP Bridge Server                            ║
+║      Tender Flow MCP Bridge Server                       ║
 ╠══════════════════════════════════════════════════════════╣
 ║  Status:    ✅ Running                                   ║
 ║  URL:       http://localhost:${PORT}                        ║
 ║  Health:    http://localhost:${PORT}/health                 ║
 ╠══════════════════════════════════════════════════════════╣
 ║  This server enables DocHub to create folders on your    ║
-║  local disk. Keep this terminal open while using CRM.    ║
+║  local disk. Keep this terminal open while using         ║
+║  Tender Flow.                                            ║
+║                                                        ║
+║  2026 - All Rights Reserved - Martin Kalkuš              ║
 ╚══════════════════════════════════════════════════════════╝
     `);
 });
@@ -246,7 +392,7 @@ server.on('error', (e) => {
 
 Pravděpodobně již mcp-bridge-server běží v jiném okně.
 Tuto chybu může způsobovat:
-  1. Jiné běžící okno "CRM MCP Bridge"
+  1. Jiné běžící okno "Tender Flow MCP Bridge"
   2. Zaseklý proces na pozadí
 
 Řešení:

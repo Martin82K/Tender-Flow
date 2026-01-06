@@ -22,18 +22,10 @@ export interface McpCreateFolderResponse {
 
 export interface McpEnsureStructureRequest {
     rootPath: string;
-    structure?: Partial<{
-        pd: string;
-        tenders: string;
-        contracts: string;
-        realization: string;
-        archive: string;
-        tendersInquiries: string;
-        supplierEmail: string;
-        supplierOffer: string;
-    }>;
+    structure?: DocHubStructureV1;
     categories?: Array<{ id: string; title: string }>;
     suppliers?: Record<string, Array<{ id: string; name: string }>>;
+    hierarchy?: DocHubHierarchyItem[];
 }
 
 export interface McpEnsureStructureResponse {
@@ -60,7 +52,7 @@ export const checkMcpHealth = async (): Promise<McpHealthResponse | null> => {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' }
         });
-        
+
         if (!response.ok) return null;
         return await response.json();
     } catch {
@@ -87,11 +79,11 @@ export const mcpCreateFolder = async (folderPath: string): Promise<McpCreateFold
     });
 
     const data = await response.json();
-    
+
     if (!response.ok) {
         throw new Error(data.error || `HTTP ${response.status}`);
     }
-    
+
     return data;
 };
 
@@ -108,11 +100,11 @@ export const mcpEnsureStructure = async (
     });
 
     const data = await response.json();
-    
+
     if (!response.ok) {
         throw new Error(data.error || `HTTP ${response.status}`);
     }
-    
+
     return data;
 };
 
@@ -127,12 +119,32 @@ export const mcpFolderExists = async (folderPath: string): Promise<McpFolderExis
     });
 
     const data = await response.json();
-    
+
     if (!response.ok) {
         throw new Error(data.error || `HTTP ${response.status}`);
     }
-    
+
     return data;
+};
+
+/**
+ * Open a native folder picker on the machine running the bridge
+ */
+export const mcpPickFolder = async (): Promise<{ path?: string; cancelled?: boolean; error?: string }> => {
+    try {
+        const response = await fetch(`${MCP_BRIDGE_URL}/pick-folder`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        return await response.json();
+    } catch (e) {
+        return { error: e instanceof Error ? e.message : String(e) };
+    }
 };
 
 /**

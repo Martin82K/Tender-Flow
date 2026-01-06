@@ -82,6 +82,15 @@ export interface DocHubStructureV1 {
   ceniky: string;
   extraTopLevel?: string[]; // Optional additional folders in project root
   extraSupplier?: string[]; // Optional additional subfolders under supplier folder
+  extraHierarchy?: Array<{
+    id: string;
+    key: string;
+    name: string;
+    enabled: boolean;
+    depth: number;
+    label?: string;
+    children?: any[];
+  }>; // Custom folder hierarchy structure
 }
 
 export type BidStatus =

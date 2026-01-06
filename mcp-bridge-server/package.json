@@ -1,7 +1,7 @@
 {
-  "name": "crm-mcp-bridge",
+  "name": "tender-flow-mcp-bridge",
   "version": "1.0.0",
-  "description": "MCP Bridge Server for CRM DocHub - enables local filesystem access",
+  "description": "MCP Bridge Server for Tender Flow DocHub - enables local filesystem access",
   "main": "index.js",
   "bin": "index.js",
   "pkg": {

@@ -4,7 +4,7 @@
 cd "$(dirname "$0")"
 
 echo "╔══════════════════════════════════════════════════════════╗"
-echo "║         CRM MCP Bridge Server                            ║"
+echo "║         Tender Flow MCP Bridge Server                            ║"
 echo "╚══════════════════════════════════════════════════════════╝"
 echo ""
 echo "Starting MCP Bridge Server..."

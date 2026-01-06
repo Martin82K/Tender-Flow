@@ -1,12 +1,13 @@
 @echo off
 echo.
-echo CRM MCP Bridge Server
+echo Tender Flow MCP Bridge Server
 echo ----------------------
 echo.
 echo Spoustim server...
+echo 2026 - All Rights Reserved - Martin Kalkuš
 echo.
 
-"%~dp0dist\crm-mcp-bridge-win-x64.exe"
+call npm start
 
 echo.
 echo ----------------------
