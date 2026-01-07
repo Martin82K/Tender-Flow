@@ -5,6 +5,9 @@
   "main": "index.js",
   "bin": "index.js",
   "pkg": {
+    "assets": [
+      "pick-folder.ps1"
+    ],
     "targets": [
       "node18-macos-x64",
       "node18-macos-arm64",

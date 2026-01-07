@@ -435,7 +435,8 @@ app.post('/open-path', (req, res) => {
 
 // Pick folder via native dialog
 app.post('/pick-folder', (req, res) => {
-    console.log('[MCP] /pick-folder called - attempting to open dialog...');
+    const BUILD_ID = "BUILD_FIX_SNAPSHOT_V1";
+    console.log(`[MCP] /pick-folder called [${BUILD_ID}] - attempting to open dialog...`);
 
     // In pkg environment, we can't pass the script path directly to powershell
     // because it lives in a virtual filesystem (C:\snapshot\...) which powershell can't see.
@@ -520,6 +521,7 @@ const server = app.listen(PORT, '127.0.0.1', () => {
 ║      Tender Flow MCP Bridge Server                       ║
 ╠══════════════════════════════════════════════════════════╣
 ║  Status:    ✅ Running                                   ║
+║  Version:   BUILD_FIX_SNAPSHOT_V1                        ║
 ║  URL:       http://localhost:${PORT}                        ║
 ║  Health:    http://localhost:${PORT}/health                 ║
 ╠══════════════════════════════════════════════════════════╣

@@ -10,12 +10,14 @@ DisableProgramGroupPage=yes
 ArchitecturesAllowed=x64
 ArchitecturesInstallIn64BitMode=x64
 PrivilegesRequired=lowest
-OutputBaseFilename=TenderFlowMCPBridgeSetup
+OutputBaseFilename=TenderFlowMCPBridgeSetup_Fixed
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
 SetupIconFile=tender-flow.ico
 UninstallDisplayIcon={app}\tender-flow.ico
+CloseApplications=force
+CloseApplicationsFilter=*.exe
 
 [Languages]
 Name: "czech"; MessagesFile: "compiler:Languages\Czech.isl"
@@ -27,9 +29,11 @@ Name: "startup"; Description: "Spouštět automaticky při startu Windows"; Grou
 
 [Files]
 ; Hlavní spustitelný soubor
-Source: "..\dist\tender-flow-mcp-bridge-win-x64.exe"; DestDir: "{app}"; DestName: "tender-flow-mcp-bridge.exe"; Flags: ignoreversion
+Source: "..\dist\tender-flow-mcp-bridge.exe"; DestDir: "{app}"; DestName: "tender-flow-mcp-bridge.exe"; Flags: ignoreversion overwritereadonly
 ; Ikona pro zástupce
-Source: "tender-flow.ico"; DestDir: "{app}"; DestName: "tender-flow.ico"; Flags: ignoreversion
+Source: "tender-flow.ico"; DestDir: "{app}"; DestName: "tender-flow.ico"; Flags: ignoreversion overwritereadonly
+; Pomocné skripty
+Source: "..\pick-folder.ps1"; DestDir: "{app}"; DestName: "pick-folder.ps1"; Flags: ignoreversion overwritereadonly
 
 [Icons]
 Name: "{userprograms}\Tender Flow MCP Bridge"; Filename: "{app}\tender-flow-mcp-bridge.exe"; IconFilename: "{app}\tender-flow.ico"
