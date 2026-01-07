@@ -12,7 +12,7 @@ export interface NavItemConfig {
   href?: string; // For external links
   // Optional deep-linking into Settings
   settingsTab?: 'user' | 'admin';
-  settingsSubTab?: 'profile' | 'contacts' | 'excelUnlocker' | 'excelMerger' | 'urlShortener' | 'registration' | 'users' | 'subscriptions' | 'ai' | 'tools';
+  settingsSubTab?: 'profile' | 'contacts' | 'excelUnlocker' | 'excelMerger' | 'excelIndexer' | 'urlShortener' | 'registration' | 'users' | 'subscriptions' | 'ai' | 'tools';
 }
 
 export const SIDEBAR_NAVIGATION: NavItemConfig[] = [
@@ -96,6 +96,14 @@ export const BOTTOM_NAVIGATION: NavItemConfig[] = [
         feature: FEATURES.EXCEL_MERGER,
         settingsTab: 'user',
         settingsSubTab: 'excelMerger',
+      },
+      {
+        id: 'settings-excel-indexer',
+        label: 'Excel Indexer',
+        icon: 'join_inner',
+        view: 'settings',
+        settingsTab: 'user',
+        settingsSubTab: 'excelIndexer',
       },
       {
         id: 'settings-url-shortener',

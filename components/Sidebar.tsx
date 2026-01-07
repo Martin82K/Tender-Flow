@@ -345,7 +345,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (item.type === "group") {
       const isOpen = item.id in openGroups ? openGroups[item.id] : isItemActive;
       const childrenMaxHeightClass =
-        item.id === "tools" ? "max-h-96" : "max-h-44";
+        item.id === "tools" ? "max-h-[500px]" : "max-h-44";
       return (
         <details
           key={item.id}

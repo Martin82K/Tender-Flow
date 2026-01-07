@@ -12,6 +12,7 @@ import { ExcelUnlockerProSettings } from "./settings/ExcelUnlockerProSettings";
 import { ExcelMergerProSettings } from "./settings/ExcelMergerProSettings";
 import { ExcelMergerAdminSettings } from "./settings/ExcelMergerAdminSettings";
 import { UrlShortener } from "./tools/UrlShortener";
+import { ExcelIndexerSettings } from "./settings/ExcelIndexerSettings";
 import { useFeatures } from "../context/FeatureContext";
 import { FEATURES } from "../config/features";
 
@@ -55,7 +56,8 @@ export const Settings: React.FC<SettingsProps> = ({
     | "contacts"
     | "excelUnlocker"
     | "excelMerger"
-    | "urlShortener";
+    | "urlShortener"
+    | "excelIndexer";
   type AdminSubTab = "registration" | "users" | "subscriptions" | "ai";
 
   // -------------------------------------------------------------------------
@@ -74,6 +76,8 @@ export const Settings: React.FC<SettingsProps> = ({
         subTabParam === "excelUnlocker" ||
         subTabParam === "excelMerger" ||
         subTabParam === "urlShortener" ||
+        subTabParam === "indexMatcher" ||
+        subTabParam === "excelIndexer" ||
         subTabParam === "tools" // legacy
           ? subTabParam
           : null;
@@ -98,7 +102,9 @@ export const Settings: React.FC<SettingsProps> = ({
     if (
       settingsRoute.subTab === "contacts" ||
       settingsRoute.subTab === "excelMerger" ||
-      settingsRoute.subTab === "urlShortener"
+      settingsRoute.subTab === "urlShortener" ||
+      settingsRoute.subTab === "indexMatcher" ||
+      settingsRoute.subTab === "excelIndexer"
     )
       return settingsRoute.subTab;
     if (settingsRoute.subTab === "excelUnlocker") return settingsRoute.subTab;
@@ -421,6 +427,25 @@ export const Settings: React.FC<SettingsProps> = ({
                   </button>
                 )}
 
+                <button
+                  onClick={() =>
+                    updateSettingsUrl({ tab: "user", subTab: "excelIndexer" })
+                  }
+                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                    activeUserSubTab === "excelIndexer" ||
+                    activeUserSubTab === "indexMatcher"
+                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[20px]">
+                      join_inner
+                    </span>
+                    Excel Indexer
+                  </div>
+                </button>
+
                 {canUrlShortener && (
                   <button
                     onClick={() =>
@@ -491,6 +516,11 @@ export const Settings: React.FC<SettingsProps> = ({
 
               {activeUserSubTab === "urlShortener" && canUrlShortener && (
                 <UrlShortener />
+              )}
+
+              {(activeUserSubTab === "excelIndexer" ||
+                activeUserSubTab === "indexMatcher") && (
+                <ExcelIndexerSettings />
               )}
             </main>
           </div>
