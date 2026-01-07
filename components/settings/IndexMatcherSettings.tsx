@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import * as XLSX from "xlsx";
+
 import {
   loadIndexFromBuffer,
   fillDescriptions,
@@ -83,7 +83,7 @@ export const IndexMatcherSettings: React.FC = () => {
 
     try {
       const buffer = await file.arrayBuffer();
-      const map = loadIndexFromBuffer(buffer, undefined, addLog);
+      const map = await loadIndexFromBuffer(buffer, undefined, addLog);
 
       setIndexMap(map);
 

@@ -13,7 +13,7 @@
  *    - Propagate description to subsequent rows until next code
  */
 
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 // ============================================================================
 // Types
@@ -75,7 +75,37 @@ export function normalizeCode(value: unknown): string | null {
     return null;
   }
 
-  // Handle strings
+  // Handle ExcelJS CellValue objects
+  if (typeof value === 'object') {
+     // ExcelJS CellValue might be an object
+     // If it's a formula
+     if (value && 'result' in value) {
+        const val = (value as any).result;
+        if (typeof val === 'number') {
+          if (Number.isInteger(val)) return String(val);
+          if (Number.isFinite(val) && Math.floor(val) === val) return String(Math.floor(val));
+        }
+        if (typeof val === 'string') {
+          return normalizeCode(val);
+        }
+        // result could be error or Date, ignore
+     }
+      
+      // If rich text
+      if (value && 'richText' in value && Array.isArray((value as any).richText)) {
+         // Concatenate text parts
+         const text = (value as any).richText.map((rt: any) => rt.text).join('');
+         return normalizeCode(text);
+      }
+
+      // If text property exists (sometimes used)
+      if (value && 'text' in value) {
+        return normalizeCode((value as any).text);
+      }
+      
+      return null;
+  }
+
   if (typeof value === 'string') {
     const trimmed = value.trim();
     if (!trimmed) {
@@ -118,94 +148,73 @@ export function bestPrefixMatch(
   return null;
 }
 
-/**
- * Convert column letter to 0-based index.
- * E.g., 'A' -> 0, 'B' -> 1, 'F' -> 5
- */
-function colLetterToIndex(letter: string): number {
-  let result = 0;
-  for (let i = 0; i < letter.length; i++) {
-    result = result * 26 + (letter.charCodeAt(i) - 64);
-  }
-  return result - 1;
-}
-
 // ============================================================================
 // Main Functions
 // ============================================================================
 
 /**
- * Load index (codebook) from an Excel workbook.
- * Expects two columns: code and description.
- * Returns a Map of code -> description.
+ * Load index from an ArrayBuffer (Excel file) using ExcelJS.
  */
-export function loadIndexFromWorkbook(
-  workbook: XLSX.WorkBook,
+export async function loadIndexFromBuffer(
+  buffer: ArrayBuffer,
   sheetName?: string,
   onLog?: LogReporter
-): IndexMap {
-  const targetSheet = sheetName || workbook.SheetNames[0];
-  const sheet = workbook.Sheets[targetSheet];
+): Promise<IndexMap> {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer);
   
-  if (!sheet) {
-    throw new Error(`Sheet "${targetSheet}" not found in workbook`);
+  const targetSheet = sheetName ? workbook.getWorksheet(sheetName) : workbook.worksheets[0];
+  
+  if (!targetSheet) {
+    throw new Error(sheetName ? `Sheet "${sheetName}" not found` : 'No sheets found in workbook');
   }
 
-  onLog?.(`Načítám číselník z listu "${targetSheet}"...`);
+  onLog?.(`Načítám číselník z listu "${targetSheet.name}"...`);
 
-  // Convert sheet to array of arrays
-  const data = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1 });
   const indexMap: IndexMap = new Map();
 
-  for (const row of data) {
-    if (!Array.isArray(row) || row.length < 2) {
-      continue;
-    }
+  // ExcelJS iterates rows. Note: ExcelJS rows are 1-indexed.
+  targetSheet.eachRow((row, rowNumber) => {
+    // We expect at least 2 columns.
+    // getCell(1) -> Column A, getCell(2) -> Column B
+    
+    // Simple heuristic: get values from cell 1 and 2
+    // We try to find the first two cells as Code/Desc
+    
+    // Let's grab values directly from first two columns
+    // We need to resolve values (if formulas or rich text)
+    
+    const c1 = row.getCell(1).value;
+    const c2 = row.getCell(2).value;
+    
+    // Basic extraction
+    const extractStr = (val: any): string => {
+        if (!val) return '';
+        if (typeof val === 'string') return val;
+        if (typeof val === 'number') return String(val);
+        if (typeof val === 'object') {
+            if ('result' in val) return extractStr(val.result);
+            if ('text' in val) return val.text;
+            if ('richText' in val) return val.richText.map((rt: any) => rt.text).join('');
+        }
+        return String(val);
+    };
 
-    // Find first two non-empty values in the row
-    const nonEmpty = row.filter(
-      (v) => v !== null && v !== undefined && String(v).trim() !== ''
-    );
-
-    if (nonEmpty.length < 2) {
-      continue;
-    }
-
-    const rawKey = nonEmpty[0];
-    const rawDesc = nonEmpty[1];
-
-    const key = String(rawKey).trim();
-    const desc = String(rawDesc).trim();
+    const key = extractStr(c1).trim();
+    const desc = extractStr(c2).trim();
 
     if (key && desc) {
-      indexMap.set(key, desc);
+        indexMap.set(key, desc);
     }
-  }
+  });
 
   onLog?.(`Načteno ${indexMap.size} položek z číselníku`);
   return indexMap;
 }
 
 /**
- * Load index from an ArrayBuffer (Excel file).
- */
-export function loadIndexFromBuffer(
-  buffer: ArrayBuffer,
-  sheetName?: string,
-  onLog?: LogReporter
-): IndexMap {
-  const workbook = XLSX.read(buffer, { type: 'array' });
-  return loadIndexFromWorkbook(workbook, sheetName, onLog);
-}
-
-/**
  * Fill descriptions in a budget spreadsheet based on the index.
- * 
- * Logic:
- * - Iterates through rows starting from startRow
- * - When a numeric code is found in codeColumn (F), looks up its prefix in the index
- * - If found, writes the description to descColumn (B)
- * - Continues writing the same description to subsequent rows until a new code is found
+ * Uses ExcelJS to preserve styles.
  */
 export async function fillDescriptions(
   buffer: ArrayBuffer,
@@ -224,86 +233,73 @@ export async function fillDescriptions(
   onProgress?.(5, 'Načítám rozpočtový soubor...');
   onLog?.('Načítám rozpočtový soubor...');
 
-  const workbook = XLSX.read(buffer, { type: 'array' });
-  const targetSheet = sheetName || workbook.SheetNames[0];
-  const sheet = workbook.Sheets[targetSheet];
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer);
+  
+  const sheet = sheetName ? workbook.getWorksheet(sheetName) : workbook.worksheets[0];
 
   if (!sheet) {
-    throw new Error(`Sheet "${targetSheet}" not found in workbook`);
+    throw new Error(sheetName ? `Sheet "${sheetName}" not found` : 'No sheets found');
   }
 
-  onLog?.(`Zpracovávám list "${targetSheet}"...`);
+  onLog?.(`Zpracovávám list "${sheet.name}"...`);
 
-  // Get sheet range
-  const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1');
-  const maxRow = range.e.r + 1; // 1-indexed
-  const totalRows = maxRow - startRow + 1;
-
-  const codeColIndex = colLetterToIndex(codeColumn.toUpperCase());
-  const descColIndex = colLetterToIndex(descColumn.toUpperCase());
-
+  const totalRows = sheet.rowCount; 
+  const lastRow = sheet.rowCount;
+  
   let currentDescription: string | null = null;
   let codesFound = 0;
   let matchesFound = 0;
   let descriptionsWritten = 0;
 
   onProgress?.(10, 'Procházím řádky...');
-  onLog?.(`Celkem ${totalRows} řádků ke zpracování`);
+  onLog?.(`Celkem cca ${totalRows} řádků ke zpracování`);
 
-  for (let rowNum = startRow; rowNum <= maxRow; rowNum++) {
-    // Get cell address for code column
-    const codeAddr = XLSX.utils.encode_cell({ r: rowNum - 1, c: codeColIndex });
-    const codeCell = sheet[codeAddr];
-    const codeValue = codeCell?.v;
-
-    const normalizedCode = normalizeCode(codeValue);
-
-    if (normalizedCode) {
-      codesFound++;
-      const match = bestPrefixMatch(normalizedCode, indexMap);
-
-      if (match) {
-        currentDescription = match.description;
-        matchesFound++;
-        onLog?.(`Řádek ${rowNum}: Kód ${normalizedCode} → prefix ${match.prefix} → "${match.description}"`);
-      } else {
-        currentDescription = null;
-        onLog?.(`Řádek ${rowNum}: Kód ${normalizedCode} → bez shody v číselníku`);
-      }
-    }
-
-    // Write description if we have one
-    if (currentDescription) {
-      const descAddr = XLSX.utils.encode_cell({ r: rowNum - 1, c: descColIndex });
-      sheet[descAddr] = { v: currentDescription, t: 's' };
-      descriptionsWritten++;
-    }
-
-    // Update progress every 100 rows
-    if (rowNum % 100 === 0 || rowNum === maxRow) {
-      const percent = 10 + Math.round((rowNum / maxRow) * 80);
-      onProgress?.(percent, `Zpracováno ${rowNum}/${maxRow} řádků...`);
+  for (let rowNum = startRow; rowNum <= lastRow; rowNum++) {
+      const row = sheet.getRow(rowNum);
       
-      // Yield to prevent UI freeze
-      await new Promise((resolve) => setTimeout(resolve, 0));
-    }
+      // Check code column
+      const codeCell = row.getCell(codeColumn);
+      const codeValue = codeCell.value; 
+      
+      const normalizedCode = normalizeCode(codeValue);
+      
+      if (normalizedCode) {
+          codesFound++;
+          const match = bestPrefixMatch(normalizedCode, indexMap);
+          
+          if (match) {
+              currentDescription = match.description;
+              matchesFound++;
+              onLog?.(`Řádek ${rowNum}: Kód ${normalizedCode} → prefix ${match.prefix} → "${match.description}"`);
+          } else {
+              currentDescription = null;
+              onLog?.(`Řádek ${rowNum}: Kód ${normalizedCode} → bez shody v číselníku`);
+          }
+      }
+      
+      // Write description if we have one
+      if (currentDescription) {
+          const descCell = row.getCell(descColumn);
+          descCell.value = currentDescription;
+          // Note: Styles are preserved by default in ExcelJS when just setting value.
+          descriptionsWritten++;
+      }
+      
+      // Update progress every 100 rows
+      if (rowNum % 100 === 0) {
+          const percent = 10 + Math.round(((rowNum - startRow) / (lastRow - startRow || 1)) * 80);
+          onProgress?.(percent, `Zpracováno ${rowNum}/${lastRow} řádků...`);
+          
+          // Yield
+          await new Promise(resolve => setTimeout(resolve, 0));
+      }
   }
 
   onProgress?.(92, 'Generuji výstupní soubor...');
   onLog?.(`Nalezeno ${codesFound} kódů, ${matchesFound} shod, zapsáno ${descriptionsWritten} popisů`);
 
-  // Update sheet range if we wrote outside the original range
-  const newRange = XLSX.utils.decode_range(sheet['!ref'] || 'A1');
-  if (descColIndex > newRange.e.c) {
-    newRange.e.c = descColIndex;
-    sheet['!ref'] = XLSX.utils.encode_range(newRange);
-  }
-
-  // Generate output
-  const outputBuffer = XLSX.write(workbook, {
-    bookType: 'xlsx',
-    type: 'array',
-  }) as ArrayBuffer;
+  const outputBuffer = await workbook.xlsx.writeBuffer();
 
   onProgress?.(100, 'Hotovo!');
   onLog?.('Zpracování dokončeno!');
@@ -311,7 +307,7 @@ export async function fillDescriptions(
   return {
     outputBuffer,
     stats: {
-      totalRows,
+      totalRows: lastRow - startRow + 1,
       codesFound,
       matchesFound,
       descriptionsWritten,
