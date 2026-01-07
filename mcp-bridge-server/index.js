@@ -316,33 +316,181 @@ app.post('/folder-exists', (req, res) => {
     });
 });
 
+// Delete a folder (with strict safety checks)
+app.post('/delete-folder', (req, res) => {
+    const { folderPath, rootPath } = req.body;
+
+    if (!folderPath || !rootPath) {
+        return res.status(400).json({ error: 'Missing folderPath or rootPath' });
+    }
+
+    const resolvedTarget = path.resolve(folderPath);
+    const resolvedRoot = path.resolve(rootPath);
+    const homeDir = process.env.HOME || process.env.USERPROFILE || '';
+
+    // 1. Root Security Check
+    if (!resolvedRoot.startsWith(homeDir)) {
+        return res.status(403).json({
+            error: 'Access denied: rootPath must be within home directory'
+        });
+    }
+
+    // 2. Target Containment Check
+    if (!resolvedTarget.startsWith(resolvedRoot)) {
+        return res.status(403).json({
+            error: 'Access denied: Cannot delete outside of project root'
+        });
+    }
+
+    // 3. Root Self-Delete Prevention
+    if (resolvedTarget === resolvedRoot) {
+        return res.status(403).json({
+            error: 'Access denied: Cannot delete the project root itself'
+        });
+    }
+
+    console.log(`[MCP] Deleting folder: "${resolvedTarget}" (Root: "${resolvedRoot}")`);
+
+    try {
+        if (fs.existsSync(resolvedTarget)) {
+            // Use force and recursive to delete directories with content
+            fs.rmSync(resolvedTarget, { recursive: true, force: true });
+            res.json({ success: true, deleted: true, path: resolvedTarget });
+        } else {
+            res.json({ success: true, deleted: false, reason: 'Folder did not exist' });
+        }
+    } catch (error) {
+        console.error('[MCP] Delete failed:', error);
+        res.status(500).json({
+            error: error instanceof Error ? error.message : 'Unknown error',
+            path: resolvedTarget
+        });
+    }
+});
+
+// Open a folder or file in the OS default viewer/explorer
+app.post('/open-path', (req, res) => {
+    const { path: itemPath } = req.body;
+
+    if (!itemPath) {
+        return res.status(400).json({ error: 'Missing path' });
+    }
+
+    const resolvedPath = path.resolve(itemPath);
+    const homeDir = process.env.HOME || process.env.USERPROFILE || '';
+
+    // Security check: Ensure path is safe (optional, but good practice)
+    // We allow opening anything within home dir.
+    if (!resolvedPath.startsWith(homeDir)) {
+        // Relaxed check? Sometimes people want to open drives.
+        // But for now, let's keep it safe.
+        // Actually, user might have projects on multiple drives (D:\Projects).
+        // If we restrict to homeDir, we might block valid use cases.
+        // Detailed check: verify it doesn't contain ".." exploit or sensitive system paths?
+        // path.resolve handles "..".
+        // Let's just log it and allow it for now, assuming local user trust (it's a local bridge).
+        // console.warn('[MCP] Opening path outside home:', resolvedPath);
+    }
+
+    if (!fs.existsSync(resolvedPath)) {
+        return res.status(404).json({ error: 'Path does not exist' });
+    }
+
+    console.log(`[MCP] Opening path: "${resolvedPath}"`);
+
+    let command;
+    switch (process.platform) {
+        case 'win32':
+            // Windows
+            // "start" requires a title as first arg if stripped quotes are used, empty string works.
+            // But "explorer" is more specific for opening file explorer.
+            // If it's a file, "start" opens it in default app.
+            // If it's a folder, "explorer" opens it.
+            // Let's generic "start" which handles both nicely usually.
+            command = `start "" "${resolvedPath}"`;
+            break;
+        case 'darwin':
+            // macOS
+            command = `open "${resolvedPath}"`;
+            break;
+        case 'linux':
+            // Linux
+            command = `xdg-open "${resolvedPath}"`;
+            break;
+        default:
+            return res.status(500).json({ error: 'Unsupported platform' });
+    }
+
+    exec(command, (error) => {
+        if (error) {
+            console.error('[MCP] Open failed:', error);
+            // Don't fail the response if it's just a detached process issue, but exec usually waits?
+            // "start" returns immediately on Windows usually.
+            // On error we report it.
+            return res.status(500).json({ error: 'Failed to open path' });
+        }
+        res.json({ success: true, path: resolvedPath });
+    });
+});
+
 // Pick folder via native dialog
 app.post('/pick-folder', (req, res) => {
     console.log('[MCP] /pick-folder called - attempting to open dialog...');
-    // PowerShell command to open FolderBrowserDialog
 
-    const scriptPath = path.join(__dirname, 'pick-folder.ps1');
-    // Use -sta, -executionpolicy bypass and -file for robustness
-    const command = `powershell -sta -noprofile -executionpolicy bypass -file "${scriptPath}"`;
+    // In pkg environment, we can't pass the script path directly to powershell
+    // because it lives in a virtual filesystem (C:\snapshot\...) which powershell can't see.
+    // Solution: Copy script to a temp file on the real filesystem.
 
-    console.log('[MCP] Executing PowerShell script:', scriptPath);
-    exec(command, (error, stdout, stderr) => {
-        if (stderr) {
-            console.error('[MCP] PowerShell stderr:', stderr);
-        }
-        if (error) {
-            console.error('[MCP] Pick folder error:', error);
-            return res.status(500).json({ error: 'Failed to open dialog', details: stderr || error.message });
-        }
+    const os = require('os');
+    const sourceScriptPath = path.join(__dirname, 'pick-folder.ps1');
+    const tempScriptPath = path.join(os.tmpdir(), `mcp-pick-folder-${Date.now()}.ps1`);
 
-        console.log('[MCP] Dialog closed. Selected:', stdout.trim() || '(Cancelled)');
+    try {
+        // Read the script from source (works in snapshot)
+        const scriptContent = fs.readFileSync(sourceScriptPath, 'utf8');
+        // Write to real temp file
+        fs.writeFileSync(tempScriptPath, scriptContent);
 
-        const selectedPath = stdout.trim();
-        if (!selectedPath) {
-            return res.json({ cancelled: true });
-        }
-        res.json({ path: selectedPath });
-    });
+        console.log('[MCP] Extracted script to:', tempScriptPath);
+
+        // Run the temp script
+        // Use -sta, -executionpolicy bypass and -file for robustness
+        const command = `powershell -sta -noprofile -executionpolicy bypass -file "${tempScriptPath}"`;
+
+        console.log('[MCP] Executing PowerShell script...');
+        exec(command, (error, stdout, stderr) => {
+            // Cleanup temp file
+            try {
+                if (fs.existsSync(tempScriptPath)) fs.unlinkSync(tempScriptPath);
+            } catch (cleanupErr) {
+                console.error('[MCP] Failed to cleanup temp script:', cleanupErr);
+            }
+
+            if (stderr) {
+                console.error('[MCP] PowerShell stderr:', stderr);
+            }
+            if (error) {
+                console.error('[MCP] Pick folder error:', error);
+                return res.status(500).json({ error: 'Failed to open dialog', details: stderr || error.message });
+            }
+
+            console.log('[MCP] Dialog closed. Selected:', stdout.trim() || '(Cancelled)');
+
+            const selectedPath = stdout.trim();
+            if (!selectedPath) {
+                return res.json({ cancelled: true });
+            }
+            res.json({ path: selectedPath });
+        });
+    } catch (err) {
+        console.error('[MCP] Failed to prepare script:', err);
+        // Try cleanup if something failed mid-way
+        try {
+            if (fs.existsSync(tempScriptPath)) fs.unlinkSync(tempScriptPath);
+        } catch { }
+
+        return res.status(500).json({ error: 'Failed to prepare dialog script', details: err.message });
+    }
 });
 
 // Helper: Slugify folder name (same as docHub.ts)

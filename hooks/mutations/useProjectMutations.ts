@@ -6,6 +6,8 @@ import { PROJECT_KEYS } from "../queries/useProjectsQuery";
 import { PROJECT_DETAILS_KEYS } from "../queries/useProjectDetailsQuery";
 import { getDemoData, saveDemoData } from "../../services/demoData";
 import { invokeAuthedFunction } from "../../services/functionsClient";
+import { mcpCreateFolder, mcpDeleteFolder } from "../../services/mcpBridgeClient";
+import { getDocHubTenderLinks, resolveDocHubStructureV1 } from "../../utils/docHub";
 
 // Helper for DocHub Sync
 const syncDocHubCategory = async (projectId: string, action: "upsert" | "archive", categoryId: string, categoryTitle?: string) => {
@@ -282,6 +284,31 @@ export const useAddCategoryMutation = () => {
 
             // Sync DocHub
             syncDocHubCategory(projectId, "upsert", category.id, category.title);
+
+            // AUTO-CREATE: MCP
+            const projectDetails = queryClient.getQueryData<ProjectDetails>(PROJECT_DETAILS_KEYS.detail(projectId));
+            if (
+                projectDetails &&
+                projectDetails.docHubEnabled &&
+                projectDetails.docHubProvider === 'mcp' &&
+                projectDetails.docHubRootLink
+            ) {
+                // We use optimistic structure/overrides if available in projectDetails
+                // Assuming projectDetails has the structure.
+                // However, structure is on project, not details?
+                // hook useProjectDetailsQuery maps docHubStructureV1.
+
+                const structure = resolveDocHubStructureV1(projectDetails.docHubStructureV1 || undefined);
+                const links = getDocHubTenderLinks(projectDetails.docHubRootLink, category.title, structure);
+
+                // Create Tender Folder
+                mcpCreateFolder(links.tenderBase).then(() => {
+                    // Create Inquiries Folder
+                    return mcpCreateFolder(links.inquiriesBase);
+                }).catch(err => {
+                    console.error("MCP Auto-create failed:", err);
+                });
+            }
         },
         onMutate: async ({ projectId, category }) => {
             await queryClient.cancelQueries({ queryKey: PROJECT_DETAILS_KEYS.detail(projectId) });
@@ -373,6 +400,28 @@ export const useDeleteCategoryMutation = () => {
 
             // Sync DocHub (Archive)
             syncDocHubCategory(projectId, "archive", categoryId);
+
+            // AUTO-DELETE: MCP
+            const projectDetails = queryClient.getQueryData<ProjectDetails>(PROJECT_DETAILS_KEYS.detail(projectId));
+            if (
+                projectDetails &&
+                projectDetails.docHubEnabled &&
+                projectDetails.docHubProvider === 'mcp' &&
+                projectDetails.docHubRootLink
+            ) {
+                // Find category to get title for path generation
+                const category = projectDetails.categories.find(c => c.id === categoryId);
+                if (category) {
+                    const structure = resolveDocHubStructureV1(projectDetails.docHubStructureV1 || undefined);
+                    const links = getDocHubTenderLinks(projectDetails.docHubRootLink, category.title, structure);
+
+                    // Delete Tender Folder (contains inquiries)
+                    // Safety: mcpDeleteFolder requires rootPath
+                    mcpDeleteFolder(projectDetails.docHubRootLink, links.tenderBase).catch(err => {
+                        console.error("MCP Auto-delete failed:", err);
+                    });
+                }
+            }
         },
         onMutate: async ({ projectId, categoryId }) => {
             await queryClient.cancelQueries({ queryKey: PROJECT_DETAILS_KEYS.detail(projectId) });

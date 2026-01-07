@@ -1,14 +1,15 @@
 export const DOC_HUB_STRUCTURE_V1 = {
   pd: "01_PD",
-  tenders: "02_Vyberova_rizeni",
-  contracts: "03_Smlouvy",
-  realization: "04_Realizace",
+  pdChanges: "02_Zmeny_PD",
+  tenders: "03_Vyberova_rizeni",
+  contracts: "04_Smlouvy",
+  realization: "05_Realizace",
+  // ceniky: "05_Ceniky", // Conflict with realization or purely optional? Let's move it or keep as is if not strictly number-bound
+  ceniky: "06_Ceniky",
   archive: "99_Archiv",
   tendersInquiries: "Poptavky",
   supplierEmail: "Email",
   supplierOffer: "Cenova_nabidka",
-  ceniky: "05_Ceniky",
-
 } as const;
 
 export type DocHubHierarchyItem = {
@@ -21,10 +22,16 @@ export type DocHubHierarchyItem = {
 };
 
 export const DEFAULT_DOCHUB_HIERARCHY: DocHubHierarchyItem[] = [
-  { id: 'tenders', key: 'tenders', name: '02_Vyberova_rizeni', enabled: true, depth: 0 },
-  { id: 'category', key: 'category', name: 'VR-001_Nazev_vyberoveho_rizeni', enabled: true, depth: 1 },
+  { id: 'pd', key: 'pd', name: '01_PD', enabled: true, depth: 0 },
+  { id: 'pdChanges', key: 'pdChanges', name: '02_Zmeny_PD', enabled: true, depth: 0 },
+  { id: 'tenders', key: 'tenders', name: '03_Vyberova_rizeni', enabled: true, depth: 0 },
+  { id: 'category', key: 'category', name: '{Název VŘ}', enabled: true, depth: 1 },
+  { id: 'category_docs', key: 'custom', name: 'Dokumentace', enabled: true, depth: 2 }, // Example subfolder often desired
   { id: 'tendersInquiries', key: 'tendersInquiries', name: 'Poptavky', enabled: true, depth: 2 },
-  { id: 'supplier', key: 'supplier', name: 'Dodavatel_X', enabled: true, depth: 3 },
+  { id: 'supplier', key: 'supplier', name: '{Název dodavatele}', enabled: true, depth: 3 },
+  { id: 'contracts', key: 'contracts', name: '04_Smlouvy', enabled: true, depth: 0 },
+  { id: 'realization', key: 'realization', name: '05_Realizace', enabled: true, depth: 0 },
+  { id: 'archive', key: 'archive', name: '99_Archiv', enabled: true, depth: 0 },
 ];
 
 export const buildHierarchyTree = (flatItems: DocHubHierarchyItem[]): DocHubHierarchyItem[] => {

@@ -41,6 +41,7 @@ import {
   isProbablyUrl,
   resolveDocHubStructureV1,
 } from "../utils/docHub";
+import { mcpEnsureStructure, mcpDeleteFolder, mcpOpenPath } from "../services/mcpBridgeClient";
 import { DEFAULT_STATUSES } from "../config/constants";
 import {
   Column,
@@ -136,6 +137,22 @@ export const Pipeline: React.FC<PipelineProps> = ({
       window.open(path, "_blank", "noopener,noreferrer");
       return;
     }
+
+    // Try opening via MCP if enabled and local path
+    if (
+      isDocHubEnabled &&
+      projectDetails.docHubProvider === 'mcp' &&
+      !canUseDocHubBackend
+    ) {
+      try {
+        const result = await mcpOpenPath(path);
+        if (result.success) return; // Opened successfully
+        // If failed, fall back to copy
+      } catch (e) {
+        console.warn("MCP Open failed, falling back to copy", e);
+      }
+    }
+
     try {
       await navigator.clipboard.writeText(path);
       showDocHubModal({
@@ -263,6 +280,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const [isCreateContactModalOpen, setIsCreateContactModalOpen] =
     useState(false);
   const [newContactName, setNewContactName] = useState("");
+  const [editingContact, setEditingContact] = useState<Subcontractor | null>(null);
 
   // Confirmation Modal State
   const [confirmModal, setConfirmModal] = useState<{
@@ -520,6 +538,29 @@ export const Pipeline: React.FC<PipelineProps> = ({
           );
         } else {
           console.log("🟢 Successfully inserted bids:", data);
+
+          // AUTO-CREATE: MCP
+          if (
+            isDocHubEnabled &&
+            canUseDocHubBackend === false && // Only for local MCP
+            projectData.dochub_provider === 'mcp'
+          ) {
+            const mcpSuppliers: Record<string, Array<{ id: string; name: string }>> = {};
+            mcpSuppliers[activeCategory.id] = newBids.map(b => ({
+              id: b.subcontractorId,
+              name: b.companyName // or b.subcontractorId
+            }));
+
+            // We need to resolve structure
+            const structure = resolveDocHubStructureV1(projectData.docHubStructureV1 || undefined);
+
+            mcpEnsureStructure({
+              rootPath: docHubRoot,
+              structure,
+              categories: [{ id: activeCategory.id, title: activeCategory.title }],
+              suppliers: mcpSuppliers
+            }).catch(err => console.error("MCP Auto-create supplier folders failed:", err));
+          }
         }
       } catch (err) {
         console.error("🔴 Unexpected error inserting bids:", err);
@@ -848,6 +889,9 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const handleDeleteBid = async (bidId: string) => {
     if (!activeCategory) return;
 
+    // Find bid before deletion for MCP cleanup
+    const bidToDelete = (bids[activeCategory.id] || []).find(b => b.id === bidId);
+
     // Optimistic update
     updateBidsInternal((prev) => {
       const categoryBids = (prev[activeCategory.id] || []).filter(
@@ -876,6 +920,22 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
       if (error) {
         console.error("Error deleting bid:", error);
+      } else {
+        // AUTO-DELETE: MCP
+        if (
+          bidToDelete &&
+          isDocHubEnabled &&
+          projectData.dochub_provider === 'mcp' &&
+          docHubRoot
+        ) {
+          const structure = resolveDocHubStructureV1(projectData.docHubStructureV1 || undefined);
+          const links = getDocHubTenderLinks(docHubRoot, activeCategory.title, structure);
+          const supplierFolder = links.supplierBase(bidToDelete.companyName);
+
+          mcpDeleteFolder(docHubRoot, supplierFolder).catch(err => {
+            console.error("MCP Auto-delete supplier folder failed:", err);
+          });
+        }
       }
     } catch (err) {
       console.error("Unexpected error deleting bid:", err);
@@ -1150,6 +1210,46 @@ export const Pipeline: React.FC<PipelineProps> = ({
       console.error("Unexpected error saving contact:", err);
     }
   };
+
+  const handleUpdateContact = async (updatedContact: Subcontractor) => {
+    // Optimistic update
+    setLocalContacts((prev) => prev.map(c => c.id === updatedContact.id ? updatedContact : c));
+    setEditingContact(null);
+
+    // Persist to Supabase or Demo Storage
+    try {
+      if (user?.role === "demo") {
+        const demoData = getDemoData();
+        if (demoData) {
+          demoData.contacts = demoData.contacts.map((c: Subcontractor) => c.id === updatedContact.id ? updatedContact : c);
+          saveDemoData(demoData);
+        }
+        return;
+      }
+
+      const { error } = await supabase
+        .from("subcontractors")
+        .update({
+          company_name: updatedContact.company,
+          contact_person_name: updatedContact.name,
+          email: updatedContact.email,
+          phone: updatedContact.phone,
+          specialization: updatedContact.specialization,
+          ico: updatedContact.ico,
+          region: updatedContact.region,
+          status_id: updatedContact.status,
+        })
+        .eq("id", updatedContact.id);
+
+      if (error) {
+        console.error("Error updating contact in Supabase:", error);
+      }
+    } catch (err) {
+      console.error("Unexpected error updating contact:", err);
+    }
+  };
+
+
 
   if (activeCategory) {
     // --- DETAIL VIEW (PIPELINE) ---
@@ -1536,16 +1636,21 @@ export const Pipeline: React.FC<PipelineProps> = ({
           onClose={() => setIsSubcontractorModalOpen(false)}
           onConfirm={handleAddSubcontractors}
           onAddContact={handleCreateContactRequest}
+          onEditContact={setEditingContact}
         />
-        {isCreateContactModalOpen && (
+        {(isCreateContactModalOpen || editingContact) && (
           <CreateContactModal
             initialName={newContactName}
+            initialData={editingContact || undefined}
             existingSpecializations={Array.from(
               new Set(localContacts.flatMap((c) => c.specialization))
             ).sort()}
             statuses={externalStatuses}
-            onClose={() => setIsCreateContactModalOpen(false)}
-            onSave={handleSaveNewContact}
+            onClose={() => {
+              setIsCreateContactModalOpen(false);
+              setEditingContact(null);
+            }}
+            onSave={editingContact ? handleUpdateContact : handleSaveNewContact}
           />
         )}
 
