@@ -97,6 +97,8 @@ export const Pipeline: React.FC<PipelineProps> = ({
   );
   const canUseDocHubBackend =
     !!projectDetails.docHubProvider &&
+    projectDetails.docHubProvider !== 'mcp' &&
+    projectDetails.docHubProvider !== 'local' &&
     !!projectDetails.docHubRootId &&
     projectDetails.docHubStatus === "connected";
 
@@ -166,6 +168,12 @@ export const Pipeline: React.FC<PipelineProps> = ({
   };
 
   const openDocHubBackendLink = async (payload: any) => {
+    // Safety guard: Never allow backend calls for MCP/Local
+    if (projectData.docHubProvider === 'mcp' || projectData.docHubProvider === 'local') {
+      console.warn('[DocHub] Blocked backend call for MCP/Local provider');
+      return;
+    }
+
     try {
       const data = await invokeAuthedFunction<any>("dochub-get-link", {
         body: payload,
@@ -1048,7 +1056,13 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
   const handleOpenSupplierDocHub = (bid: Bid) => {
     if (!isDocHubEnabled || !activeCategory) return;
-    if (canUseDocHubBackend && projectData.id) {
+
+    console.log('[DocHub] Opening folder for:', bid.companyName, 'Provider:', projectData.docHubProvider);
+
+    // Explicitly force local handling for MCP/Local to avoid backend calls
+    const isMcpOrLocal = projectData.docHubProvider === 'mcp' || projectData.docHubProvider === 'local';
+
+    if (canUseDocHubBackend && projectData.id && !isMcpOrLocal) {
       openDocHubBackendLink({
         projectId: projectData.id,
         kind: "supplier",
