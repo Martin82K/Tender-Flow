@@ -1057,8 +1057,6 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const handleOpenSupplierDocHub = (bid: Bid) => {
     if (!isDocHubEnabled || !activeCategory) return;
 
-    console.log('[DocHub] Opening folder for:', bid.companyName, 'Provider:', projectData.docHubProvider);
-
     // Explicitly force local handling for MCP/Local to avoid backend calls
     const isMcpOrLocal = projectData.docHubProvider === 'mcp' || projectData.docHubProvider === 'local';
 
