@@ -2,8 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ProjectDetails } from '../types';
 import { supabase } from '../services/supabase';
 import { invokeAuthedFunction } from '../services/functionsClient';
-import { resolveDocHubStructureV1, getDocHubProjectLinks } from '../utils/docHub';
-import { isMcpBridgeRunning, mcpEnsureStructure, mcpFolderExists } from '../services/mcpBridgeClient';
+import { resolveDocHubStructureV1, getDocHubProjectLinks, DEFAULT_DOCHUB_HIERARCHY, DocHubHierarchyItem, buildHierarchyTree, type DocHubStructureV1 } from '../utils/docHub';
+import { isMcpBridgeRunning, mcpEnsureStructure, mcpFolderExists, mcpPickFolder } from '../services/mcpBridgeClient';
 
 export interface DocHubModalRequest {
     title: string;
@@ -58,6 +58,7 @@ export const useDocHubIntegration = (
     const [backendStep, setBackendStep] = useState<string | null>(null);
     const [backendCounts, setBackendCounts] = useState<{ done: number; total: number | null } | null>(null);
     const [backendStatus, setBackendStatus] = useState<'running' | 'success' | 'error' | null>(null);
+    const [mcpBridgeStatus, setMcpBridgeStatus] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
     const [autoCreateRunId, setAutoCreateRunId] = useState<string | null>(null);
     const [autoCreateResult, setAutoCreateResult] = useState<{
         createdCount: number | null;
@@ -68,9 +69,12 @@ export const useDocHubIntegration = (
     const [isResultModalOpen, setIsResultModalOpen] = useState(false);
 
     // Structure
-    const [structureDraft, setStructureDraft] = useState(() => resolveDocHubStructureV1((project.docHubStructureV1 as any) || undefined));
+    const [structureDraft, setStructureDraft] = useState<Partial<DocHubStructureV1>>(
+        () => ((project.docHubStructureV1 as any) || {})
+    );
     const [extraTopLevelDraft, setExtraTopLevelDraft] = useState<string[]>([]);
     const [extraSupplierDraft, setExtraSupplierDraft] = useState<string[]>([]);
+    const [hierarchyDraft, setHierarchyDraft] = useState<DocHubHierarchyItem[]>(DEFAULT_DOCHUB_HIERARCHY);
     const [isEditingStructure, setIsEditingStructure] = useState(false);
 
     // History & Links
@@ -88,6 +92,8 @@ export const useDocHubIntegration = (
     // Refs
     const autoCreateTimerRef = useRef<number | null>(null);
     const autoCreatePollRef = useRef<number | null>(null);
+    // Track what we've loaded to prevent re-loading from stale project updates
+    const loadedHierarchyRef = useRef<{ projectId: string | undefined; hierarchyLength: number } | null>(null);
 
     // Sync from props
     useEffect(() => {
@@ -100,9 +106,53 @@ export const useDocHubIntegration = (
         setAutoCreateEnabled(!!project.docHubAutoCreateEnabled);
 
         // Structure sync
-        setStructureDraft(resolveDocHubStructureV1((project.docHubStructureV1 as any) || undefined));
+        setStructureDraft(((project.docHubStructureV1 as any) || {}));
         const rawTop = (project.docHubStructureV1 as any)?.extraTopLevel;
         const rawSupplier = (project.docHubStructureV1 as any)?.extraSupplier;
+        const rawHierarchy = (project.docHubStructureV1 as any)?.extraHierarchy;
+
+        console.log('[DocHub] Loading from project.docHubStructureV1:', project.docHubStructureV1);
+        console.log('[DocHub] rawHierarchy loaded:', rawHierarchy);
+
+        // Helper to normalize items
+        const normalizeItems = (items: any[]) => items.map((item: any, index: number) => ({
+            ...item,
+            id: item.id || item.key || `item-${index}`,
+            depth: typeof item.depth === 'number' ? item.depth : 0
+        }));
+
+        // Always normalize hierarchy: ensure all items have id and depth properties
+        let hierarchyToUse: DocHubHierarchyItem[];
+        if (Array.isArray(rawHierarchy) && rawHierarchy.length > 0) {
+            hierarchyToUse = normalizeItems(rawHierarchy);
+            console.log('[DocHub] Loaded and normalized hierarchy:', hierarchyToUse.length, 'items');
+        } else {
+            // Try to load user preset as default
+            let loadedFromPreset = false;
+            try {
+                if (typeof window !== 'undefined') {
+                    const savedPreset = localStorage.getItem('docHubStructurePreset');
+                    if (savedPreset) {
+                        const parsed = JSON.parse(savedPreset);
+                        if (Array.isArray(parsed.hierarchyDraft) && parsed.hierarchyDraft.length > 0) {
+                            hierarchyToUse = normalizeItems(parsed.hierarchyDraft);
+                            console.log('[DocHub] Using user preset as default');
+                            loadedFromPreset = true;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn('[DocHub] Failed to load user preset:', e);
+            }
+
+            if (!loadedFromPreset) {
+                hierarchyToUse = [];
+                console.log('[DocHub] No structure defined and no preset found. Starting empty.');
+            }
+        }
+        console.log('[DocHub] Hierarchy items:', hierarchyToUse.map(h => `${h.key}:${h.name}@${h.depth}`));
+        setHierarchyDraft(hierarchyToUse);
+
         setExtraTopLevelDraft(Array.isArray(rawTop) ? rawTop.map(String).filter(s => s.trim()) : []);
         setExtraSupplierDraft(Array.isArray(rawSupplier) ? rawSupplier.map(String).filter(s => s.trim()) : []);
     }, [project]);
@@ -121,6 +171,26 @@ export const useDocHubIntegration = (
             if (autoCreatePollRef.current) window.clearInterval(autoCreatePollRef.current);
         };
     }, []);
+
+    // Poll MCP Bridge status when MCP provider is active
+    useEffect(() => {
+        if (!isMcpProvider) {
+            setMcpBridgeStatus('unknown');
+            return;
+        }
+
+        const checkStatus = async () => {
+            const running = await isMcpBridgeRunning();
+            setMcpBridgeStatus(running ? 'connected' : 'disconnected');
+        };
+
+        // Initial check
+        checkStatus();
+
+        // Poll every 5 seconds
+        const interval = window.setInterval(checkStatus, 5000);
+        return () => window.clearInterval(interval);
+    }, [isMcpProvider]);
 
     // Load Links (skip for local/MCP providers - they don't use cloud APIs)
     useEffect(() => {
@@ -416,14 +486,50 @@ export const useDocHubIntegration = (
         }
     }, [provider, showMessage, onUpdate]);
 
+    const pickMcpFolder = useCallback(async () => {
+        if (provider !== 'mcp') return;
+        setIsConnecting(true);
+        try {
+            // Check running first
+            const isRunning = await isMcpBridgeRunning();
+            if (!isRunning) {
+                showMessage("MCP neběží", "Spusťte prosím mcp-bridge-server.", "danger");
+                return;
+            }
+
+            const result = await mcpPickFolder();
+            if (result.error) {
+                throw new Error(result.error);
+            }
+            if (result.cancelled) {
+                return; // User cancelled
+            }
+            if (result.path) {
+                setRootLink(result.path);
+                // Try to guess name
+                const name = result.path.split(/[\\/]/).pop();
+                if (name) setRootName(name);
+            }
+        } catch (e: any) {
+            showMessage("Chyba výběru", e.message || "Selhalo otevření dialogu", "danger");
+        } finally {
+            setIsConnecting(false);
+        }
+    }, [provider, showMessage]);
+
     const connectMcp = useCallback(async () => {
         console.log('[DocHub] connectMcp called', { provider, rootLink });
         if (provider !== "mcp") {
             showMessage("DocHub", "Vyberte 'MCP (Lokální disk)' jako provider.", "info");
             return;
         }
-        if (!rootLink.trim()) {
-            showMessage("DocHub", "Zadejte cestu ke kořenové složce (např. /Users/martinkalkus/Documents/Projekty).", "info");
+
+
+        // Sanitize path (remove surrounding quotes from "Copy as path")
+        const cleanPath = rootLink.trim().replace(/^"|"$/g, '');
+
+        if (!cleanPath) {
+            showMessage("DocHub", "Zadejte platnou cestu.", "info");
             return;
         }
 
@@ -441,8 +547,13 @@ export const useDocHubIntegration = (
             }
 
             // Check if folder exists (or can be created)
-            const folderCheck = await mcpFolderExists(rootLink.trim());
-            const folderName = rootLink.trim().split('/').pop() || rootLink.trim().split('\\').pop() || 'Projekt';
+            const folderCheck = await mcpFolderExists(cleanPath);
+            const folderName = cleanPath.split('/').pop() || cleanPath.split('\\').pop() || 'Projekt';
+
+            // Update input to clean path if it was quoted
+            if (cleanPath !== rootLink) {
+                setRootLink(cleanPath);
+            }
 
             setRootName(folderName);
             setStatus("connected");
@@ -451,9 +562,9 @@ export const useDocHubIntegration = (
                 docHubProvider: "mcp",
                 docHubStatus: "connected",
                 docHubRootName: folderName,
-                docHubRootLink: rootLink.trim(),
+                docHubRootLink: cleanPath,
                 docHubRootWebUrl: null,
-                docHubRootId: `mcp:${rootLink.trim()}`,
+                docHubRootId: `mcp:${cleanPath}`,
                 docHubDriveId: null,
                 docHubSiteId: null,
             });
@@ -524,22 +635,27 @@ export const useDocHubIntegration = (
                 }
 
                 setAutoCreateLogs(prev => [...prev, "Vytvářím složky přes MCP Bridge…"]);
-                
+
                 // Prepare categories and suppliers data
                 const categories = project.categories?.map(c => ({ id: c.id, title: c.title })) || [];
                 const suppliers: Record<string, Array<{ id: string; name: string }>> = {};
-                
+
                 if (project.bids) {
                     for (const [categoryId, bids] of Object.entries(project.bids)) {
                         suppliers[categoryId] = bids.map(b => ({ id: b.subcontractorId, name: b.companyName }));
                     }
                 }
 
+                console.log('[DocHub] hierarchyDraft:', JSON.stringify(hierarchyDraft, null, 2));
+                const hierarchyTree = buildHierarchyTree(hierarchyDraft);
+                console.log('[DocHub] hierarchyTree (sent to MCP):', JSON.stringify(hierarchyTree, null, 2));
+
                 const mcpResult = await mcpEnsureStructure({
                     rootPath: rootLink.trim(),
-                    structure: effectiveStructure,
+                    structure: (project.docHubStructureV1 as any) || {},
                     categories,
-                    suppliers
+                    suppliers,
+                    hierarchy: hierarchyTree
                 });
 
                 setAutoCreateLogs(mcpResult.logs);
@@ -553,6 +669,36 @@ export const useDocHubIntegration = (
                 setIsResultModalOpen(true);
                 setBackendStatus('success');
 
+                /* History saving temporarily disabled due to RLS policies (403 error)
+                const { error: historyError } = await supabase.from('dochub_autocreate_runs').insert({
+                    project_id: project.id,
+                    status: mcpResult.success ? 'success' : 'error',
+                    logs: mcpResult.logs,
+                    counts: { created: mcpResult.createdCount, reused: mcpResult.reusedCount }
+                });
+
+                if (historyError) {
+                    console.error('[DocHub] Failed to save history:', historyError);
+                }
+                */
+                // Save MCP run to history
+                try {
+                    await supabase.from('dochub_autocreate_runs').insert({
+                        project_id: project.id,
+                        status: 'success',
+                        step: 'MCP Bridge Sync',
+                        progress_percent: 100,
+                        total_actions: mcpResult.createdCount,
+                        completed_actions: mcpResult.createdCount,
+                        logs: mcpResult.logs,
+                        error: null,
+                        started_at: new Date(Date.now() - 5000).toISOString(), // approximate start
+                        finished_at: new Date().toISOString()
+                    });
+                } catch (historyError) {
+                    console.warn('Failed to save MCP run to history:', historyError);
+                }
+
                 setAutoCreateEnabled(true);
                 onUpdate({
                     docHubAutoCreateEnabled: true,
@@ -564,7 +710,7 @@ export const useDocHubIntegration = (
 
             // Cloud providers (gdrive, onedrive) - use edge functions
             if (!project.docHubRootId) {
-                const urlToResolve = rootLink?.trim();
+                const urlToResolve = rootLink?.trim().replace(/^"|"$/g, '');
                 if (!urlToResolve) throw new Error("Chybí odkaz na kořenovou složku.");
 
                 setAutoCreateLogs(prev => [...prev, "Ověřuji / mapuji hlavní složku projektu…"]);
@@ -627,28 +773,30 @@ export const useDocHubIntegration = (
     }, [project, status, provider, rootLink, showMessage, loadHistory, onUpdate]);
 
     const handleSaveStructure = useCallback(() => {
+        console.log('[DocHub] Saving structure with hierarchy:', hierarchyDraft);
         onUpdate({
             docHubStructureV1: {
                 ...((project.docHubStructureV1 as any) || {}),
                 ...structureDraft,
                 extraTopLevel: extraTopLevelDraft,
-                extraSupplier: extraSupplierDraft
+                extraSupplier: extraSupplierDraft,
+                extraHierarchy: hierarchyDraft
             }
         });
         setIsEditingStructure(false);
-    }, [structureDraft, extraTopLevelDraft, extraSupplierDraft, project.docHubStructureV1, onUpdate]);
+    }, [structureDraft, extraTopLevelDraft, extraSupplierDraft, hierarchyDraft, project.docHubStructureV1, onUpdate]);
 
     return {
         state: {
             enabled, rootLink, rootName, provider, mode, status, isEditingSetup, isConnecting,
             autoCreateEnabled, isAutoCreating, autoCreateProgress, autoCreateLogs, backendStep, backendCounts, backendStatus, autoCreateResult, isResultModalOpen,
-            structureDraft, extraTopLevelDraft, extraSupplierDraft, isEditingStructure,
+            structureDraft, extraTopLevelDraft, extraSupplierDraft, hierarchyDraft, isEditingStructure,
             history, isLoadingHistory, modalRequest,
-            newFolderName, resolveProgress, links, isConnected, isLocalProvider, isMcpProvider
+            newFolderName, resolveProgress, links, isConnected, isLocalProvider, isMcpProvider, mcpBridgeStatus
         },
         setters: {
             setEnabled, setRootLink, setRootName, setProvider, setMode, setStatus, setIsEditingSetup,
-            setIsResultModalOpen, setStructureDraft, setExtraTopLevelDraft, setExtraSupplierDraft, setIsEditingStructure,
+            setIsResultModalOpen, setStructureDraft, setExtraTopLevelDraft, setExtraSupplierDraft, setHierarchyDraft, setIsEditingStructure,
             clearModalRequest, setNewFolderName, setResolveProgress, setAutoCreateResult
         },
         actions: {
@@ -662,7 +810,9 @@ export const useDocHubIntegration = (
             createGoogleRoot,
             resolveRoot,
             pickLocalFolder,
-            connectMcp
+
+            connectMcp,
+            pickMcpFolder
         }
     };
 };

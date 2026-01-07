@@ -9,6 +9,7 @@ import { Subcontractor, StatusConfig } from "../../types";
 
 export interface CreateContactModalProps {
     initialName: string;
+    initialData?: Subcontractor; // For editing
     existingSpecializations: string[];
     statuses: StatusConfig[];
     onClose: () => void;
@@ -17,22 +18,28 @@ export interface CreateContactModalProps {
 
 export const CreateContactModal: React.FC<CreateContactModalProps> = ({
     initialName,
+    initialData,
     existingSpecializations,
     statuses,
     onClose,
     onSave,
 }) => {
+    // Helper to extract first contact info safely
+    const primaryContact = initialData?.contacts?.[0] || { name: "", email: "", phone: "" };
+
     const [form, setForm] = useState({
-        company: initialName,
-        name: "",
-        email: "",
-        phone: "",
+        company: initialData ? initialData.company : initialName,
+        name: primaryContact.name === "-" ? "" : primaryContact.name,
+        email: primaryContact.email === "-" ? "" : primaryContact.email,
+        phone: primaryContact.phone === "-" ? "" : primaryContact.phone,
         specializationRaw: "",
-        ico: "",
-        region: "",
-        status: "available",
+        ico: (initialData?.ico === "-" ? "" : initialData?.ico) || "",
+        region: (initialData?.region === "-" ? "" : initialData?.region) || "",
+        status: initialData?.status || "available",
     });
-    const [specializations, setSpecializations] = useState<string[]>([]);
+    const [specializations, setSpecializations] = useState<string[]>(
+        initialData?.specialization || []
+    );
 
     const handleAddSpec = (spec: string) => {
         const trimmed = spec.trim();
@@ -50,12 +57,12 @@ export const CreateContactModal: React.FC<CreateContactModalProps> = ({
         e.preventDefault();
         const finalSpecs = specializations.length > 0 ? specializations : ["Ostatní"];
 
-        const newContact: Subcontractor = {
-            id: crypto.randomUUID(),
+        const contactToSave: Subcontractor = {
+            id: initialData?.id || crypto.randomUUID(),
             company: form.company,
             specialization: finalSpecs,
             contacts: [{
-                id: crypto.randomUUID(),
+                id: initialData?.contacts?.[0]?.id || crypto.randomUUID(),
                 name: form.name || "-",
                 email: form.email || "-",
                 phone: form.phone || "-",
@@ -69,7 +76,7 @@ export const CreateContactModal: React.FC<CreateContactModalProps> = ({
             email: form.email || "-",
             phone: form.phone || "-",
         };
-        onSave(newContact);
+        onSave(contactToSave);
     };
 
     return (
@@ -77,7 +84,7 @@ export const CreateContactModal: React.FC<CreateContactModalProps> = ({
             <div className="bg-white dark:bg-gradient-to-br dark:from-slate-800 dark:to-slate-900 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 dark:border-slate-700/50 flex flex-col max-h-[90vh]">
                 <div className="p-6 border-b border-slate-200 dark:border-slate-700/50 flex justify-between items-center shrink-0">
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                        Nový dodavatel
+                        {initialData ? "Upravit dodavatele" : "Nový dodavatel"}
                     </h3>
                     <button
                         onClick={onClose}
@@ -246,7 +253,7 @@ export const CreateContactModal: React.FC<CreateContactModalProps> = ({
                             type="submit"
                             className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white rounded-xl text-sm font-bold shadow-lg transition-all"
                         >
-                            Vytvořit
+                            {initialData ? "Uložit změny" : "Vytvořit"}
                         </button>
                     </div>
                 </form>

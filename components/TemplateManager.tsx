@@ -22,6 +22,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
     const [editedName, setEditedName] = useState('');
     const [editedSubject, setEditedSubject] = useState('');
     const [editedContent, setEditedContent] = useState('');
+    const [editedIsDefault, setEditedIsDefault] = useState(false);
 
     const loadTemplatesData = async () => {
         setLoading(true);
@@ -48,6 +49,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
             setEditedName(selectedTemplate.name);
             setEditedSubject(selectedTemplate.subject);
             setEditedContent(selectedTemplate.content);
+            setEditedIsDefault(selectedTemplate.isDefault);
         }
     }, [selectedTemplate]);
 
@@ -60,7 +62,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
             name: editedName,
             subject: editedSubject,
             content: editedContent,
-            isDefault: selectedTemplate?.isDefault || false,
+            isDefault: editedIsDefault,
             lastModified: new Date().toISOString().split('T')[0]
         };
 
@@ -92,6 +94,11 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
         setTemplates(prev => [...prev, newTemplate]);
         setSelectedTemplateId(newId);
         setEditMode(true);
+        // Load default state for new template
+        setEditedName(newTemplate.name);
+        setEditedSubject(newTemplate.subject);
+        setEditedContent(newTemplate.content);
+        setEditedIsDefault(false);
         // Note: We don't save to DB yet, user must click Save
     };
 
@@ -207,8 +214,8 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
                                         }
                                     }}
                                     className={`p-3 rounded-lg cursor-pointer transition-all border ${selectedTemplateId === template.id
-                                            ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 ring-1 ring-blue-200 dark:ring-blue-800'
-                                            : 'bg-white dark:bg-slate-800 border-transparent hover:bg-slate-50 dark:hover:bg-slate-700'
+                                        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 ring-1 ring-blue-200 dark:ring-blue-800'
+                                        : 'bg-white dark:bg-slate-800 border-transparent hover:bg-slate-50 dark:hover:bg-slate-700'
                                         }`}
                                 >
                                     <div className="flex justify-between items-start mb-1">
@@ -245,8 +252,8 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
                                             <button
                                                 onClick={() => setPreviewMode(!previewMode)}
                                                 className={`px-3 py-1.5 text-sm font-medium border rounded-md flex items-center gap-2 ${previewMode
-                                                        ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800'
-                                                        : 'text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 hover:bg-slate-50'
+                                                    ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800'
+                                                    : 'text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 hover:bg-slate-50'
                                                     }`}
                                             >
                                                 <span className="material-symbols-outlined text-[18px]">visibility</span>
@@ -306,16 +313,31 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
                                 {editMode ? (
                                     <div className="max-w-4xl mx-auto space-y-6">
                                         <div className="space-y-4">
-                                            <div>
-                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                                    Název šablony (interní)
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    value={editedName}
-                                                    onChange={(e) => setEditedName(e.target.value)}
-                                                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-primary"
-                                                />
+                                            <div className="flex gap-4">
+                                                <div className="flex-1">
+                                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                                        Název šablony (interní)
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={editedName}
+                                                        onChange={(e) => setEditedName(e.target.value)}
+                                                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-primary"
+                                                    />
+                                                </div>
+                                                <div className="flex items-end pb-3">
+                                                    <label className="flex items-center gap-2 cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={editedIsDefault}
+                                                            onChange={(e) => setEditedIsDefault(e.target.checked)}
+                                                            className="w-4 h-4 text-primary rounded border-slate-300 focus:ring-primary focus:ring-2"
+                                                        />
+                                                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                                                            Výchozí šablona
+                                                        </span>
+                                                    </label>
+                                                </div>
                                             </div>
                                             <div>
                                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">

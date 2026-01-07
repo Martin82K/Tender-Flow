@@ -5,6 +5,8 @@
  * on the local filesystem.
  */
 
+import { DocHubStructureV1, DocHubHierarchyItem } from "../utils/docHub";
+
 const MCP_BRIDGE_URL = 'http://localhost:3847';
 
 export interface McpHealthResponse {
@@ -22,18 +24,10 @@ export interface McpCreateFolderResponse {
 
 export interface McpEnsureStructureRequest {
     rootPath: string;
-    structure?: Partial<{
-        pd: string;
-        tenders: string;
-        contracts: string;
-        realization: string;
-        archive: string;
-        tendersInquiries: string;
-        supplierEmail: string;
-        supplierOffer: string;
-    }>;
+    structure?: DocHubStructureV1;
     categories?: Array<{ id: string; title: string }>;
     suppliers?: Record<string, Array<{ id: string; name: string }>>;
+    hierarchy?: DocHubHierarchyItem[];
 }
 
 export interface McpEnsureStructureResponse {
@@ -60,7 +54,7 @@ export const checkMcpHealth = async (): Promise<McpHealthResponse | null> => {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' }
         });
-        
+
         if (!response.ok) return null;
         return await response.json();
     } catch {
@@ -87,11 +81,11 @@ export const mcpCreateFolder = async (folderPath: string): Promise<McpCreateFold
     });
 
     const data = await response.json();
-    
+
     if (!response.ok) {
         throw new Error(data.error || `HTTP ${response.status}`);
     }
-    
+
     return data;
 };
 
@@ -108,12 +102,61 @@ export const mcpEnsureStructure = async (
     });
 
     const data = await response.json();
-    
+
     if (!response.ok) {
         throw new Error(data.error || `HTTP ${response.status}`);
     }
-    
+
     return data;
+};
+
+export interface McpDeleteFolderResponse {
+    success: boolean;
+    deleted: boolean;
+    reason?: string;
+    error?: string;
+}
+
+/**
+ * Delete a folder on the local filesystem (must be within rootPath)
+ */
+export const mcpDeleteFolder = async (rootPath: string, folderPath: string): Promise<McpDeleteFolderResponse> => {
+    const response = await fetch(`${MCP_BRIDGE_URL}/delete-folder`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rootPath, folderPath })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.error || `HTTP ${response.status}`);
+    }
+
+    return data;
+};
+
+/**
+ * Open a path (file or folder) in the OS default viewer
+ */
+export const mcpOpenPath = async (path: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+        const response = await fetch(`${MCP_BRIDGE_URL}/open-path`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || `HTTP ${response.status}`);
+        }
+
+        return data;
+    } catch (e) {
+        return { success: false, error: e instanceof Error ? e.message : String(e) };
+    }
 };
 
 /**
@@ -127,12 +170,32 @@ export const mcpFolderExists = async (folderPath: string): Promise<McpFolderExis
     });
 
     const data = await response.json();
-    
+
     if (!response.ok) {
         throw new Error(data.error || `HTTP ${response.status}`);
     }
-    
+
     return data;
+};
+
+/**
+ * Open a native folder picker on the machine running the bridge
+ */
+export const mcpPickFolder = async (): Promise<{ path?: string; cancelled?: boolean; error?: string }> => {
+    try {
+        const response = await fetch(`${MCP_BRIDGE_URL}/pick-folder`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        return await response.json();
+    } catch (e) {
+        return { error: e instanceof Error ? e.message : String(e) };
+    }
 };
 
 /**

@@ -1,18 +1,84 @@
 export const DOC_HUB_STRUCTURE_V1 = {
   pd: "01_PD",
-  tenders: "02_Vyberova_rizeni",
-  contracts: "03_Smlouvy",
-  realization: "04_Realizace",
+  pdChanges: "02_Zmeny_PD",
+  tenders: "03_Vyberova_rizeni",
+  contracts: "04_Smlouvy",
+  realization: "05_Realizace",
+  // ceniky: "05_Ceniky", // Conflict with realization or purely optional? Let's move it or keep as is if not strictly number-bound
+  ceniky: "06_Ceniky",
   archive: "99_Archiv",
   tendersInquiries: "Poptavky",
   supplierEmail: "Email",
   supplierOffer: "Cenova_nabidka",
-  ceniky: "05_Ceniky",
 } as const;
+
+export type DocHubHierarchyItem = {
+  id: string;        // Unique ID (uuid for custom, key for builtins)
+  key: string;       // 'tenders', 'category', 'tendersInquiries', 'supplier', 'custom'
+  name: string;      // Display/folder name (editable for custom and some builtins)
+  enabled: boolean;
+  depth: number;     // Nesting level (0 = root children)
+  children?: DocHubHierarchyItem[];
+};
+
+export const DEFAULT_DOCHUB_HIERARCHY: DocHubHierarchyItem[] = [
+  { id: 'pd', key: 'pd', name: '01_PD', enabled: true, depth: 0 },
+  { id: 'pdChanges', key: 'pdChanges', name: '02_Zmeny_PD', enabled: true, depth: 0 },
+  { id: 'tenders', key: 'tenders', name: '03_Vyberova_rizeni', enabled: true, depth: 0 },
+  { id: 'category', key: 'category', name: '{Název VŘ}', enabled: true, depth: 1 },
+  { id: 'category_docs', key: 'custom', name: 'Dokumentace', enabled: true, depth: 2 }, // Example subfolder often desired
+  { id: 'tendersInquiries', key: 'tendersInquiries', name: 'Poptavky', enabled: true, depth: 2 },
+  { id: 'supplier', key: 'supplier', name: '{Název dodavatele}', enabled: true, depth: 3 },
+  { id: 'contracts', key: 'contracts', name: '04_Smlouvy', enabled: true, depth: 0 },
+  { id: 'realization', key: 'realization', name: '05_Realizace', enabled: true, depth: 0 },
+  { id: 'archive', key: 'archive', name: '99_Archiv', enabled: true, depth: 0 },
+];
+
+export const buildHierarchyTree = (flatItems: DocHubHierarchyItem[]): DocHubHierarchyItem[] => {
+  const root: DocHubHierarchyItem[] = [];
+  // Stack stores items and their potential children arrays
+  // Actually, we just need to track the current "parent" at each depth level
+  const stack: { item: DocHubHierarchyItem, depth: number }[] = [];
+
+  for (const flatItem of flatItems) {
+    // Create a clean item for the tree (with children array initialized)
+    // We remove 'depth' from the output tree if we want, but keeping it is harmless
+    const itemWithChildren: DocHubHierarchyItem = { ...flatItem, children: [] };
+    const currentDepth = flatItem.depth || 0;
+
+    if (currentDepth === 0) {
+      root.push(itemWithChildren);
+      // Reset stack for new root
+      stack.length = 0;
+      stack.push({ item: itemWithChildren, depth: 0 });
+    } else {
+      // Find the nearest parent (item with depth < currentDepth)
+      // Pop stack until we find a parent
+      while (stack.length > 0 && stack[stack.length - 1].depth >= currentDepth) {
+        stack.pop();
+      }
+
+      if (stack.length > 0) {
+        const parent = stack[stack.length - 1].item;
+        parent.children = parent.children || [];
+        parent.children.push(itemWithChildren);
+        // Push self to stack to potentially be parent of next items
+        stack.push({ item: itemWithChildren, depth: currentDepth });
+      } else {
+        // No parent found (e.g. started with depth 2?), treat as root or adjust depth?
+        // Let's treat as root for safety
+        root.push(itemWithChildren);
+        stack.push({ item: itemWithChildren, depth: currentDepth }); // Store as is
+      }
+    }
+  }
+  return root;
+};
 
 export type DocHubStructureV1 = typeof DOC_HUB_STRUCTURE_V1 & {
   extraTopLevel?: string[];
   extraSupplier?: string[];
+  extraHierarchy?: DocHubHierarchyItem[];
 };
 
 const stripTrailingSeparators = (value: string) => value.replace(/[\\/]+$/, "");

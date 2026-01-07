@@ -1,6 +1,6 @@
 import React from 'react';
 import { useDocHubIntegration } from '../../../../hooks/useDocHubIntegration';
-import { resolveDocHubStructureV1 } from '../../../../utils/docHub';
+import { type DocHubHierarchyItem } from '../../../../utils/docHub';
 
 type DocHubHook = ReturnType<typeof useDocHubIntegration>;
 
@@ -11,9 +11,29 @@ interface DocHubStructureEditorProps {
     showModal: (args: { title: string; message: string; variant?: 'danger' | 'info' | 'success' }) => void;
 }
 
+const moveItem = <T,>(array: T[], index: number, direction: 'up' | 'down'): T[] => {
+    const newArray = [...array];
+    if (direction === 'up' && index > 0) {
+        [newArray[index], newArray[index - 1]] = [newArray[index - 1], newArray[index]];
+    } else if (direction === 'down' && index < array.length - 1) {
+        [newArray[index], newArray[index + 1]] = [newArray[index + 1], newArray[index]];
+    }
+    return newArray;
+};
+
+// Simple input for inline editing
+const InlineInput: React.FC<{ value: string; onChange: (v: string) => void; className?: string }> = ({ value, onChange, className }) => (
+    <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={`bg-transparent border-b border-dashed border-slate-300 dark:border-slate-700 focus:border-violet-500 focus:outline-none px-1 py-0.5 text-slate-900 dark:text-white font-medium min-w-[120px] ${className}`}
+    />
+);
+
 export const DocHubStructureEditor: React.FC<DocHubStructureEditorProps> = ({ state, actions, setters, showModal }) => {
     const {
-        isEditingStructure, structureDraft, extraTopLevelDraft, extraSupplierDraft,
+        isEditingStructure, structureDraft, extraTopLevelDraft, extraSupplierDraft, hierarchyDraft,
         isAutoCreating, isConnected, autoCreateProgress
     } = state;
 
@@ -58,18 +78,18 @@ export const DocHubStructureEditor: React.FC<DocHubStructureEditorProps> = ({ st
                         type="button"
                         onClick={async () => {
                             const structure = [
-                                `/${effectiveStructure.pd}`,
-                                `/${effectiveStructure.tenders}`,
+                                `/${effectiveStructure.pd || ""}`,
+                                `/${effectiveStructure.tenders || ""}`,
                                 `   /VR-001_Zemeprace`,
-                                `      /${effectiveStructure.tendersInquiries}`,
+                                `      /${effectiveStructure.tendersInquiries || ""}`,
                                 `         /Dodavatel_A`,
-                                `            /${effectiveStructure.supplierEmail}`,
-                                `            /${effectiveStructure.supplierOffer}`,
+                                `            /${effectiveStructure.supplierEmail || ""}`,
+                                `            /${effectiveStructure.supplierOffer || ""}`,
                                 `         /Dodavatel_B`,
                                 `   /VR-002_Elektro`,
-                                `/${effectiveStructure.contracts}`,
-                                `/${effectiveStructure.realization}`,
-                                `/${effectiveStructure.archive}`,
+                                `/${effectiveStructure.contracts || ""}`,
+                                `/${effectiveStructure.realization || ""}`,
+                                `/${effectiveStructure.archive || ""}`,
                             ].join('\n');
                             try {
                                 await navigator.clipboard.writeText(structure);
@@ -87,12 +107,15 @@ export const DocHubStructureEditor: React.FC<DocHubStructureEditorProps> = ({ st
 
             {isEditingStructure && (
                 <div className="bg-slate-100 dark:bg-slate-950/30 border border-slate-300 dark:border-slate-700/50 rounded-xl p-4">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+
+
+                    <div className="grid grid-cols-1 gap-4">
                         {/* Tree preview */}
                         <div className="bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4">
                             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                                <span className="material-symbols-outlined text-[16px] text-violet-600 dark:text-violet-300">account_tree</span>
-                                Náhled struktury
+                                <span className="material-symbols-outlined text-[16px] text-violet-600 dark:text-violet-300">edit</span>
+                                Náhled a nastavení struktury
                             </div>
 
                             <div className="mt-3 text-sm">
@@ -101,261 +124,274 @@ export const DocHubStructureEditor: React.FC<DocHubStructureEditorProps> = ({ st
                                     <span className="font-semibold">Kořen projektu</span>
                                 </div>
 
-                                <div className="mt-2 pl-5 border-l border-slate-200 dark:border-slate-700/50 space-y-2">
-                                    <div className="flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-[18px] text-violet-600 dark:text-violet-400">folder</span>
-                                        <span className="font-medium text-slate-900 dark:text-white">/{structureDraft.pd}</span>
-                                    </div>
+                                <div className="mt-2 pl-5 border-l border-slate-200 dark:border-slate-700/50 space-y-1">
+                                    {/* Flat list with depth-based indentation */}
+                                    {hierarchyDraft.map((item, index) => {
+                                        const prevItem = index > 0 ? hierarchyDraft[index - 1] : null;
+                                        const isBuiltin = ['tenders', 'category', 'tendersInquiries', 'supplier'].includes(item.key);
+                                        const isPlaceholder = item.key === 'category' || item.key === 'supplier';
 
-                                    <div className="space-y-1">
-                                        <div className="flex items-center gap-2">
-                                            <span className="material-symbols-outlined text-[18px] text-violet-600 dark:text-violet-400">folder</span>
-                                            <span className="font-medium text-slate-900 dark:text-white">/{structureDraft.tenders}</span>
-                                        </div>
-                                        <div className="pl-5 border-l border-slate-200 dark:border-slate-700/50 space-y-1">
-                                            <div className="flex items-center gap-2 text-xs text-slate-500">
-                                                <span className="material-symbols-outlined text-[16px]">subdirectory_arrow_right</span>
-                                                <span className="italic">VR-001_Nazev_vyberoveho_rizeni</span>
-                                            </div>
-                                            <div className="pl-5 border-l border-slate-200 dark:border-slate-700/50 space-y-1">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="material-symbols-outlined text-[18px] text-violet-600 dark:text-violet-400">folder</span>
-                                                    <span className="font-medium text-slate-900 dark:text-white">/{structureDraft.tendersInquiries}</span>
+                                        // Helpers for depth changes - use 0 as fallback for missing depth
+                                        const itemDepth = item.depth ?? 0;
+                                        const prevDepth = prevItem?.depth ?? 0;
+                                        // Can indent if there's a previous item and we're not already deeper than it
+                                        const canIndent = prevItem != null && itemDepth <= prevDepth;
+                                        const canOutdent = itemDepth > 0;
+
+                                        const handleIndent = () => {
+                                            if (!canIndent) return;
+                                            setters.setHierarchyDraft(hierarchyDraft.map((h, i) =>
+                                                i === index ? { ...h, depth: (h.depth ?? 0) + 1 } : h
+                                            ));
+                                        };
+
+                                        const handleOutdent = () => {
+                                            if (!canOutdent) return;
+                                            setters.setHierarchyDraft(hierarchyDraft.map((h, i) =>
+                                                i === index ? { ...h, depth: Math.max(0, (h.depth ?? 0) - 1) } : h
+                                            ));
+                                        };
+
+                                        const handleDelete = () => {
+                                            setters.setHierarchyDraft(hierarchyDraft.filter((_, i) => i !== index));
+                                        };
+
+                                        const handleRename = (newName: string) => {
+                                            setters.setHierarchyDraft(hierarchyDraft.map((h, i) =>
+                                                i === index ? { ...h, name: newName } : h
+                                            ));
+                                        };
+
+                                        const handleToggle = () => {
+                                            setters.setHierarchyDraft(hierarchyDraft.map((h, i) =>
+                                                i === index ? { ...h, enabled: !h.enabled } : h
+                                            ));
+                                        };
+
+                                        const handleAddSubfolder = () => {
+                                            const newFolder: typeof item = {
+                                                id: crypto.randomUUID(),
+                                                key: 'custom',
+                                                name: 'Nova_slozka',
+                                                enabled: true,
+                                                depth: item.depth + 1
+                                            };
+                                            const newDraft = [...hierarchyDraft];
+                                            newDraft.splice(index + 1, 0, newFolder);
+                                            setters.setHierarchyDraft(newDraft);
+                                        };
+
+                                        return (
+                                            <div key={item.id || `folder-${index}`} style={{ paddingLeft: `${itemDepth * 20}px` }} className="group">
+                                                <div className={`flex items-center gap-2 py-1 px-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${!item.enabled ? 'opacity-50' : ''}`}>
+                                                    <span className="material-symbols-outlined text-[18px] text-violet-600 dark:text-violet-400">
+                                                        {isPlaceholder ? 'dynamic_feed' : 'folder'}
+                                                    </span>
+
+                                                    {isPlaceholder ? (
+                                                        <>
+                                                            <span className="flex items-center gap-1.5 flex-1">
+                                                                <span className="italic text-slate-400 text-xs border-b border-dashed border-slate-300 dark:border-slate-600 px-1">
+                                                                    {item.key === 'category' ? '{Název VŘ}' : '{Název dodavatele}'}
+                                                                </span>
+                                                                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${item.key === 'category'
+                                                                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                                                                    : 'bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400'
+                                                                    }`} title={item.key === 'category' ? 'Automaticky se vytvoří složka pro každé VŘ v projektu' : 'Automaticky se vytvoří složka pro každého poptaného dodavatele'}>
+                                                                    {item.key === 'category' ? 'Dynamické' : 'Dynamické'}
+                                                                </span>
+                                                            </span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <span className="text-slate-400">/</span>
+                                                            <InlineInput
+                                                                value={item.name}
+                                                                onChange={handleRename}
+                                                                className={!item.enabled ? 'line-through text-slate-400' : ''}
+                                                            />
+                                                        </>
+                                                    )}
+
+
+
+                                                    {/* Control buttons */}
+                                                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity ml-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/50 rounded-md shadow-sm">
+                                                        {/* Move up/down */}
+                                                        <button
+                                                            type="button"
+                                                            disabled={index === 0}
+                                                            onClick={() => setters.setHierarchyDraft(moveItem(hierarchyDraft, index, 'up'))}
+                                                            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-30"
+                                                            title="Posunout výš"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[14px]">arrow_upward</span>
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            disabled={index === hierarchyDraft.length - 1}
+                                                            onClick={() => setters.setHierarchyDraft(moveItem(hierarchyDraft, index, 'down'))}
+                                                            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-30"
+                                                            title="Posunout níž"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[14px]">arrow_downward</span>
+                                                        </button>
+
+                                                        <div className="w-[1px] h-3 bg-slate-200 dark:bg-slate-700/50 mx-0.5" />
+
+                                                        {/* Indent/Outdent */}
+                                                        <button
+                                                            type="button"
+                                                            disabled={!canOutdent}
+                                                            onClick={handleOutdent}
+                                                            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-30"
+                                                            title="Zmenšit odsazení"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[14px]">format_indent_decrease</span>
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            disabled={!canIndent}
+                                                            onClick={handleIndent}
+                                                            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-30"
+                                                            title="Zvětšit odsazení"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[14px]">format_indent_increase</span>
+                                                        </button>
+
+                                                        <div className="w-[1px] h-3 bg-slate-200 dark:bg-slate-700/50 mx-0.5" />
+
+                                                        {/* Add subfolder */}
+                                                        <button
+                                                            type="button"
+                                                            onClick={handleAddSubfolder}
+                                                            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-violet-600 dark:hover:text-violet-400"
+                                                            title="Přidat podsložku"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[14px]">create_new_folder</span>
+                                                        </button>
+
+                                                        {/* Toggle enabled */}
+                                                        <button
+                                                            type="button"
+                                                            onClick={handleToggle}
+                                                            className={`p-1 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${item.enabled ? 'text-emerald-500' : 'text-slate-400'}`}
+                                                            title={item.enabled ? "Složka je aktivní" : "Složka je vypnutá"}
+                                                        >
+                                                            <span className="material-symbols-outlined text-[14px]">{item.enabled ? 'visibility' : 'visibility_off'}</span>
+                                                        </button>
+
+                                                        {/* Delete (only custom folders) */}
+                                                        {!isBuiltin && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={handleDelete}
+                                                                className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-red-500"
+                                                                title="Smazat složku"
+                                                            >
+                                                                <span className="material-symbols-outlined text-[14px]">close</span>
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <div className="pl-5 border-l border-slate-200 dark:border-slate-700/50 space-y-1">
-                                                    <div className="flex items-center gap-2 text-xs text-slate-500">
-                                                        <span className="material-symbols-outlined text-[16px]">subdirectory_arrow_right</span>
-                                                        <span className="italic">Dodavatel_X</span>
-                                                    </div>
-                                                    <div className="pl-5 border-l border-slate-200 dark:border-slate-700/50 space-y-1">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="material-symbols-outlined text-[18px] text-violet-600 dark:text-violet-400">folder</span>
-                                                            <span className="text-slate-900 dark:text-white">/{structureDraft.supplierEmail}</span>
-                                                        </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="material-symbols-outlined text-[18px] text-violet-600 dark:text-violet-400">folder</span>
-                                                            <span className="text-slate-900 dark:text-white">/{structureDraft.supplierOffer}</span>
-                                                        </div>
-                                                        {extraSupplierDraft.map((name, idx) => (
-                                                            <div key={`${name}-${idx}`} className="flex items-center gap-2">
-                                                                <span className="material-symbols-outlined text-[18px] text-violet-600 dark:text-violet-400">folder</span>
-                                                                <span className="text-slate-900 dark:text-white">/{name}</span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
                                             </div>
-                                        </div>
-                                    </div>
+                                        );
+                                    })}
 
-                                    <div className="flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-[18px] text-violet-600 dark:text-violet-400">folder</span>
-                                        <span className="font-medium text-slate-900 dark:text-white">/{structureDraft.contracts}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-[18px] text-violet-600 dark:text-violet-400">folder</span>
-                                        <span className="font-medium text-slate-900 dark:text-white">/{structureDraft.realization}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-[18px] text-violet-600 dark:text-violet-400">folder</span>
-                                        <span className="font-medium text-slate-900 dark:text-white">/{structureDraft.archive}</span>
-                                    </div>
-
-                                    {extraTopLevelDraft.length > 0 && (
-                                        <div className="pt-2 mt-2 border-t border-slate-200 dark:border-slate-700/50">
-                                            <div className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
-                                                Další složky
-                                            </div>
-                                            <div className="space-y-1">
-                                                {extraTopLevelDraft.map((name, idx) => (
-                                                    <div key={`${name}-${idx}`} className="flex items-center gap-2">
-                                                        <span className="material-symbols-outlined text-[18px] text-violet-600 dark:text-violet-400">folder</span>
-                                                        <span className="text-slate-900 dark:text-white">/{name}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
+                                    {/* Add folder at root */}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const newFolder = {
+                                                id: crypto.randomUUID(),
+                                                key: 'custom',
+                                                name: 'Nova_slozka',
+                                                enabled: true,
+                                                depth: 0
+                                            };
+                                            setters.setHierarchyDraft([...hierarchyDraft, newFolder]);
+                                        }}
+                                        className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors mt-2"
+                                    >
+                                        <span className="material-symbols-outlined text-[14px]">add</span>
+                                        Přidat složku do kořene
+                                    </button>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Editor */}
-                        <div className="space-y-4">
-                            <div className="bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4">
-                                <div className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-3">
-                                    Kořen projektu (hlavní složky)
-                                </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    {([
-                                        ["pd", "PD (1. úroveň)"],
-                                        ["tenders", "Výběrová řízení (1. úroveň)"],
-                                        ["contracts", "Smlouvy (1. úroveň)"],
-                                        ["realization", "Realizace (1. úroveň)"],
-                                        ["archive", "Archiv (1. úroveň)"],
-                                    ] as const).map(([key, label]) => (
-                                        <div key={key} className="space-y-1">
-                                            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400">
-                                                {label}
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={structureDraft[key]}
-                                                onChange={(e) =>
-                                                    setters.setStructureDraft((prev: any) => ({ ...prev, [key]: e.target.value }))
-                                                }
-                                                className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-violet-500/50 focus:outline-none"
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
 
-                                <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700/50">
-                                    <div className="flex items-center justify-between gap-3 mb-2">
-                                        <div>
-                                            <div className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                                                Další složky v kořeni (volitelné)
-                                            </div>
-                                            <div className="text-[11px] text-slate-500">
-                                                Tyto složky jsou jen navíc; aplikace je zatím nepoužívá v ostatních modulech.
-                                            </div>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => setters.setExtraTopLevelDraft((prev) => [...prev, ""])}
-                                            className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-medium transition-colors border border-slate-300 dark:border-slate-700/50"
-                                        >
-                                            + Přidat
-                                        </button>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        {extraTopLevelDraft.length === 0 ? (
-                                            <div className="text-xs text-slate-500 italic">
-                                                Zatím žádné další složky.
-                                            </div>
-                                        ) : (
-                                            extraTopLevelDraft.map((name, idx) => (
-                                                <div key={idx} className="flex items-center gap-2">
-                                                    <input
-                                                        type="text"
-                                                        value={name}
-                                                        onChange={(e) =>
-                                                            setters.setExtraTopLevelDraft((prev) =>
-                                                                prev.map((v, i) => (i === idx ? e.target.value : v))
-                                                            )
-                                                        }
-                                                        placeholder="Název složky (např. 05_Fotky)"
-                                                        className="flex-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-violet-500/50 focus:outline-none"
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setters.setExtraTopLevelDraft((prev) => prev.filter((_, i) => i !== idx))}
-                                                        className="p-2 rounded-lg border border-slate-300 dark:border-slate-700/50 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors text-slate-700 dark:text-slate-200"
-                                                        title="Odebrat"
-                                                    >
-                                                        <span className="material-symbols-outlined text-[18px]">delete</span>
-                                                    </button>
-                                                </div>
-                                            ))
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4">
-                                <div className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-3">
-                                    Výběrová řízení (podsložky)
-                                </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    {([
-                                        ["tendersInquiries", "Poptávky (uvnitř VŘ)"],
-                                        ["supplierEmail", "Email (uvnitř Dodavatele)"],
-                                        ["supplierOffer", "Cenová nabídka (uvnitř Dodavatele)"],
-                                    ] as const).map(([key, label]) => (
-                                        <div key={key} className="space-y-1">
-                                            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400">
-                                                {label}
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={structureDraft[key]}
-                                                onChange={(e) =>
-                                                    setters.setStructureDraft((prev: any) => ({ ...prev, [key]: e.target.value }))
-                                                }
-                                                className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-violet-500/50 focus:outline-none"
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700/50">
-                                    <div className="flex items-center justify-between gap-3 mb-2">
-                                        <div>
-                                            <div className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                                                Další podsložky u dodavatele (volitelné)
-                                            </div>
-                                            <div className="text-[11px] text-slate-500">
-                                                Přidá další podsložky vedle Email / Cenová nabídka.
-                                            </div>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => setters.setExtraSupplierDraft((prev) => [...prev, ""])}
-                                            className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-medium transition-colors border border-slate-300 dark:border-slate-700/50"
-                                        >
-                                            + Přidat
-                                        </button>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        {extraSupplierDraft.length === 0 ? (
-                                            <div className="text-xs text-slate-500 italic">
-                                                Zatím žádné další podsložky.
-                                            </div>
-                                        ) : (
-                                            extraSupplierDraft.map((name, idx) => (
-                                                <div key={idx} className="flex items-center gap-2">
-                                                    <input
-                                                        type="text"
-                                                        value={name}
-                                                        onChange={(e) =>
-                                                            setters.setExtraSupplierDraft((prev) =>
-                                                                prev.map((v, i) => (i === idx ? e.target.value : v))
-                                                            )
-                                                        }
-                                                        placeholder="Název podsložky (např. Smlouvy, Fotky...)"
-                                                        className="flex-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-violet-500/50 focus:outline-none"
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setters.setExtraSupplierDraft((prev) => prev.filter((_, i) => i !== idx))}
-                                                        className="p-2 rounded-lg border border-slate-300 dark:border-slate-700/50 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors text-slate-700 dark:text-slate-200"
-                                                        title="Odebrat"
-                                                    >
-                                                        <span className="material-symbols-outlined text-[18px]">delete</span>
-                                                    </button>
-                                                </div>
-                                            ))
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
 
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4">
-                        <p className="text-xs text-slate-500">
-                            Doporučení: měňte jen názvy složek; struktura (vazby) v aplikaci zůstává stejná.
-                        </p>
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const preset = { hierarchyDraft };
+                                    localStorage.setItem('docHubStructurePreset', JSON.stringify(preset));
+                                    showModal({ title: "Předvolba uložena", message: "Struktura byla uložena jako vaše předvolba.", variant: "success" });
+                                }}
+                                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-medium transition-colors border border-slate-200 dark:border-slate-700/50"
+                                title="Uložit aktuální strukturu jako předvolbu"
+                            >
+                                <span className="material-symbols-outlined text-[16px]">save</span>
+                                Uložit předvolbu
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const saved = localStorage.getItem('docHubStructurePreset');
+                                    if (saved) {
+                                        try {
+                                            const preset = JSON.parse(saved);
+                                            if (preset.hierarchyDraft) {
+                                                setters.setHierarchyDraft(preset.hierarchyDraft);
+                                                showModal({ title: "Předvolba načtena", message: "Vaše uložená struktura byla aplikována.", variant: "success" });
+                                            }
+                                        } catch {
+                                            showModal({ title: "Chyba", message: "Nepodařilo se načíst předvolbu.", variant: "danger" });
+                                        }
+                                    } else {
+                                        showModal({ title: "Žádná předvolba", message: "Nemáte uloženou žádnou předvolbu.", variant: "info" });
+                                    }
+                                }}
+                                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-medium transition-colors border border-slate-200 dark:border-slate-700/50"
+                                title="Načíst uloženou předvolbu"
+                            >
+                                <span className="material-symbols-outlined text-[16px]">folder_open</span>
+                                Načíst předvolbu
+                            </button>
+                        </div>
                         <div className="flex gap-2">
                             <button
                                 type="button"
                                 onClick={() => {
-                                    setters.setStructureDraft(resolveDocHubStructureV1(null));
+                                    // Try reset to User Preset first
+                                    const saved = localStorage.getItem('docHubStructurePreset');
+                                    let resetTo: DocHubHierarchyItem[] = []; // Default to empty
+                                    let message = "Struktura byla vyčištěna (žádná předvolba nenalezena).";
+
+                                    if (saved) {
+                                        try {
+                                            const preset = JSON.parse(saved);
+                                            if (preset.hierarchyDraft && Array.isArray(preset.hierarchyDraft)) {
+                                                resetTo = preset.hierarchyDraft;
+                                                message = "Struktura byla resetována na vaši uloženou předvolbu.";
+                                            }
+                                        } catch (e) {
+                                            console.warn("Failed to reset to preset", e);
+                                        }
+                                    }
+
+                                    setters.setStructureDraft({});
                                     setters.setExtraTopLevelDraft([]);
                                     setters.setExtraSupplierDraft([]);
+                                    setters.setHierarchyDraft(resetTo);
+
+                                    // Optional: show toast/modal if available
+                                    // showModal({ title: "Reset", message, variant: "info" });
                                 }}
                                 className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-medium transition-colors border border-slate-300 dark:border-slate-700/50"
                             >
@@ -370,8 +406,8 @@ export const DocHubStructureEditor: React.FC<DocHubStructureEditorProps> = ({ st
                             </button>
                         </div>
                     </div>
-                </div>
+                </div >
             )}
-        </div>
+        </div >
     );
 };

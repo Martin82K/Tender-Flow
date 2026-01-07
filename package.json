@@ -9,6 +9,8 @@
     "build:user-manual": "node scripts/build-user-manual.mjs",
     "preview": "vite preview",
     "start": "node server.js",
+    "mcp": "cd mcp-bridge-server && npm start",
+    "mcp:install": "cd mcp-bridge-server && npm install",
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage"

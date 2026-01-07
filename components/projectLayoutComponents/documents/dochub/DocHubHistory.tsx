@@ -119,6 +119,27 @@ export const DocHubHistory: React.FC<DocHubHistoryProps> = ({ project, onSelectR
                         >
                             Obnovit
                         </button>
+                        <button
+                            type="button"
+                            onClick={async () => {
+                                if (!window.confirm('Opravdu smazat logy starší 20 dní?')) return;
+                                const cutoff = new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString();
+                                const { error } = await supabase
+                                    .from('dochub_autocreate_runs')
+                                    .delete()
+                                    .eq('project_id', project.id)
+                                    .lt('started_at', cutoff);
+                                if (error) {
+                                    alert('Chyba při mazání: ' + error.message);
+                                } else {
+                                    loadHistory();
+                                }
+                            }}
+                            className="px-3 py-2 rounded-lg text-sm font-medium transition-colors border bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30"
+                            title="Smazat logy starší 20 dní"
+                        >
+                            🗑 Starší 20d
+                        </button>
                     </div>
                 </div>
                 <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">

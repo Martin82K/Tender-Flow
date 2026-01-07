@@ -1,4 +1,4 @@
-# CRM MCP Bridge Server
+# Tender Flow MCP Bridge Server
 
 Aplikace pro automatické vytváření složek DocHub na vašem lokálním disku.
 
@@ -6,21 +6,21 @@ Aplikace pro automatické vytváření složek DocHub na vašem lokálním disku
 
 ### Instalace
 
-1. Stáhněte `crm-mcp-bridge-win-x64.exe`
-2. Umístěte soubor kamkoli (např. do `C:\Programy\CRM\`)
+1. Stáhněte `tender-flow-mcp-bridge-win-x64.exe`
+2. Umístěte soubor kamkoli (např. do `C:\Programy\TenderFlow\`)
 3. **Žádná instalace není potřeba** - program je přenositelný
 
 ### Spuštění
 
-1. Dvojklikem spusťte `crm-mcp-bridge-win-x64.exe`
+1. Dvojklikem spusťte `tender-flow-mcp-bridge-win-x64.exe`
 2. Pokud Windows zobrazí varování "Windows protected your PC":
    - Klikněte na **"More info"**
    - Klikněte na **"Run anyway"**
 3. Nechte okno terminálu otevřené
 
-### Použití v CRM
+### Použití v Tender Flow
 
-1. Otevřete CRM aplikaci v prohlížeči
+1. Otevřete Tender Flow v prohlížeči
 2. Přejděte do projektu → **Dokumenty** → **DocHub**
 3. Vyberte **"MCP Bridge"** jako provider
 4. Zadejte cestu k projektové složce (např. `C:\Dokumenty\Projekty\Stavba`)
@@ -31,37 +31,36 @@ Aplikace pro automatické vytváření složek DocHub na vašem lokálním disku
 
 ## Pro macOS uživatele
 
-### Instalace
+### Rychlý start (Doporučeno)
+
+Nejjednodušší způsob, jak spustit server bez problémů s bezpečnostním upozorněním (nepodepsaný vývojář):
+
+1. Jděte do hlavní složky projektu (`/Users/martin/TenderFlow/Tender-Flow`)
+2. Dvojklikem spusťte soubor **`run-bridge.command`**
+3. Otevře se terminál a server se spustí. Nechte okno otevřené.
+
+Alternativně přes terminál:
+```bash
+npm run mcp
+```
+
+### Klasická instalace (Binárka)
+*Tato metoda může vyžadovat povolení v nastavení zabezpečení (System Preferences -> Security & Privacy).*
 
 1. Stáhněte příslušný soubor:
-   - **Apple Silicon** (M1/M2/M3): `crm-mcp-bridge-macos-arm64`
-   - **Intel Mac**: `crm-mcp-bridge-macos-x64`
+   - **Apple Silicon** (M1/M2/M3): `tender-flow-mcp-bridge-macos-arm64`
+   - **Intel Mac**: `tender-flow-mcp-bridge-macos-x64`
 2. Přesuňte soubor do složky (např. `/Applications/` nebo `~/Apps/`)
-
-### První spuštění
-
-1. Otevřete **Terminál** (Finder → Aplikace → Utility → Terminal)
-2. Přejděte do složky s aplikací:
+3. Spusťte:
    ```bash
-   cd /cesta/ke/složce
+   chmod +x tender-flow-mcp-bridge-macos-arm64
+   ./tender-flow-mcp-bridge-macos-arm64
    ```
-3. Přidejte oprávnění ke spuštění:
-   ```bash
-   chmod +x crm-mcp-bridge-macos-arm64
-   ```
-4. Spusťte aplikaci:
-   ```bash
-   ./crm-mcp-bridge-macos-arm64
-   ```
+4. Pokud macOS blokuje spuštění, musíte aplikaci povolit v "Security & Privacy".
 
-> **Poznámka:** Pokud macOS zobrazí "cannot be opened because the developer cannot be verified":
->
-> - Přejděte do **System Preferences** → **Security & Privacy**
-> - Klikněte na **"Open Anyway"**
+### Použití v Tender Flow
 
-### Použití v CRM
-
-1. Otevřete CRM aplikaci v prohlížeči
+1. Otevřete Tender Flow v prohlížeči
 2. Přejděte do projektu → **Dokumenty** → **DocHub**
 3. Vyberte **"MCP Bridge"** jako provider
 4. Zadejte cestu k projektové složce (např. `/Users/jmeno/Documents/Projekty/Stavba`)

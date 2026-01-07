@@ -74,6 +74,48 @@ export const getTemplates = async (): Promise<Template[]> => {
     }
 };
 
+export const getDefaultTemplate = async (): Promise<Template | undefined> => {
+    try {
+        // First try to find a template explicitly marked as default
+        let { data, error } = await supabase
+            .from('templates')
+            .select('*')
+            .eq('is_default', true)
+            .limit(1)
+            .single();
+
+        // If no default found, get the first template (ordered by name)
+        if (error || !data) {
+            const result = await supabase
+                .from('templates')
+                .select('*')
+                .order('name')
+                .limit(1)
+                .single();
+
+            data = result.data;
+            error = result.error;
+        }
+
+        if (error || !data) {
+            // Fallback to INITIAL_TEMPLATES only if DB has no templates at all
+            return INITIAL_TEMPLATES.find(t => t.isDefault);
+        }
+
+        return {
+            id: data.id,
+            name: data.name,
+            subject: data.subject,
+            content: data.content,
+            isDefault: data.is_default,
+            lastModified: data.updated_at ? new Date(data.updated_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+        };
+    } catch (e) {
+        console.error('Failed to get default template', e);
+        return INITIAL_TEMPLATES.find(t => t.isDefault);
+    }
+};
+
 export const getTemplateById = async (id: string): Promise<Template | undefined> => {
     try {
         const { data, error } = await supabase
@@ -123,6 +165,14 @@ export const saveTemplate = async (template: Template): Promise<Template | null>
             is_default: template.isDefault,
             updated_at: new Date().toISOString()
         };
+
+        if (dbTemplate.is_default) {
+            // Unset other defaults first to ensure only one default exists
+            await supabase
+                .from('templates')
+                .update({ is_default: false })
+                .eq('is_default', true);
+        }
 
         let result;
 

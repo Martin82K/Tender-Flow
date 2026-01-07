@@ -198,7 +198,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
         const trimmed = spec.trim();
         if (!trimmed) return;
         if (formData.specialization?.includes(trimmed)) return;
-        
+
         setFormData(prev => ({
             ...prev,
             specialization: [...(prev.specialization || []), trimmed],
@@ -319,16 +319,16 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                                     {/* Specialization */}
                                     <div className="col-span-2">
                                         <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">Specializace / Typ *</label>
-                                        
+
                                         <div className="flex flex-wrap gap-2 mb-3">
                                             {formData.specialization?.map(spec => (
-                                                <span 
-                                                    key={spec} 
+                                                <span
+                                                    key={spec}
                                                     className="inline-flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold"
                                                 >
                                                     {spec}
-                                                    <button 
-                                                        type="button" 
+                                                    <button
+                                                        type="button"
                                                         onClick={() => handleRemoveSpecialization(spec)}
                                                         className="hover:text-red-500 transition-colors"
                                                     >
@@ -336,7 +336,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                                                     </button>
                                                 </span>
                                             ))}
-                                            {( !formData.specialization || formData.specialization.length === 0 ) && (
+                                            {(!formData.specialization || formData.specialization.length === 0) && (
                                                 <span className="text-xs text-slate-400 italic">Žádná specializace vybrána</span>
                                             )}
                                         </div>
@@ -374,6 +374,19 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                                         </div>
                                     </div>
 
+                                    {/* IČO */}
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">IČO</label>
+                                        <input
+                                            type="text"
+                                            value={formData.ico || ''}
+                                            onChange={e => setFormData({ ...formData, ico: e.target.value })}
+                                            onKeyDown={(e) => e.stopPropagation()}
+                                            className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
+                                            placeholder="IČO firmy"
+                                        />
+                                    </div>
+
                                     {/* Region */}
                                     <div>
                                         <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Region</label>
@@ -400,7 +413,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                                                 Přidat osobu
                                             </button>
                                         </div>
-                                        
+
                                         <div className="space-y-4">
                                             {formData.contacts?.map((contact, index) => (
                                                 <div key={contact.id} className="relative p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 group">

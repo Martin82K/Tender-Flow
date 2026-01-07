@@ -19,6 +19,7 @@ interface SubcontractorSelectorModalProps {
     onClose: () => void;
     onConfirm: () => void;
     onAddContact: (name: string) => void;
+    onEditContact: (contact: Subcontractor) => void;
 }
 
 export const SubcontractorSelectorModal: React.FC<SubcontractorSelectorModalProps> = ({
@@ -32,6 +33,8 @@ export const SubcontractorSelectorModal: React.FC<SubcontractorSelectorModalProp
     onClose,
     onConfirm,
     onAddContact,
+    onEditContact,
+    className, // Just in case, though not in original interface but good practice
 }) => {
     if (!isOpen) return null;
 
@@ -39,8 +42,8 @@ export const SubcontractorSelectorModal: React.FC<SubcontractorSelectorModalProp
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
             <div
                 className={`bg-white dark:bg-slate-900 shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col transition-all duration-200 ${isMaximized
-                        ? 'fixed inset-0 rounded-none w-full h-full'
-                        : 'rounded-2xl max-w-4xl w-full h-[80vh]'
+                    ? 'fixed inset-0 rounded-none w-full h-full'
+                    : 'rounded-2xl max-w-4xl w-full h-[80vh]'
                     }`}
             >
                 {/* Header */}
@@ -75,6 +78,7 @@ export const SubcontractorSelectorModal: React.FC<SubcontractorSelectorModalProp
                         selectedIds={selectedIds}
                         onSelectionChange={onSelectionChange}
                         onAddContact={onAddContact}
+                        onEditContact={onEditContact}
                         className="flex-1 min-h-0"
                     />
                 </div>
