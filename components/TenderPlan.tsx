@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { TenderPlanItem, DemandCategory } from '../types';
 import { supabase } from '../services/supabase';
 import { ConfirmationModal } from './ConfirmationModal';
-import { exportTenderPlanToXLSX, downloadTenderImportTemplate } from '../services/exportService';
+import { exportTenderPlanToXLSX, downloadTenderImportTemplate, importTenderPlanFromXLSX } from '../services/exportService';
 
 interface TenderPlanProps {
     projectId: string;
@@ -15,6 +15,7 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
 
     // Form state
     const [formName, setFormName] = useState('');
@@ -285,6 +286,66 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
         }
     };
 
+    const handleImportClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsLoading(true);
+        try {
+            const parsedItems = await importTenderPlanFromXLSX(file);
+
+            if (parsedItems.length === 0) {
+                alert('Nepodařilo se načíst žádná data. Zkontrolujte formát souboru.');
+                setIsLoading(false);
+                return;
+            }
+
+            let importCount = 0;
+            const newItems: TenderPlanItem[] = [];
+
+            // Insert into Supabase
+            for (const item of parsedItems) {
+                if (!item.name) continue;
+
+                const newItemId = `tp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
+                const { error } = await supabase.from('tender_plans').insert({
+                    id: newItemId,
+                    project_id: projectId,
+                    name: item.name,
+                    date_from: item.dateFrom || null,
+                    date_to: item.dateTo || null
+                });
+
+                if (!error) {
+                    importCount++;
+                    // Add to local state
+                    newItems.push({
+                        id: newItemId,
+                        name: item.name,
+                        dateFrom: item.dateFrom || '',
+                        dateTo: item.dateTo || '',
+                    });
+                }
+            }
+
+            // Refresh items from DB to be sure or just append local
+            setItems(prev => [...prev, ...newItems]);
+            alert(`Importováno ${importCount} položek.`);
+
+        } catch (err) {
+            console.error('Error importing file:', err);
+            alert('Chyba při importu souboru.');
+        } finally {
+            setIsLoading(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
     return (
         <div className="p-6 lg:p-10 flex flex-col gap-6 overflow-y-auto h-full bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen">
             <div className="max-w-5xl mx-auto w-full">
@@ -308,6 +369,21 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
                         >
                             <span className="material-symbols-outlined text-[18px]">download</span>
                             Šablona
+                        </button>
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
+                            accept=".xlsx, .xls"
+                            className="hidden"
+                        />
+                        <button
+                            onClick={handleImportClick}
+                            className="px-4 py-2.5 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-xl text-sm font-bold transition-all flex items-center gap-2"
+                            title="Importovat plán z Excelu"
+                        >
+                            <span className="material-symbols-outlined text-[18px]">upload_file</span>
+                            Import
                         </button>
                         <button
                             onClick={handleSyncExisting}

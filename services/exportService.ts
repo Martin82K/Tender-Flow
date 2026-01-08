@@ -446,3 +446,129 @@ export function downloadTenderImportTemplate(): void {
 
   XLSX.writeFile(workbook, 'sablona_import_poptavky.xlsx');
 }
+
+/**
+ * Helper to parse Excel date
+ */
+function parseExcelDate(value: any): string {
+  if (!value) return '';
+
+  // If it's a number (Excel serial date)
+  if (typeof value === 'number') {
+    // Excel date to JS Date
+    const date = new Date(Math.round((value - 25569) * 86400 * 1000));
+    return date.toISOString().split('T')[0];
+  }
+
+  // If it's a string, try to parse
+  if (typeof value === 'string') {
+    // Try DD.MM.YYYY
+    const czeDate = value.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+    if (czeDate) {
+      return `${czeDate[3]}-${czeDate[2].padStart(2, '0')}-${czeDate[1].padStart(2, '0')}`;
+    }
+
+    const date = new Date(value);
+    if (!isNaN(date.getTime())) {
+      return date.toISOString().split('T')[0];
+    }
+  }
+
+  return '';
+}
+
+/**
+ * Import Tender Plan from XLSX
+ */
+export async function importTenderPlanFromXLSX(file: File): Promise<Partial<TenderPlanItem>[]> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      try {
+        const data = e.target?.result;
+        const workbook = XLSX.read(data, { type: 'array' });
+
+        // Assume first sheet
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+
+        // Get data as array of arrays
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+
+        if (jsonData.length < 2) {
+          resolve([]);
+          return;
+        }
+
+        // Find header row index (look for 'Název' or 'Name')
+        let headerRowIndex = 0;
+        let colMap: Record<string, number> = {};
+
+        // Simple heuristic to find header row and map columns
+        for (let r = 0; r < Math.min(jsonData.length, 10); r++) {
+          const row = jsonData[r];
+          const rowStr = row.map(c => String(c).toLowerCase()).join(' ');
+
+          if (rowStr.includes('název') || rowStr.includes('name') || rowStr.includes('description') || rowStr.includes('popis')) {
+            headerRowIndex = r;
+            // Map columns
+            row.forEach((cell: any, idx: number) => {
+              const c = String(cell).toLowerCase().trim();
+              if (c.includes('název') || c.includes('name') || c.includes('popis') || c.includes('položka')) colMap['name'] = idx;
+              else if (c.includes('od') || c.includes('start') || c.includes('zahájení')) colMap['from'] = idx;
+              else if (c.includes('do') || c.includes('end') || c.includes('konec') || c.includes('termín')) colMap['to'] = idx;
+            });
+            break;
+          }
+        }
+
+        // If we didn't find specific headers, assume 0=Name, 1=From, 2=To? Or just skip?
+        // Let's fallback to standard template columns if mapping failed for name
+        if (colMap['name'] === undefined) {
+          // Fallback: 0=Name, 4=Deadline (Termín), 5=Start, 6=End - based on our template
+          colMap['name'] = 0;
+          colMap['from'] = 5;
+          colMap['to'] = 6;
+          // Also check for deadline as "To" if From/To are missing?
+          // Let's stick to the template structure we generate
+        }
+
+        const items: Partial<TenderPlanItem>[] = [];
+
+        // Parse rows
+        for (let i = headerRowIndex + 1; i < jsonData.length; i++) {
+          const row = jsonData[i];
+          if (!row || row.length === 0) continue;
+
+          const name = row[colMap['name']];
+          if (!name) continue;
+
+          const dateFrom = colMap['from'] !== undefined ? parseExcelDate(row[colMap['from']]) : '';
+          const dateTo = colMap['to'] !== undefined ? parseExcelDate(row[colMap['to']]) : '';
+
+          // If dateTo is empty, maybe try deadline column (index 4 in template)?
+          let finalDateTo = dateTo;
+          if (!finalDateTo && row[4]) {
+            finalDateTo = parseExcelDate(row[4]);
+          }
+
+          items.push({
+            name: String(name).trim(),
+            dateFrom: dateFrom,
+            dateTo: finalDateTo
+          });
+        }
+
+        resolve(items);
+      } catch (err) {
+        console.error("Error parsing Excel:", err);
+        reject(err);
+      }
+    };
+
+    reader.onerror = (error) => reject(error);
+    reader.readAsArrayBuffer(file);
+  });
+}
+
