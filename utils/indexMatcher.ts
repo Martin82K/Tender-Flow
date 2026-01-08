@@ -248,6 +248,35 @@ export async function fillDescriptions(
   const totalRows = sheet.rowCount;
   const lastRow = sheet.rowCount;
 
+  // Set header for description column
+  const headerRow = sheet.getRow(1);
+  const refHeaderCell = headerRow.getCell(1); // Column A header as style reference
+  const descHeaderCell = sheet.getCell(`${descColumn}1`);
+  descHeaderCell.value = 'Výběrová řízení';
+
+  // Copy style from reference header cell
+  if (refHeaderCell.style) {
+    descHeaderCell.style = { ...refHeaderCell.style };
+  }
+  if (refHeaderCell.font) {
+    descHeaderCell.font = { ...refHeaderCell.font };
+  }
+  if (refHeaderCell.fill) {
+    descHeaderCell.fill = refHeaderCell.fill;
+  }
+  if (refHeaderCell.border) {
+    descHeaderCell.border = { ...refHeaderCell.border };
+  }
+  if (refHeaderCell.alignment) {
+    descHeaderCell.alignment = { ...refHeaderCell.alignment };
+  }
+
+  // Set column width for better readability
+  const descColumnObj = sheet.getColumn(descColumn);
+  descColumnObj.width = 30;
+
+  onLog?.(`Hlavička "${descColumn}1" nastavena na "Výběrová řízení", šířka sloupce 30`);
+
   let currentDescription: string | null = null;
   let codesFound = 0;
   let matchesFound = 0;
@@ -336,6 +365,38 @@ export async function fillDescriptions(
 
   onProgress?.(95, 'Generuji výstupní soubor...');
   onLog?.(`Nalezeno ${codesFound} kódů, ${matchesFound} shod, zapsáno ${descriptionsWritten} popisů`);
+
+  // Detect the actual last column with data by scanning all rows
+  let lastCol = 1;
+  sheet.eachRow({ includeEmpty: false }, (row) => {
+    row.eachCell({ includeEmpty: false }, (cell, colNumber) => {
+      if (colNumber > lastCol) lastCol = colNumber;
+    });
+  });
+
+  // Convert column number to letter (handles columns beyond Z)
+  const colToLetter = (col: number): string => {
+    let letter = '';
+    while (col > 0) {
+      const mod = (col - 1) % 26;
+      letter = String.fromCharCode(65 + mod) + letter;
+      col = Math.floor((col - 1) / 26);
+    }
+    return letter;
+  };
+
+  const lastColLetter = colToLetter(lastCol);
+  onLog?.(`Rozsah dat: A1 až ${lastColLetter}${lastRow}`);
+
+  // Apply autoFilter to all data
+  sheet.autoFilter = `A1:${lastColLetter}${lastRow}`;
+  onLog?.(`Autofiltr aplikován: A1:${lastColLetter}${lastRow}`);
+
+  // Freeze first row and hide gridlines (AFTER autoFilter)
+  sheet.views = [
+    { state: 'frozen', ySplit: 1, activeCell: 'A2', showGridLines: false }
+  ];
+  onLog?.('První řádek ukotven, mřížka skryta');
 
   const outputBuffer = await workbook.xlsx.writeBuffer();
 

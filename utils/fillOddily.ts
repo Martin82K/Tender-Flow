@@ -103,32 +103,35 @@ export async function fillOddily(
     onProgress?.(5, 'Načítám soubor...');
     onLog?.('Načítám Excel soubor...');
 
-    const workbook = new ExcelJS.Workbook();
+    let workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(buffer);
 
-    const sheet = sheetName ? workbook.getWorksheet(sheetName) : workbook.worksheets[0];
+    let sheet = sheetName ? workbook.getWorksheet(sheetName) : workbook.worksheets[0];
+    const sheetNameToUse = sheet?.name;
 
     if (!sheet) {
         throw new Error(sheetName ? `List "${sheetName}" nebyl nalezen` : 'V sešitu nejsou žádné listy');
     }
 
     onLog?.(`Zpracovávám list "${sheet.name}"...`);
-    onProgress?.(10, 'Vkládám nový sloupec...');
+    onProgress?.(10, 'Připravuji data...');
 
     const totalRows = sheet.rowCount;
     onLog?.(`Celkem ${totalRows} řádků`);
 
+    // ==========================================================================
+    // NOTE: We do NOT insert a new column to avoid ExcelJS shared formula bugs
+    // User should manually insert column B in Excel before running this tool
+    // We simply write data to column B (assumed to be empty/ready)
+    // ==========================================================================
+
     // Get reference style from first row, column A for header styling
     const headerRow = sheet.getRow(1);
-    const refHeaderCell = headerRow.getCell(1); // Column A header as reference
-
-    // Insert new column B (index 2)
-    // ExcelJS's insertColumns shifts existing columns to the right
-    sheet.spliceColumns(2, 0, []);
+    const refHeaderCell = headerRow.getCell(1);
 
     onProgress?.(15, 'Nastavuji hlavičku...');
 
-    // Set header for new column B
+    // Set header for column B
     const oddílyHeaderCell = sheet.getCell('B1');
     oddílyHeaderCell.value = 'Oddíly';
 
@@ -139,20 +142,15 @@ export async function fillOddily(
     const colB = sheet.getColumn(2);
     colB.width = 25;
 
-    // After inserting column B, all columns from B onwards shift right by 1
-    // So original column F (index 6) becomes index 7, etc.
-    // Only columns >= 2 are affected
-    const adjustedMarkerColIdx = originalMarkerColIdx >= 2
-        ? originalMarkerColIdx + 1
-        : originalMarkerColIdx;
-    const adjustedSectionColIdx = originalSectionColIdx >= 2
-        ? originalSectionColIdx + 1
-        : originalSectionColIdx;
+    // Column positions - NO shifting since we don't insert a column
+    // Marker and section columns are at their original positions
+    const markerColIdx = originalMarkerColIdx;
+    const sectionColIdx = originalSectionColIdx;
 
     onProgress?.(20, 'Procházím řádky...');
-    onLog?.(`Hledám oddíly (hodnota "D" ve sloupci ${markerColumn}, po vložení sloupec ${adjustedMarkerColIdx})...`);
+    onLog?.(`Hledám oddíly (hodnota "D" ve sloupci ${markerColumn})...`);
 
-    const COL_B = 2;  // Oddíly column (new)
+    const COL_B = 2;  // Oddíly column
 
     let currentSection: string | null = null;
     let sectionsFound = 0;
@@ -163,7 +161,7 @@ export async function fillOddily(
         const row = sheet.getRow(rowNum);
 
         // Check marker column for "D"
-        const markerCell = row.getCell(adjustedMarkerColIdx);
+        const markerCell = row.getCell(markerColIdx);
         const markerValue = markerCell.value;
 
         // Normalize value to string for comparison
@@ -182,7 +180,7 @@ export async function fillOddily(
 
         if (markerCheck === 'D') {
             // Found section marker, get section name from section column
-            const sectionCell = row.getCell(adjustedSectionColIdx);
+            const sectionCell = row.getCell(sectionColIdx);
             const sectionValue = sectionCell.value;
 
             if (sectionValue !== null && sectionValue !== undefined) {
@@ -235,6 +233,38 @@ export async function fillOddily(
 
     onProgress?.(95, 'Generuji výstupní soubor...');
     onLog?.(`Nalezeno ${sectionsFound} oddílů, vyplněno ${rowsFilled} řádků`);
+
+    // Detect the actual last column with data by scanning all rows
+    let lastCol = 1;
+    sheet.eachRow({ includeEmpty: false }, (row) => {
+        row.eachCell({ includeEmpty: false }, (cell, colNumber) => {
+            if (colNumber > lastCol) lastCol = colNumber;
+        });
+    });
+
+    // Convert column number to letter (handles columns beyond Z)
+    const colToLetter = (col: number): string => {
+        let letter = '';
+        while (col > 0) {
+            const mod = (col - 1) % 26;
+            letter = String.fromCharCode(65 + mod) + letter;
+            col = Math.floor((col - 1) / 26);
+        }
+        return letter;
+    };
+
+    const lastColLetter = colToLetter(lastCol);
+    onLog?.(`Rozsah dat: A1 až ${lastColLetter}${totalRows}`);
+
+    // Apply autoFilter to all data
+    sheet.autoFilter = `A1:${lastColLetter}${totalRows}`;
+    onLog?.(`Autofiltr aplikován: A1:${lastColLetter}${totalRows}`);
+
+    // Freeze first row and hide gridlines (AFTER autoFilter)
+    sheet.views = [
+        { state: 'frozen', ySplit: 1, activeCell: 'A2', showGridLines: false }
+    ];
+    onLog?.('První řádek ukotven, mřížka skryta');
 
     const outputBuffer = await workbook.xlsx.writeBuffer();
 
