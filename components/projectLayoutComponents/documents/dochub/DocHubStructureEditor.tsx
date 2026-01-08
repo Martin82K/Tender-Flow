@@ -1,6 +1,6 @@
 import React from 'react';
 import { useDocHubIntegration } from '../../../../hooks/useDocHubIntegration';
-import { type DocHubHierarchyItem } from '../../../../utils/docHub';
+import { type DocHubHierarchyItem, DEFAULT_DOCHUB_HIERARCHY } from '../../../../utils/docHub';
 
 type DocHubHook = ReturnType<typeof useDocHubIntegration>;
 
@@ -354,7 +354,10 @@ export const DocHubStructureEditor: React.FC<DocHubStructureEditorProps> = ({ st
                                             showModal({ title: "Chyba", message: "Nepodařilo se načíst předvolbu.", variant: "danger" });
                                         }
                                     } else {
-                                        showModal({ title: "Žádná předvolba", message: "Nemáte uloženou žádnou předvolbu.", variant: "info" });
+                                        // Fallback to system default if no user preset
+                                        const defaultStructure = JSON.parse(JSON.stringify(DEFAULT_DOCHUB_HIERARCHY));
+                                        setters.setHierarchyDraft(defaultStructure);
+                                        showModal({ title: "Výchozí šablona", message: "Nemáte vlastní předvolbu. Byla načtena výchozí šablona.", variant: "success" });
                                     }
                                 }}
                                 className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-medium transition-colors border border-slate-200 dark:border-slate-700/50"
@@ -368,34 +371,20 @@ export const DocHubStructureEditor: React.FC<DocHubStructureEditorProps> = ({ st
                             <button
                                 type="button"
                                 onClick={() => {
-                                    // Try reset to User Preset first
-                                    const saved = localStorage.getItem('docHubStructurePreset');
-                                    let resetTo: DocHubHierarchyItem[] = []; // Default to empty
-                                    let message = "Struktura byla vyčištěna (žádná předvolba nenalezena).";
-
-                                    if (saved) {
-                                        try {
-                                            const preset = JSON.parse(saved);
-                                            if (preset.hierarchyDraft && Array.isArray(preset.hierarchyDraft)) {
-                                                resetTo = preset.hierarchyDraft;
-                                                message = "Struktura byla resetována na vaši uloženou předvolbu.";
-                                            }
-                                        } catch (e) {
-                                            console.warn("Failed to reset to preset", e);
-                                        }
-                                    }
+                                    // Always reset to System Default
+                                    const resetTo = JSON.parse(JSON.stringify(DEFAULT_DOCHUB_HIERARCHY));
 
                                     setters.setStructureDraft({});
                                     setters.setExtraTopLevelDraft([]);
                                     setters.setExtraSupplierDraft([]);
                                     setters.setHierarchyDraft(resetTo);
 
-                                    // Optional: show toast/modal if available
-                                    // showModal({ title: "Reset", message, variant: "info" });
+                                    showModal({ title: "Výchozí", message: "Struktura byla resetována na výchozí šablonu.", variant: "info" });
                                 }}
                                 className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-medium transition-colors border border-slate-300 dark:border-slate-700/50"
+                                title="Resetovat na výchozí systémovou šablonu"
                             >
-                                Reset
+                                Výchozí
                             </button>
                             <button
                                 type="button"
