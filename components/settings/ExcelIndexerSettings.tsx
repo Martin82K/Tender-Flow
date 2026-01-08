@@ -16,11 +16,13 @@ const SETTINGS_KEY = "excelIndexerSettings";
 interface IndexerSettings {
   codeColumn: string;
   descColumn: string;
+  createRecapitulation: boolean;
 }
 
 const DEFAULT_SETTINGS: IndexerSettings = {
   codeColumn: "F",
   descColumn: "B",
+  createRecapitulation: false,
 };
 
 // Column options A-Z
@@ -284,6 +286,7 @@ export const ExcelIndexerSettings: React.FC = () => {
       const result = await fillDescriptions(buffer, indexMap, {
         codeColumn: settings.codeColumn,
         descColumn: settings.descColumn,
+        createRecapitulation: settings.createRecapitulation,
         onProgress: (percent, label) => setProgress({ percent, label }),
         onLog: addLog,
       });
@@ -340,11 +343,10 @@ export const ExcelIndexerSettings: React.FC = () => {
 
         <button
           onClick={() => setShowSettings(!showSettings)}
-          className={`p-2 rounded-lg transition-colors ${
-            showSettings
-              ? "bg-primary/20 text-primary"
-              : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
-          }`}
+          className={`p-2 rounded-lg transition-colors ${showSettings
+            ? "bg-primary/20 text-primary"
+            : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
+            }`}
         >
           <span className="material-symbols-outlined">settings</span>
         </button>
@@ -398,6 +400,25 @@ export const ExcelIndexerSettings: React.FC = () => {
             Kódy budou hledány ve sloupci {settings.codeColumn}, popisy budou
             zapisovány do sloupce {settings.descColumn}
           </p>
+
+          <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-700">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settings.createRecapitulation}
+                onChange={(e) =>
+                  setSettings((s) => ({ ...s, createRecapitulation: e.target.checked }))
+                }
+                className="w-4 h-4 text-primary bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600 rounded focus:ring-primary"
+              />
+              <span className="text-sm text-slate-700 dark:text-slate-300 font-medium">
+                Vytvořit rekapitulaci VŘ
+              </span>
+            </label>
+            <p className="text-xs text-slate-500 ml-6 mt-1">
+              Vytvoří nový list "Rekapitulace VŘ" se seznamem unikátních položek a jejich počtem.
+            </p>
+          </div>
         </div>
       )}
 
@@ -677,10 +698,9 @@ export const ExcelIndexerSettings: React.FC = () => {
             className={`
               border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer mb-4
               ${entries.length === 0 ? "opacity-50 pointer-events-none" : ""}
-              ${
-                isBudgetDropActive
-                  ? "border-primary bg-primary/10 scale-[1.02]"
-                  : "border-slate-300 dark:border-slate-700 hover:border-primary/50 hover:bg-primary/5"
+              ${isBudgetDropActive
+                ? "border-primary bg-primary/10 scale-[1.02]"
+                : "border-slate-300 dark:border-slate-700 hover:border-primary/50 hover:bg-primary/5"
               }
             `}
             onClick={() =>
@@ -784,10 +804,9 @@ export const ExcelIndexerSettings: React.FC = () => {
             disabled={entries.length === 0 || !budgetFile || isProcessing}
             className={`
               w-full py-3 rounded-xl font-bold shadow-lg transition-all flex items-center justify-center gap-2
-              ${
-                entries.length === 0 || !budgetFile || isProcessing
-                  ? "bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed"
-                  : "bg-primary text-white hover:shadow-lg hover:scale-[1.02]"
+              ${entries.length === 0 || !budgetFile || isProcessing
+                ? "bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed"
+                : "bg-primary text-white hover:shadow-lg hover:scale-[1.02]"
               }
             `}
           >

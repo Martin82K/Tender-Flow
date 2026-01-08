@@ -36,6 +36,7 @@ export interface FillDescriptionsOptions {
   sheetName?: string;       // Default: first sheet
   onProgress?: ProgressReporter;
   onLog?: LogReporter;
+  createRecapitulation?: boolean; // Create summary sheet
 }
 
 export interface ProcessResult {
@@ -77,33 +78,33 @@ export function normalizeCode(value: unknown): string | null {
 
   // Handle ExcelJS CellValue objects
   if (typeof value === 'object') {
-     // ExcelJS CellValue might be an object
-     // If it's a formula
-     if (value && 'result' in value) {
-        const val = (value as any).result;
-        if (typeof val === 'number') {
-          if (Number.isInteger(val)) return String(val);
-          if (Number.isFinite(val) && Math.floor(val) === val) return String(Math.floor(val));
-        }
-        if (typeof val === 'string') {
-          return normalizeCode(val);
-        }
-        // result could be error or Date, ignore
-     }
-      
-      // If rich text
-      if (value && 'richText' in value && Array.isArray((value as any).richText)) {
-         // Concatenate text parts
-         const text = (value as any).richText.map((rt: any) => rt.text).join('');
-         return normalizeCode(text);
+    // ExcelJS CellValue might be an object
+    // If it's a formula
+    if (value && 'result' in value) {
+      const val = (value as any).result;
+      if (typeof val === 'number') {
+        if (Number.isInteger(val)) return String(val);
+        if (Number.isFinite(val) && Math.floor(val) === val) return String(Math.floor(val));
       }
+      if (typeof val === 'string') {
+        return normalizeCode(val);
+      }
+      // result could be error or Date, ignore
+    }
 
-      // If text property exists (sometimes used)
-      if (value && 'text' in value) {
-        return normalizeCode((value as any).text);
-      }
-      
-      return null;
+    // If rich text
+    if (value && 'richText' in value && Array.isArray((value as any).richText)) {
+      // Concatenate text parts
+      const text = (value as any).richText.map((rt: any) => rt.text).join('');
+      return normalizeCode(text);
+    }
+
+    // If text property exists (sometimes used)
+    if (value && 'text' in value) {
+      return normalizeCode((value as any).text);
+    }
+
+    return null;
   }
 
   if (typeof value === 'string') {
@@ -162,9 +163,9 @@ export async function loadIndexFromBuffer(
 ): Promise<IndexMap> {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(buffer);
-  
+
   const targetSheet = sheetName ? workbook.getWorksheet(sheetName) : workbook.worksheets[0];
-  
+
   if (!targetSheet) {
     throw new Error(sheetName ? `Sheet "${sheetName}" not found` : 'No sheets found in workbook');
   }
@@ -177,34 +178,34 @@ export async function loadIndexFromBuffer(
   targetSheet.eachRow((row, rowNumber) => {
     // We expect at least 2 columns.
     // getCell(1) -> Column A, getCell(2) -> Column B
-    
+
     // Simple heuristic: get values from cell 1 and 2
     // We try to find the first two cells as Code/Desc
-    
+
     // Let's grab values directly from first two columns
     // We need to resolve values (if formulas or rich text)
-    
+
     const c1 = row.getCell(1).value;
     const c2 = row.getCell(2).value;
-    
+
     // Basic extraction
     const extractStr = (val: any): string => {
-        if (!val) return '';
-        if (typeof val === 'string') return val;
-        if (typeof val === 'number') return String(val);
-        if (typeof val === 'object') {
-            if ('result' in val) return extractStr(val.result);
-            if ('text' in val) return val.text;
-            if ('richText' in val) return val.richText.map((rt: any) => rt.text).join('');
-        }
-        return String(val);
+      if (!val) return '';
+      if (typeof val === 'string') return val;
+      if (typeof val === 'number') return String(val);
+      if (typeof val === 'object') {
+        if ('result' in val) return extractStr(val.result);
+        if ('text' in val) return val.text;
+        if ('richText' in val) return val.richText.map((rt: any) => rt.text).join('');
+      }
+      return String(val);
     };
 
     const key = extractStr(c1).trim();
     const desc = extractStr(c2).trim();
 
     if (key && desc) {
-        indexMap.set(key, desc);
+      indexMap.set(key, desc);
     }
   });
 
@@ -235,7 +236,7 @@ export async function fillDescriptions(
 
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(buffer);
-  
+
   const sheet = sheetName ? workbook.getWorksheet(sheetName) : workbook.worksheets[0];
 
   if (!sheet) {
@@ -244,9 +245,9 @@ export async function fillDescriptions(
 
   onLog?.(`Zpracovávám list "${sheet.name}"...`);
 
-  const totalRows = sheet.rowCount; 
+  const totalRows = sheet.rowCount;
   const lastRow = sheet.rowCount;
-  
+
   let currentDescription: string | null = null;
   let codesFound = 0;
   let matchesFound = 0;
@@ -255,48 +256,85 @@ export async function fillDescriptions(
   onProgress?.(10, 'Procházím řádky...');
   onLog?.(`Celkem cca ${totalRows} řádků ke zpracování`);
 
+  /* Recapitulation Logic */
+  const recapMap = new Map<string, number>();
+
   for (let rowNum = startRow; rowNum <= lastRow; rowNum++) {
-      const row = sheet.getRow(rowNum);
-      
-      // Check code column
-      const codeCell = row.getCell(codeColumn);
-      const codeValue = codeCell.value; 
-      
-      const normalizedCode = normalizeCode(codeValue);
-      
-      if (normalizedCode) {
-          codesFound++;
-          const match = bestPrefixMatch(normalizedCode, indexMap);
-          
-          if (match) {
-              currentDescription = match.description;
-              matchesFound++;
-              onLog?.(`Řádek ${rowNum}: Kód ${normalizedCode} → prefix ${match.prefix} → "${match.description}"`);
-          } else {
-              currentDescription = null;
-              onLog?.(`Řádek ${rowNum}: Kód ${normalizedCode} → bez shody v číselníku`);
-          }
+    const row = sheet.getRow(rowNum);
+
+    // Check code column
+    const codeCell = row.getCell(codeColumn);
+    const codeValue = codeCell.value;
+
+    const normalizedCode = normalizeCode(codeValue);
+
+    if (normalizedCode) {
+      codesFound++;
+      const match = bestPrefixMatch(normalizedCode, indexMap);
+
+      if (match) {
+        currentDescription = match.description;
+        matchesFound++;
+        onLog?.(`Řádek ${rowNum}: Kód ${normalizedCode} → prefix ${match.prefix} → "${match.description}"`);
+      } else {
+        currentDescription = null;
+        onLog?.(`Řádek ${rowNum}: Kód ${normalizedCode} → bez shody v číselníku`);
       }
-      
-      // Write description if we have one
-      if (currentDescription) {
-          const descCell = row.getCell(descColumn);
-          descCell.value = currentDescription;
-          // Note: Styles are preserved by default in ExcelJS when just setting value.
-          descriptionsWritten++;
+    }
+
+    // Write description if we have one
+    if (currentDescription) {
+      const descCell = row.getCell(descColumn);
+      descCell.value = currentDescription;
+      // Note: Styles are preserved by default in ExcelJS when just setting value.
+      descriptionsWritten++;
+
+      // Collect for recapitulation
+      if (options.createRecapitulation) {
+        const count = recapMap.get(currentDescription) || 0;
+        recapMap.set(currentDescription, count + 1);
       }
-      
-      // Update progress every 100 rows
-      if (rowNum % 100 === 0) {
-          const percent = 10 + Math.round(((rowNum - startRow) / (lastRow - startRow || 1)) * 80);
-          onProgress?.(percent, `Zpracováno ${rowNum}/${lastRow} řádků...`);
-          
-          // Yield
-          await new Promise(resolve => setTimeout(resolve, 0));
-      }
+    }
+
+    // Update progress every 100 rows
+    if (rowNum % 100 === 0) {
+      const percent = 10 + Math.round(((rowNum - startRow) / (lastRow - startRow || 1)) * 75); // Adjusted to 75 to leave room for recap
+      onProgress?.(percent, `Zpracováno ${rowNum}/${lastRow} řádků...`);
+
+      // Yield
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
   }
 
-  onProgress?.(92, 'Generuji výstupní soubor...');
+  // Generate Recapitulation Sheet if requested
+  if (options.createRecapitulation && recapMap.size > 0) {
+    onProgress?.(90, 'Vytvářím list rekapitulace...');
+    onLog?.(`Vytvářím rekapitulaci pro ${recapMap.size} unikátních položek.`);
+    let recapSheet = workbook.getWorksheet("Rekapitulace VŘ");
+    if (recapSheet) {
+      workbook.removeWorksheet(recapSheet.id);
+    }
+    recapSheet = workbook.addWorksheet("Rekapitulace VŘ");
+
+    // Header
+    recapSheet.getRow(1).values = ["Popis položky", "Počet výskytů"];
+    recapSheet.getRow(1).font = { bold: true };
+
+    let rowIndex = 2;
+    // Sort by description alphabetically
+    const sortedEntries = Array.from(recapMap.entries()).sort((a, b) => a[0].localeCompare(b[0], 'cs'));
+
+    for (const [desc, count] of sortedEntries) {
+      recapSheet.getRow(rowIndex).values = [desc, count];
+      rowIndex++;
+    }
+
+    // Auto-width for first column
+    recapSheet.getColumn(1).width = 50;
+    recapSheet.getColumn(2).width = 15;
+  }
+
+  onProgress?.(95, 'Generuji výstupní soubor...');
   onLog?.(`Nalezeno ${codesFound} kódů, ${matchesFound} shod, zapsáno ${descriptionsWritten} popisů`);
 
   const outputBuffer = await workbook.xlsx.writeBuffer();
