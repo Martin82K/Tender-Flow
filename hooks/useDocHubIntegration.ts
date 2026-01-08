@@ -146,8 +146,9 @@ export const useDocHubIntegration = (
             }
 
             if (!loadedFromPreset) {
-                hierarchyToUse = [];
-                console.log('[DocHub] No structure defined and no preset found. Starting empty.');
+                // FALLBACK: Use default template instead of empty
+                hierarchyToUse = normalizeItems(DEFAULT_DOCHUB_HIERARCHY);
+                console.log('[DocHub] No structure defined and no preset found. Using default structure.');
             }
         }
         console.log('[DocHub] Hierarchy items:', hierarchyToUse.map(h => `${h.key}:${h.name}@${h.depth}`));
