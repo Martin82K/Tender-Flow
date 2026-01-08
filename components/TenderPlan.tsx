@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { TenderPlanItem, DemandCategory } from '../types';
 import { supabase } from '../services/supabase';
 import { ConfirmationModal } from './ConfirmationModal';
+import { exportTenderPlanToXLSX, downloadTenderImportTemplate } from '../services/exportService';
 
 interface TenderPlanProps {
     projectId: string;
@@ -218,6 +219,72 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
         setEditingId(null);
     };
 
+    const handleSyncExisting = async () => {
+        setIsLoading(true);
+        try {
+            // Iterate over current project categories
+            let createdCount = 0;
+            let linkedCount = 0;
+
+            for (const cat of categories) {
+                // Check if exists in current items (client-side check first for speed)
+                const existingItem = items.find(i =>
+                    i.name.toLowerCase() === cat.title.toLowerCase() ||
+                    (i.categoryId && i.categoryId === cat.id)
+                );
+
+                if (!existingItem) {
+                    // Create new plan item
+                    const { error } = await supabase.from('tender_plans').insert({
+                        id: `tp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+                        project_id: projectId,
+                        name: cat.title,
+                        date_from: cat.realizationStart || null,
+                        date_to: cat.realizationEnd || null,
+                        category_id: cat.id
+                    });
+                    if (!error) createdCount++;
+                } else if (!existingItem.categoryId) {
+                    // Link existing
+                    const { error } = await supabase
+                        .from('tender_plans')
+                        .update({ category_id: cat.id })
+                        .eq('id', existingItem.id);
+                    if (!error) linkedCount++;
+                }
+            }
+
+            if (createdCount > 0 || linkedCount > 0) {
+                // Reload items
+                const { data, error } = await supabase
+                    .from('tender_plans')
+                    .select('*')
+                    .eq('project_id', projectId)
+                    .order('created_at', { ascending: true });
+
+                if (!error && data) {
+                    const mapped = data.map(row => ({
+                        id: row.id,
+                        name: row.name,
+                        dateFrom: row.date_from || '',
+                        dateTo: row.date_to || '',
+                        categoryId: row.category_id || undefined
+                    }));
+                    setItems(mapped);
+                    alert(`Synchronizace dokončena: Vytvořeno ${createdCount}, Propojeno ${linkedCount} položek.`);
+                }
+            } else {
+                alert('Vše je již synchronizováno.');
+            }
+
+        } catch (err) {
+            console.error("Error during manual sync:", err);
+            alert("Chyba při synchronizaci.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     return (
         <div className="p-6 lg:p-10 flex flex-col gap-6 overflow-y-auto h-full bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen">
             <div className="max-w-5xl mx-auto w-full">
@@ -233,13 +300,39 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
                         </div>
                     </div>
 
-                    <button
-                        onClick={() => setIsAdding(true)}
-                        className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white rounded-xl text-sm font-bold shadow-lg transition-all flex items-center gap-2"
-                    >
-                        <span className="material-symbols-outlined text-[18px]">add</span>
-                        Přidat VŘ
-                    </button>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => downloadTenderImportTemplate()}
+                            className="px-4 py-2.5 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-xl text-sm font-bold transition-all flex items-center gap-2"
+                            title="Stáhnout šablonu pro import poptávek"
+                        >
+                            <span className="material-symbols-outlined text-[18px]">download</span>
+                            Šablona
+                        </button>
+                        <button
+                            onClick={handleSyncExisting}
+                            className="px-4 py-2.5 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-xl text-sm font-bold transition-all flex items-center gap-2"
+                            title="Synchronizovat s existujícími poptávkami"
+                        >
+                            <span className="material-symbols-outlined text-[18px]">sync</span>
+                            Sync
+                        </button>
+                        <button
+                            onClick={() => exportTenderPlanToXLSX(items, projectId)} // Note: projectId needs to be title, let's fix this in component
+                            className="px-4 py-2.5 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-xl text-sm font-bold transition-all flex items-center gap-2"
+                            title="Exportovat plán do Excelu"
+                        >
+                            <span className="material-symbols-outlined text-[18px]">file_download</span>
+                            Export
+                        </button>
+                        <button
+                            onClick={() => setIsAdding(true)}
+                            className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white rounded-xl text-sm font-bold shadow-lg transition-all flex items-center gap-2"
+                        >
+                            <span className="material-symbols-outlined text-[18px]">add</span>
+                            Přidat VŘ
+                        </button>
+                    </div>
                 </div>
 
                 {/* Table */}

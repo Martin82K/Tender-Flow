@@ -24,6 +24,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { isUserAdmin } from "../utils/helpers";
 import { syncContactsFromUrl } from "../services/contactsImportService";
+import { supabase } from "../services/supabase";
 
 export const useAppData = (showUiModal: (props: any) => void) => {
     const queryClient = useQueryClient();
@@ -92,6 +93,64 @@ export const useAppData = (showUiModal: (props: any) => void) => {
 
     const handleAddCategory = async (projectId: string, category: DemandCategory) => {
         await addCategoryMutation.mutateAsync({ projectId, category });
+
+        // Backward Sync: Check if Tender Plan exists, if not create one
+        try {
+            const { data: existingPlans } = await supabase
+                .from('tender_plans')
+                .select('id')
+                .eq('project_id', projectId)
+                .ilike('name', category.title)
+                .maybeSingle();
+
+            if (!existingPlans) {
+                // Determine sensible default dates since we don't have them in the category creation form effectively yet
+                // Or use what we have
+                const { error: insertError } = await supabase.from('tender_plans').insert({
+                    id: `tp_${Date.now()}`,
+                    project_id: projectId,
+                    name: category.title,
+                    date_from: category.realizationStart || null,
+                    date_to: category.realizationEnd || null,
+                    category_id: category.id // Link it immediately
+                });
+
+                if (insertError) {
+                    console.error("Auto-sync to Tender Plan failed:", insertError);
+                } else {
+                    // Invalidate Tender Plans query to refresh UI if user visits that tab
+                    queryClient.invalidateQueries({
+                        queryKey: ['tender_plans', projectId] // We might not have this key constant exposed, assume standard Supabase query key pattern or general invalidation
+                    });
+                    // Since key is dynamic in TenderPlan.tsx component (loadItems), we might need accurate key.
+                    // The component uses: .from('tender_plans').select('*').eq('project_id', projectId)
+                    // React Query key usually matches dependencies. 
+                    // Given we don't have a shared key factory for this specific ad-hoc component query, 
+                    // we might rely on the component re-mounting or simple refresh. 
+                    // Ideally we add a key found in TenderPlan.tsx if it used react-query, but it uses useEffect+Supabase directly!
+                    // So we can't invalidate it via QueryClient. 
+                    // However, since the user is currently on Pipeline tab, when they switch to Tender Plan tab, it will remount and fetch.
+                    // So no explicit invalidation needed for that simple implementation!
+                }
+            } else {
+                // Update linkage if needed?
+                // The current schema has category_id on tender_plans?
+                // Let's check TenderPlan.tsx: select('*'), mapped categoryId: row.category_id
+                // So yes, we should link it if it exists but not linked.
+                const { error: updateError } = await supabase
+                    .from('tender_plans')
+                    .update({ category_id: category.id })
+                    .eq('project_id', projectId)
+                    .ilike('name', category.title)
+                    .is('category_id', null); // Only if not already linked
+
+                if (updateError) {
+                    console.error("Auto-sync link to Tender Plan failed:", updateError);
+                }
+            }
+        } catch (err) {
+            console.error("Error in backward sync:", err);
+        }
     };
 
     const handleEditCategory = async (projectId: string, category: DemandCategory) => {

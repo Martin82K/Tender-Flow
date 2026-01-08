@@ -1,7 +1,7 @@
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { DemandCategory, Bid, ProjectDetails } from '../types';
+import { DemandCategory, Bid, ProjectDetails, TenderPlanItem } from '../types';
 import { RobotoRegularBase64 } from '../fonts/roboto-regular';
 
 /**
@@ -126,11 +126,11 @@ export function exportToXLSX(
     combinedData.push(['Vítěz:', winnerBid.companyName]);
     combinedData.push(['Cena vítěze:', formatMoney(winnerPrice)]);
     combinedData.push([
-      'vs SOD rozpočet:', 
+      'vs SOD rozpočet:',
       `${sodDiff >= 0 ? '+' : ''}${formatMoney(sodDiff)} (${sodDiff >= 0 ? '+' : ''}${sodPercent}%)`
     ]);
     combinedData.push([
-      'vs Plánovaný náklad:', 
+      'vs Plánovaný náklad:',
       `${planDiff >= 0 ? '+' : ''}${formatMoney(planDiff)} (${planDiff >= 0 ? '+' : ''}${planPercent}%)`
     ]);
   }
@@ -314,18 +314,18 @@ export function exportToPDF(
 
   // Statistics
   const offersCount = bids.filter(b => b.status === 'offer' || b.status === 'shortlist' || b.status === 'sod').length;
-  
+
   // Find winner (bid with status 'sod' - Jednání o SOD)
   const winnerBid = bids.find(b => b.status === 'sod');
   const winnerPrice = winnerBid ? parseMoney(winnerBid.price) : 0;
 
   const finalY = (doc as any).lastAutoTable.finalY + 10;
-  
+
   // Statistics Header
   doc.setFontSize(9);
   doc.setFont('Roboto', 'normal'); // Using normal weight but slightly larger size for header
   doc.text('Statistiky:', 14, finalY);
-  
+
   // Statistics Content
   doc.setFontSize(8);
   doc.text(`Celkem osloveno: ${bids.length}`, 14, finalY + 5);
@@ -341,7 +341,7 @@ export function exportToPDF(
     // Winner Balance Header
     doc.setFontSize(9);
     doc.text('Bilance vítěze (Jednání o SOD):', 14, finalY + 18);
-    
+
     // Winner Balance Content
     doc.setFontSize(8);
     doc.text(`  Vítěz: ${winnerBid.companyName}`, 14, finalY + 23);
@@ -368,3 +368,81 @@ export function exportToPDF(
   doc.save(filename);
 }
 
+
+/**
+ * Export Tender Plan to XLSX
+ */
+export function exportTenderPlanToXLSX(items: TenderPlanItem[], projectTitle: string): void {
+  const workbook = XLSX.utils.book_new();
+
+  // Create data array
+  const data: (string | number)[][] = [
+    ['PLÁN VÝBĚROVÝCH ŘÍZENÍ', '', '', '', ''],
+    ['Projekt:', projectTitle, '', '', ''],
+    ['Datum exportu:', formatDate(new Date().toISOString()), '', '', ''],
+    [],
+    ['Název VŘ', 'Od (plán)', 'Do (plán)', 'Stav', 'ID Poptávky']
+  ];
+
+  items.forEach(item => {
+    data.push([
+      item.name,
+      item.dateFrom ? formatDate(item.dateFrom) : '-',
+      item.dateTo ? formatDate(item.dateTo) : '-',
+      item.categoryId ? 'Vytvořeno' : 'Naplánováno',
+      item.categoryId || '-'
+    ]);
+  });
+
+  const sheet = XLSX.utils.aoa_to_sheet(data);
+
+  // Set column widths
+  sheet['!cols'] = [
+    { wch: 40 }, // Název
+    { wch: 15 }, // Od
+    { wch: 15 }, // Do
+    { wch: 15 }, // Stav
+    { wch: 20 }  // ID
+  ];
+
+  // Merge title
+  sheet['!merges'] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } },
+  ];
+
+  XLSX.utils.book_append_sheet(workbook, sheet, 'Plán VŘ');
+
+  const filename = `plan_vr_${projectTitle.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+  XLSX.writeFile(workbook, filename);
+}
+
+/**
+ * Download Template for Tender Plan import (or just generic Tender import template)
+ * As per request: "template for importing data into Tenders"
+ */
+export function downloadTenderImportTemplate(): void {
+  const workbook = XLSX.utils.book_new();
+
+  // Simplified template for creating Demands
+  const data = [
+    ['Název poptávky', 'Popis', 'SOD Rozpočet', 'Plánovaný náklad', 'Termín (Deadline)', 'Zahájení realizace', 'Konec realizace'],
+    ['Příklad: Obklady koupelny', 'Detailní popis prací...', '150000', '120000', '2024-12-31', '2025-01-15', '2025-02-28']
+  ];
+
+  const sheet = XLSX.utils.aoa_to_sheet(data);
+
+  // Set column widths
+  sheet['!cols'] = [
+    { wch: 40 }, // Název
+    { wch: 50 }, // Popis
+    { wch: 15 }, // SOD
+    { wch: 15 }, // Plan
+    { wch: 15 }, // Deadline
+    { wch: 15 }, // Start
+    { wch: 15 }  // End
+  ];
+
+  XLSX.utils.book_append_sheet(workbook, sheet, 'Šablona importu');
+
+  XLSX.writeFile(workbook, 'sablona_import_poptavky.xlsx');
+}
