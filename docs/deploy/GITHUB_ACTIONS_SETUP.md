@@ -130,7 +130,7 @@ gcloud projects get-iam-policy $PROJECT_ID \
 ```bash
 gcloud services enable cloudbuild.googleapis.com \
   run.googleapis.com \
-  containerregistry.googleapis.com \
+  artifactregistry.googleapis.com \
   --project=$PROJECT_ID
 ```
 

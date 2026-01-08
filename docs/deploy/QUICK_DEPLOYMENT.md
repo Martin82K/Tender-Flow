@@ -20,7 +20,6 @@ Rychlý průvodce pro nasazení aplikace s podporou iframe embedování.
 
 ✅ **Iframe podpora** - Aplikace je plně nakonfigurována pro zobrazení v iframe  
 ✅ **Express server** - Production-ready server s správnými hlavičkami  
-✅ **Docker konfigurace** - Optimalizovaný multi-stage Dockerfile  
 ✅ **Deployment skripty** - Automatizované deployment pro Railway a Google Cloud  
 ✅ **CI/CD** - GitHub Actions workflow pro automatické nasazení  
 ✅ **Dokumentace** - Kompletní průvodci pro všechny platformy
@@ -82,7 +81,6 @@ Po nasazení můžete aplikaci vložit do iframe:
 ### Production
 
 - `server.js` - Express server s iframe hlavičkami
-- `Dockerfile` - Docker konfigurace pro Cloud Run
 - `app.yaml` - App Engine konfigurace
 - `railway.json` - Railway konfigurace
 

@@ -12,13 +12,11 @@ Vaše aplikace je nyní plně připravena pro nasazení na Google Cloud Platform
 2. **`scripts/deploy/deploy-to-gcp.sh`** - Deployment na Google Cloud Run
 3. **`scripts/deploy/deploy-to-appengine.sh`** - Deployment na Google App Engine
 
-### ⚙️ Konfigurační soubory (5)
+### ⚙️ Konfigurační soubory (3)
 
-1. **`Dockerfile`** - Multi-stage Docker build pro Cloud Run
-2. **`.dockerignore`** - Optimalizace Docker image
-3. **`app.yaml`** - Google App Engine konfigurace
-4. **`railway.json`** - Railway konfigurace
-5. **`server.js`** - Express server s iframe hlavičkami _(již existoval, aktualizován)_
+1. **`app.yaml`** - Google App Engine konfigurace
+2. **`railway.json`** - Railway konfigurace
+3. **`server.js`** - Express server s iframe hlavičkami _(již existoval, aktualizován)_
 
 ### 📚 Dokumentace (7)
 

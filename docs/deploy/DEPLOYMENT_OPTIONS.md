@@ -79,7 +79,7 @@ gsutil -m rsync -r dist gs://your-bucket
 ./scripts/deploy/deploy-to-gcp.sh
 ```
 
-- ✅ Docker build a deploy
+- ✅ Deploy ze zdrojů (Cloud Build)
 - ✅ Automatické škálování
 - ✅ HTTPS zdarma
 - ✅ Iframe podpora
@@ -124,16 +124,14 @@ npm run build && npm start
 
 **Soubory:**
 
-- `Dockerfile` - Multi-stage build
-- `.dockerignore` - Optimalizace image
 - `server.js` - Production server
+- `package.json` - Build a start skripty
 
 **Příkazy:**
 
 ```bash
-# Lokální Docker test
-docker build -t test .
-docker run -p 8080:8080 test
+# Lokální test
+npm run build && npm start
 
 # Deploy
 ./scripts/deploy/deploy-to-gcp.sh
@@ -193,8 +191,8 @@ open tools/iframe/iframe-test.html    # Test iframe
 # Test hlaviček
 node tools/iframe/test-iframe-headers.js
 
-# Test Docker lokálně
-docker build -t test . && docker run -p 8080:8080 test
+# Lokální test (produkce)
+npm run build && npm start
 ```
 
 ### Deployment

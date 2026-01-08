@@ -398,7 +398,7 @@ export const LandingPage: React.FC = () => {
                   <br />
                   <ul className="mt-6 space-y-2 text-sm text-white/70">
                     {[
-                      "Je možné sestavení docker image pro nasazení na vlastní servery.",
+                      "Je možné on‑premise nasazení na vlastní servery.",
                       "Aplikace tak poběží nezávisle na externích službách.",
                       "V tomto případě je nutné vlastní dodatečnou konfiguraci API klíčů a domén služeb.",
                       "Tender Flow neručí za data a jejich bezpečnost.",
@@ -468,7 +468,7 @@ export const LandingPage: React.FC = () => {
                   "Stejné co v Professional",
                   "plus k tomu navíc:",
                   "Možnost in house řešení",
-                  "Sestavení Docker image",
+                  "On‑premise nasazení",
                   "Vlastní integrace",
                   "Možnost návrhu funkcí",
                   "Onboarding asistence",
