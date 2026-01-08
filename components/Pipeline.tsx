@@ -140,12 +140,8 @@ export const Pipeline: React.FC<PipelineProps> = ({
       return;
     }
 
-    // Try opening via MCP if enabled and local path
-    if (
-      isDocHubEnabled &&
-      projectDetails.docHubProvider === 'mcp' &&
-      !canUseDocHubBackend
-    ) {
+    // Try opening via MCP if enabled and local path (regardless of provider setting label)
+    if (isDocHubEnabled && !isProbablyUrl(path)) {
       try {
         const result = await mcpOpenPath(path);
         if (result.success) return; // Opened successfully
