@@ -304,21 +304,121 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
                 return;
             }
 
+            const normalizeName = (value: string) => value.trim().toLowerCase();
+            const formatDateLabel = (value: string) => {
+                if (!value) return "—";
+                const parsed = new Date(value);
+                return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString("cs-CZ");
+            };
+
             let importCount = 0;
+            let updatedCount = 0;
+            let skippedCount = 0;
             const newItems: TenderPlanItem[] = [];
+            const updatedItems = new Map<string, TenderPlanItem>();
+
+            let existingItems = items;
+            try {
+                const { data, error } = await supabase
+                    .from('tender_plans')
+                    .select('*')
+                    .eq('project_id', projectId)
+                    .order('created_at', { ascending: true });
+                if (!error && data) {
+                    existingItems = data.map(row => ({
+                        id: row.id,
+                        name: row.name,
+                        dateFrom: row.date_from || '',
+                        dateTo: row.date_to || '',
+                        categoryId: row.category_id || undefined
+                    }));
+                }
+            } catch (err) {
+                console.warn("Unable to refresh existing tender plans before import:", err);
+            }
+
+            const existingByName = new Map<string, TenderPlanItem[]>();
+            existingItems.forEach(item => {
+                const key = normalizeName(item.name);
+                if (!key) return;
+                const list = existingByName.get(key) ?? [];
+                list.push(item);
+                existingByName.set(key, list);
+            });
+            const seenImportNames = new Set<string>();
 
             // Insert into Supabase
             for (const item of parsedItems) {
-                if (!item.name) continue;
+                if (!item.name) {
+                    skippedCount++;
+                    continue;
+                }
+
+                const importName = item.name.trim();
+                if (!importName) {
+                    skippedCount++;
+                    continue;
+                }
+
+                const importKey = normalizeName(importName);
+                if (seenImportNames.has(importKey)) {
+                    skippedCount++;
+                    continue;
+                }
+                seenImportNames.add(importKey);
+
+                const existingMatch = existingByName.get(importKey)?.[0];
+                const nextFrom = (item.dateFrom || '').trim();
+                const nextTo = (item.dateTo || '').trim();
+
+                if (existingMatch) {
+                    const currentFrom = (existingMatch.dateFrom || '').trim();
+                    const currentTo = (existingMatch.dateTo || '').trim();
+                    const datesDiffer = currentFrom !== nextFrom || currentTo !== nextTo;
+
+                    if (datesDiffer) {
+                        const confirmUpdate = window.confirm(
+                            `Položka "${existingMatch.name}" už v plánu existuje, ale liší se termíny.\n\n` +
+                            `Aktuální: ${formatDateLabel(currentFrom)} – ${formatDateLabel(currentTo)}\n` +
+                            `Import: ${formatDateLabel(nextFrom)} – ${formatDateLabel(nextTo)}\n\n` +
+                            `Chcete termíny aktualizovat?`
+                        );
+
+                        if (confirmUpdate) {
+                            const { error } = await supabase
+                                .from('tender_plans')
+                                .update({
+                                    date_from: nextFrom || null,
+                                    date_to: nextTo || null
+                                })
+                                .eq('id', existingMatch.id);
+
+                            if (!error) {
+                                updatedCount++;
+                                const updated = { ...existingMatch, dateFrom: nextFrom, dateTo: nextTo };
+                                updatedItems.set(existingMatch.id, updated);
+                                existingByName.set(importKey, [updated]);
+                            } else {
+                                console.error("Error updating tender plan during import:", error);
+                                skippedCount++;
+                            }
+                        } else {
+                            skippedCount++;
+                        }
+                    } else {
+                        skippedCount++;
+                    }
+                    continue;
+                }
 
                 const newItemId = `tp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
                 const { error } = await supabase.from('tender_plans').insert({
                     id: newItemId,
                     project_id: projectId,
-                    name: item.name,
-                    date_from: item.dateFrom || null,
-                    date_to: item.dateTo || null
+                    name: importName,
+                    date_from: nextFrom || null,
+                    date_to: nextTo || null
                 });
 
                 if (!error) {
@@ -326,16 +426,52 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
                     // Add to local state
                     newItems.push({
                         id: newItemId,
-                        name: item.name,
-                        dateFrom: item.dateFrom || '',
-                        dateTo: item.dateTo || '',
+                        name: importName,
+                        dateFrom: nextFrom || '',
+                        dateTo: nextTo || '',
                     });
+                    existingByName.set(importKey, [{
+                        id: newItemId,
+                        name: importName,
+                        dateFrom: nextFrom,
+                        dateTo: nextTo,
+                        categoryId: undefined
+                    }]);
+                } else {
+                    console.error("Error inserting tender plan during import:", error);
+                    skippedCount++;
                 }
             }
 
-            // Refresh items from DB to be sure or just append local
-            setItems(prev => [...prev, ...newItems]);
-            alert(`Importováno ${importCount} položek.`);
+            let refreshed = false;
+            try {
+                const { data, error } = await supabase
+                    .from('tender_plans')
+                    .select('*')
+                    .eq('project_id', projectId)
+                    .order('created_at', { ascending: true });
+
+                if (!error && data) {
+                    const mapped = data.map(row => ({
+                        id: row.id,
+                        name: row.name,
+                        dateFrom: row.date_from || '',
+                        dateTo: row.date_to || '',
+                        categoryId: row.category_id || undefined
+                    }));
+                    setItems(mapped);
+                    refreshed = true;
+                }
+            } catch (err) {
+                console.warn("Unable to refresh tender plans after import:", err);
+            }
+
+            if (!refreshed) {
+                const merged = existingItems.map(item => updatedItems.get(item.id) ?? item);
+                setItems([...merged, ...newItems]);
+            }
+
+            alert(`Import dokončen.\nNově přidáno: ${importCount}\nAktualizováno: ${updatedCount}\nPřeskočeno: ${skippedCount}`);
 
         } catch (err) {
             console.error('Error importing file:', err);

@@ -3,6 +3,7 @@ import { Project, ProjectStatus } from '../types';
 import { Header } from './Header';
 import { projectService } from '../services/projectService';
 import { useAuth } from '../context/AuthContext';
+import { DeleteConfirmationModal } from './DeleteConfirmationModal';
 
 interface ProjectManagerProps {
     projects: Project[];
@@ -16,9 +17,9 @@ const ArchiveSection: React.FC<{
     projects: Project[];
     user: { id: string } | null;
     onRestoreProject: (id: string) => void;
-    onDeleteProject: (id: string) => void;
+    openDeleteModal: (id: string, name: string) => void;
     openShareModal: (id: string) => void;
-}> = ({ projects, user, onRestoreProject, onDeleteProject, openShareModal }) => {
+}> = ({ projects, user, onRestoreProject, openDeleteModal, openShareModal }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
     return (
@@ -68,7 +69,7 @@ const ArchiveSection: React.FC<{
                                 {/* Delete Button - Only Owner */}
                                 {(!project.ownerId || project.ownerId === user?.id) && (
                                     <button
-                                        onClick={() => onDeleteProject(project.id)}
+                                        onClick={() => openDeleteModal(project.id, project.name)}
                                         className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                                         title="Odstranit trvale"
                                     >
@@ -105,6 +106,24 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
     const [shares, setShares] = useState<{ user_id: string, email: string, permission: string }[]>([]);
     const [isLoadingShares, setIsLoadingShares] = useState(false);
     const [isSharing, setIsSharing] = useState(false);
+
+    // Delete Confirmation State
+    const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+
+    const openDeleteModal = (id: string, name: string) => {
+        setDeleteTarget({ id, name });
+    };
+
+    const closeDeleteModal = () => {
+        setDeleteTarget(null);
+    };
+
+    const handleConfirmDelete = () => {
+        if (deleteTarget) {
+            onDeleteProject(deleteTarget.id);
+            setDeleteTarget(null);
+        }
+    };
 
     // Permission translation helper
     const getPermissionLabel = (permission: string) => {
@@ -277,7 +296,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
 
         try {
             await projectService.updateSharePermission(sharingProjectId, userId, newPermission);
-            setShares(shares.map(s => 
+            setShares(shares.map(s =>
                 s.user_id === userId ? { ...s, permission: newPermission } : s
             ));
         } catch (error) {
@@ -430,7 +449,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                     {/* Delete Button - Only Owner */}
                                     {(!project.ownerId || project.ownerId === user?.id) && (
                                         <button
-                                            onClick={() => onDeleteProject(project.id)}
+                                            onClick={() => openDeleteModal(project.id, project.name)}
                                             className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                                             title="Odstranit"
                                         >
@@ -452,7 +471,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                         projects={projects.filter(p => p.status === 'archived')}
                         user={user}
                         onRestoreProject={onArchiveProject}
-                        onDeleteProject={onDeleteProject}
+                        openDeleteModal={openDeleteModal}
                         openShareModal={openShareModal}
                     />
                 )}
@@ -557,6 +576,14 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                     </div>
                 </div>
             )}
+
+            {/* Delete Confirmation Modal */}
+            <DeleteConfirmationModal
+                isOpen={!!deleteTarget}
+                projectName={deleteTarget?.name || ''}
+                onConfirm={handleConfirmDelete}
+                onCancel={closeDeleteModal}
+            />
         </div>
     );
 };
