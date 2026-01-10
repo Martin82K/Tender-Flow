@@ -12,6 +12,7 @@ import {
 } from "../types";
 import { SubcontractorSelector } from "./SubcontractorSelector";
 import { ConfirmationModal } from "./ConfirmationModal";
+import { AlertModal } from "./AlertModal";
 import { supabase } from "../services/supabase";
 import { invokeAuthedFunction } from "../services/functionsClient";
 import { uploadDocument, formatFileSize } from "../services/documentService";
@@ -102,34 +103,37 @@ export const Pipeline: React.FC<PipelineProps> = ({
     !!projectDetails.docHubRootId &&
     projectDetails.docHubStatus === "connected";
 
-  const [docHubUiModal, setDocHubUiModal] = useState<{
+  const [alertModal, setAlertModal] = useState<{
     isOpen: boolean;
     title: string;
     message: string;
     variant: "danger" | "info" | "success";
+    copyableText?: string;
   }>({ isOpen: false, title: "", message: "", variant: "info" });
 
-  const showDocHubModal = (args: {
+  const showAlert = (args: {
     title: string;
     message: string;
     variant?: "danger" | "info" | "success";
+    copyableText?: string;
   }) => {
-    setDocHubUiModal({
+    setAlertModal({
       isOpen: true,
       title: args.title,
       message: args.message,
       variant: args.variant ?? "info",
+      copyableText: args.copyableText,
     });
   };
 
-  const docHubModalNode = (
-    <ConfirmationModal
-      isOpen={docHubUiModal.isOpen}
-      title={docHubUiModal.title}
-      message={docHubUiModal.message}
-      variant={docHubUiModal.variant}
-      confirmLabel="OK"
-      onConfirm={() => setDocHubUiModal((prev) => ({ ...prev, isOpen: false }))}
+  const alertModalNode = (
+    <AlertModal
+      isOpen={alertModal.isOpen}
+      title={alertModal.title}
+      message={alertModal.message}
+      variant={alertModal.variant}
+      copyableText={alertModal.copyableText}
+      onClose={() => setAlertModal((prev) => ({ ...prev, isOpen: false }))}
     />
   );
 
@@ -153,13 +157,18 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
     try {
       await navigator.clipboard.writeText(path);
-      showDocHubModal({
+      showAlert({
         title: "Zkopírováno",
         message: path,
         variant: "success",
       });
     } catch {
-      window.prompt("Zkopírujte cestu:", path);
+      showAlert({
+        title: "Kopírování selhalo",
+        message: "Automatické kopírování selhalo. Zkopírujte cestu ručně:",
+        variant: "info",
+        copyableText: path
+      });
     }
   };
 
@@ -179,7 +188,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
       window.open(webUrl, "_blank", "noopener,noreferrer");
     } catch (e) {
       const message = e instanceof Error ? e.message : "Neznámá chyba";
-      showDocHubModal({ title: "DocHub chyba", message, variant: "danger" });
+      showAlert({ title: "DocHub chyba", message, variant: "danger" });
     }
   };
 
@@ -536,10 +545,12 @@ export const Pipeline: React.FC<PipelineProps> = ({
             hint: error.hint,
             fullError: JSON.stringify(error, null, 2),
           });
-          alert(
-            `Chyba při ukládání nabídek: ${error.message}\n\nKód: ${error.code
-            }\nDetail: ${error.details || "N/A"}\nHint: ${error.hint || "N/A"}`
-          );
+
+          showAlert({
+            title: "Chyba při ukládání",
+            message: `Chyba při ukládání nabídek: ${error.message}\n\nKód: ${error.code}\nDetail: ${error.details || "N/A"}\nHint: ${error.hint || "N/A"}`,
+            variant: "danger"
+          });
         } else {
           console.log("🟢 Successfully inserted bids:", data);
 
@@ -568,9 +579,11 @@ export const Pipeline: React.FC<PipelineProps> = ({
         }
       } catch (err) {
         console.error("🔴 Unexpected error inserting bids:", err);
-        alert(`Neočekávaná chyba: ${err}`);
+
+        showAlert({ title: "Chyba", message: `Neočekávaná chyba: ${err}`, variant: "danger" });
       }
     }
+
 
     setIsSubcontractorModalOpen(false);
     setSelectedSubcontractorIds(new Set());
@@ -593,7 +606,9 @@ export const Pipeline: React.FC<PipelineProps> = ({
         );
       } catch (error) {
         console.error("Error uploading documents:", error);
-        alert("Chyba při nahrávání dokumentů. Zkuste to prosím znovu.");
+        console.error("Error uploading documents:", error);
+        showAlert({ title: "Chyba", message: "Chyba při nahrávání dokumentů. Zkuste to prosím znovu.", variant: "danger" });
+        setUploadingFiles(false);
         setUploadingFiles(false);
         return;
       }
@@ -651,7 +666,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
         uploadedDocuments = [...uploadedDocuments, ...newDocs];
       } catch (error) {
         console.error("Error uploading documents:", error);
-        alert("Chyba při nahrávání dokumentů. Zkuste to prosím znovu.");
+        showAlert({ title: "Chyba", message: "Chyba při nahrávání dokumentů. Zkuste to prosím znovu.", variant: "danger" });
         setUploadingFiles(false);
         return;
       }
@@ -710,7 +725,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
         );
       } catch (error) {
         console.error("Error uploading documents:", error);
-        alert("Chyba při nahrávání dokumentů. Zkuste to prosím znovu.");
+        showAlert({ title: "Chyba", message: "Chyba při nahrávání dokumentů. Zkuste to prosím znovu.", variant: "danger" });
         return;
       }
     }
@@ -758,7 +773,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
         uploadedDocuments = [...uploadedDocuments, ...newDocs];
       } catch (error) {
         console.error("Error uploading documents:", error);
-        alert("Chyba při nahrávání dokumentů. Zkuste to prosím znovu.");
+        showAlert({ title: "Chyba", message: "Chyba při nahrávání dokumentů. Zkuste to prosím znovu.", variant: "danger" });
         return;
       }
     }
@@ -976,7 +991,11 @@ export const Pipeline: React.FC<PipelineProps> = ({
     }
 
     if (!template) {
-      alert("Nepodařilo se načíst šablonu emailu. Prosím zkontrolujte nastavení šablon.");
+      showAlert({
+        title: "Chyba šablony",
+        message: "Nepodařilo se načíst šablonu emailu. Prosím zkontrolujte nastavení šablon.",
+        variant: "danger"
+      });
       return;
     }
 
@@ -1095,7 +1114,11 @@ export const Pipeline: React.FC<PipelineProps> = ({
       setIsExportMenuOpen(false);
     } catch (error) {
       console.error("Export error:", error);
-      alert("Chyba při exportu. Zkuste to prosím znovu.");
+      showAlert({
+        title: "Chyba exportu",
+        message: "Chyba při exportu. Zkuste to prosím znovu.",
+        variant: "danger"
+      });
     }
   };
 
@@ -1136,7 +1159,11 @@ export const Pipeline: React.FC<PipelineProps> = ({
     });
 
     if (loserBids.length === 0) {
-      alert("Nejsou žádní nevybráni účastníci s cenou.");
+      showAlert({
+        title: "Info",
+        message: "Nejsou žádní nevybráni účastníci s cenou.",
+        variant: "info"
+      });
       return;
     }
 
@@ -1144,7 +1171,11 @@ export const Pipeline: React.FC<PipelineProps> = ({
     const emails = loserBids.filter((bid) => bid.email).map((bid) => bid.email);
 
     if (emails.length === 0) {
-      alert("Žádný z nevybraných účastníků nemá uvedený email.");
+      showAlert({
+        title: "Info",
+        message: "Žádný z nevybraných účastníků nemá uvedený email.",
+        variant: "info"
+      });
       return;
     }
 
@@ -1263,7 +1294,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
     // --- DETAIL VIEW (PIPELINE) ---
     return (
       <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950">
-        {docHubModalNode}
+        {alertModalNode}
         <Header
           title={activeCategory.title}
           subtitle={`${projectData.title} > Průběh výběrového řízení`}
@@ -1688,7 +1719,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
   // --- LIST VIEW (OVERVIEW) ---
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen">
-      {docHubModalNode}
+      {alertModalNode}
       <PipelineOverview
         categories={projectData.categories}
         bids={bids}

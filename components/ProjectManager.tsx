@@ -4,6 +4,8 @@ import { Header } from './Header';
 import { projectService } from '../services/projectService';
 import { useAuth } from '../context/AuthContext';
 import { DeleteConfirmationModal } from './DeleteConfirmationModal';
+import { AlertModal } from './AlertModal';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface ProjectManagerProps {
     projects: Project[];
@@ -118,6 +120,26 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
         setDeleteTarget(null);
     };
 
+    // Alert & Confirm Modal State
+    const [alertModal, setAlertModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        variant: 'success' | 'error' | 'info';
+    }>({ isOpen: false, title: '', message: '', variant: 'info' });
+
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+        variant?: 'danger' | 'info';
+        confirmLabel?: string;
+    }>({ isOpen: false, title: '', message: '', onConfirm: () => { } });
+
+    const closeAlertModal = () => setAlertModal(prev => ({ ...prev, isOpen: false }));
+    const closeConfirmModal = () => setConfirmModal(prev => ({ ...prev, isOpen: false }));
+
     const handleConfirmDelete = () => {
         if (deleteTarget) {
             onDeleteProject(deleteTarget.id);
@@ -224,7 +246,12 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
             setNewProjectLocation('');
         } catch (error) {
             console.error('Error creating project:', error);
-            alert('Chyba při vytváření projektu.');
+            setAlertModal({
+                isOpen: true,
+                title: 'Chyba',
+                message: 'Chyba při vytváření projektu.',
+                variant: 'error'
+            });
         } finally {
             setIsCreating(false);
         }
@@ -246,7 +273,12 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
             }
         } catch (error) {
             console.error('[ProjectManager] Error loading shares:', error);
-            alert(`Chyba při načítání sdílení: ${error instanceof Error ? error.message : 'Neznámá chyba'}`);
+            setAlertModal({
+                isOpen: true,
+                title: 'Chyba',
+                message: `Chyba při načítání sdílení: ${error instanceof Error ? error.message : 'Neznámá chyba'}`,
+                variant: 'error'
+            });
             setShares([]);
         } finally {
             setIsLoadingShares(false);
@@ -270,24 +302,51 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
             setShares(fetchedShares);
             setShareEmail('');
             setSharePermission('edit');
-            alert('Projekt byl úspěšně nasdílen.');
+            setAlertModal({
+                isOpen: true,
+                title: 'Sdílení',
+                message: 'Projekt byl úspěšně nasdílen.',
+                variant: 'success'
+            });
         } catch (error: any) {
             console.error('Example share error:', error);
-            alert(error.message || 'Chyba při sdílení.');
+            setAlertModal({
+                isOpen: true,
+                title: 'Chyba',
+                message: error.message || 'Chyba při sdílení.',
+                variant: 'error'
+            });
         } finally {
             setIsSharing(false);
         }
     };
 
-    const handleRemoveShare = async (userId: string) => {
-        if (!sharingProjectId || !confirm('Opravdu zrušit sdílení tomuto uživateli?')) return;
+    const handleRemoveShareClick = (userId: string) => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Zrušit sdílení',
+            message: 'Opravdu zrušit sdílení tomuto uživateli?',
+            confirmLabel: 'Zrušit přístup',
+            variant: 'danger',
+            onConfirm: () => executeRemoveShare(userId)
+        });
+    };
+
+    const executeRemoveShare = async (userId: string) => {
+        closeConfirmModal();
+        if (!sharingProjectId) return;
 
         try {
             await projectService.removeShare(sharingProjectId, userId);
             setShares(shares.filter(s => s.user_id !== userId));
         } catch (error) {
             console.error('Error removing share:', error);
-            alert('Chyba při rušení sdílení.');
+            setAlertModal({
+                isOpen: true,
+                title: 'Chyba',
+                message: 'Chyba při rušení sdílení.',
+                variant: 'error'
+            });
         }
     };
 
@@ -301,7 +360,12 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
             ));
         } catch (error) {
             console.error('Error updating permission:', error);
-            alert('Chyba při změně oprávnění.');
+            setAlertModal({
+                isOpen: true,
+                title: 'Chyba',
+                message: 'Chyba při změně oprávnění.',
+                variant: 'error'
+            });
         }
     };
 
@@ -560,7 +624,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                                         <option value="view">Pouze čtení</option>
                                                     </select>
                                                     <button
-                                                        onClick={() => handleRemoveShare(share.user_id)}
+                                                        onClick={() => handleRemoveShareClick(share.user_id)}
                                                         className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                                                         title="Odebrat přístup"
                                                     >
@@ -583,6 +647,24 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                 projectName={deleteTarget?.name || ''}
                 onConfirm={handleConfirmDelete}
                 onCancel={closeDeleteModal}
+            />
+
+            <ConfirmationModal
+                isOpen={confirmModal.isOpen}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                onConfirm={confirmModal.onConfirm}
+                onCancel={closeConfirmModal}
+                confirmLabel={confirmModal.confirmLabel || 'OK'}
+                variant={confirmModal.variant || 'danger'}
+            />
+
+            <AlertModal
+                isOpen={alertModal.isOpen}
+                onClose={closeAlertModal}
+                title={alertModal.title}
+                message={alertModal.message}
+                variant={alertModal.variant}
             />
         </div>
     );

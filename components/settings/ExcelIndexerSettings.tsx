@@ -11,6 +11,8 @@ import {
   deleteAllIndexEntries,
   IndexEntry,
 } from "@/services/indexerService";
+import { AlertModal } from "../AlertModal";
+import { ConfirmationModal } from "../ConfirmationModal";
 
 const SETTINGS_KEY = "excelIndexerSettings";
 
@@ -78,6 +80,26 @@ export const ExcelIndexerSettings: React.FC = () => {
     stats: any;
   } | null>(null);
 
+  // Modal States
+  const [alertModal, setAlertModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    variant: 'success' | 'error' | 'info';
+  }>({ isOpen: false, title: '', message: '', variant: 'info' });
+
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    variant?: 'danger' | 'info';
+    confirmLabel?: string;
+  }>({ isOpen: false, title: '', message: '', onConfirm: () => { } });
+
+  const closeAlertModal = () => setAlertModal(prev => ({ ...prev, isOpen: false }));
+  const closeConfirmModal = () => setConfirmModal(prev => ({ ...prev, isOpen: false }));
+
   const logContainerRef = useRef<HTMLDivElement>(null);
 
   // Load data on mount
@@ -136,7 +158,12 @@ export const ExcelIndexerSettings: React.FC = () => {
   // Import from Excel
   const handleImportExcel = async (file: File) => {
     if (!/\.(xlsx|xls)$/i.test(file.name)) {
-      alert("Podporované jsou pouze soubory .xlsx a .xls");
+      setAlertModal({
+        isOpen: true,
+        title: "Nepodporovaný formát",
+        message: "Podporované jsou pouze soubory .xlsx a .xls",
+        variant: "error"
+      });
       return;
     }
 
@@ -174,7 +201,13 @@ export const ExcelIndexerSettings: React.FC = () => {
       }
     } catch (e: any) {
       console.error("Import error:", e);
-      alert(`Chyba při importu: ${e.message || "Neznámá chyba"}`);
+      console.error("Import error:", e);
+      setAlertModal({
+        isOpen: true,
+        title: "Chyba importu",
+        message: `Chyba při importu: ${e.message || "Neznámá chyba"}`,
+        variant: "error"
+      });
     } finally {
       setIsSaving(false);
     }
@@ -185,7 +218,12 @@ export const ExcelIndexerSettings: React.FC = () => {
     if (!newCode.trim() || !newDesc.trim()) return;
 
     if (entries.some((e) => e.code === newCode.trim())) {
-      alert("Tento kód již existuje");
+      setAlertModal({
+        isOpen: true,
+        title: "Duplicitní kód",
+        message: "Tento kód již existuje",
+        variant: "error"
+      });
       return;
     }
 
@@ -250,9 +288,19 @@ export const ExcelIndexerSettings: React.FC = () => {
   };
 
   // Clear all entries
-  const handleClearAll = async () => {
-    if (!confirm("Opravdu chcete smazat celý číselník?")) return;
+  const handleClearAll = () => {
+    setConfirmModal({
+      isOpen: true,
+      title: "Vymazat číselník",
+      message: "Opravdu chcete smazat celý číselník? Tato akce je nevratná.",
+      confirmLabel: "Vymazat",
+      variant: "danger",
+      onConfirm: executeClearAll
+    });
+  };
 
+  const executeClearAll = async () => {
+    closeConfirmModal();
     setIsSaving(true);
     try {
       const success = await deleteAllIndexEntries();
@@ -262,6 +310,12 @@ export const ExcelIndexerSettings: React.FC = () => {
       }
     } catch (e) {
       console.error("Error clearing entries:", e);
+      setAlertModal({
+        isOpen: true,
+        title: "Chyba",
+        message: "Chyba při mazání číselníku.",
+        variant: "error"
+      });
     } finally {
       setIsSaving(false);
     }
@@ -270,7 +324,12 @@ export const ExcelIndexerSettings: React.FC = () => {
   // Handle budget file
   const handleBudgetFile = (file: File) => {
     if (!/\.(xlsx|xls)$/i.test(file.name)) {
-      alert("Podporované jsou pouze soubory .xlsx a .xls");
+      setAlertModal({
+        isOpen: true,
+        title: "Nepodporovaný formát",
+        message: "Podporované jsou pouze soubory .xlsx a .xls",
+        variant: "error"
+      });
       return;
     }
     setBudgetFile(file);
@@ -285,7 +344,12 @@ export const ExcelIndexerSettings: React.FC = () => {
   // Phase 1: Insert Oddíly column
   const handlePhase1 = async () => {
     if (!budgetFile) {
-      alert("Nahrajte prosím soubor ke zpracování.");
+      setAlertModal({
+        isOpen: true,
+        title: "Chybí soubor",
+        message: "Nahrajte prosím soubor ke zpracování.",
+        variant: "info"
+      });
       return;
     }
 
@@ -321,7 +385,12 @@ export const ExcelIndexerSettings: React.FC = () => {
     } catch (e: any) {
       console.error("Phase 1 error:", e);
       addLog(`CHYBA Fáze 1: ${e.message || "Neznámá chyba"}`);
-      alert(`Chyba při zpracování Fáze 1: ${e.message || "Neznámá chyba"}`);
+      setAlertModal({
+        isOpen: true,
+        title: "Chyba Fáze 1",
+        message: `Chyba při zpracování Fáze 1: ${e.message || "Neznámá chyba"}`,
+        variant: "error"
+      });
       setPhase('ready');
       setProgress(null);
     } finally {
@@ -333,11 +402,21 @@ export const ExcelIndexerSettings: React.FC = () => {
   const handleProcess = async () => {
     // Phase 2 requires Phase 1 to be complete
     if (!phase1OutputBuffer) {
-      alert("Nejdříve spusťte Fázi 1 (vložení oddílů).");
+      setAlertModal({
+        isOpen: true,
+        title: "Nedokončená Fáze 1",
+        message: "Nejdříve spusťte Fázi 1 (vložení oddílů).",
+        variant: "info"
+      });
       return;
     }
     if (entries.length === 0) {
-      alert("Číselník je prázdný. Přidejte položky pro indexaci.");
+      setAlertModal({
+        isOpen: true,
+        title: "Prázdný číselník",
+        message: "Číselník je prázdný. Přidejte položky pro indexaci.",
+        variant: "info"
+      });
       return;
     }
 
@@ -389,7 +468,12 @@ export const ExcelIndexerSettings: React.FC = () => {
     } catch (e: any) {
       console.error("Phase 2 error:", e);
       addLog(`CHYBA Fáze 2: ${e.message || "Neznámá chyba"}`);
-      alert(`Chyba při zpracování Fáze 2: ${e.message || "Neznámá chyba"}`);
+      setAlertModal({
+        isOpen: true,
+        title: "Chyba Fáze 2",
+        message: `Chyba při zpracování Fáze 2: ${e.message || "Neznámá chyba"}`,
+        variant: "error"
+      });
       setPhase('phase1-done'); // Go back to phase 1 done state
       setProgress(null);
     } finally {
@@ -1081,6 +1165,24 @@ export const ExcelIndexerSettings: React.FC = () => {
           </div>
         )}
       </section>
+
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={closeAlertModal}
+        title={alertModal.title}
+        message={alertModal.message}
+        variant={alertModal.variant}
+      />
+
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={closeConfirmModal}
+        confirmLabel={confirmModal.confirmLabel || 'OK'}
+        variant={confirmModal.variant || 'danger'}
+      />
     </div>
   );
 };

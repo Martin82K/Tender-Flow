@@ -6,7 +6,7 @@ type DocHubHook = ReturnType<typeof useDocHubIntegration>;
 interface DocHubAutoCreateStatusProps {
     state: DocHubHook['state'];
     setters: DocHubHook['setters'];
-    showModal: (args: { title: string; message: string; variant?: 'danger' | 'info' | 'success' }) => void;
+    showModal: (args: { title: string; message: string; variant?: 'danger' | 'info' | 'success'; copyableText?: string }) => void;
     showLog: boolean;
     setShowLog: (v: boolean) => void;
     showOverview: boolean;
@@ -116,7 +116,12 @@ export const DocHubAutoCreateStatus: React.FC<DocHubAutoCreateStatusProps> = ({
                                         await navigator.clipboard.writeText(text);
                                         showModal({ title: "Zkopírováno", message: "Log zkopírován do schránky.", variant: "success" });
                                     } catch {
-                                        window.prompt("Zkopírujte log:", text);
+                                        showModal({
+                                            title: "Zkopírujte log",
+                                            message: "Automatické kopírování selhalo. Zkopírujte log ručně:",
+                                            variant: "info",
+                                            copyableText: text
+                                        });
                                     }
                                 }}
                                 className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-medium transition-colors border border-slate-300 dark:border-slate-700/50"
@@ -169,7 +174,12 @@ export const DocHubAutoCreateStatus: React.FC<DocHubAutoCreateStatusProps> = ({
                                             await navigator.clipboard.writeText(path);
                                             showModal({ title: "Zkopírováno", message: path, variant: "success" });
                                         } catch {
-                                            window.prompt("Zkopírujte cestu:", path);
+                                            showModal({
+                                                title: "Zkopírujte cestu",
+                                                message: "Automatické kopírování selhalo. Zkopírujte cestu ručně:",
+                                                variant: "info",
+                                                copyableText: path
+                                            });
                                         }
                                     }}
                                     className="text-left px-3 py-2 bg-slate-50 dark:bg-slate-950/30 border border-slate-200 dark:border-slate-700/50 rounded-lg text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/40 transition-colors"

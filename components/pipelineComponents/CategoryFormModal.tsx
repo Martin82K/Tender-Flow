@@ -9,6 +9,7 @@ import { DemandCategory, DemandDocument } from '../../types';
 import { formatInputNumber } from '../../utils/formatters';
 import { formatFileSize } from '../../services/documentService';
 import { uploadDocument } from '../../services/documentService';
+import { AlertModal } from '../AlertModal';
 
 export interface CategoryFormData {
     title: string;
@@ -50,6 +51,12 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
     const [formData, setFormData] = useState<CategoryFormData>(initialFormState);
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title: string; message: string; variant: 'danger' | 'info' | 'success' }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        variant: 'info'
+    });
 
     // Reset form when modal opens/closes or when switching between create/edit
     useEffect(() => {
@@ -85,7 +92,12 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
                 (f: File) => f.size <= 10 * 1024 * 1024
             );
             if (newFiles.length < e.target.files.length) {
-                alert('Některé soubory překročily limit 10MB a nebyly přidány.');
+                setAlertModal({
+                    isOpen: true,
+                    title: 'Chyba nahrávání',
+                    message: 'Některé soubory překročily limit 10MB a nebyly přidány.',
+                    variant: 'danger'
+                });
             }
             setSelectedFiles((prev) => [...prev, ...newFiles]);
         }
@@ -332,6 +344,13 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
                     </div>
                 </form>
             </div>
+            <AlertModal
+                isOpen={alertModal.isOpen}
+                onClose={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
+                title={alertModal.title}
+                message={alertModal.message}
+                variant={alertModal.variant}
+            />
         </div>
     );
 };

@@ -227,18 +227,21 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
     title: string;
     message: string;
     variant: "danger" | "info" | "success";
+    copyableText?: string;
   }>({ isOpen: false, title: "", message: "", variant: "info" });
 
   const showModal = (args: {
     title: string;
     message: string;
     variant?: "danger" | "info" | "success";
+    copyableText?: string;
   }) => {
     setUiModal({
       isOpen: true,
       title: args.title,
       message: args.message,
       variant: args.variant ?? "info",
+      copyableText: args.copyableText,
     });
   };
 
@@ -252,6 +255,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
         title={uiModal.title}
         message={uiModal.message}
         variant={uiModal.variant}
+        copyableText={uiModal.copyableText}
         confirmLabel="OK"
         onConfirm={() => setUiModal((prev) => ({ ...prev, isOpen: false }))}
       />
@@ -280,44 +284,40 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
             <button
               type="button"
               onClick={() => setDocumentsSubTab("pd")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                documentsSubTab === "pd"
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${documentsSubTab === "pd"
                   ? "bg-primary text-white shadow-lg"
                   : "text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700/50"
-              }`}
+                }`}
             >
               PD
             </button>
             <button
               type="button"
               onClick={() => setDocumentsSubTab("templates")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                documentsSubTab === "templates"
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${documentsSubTab === "templates"
                   ? "bg-primary text-white shadow-lg"
                   : "text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700/50"
-              }`}
+                }`}
             >
               Šablony
             </button>
             <button
               type="button"
               onClick={() => setDocumentsSubTab("dochub")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                documentsSubTab === "dochub"
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${documentsSubTab === "dochub"
                   ? "bg-primary text-white shadow-lg"
                   : "text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700/50"
-              }`}
+                }`}
             >
               DocHub
             </button>
             <button
               type="button"
               onClick={() => setDocumentsSubTab("ceniky")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                documentsSubTab === "ceniky"
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${documentsSubTab === "ceniky"
                   ? "bg-primary text-white shadow-lg"
                   : "text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700/50"
-              }`}
+                }`}
             >
               Ceníky
             </button>
@@ -455,19 +455,19 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
               onSelectTemplate={
                 templateManagerTarget
                   ? (template) => {
-                      if (templateManagerTarget.kind === "inquiry") {
-                        onUpdate({
-                          inquiryLetterLink: `template:${template.id}`,
-                        });
-                      } else if (templateManagerTarget.kind === "losers") {
-                        onUpdate({
-                          losersEmailTemplateLink: `template:${template.id}`,
-                        });
-                      }
-                      setShowTemplateManager(false);
-                      setTemplateManagerTarget(null);
-                      setTemplateManagerInitialId(null);
+                    if (templateManagerTarget.kind === "inquiry") {
+                      onUpdate({
+                        inquiryLetterLink: `template:${template.id}`,
+                      });
+                    } else if (templateManagerTarget.kind === "losers") {
+                      onUpdate({
+                        losersEmailTemplateLink: `template:${template.id}`,
+                      });
                     }
+                    setShowTemplateManager(false);
+                    setTemplateManagerTarget(null);
+                    setTemplateManagerInitialId(null);
+                  }
                   : undefined
               }
             />

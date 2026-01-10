@@ -11,7 +11,7 @@ interface PriceListsSectionProps {
     onSave: () => void;
     isDocHubConnected: boolean;
     docHubCenikyLink: string | null;
-    showModal: (args: { title: string; message: string; variant?: 'success' | 'danger' | 'info' }) => void;
+    showModal: (args: { title: string; message: string; variant?: 'success' | 'danger' | 'info'; copyableText?: string }) => void;
 }
 
 export const PriceListsSection: React.FC<PriceListsSectionProps> = ({
@@ -134,7 +134,12 @@ export const PriceListsSection: React.FC<PriceListsSectionProps> = ({
                                     await navigator.clipboard.writeText(value);
                                     showModal({ title: "Zkopírováno", message: value, variant: "success" });
                                 } catch {
-                                    window.prompt("Zkopírujte cestu:", value);
+                                    showModal({
+                                        title: "Zkopírujte cestu",
+                                        message: "Automatické kopírování selhalo. Zkopírujte cestu ručně:",
+                                        variant: "info",
+                                        copyableText: value,
+                                    });
                                 }
                             }}
                             className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-lg text-sm font-bold transition-colors"

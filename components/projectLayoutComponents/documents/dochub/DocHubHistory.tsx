@@ -1,6 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { ProjectDetails } from '../../../../types';
 import { supabase } from '../../../../services/supabase';
+import { AlertModal } from '../../../AlertModal';
+import { ConfirmationModal } from '../../../ConfirmationModal';
 
 interface DocHubHistoryProps {
     project: ProjectDetails;
@@ -31,6 +33,25 @@ export const DocHubHistory: React.FC<DocHubHistoryProps> = ({ project, onSelectR
         onlyCreated: false,
         days: 30,
     });
+
+    const [alertModal, setAlertModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        variant: 'success' | 'error' | 'info';
+    }>({ isOpen: false, title: '', message: '', variant: 'info' });
+
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+        variant?: 'danger' | 'info';
+        confirmLabel?: string;
+    }>({ isOpen: false, title: '', message: '', onConfirm: () => { } });
+
+    const closeAlertModal = () => setAlertModal(prev => ({ ...prev, isOpen: false }));
+    const closeConfirmModal = () => setConfirmModal(prev => ({ ...prev, isOpen: false }));
 
     const countCreatedFromLogs = (logs: unknown): number => {
         if (!Array.isArray(logs)) return 0;
@@ -121,19 +142,33 @@ export const DocHubHistory: React.FC<DocHubHistoryProps> = ({ project, onSelectR
                         </button>
                         <button
                             type="button"
-                            onClick={async () => {
-                                if (!window.confirm('Opravdu smazat logy starší 20 dní?')) return;
-                                const cutoff = new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString();
-                                const { error } = await supabase
-                                    .from('dochub_autocreate_runs')
-                                    .delete()
-                                    .eq('project_id', project.id)
-                                    .lt('started_at', cutoff);
-                                if (error) {
-                                    alert('Chyba při mazání: ' + error.message);
-                                } else {
-                                    loadHistory();
-                                }
+                            onClick={() => {
+                                setConfirmModal({
+                                    isOpen: true,
+                                    title: "Smazat logy",
+                                    message: "Opravdu smazat logy starší 20 dní?",
+                                    confirmLabel: "Smazat",
+                                    variant: "danger",
+                                    onConfirm: async () => {
+                                        closeConfirmModal();
+                                        const cutoff = new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString();
+                                        const { error } = await supabase
+                                            .from('dochub_autocreate_runs')
+                                            .delete()
+                                            .eq('project_id', project.id)
+                                            .lt('started_at', cutoff);
+                                        if (error) {
+                                            setAlertModal({
+                                                isOpen: true,
+                                                title: "Chyba",
+                                                message: 'Chyba při mazání: ' + error.message,
+                                                variant: "error"
+                                            });
+                                        } else {
+                                            loadHistory();
+                                        }
+                                    }
+                                });
                             }}
                             className="px-3 py-2 rounded-lg text-sm font-medium transition-colors border bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30"
                             title="Smazat logy starší 20 dní"
@@ -231,6 +266,22 @@ export const DocHubHistory: React.FC<DocHubHistoryProps> = ({ project, onSelectR
                     </button>
                 </div>
             </div>
-        </div>
+            <AlertModal
+                isOpen={alertModal.isOpen}
+                onClose={closeAlertModal}
+                title={alertModal.title}
+                message={alertModal.message}
+                variant={alertModal.variant}
+            />
+            <ConfirmationModal
+                isOpen={confirmModal.isOpen}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                onConfirm={confirmModal.onConfirm}
+                onCancel={closeConfirmModal}
+                confirmLabel={confirmModal.confirmLabel || 'OK'}
+                variant={confirmModal.variant || 'danger'}
+            />
+        </div >
     );
 };

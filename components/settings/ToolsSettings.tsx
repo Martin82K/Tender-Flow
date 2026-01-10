@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { unlockExcelZip } from "@/utils/excelUnlockZip";
 import { IndexMatcherSettings } from "./IndexMatcherSettings";
+import { AlertModal } from "../../components/AlertModal";
 
 interface ToolsSettingsProps {
   // No props needed currently as this is self-contained or uses local storage
@@ -19,9 +20,24 @@ export const ToolsSettings: React.FC<ToolsSettingsProps> = () => {
   } | null>(null);
   const [isExcelDropActive, setIsExcelDropActive] = useState(false);
 
+  // Alert Modal State
+  const [alertModal, setAlertModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    variant: 'success' | 'error' | 'info';
+  }>({ isOpen: false, title: '', message: '', variant: 'error' });
+
+  const closeAlertModal = () => setAlertModal(prev => ({ ...prev, isOpen: false }));
+
   const acceptExcelFile = (file: File) => {
     if (!/\.(xlsx|xlsm)$/i.test(file.name)) {
-      alert("Podporované jsou pouze soubory .xlsx a .xlsm.");
+      setAlertModal({
+        isOpen: true,
+        title: "Nepodporovaný formát",
+        message: "Podporované jsou pouze soubory .xlsx a .xlsm.",
+        variant: "error"
+      });
       return;
     }
     setExcelFile(file);
@@ -31,7 +47,12 @@ export const ToolsSettings: React.FC<ToolsSettingsProps> = () => {
 
   const handleUnlockExcelInBrowser = async () => {
     if (!excelFile) {
-      alert("Vyberte prosím Excel soubor (.xlsx).");
+      setAlertModal({
+        isOpen: true,
+        title: "Chyba",
+        message: "Vyberte prosím Excel soubor (.xlsx).",
+        variant: "info"
+      });
       return;
     }
 
@@ -79,7 +100,12 @@ export const ToolsSettings: React.FC<ToolsSettingsProps> = () => {
       setExcelSuccessInfo({ outputName: fallbackOutName });
     } catch (e: any) {
       console.error("Excel unlock error:", e);
-      alert(`Nepodařilo se odemknout soubor: ${e?.message || "Neznámá chyba"}`);
+      setAlertModal({
+        isOpen: true,
+        title: "Chyba odemknutí",
+        message: `Nepodařilo se odemknout soubor: ${e?.message || "Neznámá chyba"}`,
+        variant: "error"
+      });
       setExcelProgress(null);
     } finally {
       setIsUnlockingExcel(false);
@@ -206,11 +232,10 @@ export const ToolsSettings: React.FC<ToolsSettingsProps> = () => {
           }}
           className={`
                         border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer
-                        ${
-                          isExcelDropActive
-                            ? "border-emerald-500 bg-emerald-500/10 scale-[1.02]"
-                            : "border-slate-300 dark:border-slate-700 hover:border-emerald-500/50 hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                        }
+                        ${isExcelDropActive
+              ? "border-emerald-500 bg-emerald-500/10 scale-[1.02]"
+              : "border-slate-300 dark:border-slate-700 hover:border-emerald-500/50 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+            }
                     `}
           onClick={() =>
             document.getElementById("excel-upload-trigger")?.click()
@@ -304,11 +329,10 @@ export const ToolsSettings: React.FC<ToolsSettingsProps> = () => {
             disabled={!excelFile || isUnlockingExcel}
             className={`
                             px-8 py-3 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2
-                            ${
-                              !excelFile || isUnlockingExcel
-                                ? "bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed"
-                                : "bg-gradient-to-r from-emerald-600 to-emerald-400 text-white hover:scale-105 hover:shadow-emerald-500/30"
-                            }
+                            ${!excelFile || isUnlockingExcel
+                ? "bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed"
+                : "bg-gradient-to-r from-emerald-600 to-emerald-400 text-white hover:scale-105 hover:shadow-emerald-500/30"
+              }
                         `}
           >
             {isUnlockingExcel ? (
@@ -401,6 +425,14 @@ export const ToolsSettings: React.FC<ToolsSettingsProps> = () => {
 
       {/* Index Matcher */}
       <IndexMatcherSettings />
+
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={closeAlertModal}
+        title={alertModal.title}
+        message={alertModal.message}
+        variant={alertModal.variant}
+      />
     </div>
   );
 };

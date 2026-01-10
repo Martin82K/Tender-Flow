@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Template, ProjectDetails } from '../types';
 import { TEMPLATE_VARIABLES, getPreviewData, processTemplate } from '../utils/templateUtils';
 import { getTemplates, saveTemplate, deleteTemplate as serviceDeleteTemplate } from '../services/templateService';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface TemplateManagerProps {
     project?: ProjectDetails;
@@ -23,6 +24,18 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
     const [editedSubject, setEditedSubject] = useState('');
     const [editedContent, setEditedContent] = useState('');
     const [editedIsDefault, setEditedIsDefault] = useState(false);
+
+    // Confirmation Modal State
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+        variant?: 'danger' | 'info';
+        confirmLabel?: string;
+    }>({ isOpen: false, title: '', message: '', onConfirm: () => { } });
+
+    const closeConfirmModal = () => setConfirmModal(prev => ({ ...prev, isOpen: false }));
 
     const loadTemplatesData = async () => {
         setLoading(true);
@@ -102,29 +115,39 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
         // Note: We don't save to DB yet, user must click Save
     };
 
-    const handleDelete = async (id: string) => {
-        if (confirm('Opravdu chcete smazat tuto šablonu?')) {
-            // Check if it's a temp template (not saved yet)
-            if (id.startsWith('temp-')) {
-                const newTemplates = templates.filter(t => t.id !== id);
-                setTemplates(newTemplates);
-                if (selectedTemplateId === id) {
-                    setSelectedTemplateId(newTemplates[0]?.id || null);
-                }
-                return;
-            }
+    const handleDelete = (id: string) => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Smazat šablonu',
+            message: 'Opravdu chcete smazat tuto šablonu? Tato akce je nevratná.',
+            confirmLabel: 'Smazat',
+            variant: 'danger',
+            onConfirm: () => executeDelete(id)
+        });
+    };
 
-            setLoading(true);
-            const success = await serviceDeleteTemplate(id);
-            if (success) {
-                const newTemplates = templates.filter(t => t.id !== id);
-                setTemplates(newTemplates);
-                if (selectedTemplateId === id) {
-                    setSelectedTemplateId(newTemplates[0]?.id || null);
-                }
+    const executeDelete = async (id: string) => {
+        closeConfirmModal();
+        // Check if it's a temp template (not saved yet)
+        if (id.startsWith('temp-')) {
+            const newTemplates = templates.filter(t => t.id !== id);
+            setTemplates(newTemplates);
+            if (selectedTemplateId === id) {
+                setSelectedTemplateId(newTemplates[0]?.id || null);
             }
-            setLoading(false);
+            return;
         }
+
+        setLoading(true);
+        const success = await serviceDeleteTemplate(id);
+        if (success) {
+            const newTemplates = templates.filter(t => t.id !== id);
+            setTemplates(newTemplates);
+            if (selectedTemplateId === id) {
+                setSelectedTemplateId(newTemplates[0]?.id || null);
+            }
+        }
+        setLoading(false);
     };
 
     const wrapSelection = (tag: string) => {
@@ -169,6 +192,26 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
 
     const previewData = getPreviewData(project);
 
+    const handleTemplateClick = (template: Template) => {
+        if (!editMode) {
+            setSelectedTemplateId(template.id);
+            return;
+        }
+
+        setConfirmModal({
+            isOpen: true,
+            title: 'Neuložené změny',
+            message: 'Máte neuložené změny. Chcete je zahodit a přejít na jinou šablonu?',
+            confirmLabel: 'Zahodit změny',
+            variant: 'info',
+            onConfirm: () => {
+                setEditMode(false);
+                setSelectedTemplateId(template.id);
+                closeConfirmModal();
+            }
+        });
+    };
+
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800">
             {/* Header */}
@@ -206,13 +249,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
                             templates.map(template => (
                                 <div
                                     key={template.id}
-                                    onClick={() => {
-                                        if (!editMode) setSelectedTemplateId(template.id);
-                                        else if (confirm('Máte neuložené změny. Chcete je zahodit?')) {
-                                            setEditMode(false);
-                                            setSelectedTemplateId(template.id);
-                                        }
-                                    }}
+                                    onClick={() => handleTemplateClick(template)}
                                     className={`p-3 rounded-lg cursor-pointer transition-all border ${selectedTemplateId === template.id
                                         ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 ring-1 ring-blue-200 dark:ring-blue-800'
                                         : 'bg-white dark:bg-slate-800 border-transparent hover:bg-slate-50 dark:hover:bg-slate-700'
@@ -458,6 +495,16 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
                     )}
                 </div>
             </div>
+            {/* Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={confirmModal.isOpen}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                onConfirm={confirmModal.onConfirm}
+                onCancel={closeConfirmModal}
+                confirmLabel={confirmModal.confirmLabel || 'OK'}
+                variant={confirmModal.variant || 'danger'}
+            />
         </div>
     );
 };

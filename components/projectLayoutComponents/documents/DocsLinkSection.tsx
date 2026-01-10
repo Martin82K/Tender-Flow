@@ -18,6 +18,7 @@ interface DocsLinkSectionProps {
     title: string;
     message: string;
     variant?: "success" | "danger" | "info";
+    copyableText?: string;
   }) => void;
   onUpdate: (updates: Partial<ProjectDetails>) => void;
 }
@@ -98,7 +99,12 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
         await navigator.clipboard.writeText(url);
         showModal({ title: "Zkopírováno", message: url, variant: "success" });
       } catch {
-        window.prompt("Zkopírujte cestu:", url);
+        showModal({
+          title: "Zkopírujte cestu",
+          message: "Automatické kopírování selhalo. Zkopírujte cestu ručně:",
+          variant: "info",
+          copyableText: url,
+        });
       }
     }
   };
@@ -107,11 +113,10 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
     <div className="space-y-4">
       {/* Multi-link list */}
       <div
-        className={`rounded-xl p-6 border transition-colors ${
-          documentLinks.length > 0 || hasDocsLink
-            ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30"
-            : "bg-slate-50 dark:bg-slate-900/70 border-slate-200 dark:border-slate-700/40"
-        }`}
+        className={`rounded-xl p-6 border transition-colors ${documentLinks.length > 0 || hasDocsLink
+          ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30"
+          : "bg-slate-50 dark:bg-slate-900/70 border-slate-200 dark:border-slate-700/40"
+          }`}
       >
         <div className="flex justify-between items-start mb-4">
           <div className="flex items-center gap-2">
@@ -332,7 +337,12 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
                     variant: "success",
                   });
                 } catch {
-                  window.prompt("Zkopírujte cestu:", value);
+                  showModal({
+                    title: "Zkopírujte cestu",
+                    message: "Automatické kopírování selhalo. Zkopírujte cestu ručně:",
+                    variant: "info",
+                    copyableText: value,
+                  });
                 }
               }}
               className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-lg text-sm font-bold transition-colors"

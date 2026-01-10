@@ -5,6 +5,7 @@ import {
   fillDescriptions,
   IndexMap,
 } from "@/utils/indexMatcher";
+import { AlertModal } from "../AlertModal";
 
 const INDEX_STORAGE_KEY = "indexMatcherIndexData";
 
@@ -23,6 +24,15 @@ export const IndexMatcherSettings: React.FC = () => {
   const [isIndexDropActive, setIsIndexDropActive] = useState(false);
   const [indexLoading, setIndexLoading] = useState(false);
   const [indexError, setIndexError] = useState<string | null>(null);
+
+  const [alertModal, setAlertModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    variant: 'success' | 'error' | 'info';
+  }>({ isOpen: false, title: '', message: '', variant: 'info' });
+
+  const closeAlertModal = () => setAlertModal(prev => ({ ...prev, isOpen: false }));
 
   // Budget file state
   const [budgetFile, setBudgetFile] = useState<File | null>(null);
@@ -117,7 +127,12 @@ export const IndexMatcherSettings: React.FC = () => {
   // Handle budget file
   const handleBudgetFile = (file: File) => {
     if (!/\.(xlsx|xls)$/i.test(file.name)) {
-      alert("Podporované jsou pouze soubory .xlsx a .xls");
+      setAlertModal({
+        isOpen: true,
+        title: "Nepodporovaný formát",
+        message: "Podporované jsou pouze soubory .xlsx a .xls",
+        variant: "error"
+      });
       return;
     }
     setBudgetFile(file);
@@ -128,7 +143,12 @@ export const IndexMatcherSettings: React.FC = () => {
   // Process budget file
   const handleProcess = async () => {
     if (!budgetFile || !indexMap) {
-      alert("Nahrajte prosím číselník i rozpočtový soubor.");
+      setAlertModal({
+        isOpen: true,
+        title: "Chybí data",
+        message: "Nahrajte prosím číselník i rozpočtový soubor.",
+        variant: "info"
+      });
       return;
     }
 
@@ -168,7 +188,13 @@ export const IndexMatcherSettings: React.FC = () => {
     } catch (e: any) {
       console.error("Processing error:", e);
       addLog(`CHYBA: ${e.message || "Neznámá chyba"}`);
-      alert(`Chyba při zpracování: ${e.message || "Neznámá chyba"}`);
+      addLog(`CHYBA: ${e.message || "Neznámá chyba"}`);
+      setAlertModal({
+        isOpen: true,
+        title: "Chyba zpracování",
+        message: `Chyba při zpracování: ${e.message || "Neznámá chyba"}`,
+        variant: "error"
+      });
       setProgress(null);
     } finally {
       setIsProcessing(false);
@@ -238,10 +264,9 @@ export const IndexMatcherSettings: React.FC = () => {
               }}
               className={`
                 border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer
-                ${
-                  isIndexDropActive
-                    ? "border-amber-500 bg-amber-500/10 scale-[1.02]"
-                    : "border-slate-300 dark:border-slate-700 hover:border-amber-500/50 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                ${isIndexDropActive
+                  ? "border-amber-500 bg-amber-500/10 scale-[1.02]"
+                  : "border-slate-300 dark:border-slate-700 hover:border-amber-500/50 hover:bg-slate-50 dark:hover:bg-slate-800/50"
                 }
               `}
               onClick={() => document.getElementById("index-upload")?.click()}
@@ -325,10 +350,9 @@ export const IndexMatcherSettings: React.FC = () => {
             className={`
               border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer
               ${!indexMap ? "opacity-50 pointer-events-none" : ""}
-              ${
-                isBudgetDropActive
-                  ? "border-emerald-500 bg-emerald-500/10 scale-[1.02]"
-                  : "border-slate-300 dark:border-slate-700 hover:border-emerald-500/50 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+              ${isBudgetDropActive
+                ? "border-emerald-500 bg-emerald-500/10 scale-[1.02]"
+                : "border-slate-300 dark:border-slate-700 hover:border-emerald-500/50 hover:bg-slate-50 dark:hover:bg-slate-800/50"
               }
             `}
             onClick={() =>
@@ -474,10 +498,9 @@ export const IndexMatcherSettings: React.FC = () => {
           disabled={!indexMap || !budgetFile || isProcessing}
           className={`
             px-8 py-3 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2
-            ${
-              !indexMap || !budgetFile || isProcessing
-                ? "bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed"
-                : "bg-gradient-to-r from-amber-500 to-emerald-500 text-white hover:scale-105 hover:shadow-amber-500/30"
+            ${!indexMap || !budgetFile || isProcessing
+              ? "bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed"
+              : "bg-gradient-to-r from-amber-500 to-emerald-500 text-white hover:scale-105 hover:shadow-amber-500/30"
             }
           `}
         >
@@ -496,8 +519,16 @@ export const IndexMatcherSettings: React.FC = () => {
           )}
         </button>
       </div>
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={closeAlertModal}
+        title={alertModal.title}
+        message={alertModal.message}
+        variant={alertModal.variant}
+      />
     </section>
   );
 };
 
 export default IndexMatcherSettings;
+

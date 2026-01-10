@@ -8,7 +8,7 @@ interface DocHubStructureEditorProps {
     state: DocHubHook['state'];
     actions: DocHubHook['actions'];
     setters: DocHubHook['setters'];
-    showModal: (args: { title: string; message: string; variant?: 'danger' | 'info' | 'success' }) => void;
+    showModal: (args: { title: string; message: string; variant?: 'danger' | 'info' | 'success'; copyableText?: string }) => void;
 }
 
 const moveItem = <T,>(array: T[], index: number, direction: 'up' | 'down'): T[] => {
@@ -95,7 +95,12 @@ export const DocHubStructureEditor: React.FC<DocHubStructureEditorProps> = ({ st
                                 await navigator.clipboard.writeText(structure);
                                 showModal({ title: "Zkopírováno", message: "Struktura DocHub zkopírována do schránky.", variant: "success" });
                             } catch {
-                                window.prompt('Zkopírujte strukturu:', structure);
+                                showModal({
+                                    title: "Zkopírujte strukturu",
+                                    message: "Zkopírujte strukturu ručně:",
+                                    variant: "info",
+                                    copyableText: structure
+                                });
                             }
                         }}
                         className="px-3 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-medium transition-colors border border-slate-300 dark:border-slate-700/50"

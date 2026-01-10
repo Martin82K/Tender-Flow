@@ -6,7 +6,7 @@ type DocHubHook = ReturnType<typeof useDocHubIntegration>;
 
 interface DocHubLinksProps {
     state: DocHubHook['state'];
-    showModal: (args: { title: string; message: string; variant?: 'danger' | 'info' | 'success' }) => void;
+    showModal: (args: { title: string; message: string; variant?: 'danger' | 'info' | 'success'; copyableText?: string }) => void;
 }
 
 export const DocHubLinks: React.FC<DocHubLinksProps> = ({ state, showModal }) => {
@@ -37,7 +37,12 @@ export const DocHubLinks: React.FC<DocHubLinksProps> = ({ state, showModal }) =>
                         navigator.clipboard
                             .writeText(item.href)
                             .then(() => showModal({ title: "Zkopírováno", message: item.href, variant: "success" }))
-                            .catch(() => window.prompt('Zkopírujte cestu:', item.href));
+                            .catch(() => showModal({
+                                title: "Zkopírujte cestu",
+                                message: "Automatické kopírování selhalo. Zkopírujte cestu ručně:",
+                                variant: "info",
+                                copyableText: item.href
+                            }));
                     }}
                     className="block p-4 bg-white dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700/50 hover:border-violet-300 dark:hover:border-violet-500/30 hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-all shadow-sm"
                     title={isProbablyUrl(item.href) ? "Otevřít" : "Zkopírovat cestu"}
