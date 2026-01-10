@@ -76,15 +76,60 @@ export async function checkPythonStatus(): Promise<PythonStatus> {
 
 /**
  * Merge Excel sheets into one combined sheet
+ * Uses native ExcelService for browser/desktop (no external server needed)
  */
 export async function mergeExcelSheets(
     inputFile: File | string,
-    outputFileName?: string
+    options?: {
+        sheetsToInclude?: string[];
+        headerMapping?: Record<number, string>;
+        applyFilter?: boolean;
+        freezeHeader?: boolean;
+        showGridlines?: boolean;
+        onProgress?: (message: string) => void;
+        onProgressUpdate?: (progress: number) => void;
+    }
 ): Promise<ToolResult> {
-    if (isDesktop && typeof inputFile === 'string') {
-        // Desktop: use local Python
+    // If it's a File object, use native ExcelService (works in browser and desktop)
+    if (inputFile instanceof File) {
         try {
-            const result = await (window as any).electronAPI?.invoke?.('python:mergeExcel', inputFile, outputFileName);
+            // Dynamic import to avoid bundling issues
+            const { ExcelService } = await import('./excelMergerService');
+
+            // Analyze file to get sheet names if not provided
+            let sheetsToInclude = options?.sheetsToInclude;
+            if (!sheetsToInclude || sheetsToInclude.length === 0) {
+                const allSheets = await ExcelService.analyzeFile(inputFile);
+                sheetsToInclude = allSheets;
+            }
+
+            const blob = await ExcelService.mergeSheets(
+                inputFile,
+                sheetsToInclude,
+                options?.onProgress,
+                options?.onProgressUpdate,
+                options?.headerMapping,
+                options?.applyFilter ?? false,
+                options?.freezeHeader ?? false,
+                options?.showGridlines ?? true
+            );
+
+            return {
+                success: true,
+                outputBlob: blob,
+            };
+        } catch (e) {
+            return {
+                success: false,
+                error: e instanceof Error ? e.message : String(e),
+            };
+        }
+    }
+
+    // Desktop with file path: use local Python (fallback)
+    if (isDesktop && typeof inputFile === 'string') {
+        try {
+            const result = await (window as any).electronAPI?.invoke?.('python:mergeExcel', inputFile);
 
             if (result?.success) {
                 return {
@@ -106,42 +151,10 @@ export async function mergeExcelSheets(
         }
     }
 
-    // Web: upload to server
-    if (!(inputFile instanceof File)) {
-        return {
-            success: false,
-            error: 'Web mode requires File object, not path string.',
-        };
-    }
-
-    try {
-        const formData = new FormData();
-        formData.append('file', inputFile);
-
-        const response = await fetch(`${EXCEL_TOOLS_URL}/merge`, {
-            method: 'POST',
-            body: formData,
-        });
-
-        if (!response.ok) {
-            const error = await response.text();
-            return {
-                success: false,
-                error: error || `HTTP ${response.status}`,
-            };
-        }
-
-        const blob = await response.blob();
-        return {
-            success: true,
-            outputBlob: blob,
-        };
-    } catch (e) {
-        return {
-            success: false,
-            error: e instanceof Error ? e.message : String(e),
-        };
-    }
+    return {
+        success: false,
+        error: 'Invalid input: expected File object or path string on desktop.',
+    };
 }
 
 /**
