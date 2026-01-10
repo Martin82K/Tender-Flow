@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { platformAdapter, isDesktop } from '../../services/platformAdapter';
-import { Sparkles, FolderOpen, Zap, Shield, ArrowRight, X } from 'lucide-react';
+import { Sparkles, FolderOpen, Zap, Shield, ArrowRight } from 'lucide-react';
+import { Modal } from '../ui/Modal';
+import { Button } from '../ui/Button';
 
 interface WhatsNewItem {
     icon: React.ReactNode;
@@ -28,19 +30,19 @@ export function DesktopWelcome({ onClose, onSelectFolder }: DesktopWelcomeProps)
 
     const whatsNew: WhatsNewItem[] = [
         {
-            icon: <FolderOpen className="w-6 h-6 text-blue-400" />,
+            icon: <FolderOpen className="w-5 h-5 text-blue-500" />,
             title: 'Přímý přístup k složkám',
             description: 'Pracujte přímo s OneDrive/SharePoint složkami bez nutnosti MCP serveru.',
         },
         {
-            icon: <Zap className="w-6 h-6 text-yellow-400" />,
+            icon: <Zap className="w-5 h-5 text-amber-500" />,
             title: 'Rychlejší zpracování',
             description: 'Lokální nástroje pro Excel a PDF běží přímo na vašem počítači.',
         },
         {
-            icon: <Shield className="w-6 h-6 text-green-400" />,
+            icon: <Shield className="w-5 h-5 text-emerald-500" />,
             title: 'Bezpečné uložení',
-            description: 'Přihlašovací údaje jsou šifrovány systémovým úložištěm.',
+            description: 'Vaše data a hesla zůstávají v bezpečí vašeho zařízení.',
         },
     ];
 
@@ -50,76 +52,88 @@ export function DesktopWelcome({ onClose, onSelectFolder }: DesktopWelcomeProps)
     }
 
     return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-slate-900 rounded-2xl max-w-lg w-full shadow-2xl border border-slate-700 overflow-hidden">
-                {/* Header */}
-                <div className="relative bg-gradient-to-r from-blue-600 to-purple-600 p-8 text-center">
-                    <button
-                        onClick={onClose}
-                        className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/20 transition-colors"
-                        aria-label="Zavřít"
-                    >
-                        <X className="w-5 h-5 text-white" />
-                    </button>
+        <Modal
+            isOpen={true}
+            onClose={onClose}
+            size="lg"
+            className="p-0 overflow-hidden"
+        >
+            <div className="flex flex-col relative w-full">
+                {/* Header Section with Gradient Background */}
+                <div className="relative bg-gradient-to-br from-indigo-50 to-blue-50 p-8 pt-10 text-center border-b border-blue-100/50">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 via-indigo-500 to-purple-500" />
 
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-white/20 rounded-2xl mb-4">
-                        <Sparkles className="w-8 h-8 text-white" />
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-2xl shadow-sm mb-5 mx-auto ring-4 ring-white/50">
+                        <Sparkles className="w-8 h-8 text-indigo-500" />
                     </div>
 
-                    <h1 className="text-2xl font-bold text-white mb-2">
-                        Vítejte v Tender Flow Desktop
+                    <h1 className="text-2xl font-bold text-slate-900 mb-2">
+                        Vítejte v Tender Flow
                     </h1>
 
+                    <p className="text-slate-600 max-w-md mx-auto">
+                        Vaše nová desktopová aplikace je připravena k použití.
+                    </p>
+
                     {appVersion && (
-                        <p className="text-blue-100 text-sm">
+                        <div className="mt-4 inline-flex items-center justify-center px-3 py-1 bg-white/60 rounded-full text-xs font-medium text-slate-500">
                             Verze {appVersion}
-                        </p>
+                        </div>
                     )}
                 </div>
 
-                {/* What's New */}
-                <div className="p-6">
-                    <h2 className="text-lg font-semibold text-slate-200 mb-4">
-                        Co je nového
-                    </h2>
+                {/* Content Section */}
+                <div className="p-8 bg-white space-y-8">
+                    <div>
+                        <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-4 px-1">
+                            Co je nového
+                        </h2>
 
-                    <div className="space-y-4">
-                        {whatsNew.map((item, index) => (
-                            <div key={index} className="flex items-start gap-4 p-3 rounded-lg bg-slate-800/50 hover:bg-slate-800 transition-colors">
-                                <div className="flex-shrink-0 p-2 bg-slate-700 rounded-lg">
-                                    {item.icon}
+                        <div className="grid gap-4">
+                            {whatsNew.map((item, index) => (
+                                <div
+                                    key={index}
+                                    className="group flex items-start gap-4 p-4 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-blue-100 hover:shadow-md hover:shadow-blue-500/5 transition-all duration-200"
+                                >
+                                    <div className="flex-shrink-0 p-2.5 bg-white rounded-lg shadow-sm ring-1 ring-slate-100 group-hover:scale-110 transition-transform duration-200">
+                                        {item.icon}
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold text-slate-900 mb-1">{item.title}</h3>
+                                        <p className="text-sm text-slate-600 leading-relaxed">{item.description}</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h3 className="font-medium text-slate-200">{item.title}</h3>
-                                    <p className="text-sm text-slate-400 mt-0.5">{item.description}</p>
-                                </div>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                        {onSelectFolder && (
+                            <Button
+                                onClick={onSelectFolder}
+                                variant="secondary"
+                                size="lg"
+                                leftIcon={<FolderOpen className="w-5 h-5" />}
+                                className="flex-1 justify-center border-slate-200"
+                            >
+                                Připojit složku
+                            </Button>
+                        )}
+
+                        <Button
+                            onClick={onClose}
+                            variant="primary"
+                            size="lg"
+                            rightIcon={<ArrowRight className="w-5 h-5" />}
+                            className="flex-1 justify-center shadow-blue-500/25 shadow-lg hover:shadow-blue-500/40"
+                        >
+                            Začít pracovat
+                        </Button>
                     </div>
                 </div>
-
-                {/* Actions */}
-                <div className="p-6 pt-0 flex gap-3">
-                    {onSelectFolder && (
-                        <button
-                            onClick={onSelectFolder}
-                            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-lg transition-colors"
-                        >
-                            <FolderOpen className="w-5 h-5" />
-                            Připojit složku
-                        </button>
-                    )}
-
-                    <button
-                        onClick={onClose}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium rounded-lg transition-colors"
-                    >
-                        Pokračovat
-                        <ArrowRight className="w-5 h-5" />
-                    </button>
-                </div>
             </div>
-        </div>
+        </Modal>
     );
 }
 
