@@ -20,7 +20,19 @@ body {
   font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24;
 }
 
-/* Hide scrollbar for clean horizontal scrolling */
+/* Global scrollbar hiding */
+::-webkit-scrollbar {
+  width: 0px;
+  background: transparent;
+  display: none;
+}
+
+* {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+/* Hide scrollbar for clean horizontal scrolling - Legacy class kept for compatibility */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }

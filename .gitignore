@@ -7,10 +7,26 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+
+# Python virtual environments
+.venv
+venv
+env
+
 node_modules
 dist
+dist-electron
+release
 dist-ssr
 *.local
+
+# Executables and installers
+*.exe
+*.msi
+*.dmg
+*.AppImage
+*.deb
+*.zip
 
 # Environment variables (API keys, secrets)
 .env

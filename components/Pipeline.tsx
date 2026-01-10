@@ -99,7 +99,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const canUseDocHubBackend =
     !!projectDetails.docHubProvider &&
     projectDetails.docHubProvider !== 'mcp' &&
-    projectDetails.docHubProvider !== 'local' &&
+    projectDetails.docHubProvider !== 'onedrive' &&
     !!projectDetails.docHubRootId &&
     projectDetails.docHubStatus === "connected";
 
@@ -144,8 +144,20 @@ export const Pipeline: React.FC<PipelineProps> = ({
       return;
     }
 
-    // Try opening via MCP if enabled and local path (regardless of provider setting label)
+    // Try native Electron folder opening first (for Tender Flow Desktop / onedrive provider)
     if (isDocHubEnabled && !isProbablyUrl(path)) {
+      try {
+        // Dynamic import to avoid issues on web
+        const { fileSystemAdapter, isDesktop } = await import('../services/platformAdapter');
+        if (isDesktop) {
+          await fileSystemAdapter.openInExplorer(path);
+          return; // Opened successfully
+        }
+      } catch (e) {
+        console.warn("Native open failed, trying MCP fallback", e);
+      }
+
+      // Try opening via MCP if enabled and local path
       try {
         const result = await mcpOpenPath(path);
         if (result.success) return; // Opened successfully
@@ -173,9 +185,9 @@ export const Pipeline: React.FC<PipelineProps> = ({
   };
 
   const openDocHubBackendLink = async (payload: any) => {
-    // Safety guard: Never allow backend calls for MCP/Local
-    if (projectData.docHubProvider === 'mcp' || projectData.docHubProvider === 'local') {
-      console.warn('[DocHub] Blocked backend call for MCP/Local provider');
+    // Safety guard: Never allow backend calls for MCP/Tender Flow Desktop
+    if (projectData.docHubProvider === 'mcp' || projectData.docHubProvider === 'onedrive') {
+      console.warn('[DocHub] Blocked backend call for MCP/Tender Flow Desktop provider');
       return;
     }
 
@@ -1072,8 +1084,8 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const handleOpenSupplierDocHub = (bid: Bid) => {
     if (!isDocHubEnabled || !activeCategory) return;
 
-    // Explicitly force local handling for MCP/Local to avoid backend calls
-    const isMcpOrLocal = projectData.docHubProvider === 'mcp' || projectData.docHubProvider === 'local';
+    // Explicitly force local handling for MCP/Tender Flow Desktop to avoid backend calls
+    const isMcpOrLocal = projectData.docHubProvider === 'mcp' || projectData.docHubProvider === 'onedrive';
 
     if (canUseDocHubBackend && projectData.id && !isMcpOrLocal) {
       openDocHubBackendLink({

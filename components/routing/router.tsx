@@ -6,11 +6,28 @@ type LocationState = {
   hash: string;
 };
 
-const getLocation = (): LocationState => ({
-  pathname: window.location.pathname || "/",
-  search: window.location.search || "",
-  hash: window.location.hash || "",
-});
+// Detect if running in Electron with file:// protocol
+const isFileProtocol = typeof window !== 'undefined' && window.location.protocol === 'file:';
+
+const getLocation = (): LocationState => {
+  if (isFileProtocol) {
+    // In Electron file:// mode, use hash-based routing
+    // e.g., file:///path/to/index.html#/login becomes pathname="/login"
+    const hash = window.location.hash || '#/';
+    const hashPath = hash.slice(1); // Remove the '#'
+    const [pathname, search = ''] = hashPath.split('?');
+    return {
+      pathname: pathname || '/',
+      search: search ? `?${search}` : '',
+      hash: '',
+    };
+  }
+  return {
+    pathname: window.location.pathname || '/',
+    search: window.location.search || '',
+    hash: window.location.hash || '',
+  };
+};
 
 const isModifiedEvent = (event: React.MouseEvent) =>
   event.metaKey || event.altKey || event.ctrlKey || event.shiftKey;
@@ -22,7 +39,16 @@ const isExternalHref = (href: string) =>
   href.startsWith("tel:");
 
 export const navigate = (to: string, opts?: { replace?: boolean }) => {
-  const url = to.startsWith("/") || to.startsWith("#") ? to : `/${to}`;
+  let url = to.startsWith("/") || to.startsWith("#") ? to : `/${to}`;
+
+  if (isFileProtocol) {
+    // In Electron file:// mode, use hash-based routing
+    // Convert /login to #/login
+    if (!url.startsWith('#')) {
+      url = `#${url}`;
+    }
+  }
+
   if (opts?.replace) {
     window.history.replaceState({}, "", url);
   } else {

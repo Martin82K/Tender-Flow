@@ -74,7 +74,7 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
                 }`}
             >
               <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                TF Desktop
+                Tender Flow Desktop
               </div>
               <div className="text-xs text-slate-600 dark:text-slate-400">
                 Lokální složka
@@ -100,7 +100,7 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
           <div className="text-[11px] text-slate-500">
             {isMcpProvider
               ? "MCP Bridge Server umožňuje automatické vytváření složek na vašem disku."
-              : "Google: OAuth + Picker. TF Desktop: vyberte složku z disku."}
+              : "Google: OAuth + Picker. Tender Flow Desktop: vyberte složku z disku."}
           </div>
         </div>
 
@@ -290,7 +290,7 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
                 ? "Zadejte absolutní cestu ke složce. MCP Bridge server musí běžet."
                 : isLocalProvider
                   ? "Zadejte cestu ke složce nebo použijte tlačítko výše."
-                  : "Google: doporučeno vybrat přes Picker. TF Desktop: vyberte lokální složku."}
+                  : "Google: doporučeno vybrat přes Picker. Tender Flow Desktop: vyberte lokální složku."}
             </div>
 
             {/* Success Feedback for MCP */}

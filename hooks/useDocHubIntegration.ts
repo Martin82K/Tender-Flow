@@ -160,7 +160,7 @@ export const useDocHubIntegration = (
 
     // Derived State
     const isAuthed = enabled && status === "connected";
-    const isLocalProvider = provider === "local";
+    const isLocalProvider = provider === "onedrive";
     const isMcpProvider = provider === "mcp";
     const isConnected = isAuthed && (isLocalProvider || isMcpProvider ? rootLink.trim() !== '' : !!project.docHubRootId && rootLink.trim() !== '');
     const effectiveStructure = isEditingStructure ? structureDraft : resolveDocHubStructureV1((project.docHubStructureV1 as any) || undefined);
@@ -441,13 +441,44 @@ export const useDocHubIntegration = (
     }, [provider, project.id, rootLink, showMessage, onUpdate]);
 
     const pickLocalFolder = useCallback(async () => {
-        if (provider !== "local") {
-            showMessage("DocHub", "Vyberte 'Lokální složka' jako provider.", "info");
+        if (provider !== "onedrive") {
+            showMessage("DocHub", "Vyberte 'Tender Flow Desktop' jako provider.", "info");
             return;
         }
         setIsConnecting(true);
         try {
-            // Check if File System Access API is supported
+            // Try to use platform adapter for native folder selection (Electron)
+            const { fileSystemAdapter, isDesktop } = await import('../services/platformAdapter');
+
+            if (isDesktop) {
+                // Use native Electron dialog
+                const folderInfo = await fileSystemAdapter.selectFolder();
+                if (!folderInfo) {
+                    // User cancelled
+                    return;
+                }
+                const folderPath = folderInfo.path;
+                const folderName = folderInfo.name;
+
+                setRootName(folderName);
+                setRootLink(folderPath);
+                setStatus("connected");
+                onUpdate({
+                    docHubEnabled: true,
+                    docHubProvider: "onedrive",
+                    docHubStatus: "connected",
+                    docHubRootName: folderName,
+                    docHubRootLink: folderPath,
+                    docHubRootWebUrl: null,
+                    docHubRootId: `local:${folderPath}`,
+                    docHubDriveId: null,
+                    docHubSiteId: null,
+                });
+                showMessage("Hotovo", `Složka "${folderName}" byla vybrána.`, "success");
+                return;
+            }
+
+            // Web fallback: Check if File System Access API is supported
             if ('showDirectoryPicker' in window) {
                 const dirHandle = await (window as any).showDirectoryPicker({ mode: 'read' });
                 const folderName = dirHandle.name;
@@ -458,7 +489,7 @@ export const useDocHubIntegration = (
                 setStatus("connected");
                 onUpdate({
                     docHubEnabled: true,
-                    docHubProvider: "local",
+                    docHubProvider: "onedrive",
                     docHubStatus: "connected",
                     docHubRootName: folderName,
                     docHubRootLink: folderName,
@@ -472,7 +503,7 @@ export const useDocHubIntegration = (
                 // Fallback for unsupported browsers - prompt for manual path
                 showMessage(
                     "Nepodporovaný prohlížeč",
-                    "Váš prohlížeč nepodporuje výběr složky. Zadejte cestu ke složce ručně do pole níže (např. C:\\Projekty\\Stavba).",
+                    "Váš prohlížeč nepodporuje výběr složky. Použijte Tender Flow Desktop aplikaci nebo zadejte cestu ke složce ručně.",
                     "info"
                 );
             }
