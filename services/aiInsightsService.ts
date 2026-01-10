@@ -1,7 +1,5 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Initialize Gemini - API key from .env as VITE_GEMINI_API_KEY
-const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || '');
+import { invokeAuthedFunction } from "./functionsClient";
 
 interface ProjectSummary {
   name: string;
@@ -38,19 +36,9 @@ export interface AIInsight {
 const getRandomSeed = () => Math.floor(Math.random() * 1000);
 
 export const generateProjectInsights = async (projects: ProjectSummary[], mode: 'achievements' | 'charts' | 'reports' | 'contacts' | 'overview' = 'achievements'): Promise<AIInsight[]> => {
-  if (!import.meta.env.VITE_GEMINI_API_KEY) {
-    return [{
-      title: 'API klíč nenalezen',
-      content: 'Pro AI analýzu přidejte VITE_GEMINI_API_KEY do .env souboru.',
-      type: 'warning',
-      icon: 'warning'
-    }];
-  }
+  // Client-side API key check removed - handled by backend proxy auth
 
   try {
-    // Use specific model version for better stability
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-001' });
-
     const projectsSummary = projects.map(p => ({
       název: p.name,
       rozpočet: p.totalBudget,
@@ -249,9 +237,12 @@ ${JSON.stringify(projectsSummary, null, 2)}`;
 
     const prompt = basePrompt + dataContext;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    // Call backend proxy via Supabase Edge Function
+    const result = await invokeAuthedFunction<{ text: string }>('ai-proxy', {
+      body: { prompt }
+    });
+
+    const text = result.text || "";
 
     // For overview mode, return the text directly (not JSON)
     if (mode === 'overview') {
@@ -302,7 +293,18 @@ ${JSON.stringify(projectsSummary, null, 2)}`;
       icon: 'insights'
     }];
   } catch (error) {
-    console.error('Gemini API error:', error);
+    console.error('AI Proxy error:', error);
+
+    // Check for subscription error
+    if (error instanceof Error && error.message.includes('Subscription required')) {
+      return [{
+        title: 'Vyžadováno předplatné',
+        content: 'Pro tuto funkci je potřeba vyšší tarif (PRO/Enterprise).',
+        type: 'warning',
+        icon: 'lock'
+      }];
+    }
+
     return [{
       title: 'Chyba při analýze',
       content: 'Nepodařilo se získat AI insights. Zkuste to později.',

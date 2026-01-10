@@ -18,6 +18,7 @@ function createWindow(): void {
         height: 900,
         minWidth: 1024,
         minHeight: 700,
+        icon: path.join(__dirname, '../../assets/icon.ico'),
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
@@ -29,6 +30,11 @@ function createWindow(): void {
         show: false, // Show when ready
         backgroundColor: '#0f172a', // Match app dark theme
     });
+
+    // Set dock icon on macOS
+    if (process.platform === 'darwin') {
+        app.dock.setIcon(path.join(__dirname, '../../assets/icon.ico'));
+    }
 
     // Show window when ready to prevent flash
     mainWindow.once('ready-to-show', () => {
