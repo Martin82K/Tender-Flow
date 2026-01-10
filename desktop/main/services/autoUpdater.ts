@@ -46,6 +46,14 @@ export class AutoUpdaterService {
             this.updateStatus = { status: 'checking' };
             this.sendStatusToRenderer();
 
+            // Skip update check in development to prevent errors
+            if (process.env.NODE_ENV === 'development' || !app.isPackaged) {
+                console.log('Skipping real update check in development mode');
+                this.updateStatus = { status: 'not-available' };
+                this.sendStatusToRenderer();
+                return false;
+            }
+
             const result = await autoUpdater.checkForUpdates();
             return !!result?.updateInfo;
         } catch (error) {

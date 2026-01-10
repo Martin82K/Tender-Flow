@@ -11,6 +11,7 @@ import {
 } from "../../services/contactStatusService";
 import { useUI } from "../../context/UIContext";
 import { useAuth } from "../../context/AuthContext";
+import { BiometricSettings } from "./BiometricSettings";
 
 interface ProfileSettingsProps {
   theme: "light" | "dark" | "system";
@@ -116,9 +117,8 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
       console.error("Error saving display name:", error);
       showAlert({
         title: "Chyba",
-        message: `Chyba při ukládání jména: ${
-          error?.message || "Neznámá chyba"
-        }`,
+        message: `Chyba při ukládání jména: ${error?.message || "Neznámá chyba"
+          }`,
         variant: "danger",
       });
     } finally {
@@ -344,6 +344,9 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
         </div>
       </section>
 
+      {/* Biometric Authentication (Desktop only) */}
+      <BiometricSettings className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl shadow-xl" />
+
       {/* Appearance Settings */}
       <section className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl">
         <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
@@ -370,11 +373,10 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                   onClick={() => onSetTheme(opt.id as any)}
                   className={`
                                         flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all
-                                        ${
-                                          theme === opt.id
-                                            ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
-                                            : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-                                        }
+                                        ${theme === opt.id
+                      ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+                      : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                    }
                                     `}
                 >
                   <span className="material-symbols-outlined text-[18px]">
@@ -398,11 +400,10 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                   onClick={() => onSetPrimaryColor(color)}
                   className={`
                                         w-10 h-10 rounded-full transition-all flex items-center justify-center
-                                        ${
-                                          primaryColor === color
-                                            ? "ring-4 ring-offset-2 ring-primary dark:ring-offset-slate-900 scale-110"
-                                            : "hover:scale-110"
-                                        }
+                                        ${primaryColor === color
+                      ? "ring-4 ring-offset-2 ring-primary dark:ring-offset-slate-900 scale-110"
+                      : "hover:scale-110"
+                    }
                                     `}
                   style={{ backgroundColor: color }}
                 >
@@ -438,10 +439,9 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
             >
               <div className="relative">
                 <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                    colorOptions.find((c) => c.value === status.color)?.class ||
+                  className={`w-8 h-8 rounded-full flex items-center justify-center ${colorOptions.find((c) => c.value === status.color)?.class ||
                     "bg-slate-500"
-                  } text-white shadow-sm`}
+                    } text-white shadow-sm`}
                 >
                   <span className="material-symbols-outlined text-[16px]">
                     folder
@@ -466,11 +466,10 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                     onClick={() =>
                       handleUpdateStatusColor(status.id, opt.value)
                     }
-                    className={`w-5 h-5 rounded-full ${opt.class} ${
-                      status.color === opt.value
+                    className={`w-5 h-5 rounded-full ${opt.class} ${status.color === opt.value
                         ? "ring-2 ring-offset-1 ring-slate-400"
                         : "hover:scale-110"
-                    } transition-all`}
+                      } transition-all`}
                   />
                 ))}
               </div>
@@ -505,11 +504,10 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                 key={opt.value}
                 type="button"
                 onClick={() => setNewStatusColor(opt.value)}
-                className={`w-6 h-6 rounded-full ${opt.class} ${
-                  newStatusColor === opt.value
+                className={`w-6 h-6 rounded-full ${opt.class} ${newStatusColor === opt.value
                     ? "ring-2 ring-offset-2 ring-slate-400 scale-110"
                     : "opacity-40 hover:opacity-100"
-                } transition-all`}
+                  } transition-all`}
               />
             ))}
           </div>

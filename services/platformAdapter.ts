@@ -13,7 +13,9 @@ declare global {
 }
 
 // Platform detection
-export const isDesktop = typeof window !== 'undefined' && !!window.electronAPI;
+export const isDesktop = typeof window !== 'undefined' && window.electronAPI?.platform?.isDesktop;
+
+
 export const isWeb = !isDesktop;
 export const platform = window.electronAPI?.platform ?? {
     isDesktop: false,
@@ -159,6 +161,12 @@ export const appAdapter = {
         // Web: always "up to date"
         return false;
     },
+
+    async quit(): Promise<void> {
+        if (isDesktop && window.electronAPI) {
+            return window.electronAPI.app.quit();
+        }
+    }
 };
 
 /**
@@ -250,6 +258,102 @@ export const updaterAdapter = {
     },
 };
 
+/**
+ * Biometric Authentication Adapter
+ * Touch ID / Face ID on macOS desktop
+ */
+export const biometricAdapter = {
+    /**
+     * Check if biometric authentication is available
+     */
+    async isAvailable(): Promise<boolean> {
+        if (isDesktop && window.electronAPI) {
+            return window.electronAPI.biometric.isAvailable();
+        }
+        return false;
+    },
+
+    /**
+     * Prompt user for biometric authentication
+     * @param reason - Reason displayed to user (e.g., "unlock Tender Flow")
+     * @returns true if authentication successful
+     */
+    async prompt(reason: string): Promise<boolean> {
+        if (isDesktop && window.electronAPI) {
+            return window.electronAPI.biometric.prompt(reason);
+        }
+        return false;
+    },
+};
+
+/**
+ * Session Credentials Adapter
+ * Secure storage for session tokens with biometric protection
+ */
+export const sessionAdapter = {
+    /**
+     * Save session credentials securely
+     */
+    async saveCredentials(credentials: { refreshToken: string; email: string }): Promise<void> {
+        if (isDesktop && window.electronAPI && window.electronAPI.session) {
+            return window.electronAPI.session.saveCredentials(credentials);
+        }
+        console.warn('Session API not available on desktop, falling back to localStorage');
+        // Web: store in localStorage (less secure)
+        localStorage.setItem('session_credentials', JSON.stringify(credentials));
+    },
+
+    /**
+     * Get stored session credentials
+     */
+    async getCredentials(): Promise<{ refreshToken: string; email: string } | null> {
+        if (isDesktop && window.electronAPI && window.electronAPI.session) {
+            return window.electronAPI.session.getCredentials();
+        }
+        // Web: get from localStorage
+        const data = localStorage.getItem('session_credentials');
+        if (!data) return null;
+        try {
+            return JSON.parse(data);
+        } catch {
+            return null;
+        }
+    },
+
+    /**
+     * Clear stored session credentials
+     */
+    async clearCredentials(): Promise<void> {
+        if (isDesktop && window.electronAPI && window.electronAPI.session) {
+            return window.electronAPI.session.clearCredentials();
+        }
+        // Web: remove from localStorage
+        localStorage.removeItem('session_credentials');
+    },
+
+    /**
+     * Enable or disable biometric unlock
+     */
+    async setBiometricEnabled(enabled: boolean): Promise<void> {
+        if (isDesktop && window.electronAPI && window.electronAPI.session) {
+            return window.electronAPI.session.setBiometricEnabled(enabled);
+        }
+        // Web: store preference
+        localStorage.setItem('biometric_enabled', enabled ? 'true' : 'false');
+    },
+
+    /**
+     * Check if biometric unlock is enabled
+     */
+    async isBiometricEnabled(): Promise<boolean> {
+        if (isDesktop && window.electronAPI && window.electronAPI.session) {
+            return window.electronAPI.session.isBiometricEnabled();
+        }
+        // Web: check localStorage
+        return localStorage.getItem('biometric_enabled') === 'true';
+    },
+};
+
 // Combined platform adapter
 export const platformAdapter = {
     isDesktop,
@@ -261,6 +365,8 @@ export const platformAdapter = {
     app: appAdapter,
     dialog: dialogAdapter,
     updater: updaterAdapter,
+    biometric: biometricAdapter,
+    session: sessionAdapter,
 };
 
 export default platformAdapter;

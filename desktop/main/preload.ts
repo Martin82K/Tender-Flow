@@ -64,6 +64,9 @@ const electronAPI: ElectronAPI = {
         quitAndInstall: (): Promise<void> =>
             ipcRenderer.invoke('updater:quitAndInstall'),
 
+        quit: (): Promise<void> =>
+            ipcRenderer.invoke('app:quit'),
+
         getUserDataPath: (): Promise<string> =>
             ipcRenderer.invoke('app:getUserDataPath'),
     },
@@ -108,6 +111,33 @@ const electronAPI: ElectronAPI = {
             ipcRenderer.on('updater:statusChanged', handler);
             return () => ipcRenderer.removeListener('updater:statusChanged', handler);
         },
+    },
+
+    // Biometric authentication (Touch ID / Face ID)
+    biometric: {
+        isAvailable: (): Promise<boolean> =>
+            ipcRenderer.invoke('biometric:isAvailable'),
+
+        prompt: (reason: string): Promise<boolean> =>
+            ipcRenderer.invoke('biometric:prompt', reason),
+    },
+
+    // Session credential management
+    session: {
+        saveCredentials: (credentials: { refreshToken: string; email: string }): Promise<void> =>
+            ipcRenderer.invoke('session:saveCredentials', credentials),
+
+        getCredentials: (): Promise<{ refreshToken: string; email: string } | null> =>
+            ipcRenderer.invoke('session:getCredentials'),
+
+        clearCredentials: (): Promise<void> =>
+            ipcRenderer.invoke('session:clearCredentials'),
+
+        setBiometricEnabled: (enabled: boolean): Promise<void> =>
+            ipcRenderer.invoke('session:setBiometricEnabled', enabled),
+
+        isBiometricEnabled: (): Promise<boolean> =>
+            ipcRenderer.invoke('session:isBiometricEnabled'),
     },
 };
 

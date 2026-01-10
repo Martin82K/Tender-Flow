@@ -203,7 +203,26 @@ function AppContent() {
   }
 
   if (!isAuthenticated) {
-    if (pathname === "/") return <LandingPage />;
+    if (pathname === "/") {
+      if (isDesktop) {
+        if (showWelcome) {
+          return (
+            <div className="fixed inset-0 bg-slate-950">
+              <DesktopWelcome
+                onClose={() => {
+                  dismissWelcome();
+                  navigate("/login", { replace: true });
+                }}
+                onSelectFolder={selectFolder}
+              />
+            </div>
+          );
+        }
+        navigate("/login", { replace: true });
+        return null;
+      }
+      return <LandingPage />;
+    }
 
     // For unknown routes, redirect to login with the original path as next parameter
     if (!["/login", "/register", "/forgot-password", "/"].includes(pathname)) {

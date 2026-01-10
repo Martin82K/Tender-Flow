@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { isDesktop, platformAdapter } from '../services/platformAdapter';
 
+// Track if welcome screen was already shown this session (app run)
+// This persists across re-renders and logouts but resets when app restarts
+let hasShownWelcomeThisSession = false;
+
 interface DesktopState {
     isDesktop: boolean;
     appVersion: string | null;
@@ -15,8 +19,6 @@ interface UseDesktopReturn extends DesktopState {
     installUpdate: () => Promise<void>;
     selectFolder: () => Promise<{ path: string; name: string } | null>;
 }
-
-const WELCOME_DISMISSED_KEY = 'desktop_welcome_dismissed_version';
 
 /**
  * Hook for managing desktop-specific features
@@ -38,9 +40,8 @@ export function useDesktop(): UseDesktopReturn {
         const init = async () => {
             const version = await platformAdapter.app.getVersion();
 
-            // Check if user has dismissed welcome for this version
-            const dismissedVersion = await platformAdapter.storage.get(WELCOME_DISMISSED_KEY);
-            const shouldShowWelcome = dismissedVersion !== version;
+            // Show welcome only on first app launch this session (not after logout)
+            const shouldShowWelcome = !hasShownWelcomeThisSession;
 
             setState(prev => ({
                 ...prev,
@@ -58,12 +59,10 @@ export function useDesktop(): UseDesktopReturn {
         init();
     }, []);
 
-    const dismissWelcome = useCallback(async () => {
-        if (state.appVersion) {
-            await platformAdapter.storage.set(WELCOME_DISMISSED_KEY, state.appVersion);
-        }
+    const dismissWelcome = useCallback(() => {
+        hasShownWelcomeThisSession = true;
         setState(prev => ({ ...prev, showWelcome: false }));
-    }, [state.appVersion]);
+    }, []);
 
     const checkForUpdates = useCallback(async () => {
         if (!isDesktop) return;

@@ -11,6 +11,8 @@ export interface ElectronAPI {
     storage: StorageAPI;
     dialog: DialogAPI;
     updater: UpdaterAPI;
+    biometric: BiometricAPI;
+    session: SessionAPI;
 }
 
 export interface PlatformInfo {
@@ -40,6 +42,7 @@ export interface AppAPI {
     getVersion: () => Promise<string>;
     checkForUpdates: () => Promise<boolean>;
     quitAndInstall: () => Promise<void>;
+    quit: () => Promise<void>;
     getUserDataPath: () => Promise<string>;
 }
 
@@ -60,6 +63,19 @@ export interface UpdaterAPI {
     quitAndInstall: () => Promise<void>;
     getStatus: () => Promise<UpdateStatus>;
     onStatusChange: (callback: (status: UpdateStatus) => void) => () => void;
+}
+
+export interface BiometricAPI {
+    isAvailable: () => Promise<boolean>;
+    prompt: (reason: string) => Promise<boolean>;
+}
+
+export interface SessionAPI {
+    saveCredentials: (credentials: { refreshToken: string; email: string }) => Promise<void>;
+    getCredentials: () => Promise<{ refreshToken: string; email: string } | null>;
+    clearCredentials: () => Promise<void>;
+    setBiometricEnabled: (enabled: boolean) => Promise<void>;
+    isBiometricEnabled: () => Promise<boolean>;
 }
 
 export interface UpdateStatus {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
+import { platformAdapter, isDesktop } from "../services/platformAdapter";
 import { View, Project } from "../types";
 import logo from "../assets/logo.png";
 import { SIDEBAR_NAVIGATION, BOTTOM_NAVIGATION } from "../config/navigation";
@@ -28,16 +29,16 @@ interface SidebarProps {
     opts?: {
       settingsTab?: "user" | "admin";
       settingsSubTab?:
-        | "profile"
-        | "contacts"
-        | "excelUnlocker"
-        | "excelMerger"
-        | "urlShortener"
-        | "registration"
-        | "users"
-        | "subscriptions"
-        | "ai"
-        | "tools";
+      | "profile"
+      | "contacts"
+      | "excelUnlocker"
+      | "excelMerger"
+      | "urlShortener"
+      | "registration"
+      | "users"
+      | "subscriptions"
+      | "ai"
+      | "tools";
     }
   ) => void;
   selectedProjectId: string;
@@ -79,14 +80,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const tab = tabParam === "admin" || tabParam === "user" ? tabParam : null;
     const rawSubTab =
       subTabParam === "profile" ||
-      subTabParam === "contacts" ||
-      subTabParam === "excelUnlocker" ||
-      subTabParam === "excelMerger" ||
-      subTabParam === "registration" ||
-      subTabParam === "users" ||
-      subTabParam === "subscriptions" ||
-      subTabParam === "ai" ||
-      subTabParam === "tools" // legacy
+        subTabParam === "contacts" ||
+        subTabParam === "excelUnlocker" ||
+        subTabParam === "excelMerger" ||
+        subTabParam === "registration" ||
+        subTabParam === "users" ||
+        subTabParam === "subscriptions" ||
+        subTabParam === "ai" ||
+        subTabParam === "tools" // legacy
         ? subTabParam
         : null;
     const subTab = rawSubTab === "tools" ? "excelUnlocker" : rawSubTab;
@@ -269,17 +270,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
       return (
         <details key={item.id} className="group" open>
           <summary
-            className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer list-none ${
-              currentView === "project"
-                ? "bg-primary/20 text-primary border border-primary/30 font-semibold"
-                : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
-            }`}
+            className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer list-none ${currentView === "project"
+              ? "bg-primary/20 text-primary border border-primary/30 font-semibold"
+              : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
+              }`}
           >
             <div className="flex items-center gap-3 min-w-0">
               <span
-                className={`material-symbols-outlined shrink-0 ${
-                  currentView === "project" ? "fill text-primary" : ""
-                }`}
+                className={`material-symbols-outlined shrink-0 ${currentView === "project" ? "fill text-primary" : ""
+                  }`}
               >
                 {item.icon}
               </span>
@@ -308,11 +307,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onProjectSelect(project.id);
                   closeMobileMenu();
                 }}
-                className={`flex items-center gap-2 text-left text-sm px-3 py-2 rounded-lg transition-all relative overflow-hidden cursor-move ${
-                  currentView === "project" && selectedProjectId === project.id
-                    ? "text-slate-900 dark:text-white font-medium"
-                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                } ${draggedId === project.id ? "opacity-50" : ""}`}
+                className={`flex items-center gap-2 text-left text-sm px-3 py-2 rounded-lg transition-all relative overflow-hidden cursor-move ${currentView === "project" && selectedProjectId === project.id
+                  ? "text-slate-900 dark:text-white font-medium"
+                  : "text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                  } ${draggedId === project.id ? "opacity-50" : ""}`}
                 title={project.name}
               >
                 {/* Gradient highlight for selected project */}
@@ -324,11 +322,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   drag_indicator
                 </span>
                 <span
-                  className={`relative z-10 flex items-center justify-center size-5 rounded text-[11px] font-bold shrink-0 ${
-                    project.status === "realization"
-                      ? "bg-amber-500/20 text-amber-400"
-                      : "bg-blue-500/20 text-blue-400"
-                  }`}
+                  className={`relative z-10 flex items-center justify-center size-5 rounded text-[11px] font-bold shrink-0 ${project.status === "realization"
+                    ? "bg-amber-500/20 text-amber-400"
+                    : "bg-blue-500/20 text-blue-400"
+                    }`}
                 >
                   {project.status === "realization" ? "R" : "S"}
                 </span>
@@ -357,17 +354,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
           }}
         >
           <summary
-            className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer list-none ${
-              isItemActive
-                ? "bg-primary/20 text-primary border border-primary/30"
-                : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
-            }`}
+            className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer list-none ${isItemActive
+              ? "bg-primary/20 text-primary border border-primary/30"
+              : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
+              }`}
           >
             <div className="flex items-center gap-3 min-w-0">
               <span
-                className={`material-symbols-outlined shrink-0 ${
-                  isItemActive ? "fill" : ""
-                }`}
+                className={`material-symbols-outlined shrink-0 ${isItemActive ? "fill" : ""
+                  }`}
               >
                 {item.icon}
               </span>
@@ -424,23 +419,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
             item.view,
             item.view === "settings"
               ? {
-                  settingsTab: item.settingsTab,
-                  settingsSubTab: item.settingsSubTab,
-                }
+                settingsTab: item.settingsTab,
+                settingsSubTab: item.settingsSubTab,
+              }
               : undefined
           );
           closeMobileMenu();
         }}
-        className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all ${
-          isItemActive
-            ? "bg-primary/20 text-primary border border-primary/30"
-            : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
-        }`}
+        className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all ${isItemActive
+          ? "bg-primary/20 text-primary border border-primary/30"
+          : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
+          }`}
       >
         <span
-          className={`material-symbols-outlined shrink-0 ${
-            isItemActive ? "fill" : ""
-          }`}
+          className={`material-symbols-outlined shrink-0 ${isItemActive ? "fill" : ""
+            }`}
         >
           {item.icon}
         </span>
@@ -451,160 +444,228 @@ export const Sidebar: React.FC<SidebarProps> = ({
     );
   };
 
+  // Logout Confirmation State
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const handleLogoutClick = () => {
+    if (isDesktop) {
+      setShowLogoutConfirm(true);
+    } else {
+      logout();
+    }
+  };
+
+  const handleConfirmQuit = async () => {
+    try {
+      if (platformAdapter.app.quit) {
+        await platformAdapter.app.quit();
+      } else {
+        // Fallback or should not happen if types aligned
+        window.close();
+      }
+    } catch (error) {
+      console.error("Failed to quit app:", error);
+    }
+  };
+
+  const handleConfirmLogout = () => {
+    logout();
+    setShowLogoutConfirm(false);
+  };
+
   return (
-    <aside
-      ref={sidebarRef}
-      style={{ width: isOpen ? `${width}px` : "0px" }}
-      className={`relative flex h-full flex-col bg-white dark:bg-gradient-to-b dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 border-r border-slate-200 dark:border-slate-700/50 flex-shrink-0 z-20 select-none group/sidebar transition-all duration-300 ease-in-out max-md:fixed max-md:inset-0 max-md:z-50 max-md:!w-full ${
-        !isOpen
+    <>
+      <aside
+        ref={sidebarRef}
+        style={{ width: isOpen ? `${width}px` : "0px" }}
+        className={`relative flex h-full flex-col bg-white dark:bg-gradient-to-b dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 border-r border-slate-200 dark:border-slate-700/50 flex-shrink-0 z-20 select-none group/sidebar transition-all duration-300 ease-in-out max-md:fixed max-md:inset-0 max-md:z-50 max-md:!w-full ${!isOpen
           ? "overflow-hidden border-none max-md:pointer-events-none max-md:opacity-0"
           : "max-md:opacity-100"
-      }`}
-    >
-      {/* Mobile Overlay - not needed for fullscreen */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-[-1] md:hidden"
-          onClick={onToggle}
-        />
-      )}
-
-      {/* Sidebar Content is moved into a wrapper to avoid layout jump during transition */}
-      <div
-        className={`flex flex-col h-full w-full min-w-[200px] ${
-          !isOpen ? "opacity-0 invisible" : "opacity-100 visible"
-        } transition-opacity duration-200`}
+          }`}
       >
-        {/* Resizer Handle - only on desktop */}
+        {/* Mobile Overlay - not needed for fullscreen */}
+        {isOpen && (
+          <div
+            className="fixed inset-0 bg-black/50 z-[-1] md:hidden"
+            onClick={onToggle}
+          />
+        )}
+
+        {/* Sidebar Content is moved into a wrapper to avoid layout jump during transition */}
         <div
-          className="hidden md:block absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-primary active:bg-primary transition-colors z-50 translate-x-[50%]"
-          onMouseDown={startResizing}
-        />
+          className={`flex flex-col h-full w-full min-w-[200px] ${!isOpen ? "opacity-0 invisible" : "opacity-100 visible"
+            } transition-opacity duration-200`}
+        >
+          {/* Resizer Handle - only on desktop */}
+          <div
+            className="hidden md:block absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-primary active:bg-primary transition-colors z-50 translate-x-[50%]"
+            onMouseDown={startResizing}
+          />
 
-        <div className="flex h-full flex-col p-4 overflow-y-auto">
-          <div className="flex flex-col gap-4 flex-1 min-h-0">
-            {/* Logo */}
-            <div className="flex items-center gap-3 p-2 min-w-0 shrink-0">
-              <img
-                src={logo}
-                alt="Tender Flow Logo"
-                className="size-14 min-w-14 object-contain drop-shadow-md shrink-0"
-              />
-              <div className="flex flex-1 flex-col min-w-0">
-                <h1 className="text-slate-900 dark:text-white text-xl font-bold leading-tight whitespace-nowrap truncate">
-                  Tender Flow
-                </h1>
-                <p className="text-slate-500 text-[8px] font-normal leading-tight whitespace-nowrap truncate">
-                  Tender Management System
-                </p>
-              </div>
-              {/* Close Toggle for Mobile */}
-              <button
-                onClick={onToggle}
-                className="ml-auto p-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors md:hidden flex items-center justify-center"
-                title="Zavřít"
-              >
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
-
-            {/* Navigation */}
-            <nav className="flex flex-col gap-2 mt-4 flex-1 overflow-y-auto">
-              {SIDEBAR_NAVIGATION.map((item) => renderNavItem(item))}
-            </nav>
-          </div>
-
-          {/* Bottom Section */}
-          <div className="mt-auto p-3 space-y-2 border-t border-slate-200 dark:border-slate-700/50">
-            {/* Sidebar Toggle */}
-            <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-200 dark:border-slate-700/50">
-              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                Skrýt panel
-              </span>
-              <button
-                onClick={onToggle}
-                className="p-1 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors inline-flex items-center justify-center"
-                title="Skrýt panel"
-                aria-label="Skrýt panel"
-              >
-                <span className="material-symbols-outlined text-[22px]">
-                  toggle_on
-                </span>
-              </button>
-            </div>
-
-            {BOTTOM_NAVIGATION.map((item) => renderNavItem(item))}
-
-            <a
-              href="/user-manual/index.html"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
-              title="Otevře uživatelskou příručku v nové záložce"
-            >
-              <span className="material-symbols-outlined shrink-0">
-                menu_book
-              </span>
-              <span className="text-sm font-medium break-words">
-                Uživatelská příručka
-              </span>
-              <span className="material-symbols-outlined ml-auto text-[18px] text-slate-500">
-                open_in_new
-              </span>
-            </a>
-
-            <div className="flex items-center gap-3 px-3 py-3 mt-1 overflow-hidden bg-slate-50 dark:bg-slate-950/30 rounded-xl border border-slate-200 dark:border-slate-700/40">
-              {user?.subscriptionTier ? (
-                <div className="size-8 min-w-8 flex items-center justify-center">
-                  <span
-                    className={`badge-neon badge-neon-${user.subscriptionTier}`}
-                  >
-                    {user.subscriptionTier === "admin"
-                      ? "BOSS"
-                      : user.subscriptionTier}
-                  </span>
-                </div>
-              ) : user?.avatarUrl ? (
+          <div className="flex h-full flex-col p-4 overflow-y-auto">
+            <div className="flex flex-col gap-4 flex-1 min-h-0">
+              {/* Logo */}
+              <div className="flex items-center gap-3 p-2 min-w-0 shrink-0">
                 <img
-                  src={user.avatarUrl}
-                  alt={user.name}
-                  className="size-8 min-w-8 rounded-full"
+                  src={logo}
+                  alt="Tender Flow Logo"
+                  className="size-14 min-w-14 object-contain drop-shadow-md shrink-0"
                 />
-              ) : (
-                <div className="size-8 min-w-8 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400"></div>
-              )}
-              <div className="flex flex-col overflow-hidden flex-1">
-                <p className="text-sm font-bold text-slate-800 dark:text-white break-words truncate">
-                  {displayName || user?.email?.split("@")[0] || "User"}
-                </p>
-                <p className="text-xs text-slate-500 truncate capitalize">
-                  {getUserRole(user?.email, user?.role)}
-                </p>
+                <div className="flex flex-1 flex-col min-w-0">
+                  <h1 className="text-slate-900 dark:text-white text-xl font-bold leading-tight whitespace-nowrap truncate">
+                    Tender Flow
+                  </h1>
+                  <p className="text-slate-500 text-[8px] font-normal leading-tight whitespace-nowrap truncate">
+                    Tender Management System
+                  </p>
+                </div>
+                {/* Close Toggle for Mobile */}
+                <button
+                  onClick={onToggle}
+                  className="ml-auto p-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors md:hidden flex items-center justify-center"
+                  title="Zavřít"
+                >
+                  <span className="material-symbols-outlined">close</span>
+                </button>
               </div>
-              <button
-                onClick={logout}
-                className="ml-auto p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                title="Odhlásit se"
-              >
-                <span className="material-symbols-outlined text-[20px]">
-                  logout
-                </span>
-              </button>
+
+              {/* Navigation */}
+              <nav className="flex flex-col gap-2 mt-4 flex-1 overflow-y-auto">
+                {SIDEBAR_NAVIGATION.map((item) => renderNavItem(item))}
+              </nav>
             </div>
 
-            {/* Footer Credit */}
-            <div className="px-3 pb-2">
-              <div className="h-px bg-slate-700/50 w-full my-3"></div>
-              <p className="text-[13px] text-white/50 text-center leading-relaxed font-medium tracking-wide">
-                Martin Kalkuš 2025
-              </p>
-              <p className="text-[10px] text-slate-600 text-center mt-1 font-mono hover:text-slate-500 transition-colors cursor-default">
-                v{APP_VERSION}
-              </p>
+            {/* Bottom Section */}
+            <div className="mt-auto p-3 space-y-2 border-t border-slate-200 dark:border-slate-700/50">
+              {/* Sidebar Toggle */}
+              <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-200 dark:border-slate-700/50">
+                <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                  Skrýt panel
+                </span>
+                <button
+                  onClick={onToggle}
+                  className="p-1 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors inline-flex items-center justify-center"
+                  title="Skrýt panel"
+                  aria-label="Skrýt panel"
+                >
+                  <span className="material-symbols-outlined text-[22px]">
+                    toggle_on
+                  </span>
+                </button>
+              </div>
+
+              {BOTTOM_NAVIGATION.map((item) => renderNavItem(item))}
+
+              <a
+                href="/user-manual/index.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
+                title="Otevře uživatelskou příručku v nové záložce"
+              >
+                <span className="material-symbols-outlined shrink-0">
+                  menu_book
+                </span>
+                <span className="text-sm font-medium break-words">
+                  Uživatelská příručka
+                </span>
+                <span className="material-symbols-outlined ml-auto text-[18px] text-slate-500">
+                  open_in_new
+                </span>
+              </a>
+
+              <div className="flex items-center gap-3 px-3 py-3 mt-1 overflow-hidden bg-slate-50 dark:bg-slate-950/30 rounded-xl border border-slate-200 dark:border-slate-700/40">
+                {user?.subscriptionTier ? (
+                  <div className="size-8 min-w-8 flex items-center justify-center">
+                    <span
+                      className={`badge-neon badge-neon-${user.subscriptionTier}`}
+                    >
+                      {user.subscriptionTier === "admin"
+                        ? "BOSS"
+                        : user.subscriptionTier}
+                    </span>
+                  </div>
+                ) : user?.avatarUrl ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt={user.name}
+                    className="size-8 min-w-8 rounded-full"
+                  />
+                ) : (
+                  <div className="size-8 min-w-8 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400"></div>
+                )}
+                <div className="flex flex-col overflow-hidden flex-1">
+                  <p className="text-sm font-bold text-slate-800 dark:text-white break-words truncate">
+                    {displayName || user?.email?.split("@")[0] || "User"}
+                  </p>
+                  <p className="text-xs text-slate-500 truncate capitalize">
+                    {getUserRole(user?.email, user?.role)}
+                  </p>
+                </div>
+                <button
+                  onClick={handleLogoutClick}
+                  className="ml-auto p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                  title="Odhlásit se"
+                >
+                  <span className="material-symbols-outlined text-[20px]">
+                    logout
+                  </span>
+                </button>
+              </div>
+
+              {/* Footer Credit */}
+              <div className="px-3 pb-2">
+                <div className="h-px bg-slate-700/50 w-full my-3"></div>
+                <p className="text-[13px] text-white/50 text-center leading-relaxed font-medium tracking-wide">
+                  Martin Kalkuš 2025
+                </p>
+                <p className="text-[10px] text-slate-600 text-center mt-1 font-mono hover:text-slate-500 transition-colors cursor-default">
+                  v{APP_VERSION}
+                </p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </aside>
+      </aside>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
+            <h3 className="text-xl font-bold text-white mb-2">
+              Chcete ukončit aplikaci?
+            </h3>
+            <p className="text-slate-400 mb-6">
+              Můžete aplikaci ukončit a zůstat přihlášeni (pro Touch ID), nebo se úplně odhlásit.
+            </p>
+
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={handleConfirmQuit}
+                className="w-full py-3 px-4 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-400 hover:to-amber-500 text-white font-bold rounded-xl shadow-lg shadow-orange-500/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+              >
+                <span className="material-symbols-outlined">power_settings_new</span>
+                Ukončit aplikaci (Ponechat přihlášení)
+              </button>
+
+              <button
+                onClick={handleConfirmLogout}
+                className="w-full py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium rounded-xl border border-slate-700 transition-all flex items-center justify-center gap-2"
+              >
+                <span className="material-symbols-outlined">logout</span>
+                Odhlásit se (Vyžaduje heslo příště)
+              </button>
+
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="w-full py-2 px-4 text-slate-500 hover:text-white transition-colors text-sm mt-2"
+              >
+                Zrušit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
