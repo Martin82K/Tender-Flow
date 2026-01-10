@@ -6,11 +6,13 @@ import { useAppData } from "./hooks/useAppData";
 import { useAuth } from "./context/AuthContext";
 import { useUI } from "./context/UIContext";
 import { useTheme } from "./hooks/useTheme";
+import { useDesktop } from "./hooks/useDesktop";
 import { useLocation, navigate } from "./components/routing/router";
 import { buildAppUrl, parseAppRoute } from "./components/routing/routeUtils";
 import { View } from "./types";
 import { RequireFeature } from "./components/routing/RequireFeature";
 import { FEATURES } from "./config/features";
+import { DesktopWelcome, UpdateBanner } from "./components/desktop";
 
 // Components (Lazy)
 const ProjectManager = React.lazy(() =>
@@ -61,6 +63,18 @@ function AppContent() {
   const { showUiModal, uiModal, closeUiModal } = useUI();
   const { pathname, search } = useLocation();
 
+  // Desktop features
+  const {
+    isDesktop,
+    showWelcome,
+    dismissWelcome,
+    updateAvailable,
+    isCheckingUpdate,
+    checkForUpdates,
+    installUpdate,
+    selectFolder,
+  } = useDesktop();
+
   // Data Hook
   const { state, actions } = useAppData(showUiModal);
 
@@ -106,7 +120,7 @@ function AppContent() {
       if (window.self !== window.top && "scrollRestoration" in window.history) {
         window.history.scrollRestoration = "manual";
       }
-    } catch {}
+    } catch { }
   }, []);
 
   // Initial Loading Screen
@@ -127,10 +141,10 @@ function AppContent() {
       typeof percent === "number"
         ? percent
         : authLoading
-        ? 30
-        : state.isDataLoading
-        ? 60
-        : 0;
+          ? 30
+          : state.isDataLoading
+            ? 60
+            : 0;
 
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gray-900 text-white gap-4 px-6 text-center">
@@ -316,7 +330,7 @@ function AppContent() {
             onDeleteContacts={actions.handleDeleteContacts}
             contacts={state.contacts}
             isAdmin={state.isAdmin}
-            onSaveSettings={async () => {}}
+            onSaveSettings={async () => { }}
             user={user}
           />
         );
@@ -370,6 +384,23 @@ function AppContent() {
       onHideBackgroundWarning={() => actions.setBackgroundWarning(null)}
     >
       {renderCurrentView()}
+
+      {/* Desktop-only components */}
+      {isDesktop && showWelcome && (
+        <DesktopWelcome
+          onClose={dismissWelcome}
+          onSelectFolder={selectFolder}
+        />
+      )}
+
+      {isDesktop && (
+        <UpdateBanner
+          isVisible={updateAvailable}
+          isCheckingUpdate={isCheckingUpdate}
+          onCheckUpdate={checkForUpdates}
+          onInstallUpdate={installUpdate}
+        />
+      )}
     </MainLayout>
   );
 }

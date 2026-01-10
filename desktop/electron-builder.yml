@@ -1,0 +1,64 @@
+appId: cz.tenderflow.desktop
+productName: Tender Flow
+copyright: Copyright © 2026 Tender Flow
+
+directories:
+  output: dist-electron
+  buildResources: assets
+
+files:
+  - desktop/dist/**/*
+  - dist/**/*
+  - package.json
+
+extraMetadata:
+  main: desktop/dist/main.js
+
+asar: true
+
+# Auto-update publish configuration
+publish:
+  provider: github
+  owner: tenderflow
+  repo: desktop
+  releaseType: release
+
+mac:
+  category: public.app-category.business
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+    - target: zip
+      arch:
+        - x64
+        - arm64
+  icon: assets/icon.icns
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: desktop/entitlements.mac.plist
+  entitlementsInherit: desktop/entitlements.mac.plist
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: assets/icon.ico
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  installerIcon: assets/icon.ico
+  uninstallerIcon: assets/icon.ico
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+
+linux:
+  target:
+    - target: AppImage
+    - target: deb
+  category: Office
+  icon: assets/icons

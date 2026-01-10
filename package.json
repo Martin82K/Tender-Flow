@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.9.4-260102",
   "type": "module",
+  "main": "desktop/dist/main.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -13,7 +14,12 @@
     "mcp:install": "cd mcp-bridge-server && npm install",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "desktop:compile": "cd desktop && tsc",
+    "desktop:dev": "npm run desktop:compile && electron .",
+    "desktop:build": "npm run build && npm run desktop:compile && electron-builder",
+    "desktop:build:mac": "npm run desktop:build -- --mac",
+    "desktop:build:win": "npm run desktop:build -- --win"
   },
   "dependencies": {
     "@google/genai": "^1.30.0",
@@ -47,6 +53,10 @@
     "@types/node": "^22.19.3",
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.22",
+    "electron": "^34.0.0",
+    "electron-builder": "^25.1.8",
+    "electron-squirrel-startup": "^1.0.1",
+    "electron-updater": "^6.3.9",
     "jsdom": "^27.4.0",
     "marked": "^12.0.2",
     "postcss": "^8.5.6",
