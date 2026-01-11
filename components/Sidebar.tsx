@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { platformAdapter, isDesktop } from "../services/platformAdapter";
-import { View, Project } from "../types";
+import { View, Project, ProjectTab } from "../types";
 import logo from "../assets/logo.png";
 import { SIDEBAR_NAVIGATION, BOTTOM_NAVIGATION } from "../config/navigation";
 import { useFeatures } from "../context/FeatureContext";
@@ -11,6 +11,13 @@ import { APP_VERSION } from "../config/version";
 
 // Admin role configuration (must match App.tsx)
 const ADMIN_EMAILS = ["martinkalkus82@gmail.com", "kalkus@baustav.cz"];
+const PROJECT_TABS: { id: ProjectTab; label: string; icon: string }[] = [
+  { id: "overview", label: "Přehled", icon: "dashboard" },
+  { id: "tender-plan", label: "Plán VŘ", icon: "assignment" },
+  { id: "pipeline", label: "Výběrová řízení", icon: "view_kanban" },
+  { id: "schedule", label: "Harmonogram", icon: "calendar_month" },
+  { id: "documents", label: "Dokumenty", icon: "folder" },
+];
 
 // Helper function to get display role
 const getUserRole = (
@@ -42,7 +49,7 @@ interface SidebarProps {
     }
   ) => void;
   selectedProjectId: string;
-  onProjectSelect: (id: string) => void;
+  onProjectSelect: (id: string, tab?: string) => void;
   projects: Project[];
   isOpen: boolean;
   onToggle: () => void;
@@ -71,6 +78,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (typeof window !== "undefined" && window.innerWidth < 768 && isOpen) {
       onToggle();
     }
+  };
+
+  const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({});
+
+  const toggleProjectExpand = (e: React.MouseEvent, projectId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setExpandedProjects(prev => ({ ...prev, [projectId]: !prev[projectId] }));
   };
 
   const settingsRoute = (() => {
@@ -191,9 +206,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }
   };
 
-  // Drag & Drop State for Projects
+
+
+  // Drag & Drop State for Projects (Read-only here)
   const [projectOrder, setProjectOrder] = useState<string[]>([]);
-  const [draggedId, setDraggedId] = useState<string | null>(null);
 
   // Load order from localStorage on mount
   useEffect(() => {
@@ -217,45 +233,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (bIndex === -1) return -1;
     return aIndex - bIndex;
   });
-
-  // Drag handlers
-  const handleProjectDragStart = (e: React.DragEvent, projectId: string) => {
-    setDraggedId(projectId);
-    e.dataTransfer.effectAllowed = "move";
-  };
-
-  const handleProjectDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-  };
-
-  const handleProjectDrop = (e: React.DragEvent, targetId: string) => {
-    e.preventDefault();
-    if (!draggedId || draggedId === targetId) {
-      setDraggedId(null);
-      return;
-    }
-
-    const currentOrder = orderedProjects.map((p) => p.id);
-    const draggedIndex = currentOrder.indexOf(draggedId);
-    const targetIndex = currentOrder.indexOf(targetId);
-
-    if (draggedIndex === -1 || targetIndex === -1) {
-      setDraggedId(null);
-      return;
-    }
-
-    currentOrder.splice(draggedIndex, 1);
-    currentOrder.splice(targetIndex, 0, draggedId);
-
-    setProjectOrder(currentOrder);
-    localStorage.setItem("projectOrder", JSON.stringify(currentOrder));
-    setDraggedId(null);
-  };
-
-  const handleProjectDragEnd = () => {
-    setDraggedId(null);
-  };
 
   // Helper to render nav items
   const renderNavItem = (item: any, parentId?: string) => {
@@ -295,45 +272,99 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 Žádné aktivní stavby
               </div>
             )}
-            {orderedProjects.map((project) => (
-              <div
-                key={project.id}
-                draggable
-                onDragStart={(e) => handleProjectDragStart(e, project.id)}
-                onDragOver={handleProjectDragOver}
-                onDrop={(e) => handleProjectDrop(e, project.id)}
-                onDragEnd={handleProjectDragEnd}
-                onClick={() => {
-                  onProjectSelect(project.id);
-                  closeMobileMenu();
-                }}
-                className={`flex items-center gap-2 text-left text-sm px-3 py-2 rounded-lg transition-all relative overflow-hidden cursor-move ${currentView === "project" && selectedProjectId === project.id
-                  ? "text-slate-900 dark:text-white font-medium"
-                  : "text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                  } ${draggedId === project.id ? "opacity-50" : ""}`}
-                title={project.name}
-              >
-                {/* Gradient highlight for selected project */}
-                {currentView === "project" &&
-                  selectedProjectId === project.id && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-primary/30 via-primary/10 to-transparent rounded-lg border-l-2 border-primary" />
+            {orderedProjects.map((project) => {
+              const isExpanded = expandedProjects[project.id];
+              const isSelected = currentView === "project" && selectedProjectId === project.id;
+
+              return (
+                <div key={project.id} className="flex flex-col">
+                  {/* Project Header Item */}
+                  <div
+                    onClick={() => {
+                      onProjectSelect(project.id, "overview");
+                      closeMobileMenu();
+                    }}
+                    className={`flex items-center gap-2 text-left text-sm px-3 py-2 rounded-lg transition-all relative overflow-hidden cursor-pointer group/item ${isSelected
+                      ? "text-slate-900 dark:text-white font-medium"
+                      : "text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                      }`}
+                    title={project.name}
+                  >
+                    {/* Gradient highlight for selected project */}
+                    {isSelected && (
+                      <div className="absolute inset-0 bg-gradient-to-r from-primary/30 via-primary/10 to-transparent rounded-lg border-l-2 border-primary" />
+                    )}
+
+                    {/* Status Badge */}
+                    <span
+                      className={`relative z-10 flex items-center justify-center size-5 rounded text-[11px] font-bold shrink-0 ${project.status === "realization"
+                        ? "bg-amber-500/20 text-amber-400"
+                        : "bg-blue-500/20 text-blue-400"
+                        }`}
+                    >
+                      {project.status === "realization" ? "R" : "S"}
+                    </span>
+
+                    {/* Project Name */}
+                    <span className="relative z-10 break-words flex-1 truncate">
+                      {project.name}
+                    </span>
+
+                    {/* Expand Button */}
+                    <button
+                      onClick={(e) => toggleProjectExpand(e, project.id)}
+                      className={`relative z-10 p-0.5 rounded-md hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 transition-all ${isExpanded ? "rotate-180" : ""
+                        }`}
+                    >
+                      <span className="material-symbols-outlined text-[18px]">expand_more</span>
+                    </button>
+                  </div>
+
+                  {/* Submenu */}
+                  {isExpanded && (
+                    <div className="flex flex-col ml-3 pl-3 border-l border-slate-200 dark:border-slate-700/50 mt-1 mb-1 gap-0.5 animate-in slide-in-from-top-2 duration-200">
+                      {PROJECT_TABS.map((tab) => {
+                        // Logic to determine if sub-tab is active could be tricky since we don't have tab info in SidebarProps except strictly via currentView/route check which I'd have to implement.
+                        // But for sidebar highlight, we can rely on `selectedProjectId` + `activeProjectTab` if Sidebar received it.
+                        // Sidebar doesn't receive `activeProjectTab`. MainLayout has it. I should have passed it!
+                        // But wait, `isNavItemActive` uses `settingsRoute` which parses URL.
+                        // I can parse URL here too or pass the prop.
+                        // I'll stick to simple rendering for now, maybe simple highlight if possible.
+                        const isTabActive = isSelected && window.location.search.includes(`tab=${tab.id}`); // Rough check or rely on passed prop if I add it.
+                        // Actually, I modified MainLayout to support `activeProjectTab`.
+                        // I DID NOT add `activeProjectTab` to SidebarProps yet.
+                        // I should probably have done that.
+                        // For now, I will skip the "active" highlight for sub-tabs or implement a basic check.
+                        // Actually, `useLocation` hook is used in Sidebar (line 62).
+                        // `const { search } = useLocation();`
+                        // I can check search params.
+
+                        const searchParams = new URLSearchParams(search);
+                        const isTabActiveReal = isSelected && (searchParams.get('tab') || 'overview') === tab.id;
+
+                        return (
+                          <button
+                            key={tab.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onProjectSelect(project.id, tab.id);
+                              closeMobileMenu();
+                            }}
+                            className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs transition-colors ${isTabActiveReal
+                              ? "text-primary bg-primary/10 font-medium"
+                              : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/30"
+                              }`}
+                          >
+                            <span className="material-symbols-outlined text-[16px]">{tab.icon}</span>
+                            <span>{tab.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   )}
-                <span className="material-symbols-outlined text-slate-600 text-[16px] cursor-grab active:cursor-grabbing relative z-10 shrink-0">
-                  drag_indicator
-                </span>
-                <span
-                  className={`relative z-10 flex items-center justify-center size-5 rounded text-[11px] font-bold shrink-0 ${project.status === "realization"
-                    ? "bg-amber-500/20 text-amber-400"
-                    : "bg-blue-500/20 text-blue-400"
-                    }`}
-                >
-                  {project.status === "realization" ? "R" : "S"}
-                </span>
-                <span className="relative z-10 break-words">
-                  {project.name}
-                </span>
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
         </details>
       );

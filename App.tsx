@@ -240,9 +240,9 @@ function AppContent() {
     );
   }
 
-  const handleNavigateToProject = (id: string) => {
+  const handleNavigateToProject = (id: string, tab: string = "overview") => {
     actions.setSelectedProjectId(id);
-    navigate(buildAppUrl("project", { projectId: id, tab: "overview" }));
+    navigate(buildAppUrl("project", { projectId: id, tab: tab as any }));
   };
 
   const renderCurrentView = () => {

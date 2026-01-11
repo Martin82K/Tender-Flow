@@ -26,7 +26,7 @@ interface MainLayoutProps {
     currentView: View;
     projects: Project[];
     selectedProjectId: string;
-    onProjectSelect: (id: string) => void;
+    onProjectSelect: (id: string, tab?: string) => void;
     activeProjectTab?: string; // Needed for Sidebar navigation logic
 
     // Status
