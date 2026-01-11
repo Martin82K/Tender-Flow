@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { Sidebar } from '../Sidebar';
 import { ConfirmationModal } from '../ConfirmationModal';
 import { navigate } from '../routing/router';
@@ -54,6 +54,13 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     onReloadData,
     onHideBackgroundWarning
 }) => {
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        // @ts-ignore - electronAPI is injected via preload
+        const api = window.electronAPI;
+        if (!api?.platform?.isDesktop || !api?.mcp?.setCurrentProject) return;
+        api.mcp.setCurrentProject(selectedProjectId || null);
+    }, [selectedProjectId]);
 
     const handleViewChange = (view: View, opts?: any) => {
         if (view === "project") {

@@ -13,6 +13,7 @@ import { ExcelMergerProSettings } from "./settings/ExcelMergerProSettings";
 import { ExcelMergerAdminSettings } from "./settings/ExcelMergerAdminSettings";
 import { UrlShortener } from "./tools/UrlShortener";
 import { ExcelIndexerSettings } from "./settings/ExcelIndexerSettings";
+import { McpDiagnostics } from "./settings/McpDiagnostics";
 import { useFeatures } from "../context/FeatureContext";
 import { FEATURES } from "../config/features";
 
@@ -335,7 +336,12 @@ export const Settings: React.FC<SettingsProps> = ({
               {activeAdminSubTab === "subscriptions" && (
                 <AdminSettings isAdmin={isAdmin} section="subscriptions" />
               )}
-              {activeAdminSubTab === "ai" && <AISettings isAdmin={isAdmin} />}
+              {activeAdminSubTab === "ai" && (
+                <>
+                  <AISettings isAdmin={isAdmin} />
+                  <McpDiagnostics isAdmin={isAdmin} />
+                </>
+              )}
             </main>
           </div>
         )}

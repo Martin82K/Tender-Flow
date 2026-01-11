@@ -98,10 +98,9 @@ export const slugifyDocHubSegment = (value: string): string => {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "") // diacritics
     .replace(/&/g, " a ")
-    .replace(/[^\w\s-]/g, " ")
+    .replace(/[^\w\s-.]/g, "") // Keep words, spaces, dashes, dots. Remove others.
     .trim()
-    .replace(/\s+/g, "_")
-    .replace(/_+/g, "_");
+    .replace(/\s+/g, " "); // Collapse multiple spaces to single space
 
   return normalized || "Neznamy";
 };
@@ -161,3 +160,72 @@ export const getDocHubTenderLinks = (
       joinDocHubPath(inquiriesBase, slugifyDocHubSegment(supplierName), structure.supplierOffer),
   };
 };
+
+/**
+ * Desktop-specific version that builds path from saved hierarchy structure.
+ * This reads the actual folder names from extraHierarchy and preserves diacritics.
+ * Path is built by traversing: root -> tenders folder -> category folder -> supplier folder
+ */
+export const getDocHubTenderLinksDesktop = (
+  root: string,
+  tenderTitle: string,
+  supplierName: string,
+  overrides?: Partial<DocHubStructureV1> | null
+): string => {
+  const structure = overrides || {};
+  const hierarchy = (structure as any).extraHierarchy as DocHubHierarchyItem[] | undefined;
+
+  // Clean segment - only remove Windows-invalid chars, preserve diacritics
+  const cleanSegment = (value: string): string => {
+    return value.replace(/[<>:"|?*]/g, "").trim();
+  };
+
+  // If no hierarchy, fall back to simple structure
+  if (!hierarchy || hierarchy.length === 0) {
+    console.log('[DocHub] No hierarchy found, using simple fallback structure');
+    const tendersFolder = "03_Vyberova_rizeni"; // Default
+    return joinDocHubPath(root, tendersFolder, cleanSegment(tenderTitle), cleanSegment(supplierName));
+  }
+
+  // Find tenders folder from hierarchy (key === 'tenders')
+  const tendersItem = hierarchy.find(item => item.key === 'tenders' && item.enabled !== false);
+  const tendersFolder = tendersItem?.name || "03_Vyberova_rizeni";
+
+  console.log('[DocHub] Building path from hierarchy:', {
+    tendersFolder,
+    tenderTitle,
+    supplierName,
+    hierarchyKeys: hierarchy.map(h => `${h.key}:${h.name}@depth${h.depth}`)
+  });
+
+  // Path: root / tenders folder / category title / supplier name
+  // Supplier is directly under category (no intermediate folders like Poptavky)
+  const fullPath = joinDocHubPath(
+    root,
+    tendersFolder,
+    cleanSegment(tenderTitle),
+    cleanSegment(supplierName)
+  );
+
+  console.log('[DocHub] Final desktop path:', fullPath);
+
+  return fullPath;
+};
+
+/**
+ * Simplified helper to get the tenders folder name from hierarchy
+ */
+export const getTendersFolderName = (
+  overrides?: Partial<DocHubStructureV1> | null
+): string => {
+  const structure = overrides || {};
+  const hierarchy = (structure as any).extraHierarchy as DocHubHierarchyItem[] | undefined;
+
+  if (!hierarchy || hierarchy.length === 0) {
+    return "03_Vyberova_rizeni"; // Default
+  }
+
+  const tendersItem = hierarchy.find(item => item.key === 'tenders' && item.enabled !== false);
+  return tendersItem?.name || "03_Vyberova_rizeni";
+};
+

@@ -5,6 +5,7 @@ import * as crypto from 'crypto';
 import * as path from 'path';
 import { FolderWatcherService } from '../services/folderWatcher';
 import { SecureStorageService } from '../services/secureStorage';
+import { getMcpStatus, setMcpAuthToken, setMcpCurrentProjectId } from '../services/mcpServer';
 import type { FolderInfo, FileInfo } from '../types';
 
 // Services (singleton instances)
@@ -177,7 +178,7 @@ export function registerIpcHandlers(): void {
     });
 
     ipcMain.handle('fs:openInExplorer', async (_, targetPath: string): Promise<void> => {
-        shell.showItemInFolder(targetPath);
+        await shell.openPath(targetPath);
     });
 
     ipcMain.handle('fs:openFile', async (_, filePath: string): Promise<void> => {
@@ -364,6 +365,26 @@ export function registerIpcHandlers(): void {
     ipcMain.handle('session:isBiometricEnabled', async (): Promise<boolean> => {
         const value = await storageService.get(BIOMETRIC_ENABLED_KEY);
         return value === 'true';
+    });
+
+    // --- MCP CONTEXT ---
+
+    ipcMain.handle('mcp:setCurrentProject', async (_event, projectId: string | null): Promise<void> => {
+        setMcpCurrentProjectId(projectId || null);
+    });
+
+    ipcMain.handle('mcp:setAuthToken', async (_event, token: string | null): Promise<void> => {
+        setMcpAuthToken(token || null);
+    });
+
+    ipcMain.handle('mcp:getStatus', async (): Promise<{
+        port: number | null;
+        sseUrl: string | null;
+        currentProjectId: string | null;
+        hasAuthToken: boolean;
+        isConfigured: boolean;
+    }> => {
+        return getMcpStatus();
     });
 
     // --- OAUTH (Google Desktop) ---

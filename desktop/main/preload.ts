@@ -172,6 +172,21 @@ const electronAPI: ElectronAPI = {
             return ipcRenderer.invoke('oauth:googleLogin', args);
         },
     },
+
+    mcp: {
+        setCurrentProject: (projectId: string | null): Promise<void> =>
+            ipcRenderer.invoke('mcp:setCurrentProject', projectId),
+        setAuthToken: (token: string | null): Promise<void> =>
+            ipcRenderer.invoke('mcp:setAuthToken', token),
+        getStatus: (): Promise<{
+            port: number | null;
+            sseUrl: string | null;
+            currentProjectId: string | null;
+            hasAuthToken: boolean;
+            isConfigured: boolean;
+        }> =>
+            ipcRenderer.invoke('mcp:getStatus'),
+    },
 };
 
 // Expose to renderer

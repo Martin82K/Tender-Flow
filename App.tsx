@@ -13,6 +13,7 @@ import { View } from "./types";
 import { RequireFeature } from "./components/routing/RequireFeature";
 import { FEATURES } from "./config/features";
 import { DesktopWelcome, UpdateBanner } from "./components/desktop";
+import { supabase } from "./services/supabase";
 
 // Components (Lazy)
 const ProjectManager = React.lazy(() =>
@@ -121,6 +122,34 @@ function AppContent() {
         window.history.scrollRestoration = "manual";
       }
     } catch { }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    // @ts-ignore - electronAPI is injected via preload
+    const api = window.electronAPI;
+    if (!api?.platform?.isDesktop || !api?.mcp?.setAuthToken) return;
+
+    let isMounted = true;
+    const pushToken = async (token: string | null) => {
+      if (!isMounted) return;
+      await api.mcp.setAuthToken(token);
+    };
+
+    supabase.auth.getSession().then(({ data }) => {
+      pushToken(data.session?.access_token ?? null);
+    });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        pushToken(session?.access_token ?? null);
+      }
+    );
+
+    return () => {
+      isMounted = false;
+      authListener?.subscription.unsubscribe();
+    };
   }, []);
 
   // Initial Loading Screen

@@ -39,6 +39,7 @@ import { useAuth } from "../context/AuthContext";
 import { getDemoData, saveDemoData } from "../services/demoData";
 import {
   getDocHubTenderLinks,
+  getDocHubTenderLinksDesktop,
   isProbablyUrl,
   resolveDocHubStructureV1,
 } from "../utils/docHub";
@@ -138,32 +139,38 @@ export const Pipeline: React.FC<PipelineProps> = ({
   );
 
   const openOrCopyDocHubPath = async (path: string) => {
-    if (!path) return;
+    console.log('[DocHub] openOrCopyDocHubPath called with path:', path);
+    if (!path) {
+      console.warn('[DocHub] Empty path, returning');
+      return;
+    }
     if (isProbablyUrl(path)) {
+      console.log('[DocHub] Path is URL, opening in browser');
       window.open(path, "_blank", "noopener,noreferrer");
       return;
     }
 
     // Try native Electron folder opening first (for Tender Flow Desktop / onedrive provider)
+    console.log('[DocHub] Attempting to open local path. isDocHubEnabled:', isDocHubEnabled);
     if (isDocHubEnabled && !isProbablyUrl(path)) {
       try {
         // Dynamic import to avoid issues on web
         const { fileSystemAdapter, isDesktop } = await import('../services/platformAdapter');
+        console.log('[DocHub] isDesktop:', isDesktop);
         if (isDesktop) {
+          console.log('[DocHub] Calling fileSystemAdapter.openInExplorer with path:', path);
           await fileSystemAdapter.openInExplorer(path);
-          return; // Opened successfully
+          console.log('[DocHub] openInExplorer completed successfully');
+          return; // Opened successfully - Desktop doesn't need MCP fallback
         }
-      } catch (e) {
-        console.warn("Native open failed, trying MCP fallback", e);
-      }
 
-      // Try opening via MCP if enabled and local path
-      try {
+        // Only try MCP if NOT on desktop (web browser with MCP bridge)
+        console.log('[DocHub] Not on desktop, trying MCP open for path:', path);
         const result = await mcpOpenPath(path);
+        console.log('[DocHub] MCP result:', result);
         if (result.success) return; // Opened successfully
-        // If failed, fall back to copy
       } catch (e) {
-        console.warn("MCP Open failed, falling back to copy", e);
+        console.warn("[DocHub] Open failed, falling back to copy", e);
       }
     }
 
@@ -1082,7 +1089,19 @@ export const Pipeline: React.FC<PipelineProps> = ({
   };
 
   const handleOpenSupplierDocHub = (bid: Bid) => {
-    if (!isDocHubEnabled || !activeCategory) return;
+    console.log('[DocHub] handleOpenSupplierDocHub called', {
+      bid: bid.companyName,
+      isDocHubEnabled,
+      docHubRoot,
+      activeCategory: activeCategory?.title,
+      docHubProvider: projectData.docHubProvider,
+      docHubStructure,
+    });
+
+    if (!isDocHubEnabled || !activeCategory) {
+      console.warn('[DocHub] Early exit: isDocHubEnabled=', isDocHubEnabled, 'activeCategory=', activeCategory);
+      return;
+    }
 
     // Explicitly force local handling for MCP/Tender Flow Desktop to avoid backend calls
     const isMcpOrLocal = projectData.docHubProvider === 'mcp' || projectData.docHubProvider === 'onedrive';
@@ -1098,12 +1117,30 @@ export const Pipeline: React.FC<PipelineProps> = ({
       });
       return;
     }
-    const links = getDocHubTenderLinks(
-      docHubRoot,
-      activeCategory.title,
-      docHubStructure
-    );
-    openOrCopyDocHubPath(links.supplierBase(bid.companyName));
+
+    // For desktop: use desktop-specific function that preserves diacritics
+    // For web/MCP: use original function with slugified names
+    const isDesktopMode = typeof window !== 'undefined' && window.electronAPI?.platform?.isDesktop;
+    console.log('[DocHub] isDesktopMode:', isDesktopMode);
+
+    if (isDesktopMode) {
+      // Desktop: pass supplier name directly, get path string back
+      const supplierPath = getDocHubTenderLinksDesktop(
+        docHubRoot,
+        activeCategory.title,
+        bid.companyName,
+        projectDetails.docHubStructureV1
+      );
+      console.log('[DocHub] Desktop path:', supplierPath);
+      openOrCopyDocHubPath(supplierPath);
+    } else {
+      const links = getDocHubTenderLinks(
+        docHubRoot,
+        activeCategory.title,
+        docHubStructure
+      );
+      openOrCopyDocHubPath(links.supplierBase(bid.companyName));
+    }
   };
 
   const handleExport = (format: "xlsx" | "markdown" | "pdf") => {
@@ -1331,29 +1368,44 @@ export const Pipeline: React.FC<PipelineProps> = ({
           {isDocHubEnabled && (
             <button
               onClick={() => {
-                if (canUseDocHubBackend && projectData.id) {
+                // For desktop: open tender/category folder directly
+                const isDesktopMode = typeof window !== 'undefined' && window.electronAPI?.platform?.isDesktop;
+
+                if (canUseDocHubBackend && projectData.id && !isDesktopMode) {
                   openDocHubBackendLink({
                     projectId: projectData.id,
-                    kind: "tender_inquiries",
+                    kind: "tender",
                     categoryId: activeCategory.id,
                     categoryTitle: activeCategory.title,
                   });
                   return;
                 }
-                const links = getDocHubTenderLinks(
-                  docHubRoot,
-                  activeCategory.title,
-                  docHubStructure
-                );
-                openOrCopyDocHubPath(links.inquiriesBase);
+
+                // Desktop: build path to tender folder from hierarchy
+                if (isDesktopMode) {
+                  const hierarchy = (projectDetails.docHubStructureV1 as any)?.extraHierarchy;
+                  const tendersItem = hierarchy?.find((item: any) => item.key === 'tenders' && item.enabled !== false);
+                  const tendersFolder = tendersItem?.name || "03_Vyberova_rizeni";
+                  const cleanTitle = activeCategory.title.replace(/[<>:"|?*]/g, "").trim();
+                  const tenderPath = [docHubRoot, tendersFolder, cleanTitle].join("\\");
+                  console.log('[DocHub] Opening tender folder:', tenderPath);
+                  openOrCopyDocHubPath(tenderPath);
+                } else {
+                  const links = getDocHubTenderLinks(
+                    docHubRoot,
+                    activeCategory.title,
+                    docHubStructure
+                  );
+                  openOrCopyDocHubPath(links.tenderBase);
+                }
               }}
               className="flex items-center gap-2 bg-violet-100 dark:bg-violet-900/30 hover:bg-violet-200 dark:hover:bg-violet-900/50 text-violet-700 dark:text-violet-300 px-4 py-2 rounded-lg text-sm font-bold transition-colors"
-              title={`DocHub: /${docHubStructure.tenders}/${activeCategory.title}/${docHubStructure.tendersInquiries}`}
+              title={`Otevřít složku: ${activeCategory.title}`}
             >
               <span className="material-symbols-outlined text-[20px]">
                 folder_open
               </span>
-              <span>DocHub</span>
+              <span>Otevřít složku</span>
             </button>
           )}
 
