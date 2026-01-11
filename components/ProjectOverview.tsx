@@ -4,7 +4,7 @@ import { ConfirmationModal } from './ConfirmationModal';
 import { Project, ProjectDetails, DemandCategory } from '../types';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { formatMoney, formatMoneyShort } from '../utils/formatters';
-import { generateProjectInsights, AIInsight } from '../services/aiInsightsService';
+
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { RobotoRegularBase64 } from '../fonts/roboto-regular';
@@ -90,9 +90,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
     };
 
     const [selectedProjectId, setSelectedProjectId] = useState<string>(getInitialProjectId);
-    const [aiInsights, setAiInsights] = useState<AIInsight[]>([]);
-    const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [hasGeneratedAI, setHasGeneratedAI] = useState(false);
+
     const contentRef = useRef<HTMLDivElement>(null);
 
     // Confirmation Modal State
@@ -226,100 +224,9 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({ projects, proj
 
     const metrics = getProjectMetrics();
 
-    // Auto-generate AI on first load
-    useEffect(() => {
-        if (selectedProject && metrics && aiInsights.length === 0 && !hasGeneratedAI && !isAnalyzing) {
-            generateAIAnalysis();
-        }
-    }, [selectedProject, metrics]);
 
-    // Only reset when project changes, but keep cache per project if needed
-    useEffect(() => {
-        setAiInsights([]);
-        setHasGeneratedAI(false);
-    }, [selectedProjectId]);
 
-    // Manual AI generation - now generates multiple insight cards
-    const generateAIAnalysis = async () => {
-        if (!selectedProject || !metrics) return;
 
-        // Prepare rich data for AI
-        const categoriesData = metrics.categoryProfitability.map(c => ({
-            title: c.title,
-            plan: c.planBudget,
-            sod: c.sodBudget, // This is now the calculated actual cost
-            diff: c.diffVsPlan,
-            status: c.status
-        }));
-
-        const projectSummary = [{
-            name: selectedProject.title,
-            totalBudget: metrics.totalBudget, // Investor budget
-            totalPlanned: metrics.totalPlanned, // Internal plan
-            totalContracted: metrics.totalContracted, // Actual spend
-            balance: metrics.balance, // Required by interface
-            balanceVsInvestor: metrics.balance,
-            balanceVsPlan: metrics.balanceVsPlan,
-            categoriesCount: metrics.categoriesCount,
-            sodCount: metrics.sodCount,
-            categoriesData: categoriesData // Detailed breakdown
-        }];
-
-        // Cache Check
-        const cacheKey = `ai_analysis_${selectedProject.id}`;
-        const currentSignature = JSON.stringify(projectSummary);
-
-        try {
-            const cached = localStorage.getItem(cacheKey);
-            if (cached) {
-                const parsed = JSON.parse(cached);
-                if (parsed.signature === currentSignature && parsed.insights?.length > 0) {
-                    // console.log('Using cached AI analysis');
-                    setAiInsights(parsed.insights);
-                    setHasGeneratedAI(true);
-                    return;
-                }
-            }
-        } catch (e) {
-            console.warn('AI Cache read error', e);
-        }
-
-        setIsAnalyzing(true);
-        try {
-            // Generate overview mode for detailed managerial analysis
-            const insights = await generateProjectInsights(projectSummary, 'overview');
-            setAiInsights(insights);
-            setHasGeneratedAI(true);
-
-            // Save to Cache
-            try {
-                localStorage.setItem(cacheKey, JSON.stringify({
-                    signature: currentSignature,
-                    insights: insights,
-                    timestamp: Date.now()
-                }));
-            } catch (e) {
-                console.warn('AI Cache write error', e);
-            }
-
-        } catch (error) {
-            console.error('AI analysis error:', error);
-            setAiInsights([]);
-        } finally {
-            setIsAnalyzing(false);
-        }
-    };
-
-    // Get insight card style based on type
-    const getInsightStyle = (type: string) => {
-        switch (type) {
-            case 'success': return 'from-emerald-900/40 to-green-900/40 border-emerald-500/30';
-            case 'warning': return 'from-amber-900/40 to-orange-900/40 border-amber-500/30';
-            case 'achievement': return 'from-yellow-900/40 to-orange-900/40 border-yellow-500/30';
-            case 'tip': return 'from-cyan-900/40 to-blue-900/40 border-cyan-500/30';
-            default: return 'from-blue-900/40 to-indigo-900/40 border-blue-500/30';
-        }
-    };
 
     // PDF Export - Professional text-based report
     const handleExportPDF = async () => {
