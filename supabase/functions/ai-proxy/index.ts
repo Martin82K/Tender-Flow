@@ -9,6 +9,12 @@ const corsHeaders = {
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+interface Message {
+    role: string;
+    content: string | any[];
+}
+
+
 serve(async (req) => {
     // Handle CORS preflight request
     if (req.method === "OPTIONS") {
@@ -95,9 +101,69 @@ serve(async (req) => {
             );
         }
 
-        // 4. Proxy to OpenRouter (Grok)
-        const { prompt, history, model: clientModel } = await req.json();
-        const apiKey = Deno.env.get("OPENROUTER_API_KEY");
+        // 4. Proxy Logic
+        const { prompt, history, model: clientModel, provider = 'openrouter', apiKey: clientApiKey } = await req.json();
+
+        // --- GOOGLE GEMINI HANDLER ---
+        if (provider === 'google') {
+            const apiKey = clientApiKey || Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_API_KEY");
+            if (!apiKey) {
+                return new Response(
+                    JSON.stringify({ error: "Missing Google API Key" }),
+                    { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                );
+            }
+
+            const model = (clientModel || "gemini-pro").trim();
+            console.log(`Using Google Model: ${model}`);
+
+            // Map messages to Google format (contents: [{role, parts: [{text}] }])
+            // Google roles: 'user', 'model'
+            let contents = [];
+
+            if (history && Array.isArray(history)) {
+                contents = history.map((msg: any) => ({
+                    role: msg.role === 'assistant' ? 'model' : 'user',
+                    parts: [{ text: Array.isArray(msg.parts) ? msg.parts.map((p: any) => p.text).join('') : (typeof msg.parts === 'string' ? msg.parts : JSON.stringify(msg.parts)) }]
+                }));
+            }
+
+            if (prompt) {
+                contents.push({
+                    role: 'user',
+                    parts: [{ text: prompt }]
+                });
+            }
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+            const response = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ contents }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                console.error("Google API Error:", data);
+                return new Response(
+                    JSON.stringify({ error: "Google API Error", details: data }),
+                    { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                );
+            }
+
+            // Extract text from Google response
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+            return new Response(
+                JSON.stringify({ text, raw: data }),
+                { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+        }
+
+        // --- OPENROUTER HANDLER (Default) ---
+        const apiKey = clientApiKey || Deno.env.get("OPENROUTER_API_KEY");
 
         if (!apiKey) {
             console.error("Missing OPENROUTER_API_KEY");
@@ -116,9 +182,7 @@ serve(async (req) => {
         if (history && Array.isArray(history)) {
             messages = history.map(msg => ({
                 role: msg.role === 'model' ? 'assistant' : msg.role, // Map 'model' -> 'assistant'
-                content: msg.parts // Assuming parts is string in simplified history, or need to extract. 
-                // If parts is array of {text: string}, extraction needed.
-                // For safety, let's handle string vs array
+                content: msg.parts // Assuming parts is string in simplified history
             }));
             // fixup content if it's not string
             messages = messages.map(m => {

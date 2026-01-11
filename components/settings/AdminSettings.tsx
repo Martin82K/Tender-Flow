@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { UserManagement } from '../UserManagement';
 import { SubscriptionFeaturesManagement } from '../SubscriptionFeaturesManagement';
 import { EmailWhitelistManagement } from '../EmailWhitelistManagement';
+import { AIApiTest } from './AIApiTest';
 import { authService } from '../../services/authService';
 import { useUI } from '../../context/UIContext';
 
 interface AdminSettingsProps {
     isAdmin: boolean;
-    section?: 'registration' | 'users' | 'subscriptions';
+    section?: 'registration' | 'users' | 'subscriptions' | 'ai';
 }
 
 export const AdminSettings: React.FC<AdminSettingsProps> = ({ isAdmin, section }) => {
@@ -167,6 +168,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({ isAdmin, section }
             {(section === undefined || section === 'subscriptions') && (
                 <SubscriptionFeaturesManagement />
             )}
+
         </div>
     );
 };

@@ -14,6 +14,8 @@ import { ExcelMergerAdminSettings } from "./settings/ExcelMergerAdminSettings";
 import { UrlShortener } from "./tools/UrlShortener";
 import { ExcelIndexerSettings } from "./settings/ExcelIndexerSettings";
 import { McpDiagnostics } from "./settings/McpDiagnostics";
+import { AIApiTest } from "./settings/AIApiTest";
+
 import { useFeatures } from "../context/FeatureContext";
 import { FEATURES } from "../config/features";
 
@@ -73,21 +75,21 @@ export const Settings: React.FC<SettingsProps> = ({
     if (tab === "user") {
       subTab =
         subTabParam === "profile" ||
-        subTabParam === "contacts" ||
-        subTabParam === "excelUnlocker" ||
-        subTabParam === "excelMerger" ||
-        subTabParam === "urlShortener" ||
-        subTabParam === "indexMatcher" ||
-        subTabParam === "excelIndexer" ||
-        subTabParam === "tools" // legacy
+          subTabParam === "contacts" ||
+          subTabParam === "excelUnlocker" ||
+          subTabParam === "excelMerger" ||
+          subTabParam === "urlShortener" ||
+          subTabParam === "indexMatcher" ||
+          subTabParam === "excelIndexer" ||
+          subTabParam === "tools" // legacy
           ? subTabParam
           : null;
     } else if (tab === "admin") {
       subTab =
         subTabParam === "registration" ||
-        subTabParam === "users" ||
-        subTabParam === "subscriptions" ||
-        subTabParam === "ai"
+          subTabParam === "users" ||
+          subTabParam === "subscriptions" ||
+          subTabParam === "ai"
           ? subTabParam
           : null;
     }
@@ -219,11 +221,10 @@ export const Settings: React.FC<SettingsProps> = ({
               setActiveTab("user");
               updateSettingsUrl({ tab: "user", subTab: activeUserSubTab });
             }}
-            className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${
-              activeTab === "user"
-                ? "border-primary text-primary"
-                : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-            }`}
+            className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === "user"
+              ? "border-primary text-primary"
+              : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+              }`}
           >
             Prostředí uživatele
           </button>
@@ -233,11 +234,10 @@ export const Settings: React.FC<SettingsProps> = ({
                 setActiveTab("admin");
                 updateSettingsUrl({ tab: "admin", subTab: activeAdminSubTab });
               }}
-              className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${
-                activeTab === "admin"
-                  ? "border-primary text-primary"
-                  : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-              }`}
+              className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === "admin"
+                ? "border-primary text-primary"
+                : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                }`}
             >
               Administrace
             </button>
@@ -253,11 +253,10 @@ export const Settings: React.FC<SettingsProps> = ({
                   onClick={() =>
                     updateSettingsUrl({ tab: "admin", subTab: "registration" })
                   }
-                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
-                    activeAdminSubTab === "registration"
-                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                  }`}
+                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${activeAdminSubTab === "registration"
+                    ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                    : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <span className="material-symbols-outlined text-[20px]">
@@ -271,11 +270,10 @@ export const Settings: React.FC<SettingsProps> = ({
                   onClick={() =>
                     updateSettingsUrl({ tab: "admin", subTab: "users" })
                   }
-                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
-                    activeAdminSubTab === "users"
-                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                  }`}
+                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${activeAdminSubTab === "users"
+                    ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                    : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <span className="material-symbols-outlined text-[20px]">
@@ -289,11 +287,10 @@ export const Settings: React.FC<SettingsProps> = ({
                   onClick={() =>
                     updateSettingsUrl({ tab: "admin", subTab: "subscriptions" })
                   }
-                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
-                    activeAdminSubTab === "subscriptions"
-                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                  }`}
+                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${activeAdminSubTab === "subscriptions"
+                    ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                    : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <span className="material-symbols-outlined text-[20px]">
@@ -307,11 +304,10 @@ export const Settings: React.FC<SettingsProps> = ({
                   onClick={() =>
                     updateSettingsUrl({ tab: "admin", subTab: "ai" })
                   }
-                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
-                    activeAdminSubTab === "ai"
-                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                  }`}
+                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${activeAdminSubTab === "ai"
+                    ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                    : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <span className="material-symbols-outlined text-[20px]">
@@ -339,6 +335,7 @@ export const Settings: React.FC<SettingsProps> = ({
               {activeAdminSubTab === "ai" && (
                 <>
                   <AISettings isAdmin={isAdmin} />
+                  <AIApiTest />
                   <McpDiagnostics isAdmin={isAdmin} />
                 </>
               )}
@@ -356,11 +353,10 @@ export const Settings: React.FC<SettingsProps> = ({
                   onClick={() =>
                     updateSettingsUrl({ tab: "user", subTab: "profile" })
                   }
-                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
-                    activeUserSubTab === "profile"
-                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                  }`}
+                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${activeUserSubTab === "profile"
+                    ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                    : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <span className="material-symbols-outlined text-[20px]">
@@ -375,11 +371,10 @@ export const Settings: React.FC<SettingsProps> = ({
                     onClick={() =>
                       updateSettingsUrl({ tab: "user", subTab: "contacts" })
                     }
-                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
-                      activeUserSubTab === "contacts"
-                        ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                        : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                    }`}
+                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${activeUserSubTab === "contacts"
+                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                      }`}
                   >
                     <div className="flex items-center gap-3">
                       <span className="material-symbols-outlined text-[20px]">
@@ -398,11 +393,10 @@ export const Settings: React.FC<SettingsProps> = ({
                         subTab: "excelUnlocker",
                       })
                     }
-                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
-                      activeUserSubTab === "excelUnlocker"
-                        ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                        : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                    }`}
+                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${activeUserSubTab === "excelUnlocker"
+                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                      }`}
                   >
                     <div className="flex items-center gap-3">
                       <span className="material-symbols-outlined text-[20px]">
@@ -418,11 +412,10 @@ export const Settings: React.FC<SettingsProps> = ({
                     onClick={() =>
                       updateSettingsUrl({ tab: "user", subTab: "excelMerger" })
                     }
-                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
-                      activeUserSubTab === "excelMerger"
-                        ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                        : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                    }`}
+                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${activeUserSubTab === "excelMerger"
+                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                      }`}
                   >
                     <div className="flex items-center gap-3">
                       <span className="material-symbols-outlined text-[20px]">
@@ -437,12 +430,11 @@ export const Settings: React.FC<SettingsProps> = ({
                   onClick={() =>
                     updateSettingsUrl({ tab: "user", subTab: "excelIndexer" })
                   }
-                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
-                    activeUserSubTab === "excelIndexer" ||
+                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${activeUserSubTab === "excelIndexer" ||
                     activeUserSubTab === "indexMatcher"
-                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                  }`}
+                    ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                    : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <span className="material-symbols-outlined text-[20px]">
@@ -457,11 +449,10 @@ export const Settings: React.FC<SettingsProps> = ({
                     onClick={() =>
                       updateSettingsUrl({ tab: "user", subTab: "urlShortener" })
                     }
-                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
-                      activeUserSubTab === "urlShortener"
-                        ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                        : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                    }`}
+                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${activeUserSubTab === "urlShortener"
+                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                      }`}
                   >
                     <div className="flex items-center gap-3">
                       <span className="material-symbols-outlined text-[20px]">
@@ -526,8 +517,8 @@ export const Settings: React.FC<SettingsProps> = ({
 
               {(activeUserSubTab === "excelIndexer" ||
                 activeUserSubTab === "indexMatcher") && (
-                <ExcelIndexerSettings />
-              )}
+                  <ExcelIndexerSettings />
+                )}
             </main>
           </div>
         )}
