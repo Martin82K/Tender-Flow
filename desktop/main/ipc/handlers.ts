@@ -287,4 +287,54 @@ export function registerIpcHandlers(): void {
         const value = await storageService.get(BIOMETRIC_ENABLED_KEY);
         return value === 'true';
     });
+
+    // --- NETWORK PROXY (Bypass CORS) ---
+
+    // Note: RequestInit types from DOM need to be loosely typed or imported from node-fetch if used
+    // But since we are receiving serialized JSON, we can treat it as any
+    ipcMain.handle('net:request', async (_, url: string, options?: any) => {
+        try {
+            console.log(`[Proxy] Fetching ${url} (Main Process) via electron.net.fetch`);
+
+            // Debug headers presence
+            if (options?.headers) {
+                const hasAuth = !!options.headers.Authorization;
+                const hasKey = !!options.headers.apikey;
+                console.log(`[Proxy] Request Headers Check - Auth: ${hasAuth}, Key: ${hasKey}`);
+                if (hasKey) console.log(`[Proxy] Key prefix: ${options.headers.apikey.substring(0, 5)}...`);
+            }
+
+            // Use electron.net.fetch instead of Node's native fetch to use Chromium's network stack
+            // This handles system proxies, SSL, etc. better and bypasses CORS
+            const { net } = require('electron');
+            const response = await net.fetch(url, options);
+            const text = await response.text();
+
+            console.log(`[Proxy] Response: ${response.status} ${response.statusText}`);
+
+            // Convert Headers to plain object
+            const headers: Record<string, string> = {};
+            // @ts-ignore - Headers iterator might slightly differ in types
+            response.headers.forEach((val, key) => {
+                headers[key] = val;
+            });
+
+            return {
+                ok: response.ok,
+                status: response.status,
+                statusText: response.statusText,
+                text,
+                headers
+            };
+        } catch (error: any) {
+            console.error(`[Proxy] Error fetching ${url}:`, error);
+            console.error(`[Proxy] Error Details:`, {
+                message: error.message,
+                code: error.code,
+                cause: error.cause,
+                stack: error.stack
+            });
+            throw error;
+        }
+    });
 }

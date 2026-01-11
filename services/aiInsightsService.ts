@@ -307,7 +307,7 @@ ${JSON.stringify(projectsSummary, null, 2)}`;
 
     return [{
       title: 'Chyba při analýze',
-      content: 'Nepodařilo se získat AI insights. Zkuste to později.',
+      content: `Nepodařilo se získat AI insights. Detail: ${error instanceof Error ? error.message : String(error)}`,
       type: 'warning',
       icon: 'error'
     }];

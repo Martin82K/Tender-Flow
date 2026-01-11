@@ -75,6 +75,36 @@ export const fileSystemAdapter = {
         // Web: not possible
         console.warn('Cannot open explorer on web.');
     },
+
+    /**
+     * Create a folder (desktop only)
+     */
+    async createFolder(folderPath: string): Promise<{ success: boolean; error?: string }> {
+        if (isDesktop && window.electronAPI) {
+            return window.electronAPI.fs.createFolder(folderPath);
+        }
+        return { success: false, error: 'Folder creation not available on web.' };
+    },
+
+    /**
+     * Delete a folder (desktop only)
+     */
+    async deleteFolder(folderPath: string): Promise<{ success: boolean; error?: string }> {
+        if (isDesktop && window.electronAPI) {
+            return window.electronAPI.fs.deleteFolder(folderPath);
+        }
+        return { success: false, error: 'Folder deletion not available on web.' };
+    },
+
+    /**
+     * Check if folder exists (desktop only)
+     */
+    async folderExists(folderPath: string): Promise<boolean> {
+        if (isDesktop && window.electronAPI) {
+            return window.electronAPI.fs.folderExists(folderPath);
+        }
+        return false;
+    },
 };
 
 /**

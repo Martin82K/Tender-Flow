@@ -659,6 +659,84 @@ export const useDocHubIntegration = (
         }, 60);
 
         try {
+            // Local Provider (Tender Flow Desktop with native fs) - handle via fileSystemService
+            if (provider === "onedrive") {
+                const { isDesktop } = await import('../services/platformAdapter');
+
+                if (!isDesktop) {
+                    throw new Error("Tender Flow Desktop provider vyžaduje desktopovou aplikaci.");
+                }
+
+                setAutoCreateLogs(prev => [...prev, "Vytvářím složky přes Tender Flow Desktop…"]);
+
+                // Prepare categories and suppliers data
+                const categories = project.categories?.map(c => ({ id: c.id, title: c.title })) || [];
+                const suppliers: Record<string, Array<{ id: string; name: string }>> = {};
+
+                if (project.bids) {
+                    for (const [categoryId, bids] of Object.entries(project.bids)) {
+                        suppliers[categoryId] = bids.map(b => ({ id: b.subcontractorId, name: b.companyName }));
+                    }
+                }
+
+                const hierarchyTree = buildHierarchyTree(hierarchyDraft);
+
+                // Use fileSystemService.ensureStructure
+                const { ensureStructure } = await import('../services/fileSystemService');
+                const result = await ensureStructure({
+                    rootPath: rootLink.trim(),
+                    structure: (project.docHubStructureV1 as any) || {},
+                    categories,
+                    suppliers,
+                    hierarchy: hierarchyTree
+                });
+
+                setAutoCreateLogs(result.logs);
+                setAutoCreateProgress(100);
+                setAutoCreateResult({
+                    createdCount: result.createdCount,
+                    runId: null,
+                    logs: result.logs,
+                    finishedAt: new Date().toISOString()
+                });
+                setIsResultModalOpen(true);
+                setBackendStatus(result.success ? 'success' : 'error');
+
+                if (result.success) {
+                    setAutoCreateEnabled(true);
+                    onUpdate({
+                        docHubAutoCreateEnabled: true,
+                        docHubAutoCreateLastRunAt: new Date().toISOString(),
+                        docHubAutoCreateLastError: null
+                    });
+                } else {
+                    onUpdate({
+                        docHubAutoCreateLastError: result.error || 'Unknown error',
+                        docHubAutoCreateLastRunAt: new Date().toISOString()
+                    });
+                }
+
+                // Save to history
+                try {
+                    await supabase.from('dochub_autocreate_runs').insert({
+                        project_id: project.id,
+                        status: result.success ? 'success' : 'error',
+                        step: 'Tender Flow Desktop Sync',
+                        progress_percent: 100,
+                        total_actions: result.createdCount,
+                        completed_actions: result.createdCount,
+                        logs: result.logs,
+                        error: result.error || null,
+                        started_at: new Date(Date.now() - 5000).toISOString(),
+                        finished_at: new Date().toISOString()
+                    });
+                } catch (historyError) {
+                    console.warn('Failed to save run to history:', historyError);
+                }
+
+                return;
+            }
+
             // MCP Provider - handle locally without edge functions
             if (provider === "mcp") {
                 const isRunning = await isMcpBridgeRunning();
@@ -740,7 +818,7 @@ export const useDocHubIntegration = (
                 return;
             }
 
-            // Cloud providers (gdrive, onedrive) - use edge functions
+            // Cloud providers (gdrive) - use edge functions
             if (!project.docHubRootId) {
                 const urlToResolve = rootLink?.trim().replace(/^"|"$/g, '');
                 if (!urlToResolve) throw new Error("Chybí odkaz na kořenovou složku.");

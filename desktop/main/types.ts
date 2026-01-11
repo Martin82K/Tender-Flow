@@ -13,6 +13,7 @@ export interface ElectronAPI {
     updater: UpdaterAPI;
     biometric: BiometricAPI;
     session: SessionAPI;
+    net: NetworkAPI;
 }
 
 export interface PlatformInfo {
@@ -29,6 +30,9 @@ export interface FileSystemAPI {
     writeFile: (filePath: string, data: Buffer | string) => Promise<void>;
     openInExplorer: (path: string) => Promise<void>;
     openFile: (filePath: string) => Promise<void>;
+    createFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
+    deleteFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
+    folderExists: (folderPath: string) => Promise<boolean>;
 }
 
 export interface WatcherAPI {
@@ -76,6 +80,16 @@ export interface SessionAPI {
     clearCredentials: () => Promise<void>;
     setBiometricEnabled: (enabled: boolean) => Promise<void>;
     isBiometricEnabled: () => Promise<boolean>;
+}
+
+export interface NetworkAPI {
+    request: (url: string, options?: RequestInit) => Promise<{
+        ok: boolean;
+        status: number;
+        statusText: string;
+        text: string;
+        headers: Record<string, string>;
+    }>;
 }
 
 export interface UpdateStatus {

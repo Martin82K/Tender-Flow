@@ -1,6 +1,13 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { ElectronAPI, FolderInfo, FileInfo, FolderSnapshot, UpdateStatus } from './types';
 
+console.log('[Preload] Script starting...');
+try {
+    console.log('[Preload] Exposing electronAPI');
+} catch (e) {
+    console.error('[Preload] Error starting:', e);
+}
+
 /**
  * Preload script - exposes safe APIs to the renderer process
  * All IPC communication goes through this bridge
@@ -33,6 +40,15 @@ const electronAPI: ElectronAPI = {
 
         openFile: (filePath: string): Promise<void> =>
             ipcRenderer.invoke('fs:openFile', filePath),
+
+        createFolder: (folderPath: string): Promise<{ success: boolean; error?: string }> =>
+            ipcRenderer.invoke('fs:createFolder', folderPath),
+
+        deleteFolder: (folderPath: string): Promise<{ success: boolean; error?: string }> =>
+            ipcRenderer.invoke('fs:deleteFolder', folderPath),
+
+        folderExists: (folderPath: string): Promise<boolean> =>
+            ipcRenderer.invoke('fs:folderExists', folderPath),
     },
 
     // Folder watcher
@@ -138,6 +154,12 @@ const electronAPI: ElectronAPI = {
 
         isBiometricEnabled: (): Promise<boolean> =>
             ipcRenderer.invoke('session:isBiometricEnabled'),
+    },
+
+    // Network proxy for CORS bypass
+    net: {
+        request: (url: string, options?: RequestInit): Promise<any> =>
+            ipcRenderer.invoke('net:request', url, options),
     },
 };
 

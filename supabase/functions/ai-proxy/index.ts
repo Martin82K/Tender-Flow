@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { createServiceClient } from "../_shared/supabase.ts";
 
 // CORS headers
 const corsHeaders = {
@@ -39,26 +40,35 @@ serve(async (req) => {
             );
         }
 
-        // Initialize Supabase Client
-        const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-        const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-        const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-            global: { headers: { Authorization: authHeader } },
-        });
+        const supabaseUrl = (Deno.env.get("SUPABASE_URL") || "").trim();
+        if (!supabaseUrl) {
+            return new Response(
+                JSON.stringify({ error: "Server configuration error" }),
+                { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+        }
 
-        // Get User User
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) {
+        // Verify token directly against Auth API to avoid env mismatches
+        const apikey = req.headers.get("apikey") || Deno.env.get("SUPABASE_ANON_KEY") || "";
+        const authRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+            headers: {
+                apikey,
+                Authorization: authHeader,
+            },
+        });
+        if (!authRes.ok) {
             return new Response(
                 JSON.stringify({ error: "Invalid token" }),
                 { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
         }
+        const user = await authRes.json();
 
         // 3. Subscription Check
         // We can use the RPC function `get_user_subscription_tier` or query `user_profiles` directly.
         // RPC is safer as it encapsulates logic.
-        const { data: tier, error: tierError } = await supabase.rpc('get_user_subscription_tier', { target_user_id: user.id });
+        const service = createServiceClient();
+        const { data: tier, error: tierError } = await service.rpc('get_user_subscription_tier', { target_user_id: user.id });
 
         if (tierError) {
             console.error("Tier check error:", tierError);
@@ -100,7 +110,8 @@ serve(async (req) => {
         // Call Gemini API (GenerateContent)
         // Using fetch directly to allow streaming (if we want) or simple JSON
         // Start with simple JSON for robustness
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        const model = (Deno.env.get("GEMINI_MODEL") || "gemini-1.5-flash").trim();
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${apiKey}`;
 
         // Construct contents from history + prompt
         let contents = [];
