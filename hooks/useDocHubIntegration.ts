@@ -239,19 +239,62 @@ export const useDocHubIntegration = (
     } : null;
 
 
+    // Load settings when provider changes
+    useEffect(() => {
+        if (!provider) return;
+
+        // If we have stored settings for this provider, load them
+        const settings = project.docHubSettings?.[provider];
+        if (settings) {
+            console.log(`[DocHub] Restoring settings for ${provider}`, settings);
+            if (settings.rootLink) setRootLink(settings.rootLink);
+            if (settings.rootName) setRootName(settings.rootName);
+            // If the provider matches the ACTIVE provider saved in project, we can also trust the main props
+            // But usually docHubSettings is the source of truth for "standard" paths for that provider.
+        } else {
+            // New provider selected or no settings yet
+            // If it's the SAME as the currently active project provider, we keep current values (already loaded)
+            if (provider === project.docHubProvider) {
+                // Do nothing, values are already there from initial load
+            } else {
+                // It's a different provider and no settings saved -> Clear inputs to avoid confusion
+                setRootLink('');
+                setRootName('');
+            }
+        }
+    }, [provider, project.docHubSettings, project.docHubProvider]);
+
     // Actions
     const handleSaveSetup = useCallback(() => {
+        // Prepare new settings object
+        const currentSettings = project.docHubSettings || {};
+        const newSettings = {
+            ...currentSettings,
+            [provider!]: {
+                rootLink,
+                rootName,
+                // We could store IDs here too if we have them in state, currently we might only have them if we parsed them
+                // But for now, just name and link is enough for the UI restoration.
+                // If we want to store rootId, we need to ensure state has it. 
+                // State only has derived isAuthed etc.
+                // We actully need to store what we have.
+                // The main `project` update will store rootId etc in the main fields.
+                // We should also store them in settings.
+            }
+        };
+
         onUpdate({
             docHubEnabled: enabled,
             docHubRootLink: rootLink,
             docHubRootName: rootName || null,
             docHubProvider: provider,
             docHubMode: mode,
-            docHubStatus: enabled && project.docHubRootId ? "connected" : "disconnected",
-            docHubStructureVersion: project.docHubStructureVersion ?? 1
+            docHubStatus: enabled && (rootLink || project.docHubRootId) ? "connected" : "disconnected",
+            docHubStructureVersion: project.docHubStructureVersion ?? 1,
+            docHubSettings: newSettings
         });
         setIsEditingSetup(false);
-    }, [enabled, rootLink, rootName, provider, mode, project.docHubRootId, project.docHubStructureVersion, onUpdate]);
+    }, [enabled, rootLink, rootName, provider, mode, project.docHubRootId, project.docHubStructureVersion, project.docHubSettings, onUpdate]);
 
     const handleDisconnect = useCallback(() => {
         setRootLink("");

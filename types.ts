@@ -205,6 +205,14 @@ export interface ProjectDetails {
   docHubAutoCreateEnabled?: boolean; // Auto-create & reconcile folders on toggle
   docHubAutoCreateLastRunAt?: string | null; // ISO datetime of last auto-create run
   docHubAutoCreateLastError?: string | null; // last auto-create error
+  docHubSettings?: Record<string, {
+    rootLink?: string;
+    rootName?: string;
+    rootId?: string;
+    driveId?: string;
+    siteId?: string;
+    rootWebUrl?: string;
+  }> | null; // Settings per provider
 
   categories: DemandCategory[];
   contract?: ContractDetails;

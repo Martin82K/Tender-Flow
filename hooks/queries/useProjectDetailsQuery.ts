@@ -15,14 +15,14 @@ const fetchProjectDetails = async (projectId: string): Promise<ProjectDetails> =
     if (isDemoSession() || projectId === DEMO_PROJECT.id || projectId === 'demo-project-1') {
         const demoData = localStorage.getItem('demo_data');
         if (demoData) {
-             try {
-                 const parsed = JSON.parse(demoData);
-                 if (parsed.projectDetails && parsed.projectDetails[projectId]) {
-                     return parsed.projectDetails[projectId];
-                 }
-             } catch (e) {
-                 console.error("Failed to parse demo data", e);
-             }
+            try {
+                const parsed = JSON.parse(demoData);
+                if (parsed.projectDetails && parsed.projectDetails[projectId]) {
+                    return parsed.projectDetails[projectId];
+                }
+            } catch (e) {
+                console.error("Failed to parse demo data", e);
+            }
         }
         return DEMO_PROJECT_DETAILS;
     }
@@ -144,6 +144,7 @@ const fetchProjectDetails = async (projectId: string): Promise<ProjectDetails> =
         docHubAutoCreateEnabled: project.dochub_autocreate_enabled ?? false,
         docHubAutoCreateLastRunAt: project.dochub_autocreate_last_run_at ?? null,
         docHubAutoCreateLastError: project.dochub_autocreate_last_error ?? null,
+        docHubSettings: project.dochub_settings ?? {},
         categories,
         contract: contractData
             ? {

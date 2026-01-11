@@ -260,183 +260,199 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
         onConfirm={() => setUiModal((prev) => ({ ...prev, isOpen: false }))}
       />
 
-      <div className="max-w-4xl mx-auto w-full">
-        {/* Header Card */}
-        <div className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl shadow-xl p-8">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="size-12 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/20 flex items-center justify-center">
-              <span className="material-symbols-outlined text-emerald-400 text-2xl">
-                folder_open
-              </span>
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                Dokumenty
-              </h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                PD, šablony a DocHub složky projektu
-              </p>
-            </div>
+      <div className="max-w-7xl mx-auto w-full">
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-8 px-4 md:px-0">
+          <div className="size-12 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/20 flex items-center justify-center">
+            <span className="material-symbols-outlined text-emerald-400 text-2xl">
+              folder_open
+            </span>
           </div>
-
-          {/* Sub-navigation */}
-          <div className="flex flex-wrap items-center gap-2 bg-slate-100 dark:bg-slate-900/30 p-1 rounded-xl border border-slate-200 dark:border-slate-700/50 mb-6">
-            <button
-              type="button"
-              onClick={() => setDocumentsSubTab("pd")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${documentsSubTab === "pd"
-                  ? "bg-primary text-white shadow-lg"
-                  : "text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700/50"
-                }`}
-            >
-              PD
-            </button>
-            <button
-              type="button"
-              onClick={() => setDocumentsSubTab("templates")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${documentsSubTab === "templates"
-                  ? "bg-primary text-white shadow-lg"
-                  : "text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700/50"
-                }`}
-            >
-              Šablony
-            </button>
-            <button
-              type="button"
-              onClick={() => setDocumentsSubTab("dochub")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${documentsSubTab === "dochub"
-                  ? "bg-primary text-white shadow-lg"
-                  : "text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700/50"
-                }`}
-            >
-              DocHub
-            </button>
-            <button
-              type="button"
-              onClick={() => setDocumentsSubTab("ceniky")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${documentsSubTab === "ceniky"
-                  ? "bg-primary text-white shadow-lg"
-                  : "text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700/50"
-                }`}
-            >
-              Ceníky
-            </button>
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+              Dokumenty
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Správa dokumentace, šablon a napojení na DocHub
+            </p>
           </div>
+        </div>
 
-          {documentsSubTab === "pd" && (
-            <DocsLinkSection
-              project={project}
-              hasDocsLink={hasDocsLink}
-              isEditing={isEditingDocs}
-              onEditToggle={setIsEditingDocs}
-              linkValue={docsLinkValue}
-              onLinkValueChange={(val) => setDocsLinkValue(val)}
-              onSave={handleSaveDocs}
-              isDocHubConnected={isDocHubConnected}
-              docHubPdLink={docHubProjectLinks?.pd || null}
-              docHubStructure={docHubStructure}
-              showModal={showModal}
-              onUpdate={onUpdate}
-            />
-          )}
+        <div className="flex flex-col md:flex-row gap-8 animate-fadeIn">
+          {/* Sidebar Navigation */}
+          <aside className="w-full md:w-64 flex-shrink-0">
+            <nav className="flex flex-col gap-2">
+              <button
+                onClick={() => setDocumentsSubTab("pd")}
+                className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${documentsSubTab === "pd"
+                  ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                  : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                  }`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-[20px]">
+                    description
+                  </span>
+                  Projektová dokumentace
+                </div>
+              </button>
 
-          {documentsSubTab === "templates" && (
-            <TemplatesSection
-              project={project}
-              templateName={templateName}
-              losersTemplateName={losersTemplateName}
-              openTemplateManager={openTemplateManager}
-            />
-          )}
+              <button
+                onClick={() => setDocumentsSubTab("templates")}
+                className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${documentsSubTab === "templates"
+                  ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                  : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                  }`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-[20px]">
+                    history_edu
+                  </span>
+                  Šablony
+                </div>
+              </button>
 
-          {/* DocHub Section (Wizard) */}
-          {documentsSubTab === "dochub" && (
-            <div className="space-y-6">
-              <DocHubStatusCard
-                state={docHub.state}
-                actions={docHub.actions}
-                setters={docHub.setters}
-                showModal={showModal}
-              />
+              <button
+                onClick={() => setDocumentsSubTab("dochub")}
+                className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${documentsSubTab === "dochub"
+                  ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                  : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                  }`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-[20px]">
+                    cloud_sync
+                  </span>
+                  DocHub
+                </div>
+              </button>
 
-              <DocHubSetupWizard
-                state={docHub.state}
-                actions={docHub.actions}
-                setters={docHub.setters}
-                showModal={showModal}
-              />
+              <button
+                onClick={() => setDocumentsSubTab("ceniky")}
+                className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${documentsSubTab === "ceniky"
+                  ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                  : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                  }`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-[20px]">
+                    price_change
+                  </span>
+                  Ceníky
+                </div>
+              </button>
+            </nav>
 
-              {docHub.state.isConnected && !docHub.state.isEditingSetup && (
-                <>
-                  <DocHubStructureEditor
-                    state={docHub.state}
-                    actions={docHub.actions}
-                    setters={docHub.setters}
-                    showModal={showModal}
-                  />
-
-                  <DocHubLinks state={docHub.state} showModal={showModal} />
-
-                  <DocHubAutoCreateStatus
-                    state={docHub.state}
-                    setters={docHub.setters}
-                    showModal={showModal}
-                    showLog={showDocHubRunLog}
-                    setShowLog={setShowDocHubRunLog}
-                    showOverview={showDocHubRunOverview}
-                    setShowOverview={setShowDocHubRunOverview}
-                    logRef={docHubRunLogRef}
-                    overviewRef={docHubRunOverviewRef}
-                  />
-
-                  <DocHubHistory
-                    project={project}
-                    onSelectRun={handleHistorySelect}
-                  />
-                </>
-              )}
-            </div>
-          )}
-
-          {/* Price Lists Section */}
-          {documentsSubTab === "ceniky" && (
-            <PriceListsSection
-              project={project}
-              isEditing={isEditingPriceList}
-              onEditToggle={setIsEditingPriceList}
-              linkValue={priceListLinkValue}
-              onLinkValueChange={(val) => setPriceListLinkValue(val)}
-              onSave={handleSavePriceList}
-              isDocHubConnected={isDocHubConnected}
-              docHubCenikyLink={docHubProjectLinks?.ceniky || null}
-              showModal={showModal}
-            />
-          )}
-
-          {/* Tips Section */}
-          <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
-            <div className="flex items-start gap-3">
-              <span className="material-symbols-outlined text-blue-400 text-[20px]">
-                lightbulb
-              </span>
-              <div>
-                <h4 className="font-semibold text-blue-300 text-sm mb-1">
-                  Tipy pro dokumentaci
-                </h4>
-                <ul className="text-xs text-blue-400/80 space-y-1">
-                  <li>
-                    • Použijte sdílené cloudové úložiště pro snadný přístup
-                    celého týmu
-                  </li>
-                  <li>
-                    • Ujistěte se, že všichni relevantní členové mají přístupová
-                    práva
-                  </li>
-                  <li>• Udržujte dokumentaci aktuální a dobře organizovanou</li>
-                </ul>
+            {/* Tips Section Sidebar */}
+            <div className="mt-8 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl mx-2 md:mx-0">
+              <div className="flex items-start gap-3">
+                <span className="material-symbols-outlined text-blue-400 text-[20px]">
+                  lightbulb
+                </span>
+                <div>
+                  <h4 className="font-semibold text-blue-300 text-sm mb-1">
+                    Tip
+                  </h4>
+                  <p className="text-xs text-blue-400/80 leading-relaxed">
+                    Udržujte dokumentaci aktuální a dobře organizovanou pro snadný přístup celého týmu.
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          </aside>
+
+          {/* Main Content */}
+          <main className="flex-1 min-w-0 bg-white dark:bg-slate-900/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700/40 rounded-2xl shadow-sm p-6">
+            {documentsSubTab === "pd" && (
+              <DocsLinkSection
+                project={project}
+                hasDocsLink={hasDocsLink}
+                isEditing={isEditingDocs}
+                onEditToggle={setIsEditingDocs}
+                linkValue={docsLinkValue}
+                onLinkValueChange={(val) => setDocsLinkValue(val)}
+                onSave={handleSaveDocs}
+                isDocHubConnected={isDocHubConnected}
+                docHubPdLink={docHubProjectLinks?.pd || null}
+                docHubStructure={docHubStructure}
+                showModal={showModal}
+                onUpdate={onUpdate}
+              />
+            )}
+
+            {documentsSubTab === "templates" && (
+              <TemplatesSection
+                project={project}
+                templateName={templateName}
+                losersTemplateName={losersTemplateName}
+                openTemplateManager={openTemplateManager}
+              />
+            )}
+
+            {/* DocHub Section (Wizard) */}
+            {documentsSubTab === "dochub" && (
+              <div className="space-y-6">
+                <DocHubStatusCard
+                  state={docHub.state}
+                  actions={docHub.actions}
+                  setters={docHub.setters}
+                  showModal={showModal}
+                />
+
+                <DocHubSetupWizard
+                  state={docHub.state}
+                  actions={docHub.actions}
+                  setters={docHub.setters}
+                  showModal={showModal}
+                />
+
+                {docHub.state.isConnected && !docHub.state.isEditingSetup && (
+                  <>
+                    <DocHubStructureEditor
+                      state={docHub.state}
+                      actions={docHub.actions}
+                      setters={docHub.setters}
+                      showModal={showModal}
+                    />
+
+                    <DocHubLinks state={docHub.state} showModal={showModal} />
+
+                    <DocHubAutoCreateStatus
+                      state={docHub.state}
+                      setters={docHub.setters}
+                      showModal={showModal}
+                      showLog={showDocHubRunLog}
+                      setShowLog={setShowDocHubRunLog}
+                      showOverview={showDocHubRunOverview}
+                      setShowOverview={setShowDocHubRunOverview}
+                      logRef={docHubRunLogRef}
+                      overviewRef={docHubRunOverviewRef}
+                    />
+
+                    <DocHubHistory
+                      project={project}
+                      onSelectRun={handleHistorySelect}
+                    />
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Price Lists Section */}
+            {documentsSubTab === "ceniky" && (
+              <PriceListsSection
+                project={project}
+                isEditing={isEditingPriceList}
+                onEditToggle={setIsEditingPriceList}
+                linkValue={priceListLinkValue}
+                onLinkValueChange={(val) => setPriceListLinkValue(val)}
+                onSave={handleSavePriceList}
+                isDocHubConnected={isDocHubConnected}
+                docHubCenikyLink={docHubProjectLinks?.ceniky || null}
+                showModal={showModal}
+              />
+            )}
+          </main>
         </div>
       </div>
 

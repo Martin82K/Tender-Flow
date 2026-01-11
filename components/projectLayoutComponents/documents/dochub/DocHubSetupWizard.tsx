@@ -154,7 +154,7 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
                   }
                   className="flex-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700/50 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-violet-500/50 focus:outline-none"
                 />
-                {!isLocalProvider && !isMcpProvider && (
+                {(isConnectedStatus && rootLink === state.rootLink) || (!isLocalProvider && !isMcpProvider) ? (
                   <button
                     type="button"
                     onClick={() => {
@@ -164,8 +164,8 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
                         actions.resolveRoot();
                       }
                     }}
-                    disabled={isConnecting || !provider || !rootLink.trim()}
-                    className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold border transition-colors ${isConnecting || !provider || !rootLink.trim()
+                    disabled={isConnecting || (!isConnectedStatus && !provider) || !rootLink.trim()}
+                    className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold border transition-colors ${isConnecting || (!isConnectedStatus && !provider) || !rootLink.trim()
                       ? "bg-slate-200 dark:bg-slate-800/60 text-slate-500 border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
                       : isConnectedStatus && rootLink === state.rootLink
                         ? "bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500/30 shadow-lg shadow-emerald-500/20"
@@ -179,7 +179,7 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
                         : "Použít tuto složku"
                     }
                   </button>
-                )}
+                ) : null}
               </div>
             </div>
 
