@@ -4,6 +4,7 @@ import { supabase } from '../services/supabase';
 import { invokeAuthedFunction } from '../services/functionsClient';
 import { resolveDocHubStructureV1, getDocHubProjectLinks, DEFAULT_DOCHUB_HIERARCHY, DocHubHierarchyItem, buildHierarchyTree, type DocHubStructureV1 } from '../utils/docHub';
 import { isMcpBridgeRunning, mcpEnsureStructure, mcpFolderExists, mcpPickFolder } from '../services/mcpBridgeClient';
+import { isDesktop } from '../services/platformAdapter';
 
 export interface DocHubModalRequest {
     title: string;
@@ -42,7 +43,7 @@ export const useDocHubIntegration = (
     const [rootLink, setRootLink] = useState(project.docHubRootLink || '');
     const [rootName, setRootName] = useState(project.docHubRootName || '');
     const [provider, setProvider] = useState<"gdrive" | "onedrive" | "local" | "mcp" | null>(project.docHubProvider ?? null);
-    const [mode, setMode] = useState<"user" | "org" | null>(project.docHubMode ?? null);
+    const [mode, setMode] = useState<"user" | "org" | null>(project.docHubMode ?? "user");
     const [status, setStatus] = useState<"disconnected" | "connected" | "error">(project.docHubStatus || "disconnected");
     const [isEditingSetup, setIsEditingSetup] = useState(false);
     const [isConnecting, setIsConnecting] = useState(false);
@@ -101,7 +102,7 @@ export const useDocHubIntegration = (
         setRootLink(project.docHubRootLink || '');
         setRootName(project.docHubRootName || '');
         setProvider(project.docHubProvider ?? null);
-        setMode(project.docHubMode ?? null);
+        setMode(project.docHubMode ?? "user");
         setStatus(project.docHubStatus || (project.docHubEnabled && (project.docHubRootLink || '').trim() ? "connected" : "disconnected"));
         setAutoCreateEnabled(!!project.docHubAutoCreateEnabled);
 
@@ -284,6 +285,74 @@ export const useDocHubIntegration = (
         }
         setIsConnecting(true);
         try {
+            if (provider === "gdrive" && isDesktop) {
+                const clientId = import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID_DESKTOP as string | undefined;
+                const clientSecret = import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_SECRET_DESKTOP as string | undefined;
+
+                console.log('DEBUG Google Login:', {
+                    hasClientId: !!clientId,
+                    hasClientSecret: !!clientSecret,
+                    clientIdPrefix: clientId?.substring(0, 5),
+                    clientSecretPrefix: clientSecret ? '***' : 'MISSING'
+                });
+
+                if (!clientId) {
+                    throw new Error("Chybí VITE_GOOGLE_OAUTH_CLIENT_ID_DESKTOP v .env.");
+                }
+                if (!clientSecret) {
+                    throw new Error("Chybí VITE_GOOGLE_OAUTH_CLIENT_SECRET_DESKTOP v .env. Prosím přidejte jej a restartujte aplikaci.");
+                }
+
+                // @ts-ignore - electronAPI is injected via preload
+                const oauth = window.electronAPI?.oauth;
+                if (!oauth?.googleLogin) {
+                    throw new Error("Desktop OAuth není dostupný.");
+                }
+
+                const token = await oauth.googleLogin({
+                    clientId,
+                    clientSecret,
+                    scopes: [
+                        "https://www.googleapis.com/auth/drive.file",
+                        "openid",
+                        "email",
+                        "profile",
+                    ],
+                });
+
+                if (!token?.accessToken || !token?.expiresIn || !token?.tokenType) {
+                    throw new Error("Google OAuth nevrátil token.");
+                }
+
+                await invokeAuthedFunction("dochub-google-desktop-token", {
+                    body: {
+                        projectId: project.id,
+                        mode,
+                        token: {
+                            accessToken: token.accessToken,
+                            refreshToken: token.refreshToken ?? null,
+                            scope: token.scope ?? null,
+                            tokenType: token.tokenType,
+                            expiresIn: token.expiresIn,
+                            clientId,
+                        },
+                    },
+                });
+
+                setStatus("connected");
+                onUpdate({
+                    docHubEnabled: true,
+                    docHubProvider: "gdrive",
+                    docHubMode: mode,
+                    docHubStatus: "connected",
+                });
+                showMessage("Hotovo", "Google Drive připojen.", "success");
+                setIsConnecting(false);
+
+                // Auto-open picker removed - explicit flow preferred
+                return;
+            }
+
             const returnTo = `${window.location.origin}/app?dochub=1`;
             const data = await invokeAuthedFunction<{ url?: string }>("dochub-auth-url", {
                 body: { provider, mode, projectId: project.id, returnTo }
@@ -314,66 +383,7 @@ export const useDocHubIntegration = (
         }
     }, [project.id]);
 
-    const pickGoogleRoot = useCallback(async () => {
-        if (provider !== "gdrive") { showMessage("DocHub", "Vyberte Google Drive.", "info"); return; }
-        if (!project.id) { showMessage("DocHub", "Chybí ID projektu.", "danger"); return; }
-        const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
-        if (!apiKey) { showMessage("Chybí konfigurace", "Chybí VITE_GOOGLE_API_KEY.", "danger"); return; }
 
-        setIsConnecting(true);
-        try {
-            const tokenData = await invokeAuthedFunction<{ accessToken?: string }>("dochub-google-picker-token");
-            const pickerAccessToken = tokenData?.accessToken;
-            if (!pickerAccessToken) throw new Error("Backend nevrátil accessToken.");
-
-            await ensureScript("https://apis.google.com/js/api.js");
-            const gapi = (window as any).gapi;
-            if (!gapi?.load) throw new Error("Google API script error.");
-
-            await new Promise<void>((resolve) => { gapi.load("picker", { callback: resolve }); });
-
-            const picker = new (window as any).google.picker.PickerBuilder()
-                .addView(new (window as any).google.picker.DocsView((window as any).google.picker.ViewId.FOLDERS).setIncludeFolders(true).setSelectFolderEnabled(true))
-                .setOAuthToken(pickerAccessToken)
-                .setDeveloperKey(apiKey)
-                .setCallback(async (data: any) => {
-                    if (data?.action !== (window as any).google.picker.Action.PICKED) return;
-                    const doc = data?.docs?.[0];
-                    const rootId = doc?.id as string | undefined;
-                    if (!rootId) return;
-
-                    try {
-                        const resolved = await invokeAuthedFunction<any>("dochub-resolve-root", {
-                            body: { provider: "gdrive", projectId: project.id, rootId }
-                        });
-                        const rName = (resolved as any)?.rootName;
-                        const rWebUrl = (resolved as any)?.rootWebUrl;
-                        if (rName) setRootName(rName);
-                        if (rWebUrl) setRootLink(rWebUrl);
-                        setStatus("connected");
-                        onUpdate({
-                            docHubEnabled: true,
-                            docHubProvider: "gdrive",
-                            docHubStatus: "connected",
-                            docHubRootName: rName || null,
-                            docHubRootLink: rWebUrl || rootLink,
-                            docHubRootWebUrl: rWebUrl || null,
-                            docHubRootId: (resolved as any)?.rootId || rootId,
-                            docHubDriveId: (resolved as any)?.driveId ?? null
-                        });
-                        showMessage("Hotovo", "Složka nastavena.", "success");
-                    } catch (e: any) {
-                        showMessage("Nelze uložit složku", e.message || "Error", "danger");
-                    }
-                })
-                .build();
-            picker.setVisible(true);
-        } catch (e: any) {
-            showMessage("Chyba Pickera", e.message || "Error", "danger");
-        } finally {
-            setIsConnecting(false);
-        }
-    }, [provider, project.id, showMessage, rootLink, onUpdate]);
 
     const createGoogleRoot = useCallback(async () => {
         if (provider !== "gdrive") { showMessage("DocHub", "Vyberte Google Drive.", "info"); return; }
@@ -913,10 +923,25 @@ export const useDocHubIntegration = (
             saveSetup: handleSaveSetup,
             disconnect: handleDisconnect,
             connect: handleConnect,
+            openRoot: useCallback(async () => {
+                const link = rootLink?.trim();
+                if (!link) return;
+
+                // Check if it's a web URL
+                const isWebUrl = /^https?:\/\//i.test(link);
+
+                if (isWebUrl) {
+                    // Open in default browser
+                    window.open(link, '_blank');
+                } else if (typeof window !== 'undefined' && (window as any).electronAPI) {
+                    // Open local path via Electron shell (works for mapped drives like H:\ too)
+                    // @ts-ignore
+                    await (window as any).electronAPI.fs.openFile(link);
+                }
+            }, [rootLink]),
             runAutoCreate,
             loadHistory,
             saveStructure: handleSaveStructure,
-            pickGoogleRoot,
             createGoogleRoot,
             resolveRoot,
             pickLocalFolder,

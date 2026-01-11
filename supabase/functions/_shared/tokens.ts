@@ -40,11 +40,13 @@ const decryptJsonAesGcm = async <T>(
 const refreshGoogle = async (args: {
   refreshToken: string;
   clientId: string;
-  clientSecret: string;
+  clientSecret?: string | null;
 }) => {
   const body = new URLSearchParams();
   body.set("client_id", args.clientId);
-  body.set("client_secret", args.clientSecret);
+  if (args.clientSecret) {
+    body.set("client_secret", args.clientSecret);
+  }
   body.set("refresh_token", args.refreshToken);
   body.set("grant_type", "refresh_token");
 
@@ -113,6 +115,8 @@ export const getAccessTokenForUser = async (args: {
     refresh_token: string | null;
     scope: string | null;
     token_type: string;
+    client_id?: string | null;
+    client_type?: "web" | "desktop" | null;
   }>(data.token_ciphertext, encKey);
 
   const now = Date.now();
@@ -126,9 +130,15 @@ export const getAccessTokenForUser = async (args: {
   if (!token.refresh_token) throw new Error("Missing refresh_token");
 
   if (args.provider === "gdrive") {
-    const clientId = Deno.env.get("GOOGLE_OAUTH_CLIENT_ID") || "";
-    const clientSecret = Deno.env.get("GOOGLE_OAUTH_CLIENT_SECRET") || "";
-    if (!clientId || !clientSecret) throw new Error("Missing Google OAuth env");
+    const clientId =
+      (token.client_id && token.client_id.trim()) ||
+      Deno.env.get("GOOGLE_OAUTH_CLIENT_ID") ||
+      "";
+    const clientSecret =
+      token.client_type === "desktop"
+        ? ""
+        : Deno.env.get("GOOGLE_OAUTH_CLIENT_SECRET") || "";
+    if (!clientId) throw new Error("Missing Google OAuth client_id");
 
     const refreshed = await refreshGoogle({
       refreshToken: token.refresh_token,
@@ -141,6 +151,8 @@ export const getAccessTokenForUser = async (args: {
       refresh_token: token.refresh_token,
       scope: refreshed.scope || token.scope,
       token_type: token.token_type,
+      client_id: token.client_id || null,
+      client_type: token.client_type || null,
     };
 
     const tokenCiphertext = await encryptJsonAesGcm(newToken, encKey);

@@ -161,6 +161,17 @@ const electronAPI: ElectronAPI = {
         request: (url: string, options?: RequestInit): Promise<any> =>
             ipcRenderer.invoke('net:request', url, options),
     },
+
+    oauth: {
+        googleLogin: (args: { clientId: string; clientSecret?: string; scopes: string[] }) => {
+            console.log('[Preload] OAuth Login Request:', {
+                clientId: args.clientId,
+                hasSecret: !!args.clientSecret,
+                scopes: args.scopes
+            });
+            return ipcRenderer.invoke('oauth:googleLogin', args);
+        },
+    },
 };
 
 // Expose to renderer

@@ -95,58 +95,83 @@ serve(async (req) => {
             );
         }
 
-        // 4. Proxy to Gemini
-        const { prompt, history } = await req.json();
-        const apiKey = Deno.env.get("GEMINI_API_KEY");
+        // 4. Proxy to OpenRouter (Grok)
+        const { prompt, history, model: clientModel } = await req.json();
+        const apiKey = Deno.env.get("OPENROUTER_API_KEY");
 
         if (!apiKey) {
-            console.error("Missing GEMINI_API_KEY");
+            console.error("Missing OPENROUTER_API_KEY");
             return new Response(
                 JSON.stringify({ error: "Server configuration error" }),
                 { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
         }
 
-        // Call Gemini API (GenerateContent)
-        // Using fetch directly to allow streaming (if we want) or simple JSON
-        // Start with simple JSON for robustness
-        const model = (Deno.env.get("GEMINI_MODEL") || "gemini-1.5-flash").trim();
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${apiKey}`;
+        // Default to Grok 4.1 Fast as requested, allow client override
+        const model = (clientModel || "x-ai/grok-4.1-fast").trim();
+        console.log(`Using AI Model: ${model}`);
 
-        // Construct contents from history + prompt
-        let contents = [];
+        // Construct messages for OpenAI-compatible API
+        let messages = [];
         if (history && Array.isArray(history)) {
-            contents = history.map(msg => ({
-                role: msg.role === 'user' ? 'user' : 'model',
-                parts: [{ text: msg.parts }] // Assuming simplified history structure
+            messages = history.map(msg => ({
+                role: msg.role === 'model' ? 'assistant' : msg.role, // Map 'model' -> 'assistant'
+                content: msg.parts // Assuming parts is string in simplified history, or need to extract. 
+                // If parts is array of {text: string}, extraction needed.
+                // For safety, let's handle string vs array
             }));
-        }
-        // Add current prompt
-        if (prompt) {
-            contents.push({
-                role: 'user',
-                parts: [{ text: prompt }]
+            // fixup content if it's not string
+            messages = messages.map(m => {
+                if (typeof m.content !== 'string' && Array.isArray(m.content)) {
+                    return { ...m, content: m.content.map((p: any) => p.text || '').join('') };
+                }
+                return m;
             });
         }
 
+        // Add current prompt
+        if (prompt) {
+            messages.push({
+                role: 'user',
+                content: prompt
+            });
+        }
+
+        const url = "https://openrouter.ai/api/v1/chat/completions";
+
         const response = await fetch(url, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ contents }),
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${apiKey}`,
+                "HTTP-Referer": "https://tenderflow.cz", // Required by OpenRouter
+                "X-Title": "Tender Flow", // Optional by OpenRouter
+            },
+            body: JSON.stringify({
+                model: model,
+                messages: messages,
+            }),
         });
 
         const data = await response.json();
 
         if (!response.ok) {
-            console.error("Gemini API Error:", data);
+            console.error("OpenRouter API Error:", data);
             return new Response(
                 JSON.stringify({ error: "AI Provider Error", details: data }),
                 { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
         }
 
-        // Extract text for simplified client consumption
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        // Extract text from OpenAI format
+        const text = data.choices?.[0]?.message?.content || "";
+
+        return new Response(
+            JSON.stringify({ text, raw: data }),
+            {
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+        );
 
         return new Response(
             JSON.stringify({ text, raw: data }),

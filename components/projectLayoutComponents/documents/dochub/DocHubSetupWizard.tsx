@@ -97,193 +97,119 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
               </div>
             </button>
           </div>
-          <div className="text-[11px] text-slate-500">
-            {isMcpProvider
-              ? "MCP Bridge Server umožňuje automatické vytváření složek na vašem disku."
-              : "Google: OAuth + Picker. Tender Flow Desktop: vyberte složku z disku."}
+          <div className="text-[11px] text-slate-500 flex justify-between items-center">
+            <span>
+              {isMcpProvider
+                ? "MCP Bridge Server umožňuje automatické vytváření složek na vašem disku."
+                : "Google: OAuth + Picker. Tender Flow Desktop: vyberte složku z disku."}
+            </span>
+            {isConnectedStatus && (
+              <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                Připojeno
+              </span>
+            )}
           </div>
         </div>
 
-        {/* Step 2 - hidden for local/mcp provider */}
-        {!isLocalProvider && !isMcpProvider && (
-          <div className="space-y-2 bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4">
-            <div className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-              2) Režim
-            </div>
-            <div className="flex items-center gap-1 bg-slate-200 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-300 dark:border-slate-700/50">
-              <button
-                type="button"
-                onClick={() => setters.setMode("user")}
-                className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all ${mode === "user"
-                  ? "bg-violet-600 text-white shadow-lg"
-                  : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-700/50"
-                  }`}
-              >
-                Můj účet
-              </button>
-              <button
-                type="button"
-                onClick={() => setters.setMode("org")}
-                className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all ${mode === "org"
-                  ? "bg-violet-600 text-white shadow-lg"
-                  : "text-slate-300 hover:text-white hover:bg-slate-700/50"
-                  }`}
-              >
-                Organizace
-              </button>
-            </div>
-            <div className="text-[11px] text-slate-500">
-              U Google je "Organizace" typicky Shared Drive.
-            </div>
-          </div>
-        )}
 
-        <div className="space-y-2 bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4">
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-            {isLocalProvider || isMcpProvider ? "2)" : "3)"} Hlavní složka
-            projektu
+
+        <div className={`space-y-2 border rounded-xl p-4 transition-all ${isConnectedStatus && !rootLink
+          ? "bg-violet-50 dark:bg-violet-900/10 border-violet-500ring-1 ring-violet-500/20"
+          : "bg-white dark:bg-slate-900/30 border-slate-200 dark:border-slate-700/50"
+          }`}>
+          <div className="flex items-center justify-between">
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+              2) Hlavní složka projektu
+            </div>
+            {isConnectedStatus && !rootLink && (
+              <div className="text-xs font-bold text-violet-600 animate-pulse">
+                &larr; Pokračujte zde
+              </div>
+            )}
           </div>
           <div className="space-y-2">
-            {provider === "gdrive" && (
-              <button
-                type="button"
-                onClick={actions.pickGoogleRoot}
-                disabled={isConnecting || !isConnectedStatus}
-                className={`w-full px-4 py-2.5 rounded-xl text-sm font-semibold border transition-colors ${isConnecting || !isConnectedStatus
-                  ? "bg-slate-200 dark:bg-slate-800/60 text-slate-500 dark:text-slate-500 border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
-                  : "bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700/50"
-                  }`}
-                title={
-                  !isConnectedStatus
-                    ? "Nejdřív připojte účet (OAuth)."
-                    : "Otevře Google Picker pro výběr složky"
-                }
-              >
-                {isConnecting
-                  ? "Otevírám Picker..."
-                  : "Vybrat složku z Google Drive"}
-              </button>
-            )}
-            {provider === "gdrive" && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            {/* Manual Link Entry (Primary for Google Drive) */}
+            <div className="space-y-3">
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl text-sm text-slate-600 dark:text-slate-400">
+                <p className="font-semibold mb-1">Jak vybrat složku:</p>
+                <ol className="list-decimal list-inside space-y-1 text-xs">
+                  <li>Otevřete požadovanou složku v Google Drive (v prohlížeči).</li>
+                  <li>Zkopírujte celou adresu (URL) z řádku prohlížeče.</li>
+                  <li>Vložte ji do pole níže a klikněte na "Získat odkaz".</li>
+                </ol>
+              </div>
+
+              <div className="flex gap-2">
                 <input
                   type="text"
-                  value={newFolderName}
-                  onChange={(e) => setters.setNewFolderName(e.target.value)}
-                  placeholder="Název nové složky"
-                  className="sm:col-span-2 w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-violet-500/50 focus:outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={actions.createGoogleRoot}
-                  disabled={
-                    isConnecting || !isConnectedStatus || !newFolderName.trim()
+                  value={rootLink}
+                  onChange={(e) => setters.setRootLink(e.target.value)}
+                  placeholder={
+                    isMcpProvider
+                      ? "Cesta ke složce (např. /Users/jmeno/Documents/Projekty)"
+                      : isLocalProvider
+                        ? "Cesta ke složce (např. C:\\Projekty\\Stavba)"
+                        : "Vložte URL složky z Google Drive (https://drive.google.com/...)"
                   }
-                  className={`w-full px-4 py-2.5 rounded-xl text-sm font-semibold border transition-colors ${isConnecting || !isConnectedStatus || !newFolderName.trim()
-                    ? "bg-slate-200 dark:bg-slate-800/60 text-slate-500 border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
-                    : "bg-violet-600 hover:bg-violet-500 text-white border-violet-500/30"
-                    }`}
-                  title={
-                    !isConnectedStatus
-                      ? "Nejdřív připojte účet (OAuth)."
-                      : "Vytvoří složku v Google Drive a nastaví ji jako root projektu"
-                  }
-                >
-                  Vytvořit
-                </button>
-              </div>
-            )}
-            {isLocalProvider && (
-              <button
-                type="button"
-                onClick={actions.pickLocalFolder}
-                disabled={isConnecting}
-                className={`w-full px-4 py-2.5 rounded-xl text-sm font-semibold border transition-colors ${isConnecting
-                  ? "bg-slate-200 dark:bg-slate-800/60 text-slate-500 dark:text-slate-500 border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
-                  : "bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500/30"
-                  }`}
-                title="Otevře systémový dialog pro výběr složky"
-              >
-                {isConnecting ? "Vybírám..." : "Vybrat složku z disku"}
-              </button>
-            )}
-            {isMcpProvider && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={actions.pickMcpFolder}
-                  disabled={isConnecting}
-                  className={`w-full px-4 py-2.5 rounded-xl text-sm font-semibold border transition-colors ${isConnecting
-                    ? "bg-slate-200 dark:bg-slate-800/60 text-slate-500 dark:text-slate-500 border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
-                    : "bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700/50"
-                    }`}
-                  title="Otevře systémový dialog pro výběr složky na počítači s MCP serverem"
-                >
-                  {isConnecting ? "Vybírám..." : "Vybrat složku"}
-                </button>
-                <button
-                  type="button"
-                  onClick={actions.connectMcp}
-                  disabled={isConnecting || !rootLink.trim()}
-                  className={`sm:col-span-2 w-full px-4 py-2.5 rounded-xl text-sm font-semibold border transition-colors ${isConnecting || !rootLink.trim()
-                    ? "bg-slate-200 dark:bg-slate-800/60 text-slate-500 dark:text-slate-500 border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
-                    : "bg-cyan-600 hover:bg-cyan-500 text-white border-cyan-500/30"
-                    }`}
-                  title="Připojí se k MCP Bridge serveru a ověří složku"
-                >
-                  {isConnecting ? "Připojuji..." : "Připojit přes MCP"}
-                </button>
-              </div>
-            )}
-            <input
-              type="text"
-              value={rootName}
-              onChange={(e) => setters.setRootName(e.target.value)}
-              placeholder="Název (např. Stavba RD Novák)"
-              className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-violet-500/50 focus:outline-none"
-            />
-            <input
-              type="text"
-              value={rootLink}
-              onChange={(e) => setters.setRootLink(e.target.value)}
-              placeholder={
-                isMcpProvider
-                  ? "Cesta ke složce (např. /Users/jmeno/Documents/Projekty)"
-                  : isLocalProvider
-                    ? "Cesta ke složce (např. C:\\Projekty\\Stavba)"
-                    : provider === "gdrive"
-                      ? "Web URL složky (vyplní se po výběru) nebo vlož URL ručně"
-                      : "Web URL (sdílený odkaz)"
-              }
-              className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-violet-500/50 focus:outline-none"
-            />
-            {!isLocalProvider && !isMcpProvider && (
-              <button
-                type="button"
-                onClick={actions.resolveRoot}
-                disabled={isConnecting || !provider || !rootLink.trim()}
-                className={`relative overflow-hidden w-full px-4 py-2 rounded-lg text-sm font-bold border transition-colors ${isConnecting || !provider || !rootLink.trim()
-                  ? "bg-slate-200 dark:bg-slate-800/60 text-slate-500 border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
-                  : "bg-violet-600 hover:bg-violet-500 text-white border-violet-500/30"
-                  }`}
-                title="Získá odkaz přes Drive/Graph API a uloží rootId/rootWebUrl"
-              >
-                <span
-                  className="absolute inset-y-0 left-0 bg-white/25"
-                  style={{ width: `${resolveProgress}%` }}
+                  className="flex-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700/50 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-violet-500/50 focus:outline-none"
                 />
-                <span className="relative z-10 flex items-center justify-center gap-2">
-                  <span
-                    className={`material-symbols-outlined text-[18px] ${isConnecting ? "animate-spin" : ""
+                {!isLocalProvider && !isMcpProvider && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isConnectedStatus && rootLink === state.rootLink) {
+                        actions.openRoot();
+                      } else {
+                        actions.resolveRoot();
+                      }
+                    }}
+                    disabled={isConnecting || !provider || !rootLink.trim()}
+                    className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold border transition-colors ${isConnecting || !provider || !rootLink.trim()
+                      ? "bg-slate-200 dark:bg-slate-800/60 text-slate-500 border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
+                      : isConnectedStatus && rootLink === state.rootLink
+                        ? "bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500/30 shadow-lg shadow-emerald-500/20"
+                        : "bg-violet-600 hover:bg-violet-500 text-white border-violet-500/30"
                       }`}
                   >
-                    {isConnecting ? "sync" : "link"}
-                  </span>
-                  {isConnecting
-                    ? `Získávám odkaz… ${resolveProgress}%`
-                    : "Získat odkaz"}
-                </span>
-              </button>
+                    {isConnecting
+                      ? "Ověřuji..."
+                      : isConnectedStatus && rootLink === state.rootLink
+                        ? <span className="flex items-center gap-2"><span className="material-symbols-outlined text-[18px]">folder_open</span>Otevřít složku</span>
+                        : "Použít tuto složku"
+                    }
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Create New Folder (Secondary) */}
+            {provider === "gdrive" && (
+              <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700/50">
+                <div className="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wider">Nebo vytvořit novou</div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newFolderName}
+                    onChange={(e) => setters.setNewFolderName(e.target.value)}
+                    placeholder="Název nové složky"
+                    className="flex-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-violet-500/50 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={actions.createGoogleRoot}
+                    disabled={
+                      isConnecting || !isConnectedStatus || !newFolderName.trim()
+                    }
+                    className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border transition-colors ${isConnecting || !isConnectedStatus || !newFolderName.trim()
+                      ? "bg-slate-200 dark:bg-slate-800/60 text-slate-500 border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
+                      : "bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-600"
+                      }`}
+                  >
+                    Vytvořit novou
+                  </button>
+                </div>
+              </div>
             )}
             <div className="text-[11px] text-slate-500">
               {isMcpProvider
@@ -313,15 +239,17 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={
-              isConnectedStatus
-                ? actions.disconnect
-                : isLocalProvider
-                  ? actions.saveSetup
-                  : isMcpProvider
-                    ? actions.connectMcp
-                    : actions.connect
-            }
+            onClick={() => {
+              if (isConnectedStatus) {
+                if (window.confirm("Opravdu chcete odpojit tuto složku od projektu?")) {
+                  actions.disconnect();
+                }
+              } else {
+                if (isLocalProvider) actions.saveSetup();
+                else if (isMcpProvider) actions.connectMcp();
+                else actions.connect();
+              }
+            }}
             disabled={
               isConnecting ||
               (!isConnectedStatus &&
@@ -355,24 +283,6 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
                     ? "Připojit MCP"
                     : `Připojit přes ${provider === "gdrive" ? "Google" : "Microsoft"
                     }`}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (!provider || !mode || !rootLink.trim()) {
-                showModal({
-                  title: "DocHub",
-                  message:
-                    "Vyberte provider, režim a zadejte hlavní složku projektu (URL/cestu).",
-                  variant: "info",
-                });
-                return;
-              }
-              actions.saveSetup();
-            }}
-            className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-lg text-sm font-bold transition-colors"
-          >
-            Uložit nastavení
           </button>
         </div>
         {isConnectedStatus || isEditingSetup ? (

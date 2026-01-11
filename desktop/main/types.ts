@@ -14,6 +14,7 @@ export interface ElectronAPI {
     biometric: BiometricAPI;
     session: SessionAPI;
     net: NetworkAPI;
+    oauth: OAuthAPI;
 }
 
 export interface PlatformInfo {
@@ -89,6 +90,17 @@ export interface NetworkAPI {
         statusText: string;
         text: string;
         headers: Record<string, string>;
+    }>;
+}
+
+export interface OAuthAPI {
+    googleLogin: (args: { clientId: string; clientSecret?: string; scopes: string[] }) => Promise<{
+        accessToken: string;
+        refreshToken?: string | null;
+        expiresIn: number;
+        scope?: string | null;
+        tokenType: string;
+        idToken?: string | null;
     }>;
 }
 

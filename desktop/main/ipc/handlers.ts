@@ -1,5 +1,7 @@
 import { ipcMain, dialog, shell, app, BrowserWindow } from 'electron';
 import * as fs from 'fs/promises';
+import * as http from 'http';
+import * as crypto from 'crypto';
 import * as path from 'path';
 import { FolderWatcherService } from '../services/folderWatcher';
 import { SecureStorageService } from '../services/secureStorage';
@@ -8,6 +10,82 @@ import type { FolderInfo, FileInfo } from '../types';
 // Services (singleton instances)
 let watcherService: FolderWatcherService | null = null;
 const storageService = new SecureStorageService();
+
+const base64UrlEncode = (input: Buffer | Uint8Array): string => {
+    const b64 = Buffer.from(input).toString('base64');
+    return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+};
+
+const createCodeVerifier = (): string => base64UrlEncode(crypto.randomBytes(32));
+
+const createCodeChallenge = (verifier: string): string =>
+    base64UrlEncode(crypto.createHash('sha256').update(verifier).digest());
+
+const startLoopbackServer = (timeoutMs: number) => {
+    return new Promise<{
+        port: number;
+        waitForCode: Promise<{ code: string; state: string | null }>;
+    }>((resolve, reject) => {
+        let resolvedPort = 0;
+        let timer: NodeJS.Timeout | null = null;
+        let resolveCode: ((value: { code: string; state: string | null }) => void) | null = null;
+        let rejectCode: ((reason?: any) => void) | null = null;
+
+        const waitForCode = new Promise<{ code: string; state: string | null }>((res, rej) => {
+            resolveCode = res;
+            rejectCode = rej;
+        });
+
+        const server = http.createServer((req, res) => {
+            const base = resolvedPort ? `http://127.0.0.1:${resolvedPort}` : 'http://127.0.0.1';
+            const url = new URL(req.url || '/', base);
+            if (url.pathname !== '/oauth2/callback') {
+                res.writeHead(404, { 'content-type': 'text/plain' });
+                res.end('Not found');
+                return;
+            }
+
+            const error = url.searchParams.get('error');
+            const code = url.searchParams.get('code');
+            const state = url.searchParams.get('state');
+            res.writeHead(200, { 'content-type': 'text/html' });
+            res.end('<html><body>Ověření dokončeno. Okno můžete zavřít.</body></html>');
+
+            if (timer) clearTimeout(timer);
+            server.close();
+
+            if (error) {
+                rejectCode?.(new Error(error));
+                return;
+            }
+            if (!code) {
+                rejectCode?.(new Error('Missing authorization code'));
+                return;
+            }
+            resolveCode?.({ code, state });
+        });
+
+        server.on('error', (err) => {
+            if (timer) clearTimeout(timer);
+            reject(err);
+        });
+
+        server.listen(0, '127.0.0.1', () => {
+            const address = server.address();
+            if (!address || typeof address === 'string') {
+                server.close();
+                reject(new Error('Failed to start loopback server'));
+                return;
+            }
+            resolvedPort = address.port;
+            timer = setTimeout(() => {
+                server.close();
+                rejectCode?.(new Error('OAuth timeout'));
+            }, timeoutMs);
+            resolve({ port: resolvedPort, waitForCode });
+        });
+    });
+};
 
 // Ignore patterns for file listing
 const IGNORE_PATTERNS = [
@@ -286,6 +364,72 @@ export function registerIpcHandlers(): void {
     ipcMain.handle('session:isBiometricEnabled', async (): Promise<boolean> => {
         const value = await storageService.get(BIOMETRIC_ENABLED_KEY);
         return value === 'true';
+    });
+
+    // --- OAUTH (Google Desktop) ---
+
+    ipcMain.handle('oauth:googleLogin', async (_event, args: { clientId: string; clientSecret?: string; scopes: string[] }) => {
+        const clientId = (args?.clientId || '').trim();
+        const clientSecret = (args?.clientSecret || '').trim();
+        if (!clientId) {
+            throw new Error('Missing Google OAuth clientId');
+        }
+        const scopes = Array.isArray(args?.scopes) && args.scopes.length > 0
+            ? args.scopes
+            : ['https://www.googleapis.com/auth/drive.file'];
+
+        const codeVerifier = createCodeVerifier();
+        const codeChallenge = createCodeChallenge(codeVerifier);
+        const { port, waitForCode } = await startLoopbackServer(120_000);
+        const redirectUri = `http://127.0.0.1:${port}/oauth2/callback`;
+        const state = crypto.randomUUID();
+
+        const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+        authUrl.searchParams.set('client_id', clientId);
+        authUrl.searchParams.set('redirect_uri', redirectUri);
+        authUrl.searchParams.set('response_type', 'code');
+        authUrl.searchParams.set('scope', scopes.join(' '));
+        authUrl.searchParams.set('access_type', 'offline');
+        authUrl.searchParams.set('prompt', 'consent');
+        authUrl.searchParams.set('include_granted_scopes', 'true');
+        authUrl.searchParams.set('code_challenge', codeChallenge);
+        authUrl.searchParams.set('code_challenge_method', 'S256');
+        authUrl.searchParams.set('state', state);
+
+        await shell.openExternal(authUrl.toString());
+        const { code, state: returnedState } = await waitForCode;
+        if (returnedState !== state) {
+            throw new Error('Invalid OAuth state');
+        }
+
+        const body = new URLSearchParams();
+        body.set('code', code);
+        body.set('client_id', clientId);
+        if (clientSecret) {
+            body.set('client_secret', clientSecret);
+        }
+        body.set('code_verifier', codeVerifier);
+        body.set('redirect_uri', redirectUri);
+        body.set('grant_type', 'authorization_code');
+
+        const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+            method: 'POST',
+            headers: { 'content-type': 'application/x-www-form-urlencoded' },
+            body,
+        });
+        const tokenJson = await tokenRes.json() as any;
+        if (!tokenRes.ok) {
+            throw new Error(tokenJson?.error_description || 'Google token exchange failed');
+        }
+
+        return {
+            accessToken: tokenJson.access_token,
+            refreshToken: tokenJson.refresh_token || null,
+            expiresIn: tokenJson.expires_in,
+            scope: tokenJson.scope || null,
+            tokenType: tokenJson.token_type,
+            idToken: tokenJson.id_token || null,
+        };
     });
 
     // --- NETWORK PROXY (Bypass CORS) ---

@@ -80,6 +80,13 @@ Získáš:
 - `MS_OAUTH_CLIENT_ID`
 - `MS_OAUTH_CLIENT_SECRET`
 
+
+
+## Desktop OAuth (Electron)
+- OAuth client ID: Desktop app (Installed app).
+- Use system browser + loopback redirect (no web callback).
+- Frontend env: `VITE_GOOGLE_OAUTH_CLIENT_ID_DESKTOP`.
+- Deploy function: `supabase functions deploy dochub-google-desktop-token`.
 ## 4) Supabase secrets (Edge Functions)
 V Supabase nastav secrets:
 
@@ -106,6 +113,7 @@ Generování `DOCHUB_TOKEN_ENCRYPTION_KEY`:
 4) Deploy functions:
    - `supabase functions deploy dochub-auth-url`
    - `supabase functions deploy dochub-google-callback`
+   - `supabase functions deploy dochub-google-desktop-token`
    - `supabase functions deploy dochub-microsoft-callback`
    - `supabase functions deploy dochub-google-picker-token`
    - `supabase functions deploy dochub-google-create-root`
@@ -128,3 +136,5 @@ Tokeny se ukládají šifrovaně do `public.dochub_user_tokens`. Tabulka má RLS
 ## Co je další krok
 - OneDrive/SharePoint picker (ekvivalent Google Pickeru).
 - Podsložky `Email` / `Cenová nabídka` + ukládání emailu/CN do Drive/OneDrive.
+
+

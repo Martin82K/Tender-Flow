@@ -213,60 +213,74 @@ export async function ensureStructure(
                 }
             };
 
-            // Build folder list from structure
-            const foldersToCreate: string[] = [];
+            // Recursive function to process hierarchy items
+            const processItem = async (
+                item: DocHubHierarchyItem,
+                parentPath: string,
+                context: { category?: { id: string, title: string }, supplier?: { id: string, name: string } }
+            ) => {
+                if (!item.enabled) return;
 
-            // Root folder
-            foldersToCreate.push(request.rootPath);
+                const currentPath = joinPath(parentPath, item.name);
 
-            // Basic structure
-            if (request.structure) {
-                const s = request.structure;
-                if (s.pd) foldersToCreate.push(joinPath(request.rootPath, s.pd));
-                if (s.tenders) foldersToCreate.push(joinPath(request.rootPath, s.tenders));
-                if (s.contracts) foldersToCreate.push(joinPath(request.rootPath, s.contracts));
-                if (s.realization) foldersToCreate.push(joinPath(request.rootPath, s.realization));
-                if (s.archive) foldersToCreate.push(joinPath(request.rootPath, s.archive));
-                if (s.ceniky) foldersToCreate.push(joinPath(request.rootPath, s.ceniky));
+                // Handle placeholders replacements in the name
+                let finalName = item.name;
 
-                // Extra top-level folders
-                if (s.extraTopLevel) {
-                    for (const extra of s.extraTopLevel) {
-                        foldersToCreate.push(joinPath(request.rootPath, extra));
-                    }
-                }
-            }
-
-            // Category folders (in tenders and contracts)
-            if (request.categories && request.structure) {
-                const tendersPath = joinPath(request.rootPath, request.structure.tenders || 'Výběrové řízení');
-                const contractsPath = joinPath(request.rootPath, request.structure.contracts || 'Smlouvy');
-
-                for (const cat of request.categories) {
-                    const catFolder = cat.title;
-                    foldersToCreate.push(joinPath(tendersPath, catFolder));
-                    foldersToCreate.push(joinPath(contractsPath, catFolder));
-
-                    // Supplier folders under each category
-                    const suppliers = request.suppliers?.[cat.id] || [];
-                    for (const supplier of suppliers) {
-                        foldersToCreate.push(joinPath(tendersPath, catFolder, supplier.name));
-                        foldersToCreate.push(joinPath(contractsPath, catFolder, supplier.name));
-
-                        // Extra supplier folders
-                        if (request.structure.extraSupplier) {
-                            for (const extra of request.structure.extraSupplier) {
-                                foldersToCreate.push(joinPath(tendersPath, catFolder, supplier.name, extra));
-                                foldersToCreate.push(joinPath(contractsPath, catFolder, supplier.name, extra));
+                // Category placeholder
+                if (item.key === 'category' || item.name.includes('{Název VŘ}')) {
+                    if (context.category) {
+                        finalName = context.category.title;
+                    } else {
+                        // If we hit a category node but have no category context, we must iterate all categories
+                        if (request.categories) {
+                            for (const cat of request.categories) {
+                                await processItem(item, parentPath, { ...context, category: cat });
                             }
                         }
+                        return; // Stop processing this abstract node, we processed instances
                     }
                 }
-            }
 
-            // Create all folders
-            for (const folderPath of foldersToCreate) {
-                await ensureFolder(folderPath);
+                // Supplier placeholder
+                if (item.key === 'supplier' || item.name.includes('{Název dodavatele}')) {
+                    if (context.supplier) {
+                        finalName = context.supplier.name;
+                    } else {
+                        // If we hit a supplier node but have no supplier context, we must iterate suppliers for the current category
+                        if (context.category && request.suppliers) {
+                            const suppliers = request.suppliers[context.category.id] || [];
+                            for (const sup of suppliers) {
+                                await processItem(item, parentPath, { ...context, supplier: sup });
+                            }
+                        }
+                        return; // Stop processing this abstract node
+                    }
+                }
+
+                const finalPath = joinPath(parentPath, finalName);
+                await ensureFolder(finalPath);
+
+                // Process children
+                if (item.children && item.children.length > 0) {
+                    for (const child of item.children) {
+                        await processItem(child, finalPath, context);
+                    }
+                }
+            };
+
+            // Start processing from root
+            // Note: request.hierarchy contains the top-level items (01_PD, 02_Zmeny, etc.)
+            // We need to process them relative to rootPath
+
+            // First ensure root exists
+            await ensureFolder(request.rootPath);
+
+            if (request.hierarchy) {
+                for (const rootItem of request.hierarchy) {
+                    await processItem(rootItem, request.rootPath, {});
+                }
+            } else {
+                logs.push('! Upozornění: Žádná hierarchie nebyla předána. Vytvářím pouze kořenovou složku.');
             }
 
             return {
