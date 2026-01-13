@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { supabase } from '../../services/supabase';
 
 // Default AI Prompts
 const DEFAULT_PROMPT_ACHIEVEMENTS = `Jsi kreativní analytik stavebních projektů. Vygeneruj 4-5 UNIKÁTNÍCH achievement-style insights ve stylu herních úspěchů. Buď kreativní - každé volání má být jiné!
@@ -123,6 +124,58 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
         localStorage.setItem('aiEnabled', aiEnabled.toString());
     }, [aiEnabled]);
 
+    const [googleKey, setGoogleKey] = useState('');
+    const [openRouterKey, setOpenRouterKey] = useState('');
+    const [isGoogleKeySet, setIsGoogleKeySet] = useState(false);
+    const [isOpenRouterKeySet, setIsOpenRouterKeySet] = useState(false);
+    const [secretsSaved, setSecretsSaved] = useState(false);
+
+    // Load secret status (not values)
+    useEffect(() => {
+        const checkSecrets = async () => {
+            const { data, error } = await supabase
+                .from('app_secrets')
+                .select('google_api_key, openrouter_api_key')
+                .eq('id', 'default')
+                .single();
+
+            if (data) {
+                setIsGoogleKeySet(!!data.google_api_key && data.google_api_key.length > 0);
+                setIsOpenRouterKeySet(!!data.openrouter_api_key && data.openrouter_api_key.length > 0);
+            }
+        };
+        checkSecrets();
+    }, []);
+
+    const saveSecrets = async () => {
+        const updates: any = { id: 'default', updated_at: new Date().toISOString() };
+        if (googleKey.trim()) updates.google_api_key = googleKey.trim();
+        if (openRouterKey.trim()) updates.openrouter_api_key = openRouterKey.trim();
+
+        if (Object.keys(updates).length <= 2) {
+            // Nothing to update
+            return;
+        }
+
+        const { error } = await supabase
+            .from('app_secrets')
+            .upsert(updates, { onConflict: 'id' });
+
+        if (error) {
+            console.error('Error saving secrets:', error);
+            alert('Chyba při ukládání klíčů.');
+        } else {
+            setGoogleKey('');
+            setOpenRouterKey('');
+            setSecretsSaved(true);
+            setTimeout(() => setSecretsSaved(false), 3000);
+
+            // Refresh status
+            if (updates.google_api_key) setIsGoogleKeySet(true);
+            if (updates.openrouter_api_key) setIsOpenRouterKeySet(true);
+        }
+    };
+
     const savePrompts = () => {
         localStorage.setItem('aiPromptContacts', promptContacts);
         localStorage.setItem('aiPromptOverview', promptOverview);
@@ -133,14 +186,14 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
     if (!isAdmin) return null;
 
     return (
-        <section className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl mb-8">
+        <section className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl mb-8 animate-fadeIn">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                 <span className="material-symbols-outlined text-violet-400">auto_awesome</span>
                 Nastavení AI funkcí
                 <span className="ml-2 px-2.5 py-1 bg-violet-500/20 text-violet-400 text-xs font-bold rounded-lg border border-violet-500/30">Admin</span>
             </h2>
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-8">
                 <div>
                     <p className="text-sm font-medium text-slate-900 dark:text-white">Povolit AI analýzu</p>
                     <p className="text-xs text-slate-500">Aktivuje AI Insights na Dashboardu pomocí Gemini API.</p>
@@ -162,63 +215,132 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
                 </div>
             )}
 
-            {/* AI Prompts Management */}
             {aiEnabled && (
-                <div className="mt-8 space-y-6">
-                    <h3 className="text-md font-bold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-700 pb-2">
-                        Prompt Engineering
-                    </h3>
+                <div className="space-y-8">
+                    {/* API Keys Management */}
+                    <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                        <h3 className="text-md font-bold text-slate-900 dark:text-white pb-2 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-indigo-400">vpn_key</span>
+                            API Klíče (System Secret Storage)
+                        </h3>
+                        <p className="text-xs text-slate-500 mb-4">
+                            Zde uložené klíče jsou bezpečně uloženy v databázi a používají se automaticky, pokud uživatel neposkytne vlastní klíč.
+                            <br />Klíče se po uložení <b>nezobrazují</b> (jsou skryty bezpečnostní politikou).
+                        </p>
 
-                    {/* Overview Prompt */}
-                    <div className="space-y-2">
-                        <div className="flex justify-between items-end">
-                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                                Prompt pro Project Overview
-                            </label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex justify-between">
+                                    <span>Google Gemini API Key</span>
+                                    {isGoogleKeySet ?
+                                        <span className="text-emerald-500 text-xs font-bold flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">check_circle</span> Nastaveno</span> :
+                                        <span className="text-slate-400 text-xs flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">cancel</span> Nenastaveno</span>
+                                    }
+                                </label>
+                                <input
+                                    type="password"
+                                    value={googleKey}
+                                    onChange={(e) => setGoogleKey(e.target.value)}
+                                    placeholder={isGoogleKeySet ? "●●●●●●●●●●●● (Klíč je uložen)" : "Vložte nový API klíč..."}
+                                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 dark:text-white"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex justify-between">
+                                    <span>OpenRouter API Key</span>
+                                    {isOpenRouterKeySet ?
+                                        <span className="text-emerald-500 text-xs font-bold flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">check_circle</span> Nastaveno</span> :
+                                        <span className="text-slate-400 text-xs flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">cancel</span> Nenastaveno</span>
+                                    }
+                                </label>
+                                <input
+                                    type="password"
+                                    value={openRouterKey}
+                                    onChange={(e) => setOpenRouterKey(e.target.value)}
+                                    placeholder={isOpenRouterKeySet ? "●●●●●●●●●●●● (Klíč je uložen)" : "Vložte nový API klíč..."}
+                                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 dark:text-white"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end pt-2">
+                            {secretsSaved && (
+                                <span className="text-emerald-500 text-sm font-medium flex items-center gap-1 animate-fadeIn mr-4">
+                                    <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                                    Klíče uloženy
+                                </span>
+                            )}
                             <button
-                                onClick={() => setPromptOverview(DEFAULT_PROMPT_OVERVIEW)}
-                                className="text-xs text-indigo-400 hover:text-indigo-300 hover:underline"
+                                onClick={saveSecrets}
+                                disabled={!googleKey && !openRouterKey}
+                                className={`px-4 py-2 rounded-lg font-bold text-sm shadow-lg transition-all flex items-center gap-2 ${(!googleKey && !openRouterKey) ?
+                                    'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed' :
+                                    'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-500/20'
+                                    }`}
                             >
-                                Obnovit výchozí
+                                <span className="material-symbols-outlined text-[18px]">lock</span>
+                                Uložit klíče do trezoru
                             </button>
                         </div>
-                        <textarea
-                            value={promptOverview}
-                            onChange={(e) => setPromptOverview(e.target.value)}
-                            rows={15}
-                            className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 p-3 text-xs font-mono text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent leading-relaxed"
-                        />
                     </div>
 
-                    {/* Contacts Prompt (reserved) */}
-                    <div className="space-y-2 opacity-50 pointer-events-none filter grayscale">
-                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                            Prompt pro Contacts Assistant (Připravujeme)
-                        </label>
-                        <textarea
-                            value={promptContacts}
-                            onChange={(e) => setPromptContacts(e.target.value)}
-                            rows={3}
-                            placeholder="Zde bude možné upravit prompt pro AI asistenta v kontaktech..."
-                            className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 p-3 text-xs font-mono text-slate-600 dark:text-slate-300"
-                            disabled
-                        />
-                    </div>
+                    <div className="space-y-6 pt-4 border-t border-slate-200 dark:border-slate-700">
+                        <h3 className="text-md font-bold text-slate-900 dark:text-white pb-2">
+                            Prompt Engineering
+                        </h3>
 
-                    <div className="flex items-center justify-end gap-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                        {promptsSaved && (
-                            <span className="text-emerald-500 text-sm font-medium flex items-center gap-1 animate-fadeIn">
-                                <span className="material-symbols-outlined text-[18px]">check_circle</span>
-                                Prompty uloženy
-                            </span>
-                        )}
-                        <button
-                            onClick={savePrompts}
-                            className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold shadow-lg shadow-indigo-500/20 transition-all flex items-center gap-2"
-                        >
-                            <span className="material-symbols-outlined text-[18px]">save</span>
-                            Uložit prompty
-                        </button>
+                        {/* Overview Prompt */}
+                        <div className="space-y-2">
+                            <div className="flex justify-between items-end">
+                                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                                    Prompt pro Project Overview
+                                </label>
+                                <button
+                                    onClick={() => setPromptOverview(DEFAULT_PROMPT_OVERVIEW)}
+                                    className="text-xs text-indigo-400 hover:text-indigo-300 hover:underline"
+                                >
+                                    Obnovit výchozí
+                                </button>
+                            </div>
+                            <textarea
+                                value={promptOverview}
+                                onChange={(e) => setPromptOverview(e.target.value)}
+                                rows={15}
+                                className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 p-3 text-xs font-mono text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent leading-relaxed"
+                            />
+                        </div>
+
+                        {/* Contacts Prompt (reserved) */}
+                        <div className="space-y-2 opacity-50 pointer-events-none filter grayscale">
+                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                                Prompt pro Contacts Assistant (Připravujeme)
+                            </label>
+                            <textarea
+                                value={promptContacts}
+                                onChange={(e) => setPromptContacts(e.target.value)}
+                                rows={3}
+                                placeholder="Zde bude možné upravit prompt pro AI asistenta v kontaktech..."
+                                className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 p-3 text-xs font-mono text-slate-600 dark:text-slate-300"
+                                disabled
+                            />
+                        </div>
+
+                        <div className="flex items-center justify-end gap-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                            {promptsSaved && (
+                                <span className="text-emerald-500 text-sm font-medium flex items-center gap-1 animate-fadeIn">
+                                    <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                                    Prompty uloženy
+                                </span>
+                            )}
+                            <button
+                                onClick={savePrompts}
+                                className="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-bold shadow-lg transition-all flex items-center gap-2"
+                            >
+                                <span className="material-symbols-outlined text-[18px]">save</span>
+                                Uložit prompty
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

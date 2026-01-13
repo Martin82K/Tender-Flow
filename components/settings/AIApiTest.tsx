@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { invokeAuthedFunction } from '../../services/functionsClient';
 
 // Types
 type AIProvider = 'openrouter' | 'google';
@@ -173,18 +174,40 @@ export const AIApiTest: React.FC = () => {
         throw new Error("Unknown provider for direct call");
     };
 
+    // State for System Key usage
+    const [useSystemKey, setUseSystemKey] = useState(false);
+
     const handleTestConnection = async () => {
-        if (!apiKey) {
-            addLog('error', 'Chybí API Klíč', 'Pro test je nutné vyplnit API klíč.');
+        if (!apiKey && !useSystemKey) {
+            addLog('error', 'Chybí API Klíč', 'Pro test je nutné vyplnit API klíč nebo použít systémový.');
             return;
         }
 
         setIsLoading(true);
-        addLog('info', `Spouštím DIRECT test pro ${provider}...`, { model });
+        addLog('info', `Spouštím DIRECT test pro ${provider} (${useSystemKey ? 'System Key' : 'Custom Key'})...`, { model });
 
         try {
             const start = performance.now();
-            const response = await callProviderDirectly([], 'Odpověz jedním slovem: OK');
+            let response;
+            if (useSystemKey) {
+                // Call Proxy
+                const responseJson = await invokeAuthedFunction<{ text: string, raw: any, error?: string }>('ai-proxy', {
+                    body: {
+                        prompt: 'Odpověz jedním slovem: OK',
+                        history: [],
+                        model: model,
+                        provider: provider,
+                        apiKey: '' // Empty key signals proxy to use system secret
+                    }
+                });
+
+                if (responseJson.error) throw new Error(responseJson.error);
+                response = { text: responseJson.text, raw: responseJson.raw ?? responseJson };
+            } else {
+                // Direct call as before
+                response = await callProviderDirectly([], 'Odpověz jedním slovem: OK');
+            }
+
             const duration = Math.round(performance.now() - start);
 
             if (response && response.text) {
@@ -201,8 +224,8 @@ export const AIApiTest: React.FC = () => {
 
     const handleSendMessage = async () => {
         if (!input.trim()) return;
-        if (!apiKey) {
-            addLog('error', 'Chybí API Klíč', 'Pro chat je nutné vyplnit API klíč.');
+        if (!apiKey && !useSystemKey) {
+            addLog('error', 'Chybí API Klíč', 'Pro chat je nutné vyplnit API klíč nebo použít systémový.');
             return;
         }
 
@@ -211,7 +234,7 @@ export const AIApiTest: React.FC = () => {
         setInput('');
         setIsLoading(true);
 
-        addLog('request', 'Odesílám zprávu (DIRECT)', {
+        addLog('request', `Odesílám zprávu (${useSystemKey ? 'PROXY/System' : 'DIRECT/Custom'})`, {
             provider,
             model,
             message: input
@@ -219,7 +242,28 @@ export const AIApiTest: React.FC = () => {
 
         try {
             const start = performance.now();
-            const response = await callProviderDirectly(messages, input);
+            let response;
+
+            if (useSystemKey) {
+                // Proxy call for Chat
+                const payload = {
+                    prompt: input,
+                    history: messages.map(m => ({ role: m.role, parts: m.parts })),
+                    model: model,
+                    provider: provider,
+                    apiKey: '' // Empty key -> System Secret
+                };
+
+                const responseJson = await invokeAuthedFunction<{ text: string, raw: any, error?: string }>('ai-proxy', {
+                    body: payload
+                });
+
+                if (responseJson.error) throw new Error(responseJson.error);
+                response = { text: responseJson.text, raw: responseJson.raw ?? responseJson };
+            } else {
+                response = await callProviderDirectly(messages, input);
+            }
+
             const duration = Math.round(performance.now() - start);
 
             if (response.text) {
@@ -277,27 +321,40 @@ export const AIApiTest: React.FC = () => {
                 </div>
 
                 <div className="flex-1 min-w-[200px]">
-                    <label className="block text-xs font-semibold text-slate-500 mb-1 flex justify-between">
-                        <span>API Klíč (Vyžadováno)</span>
-                        <span className="text-red-500 text-[10px] font-bold uppercase tracking-wider">Direct Mode Only</span>
-                    </label>
+                    <div className="flex justify-between items-center mb-1">
+                        <label className="block text-xs font-semibold text-slate-500">
+                            API Klíč
+                            {!useSystemKey && <span className="text-red-500 ml-1 text-[10px] uppercase tracking-wider">Direct Mode</span>}
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={useSystemKey}
+                                onChange={(e) => setUseSystemKey(e.target.checked)}
+                                className="w-3 h-3 rounded text-indigo-600 focus:ring-indigo-500"
+                            />
+                            <span className="text-xs text-indigo-600 font-bold">Použít systémový klíč</span>
+                        </label>
+                    </div>
+
                     <input
                         type="password"
                         value={apiKey}
                         onChange={(e) => setApiKey(e.target.value)}
-                        placeholder="Vložte váš API klíč (Gemini nebo OpenRouter)..."
-                        className={`w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border rounded-xl text-sm focus:outline-none focus:border-indigo-500 dark:text-white placeholder:text-slate-400 transition-colors ${!apiKey ? 'border-red-300 dark:border-red-900 focus:border-red-500' : 'border-slate-300 dark:border-slate-800'}`}
+                        placeholder={useSystemKey ? "Používá se uložený klíč v systému..." : "Vložte váš API klíč..."}
+                        disabled={useSystemKey}
+                        className={`w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border rounded-xl text-sm focus:outline-none focus:border-indigo-500 dark:text-white placeholder:text-slate-400 transition-colors ${!apiKey && !useSystemKey ? 'border-red-300 dark:border-red-900 focus:border-red-500' : 'border-slate-300 dark:border-slate-800'} ${useSystemKey ? 'opacity-50 cursor-not-allowed' : ''}`}
                     />
                 </div>
 
                 <button
                     onClick={handleTestConnection}
-                    disabled={isLoading || !apiKey}
-                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors flex items-center gap-2 ${!apiKey
+                    disabled={isLoading || (!apiKey && !useSystemKey)}
+                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors flex items-center gap-2 ${(!apiKey && !useSystemKey)
                         ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
                         : 'bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
                         }`}
-                    title={!apiKey ? "Vyplňte API klíč" : "Spustit test"}
+                    title={!apiKey && !useSystemKey ? "Vyplňte API klíč" : "Spustit test"}
                 >
                     <span className="material-symbols-outlined text-[18px]">network_check</span>
                     Ping Test
@@ -355,14 +412,14 @@ export const AIApiTest: React.FC = () => {
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
-                                placeholder={!apiKey ? "Pro chatování vyplňte API klíč nahoře..." : "Napište zprávu..."}
-                                disabled={isLoading || !apiKey}
+                                placeholder={!apiKey && !useSystemKey ? "Pro chatování vyplňte API klíč nahoře..." : "Napište zprávu..."}
+                                disabled={isLoading || (!apiKey && !useSystemKey)}
                                 className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
                             />
                             <button
                                 onClick={handleSendMessage}
-                                disabled={isLoading || !input.trim() || !apiKey}
-                                className={`px-4 rounded-xl flex items-center justify-center transition-all ${input.trim() && !isLoading && apiKey
+                                disabled={isLoading || !input.trim() || (!apiKey && !useSystemKey)}
+                                className={`px-4 rounded-xl flex items-center justify-center transition-all ${input.trim() && !isLoading && (apiKey || useSystemKey)
                                     ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-md'
                                     : 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
                                     }`}

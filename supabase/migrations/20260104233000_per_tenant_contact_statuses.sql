@@ -22,6 +22,10 @@ DROP POLICY IF EXISTS "subcontractor_statuses_select" ON public.subcontractor_st
 DROP POLICY IF EXISTS "subcontractor_statuses_admin_insert" ON public.subcontractor_statuses;
 DROP POLICY IF EXISTS "subcontractor_statuses_admin_update" ON public.subcontractor_statuses;
 DROP POLICY IF EXISTS "subcontractor_statuses_admin_delete" ON public.subcontractor_statuses;
+DROP POLICY IF EXISTS "subcontractor_statuses_tenant_select" ON public.subcontractor_statuses;
+DROP POLICY IF EXISTS "subcontractor_statuses_tenant_insert" ON public.subcontractor_statuses;
+DROP POLICY IF EXISTS "subcontractor_statuses_tenant_update" ON public.subcontractor_statuses;
+DROP POLICY IF EXISTS "subcontractor_statuses_tenant_delete" ON public.subcontractor_statuses;
 
 -- 3. Create new per-tenant RLS policies
 

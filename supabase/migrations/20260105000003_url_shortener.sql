@@ -15,6 +15,11 @@ ALTER TABLE public.short_urls ENABLE ROW LEVEL SECURITY;
 
 -- Policies
 -- Everyone can read short URLs (to redirect)
+-- Drop old policies if they exist (to handle re-runs or conflicts)
+DROP POLICY IF EXISTS "Everyone can read short URLs" ON public.short_urls;
+DROP POLICY IF EXISTS "Authenticated users can create short URLs" ON public.short_urls;
+DROP POLICY IF EXISTS "Users can delete their own short URLs" ON public.short_urls;
+
 CREATE POLICY "Everyone can read short URLs" ON public.short_urls
     FOR SELECT
     USING (true);

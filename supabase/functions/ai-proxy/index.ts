@@ -104,12 +104,31 @@ serve(async (req) => {
         // 4. Proxy Logic
         const { prompt, history, model: clientModel, provider = 'openrouter', apiKey: clientApiKey } = await req.json();
 
+        // Helper to get system secrets
+        async function getSystemSecrects() {
+            try {
+                const service = createServiceClient();
+                const { data, error } = await service
+                    .from('app_secrets')
+                    .select('google_api_key, openrouter_api_key')
+                    .eq('id', 'default')
+                    .single();
+                if (error || !data) return {};
+                return data;
+            } catch (e) {
+                console.error("Failed to fetch system secrets:", e);
+                return {};
+            }
+        }
+
+        const secrets = (!clientApiKey) ? await getSystemSecrects() : {};
+
         // --- GOOGLE GEMINI HANDLER ---
         if (provider === 'google') {
-            const apiKey = clientApiKey || Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_API_KEY");
+            const apiKey = clientApiKey || secrets.google_api_key || Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_API_KEY");
             if (!apiKey) {
                 return new Response(
-                    JSON.stringify({ error: "Missing Google API Key" }),
+                    JSON.stringify({ error: "Missing Google API Key (System or Provided)" }),
                     { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
                 );
             }
@@ -163,7 +182,7 @@ serve(async (req) => {
         }
 
         // --- OPENROUTER HANDLER (Default) ---
-        const apiKey = clientApiKey || Deno.env.get("OPENROUTER_API_KEY");
+        const apiKey = clientApiKey || secrets.openrouter_api_key || Deno.env.get("OPENROUTER_API_KEY");
 
         if (!apiKey) {
             console.error("Missing OPENROUTER_API_KEY");

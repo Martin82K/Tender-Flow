@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS public.default_templates (
 -- Enable RLS on default_templates (read-only for authenticated users)
 ALTER TABLE public.default_templates ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Allow authenticated users to read default templates" ON public.default_templates;
+
 CREATE POLICY "Allow authenticated users to read default templates" 
   ON public.default_templates
   FOR SELECT 
@@ -127,6 +129,12 @@ DROP POLICY IF EXISTS "Enable read access for authenticated users" ON public.tem
 DROP POLICY IF EXISTS "Enable insert access for authenticated users" ON public.templates;
 DROP POLICY IF EXISTS "Enable update access for authenticated users" ON public.templates;
 DROP POLICY IF EXISTS "Enable delete access for authenticated users" ON public.templates;
+
+-- Drop new policies if they exist (idempotency)
+DROP POLICY IF EXISTS "Users can read own templates" ON public.templates;
+DROP POLICY IF EXISTS "Users can insert own templates" ON public.templates;
+DROP POLICY IF EXISTS "Users can update own templates" ON public.templates;
+DROP POLICY IF EXISTS "Users can delete own templates" ON public.templates;
 
 -- Create new policies with user isolation
 CREATE POLICY "Users can read own templates" 
