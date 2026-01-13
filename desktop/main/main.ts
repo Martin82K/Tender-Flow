@@ -89,6 +89,8 @@ function createWindow(): void {
     if (!isDev) {
         setTimeout(() => {
             autoUpdater.checkForUpdates();
+            // Start periodic checks after initial check
+            autoUpdater.startPeriodicChecks();
         }, 5000);
     }
 }

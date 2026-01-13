@@ -20,8 +20,8 @@ asar: true
 # Auto-update publish configuration
 publish:
   provider: github
-  owner: tenderflow
-  repo: desktop
+  owner: Martin82K
+  repo: Tender-Flow
   releaseType: release
 
 mac:

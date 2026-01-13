@@ -2,7 +2,7 @@
 
 Tato příručka popisuje práci v aplikaci Tender Flow pro řízení staveb, výběrových řízení a subdodavatelů.
 
-Verze příručky: **1.3** • Datum: **2026‑01‑04** • Aplikace: **v0.9.4-260104 v4**
+Verze příručky: **1.4** • Datum: **2026‑01‑13** • Aplikace: **v0.9.6 v08**
 
 <p class="manualLogoWrap">
   <img class="manualLogo" src="./assets/logo.png" alt="Tender Flow logo" />
@@ -25,6 +25,13 @@ Verze příručky: **1.3** • Datum: **2026‑01‑04** • Aplikace: **v0.9.4-
 - [Správa staveb](#správa-staveb)
 - [Přehled staveb (analytika)](#prehled-staveb-analytika)
 - [Nastavení aplikace](#nastaveni-aplikace)
+- [Excel nástroje](#excel-nastroje)
+  - [Excel Unlocker PRO](#excel-unlocker-pro)
+  - [Excel Merger PRO](#excel-merger-pro)
+  - [Excel Indexer](#excel-indexer)
+  - [Index Matcher](#index-matcher)
+- [URL Zkracovač](#url-zkracovac)
+- [Tender Flow Desktop](#tender-flow-desktop)
 - [Administrace systému](#administrace-systemu)
 - [Registrace a whitelist](#registrace-a-whitelist)
 - [Seznam povolených emailů](#seznam-povolenych-emailu-whitelist)
@@ -38,6 +45,23 @@ Verze příručky: **1.3** • Datum: **2026‑01‑04** • Aplikace: **v0.9.4-
 ## Novinky (poslední změny)
 
 Verzi aplikace najdete vlevo dole v sidebaru.
+
+### v0.9.6 v08
+
+- **AI Key Persistence**: AI klíče se nyní ukládají bezpečně v databázi (`app_secrets`) a jsou dostupné pro všechny uživatele organizace.
+- **AI Testování**: Nový nástroj pro administrátory k testování AI klíčů a ověření funkčnosti (Nastavení → Administrace → AI Testování).
+- **Excel Indexer**: Nový pokročilý nástroj pro dvou-fázové zpracování Excel rozpočtů s automatickým indexováním a doplněním popisů.
+- **Index Matcher**: Zjednodušená verze Indexer pro rychlé doplnění popisů podle indexu.
+- **URL Zkracovač**: Nový nástroj pro vytváření zkrácených odkazů s vlastními aliasy (tenderflow.cz/s/alias).
+- **Desktop aplikace**: Nativní Electron aplikace pro Windows a macOS s rozšířenými funkcemi (Touch ID, nativní souborový systém, lokální Excel nástroje).
+- **Mailto IPC Bridge**: Spolehlivější otevírání emailových klientů v desktop verzi pomocí IPC komunikace.
+- **MCP diagnostika**: Nástroj pro sledování stavu MCP Bridge serveru (pouze desktop, admin).
+
+### v0.9.5
+
+- **AI prompty**: Možnost přizpůsobení systémových AI promptů pro grafy a reporty (admin).
+- **DocHub integrace**: Vylepšená integrace s MCP Bridge pro automatické vytváření složek projektů.
+- **Stabilita**: Různá vylepšení stability a opravy chyb.
 
 ### v0.9.4-260104
 
@@ -285,10 +309,251 @@ Manažerské souhrny napříč stavbami: metriky, grafy a volitelně AI analýza
 - **Profil** – zobrazované jméno, vzhled (tmavý režim, primární barva, pozadí) a správa statusů kontaktů.
 - **Import kontaktů** – synchronizace z URL / ruční upload (může být v sekci **Nástroje** dle předplatného).
 - **Excel Unlocker PRO** – odemknutí `.xlsx/.xlsm` lokálně v prohlížeči (soubor se nikam neodesílá; dle předplatného).
-- **Excel Merger PRO** – externí aplikace ve vestavěném okně; musí být nakonfigurována administrátorem (dle předplatného).
-- **Administrace systému (Admin)** – registrace, whitelist, uživatelé, předplatné, AI.
+- **Excel Merger PRO** – slučování Excel listů; v desktop verzi nativní, ve web verzi externí aplikace (dle předplatného).
+- **Excel Indexer** – dvou-fázová indexace a zpracování rozpočtů s automatickým doplněním popisů.
+- **Index Matcher** – rychlé doplnění popisů podle indexu (zjednodušená verze Indexer).
+- **URL Zkracovač** – vytváření zkrácených odkazů s vlastními aliasy (dle předplatného).
+- **Administrace systému (Admin)** – registrace, whitelist, uživatelé, předplatné, AI, MCP diagnostika.
 
 ![Schéma nastavení](./assets/09-settings.svg)
+
+## Excel nástroje
+
+Tender Flow nabízí sadu nástrojů pro práci s Excel soubory.
+
+### Excel Unlocker PRO
+
+Nástroj pro odemknutí ochrany `.xlsx` a `.xlsm` souborů. Funguje lokálně v prohlížeči – soubor se nikam neodesílá.
+
+**Použití**:
+1. Otevřete **Nastavení → Excel Unlocker PRO**
+2. Klikněte "Vybrat soubor" a nahrajte chráněný Excel
+3. Klikněte "Odemknout"
+4. Stáhněte odemčený soubor
+
+**Umístění**: Nastavení → Excel Unlocker PRO (dle předplatného)
+
+### Excel Merger PRO
+
+Nástroj pro slučování více listů z různých Excel souborů do jednoho souboru.
+
+- **Desktop verze**: Nativní zpracování pomocí lokálních Python skriptů
+- **Web verze**: Externí aplikace v iframe (vyžaduje konfiguraci adminem)
+
+**Umístění**: Nastavení → Excel Merger PRO (dle předplatného)
+
+### Excel Indexer
+
+Excel Indexer je pokročilý nástroj pro automatické indexování a zpracování velkých Excel rozpočtů. Nástroj pracuje ve **dvou fázích**.
+
+#### Fáze 1: Vložení sloupce Oddíly
+
+V první fázi nástroj:
+1. Hledá značky "D" ve sloupci F (markerColumn)
+2. Přečte oddíl ze sloupce G (sectionColumn)
+3. Vloží nový sloupec B s názvem "Oddíly"
+4. Vyplní tento sloupec názvem oddílu pro všechny řádky do další značky
+
+**Nastavení sloupců**:
+- **Marker Column** (F): Sloupec kde se hledají značky "D"
+- **Section Column** (G): Sloupec odkud se čte název oddílu
+
+**Výstup fáze 1**:
+- Soubor s vloženým sloupcem "Oddíly"
+- Posun ostatních sloupců doprava o 1
+
+#### Fáze 2: Doplnění popisů
+
+Ve druhé fázi nástroj:
+1. Používá výstup z Fáze 1
+2. Hledá kódy položek ve sloupci G (po posunu, původně F)
+3. Páruje kódy s indexem položek (nahrán z Excelu)
+4. Doplňuje popisy do sloupce C (po posunu, původně B)
+
+**Nastavení sloupců**:
+- **Code Column** (G): Sloupec s kódy položek (po vložení Oddílů)
+- **Desc Column** (C): Sloupec kam se doplní popisy (po vložení Oddílů)
+
+**Volitelné funkce**:
+- **Rekapitulace**: Vytvoření rekapitulačního listu s přehledy
+
+#### Jak použít Excel Indexer
+
+1. **Příprava indexu**:
+   - Připravte Excel soubor s indexem (2 sloupce: Kód, Popis)
+   - V Excel Indexer klikněte "Nahrát index z Excelu"
+   - Vyberte váš indexový soubor
+
+2. **Nahrání rozpočtu**:
+   - Klikněte "Vybrat soubor rozpočtu"
+   - Vyberte váš Excel rozpočet
+
+3. **Fáze 1 - Oddíly**:
+   - Zkontrolujte nastavení sloupců (F pro značky, G pro oddíly)
+   - Klikněte "Zpracovat Fázi 1"
+   - Stáhněte výstup nebo přejděte k Fázi 2
+
+4. **Fáze 2 - Popisy**:
+   - Automaticky použije výstup z Fáze 1
+   - Zkontrolujte nastavení sloupců (G pro kódy, C pro popisy)
+   - Zapněte "Vytvořit rekapitulaci" pokud chcete
+   - Klikněte "Zpracovat Fázi 2"
+   - Stáhněte finální soubor
+
+**Umístění**: Nastavení → Excel Indexer
+
+### Index Matcher
+
+Index Matcher je zjednodušená verze Excel Indexer pro rychlé doplnění popisů podle indexu.
+
+#### Funkce
+
+- **Import indexu**: Načtení slovníku kód→popis z Excel souboru
+- **Uložení indexu**: Index se ukládá lokálně pro opakované použití
+- **Automatické párování**: Doplnění popisů do sloupce B podle kódů ve sloupci F
+
+#### Jak použít
+
+1. **Nahrání indexu** (jednou):
+   - Klikněte "Nahrát index z Excelu"
+   - Vyberte soubor s 2 sloupci: Kód | Popis
+   - Index se uloží pro příští použití
+
+2. **Zpracování rozpočtu**:
+   - Klikněte "Vybrat soubor rozpočtu"
+   - Vyberte Excel soubor s kódy ve sloupci F
+   - Klikněte "Zpracovat rozpočet"
+   - Stáhněte soubor s doplněnými popisy
+
+**Tip**: Pro komplexnější zpracování s oddíly a rekapitulací použijte Excel Indexer.
+
+**Umístění**: Nastavení → Index Matcher (pokud je dostupný dle předplatného)
+
+## URL Zkracovač
+
+Nástroj pro vytváření zkrácených odkazů s vlastními aliasy. Zkrácené odkazy mají formát `tenderflow.cz/s/váš-alias`.
+
+### Funkce
+
+- **Vlastní aliasy**: Vytvořte snadno zapamatovatelné zkratky
+- **Statistiky**: Sledování počtu kliknutí
+- **Správa odkazů**: Přehled všech vašich zkrácených odkazů
+- **Kopírování**: Rychlé zkopírování odkazu do schránky
+- **Mazání**: Odstranění nepotřebných odkazů
+
+### Jak vytvořit zkrácený odkaz
+
+1. Otevřete **Nastavení → URL Zkracovač**
+2. Do pole "URL adresa" vložte dlouhý odkaz
+3. Do pole "Vlastní alias" zadejte požadovanou zkratku (např. `projekt-abc`)
+4. Klikněte **Zkrátit**
+5. Zkrácený odkaz se objeví v seznamu a můžete jej zkopírovat
+
+**Příklad**:
+- **Původní URL**: `https://drive.google.com/drive/folders/1aB2cD3eF4gH5iJ6kL7mN8oP9qR0sT`
+- **Alias**: `projekt-abc`
+- **Zkrácený odkaz**: `tenderflow.cz/s/projekt-abc`
+
+### Správa odkazů
+
+V seznamu zkrácených odkazů vidíte:
+- **Alias**: Vaše zkratka
+- **Cílová URL**: Původní dlouhý odkaz
+- **Kliknutí**: Počet použití odkazu
+- **Vytvořeno**: Datum vytvoření
+
+**Akce**:
+- 📋 **Kopírovat**: Zkopíruje zkrácený odkaz do schránky
+- 🗑️ **Smazat**: Odstraní zkrácený odkaz
+
+**Umístění**: Nastavení → URL Zkracovač (dle předplatného)
+
+## Tender Flow Desktop
+
+Tender Flow Desktop je nativní desktopová aplikace postavená na Electronu. Nabízí rozšířené funkce oproti webové verzi.
+
+### Výhody desktop verze
+
+| Funkce | Desktop | Web |
+|--------|---------|-----|
+| Přístup k souborům | Nativní (bez MCP Bridge) | MCP Bridge |
+| Excel nástroje | Lokální Python | HTTP API |
+| Úložiště tokenů | OS Keychain (bezpečnější) | localStorage |
+| Auto-update | ✅ | ❌ |
+| Folder watcher | ✅ | ❌ |
+| Biometrické přihlášení | ✅ (Touch ID/Windows Hello) | ❌ |
+| Mailto odkazy | IPC Bridge (spolehlivější) | Prohlížeč |
+
+### Instalace
+
+#### Windows
+1. Stáhněte instalační soubor `Tender-Flow-Setup-x.x.x.exe`
+2. Spusťte instalátor
+3. Aplikace se nainstaluje do `C:\Program Files\Tender Flow`
+4. Desktop ikona se vytvoří automaticky
+
+#### macOS
+1. Stáhněte soubor `Tender-Flow-x.x.x.dmg`
+2. Otevřete DMG soubor
+3. Přetáhněte Tender Flow do složky Applications
+4. Spusťte aplikaci (možná budete muset povolit v System Preferences → Security)
+
+### Spuštění
+
+- **Windows**: Klikněte na ikonu "Tender Flow Desktop" na ploše
+- **macOS**: Otevřete Tender Flow z Launchpadu nebo složky Applications
+
+### Auto-update
+
+Desktop aplikace se automaticky aktualizuje:
+1. Při spuštění zkontroluje dostupnost nové verze
+2. Pokud je k dispozici update, zobrazí notifikaci
+3. Kliknutím na "Aktualizovat" se stáhne a nainstaluje nová verze
+4. Po instalaci se aplikace restartuje
+
+### Biometrické přihlášení
+
+Desktop aplikace podporuje biometrické přihlášení:
+- **macOS**: Touch ID (na zařízeních s Touch Bar nebo Touch ID)
+- **Windows**: Windows Hello (otisk prstu, obličej)
+
+**Aktivace**:
+1. Přihlaste se poprvé emailem a heslem
+2. Zaškrtněte "Uložit přihlášení pro Touch ID"
+3. Při příštím spuštění můžete použít biometriku
+
+### Nativní souborové operace
+
+Desktop verze nepotřebuje MCP Bridge pro práci se soubory:
+- **DocHub**: Přímý přístup k lokálním složkám
+- **Vytváření složek**: Okamžité bez externího serveru
+- **Otevírání složek**: Nativní průzkumník souborů
+
+### Excel nástroje
+
+Desktop verze používá lokální Python skripty:
+- **Rychlejší zpracování**: Bez HTTP požadavků
+- **Větší soubory**: Bez omezení velikosti uploadu
+- **Offline použití**: Funguje bez internetového připojení
+
+**Prerekvizity**:
+- Python 3.x
+- `openpyxl` knihovna: `pip install openpyxl`
+
+### Ukončení aplikace
+
+Při kliknutí na "Odhlásit" v desktop verzi máte dvě možnosti:
+
+1. **Ukončit aplikaci (Ponechat přihlášení)**:
+   - Aplikace se zavře
+   - Přihlášení zůstane uloženo pro Touch ID
+   - Při příštím spuštění se přihlásíte biometrikou
+
+2. **Odhlásit se (Vyžadovat heslo příště)**:
+   - Kompletní odhlášení
+   - Při příštím spuštění budete muset zadat email a heslo
+
+**Umístění ke stažení**: Kontaktujte administrátora pro přístup k desktop verzi
 
 ## Administrace systému
 
@@ -341,8 +606,86 @@ Poznámky k importu:
 
 ## AI funkce
 
-- Doplnění regionů u kontaktů (hromadně).
-- AI analýza v přehledech (dle nastavení).
+Aplikace Tender Flow nabízí pokročilé funkce umělé inteligence pro automatizaci a analýzu.
+
+### Základní AI funkce
+
+- **Doplnění regionů u kontaktů**: Hromadné doplnění regionů na základě adresy pomocí AI
+- **AI analýza v přehledech**: Automatická analýza projekty s grafy a reporty (dle nastavení)
+
+### Správa AI klíčů (Admin)
+
+Administrátoři mohou nastavit systémové AI klíče, které se použijí pro všechny uživatele organizace.
+
+**Umístění**: Nastavení → Administrace systému → AI Nastavení
+
+#### Uložení API klíčů
+
+Klíče se ukládají bezpečně v databázi (tabulka `app_secrets`):
+
+1. **OpenRouter API Key**:
+   - Zadejte váš OpenRouter klíč
+   - Po uložení se zobrazí maskovaně (••••)
+   - Klíč se použije pro AI proxy
+
+2. **Gemini API Key**:
+   - Zadejte váš Google Gemini klíč
+   - Po uložení se zobrazí maskovaně (••••)
+   - Klíč se použije pro AI analýzy
+
+> **DŮLEŽITÉ**: API klíče vidí a upravuje pouze Admin. Běžní uživatelé je nevidí, ale mohou použít AI funkce.
+
+#### Přizpůsobení AI promptů
+
+Admin může upravit systémové prompty pro ovlivnění chování AI:
+
+1. **Prompt pro grafy**:
+   - Definuje jak AI analyzuje data
+   - Určuje jaké grafy se mají generovat
+   - Jaké otázky má AI zodpovědět
+
+2. **Prompt pro reporty**:
+   - Určuje strukturu AI reportů
+   - Nastavuje tón a styl reportování
+   - Definuje klíčové oblasti analýzy
+
+Po úpravě klikněte **Uložit prompty**.
+
+### AI testování (Admin)
+
+Nástroj pro ověření funkčnosti AI klíčů a testování AI odpovědí.
+
+**Umístění**: Nastavení → Administrace systému → AI Testování
+
+#### Funkce
+
+- **Výběr poskytovatele**: OpenRouter nebo Gemini
+- **Testovací chat**: Otestujte AI odpovědi v reálném čase
+- **Diagnostika**: Ověření platnosti klíčů
+- **Historie**: Zobrazení testovací konverzace
+
+#### Použití
+
+1. Vyberte poskytovatele (OpenRouter/Gemini)
+2. *Volitelně* zadejte vlastní API klíč pro test
+3. Napište testovací zprávu
+4. Klikněte **Odeslat**
+5. AI odpoví pomocí nastaveného klíče
+
+**Tip**: Pokud nezadáte vlastní klíč, použije se systémový klíč uložený v AI Nastavení.
+
+### MCP diagnostika (Desktop, Admin)
+
+Pouze v desktop verzi: sledování stavu MCP Bridge serveru.
+
+**Zobrazuje**:
+- Stav konfigurace (Připraveno/Chybí token)
+- Token přihlášeného uživatele (Nastaven/Nenastaven)
+- Aktuální projekt ID
+- Port MCP serveru
+- SSE URL
+
+**Umístění**: Nastavení → Administrace systému → MCP diagnostika (pouze desktop)
 
 ## Časté otázky
 
@@ -357,6 +700,10 @@ Některé sekce jsou dostupné jen pro administrátory nebo jsou skryté dle př
 ### Excel Merger PRO píše „Funkce není dostupná“
 
 Excel Merger PRO vyžaduje, aby Admin nastavil URL externí aplikace v **Nastavení → Administrace → Registrace**.
+
+### Kde si mohu stáhnout desktop aplikaci?
+
+Desktop verzi Tender Flow si můžete stáhnout po kontaktování administrátora. Desktop aplikace nabízí rozšířené funkce jako Touch ID, nativní přístup k souborům a lokální Excel nástroje.
 
 ---
 

@@ -69,10 +69,6 @@ function AppContent() {
     isDesktop,
     showWelcome,
     dismissWelcome,
-    updateAvailable,
-    isCheckingUpdate,
-    checkForUpdates,
-    installUpdate,
     selectFolder,
   } = useDesktop();
 
@@ -441,14 +437,7 @@ function AppContent() {
         />
       )}
 
-      {isDesktop && (
-        <UpdateBanner
-          isVisible={updateAvailable}
-          isCheckingUpdate={isCheckingUpdate}
-          onCheckUpdate={checkForUpdates}
-          onInstallUpdate={installUpdate}
-        />
-      )}
+      {isDesktop && <UpdateBanner />}
     </MainLayout>
   );
 }

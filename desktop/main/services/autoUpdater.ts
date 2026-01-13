@@ -12,10 +12,13 @@ export interface UpdateStatus {
 /**
  * Auto-updater service for managing application updates
  * Uses electron-updater with GitHub Releases as backend
+ * Automatically checks for updates every 6 hours
  */
 export class AutoUpdaterService {
     private mainWindow: BrowserWindow | null = null;
     private updateStatus: UpdateStatus = { status: 'not-available' };
+    private checkInterval: NodeJS.Timeout | null = null;
+    private updateCheckIntervalHours: number = 6;
 
     constructor() {
         // Configure auto-updater
@@ -39,6 +42,52 @@ export class AutoUpdaterService {
     }
 
     /**
+     * Start periodic update checks
+     */
+    startPeriodicChecks(): void {
+        // Skip in development
+        if (process.env.NODE_ENV === 'development' || !app.isPackaged) {
+            console.log('[AutoUpdater] Periodic checks disabled in development');
+            return;
+        }
+
+        // Clear existing interval if any
+        if (this.checkInterval) {
+            clearInterval(this.checkInterval);
+        }
+
+        const intervalMs = this.updateCheckIntervalHours * 60 * 60 * 1000;
+        console.log(`[AutoUpdater] Starting periodic checks every ${this.updateCheckIntervalHours} hours`);
+
+        this.checkInterval = setInterval(() => {
+            console.log('[AutoUpdater] Running scheduled update check');
+            this.checkForUpdates();
+        }, intervalMs);
+    }
+
+    /**
+     * Stop periodic update checks
+     */
+    stopPeriodicChecks(): void {
+        if (this.checkInterval) {
+            clearInterval(this.checkInterval);
+            this.checkInterval = null;
+            console.log('[AutoUpdater] Periodic checks stopped');
+        }
+    }
+
+    /**
+     * Set the interval for periodic checks (in hours)
+     */
+    setCheckInterval(hours: number): void {
+        this.updateCheckIntervalHours = hours;
+        if (this.checkInterval) {
+            this.stopPeriodicChecks();
+            this.startPeriodicChecks();
+        }
+    }
+
+    /**
      * Check for available updates
      */
     async checkForUpdates(): Promise<boolean> {
@@ -48,16 +97,26 @@ export class AutoUpdaterService {
 
             // Skip update check in development to prevent errors
             if (process.env.NODE_ENV === 'development' || !app.isPackaged) {
-                console.log('Skipping real update check in development mode');
+                console.log('[AutoUpdater] Skipping real update check in development mode');
                 this.updateStatus = { status: 'not-available' };
                 this.sendStatusToRenderer();
                 return false;
             }
 
+            console.log('[AutoUpdater] Checking for updates...');
             const result = await autoUpdater.checkForUpdates();
+
+            if (result?.updateInfo) {
+                console.log('[AutoUpdater] Update check result:', {
+                    currentVersion: app.getVersion(),
+                    latestVersion: result.updateInfo.version,
+                    hasUpdate: !!result.updateInfo
+                });
+            }
+
             return !!result?.updateInfo;
         } catch (error) {
-            console.error('Update check failed:', error);
+            console.error('[AutoUpdater] Update check failed:', error);
             this.updateStatus = {
                 status: 'error',
                 error: error instanceof Error ? error.message : 'Unknown error'
@@ -72,9 +131,10 @@ export class AutoUpdaterService {
      */
     async downloadUpdate(): Promise<void> {
         try {
+            console.log('[AutoUpdater] Starting update download...');
             await autoUpdater.downloadUpdate();
         } catch (error) {
-            console.error('Update download failed:', error);
+            console.error('[AutoUpdater] Update download failed:', error);
             this.updateStatus = {
                 status: 'error',
                 error: error instanceof Error ? error.message : 'Download failed'
@@ -87,6 +147,7 @@ export class AutoUpdaterService {
      * Install update and restart app
      */
     quitAndInstall(): void {
+        console.log('[AutoUpdater] Installing update and restarting...');
         autoUpdater.quitAndInstall(false, true);
     }
 
@@ -99,16 +160,19 @@ export class AutoUpdaterService {
 
     private setupEventListeners(): void {
         autoUpdater.on('checking-for-update', () => {
+            console.log('[AutoUpdater] Event: checking-for-update');
             this.updateStatus = { status: 'checking' };
             this.sendStatusToRenderer();
         });
 
         autoUpdater.on('update-available', (info: UpdateInfo) => {
+            console.log('[AutoUpdater] Event: update-available', info.version);
             this.updateStatus = { status: 'available', info };
             this.sendStatusToRenderer();
         });
 
         autoUpdater.on('update-not-available', (info: UpdateInfo) => {
+            console.log('[AutoUpdater] Event: update-not-available', info.version);
             this.updateStatus = { status: 'not-available', info };
             this.sendStatusToRenderer();
         });
@@ -123,11 +187,13 @@ export class AutoUpdaterService {
         });
 
         autoUpdater.on('update-downloaded', (info: UpdateInfo) => {
+            console.log('[AutoUpdater] Event: update-downloaded', info.version);
             this.updateStatus = { status: 'downloaded', info };
             this.sendStatusToRenderer();
         });
 
         autoUpdater.on('error', (error: Error) => {
+            console.error('[AutoUpdater] Event: error', error);
             this.updateStatus = { status: 'error', error: error.message };
             this.sendStatusToRenderer();
         });
@@ -169,3 +235,4 @@ export function getAutoUpdaterService(): AutoUpdaterService {
 }
 
 export default AutoUpdaterService;
+

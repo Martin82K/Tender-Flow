@@ -1,7 +1,7 @@
 {
   "name": "tender-flow",
   "private": true,
-  "version": "0.9.4-260102",
+  "version": "1.0.0",
   "type": "module",
   "main": "desktop/dist/main.js",
   "scripts": {
@@ -19,7 +19,11 @@
     "desktop:dev": "npm run desktop:compile && electron .",
     "desktop:build": "npm run build && npm run desktop:compile && electron-builder",
     "desktop:build:mac": "npm run desktop:build -- --mac",
-    "desktop:build:win": "npm run desktop:build -- --win"
+    "desktop:build:win": "npm run desktop:build -- --win",
+    "version:patch": "npm version patch --no-git-tag-version && node scripts/sync-version.mjs",
+    "version:minor": "npm version minor --no-git-tag-version && node scripts/sync-version.mjs",
+    "version:major": "npm version major --no-git-tag-version && node scripts/sync-version.mjs",
+    "release:prepare": "node scripts/prepare-release.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.30.0",

@@ -1,0 +1,92 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*' # Trigger on version tags like v1.0.0
+
+permissions:
+  contents: write # Required for creating releases
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run desktop:build:win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: |
+            dist-electron/*.exe
+            dist-electron/*.exe.blockmap
+            dist-electron/latest.yml
+          retention-days: 5
+
+  release:
+    needs: build-windows
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-build
+          path: ./release-files
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Tender Flow v${{ steps.get_version.outputs.VERSION }}
+          draft: false
+          prerelease: false
+          files: ./release-files/*
+          body: |
+            ## 🎉 Tender Flow v${{ steps.get_version.outputs.VERSION }}
+            
+            ### Instalace
+            
+            Stáhněte si instalátor níže a spusťte ho. Pokud již máte nainstalovanou předchozí verzi, aplikace se automaticky aktualizuje.
+            
+            ### Změny
+            
+            <!-- TODO: Přidejte popis změn -->
+            
+            ---
+            
+            **Poznámka**: Auto-updater automaticky notifikuje existující uživatele o této nové verzi.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Future: Add macOS and Linux builds
+  # build-macos:
+  #   runs-on: macos-latest
+  #   ...
+  
+  # build-linux:
+  #   runs-on: ubuntu-latest
+  #   ...
