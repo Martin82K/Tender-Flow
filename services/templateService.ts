@@ -155,12 +155,14 @@ export const getTemplateById = async (id: string): Promise<Template | undefined>
             .from('templates')
             .select('*')
             .eq('id', id)
-            .single();
+            .maybeSingle();
 
-        if (error || !data) {
-            console.error('Template not found:', id);
+        if (error) {
+            console.error('Error fetching template:', error);
             return undefined;
         }
+
+        if (!data) return undefined;
 
         return {
             id: data.id,

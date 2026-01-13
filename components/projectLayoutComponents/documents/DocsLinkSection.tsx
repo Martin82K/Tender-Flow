@@ -60,21 +60,8 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
 
     let finalUrl = newLink.url.trim();
 
-    // Auto-shorten if it's a URL (not local path)
-    if (isProbablyUrl(finalUrl)) {
-      setIsShortening(true);
-      try {
-        const result = await shortenUrl(finalUrl);
-        if (result.success && result.shortUrl) {
-          finalUrl = result.shortUrl;
-        }
-      } catch (error) {
-        console.error("URL shortening failed:", error);
-        // Continue with original URL
-      } finally {
-        setIsShortening(false);
-      }
-    }
+    // URL shortening disabled - we keep full URLs so they can be displayed
+    // as formatted links in HTML emails (e.g., EML files with clickable text)
 
     const link: DocumentLink = {
       id: crypto.randomUUID(),

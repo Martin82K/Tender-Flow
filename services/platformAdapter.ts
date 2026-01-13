@@ -385,6 +385,58 @@ export const sessionAdapter = {
 };
 
 // Combined platform adapter
+/**
+ * Shell Adapter
+ * Open external links
+ */
+export const shellAdapter = {
+    async openExternal(url: string): Promise<void> {
+        console.log('[shellAdapter] openExternal called with URL:', url);
+        console.log('[shellAdapter] isDesktop:', isDesktop);
+        console.log('[shellAdapter] electronAPI available:', !!window.electronAPI);
+        console.log('[shellAdapter] shell API available:', !!(window.electronAPI?.shell));
+
+        if (isDesktop && window.electronAPI && window.electronAPI.shell) {
+            console.log('[shellAdapter] Using IPC to open external URL');
+            try {
+                await window.electronAPI.shell.openExternal(url);
+                console.log('[shellAdapter] IPC call completed');
+            } catch (error) {
+                console.error('[shellAdapter] IPC call failed:', error);
+                throw error;
+            }
+            return;
+        }
+        // Web: use window.open
+        console.log('[shellAdapter] Falling back to window.open');
+        window.open(url, '_blank');
+    },
+
+    async openTempFile(content: string, filename: string): Promise<void> {
+        console.log('[shellAdapter] openTempFile called:', filename);
+        if (isDesktop && window.electronAPI && window.electronAPI.shell && window.electronAPI.shell.openTempFile) {
+            try {
+                await window.electronAPI.shell.openTempFile(content, filename);
+                console.log('[shellAdapter] openTempFile completed');
+            } catch (error) {
+                console.error('[shellAdapter] openTempFile failed:', error);
+                throw error;
+            }
+            return;
+        }
+        // Web fallback: trigger download
+        console.log('[shellAdapter] openTempFile not available, triggering download');
+        const blob = new Blob([content], { type: 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+    },
+};
+
+// Combined platform adapter
 export const platformAdapter = {
     isDesktop,
     isWeb,
@@ -397,6 +449,7 @@ export const platformAdapter = {
     updater: updaterAdapter,
     biometric: biometricAdapter,
     session: sessionAdapter,
+    shell: shellAdapter,
 };
 
 export default platformAdapter;

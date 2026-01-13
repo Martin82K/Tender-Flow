@@ -502,4 +502,34 @@ export function registerIpcHandlers(): void {
             throw error;
         }
     });
+
+    // --- SHELL ---
+
+    ipcMain.handle('shell:openExternal', async (_, url: string): Promise<void> => {
+        console.log('[Shell] openExternal called with URL:', url);
+        try {
+            await shell.openExternal(url);
+            console.log('[Shell] openExternal completed successfully');
+        } catch (error) {
+            console.error('[Shell] openExternal failed:', error);
+            throw error;
+        }
+    });
+
+    ipcMain.handle('shell:openTempFile', async (_, content: string, filename: string): Promise<void> => {
+        console.log('[Shell] openTempFile called:', filename);
+        const os = require('os');
+        const tempDir = os.tmpdir();
+        const tempPath = path.join(tempDir, filename);
+
+        try {
+            await fs.writeFile(tempPath, content, 'utf-8');
+            console.log('[Shell] Wrote temp file:', tempPath);
+            await shell.openPath(tempPath);
+            console.log('[Shell] Opened temp file successfully');
+        } catch (error) {
+            console.error('[Shell] openTempFile failed:', error);
+            throw error;
+        }
+    });
 }

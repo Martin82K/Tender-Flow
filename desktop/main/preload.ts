@@ -187,6 +187,13 @@ const electronAPI: ElectronAPI = {
         }> =>
             ipcRenderer.invoke('mcp:getStatus'),
     },
+
+    shell: {
+        openExternal: (url: string): Promise<void> =>
+            ipcRenderer.invoke('shell:openExternal', url),
+        openTempFile: (content: string, filename: string): Promise<void> =>
+            ipcRenderer.invoke('shell:openTempFile', content, filename),
+    },
 };
 
 // Expose to renderer

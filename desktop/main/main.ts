@@ -133,6 +133,13 @@ app.on('before-quit', async () => {
 // Security: prevent navigation away from the app
 app.on('web-contents-created', (_, contents) => {
     contents.on('will-navigate', (event, url) => {
+        // Allow mailto links to open in default mail client
+        if (url.startsWith('mailto:')) {
+            event.preventDefault();
+            shell.openExternal(url);
+            return;
+        }
+
         const appUrl = isDev ? 'http://localhost:3000' : 'file://';
         if (!url.startsWith(appUrl)) {
             event.preventDefault();

@@ -16,6 +16,12 @@ export interface ElectronAPI {
     net: NetworkAPI;
     oauth: OAuthAPI;
     mcp: McpAPI;
+    shell: ShellAPI;
+}
+
+export interface ShellAPI {
+    openExternal: (url: string) => Promise<void>;
+    openTempFile: (content: string, filename: string) => Promise<void>;
 }
 
 export interface PlatformInfo {

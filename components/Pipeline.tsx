@@ -21,6 +21,7 @@ import {
   generateInquiryEmailHtml,
   createMailtoLink,
   downloadEmlFile,
+  generateEmlContent,
 } from "../services/inquiryService";
 import {
   exportToXLSX,
@@ -44,6 +45,7 @@ import {
   resolveDocHubStructureV1,
 } from "../utils/docHub";
 import { mcpEnsureStructure, mcpDeleteFolder, mcpOpenPath } from "../services/mcpBridgeClient";
+import platformAdapter from "../services/platformAdapter";
 import { DEFAULT_STATUSES } from "../config/constants";
 import {
   Column,
@@ -988,8 +990,10 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const handleGenerateInquiry = async (bid: Bid) => {
     if (!activeCategory) return;
 
-    // Determine mode based on user preference, default to 'mailto'
-    const mode = user?.preferences?.emailClientMode || "mailto";
+    // Determine mode: Desktop always uses EML for better formatting
+    const isDesktopApp = platformAdapter.isDesktop;
+    const userPreferredMode = user?.preferences?.emailClientMode || "mailto";
+    const mode = isDesktopApp ? "eml" : userPreferredMode;
 
     let subject = "";
     let body = "";
@@ -1056,8 +1060,16 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
     // Execute based on mode
     if (mode === "eml") {
-      // Download EML file
-      downloadEmlFile(bid.email || "", subject, htmlBody);
+      // Desktop: Open EML directly without download dialog
+      if (platformAdapter.isDesktop) {
+        const emlContent = generateEmlContent(bid.email || "", subject, htmlBody);
+        const filename = `Poptavka_${Date.now()}.eml`;
+        console.log('[Pipeline] Opening EML on desktop:', filename);
+        platformAdapter.shell.openTempFile(emlContent, filename);
+      } else {
+        // Web: Download EML file
+        downloadEmlFile(bid.email || "", subject, htmlBody);
+      }
       // Optimistic update status
       updateBidsInternal((prev) => {
         const categoryBids = [...(prev[activeCategory.id] || [])];
@@ -1069,9 +1081,10 @@ export const Pipeline: React.FC<PipelineProps> = ({
         return prev;
       });
     } else {
-      // Mailto
+      // Mailto - open in default email client
       const mailtoLink = createMailtoLink(bid.email || "", subject, body);
-      window.location.href = mailtoLink;
+      console.log('[Pipeline] Sending inquiry via mailto:', mailtoLink);
+      platformAdapter.shell.openExternal(mailtoLink);
 
       // Optimistic update status
       setTimeout(() => {
