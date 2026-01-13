@@ -42,7 +42,7 @@ function getStatusLabel(status: string): string {
  */
 function registerRobotoFont(doc: jsPDF): void {
   doc.addFileToVFS('Roboto-Regular.ttf', RobotoRegularBase64);
-  doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
+  doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal', 'Identity-H');
 }
 
 /**
@@ -298,7 +298,7 @@ export function exportToPDF(
     head: [['#', 'Firma', 'Kontakt', 'Email', 'Telefon', 'Cena', 'Soutěž', '1.kolo', '2.kolo', 'Stav']],
     body: tableData,
     styles: { fontSize: 8, cellPadding: 2, font: 'Roboto' },
-    headStyles: { fillColor: [71, 85, 105], textColor: 255 },
+    headStyles: { fillColor: [71, 85, 105], textColor: 255, fontStyle: 'normal' },
     alternateRowStyles: { fillColor: [248, 250, 252] },
     columnStyles: {
       0: { cellWidth: 8 },

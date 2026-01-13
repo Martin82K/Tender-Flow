@@ -1,46 +1,57 @@
 import { Template } from '../types';
 import { supabase } from './supabase';
 
-export const INITIAL_TEMPLATES: Template[] = [
-    {
-        id: '0',
-        name: 'MK poptávka standard',
-        subject: 'Poptávka: {NAZEV_STAVBY} - {KATEGORIE_NAZEV}',
-        content: `Dobrý den,
+/**
+ * Copy default templates from default_templates table to current user's templates
+ */
+const copyDefaultTemplatesForUser = async (): Promise<void> => {
+    try {
+        const { data: defaultTemplates, error: fetchError } = await supabase
+            .from('default_templates')
+            .select('*');
 
-dovoluji si obrátit se na Vás s poptávkou pro výběrové řízení <b>„{KATEGORIE_NAZEV}" </b>pro akci <b>„{NAZEV_STAVBY}"</b>.
+        if (fetchError) {
+            console.error('Error fetching default templates:', fetchError);
+            return;
+        }
 
-Tato poptávka je do <b>{SOUTEZ_REALIZACE}</b>.
-Současně zasílám odkaz na PD a výkaz výměr k ocenění.
-{ODKAZ_DOKUMENTACE}
+        if (!defaultTemplates || defaultTemplates.length === 0) {
+            console.warn('No default templates found in database');
+            return;
+        }
 
-Termín realizace: <b>{TERMIN_REALIZACE}</b>
-Termín dokončení stavby: <b>{TERMIN_DOKONCENI}</b>
+        // Get current user ID
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            console.error('No authenticated user found');
+            return;
+        }
 
-V cenové nabídce by mělo být mimo jiné zahrnuto:
-- splatnost: {SPLATNOST}
-- záruka: {ZARUKA}
-- zádržné: {POZASTAVKA}
-- veškerý vodorovný a svislý přesun hmot
-- doprava, likvidace odpadu
-- montážní dokumentace včetně schválení zadavatelem
-- předložení vzorků ke schválení
-- kompletní spojovací materiál (kotvy, nýty, ukončovací lišty, separační pásky, tmely apod.)
-- do ceny je nutné započítat vlastní manipulační techniku, manipulátor, jeřáb, montážní plošiny, lešení
-- součást dodávky je i prověření požadovaných parametrů konstrukcí
+        // Copy each default template to user's templates
+        const templatesToInsert = defaultTemplates.map(dt => ({
+            user_id: user.id,
+            name: dt.name,
+            subject: dt.subject,
+            content: dt.content,
+            is_default: dt.is_default,
+            source_template_id: dt.id,
+        }));
 
-<b>Cenovou nabídku zašlete, prosím, nejpozději do {TERMIN_POPTAVKY} do 12:00 hodin.
-Prosím o zpětnou vazbu, zdali budete cenovou nabídku zpracovávat. V případě jejího odmítnutí prosím o oznámení této skutečnosti co nejdříve.</b>
-V případě jakýchkoli dotazů mě neváhejte kontaktovat.
+        const { error: insertError } = await supabase
+            .from('templates')
+            .insert(templatesToInsert);
 
-Děkuji.`,
-        isDefault: true,
-        lastModified: '2024-12-08'
+        if (insertError) {
+            console.error('Error copying default templates:', insertError);
+        }
+    } catch (e) {
+        console.error('Failed to copy default templates', e);
     }
-];
+};
 
 export const getTemplates = async (): Promise<Template[]> => {
     try {
+        // RLS automatically filters by user_id = auth.uid()
         const { data, error } = await supabase
             .from('templates')
             .select('*')
@@ -48,16 +59,32 @@ export const getTemplates = async (): Promise<Template[]> => {
 
         if (error) {
             console.error('Error fetching templates:', error);
-            return INITIAL_TEMPLATES;
+            return [];
         }
 
+        // If user has no templates, copy defaults and retry
         if (!data || data.length === 0) {
-            // Seed initial templates if DB is empty
-            // Note: In a real app we might want to do this via migration or admin tool,
-            // but here we want to ensure user sees something.
-            // However, we won't auto-save them to DB here to avoid duplication issues
-            // if multiple users hit this. Just returning them.
-            return INITIAL_TEMPLATES;
+            await copyDefaultTemplatesForUser();
+
+            // Retry fetching after copying
+            const { data: retryData, error: retryError } = await supabase
+                .from('templates')
+                .select('*')
+                .order('name');
+
+            if (retryError || !retryData) {
+                console.error('Error fetching templates after copy:', retryError);
+                return [];
+            }
+
+            return retryData.map(t => ({
+                id: t.id,
+                name: t.name,
+                subject: t.subject,
+                content: t.content,
+                isDefault: t.is_default,
+                lastModified: t.updated_at ? new Date(t.updated_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+            }));
         }
 
         return data.map(t => ({
@@ -70,12 +97,15 @@ export const getTemplates = async (): Promise<Template[]> => {
         }));
     } catch (e) {
         console.error('Failed to load templates', e);
-        return INITIAL_TEMPLATES;
+        return [];
     }
 };
 
+
+
 export const getDefaultTemplate = async (): Promise<Template | undefined> => {
     try {
+        // RLS automatically filters by user_id = auth.uid()
         // First try to find a template explicitly marked as default
         let { data, error } = await supabase
             .from('templates')
@@ -98,8 +128,8 @@ export const getDefaultTemplate = async (): Promise<Template | undefined> => {
         }
 
         if (error || !data) {
-            // Fallback to INITIAL_TEMPLATES only if DB has no templates at all
-            return INITIAL_TEMPLATES.find(t => t.isDefault);
+            console.error('No templates found for user');
+            return undefined;
         }
 
         return {
@@ -112,12 +142,15 @@ export const getDefaultTemplate = async (): Promise<Template | undefined> => {
         };
     } catch (e) {
         console.error('Failed to get default template', e);
-        return INITIAL_TEMPLATES.find(t => t.isDefault);
+        return undefined;
     }
 };
 
+
+
 export const getTemplateById = async (id: string): Promise<Template | undefined> => {
     try {
+        // RLS automatically filters by user_id = auth.uid()
         const { data, error } = await supabase
             .from('templates')
             .select('*')
@@ -125,8 +158,8 @@ export const getTemplateById = async (id: string): Promise<Template | undefined>
             .single();
 
         if (error || !data) {
-            // Fallback to initial templates if not found in DB (e.g. for default ones if not yet saved)
-            return INITIAL_TEMPLATES.find(t => t.id === id);
+            console.error('Template not found:', id);
+            return undefined;
         }
 
         return {
@@ -143,34 +176,33 @@ export const getTemplateById = async (id: string): Promise<Template | undefined>
     }
 };
 
+
+
 export const saveTemplate = async (template: Template): Promise<Template | null> => {
     try {
+        // Get current user ID
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            console.error('No authenticated user found');
+            return null;
+        }
+
         // Map frontend model to DB model
         const dbTemplate = {
-            // If ID is numeric (from initial templates) or temporary, let DB generate UUID.
-            // But if we are updating, we need the ID.
-            // Strategy: 
-            // 1. If it's a new template (no ID or temporary ID), we don't send ID to let DB generate generic UUID? 
-            //    No, upsert needs ID to update.
-            //    If we are UPDATING, we must pass ID.
-            //    If we are CREATING, we can omit ID or pass a new UUID.
-
-            // Check if ID is a valid UUID. If not (e.g. '1', '2' from INITIAL), handle it.
-            // For simplicity, if it looks like a legacy ID, we might treating it as a new insert if we want to migrate,
-            // OR we just generate a new UUID for it.
-
             name: template.name,
             subject: template.subject,
             content: template.content,
             is_default: template.isDefault,
+            user_id: user.id, // Always set user_id to current user
             updated_at: new Date().toISOString()
         };
 
         if (dbTemplate.is_default) {
-            // Unset other defaults first to ensure only one default exists
+            // Unset other defaults first to ensure only one default exists per user
             await supabase
                 .from('templates')
                 .update({ is_default: false })
+                .eq('user_id', user.id)
                 .eq('is_default', true);
         }
 
@@ -180,6 +212,7 @@ export const saveTemplate = async (template: Template): Promise<Template | null>
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(template.id);
 
         if (isUUID) {
+            // Update existing template
             const { data, error } = await supabase
                 .from('templates')
                 .upsert({ ...dbTemplate, id: template.id })
@@ -208,9 +241,10 @@ export const saveTemplate = async (template: Template): Promise<Template | null>
         };
     } catch (e) {
         console.error('Failed to save template', e);
-        return null; // Propagate error handling to UI?
+        return null;
     }
 };
+
 
 export const deleteTemplate = async (id: string): Promise<boolean> => {
     try {
