@@ -81,12 +81,13 @@ export class ExcelService {
     freezeHeader: boolean = false,
     showGridlines: boolean = true
   ): Promise<Blob> {
-    onProgress?.('Načítám zdrojový soubor...');
-    onProgressUpdate?.(2);
+    onProgress?.('Načítám zdrojový soubor a analyzuji strukturu...');
+    onProgressUpdate?.(1);
     const sourceWorkbook = new ExcelJS.Workbook();
     const arrayBuffer = await file.arrayBuffer();
     await sourceWorkbook.xlsx.load(arrayBuffer);
-    onProgressUpdate?.(8);
+    onProgressUpdate?.(5);
+    onProgress?.(`Soubor načten. Nalezeno ${sourceWorkbook.worksheets.length} listů.`);
 
     const allSheetNames = sourceWorkbook.worksheets.map(ws => ws.name);
     const targetWorkbook = new ExcelJS.Workbook();
@@ -122,21 +123,24 @@ export class ExcelService {
     let totalRowsProcessed = 0;
 
     // Estimate total rows for progress tracking
+    onProgress?.('Počítám celkový počet řádků...');
     let totalExpectedRows = 0;
     sheetsToInclude.forEach(name => {
       const ws = sourceWorkbook.getWorksheet(name);
       if (ws) totalExpectedRows += ws.rowCount || 0;
     });
+    onProgress?.(`Odhadovaný počet řádků k zpracování: ${totalExpectedRows}`);
+    onProgressUpdate?.(10);
 
     for (let i = 0; i < sheetsToInclude.length; i++) {
       const sheetName = sheetsToInclude[i];
       const sourceSheet = sourceWorkbook.getWorksheet(sheetName);
       if (!sourceSheet) {
-        onProgress?.(`VAROVÁNÍ: List ${sheetName} nenalezen, přeskakuji.`);
+        onProgress?.(`VAROVÁNÍ: List "${sheetName}" nenalezen, přeskakuji.`);
         continue;
       }
 
-      onProgress?.(`Čtu list: ${sheetName} (${i + 1}/${sheetsToInclude.length})`);
+      onProgress?.(`Zpracovávám list ${i + 1}/${sheetsToInclude.length}: "${sheetName}"`);
 
       let sheetMaxCol = 0;
       let sheetRowCount = sourceSheet.rowCount || 0;
@@ -207,11 +211,12 @@ export class ExcelService {
           onProgressUpdate?.(Math.min(90, currentProgress));
         }
 
-        if (rowsInThisSheet % 500 === 0) {
-          onProgress?.(`... kopíruji řádek ${rowsInThisSheet} / ${sheetRowCount}`);
+        // More granular logging (every 100 rows instead of 500)
+        if (rowsInThisSheet % 100 === 0) {
+          onProgress?.(`... list "${sheetName}": zkopírováno ${rowsInThisSheet} / ${sheetRowCount} řádků`);
         }
       });
-      onProgress?.(`Dokončen list ${sheetName} (${rowsInThisSheet} řádků)`);
+      onProgress?.(`OK: List "${sheetName}" dokončen (${rowsInThisSheet} řádků).`);
       currentRow++; // Spacing between sheets
     }
 
@@ -255,11 +260,12 @@ export class ExcelService {
       });
     }
 
-    onProgress?.(`Generuji výsledný soubor (${totalRowsProcessed} řádků celkem)...`);
+    onProgress?.(`Generuji výsledný .xlsx soubor (${totalRowsProcessed} řádků celkem)...`);
     onProgressUpdate?.(98);
 
     const buffer = await targetWorkbook.xlsx.writeBuffer();
     onProgressUpdate?.(100);
+    onProgress?.('Hotovo. Stahování se spustí automaticky.');
     return new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   }
 }

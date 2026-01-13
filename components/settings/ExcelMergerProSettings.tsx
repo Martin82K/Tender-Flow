@@ -25,6 +25,7 @@ export const ExcelMergerProSettings: React.FC = () => {
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isMerging, setIsMerging] = useState(false);
     const [progress, setProgress] = useState<{ percent: number; label: string } | null>(null);
+    const [logHistory, setLogHistory] = useState<string[]>([]);
     const [successInfo, setSuccessInfo] = useState<{ outputName: string } | null>(null);
     const [isDropActive, setIsDropActive] = useState(false);
 
@@ -78,6 +79,7 @@ export const ExcelMergerProSettings: React.FC = () => {
         setExcelFile(file);
         setSheets([]);
         setProgress(null);
+        setLogHistory([]);
         setSuccessInfo(null);
 
         // Analyze file to get sheets
@@ -116,11 +118,15 @@ export const ExcelMergerProSettings: React.FC = () => {
 
         setIsMerging(true);
         setSuccessInfo(null);
+        setLogHistory([]);
         try {
             const blob = await ExcelService.mergeSheets(
                 excelFile,
                 selectedSheets,
-                (msg) => setProgress(prev => ({ percent: prev?.percent || 0, label: msg })),
+                (msg) => {
+                    setProgress(prev => ({ percent: prev?.percent || 0, label: msg }));
+                    setLogHistory(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
+                },
                 (pct) => setProgress(prev => ({ percent: pct, label: prev?.label || '' })),
                 undefined, // headerMapping
                 true,      // applyFilter
@@ -141,6 +147,7 @@ export const ExcelMergerProSettings: React.FC = () => {
             URL.revokeObjectURL(url);
 
             setProgress({ percent: 100, label: 'Staženo' });
+            setLogHistory(prev => [...prev, `[${new Date().toLocaleTimeString()}] Hotovo.`]);
             setSuccessInfo({ outputName });
         } catch (e: any) {
             console.error('Merge error:', e);
@@ -155,6 +162,7 @@ export const ExcelMergerProSettings: React.FC = () => {
         setExcelFile(null);
         setSheets([]);
         setProgress(null);
+        setLogHistory([]);
         setSuccessInfo(null);
     };
 
@@ -313,6 +321,18 @@ export const ExcelMergerProSettings: React.FC = () => {
                                     className="h-full bg-blue-500 transition-all duration-300"
                                     style={{ width: `${progress.percent}%` }}
                                 />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Log Console */}
+                    {logHistory.length > 0 && (
+                        <div className="mt-4 p-3 bg-slate-900 text-slate-200 rounded-lg text-xs font-mono h-48 overflow-y-auto border border-slate-700 shadow-inner">
+                            <div className="flex flex-col gap-1">
+                                {logHistory.map((log, i) => (
+                                    <div key={i} className="whitespace-pre-wrap">{log}</div>
+                                ))}
+                                <div id="log-end" />
                             </div>
                         </div>
                     )}
