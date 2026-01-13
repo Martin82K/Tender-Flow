@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { ProjectDetails, DocumentLink } from "../../../types";
 import { isProbablyUrl } from "../../../utils/docHub";
 import { shortenUrl } from "../../../services/urlShortenerService";
+import { useAuth } from "../../../context/AuthContext";
 
 interface DocsLinkSectionProps {
   project: ProjectDetails;
@@ -37,6 +38,7 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
   showModal,
   onUpdate,
 }) => {
+  const { user } = useAuth();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newLink, setNewLink] = useState<{
     label: string;
@@ -60,8 +62,24 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
 
     let finalUrl = newLink.url.trim();
 
-    // URL shortening disabled - we keep full URLs so they can be displayed
-    // as formatted links in HTML emails (e.g., EML files with clickable text)
+    // Auto-shorten if enabled in settings
+    if (user?.preferences?.autoShortenProjectDocs && isProbablyUrl(finalUrl)) {
+      setIsShortening(true);
+      try {
+        const result = await shortenUrl(finalUrl);
+        if (result.success && result.shortUrl) {
+          finalUrl = result.shortUrl;
+        } else {
+          console.warn("Auto-shortening failed:", result.error);
+          // Optional: Notify user that shortening failed, but we proceed with original URL?
+          // For now, we just proceed with the original URL silently or log it.
+        }
+      } catch (error) {
+        console.error("Auto-shortening error:", error);
+      } finally {
+        setIsShortening(false);
+      }
+    }
 
     const link: DocumentLink = {
       id: crypto.randomUUID(),

@@ -18,7 +18,8 @@ export interface ShortenResult {
 const SHORT_URL_BASE = window.location.origin + '/s/';
 
 // TinyURL Configuration
-const TINYURL_API_KEY = import.meta.env.VITE_TINYURL_API_KEY;
+// TinyURL Configuration
+const TINYURL_API_KEY = import.meta.env.VITE_TINYURL_API_KEY || import.meta.env.TINY_URL_API_KEY;
 const TINYURL_API_ENDPOINT = 'https://api.tinyurl.com/create';
 
 /**
@@ -141,7 +142,7 @@ async function shortenWithTfUrl(url: string, userId?: string): Promise<ShortenRe
 export async function shortenUrl(url: string): Promise<ShortenResult> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     // Check user preference
     let provider = 'tfurl'; // Default
     if (user) {
@@ -150,7 +151,7 @@ export async function shortenUrl(url: string): Promise<ShortenResult> {
         .select('preferences')
         .eq('user_id', user.id)
         .single();
-        
+
       if (settings?.preferences?.urlShortenerProvider) {
         provider = settings.preferences.urlShortenerProvider;
       }
@@ -298,12 +299,12 @@ export async function deleteShortUrl(code: string): Promise<{ success: boolean; 
  * Shorten a URL with an optional custom alias (TF URL only)
  */
 export async function shortenUrlWithAlias(
-  url: string, 
+  url: string,
   customAlias?: string
 ): Promise<ShortenResult> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     if (customAlias) {
       if (!/^[a-zA-Z0-9_-]+$/.test(customAlias)) {
         return { success: false, originalUrl: url, error: 'Alias může obsahovat pouze písmena, čísla, pomlčky a podtržítka' };
@@ -311,7 +312,7 @@ export async function shortenUrlWithAlias(
       if (customAlias.length < 3 || customAlias.length > 20) {
         return { success: false, originalUrl: url, error: 'Alias musí mít 3-20 znaků' };
       }
-      
+
       const { data } = await supabase.from('short_urls').select('id').eq('id', customAlias).single();
       if (data) {
         return { success: false, originalUrl: url, error: 'Tento alias už je používán' };

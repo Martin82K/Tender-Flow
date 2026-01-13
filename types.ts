@@ -226,6 +226,7 @@ export interface UserPreferences {
   backgroundColor: string;
   emailClientMode?: "mailto" | "eml"; // 'mailto' = Text, 'eml' = File/HTML
   urlShortenerProvider?: "tinyurl" | "tfurl"; // Service provider for URL shortening
+  autoShortenProjectDocs?: boolean; // Auto-shorten Project Documents links
   signature?: string; // HTML compatible signature
 }
 

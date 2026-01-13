@@ -48,6 +48,7 @@ export default defineConfig(({ command }) => {
           }
         }
       }
-    }
+    },
+    envPrefix: ['VITE_', 'TINY_URL_']
   };
 });

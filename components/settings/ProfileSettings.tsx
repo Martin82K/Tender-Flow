@@ -419,6 +419,43 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
         </div>
       </section>
 
+      {/* Other Settings */}
+      <section className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl">
+        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+          <span className="material-symbols-outlined text-violet-500">
+            tune
+          </span>
+          Další nastavení
+        </h2>
+
+        <div className="space-y-6">
+          {/* Auto Shorten PD Links Toggle */}
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="font-medium text-slate-900 dark:text-white">
+                Automatické zkracování odkazů pro PD
+              </div>
+              <div className="text-sm text-slate-500 dark:text-slate-400">
+                Při vložení dlouhého odkazu na dokumentaci jej automaticky zkrátit.
+              </div>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                className="sr-only peer"
+                checked={user?.preferences?.autoShortenProjectDocs ?? false}
+                onChange={(e) => {
+                  updatePreferences({
+                    autoShortenProjectDocs: e.target.checked,
+                  });
+                }}
+              />
+              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+            </label>
+          </div>
+        </div>
+      </section>
+
       {/* Contact Statuses Management */}
       <section className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl">
         <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
@@ -467,8 +504,8 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                       handleUpdateStatusColor(status.id, opt.value)
                     }
                     className={`w-5 h-5 rounded-full ${opt.class} ${status.color === opt.value
-                        ? "ring-2 ring-offset-1 ring-slate-400"
-                        : "hover:scale-110"
+                      ? "ring-2 ring-offset-1 ring-slate-400"
+                      : "hover:scale-110"
                       } transition-all`}
                   />
                 ))}
@@ -505,8 +542,8 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                 type="button"
                 onClick={() => setNewStatusColor(opt.value)}
                 className={`w-6 h-6 rounded-full ${opt.class} ${newStatusColor === opt.value
-                    ? "ring-2 ring-offset-2 ring-slate-400 scale-110"
-                    : "opacity-40 hover:opacity-100"
+                  ? "ring-2 ring-offset-2 ring-slate-400 scale-110"
+                  : "opacity-40 hover:opacity-100"
                   } transition-all`}
               />
             ))}
