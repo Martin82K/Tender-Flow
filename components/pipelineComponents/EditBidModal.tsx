@@ -30,7 +30,7 @@ export const EditBidModal: React.FC<EditBidModalProps> = ({ bid, onClose, onSave
         const numericValue = parseFormattedNumber(cleaned);
         const priceStr = numericValue > 0 ? formatInputNumber(numericValue) + " Kč" : (cleaned ? cleaned : "?");
 
-        const currentRound = form.selectionRound || 1;
+        const currentRound = form.selectionRound ?? 1;
         const newPriceHistory = { ...(form.priceHistory || {}) };
 
         if (numericValue > 0) {
@@ -57,7 +57,7 @@ export const EditBidModal: React.FC<EditBidModalProps> = ({ bid, onClose, onSave
         const newRound = form.selectionRound === round ? undefined : round;
 
         let newPriceDisplay = "";
-        if (newRound && form.priceHistory && form.priceHistory[newRound]) {
+        if (newRound !== undefined && form.priceHistory && form.priceHistory[newRound]) {
             const existingPrice = form.priceHistory[newRound];
             newPriceDisplay = formatInputNumber(parseFormattedNumber(existingPrice.replace(/[^\d\s,.-]/g, '')));
         }
@@ -66,7 +66,7 @@ export const EditBidModal: React.FC<EditBidModalProps> = ({ bid, onClose, onSave
         setForm({
             ...form,
             selectionRound: newRound,
-            price: newRound && form.priceHistory?.[newRound] ? form.priceHistory[newRound] : form.price
+            price: newRound !== undefined && form.priceHistory?.[newRound] ? form.priceHistory[newRound] : form.price
         });
     };
 
@@ -155,7 +155,7 @@ export const EditBidModal: React.FC<EditBidModalProps> = ({ bid, onClose, onSave
                                 Kolo výběru
                             </label>
                             <div className="flex gap-3">
-                                {[1, 2, 3].map((round) => (
+                                {[0, 1, 2, 3].map((round) => (
                                     <label
                                         key={round}
                                         className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${form.selectionRound === round
@@ -169,7 +169,7 @@ export const EditBidModal: React.FC<EditBidModalProps> = ({ bid, onClose, onSave
                                             onChange={() => handleRoundChange(round)}
                                             className="sr-only"
                                         />
-                                        <span className="text-sm font-medium">{round}. kolo</span>
+                                        <span className="text-sm font-medium">{round === 0 ? "Soutěž" : `${round}. kolo`}</span>
                                     </label>
                                 ))}
                             </div>

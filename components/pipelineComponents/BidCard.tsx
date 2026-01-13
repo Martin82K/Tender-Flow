@@ -110,7 +110,7 @@ export const BidCard: React.FC<BidCardProps> = ({
                   key={round}
                   className="flex items-center justify-between text-xs text-slate-500"
                 >
-                  <span>{round}. kolo:</span>
+                  <span>{Number(round) === 0 ? "Soutěž" : `${round}. kolo`}:</span>
                   <span
                     className={
                       Number(round) === bid.selectionRound

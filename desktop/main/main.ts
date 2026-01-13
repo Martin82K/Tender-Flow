@@ -20,7 +20,19 @@ function createWindow(): void {
         height: 900,
         minWidth: 1024,
         minHeight: 700,
-        icon: path.join(__dirname, '../../assets/icon.ico'),
+        // icon: path.join(__dirname, process.platform === 'darwin' ? '../../assets/icon.icns' : '../../assets/icon.ico'),
+        icon: (() => {
+            const iconPath = path.join(__dirname, process.platform === 'darwin' ? '../../assets/icon.icns' : '../../assets/icon.ico');
+            console.log('Resolving icon path:', iconPath);
+            try {
+                require('fs').accessSync(iconPath);
+                console.log('Icon file exists and is accessible');
+                return iconPath;
+            } catch (error) {
+                console.error('Icon file not accessible:', error);
+                return undefined; // Fallback to no icon to prevent crash
+            }
+        })(),
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
@@ -35,7 +47,13 @@ function createWindow(): void {
 
     // Set dock icon on macOS
     if (process.platform === 'darwin') {
-        app.dock.setIcon(path.join(__dirname, '../../assets/icon.ico'));
+        const iconPath = path.join(__dirname, '../../assets/icon.icns');
+        try {
+            require('fs').accessSync(iconPath);
+            app.dock.setIcon(iconPath);
+        } catch (error) {
+            console.error('Dock icon not accessible:', error);
+        }
     }
 
     // Show window when ready to prevent flash

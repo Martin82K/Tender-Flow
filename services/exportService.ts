@@ -81,7 +81,7 @@ export function exportToXLSX(
     [], // Empty row before suppliers table
     ['SEZNAM DODAVATELŮ', '', '', '', '', '', '', '', '', '', '', ''],
     [],
-    ['#', 'Firma', 'Kontaktní osoba', 'Email', 'Telefon', 'Cena', '1. kolo', '2. kolo', '3. kolo', 'Stav', 'Tagy', 'Poznámky']
+    ['#', 'Firma', 'Kontaktní osoba', 'Email', 'Telefon', 'Cena', 'Soutěž', '1. kolo', '2. kolo', '3. kolo', 'Stav', 'Tagy', 'Poznámky']
   ];
 
   const headerRowIndex = combinedData.length - 1; // 0-indexed row number of table header
@@ -95,6 +95,7 @@ export function exportToXLSX(
       bid.email || '-',
       bid.phone || '-',
       bid.price || '?',
+      bid.priceHistory?.[0] || '-',
       bid.priceHistory?.[1] || '-',
       bid.priceHistory?.[2] || '-',
       bid.priceHistory?.[3] || '-',
@@ -145,6 +146,7 @@ export function exportToXLSX(
     { wch: 28 },  // Email
     { wch: 15 },  // Telefon
     { wch: 15 },  // Cena
+    { wch: 14 },  // Soutěž
     { wch: 14 },  // 1. kolo
     { wch: 14 },  // 2. kolo
     { wch: 14 },  // 3. kolo
@@ -194,11 +196,11 @@ export function exportToMarkdown(
   }
 
   markdown += `## Seznam dodavatelů\n\n`;
-  markdown += `| # | Firma | Kontakt | Email | Telefon | Cena | Stav |\n`;
-  markdown += `|---|-------|---------|-------|---------|------|------|\n`;
+  markdown += `| # | Firma | Kontakt | Email | Telefon | Cena | Soutěž | 1. kolo | 2. kolo | 3. kolo | Stav |\n`;
+  markdown += `|---|-------|---------|-------|---------|------|--------|---------|---------|---------|------|\n`;
 
   bids.forEach((bid, index) => {
-    markdown += `| ${index + 1} | ${bid.companyName} | ${bid.contactPerson} | ${bid.email || '-'} | ${bid.phone || '-'} | ${bid.price || '?'} | ${getStatusLabel(bid.status)} |\n`;
+    markdown += `| ${index + 1} | ${bid.companyName} | ${bid.contactPerson} | ${bid.email || '-'} | ${bid.phone || '-'} | ${bid.price || '?'} | ${bid.priceHistory?.[0] || '-'} | ${bid.priceHistory?.[1] || '-'} | ${bid.priceHistory?.[2] || '-'} | ${bid.priceHistory?.[3] || '-'} | ${getStatusLabel(bid.status)} |\n`;
   });
 
   // Statistics
@@ -284,30 +286,31 @@ export function exportToPDF(
     bid.email || '-',
     bid.phone || '-',
     bid.price || '?',
+    bid.priceHistory?.[0] || '-',
     bid.priceHistory?.[1] || '-',
     bid.priceHistory?.[2] || '-',
-    bid.priceHistory?.[3] || '-',
+    // bid.priceHistory?.[3] || '-', // Omit 3rd round in PDF to save space if needed, or keep it. Let's try to fit it.
     getStatusLabel(bid.status)
   ]);
 
   autoTable(doc, {
     startY: 42,
-    head: [['#', 'Firma', 'Kontakt', 'Email', 'Telefon', 'Cena', '1.kolo', '2.kolo', '3.kolo', 'Stav']],
+    head: [['#', 'Firma', 'Kontakt', 'Email', 'Telefon', 'Cena', 'Soutěž', '1.kolo', '2.kolo', 'Stav']],
     body: tableData,
     styles: { fontSize: 8, cellPadding: 2, font: 'Roboto' },
     headStyles: { fillColor: [71, 85, 105], textColor: 255 },
     alternateRowStyles: { fillColor: [248, 250, 252] },
     columnStyles: {
       0: { cellWidth: 8 },
-      1: { cellWidth: 40 },
-      2: { cellWidth: 30 },
-      3: { cellWidth: 45 },
+      1: { cellWidth: 35 },
+      2: { cellWidth: 25 },
+      3: { cellWidth: 40 },
       4: { cellWidth: 25 },
-      5: { cellWidth: 25 },
-      6: { cellWidth: 22 },
-      7: { cellWidth: 22 },
-      8: { cellWidth: 22 },
-      9: { cellWidth: 25 }
+      5: { cellWidth: 20 },
+      6: { cellWidth: 20 },
+      7: { cellWidth: 20 },
+      8: { cellWidth: 20 },
+      9: { cellWidth: 20 }
     },
     margin: { left: 14, right: 14 }
   });
