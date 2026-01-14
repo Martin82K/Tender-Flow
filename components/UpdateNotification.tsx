@@ -227,17 +227,17 @@ export function useElectronUpdater() {
 
     useEffect(() => {
         // Check if running in Electron
-        if (!window.electron?.updater) {
+        if (!window.electronAPI?.updater) {
             return;
         }
 
         // Listen for update status changes
-        const unsubscribe = window.electron.updater.onStatusChange((status) => {
+        const unsubscribe = window.electronAPI.updater.onStatusChange((status) => {
             setUpdateState(status);
         });
 
         // Get initial status
-        window.electron.updater.getStatus().then((status) => {
+        window.electronAPI.updater.getStatus().then((status) => {
             setUpdateState(status);
         });
 
@@ -247,20 +247,20 @@ export function useElectronUpdater() {
     }, []);
 
     const checkForUpdates = async () => {
-        if (window.electron?.updater) {
-            await window.electron.updater.checkForUpdates();
+        if (window.electronAPI?.updater) {
+            await window.electronAPI.updater.checkForUpdates();
         }
     };
 
     const downloadUpdate = async () => {
-        if (window.electron?.updater) {
-            await window.electron.updater.downloadUpdate();
+        if (window.electronAPI?.updater) {
+            await window.electronAPI.updater.downloadUpdate();
         }
     };
 
     const installUpdate = () => {
-        if (window.electron?.updater) {
-            window.electron.updater.quitAndInstall();
+        if (window.electronAPI?.updater) {
+            window.electronAPI.updater.quitAndInstall();
         }
     };
 
