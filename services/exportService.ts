@@ -267,9 +267,9 @@ export function exportToPDF(
   doc.text(`Projekt: ${project.title}`, 14, 25);
   doc.text(`Kategorie: ${category.title}`, 14, 31);
 
-  // Format money without Kč symbol for PDF (use CZK instead)
+  // Format money without Kč symbol for PDF - just number to prevent wrapping
   const formatMoneyPDF = (value: number) =>
-    new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 }).format(value) + ' CZK';
+    new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 }).format(value);
 
   doc.text(`SOD rozpočet: ${formatMoneyPDF(category.sodBudget)}`, 150, 25);
   doc.text(`Plánovaný náklad: ${formatMoneyPDF(category.planBudget)}`, 150, 31);
@@ -285,10 +285,10 @@ export function exportToPDF(
     bid.contactPerson,
     bid.email || '-',
     bid.phone || '-',
-    bid.price || '?',
-    bid.priceHistory?.[0] || '-',
-    bid.priceHistory?.[1] || '-',
-    bid.priceHistory?.[2] || '-',
+    bid.price ? formatMoneyPDF(parseMoney(bid.price)) : '?', // Format price in table too
+    bid.priceHistory?.[0] ? formatMoneyPDF(parseMoney(bid.priceHistory[0])) : '-',
+    bid.priceHistory?.[1] ? formatMoneyPDF(parseMoney(bid.priceHistory[1])) : '-',
+    bid.priceHistory?.[2] ? formatMoneyPDF(parseMoney(bid.priceHistory[2])) : '-',
     // bid.priceHistory?.[3] || '-', // Omit 3rd round in PDF to save space if needed, or keep it. Let's try to fit it.
     getStatusLabel(bid.status)
   ]);
@@ -315,44 +315,6 @@ export function exportToPDF(
     margin: { left: 14, right: 14 }
   });
 
-  // Statistics
-  const offersCount = bids.filter(b => b.status === 'offer' || b.status === 'shortlist' || b.status === 'sod').length;
-
-  // Find winner (bid with status 'sod' - Jednání o SOD)
-  const winnerBid = bids.find(b => b.status === 'sod');
-  const winnerPrice = winnerBid ? parseMoney(winnerBid.price) : 0;
-
-  const finalY = (doc as any).lastAutoTable.finalY + 10;
-
-  // Statistics Header
-  doc.setFontSize(9);
-  doc.setFont('Roboto', 'normal'); // Using normal weight but slightly larger size for header
-  doc.text('Statistiky:', 14, finalY);
-
-  // Statistics Content
-  doc.setFontSize(8);
-  doc.text(`Celkem osloveno: ${bids.length}`, 14, finalY + 5);
-  doc.text(`Obdržené nabídky: ${offersCount}`, 14, finalY + 10);
-
-  // Winner price balance section
-  if (winnerBid && winnerPrice > 0) {
-    const sodDiff = winnerPrice - category.sodBudget;
-    const planDiff = winnerPrice - category.planBudget;
-    const sodPercent = category.sodBudget > 0 ? ((sodDiff / category.sodBudget) * 100).toFixed(1) : '0';
-    const planPercent = category.planBudget > 0 ? ((planDiff / category.planBudget) * 100).toFixed(1) : '0';
-
-    // Winner Balance Header
-    doc.setFontSize(9);
-    doc.text('Bilance vítěze (Jednání o SOD):', 14, finalY + 18);
-
-    // Winner Balance Content
-    doc.setFontSize(8);
-    doc.text(`  Vítěz: ${winnerBid.companyName}`, 14, finalY + 23);
-    doc.text(`  Cena vítěze: ${formatMoneyPDF(winnerPrice)}`, 14, finalY + 28);
-    doc.text(`  vs SOD rozpočet: ${sodDiff >= 0 ? '+' : ''}${formatMoneyPDF(sodDiff)} (${sodDiff >= 0 ? '+' : ''}${sodPercent}%)`, 14, finalY + 33);
-    doc.text(`  vs Plánovaný náklad: ${planDiff >= 0 ? '+' : ''}${formatMoneyPDF(planDiff)} (${planDiff >= 0 ? '+' : ''}${planPercent}%)`, 14, finalY + 38);
-  }
-
   // Footer
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
@@ -360,7 +322,7 @@ export function exportToPDF(
     doc.setFontSize(8);
     doc.setTextColor(128);
     doc.text(
-      `Exportováno: ${formatDate(new Date().toISOString())} | Strana ${i} z ${pageCount}`,
+      `Tender Flow | Exportováno: ${formatDate(new Date().toISOString())} | Strana ${i} z ${pageCount}`,
       14,
       doc.internal.pageSize.height - 10
     );

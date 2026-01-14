@@ -21,11 +21,12 @@ interface ProjectLayoutProps {
     onTabChange: (tab: ProjectTab) => void;
     contacts: Subcontractor[];
     statuses?: StatusConfig[];
+    onUpdateContact: (contact: Subcontractor) => void;
     initialPipelineCategoryId?: string;
     onNavigateToPipeline?: (categoryId: string) => void;
 }
 
-export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, projectDetails, onUpdateDetails, onAddCategory, onEditCategory, onDeleteCategory, onBidsChange, activeTab, onTabChange, contacts, statuses, initialPipelineCategoryId, onNavigateToPipeline }) => {
+export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, projectDetails, onUpdateDetails, onAddCategory, onEditCategory, onDeleteCategory, onBidsChange, activeTab, onTabChange, contacts, statuses, onUpdateContact, initialPipelineCategoryId, onNavigateToPipeline }) => {
     const project = projectDetails;
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -45,7 +46,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, project
                 searchPlaceholder="Hledat v projektu..."
             >
                 {/* Mobile dropdown tabs */}
-                <select 
+                <select
                     value={activeTab}
                     onChange={(e) => onTabChange(e.target.value as ProjectTab)}
                     className="md:hidden w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white px-4 py-2.5 rounded-xl text-sm font-medium focus:border-primary focus:ring-2 focus:ring-primary/20"
@@ -118,7 +119,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({ projectId, project
                         }}
                     />
                 )}
-                {activeTab === 'pipeline' && <Pipeline projectId={projectId} projectDetails={project} bids={project.bids || {}} contacts={contacts} statuses={statuses} onAddCategory={onAddCategory} onEditCategory={onEditCategory} onDeleteCategory={onDeleteCategory} onBidsChange={(bids) => onBidsChange?.(projectId, bids)} searchQuery={searchQuery} initialOpenCategoryId={initialPipelineCategoryId} />}
+                {activeTab === 'pipeline' && <Pipeline projectId={projectId} projectDetails={project} bids={project.bids || {}} contacts={contacts} statuses={statuses} onAddCategory={onAddCategory} onEditCategory={onEditCategory} onDeleteCategory={onDeleteCategory} onBidsChange={(bids) => onBidsChange?.(projectId, bids)} onUpdateContact={onUpdateContact} searchQuery={searchQuery} initialOpenCategoryId={initialPipelineCategoryId} />}
                 {activeTab === 'schedule' && (
                     <div className="flex-1 min-h-0">
                         <ProjectSchedule projectId={projectId} projectTitle={project.title} categories={project.categories || []} />

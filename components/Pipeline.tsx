@@ -74,6 +74,7 @@ interface PipelineProps {
   onEditCategory?: (category: DemandCategory) => void;
   onDeleteCategory?: (categoryId: string) => void;
   onBidsChange?: (bids: Record<string, Bid[]>) => void;
+  onUpdateContact?: (contact: Subcontractor) => void;
   searchQuery?: string;
   initialOpenCategoryId?: string;
 }
@@ -90,10 +91,15 @@ export const Pipeline: React.FC<PipelineProps> = ({
   onEditCategory,
   onDeleteCategory,
   onBidsChange,
+  onUpdateContact,
   searchQuery = "",
   initialOpenCategoryId,
 }) => {
   const { user } = useAuth();
+  // ... (existing code omitted for brevity)
+
+  // ... inside the render, look for EditBidModal ...
+
   const projectData = projectDetails;
   const docHubRoot = projectDetails.docHubRootLink?.trim() || "";
   const isDocHubEnabled =

@@ -647,10 +647,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {/* Footer Credit */}
               <div className="px-3 pb-2">
                 <div className="h-px bg-slate-700/50 w-full my-3"></div>
-                <p className="text-[13px] text-white/50 text-center leading-relaxed font-medium tracking-wide">
-                  Martin Kalkuš 2025
+                <p className="text-[13px] text-center leading-relaxed font-medium tracking-wide">
+                  <span className="text-slate-400 dark:text-slate-500">Created by </span>
+                  <span className="bg-gradient-to-r from-orange-400 to-amber-500 bg-clip-text text-transparent font-bold">Martin Kalkuš 2026</span>
                 </p>
-                <p className="text-[10px] text-slate-600 text-center mt-1 font-mono hover:text-slate-500 transition-colors cursor-default">
+                <p className="text-[10px] text-white text-center mt-1 font-mono hover:text-white/80 transition-colors cursor-default">
                   v{APP_VERSION}
                 </p>
               </div>

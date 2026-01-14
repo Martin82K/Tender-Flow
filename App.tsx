@@ -330,6 +330,7 @@ function AppContent() {
               }}
               contacts={state.contacts}
               statuses={state.contactStatuses}
+              onUpdateContact={actions.handleUpdateContact}
               initialPipelineCategoryId={activePipelineCategoryId ?? undefined}
               onNavigateToPipeline={(catId) => {
                 setActiveProjectTab("pipeline");

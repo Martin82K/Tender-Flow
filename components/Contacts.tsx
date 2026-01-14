@@ -486,10 +486,26 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                                                         onClick={handleAddContactPerson}
                                                         className="mt-2 text-xs font-bold text-primary"
                                                     >
-                                                        Pridat první osobu
+                                                        Přidat první osobu
                                                     </button>
                                                 </div>
                                             )}
+                                        </div>
+                                    </div>
+
+                                    {/* Status / Rating */}
+                                    <div className="col-span-2 pt-4 border-t border-slate-100 dark:border-slate-800 mt-2">
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Hodnocení kontaktu</label>
+                                        <div className="flex gap-2">
+                                            <select
+                                                value={formData.status || 'available'}
+                                                onChange={e => setFormData({ ...formData, status: e.target.value })}
+                                                className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
+                                            >
+                                                {statuses.map(s => (
+                                                    <option key={s.id} value={s.id}>{s.label}</option>
+                                                ))}
+                                            </select>
                                         </div>
                                     </div>
                                 </div>

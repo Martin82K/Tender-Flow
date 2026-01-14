@@ -12,10 +12,16 @@ export interface EditBidModalProps {
     bid: Bid;
     onClose: () => void;
     onSave: (updatedBid: Bid) => void;
+    subcontractor?: any; // Subcontractor (using any to avoid circular deps if needed, but imported types are better)
+    statuses?: any[]; // StatusConfig[]
+    onUpdateSubcontractor?: (id: string, updates: any) => void;
 }
 
-export const EditBidModal: React.FC<EditBidModalProps> = ({ bid, onClose, onSave }) => {
+export const EditBidModal: React.FC<EditBidModalProps> = ({ bid, onClose, onSave, subcontractor, statuses = [], onUpdateSubcontractor }) => {
     const [form, setForm] = useState({ ...bid });
+    // Local state for contact person selection (if using dropdown)
+    const [selectedContactId, setSelectedContactId] = useState<string>("");
+
     const [priceDisplay, setPriceDisplay] = useState(
         bid.price && bid.price !== "?" && bid.price !== "-"
             ? formatInputNumber(parseFormattedNumber(bid.price.replace(/[^\d\s,.-]/g, '')))
@@ -91,14 +97,78 @@ export const EditBidModal: React.FC<EditBidModalProps> = ({ bid, onClose, onSave
                 </div>
                 <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
                     <div className="p-6 space-y-4 overflow-y-auto">
+                        {/* Status / Rating of the Supplier */}
+                        {subcontractor && onUpdateSubcontractor && (
+                            <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800 mb-2">
+                                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1">
+                                    <span className="material-symbols-outlined text-[14px]">star</span>
+                                    Hodnocení kontaktu
+                                </label>
+                                <select
+                                    value={subcontractor.status || 'available'}
+                                    onChange={(e) => onUpdateSubcontractor(subcontractor.id, { status: e.target.value })}
+                                    className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
+                                >
+                                    {statuses.map((s: any) => (
+                                        <option key={s.id} value={s.id}>{s.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
                         <div>
-                            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                                Kontaktní osoba
-                            </label>
+                            <div className="flex justify-between items-center mb-1">
+                                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">
+                                    Kontaktní osoba
+                                </label>
+                                {subcontractor?.contacts && subcontractor.contacts.length > 0 && (
+                                    <div className="text-[10px] text-primary cursor-pointer hover:underline" onClick={() => setSelectedContactId("")}>
+                                        (Vybrat ze seznamu)
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Contact Person Selection Logic */}
+                            {subcontractor?.contacts && subcontractor.contacts.length > 0 && !form.contactPerson.startsWith("[Ručně]") && selectedContactId !== "manual" ? (
+                                <select
+                                    className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white mb-2"
+                                    value={selectedContactId}
+                                    onChange={(e) => {
+                                        const cid = e.target.value;
+                                        setSelectedContactId(cid);
+                                        if (cid === "manual") {
+                                            // Keep current values, just switch mode
+                                        } else if (cid) {
+                                            const c = subcontractor.contacts.find((x: any) => x.id === cid);
+                                            if (c) {
+                                                setForm({
+                                                    ...form,
+                                                    contactPerson: c.name,
+                                                    email: c.email !== '-' ? c.email : '',
+                                                    phone: c.phone !== '-' ? c.phone : ''
+                                                });
+                                            }
+                                        }
+                                    }}
+                                >
+                                    <option value="">-- Vyberte osobu --</option>
+                                    {subcontractor.contacts.map((c: any) => (
+                                        <option key={c.id} value={c.id}>
+                                            {c.name} ({c.position || 'Bez pozice'})
+                                        </option>
+                                    ))}
+                                    <option value="manual">-- Zadat ručně --</option>
+                                </select>
+                            ) : null}
+
                             <input
                                 type="text"
+                                placeholder="Jméno a příjmení"
                                 value={form.contactPerson}
-                                onChange={(e) => setForm({ ...form, contactPerson: e.target.value })}
+                                onChange={(e) => {
+                                    setForm({ ...form, contactPerson: e.target.value });
+                                    setSelectedContactId("manual");
+                                }}
                                 className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
                             />
                         </div>

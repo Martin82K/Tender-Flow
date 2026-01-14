@@ -472,7 +472,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
         <div className="space-y-4 mb-8">
           {contactStatuses.length === 0 && (
             <div className="text-center py-8 text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
-              Použijte formulář níže pro přidání prvního stavu.
+              Použijte formulář níže pro přidání prvního hodnocení.
             </div>
           )}
           {contactStatuses.map((status) => (
@@ -487,7 +487,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                     } text-white shadow-sm`}
                 >
                   <span className="material-symbols-outlined text-[16px]">
-                    folder
+                    star
                   </span>
                 </div>
               </div>
@@ -520,7 +520,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
               <button
                 onClick={() => handleDeleteStatus(status.id)}
                 className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors ml-2"
-                title="Smazat status"
+                title="Smazat hodnocení"
               >
                 <span className="material-symbols-outlined text-[18px]">
                   delete
@@ -538,7 +538,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
             type="text"
             value={newStatusLabel}
             onChange={(e) => setNewStatusLabel(e.target.value)}
-            placeholder="Název nového stavu..."
+            placeholder="Název nového hodnocení..."
             className="flex-1 bg-transparent border-none text-sm focus:ring-0 placeholder:text-slate-400"
           />
           <div className="flex items-center gap-2 border-l border-slate-200 dark:border-slate-700 pl-3">
