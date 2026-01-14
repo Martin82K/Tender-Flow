@@ -38,7 +38,7 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
     return contacts.filter((contact) => {
       const matchesSearch =
         contact.company.toLowerCase().includes(searchText.toLowerCase()) ||
-        contact.contacts.some(c => 
+        contact.contacts.some(c =>
           c.name.toLowerCase().includes(searchText.toLowerCase()) ||
           c.email.toLowerCase().includes(searchText.toLowerCase()) ||
           c.phone.toLowerCase().includes(searchText.toLowerCase())
@@ -188,77 +188,77 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
         {(filterSpecialization !== "all" ||
           filterStatus !== "all" ||
           searchText) && (
-          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
-            {filterSpecialization !== "all" && (
+            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+              {filterSpecialization !== "all" && (
+                <button
+                  onClick={() => setFilterSpecialization("all")}
+                  className="flex items-center gap-2 bg-primary/10 dark:bg-primary/20 text-primary px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap hover:bg-red-100 hover:text-red-600 transition-colors"
+                >
+                  {filterSpecialization}{" "}
+                  <span className="material-symbols-outlined text-[16px]">
+                    close
+                  </span>
+                </button>
+              )}
+              {filterStatus !== "all" && (
+                <button
+                  onClick={() => setFilterStatus("all")}
+                  className="flex items-center gap-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap hover:bg-red-100 hover:text-red-600 transition-colors"
+                >
+                  Status: {getStatusConfig(filterStatus).label}{" "}
+                  <span className="material-symbols-outlined text-[16px]">
+                    close
+                  </span>
+                </button>
+              )}
+              {searchText && (
+                <button
+                  onClick={() => setSearchText("")}
+                  className="flex items-center gap-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap hover:bg-red-100 hover:text-red-600 transition-colors"
+                >
+                  Hledat: "{searchText}"{" "}
+                  <span className="material-symbols-outlined text-[16px]">
+                    close
+                  </span>
+                </button>
+              )}
               <button
-                onClick={() => setFilterSpecialization("all")}
-                className="flex items-center gap-2 bg-primary/10 dark:bg-primary/20 text-primary px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap hover:bg-red-100 hover:text-red-600 transition-colors"
+                onClick={() => {
+                  setFilterSpecialization("all");
+                  setFilterStatus("all");
+                  setSearchText("");
+                }}
+                className="text-xs text-slate-500 hover:text-primary underline ml-2"
               >
-                {filterSpecialization}{" "}
-                <span className="material-symbols-outlined text-[16px]">
-                  close
-                </span>
+                Vymazat vše
               </button>
-            )}
-            {filterStatus !== "all" && (
-              <button
-                onClick={() => setFilterStatus("all")}
-                className="flex items-center gap-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap hover:bg-red-100 hover:text-red-600 transition-colors"
-              >
-                Status: {getStatusConfig(filterStatus).label}{" "}
-                <span className="material-symbols-outlined text-[16px]">
-                  close
-                </span>
-              </button>
-            )}
-            {searchText && (
-              <button
-                onClick={() => setSearchText("")}
-                className="flex items-center gap-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap hover:bg-red-100 hover:text-red-600 transition-colors"
-              >
-                Hledat: "{searchText}"{" "}
-                <span className="material-symbols-outlined text-[16px]">
-                  close
-                </span>
-              </button>
-            )}
-            <button
-              onClick={() => {
-                setFilterSpecialization("all");
-                setFilterStatus("all");
-                setSearchText("");
-              }}
-              className="text-xs text-slate-500 hover:text-primary underline ml-2"
-            >
-              Vymazat vše
-            </button>
-          </div>
-        )}
+            </div>
+          )}
       </div>
 
       {/* Create New Contact Option */}
       {onAddContact && searchText && (
-          <button
-              onClick={() => onAddContact(searchText)}
-              className="flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors text-left group"
-          >
-              <div className="size-10 rounded-full bg-blue-100 dark:bg-blue-800 flex items-center justify-center text-blue-600 dark:text-blue-300 group-hover:scale-110 transition-transform">
-                  <span className="material-symbols-outlined">add</span>
-              </div>
-              <div>
-                  <h4 className="font-bold text-blue-900 dark:text-blue-100">Vytvořit nového dodavatele: "{searchText}"</h4>
-                  <p className="text-xs text-blue-600 dark:text-blue-300">Přidat do databáze a vybrat pro tuto poptávku</p>
-              </div>
-          </button>
+        <button
+          onClick={() => onAddContact(searchText)}
+          className="flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors text-left group"
+        >
+          <div className="size-10 rounded-full bg-blue-100 dark:bg-blue-800 flex items-center justify-center text-blue-600 dark:text-blue-300 group-hover:scale-110 transition-transform">
+            <span className="material-symbols-outlined">add</span>
+          </div>
+          <div>
+            <h4 className="font-bold text-blue-900 dark:text-blue-100">Vytvořit nového dodavatele: "{searchText}"</h4>
+            <p className="text-xs text-blue-600 dark:text-blue-300">Přidat do databáze a vybrat pro tuto poptávku</p>
+          </div>
+        </button>
       )}
 
       {/* Table */}
-      <div className="bg-white dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm flex-1 flex flex-col min-h-0">
-        <div className="overflow-auto flex-1">
-          <table className="w-full text-sm text-left text-slate-600 dark:text-slate-400">
-            <thead className="text-xs text-slate-700 dark:text-slate-300 uppercase bg-slate-100 dark:bg-slate-800 border-b dark:border-slate-700 sticky top-0 z-10">
+      <div className="flex-1 flex flex-col min-h-0">
+        <div className="overflow-auto flex-1 px-1">
+          <table className="w-full text-sm text-left text-slate-600 dark:text-slate-400 border-separate border-spacing-y-3">
+            <thead className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider sticky top-0 z-10">
               <tr>
-                <th className="px-6 py-4 w-10">
+                <th className="px-6 py-2 w-10">
                   <input
                     type="checkbox"
                     checked={isAllSelected}
@@ -269,29 +269,34 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
                     className="rounded border-slate-300 text-primary focus:ring-primary dark:bg-slate-700 dark:border-slate-600"
                   />
                 </th>
-                <th className="px-6 py-4 font-medium">Firma</th>
-                <th className="px-6 py-4 font-medium">Specializace</th>
-                <th className="px-6 py-4 font-medium">Kontakt</th>
-                <th className="px-6 py-4 font-medium">Telefon / Email</th>
-                <th className="px-6 py-4 font-medium">IČO</th>
-                <th className="px-6 py-4 font-medium">Region</th>
-                <th className="px-6 py-4 font-medium">Stav</th>
-                <th className="px-6 py-4 font-medium text-right"></th>
+                <th className="px-6 py-2 font-medium">Firma</th>
+                <th className="px-6 py-2 font-medium">Specializace</th>
+                <th className="px-6 py-2 font-medium">Kontakt</th>
+                <th className="px-6 py-2 font-medium">Telefon / Email</th>
+                <th className="px-6 py-2 font-medium">IČO</th>
+                <th className="px-6 py-2 font-medium">Region</th>
+                <th className="px-6 py-2 font-medium">Stav</th>
+                <th className="px-6 py-2 font-medium text-right"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody>
               {filteredContacts.map((contact) => {
                 const status = getStatusConfig(contact.status);
                 return (
                   <tr
                     key={contact.id}
-                    className={`bg-white dark:bg-slate-900/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group ${
-                      selectedIds.has(contact.id)
-                        ? "bg-blue-50/50 dark:bg-blue-900/10"
-                        : ""
-                    }`}
+                    className={`
+                      group transition-all duration-200
+                      hover:shadow-md hover:-translate-y-[1px]
+                      ${selectedIds.has(contact.id) ? "shadow-md -translate-y-[1px]" : "shadow-sm"}
+                    `}
                   >
-                    <td className="px-6 py-4">
+                    <td className={`
+                      px-6 py-4 rounded-l-xl border-y border-l
+                      ${selectedIds.has(contact.id)
+                        ? "bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
+                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"}
+                    `}>
                       <input
                         type="checkbox"
                         checked={selectedIds.has(contact.id)}
@@ -299,42 +304,73 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
                         className="rounded border-slate-300 text-primary focus:ring-primary dark:bg-slate-700 dark:border-slate-600"
                       />
                     </td>
-                    <td className="px-6 py-4 font-bold text-slate-900 dark:text-white whitespace-nowrap">
-                      {contact.company}
+                    <td className={`
+                      px-6 py-4 font-bold text-slate-900 dark:text-white whitespace-nowrap border-y
+                      ${selectedIds.has(contact.id)
+                        ? "bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
+                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"}
+                    `}>
+                      <div className="text-[15px]">{contact.company}</div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-1">
+                    <td className={`
+                      px-6 py-4 border-y
+                      ${selectedIds.has(contact.id)
+                        ? "bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
+                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"}
+                    `}>
+                      <div className="flex flex-wrap gap-1.5">
                         {contact.specialization.map((spec, index) => (
-                          <span key={index} className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-1 rounded text-xs whitespace-nowrap">
+                          <span key={index} className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 px-2.5 py-1 rounded-full text-[11px] font-medium whitespace-nowrap">
                             {spec}
                           </span>
                         ))}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-slate-900 dark:text-slate-200">
-                      <div className="flex flex-col gap-1">
-                        {contact.contacts.map((c, idx) => (
-                          <div key={idx} className="flex items-center gap-2">
-                            <span className="material-symbols-outlined text-[16px] text-slate-400">
-                              person
-                            </span>
-                            <span className={idx === 0 ? "font-medium" : "text-xs text-slate-500"}>
-                              {c.name !== "-" ? c.name : <span className="italic">Nezadáno</span>}
-                              {c.position && <span className="ml-1 text-[10px] opacity-70">({c.position})</span>}
-                            </span>
-                          </div>
-                        ))}
+                    <td className={`
+                      px-6 py-4 text-slate-900 dark:text-slate-200 border-y
+                      ${selectedIds.has(contact.id)
+                        ? "bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
+                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"}
+                    `}>
+                      <div className="flex flex-col gap-2">
+                        {contact.contacts.map((c, idx) => {
+                          const initials = c.name
+                            .split(' ')
+                            .map(n => n[0])
+                            .slice(0, 2)
+                            .join('')
+                            .toUpperCase();
+
+                          return (
+                            <div key={idx} className="flex items-center gap-3">
+                              <div className="size-8 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-500 border border-slate-200 dark:border-slate-600 shadow-sm">
+                                {initials || '?'}
+                              </div>
+                              <div className="flex flex-col">
+                                <span className={idx === 0 ? "text-sm font-medium" : "text-xs text-slate-500"}>
+                                  {c.name !== "-" ? c.name : <span className="italic">Nezadáno</span>}
+                                </span>
+                                {c.position && <span className="text-[10px] text-slate-400 font-medium">{c.position}</span>}
+                              </div>
+                            </div>
+                          );
+                        })}
                         {contact.contacts.length === 0 && (
-                          <span className="text-slate-400 italic">Bez kontaktu</span>
+                          <span className="text-slate-400 italic text-xs">Bez kontaktu</span>
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className={`
+                      px-6 py-4 border-y
+                      ${selectedIds.has(contact.id)
+                        ? "bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
+                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"}
+                    `}>
                       <div className="flex flex-col gap-2">
                         {contact.contacts.map((c, idx) => (
                           <div key={idx} className={`flex flex-col gap-0.5 ${idx > 0 ? "mt-1 pt-1 border-t border-slate-100 dark:border-slate-800/50" : ""}`}>
                             {c.phone !== "-" && (
-                              <div className="flex items-center gap-2 text-xs">
+                              <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
                                 <span className="material-symbols-outlined text-[14px] text-slate-400">
                                   call
                                 </span>
@@ -342,7 +378,7 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
                               </div>
                             )}
                             {c.email !== "-" && (
-                              <div className="flex items-center gap-2 text-xs">
+                              <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
                                 <span className="material-symbols-outlined text-[14px] text-slate-400">
                                   mail
                                 </span>
@@ -358,15 +394,30 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
                         ))}
                       </div>
                     </td>
-                    <td className="px-6 py-4 font-mono text-xs">
+                    <td className={`
+                      px-6 py-4 font-mono text-xs border-y
+                      ${selectedIds.has(contact.id)
+                        ? "bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
+                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"}
+                    `}>
                       {contact.ico || "-"}
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
+                    <td className={`
+                      px-6 py-4 text-sm text-slate-600 dark:text-slate-400 border-y
+                      ${selectedIds.has(contact.id)
+                        ? "bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
+                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"}
+                    `}>
                       {contact.region || "-"}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className={`
+                      px-6 py-4 border-y
+                      ${selectedIds.has(contact.id)
+                        ? "bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
+                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"}
+                    `}>
                       <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusColorClasses(
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap shadow-sm border border-transparent ${getStatusColorClasses(
                           status.color
                         )}`}
                       >
@@ -378,14 +429,19 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
                         {status.label}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className={`
+                      px-6 py-4 text-right rounded-r-xl border-y border-r
+                      ${selectedIds.has(contact.id)
+                        ? "bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
+                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"}
+                    `}>
                       {onEditContact && (
                         <button
                           onClick={() => onEditContact(contact)}
-                          className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors opacity-0 group-hover:opacity-100"
+                          className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-primary transition-all opacity-0 group-hover:opacity-100"
                           title="Upravit"
                         >
-                          <span className="material-symbols-outlined">
+                          <span className="material-symbols-outlined text-[20px]">
                             edit
                           </span>
                         </button>
@@ -398,16 +454,32 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
                 <tr>
                   <td
                     colSpan={9}
-                    className="px-6 py-10 text-center text-slate-500 italic"
+                    className="px-6 py-12 text-center"
                   >
-                    Nebyly nalezeny žádné kontakty odpovídající filtrům.
+                    <div className="flex flex-col items-center justify-center text-slate-400">
+                      <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4">
+                        <span className="material-symbols-outlined text-3xl">search_off</span>
+                      </div>
+                      <p className="font-medium">Nebyly nalezeny žádné kontakty</p>
+                      <p className="text-sm mt-1">Zkuste upravit filtry nebo hledaný výraz.</p>
+                      <button
+                        onClick={() => {
+                          setSearchText("");
+                          setFilterSpecialization("all");
+                          setFilterStatus("all");
+                        }}
+                        className="mt-4 text-primary font-bold text-sm hover:underline"
+                      >
+                        Vymazat filtry
+                      </button>
+                    </div>
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
-        <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-xs text-slate-500 text-center">
+        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl mt-2 text-xs text-slate-500 text-center border border-slate-200 dark:border-slate-800">
           Zobrazeno {filteredContacts.length} z {contacts.length} kontaktů
         </div>
       </div>

@@ -10,11 +10,11 @@ interface HeaderProps {
   showNotifications?: boolean;
 }
 
-export const Header: React.FC<HeaderProps> = ({ 
-  title, 
-  subtitle, 
-  children, 
-  onSearchChange, 
+export const Header: React.FC<HeaderProps> = ({
+  title,
+  subtitle,
+  children,
+  onSearchChange,
   searchPlaceholder = "Search...",
   showSearch = true,
   showNotifications = true
@@ -28,7 +28,7 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-slate-800 pl-14 pr-6 md:px-6 py-4 bg-white/80 dark:bg-background-dark/90 backdrop-blur-md sticky top-0 z-10 shrink-0">
+    <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-slate-800 pl-14 pr-6 md:px-6 py-3 bg-white dark:bg-slate-900/80 backdrop-blur-sm sticky top-0 z-10 shrink-0">
       <div className="flex flex-col gap-1 min-w-0">
         <h1 className="text-slate-900 dark:text-slate-100 text-xl font-bold leading-tight truncate">{title}</h1>
         {subtitle && <p className="text-slate-500 dark:text-slate-400 text-sm font-normal leading-normal truncate">{subtitle}</p>}
@@ -44,7 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
                 value={searchQuery}
                 onChange={handleSearchChange}
                 placeholder={searchPlaceholder}
-                className="flex-1 bg-transparent border-none focus:ring-0 text-sm text-slate-800 dark:text-slate-200 placeholder-slate-500 ml-2"
+                className="flex-1 bg-transparent border-none focus:ring-0 text-sm text-slate-900 dark:text-slate-200 placeholder-slate-400 ml-2"
               />
             </div>
           )}

@@ -81,12 +81,3 @@ jobs:
             **Poznámka**: Auto-updater automaticky notifikuje existující uživatele o této nové verzi.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  # Future: Add macOS and Linux builds
-  # build-macos:
-  #   runs-on: macos-latest
-  #   ...
-  
-  # build-linux:
-  #   runs-on: ubuntu-latest
-  #   ...

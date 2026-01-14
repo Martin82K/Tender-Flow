@@ -3,6 +3,7 @@ import { Header } from './Header';
 import { Button } from './ui/Button';
 import { Project, ProjectDetails } from '../types';
 import { ProjectOverviewNew } from './ProjectOverviewNew';
+import { Select } from './ui/Select';
 import * as XLSX from 'xlsx';
 
 interface DashboardProps {
@@ -130,18 +131,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ projects, projectDetails, 
                 <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                     {/* Project Selector */}
                     <div className="relative flex-1 min-w-[180px] sm:min-w-[220px] sm:flex-none">
-                        <select
+                        <Select
                             value={selectedProjectId}
-                            onChange={(e) => setSelectedProjectId(e.target.value)}
-                            className="appearance-none w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white px-4 py-2.5 pr-10 rounded-xl text-sm font-medium focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
-                        >
-                            {activeProjects.map(project => (
-                                <option key={project.id} value={project.id}>
-                                    {projectDetails[project.id]?.title || project.name}
-                                </option>
-                            ))}
-                        </select>
-                        <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
+                            onChange={(val) => setSelectedProjectId(val)}
+                            options={activeProjects.map(project => ({
+                                value: project.id,
+                                label: projectDetails[project.id]?.title || project.name
+                            }))}
+                            placeholder="Vyberte projekt"
+                        />
                     </div>
 
                     {/* Export Button */}
@@ -157,7 +155,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ projects, projectDetails, 
                 </div>
             </Header>
 
-            <div className="flex-1 overflow-auto bg-slate-50 dark:bg-slate-950">
+            <div className="flex-1 overflow-auto bg-slate-50 dark:bg-slate-950 animate-fade-in-up">
                 {selectedProject ? (
                     <ProjectOverviewNew
                         project={selectedProject}

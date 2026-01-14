@@ -1,15 +1,113 @@
 @import "tailwindcss";
 
 :root {
-  /* Default Primary Color: #607AFB -> 96 122 251 */
+  /* Brand Primary Color: #607AFB -> HSL(229, 95%, 69%) */
+  --primary-h: 229;
+  --primary-s: 95%;
+  --primary-l: 69%;
   --color-primary: 96 122 251;
-  /* Default Background Color: #f5f6f8 */
-  --color-background: #f5f6f8;
+  /* RGB for Tailwind opacity modifier compatibility */
+
+  /* Refined Grays - slate-based but tuned */
+  --bg-app: #0f172a;
+  /* Slate 900 */
+  --bg-surface: #1e293b;
+  /* Slate 800 */
+  --bg-surface-hover: #334155;
+  /* Slate 700 */
+  --border-subtle: #334155;
+  /* Slate 700 */
+
+  --color-background: #f8fafc;
+  /* Slate 50 for light mode */
+}
+
+/* Professional Card Utility */
+.card-polished {
+  @apply bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl transition-all duration-200;
+}
+
+.card-polished:hover {
+  @apply border-slate-300 dark:border-slate-700 shadow-md;
+}
+
+/* Subtle Input Utility */
+.input-polished {
+  @apply bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none;
+}
+
+/* Navigation Pill with Subtle Gradient */
+.nav-pill {
+  @apply rounded-lg transition-all duration-200 font-medium tracking-tight;
+}
+
+/* Textured/Animated Background for Active Pill */
+@keyframes shimmer {
+  0% {
+    background-position: 200% center;
+  }
+
+  100% {
+    background-position: -200% center;
+  }
+}
+
+.nav-pill-active {
+  background: linear-gradient(90deg,
+      rgb(var(--color-primary) / 0.1) 0%,
+      rgb(var(--color-primary) / 0.2) 50%,
+      rgb(var(--color-primary) / 0.1) 100%);
+  background-size: 200% auto;
+  animation: shimmer 8s linear infinite;
+  @apply text-primary border border-primary/10 shadow-[0_1px_2px_rgba(0, 0, 0, 0.05)];
+}
+
+/* Professional Card with "Lift" Effect */
+.card-polished {
+  @apply bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl transition-all duration-300;
+}
+
+.card-polished:hover {
+  @apply border-primary/20 dark:border-primary/20 shadow-md -translate-y-[2px];
+  box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.1), 0 0 0 1px rgb(var(--color-primary) / 0.15);
+}
+
+.card-polished:active {
+  @apply scale-[0.995] duration-100;
+}
+
+/* Typography refinements */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  @apply tracking-tight;
 }
 
 body {
   font-family: "Inter", sans-serif;
+  @apply bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-200 selection:bg-primary/20 selection:text-primary;
 }
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s ease-out forwards;
+}
+
 
 /* Material Symbols settings */
 .material-symbols-outlined {
@@ -28,8 +126,10 @@ body {
 }
 
 * {
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }
 
 /* Hide scrollbar for clean horizontal scrolling - Legacy class kept for compatibility */

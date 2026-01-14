@@ -457,18 +457,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
           );
           closeMobileMenu();
         }}
-        className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all ${isItemActive
-          ? "bg-primary/20 text-primary border border-primary/30"
-          : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
+        className={`flex items-center gap-3 w-full px-3 py-2 nav-pill group ${isItemActive
+          ? "nav-pill-active"
+          : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200"
           }`}
       >
         <span
-          className={`material-symbols-outlined shrink-0 ${isItemActive ? "fill" : ""
+          className={`material-symbols-outlined shrink-0 text-[20px] ${isItemActive ? "fill" : ""
             }`}
         >
           {item.icon}
         </span>
-        <p className="text-sm font-medium leading-normal break-words">
+        <p className="text-sm font-medium leading-none">
           {item.label}
         </p>
       </button>
@@ -509,7 +509,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <aside
         ref={sidebarRef}
         style={{ width: isOpen ? `${width}px` : "0px" }}
-        className={`relative flex h-full flex-col bg-white dark:bg-gradient-to-b dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 border-r border-slate-200 dark:border-slate-700/50 flex-shrink-0 z-20 select-none group/sidebar transition-all duration-300 ease-in-out max-md:fixed max-md:inset-0 max-md:z-50 max-md:!w-full ${!isOpen
+        className={`relative flex h-full flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex-shrink-0 z-20 select-none group/sidebar transition-all duration-300 ease-in-out max-md:fixed max-md:inset-0 max-md:z-50 max-md:!w-full ${!isOpen
           ? "overflow-hidden border-none max-md:pointer-events-none max-md:opacity-0"
           : "max-md:opacity-100"
           }`}
