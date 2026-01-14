@@ -4,7 +4,8 @@ import { supabase } from '../services/supabase';
 import { invokeAuthedFunction } from '../services/functionsClient';
 import { resolveDocHubStructureV1, getDocHubProjectLinks, DEFAULT_DOCHUB_HIERARCHY, DocHubHierarchyItem, buildHierarchyTree, type DocHubStructureV1 } from '../utils/docHub';
 import { isMcpBridgeRunning, mcpEnsureStructure, mcpFolderExists, mcpPickFolder } from '../services/mcpBridgeClient';
-import { isDesktop } from '../services/platformAdapter';
+import { isDesktop, fileSystemAdapter } from '../services/platformAdapter';
+import { folderExists } from '../services/fileSystemService';
 
 export interface DocHubModalRequest {
     title: string;
@@ -463,6 +464,50 @@ export const useDocHubIntegration = (
         if (!provider || !rootLink.trim()) return;
         setResolveProgress(10); // Fake start
         setIsConnecting(true); // Reuse connecting state
+
+        // Handle Local Providers (Desktop/MCP) without backend call
+        if (provider === 'onedrive' || provider === 'mcp') {
+            try {
+                const path = rootLink.trim();
+                const exists = await folderExists(path);
+
+                // For Desktop, we generally trust the user or the picker, but good to check
+                /* 
+                if (!exists && provider === 'onedrive' && isDesktop) {
+                    // Optional: warn or ask to create? 
+                    // For now, accept it. Pipeline will try to create structure later.
+                }
+                */
+
+                const folderName = path.split(/[\\/]/).pop() || path;
+                setResolveProgress(50);
+
+                await new Promise(r => setTimeout(r, 500)); // UI feel
+
+                setRootName(folderName);
+                setStatus("connected");
+                onUpdate({
+                    docHubEnabled: true,
+                    docHubProvider: provider,
+                    docHubStatus: "connected",
+                    docHubRootName: folderName,
+                    docHubRootLink: path,
+                    docHubRootWebUrl: null,
+                    docHubRootId: provider === 'mcp' ? `mcp:${path}` : `local:${path}`,
+                    docHubDriveId: null,
+                    docHubSiteId: null,
+                });
+                setResolveProgress(100);
+            } catch (e: any) {
+                showMessage("Chyba", e.message || "Nelze ověřit složku", "danger");
+                setResolveProgress(0);
+            } finally {
+                setTimeout(() => { setIsConnecting(false); setResolveProgress(0); }, 500);
+            }
+            return;
+        }
+
+        // Handle Cloud Providers (via Backend)
         try {
             const resolved = await invokeAuthedFunction<any>("dochub-resolve-root", {
                 body: { provider, projectId: project.id, url: rootLink.trim() }
@@ -976,10 +1021,10 @@ export const useDocHubIntegration = (
                 if (isWebUrl) {
                     // Open in default browser
                     window.open(link, '_blank');
-                } else if (typeof window !== 'undefined' && (window as any).electronAPI) {
-                    // Open local path via Electron shell (works for mapped drives like H:\ too)
-                    // @ts-ignore
-                    await (window as any).electronAPI.fs.openFile(link);
+                } else if (isDesktop) {
+                    // Open local path via Platform Adapter (Electron)
+                    // Uses openInExplorer which works for folders
+                    await fileSystemAdapter.openInExplorer(link);
                 }
             }, [rootLink]),
             runAutoCreate,
