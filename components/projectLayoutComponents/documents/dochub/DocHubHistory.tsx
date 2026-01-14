@@ -252,36 +252,7 @@ export const DocHubHistory: React.FC<DocHubHistoryProps> = ({ project, onSelectR
                 )}
             </div>
 
-            <div className="bg-white dark:bg-slate-900/30 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4">
-                <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm font-semibold text-slate-900 dark:text-white">Automatický běh (brzy)</div>
-                    <span className="px-2 py-0.5 rounded-lg text-[11px] font-bold border bg-slate-200 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700/50">
-                        Future
-                    </span>
-                </div>
-                <div className="mt-2 text-xs text-slate-500 dark:text-slate-400 space-y-1">
-                    <div>Architektura už je připravená: logy, průběh a historie běhů per projekt.</div>
-                    <div>Možné scénáře: „Auto‑sync každou noc“, „Po přidání nového VŘ vytvoř strukturu automaticky“.</div>
-                </div>
-                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <button
-                        type="button"
-                        disabled
-                        title="Brzy – bude možné spouštět automaticky přes plánovač."
-                        className="px-3 py-2 rounded-lg text-sm font-medium border bg-slate-200 dark:bg-slate-800/60 text-slate-500 border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
-                    >
-                        Noční auto‑sync
-                    </button>
-                    <button
-                        type="button"
-                        disabled
-                        title="Brzy – trigger po vytvoření nového VŘ."
-                        className="px-3 py-2 rounded-lg text-sm font-medium border bg-slate-200 dark:bg-slate-800/60 text-slate-500 border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
-                    >
-                        Auto‑create po VŘ
-                    </button>
-                </div>
-            </div>
+
             <AlertModal
                 isOpen={alertModal.isOpen}
                 onClose={closeAlertModal}

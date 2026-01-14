@@ -68,7 +68,7 @@ export const DocHubStructureEditor: React.FC<DocHubStructureEditorProps> = ({ st
                             ? "bg-slate-200 dark:bg-slate-800/60 text-slate-500 border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
                             : "bg-primary/15 hover:bg-primary/20 text-primary border-primary/30"
                             }`}
-                        title={!isConnected ? "Nejdřív připojte DocHub a nastavte hlavní složku projektu." : "Synchronizuje DocHub strukturu pro projekt (ručně)."}
+                        title={!isConnected ? "Nejdřív připojte Složkomat a nastavte hlavní složku projektu." : "Synchronizuje Složkomat strukturu pro projekt (ručně)."}
                     >
                         {isAutoCreating
                             ? `Auto‑vytváření… ${autoCreateProgress}%`
@@ -93,7 +93,7 @@ export const DocHubStructureEditor: React.FC<DocHubStructureEditorProps> = ({ st
                             ].join('\n');
                             try {
                                 await navigator.clipboard.writeText(structure);
-                                showModal({ title: "Zkopírováno", message: "Struktura DocHub zkopírována do schránky.", variant: "success" });
+                                showModal({ title: "Zkopírováno", message: "Struktura Složkomat zkopírována do schránky.", variant: "success" });
                             } catch {
                                 showModal({
                                     title: "Zkopírujte strukturu",

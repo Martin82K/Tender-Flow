@@ -265,7 +265,7 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
               }`}
             title={
               isConnectedStatus
-                ? "Odpojí DocHub účet pro tuto stavbu"
+                ? "Odpojí Složkomat účet pro tuto stavbu"
                 : isLocalProvider
                   ? "Uloží nastavení lokální složky"
                   : isMcpProvider

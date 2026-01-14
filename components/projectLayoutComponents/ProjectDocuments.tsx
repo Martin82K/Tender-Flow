@@ -273,7 +273,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
               Dokumenty
             </h2>
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              Správa dokumentace, šablon a napojení na DocHub
+              Správa dokumentace, šablon a napojení na Složkomat
             </p>
           </div>
         </div>
@@ -323,7 +323,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
                   <span className="material-symbols-outlined text-[20px]">
                     cloud_sync
                   </span>
-                  DocHub
+                  Složkomat
                 </div>
               </button>
 
