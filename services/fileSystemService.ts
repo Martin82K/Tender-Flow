@@ -472,3 +472,5 @@ export async function stopWatching(): Promise<void> {
 
 // Export type for external use
 export type { McpEnsureStructureRequest };
+
+

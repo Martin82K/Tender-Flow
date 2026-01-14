@@ -105,6 +105,18 @@ export const slugifyDocHubSegment = (value: string): string => {
   return normalized || "Neznamy";
 };
 
+export const slugifyDocHubSegmentStrict = (value: string): string => {
+  const normalized = value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/&/g, " a ")
+    .replace(/[^\w\s-]/g, " ") // Use backend rules: replace non-word/dash with space
+    .trim()
+    .replace(/\s+/g, "_")    // Replace spaces with underscores
+    .replace(/_+/g, "_");
+  return normalized || "Neznamy";
+};
+
 export const joinDocHubPath = (root: string, ...segments: string[]): string => {
   const cleanRoot = stripTrailingSeparators(root.trim());
   const cleanSegments = segments

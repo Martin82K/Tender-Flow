@@ -43,8 +43,9 @@ import {
   getDocHubTenderLinksDesktop,
   isProbablyUrl,
   resolveDocHubStructureV1,
+  slugifyDocHubSegmentStrict,
 } from "../utils/docHub";
-import { ensureStructure, deleteFolder } from "../services/fileSystemService";
+import { ensureStructure, deleteFolder, folderExists } from "../services/fileSystemService";
 import { mcpOpenPath } from "../services/mcpBridgeClient";
 import platformAdapter from "../services/platformAdapter";
 import { DEFAULT_STATUSES } from "../config/constants";
@@ -989,9 +990,10 @@ export const Pipeline: React.FC<PipelineProps> = ({
           const links = getDocHubTenderLinks(docHubRoot, activeCategory.title, structure);
           const supplierFolder = links.supplierBase(bidToDelete.companyName);
 
-          mcpDeleteFolder(docHubRoot, supplierFolder).catch(err => {
+          deleteFolder(docHubRoot, supplierFolder, { provider: 'mcp' }).catch(err => {
             console.error("MCP Auto-delete supplier folder failed:", err);
           });
+
         }
       }
     } catch (err) {
@@ -1154,15 +1156,43 @@ export const Pipeline: React.FC<PipelineProps> = ({
     console.log('[DocHub] isDesktopMode:', isDesktopMode);
 
     if (isDesktopMode) {
-      // Desktop: pass supplier name directly, get path string back
-      const supplierPath = getDocHubTenderLinksDesktop(
-        docHubRoot,
-        activeCategory.title,
-        bid.companyName,
-        projectDetails.docHubStructureV1
-      );
-      console.log('[DocHub] Desktop path:', supplierPath);
-      openOrCopyDocHubPath(supplierPath);
+      // Desktop: Check for both standard (Raw) and strict (Underscored) folder names
+      const handleDesktopPath = async () => {
+        // 1. Try standard path (preserves spaces/diacritics if any)
+        const supplierPath = getDocHubTenderLinksDesktop(
+          docHubRoot,
+          activeCategory.title,
+          bid.companyName,
+          projectDetails.docHubStructureV1
+        );
+
+        if (await folderExists(supplierPath)) {
+          console.log('[DocHub] Found aligned folder:', supplierPath);
+          openOrCopyDocHubPath(supplierPath);
+          return;
+        }
+
+        // 2. Try strict slugified path (Cloud style: spaces -> underscores)
+        const strictName = slugifyDocHubSegmentStrict(bid.companyName);
+        const strictPath = getDocHubTenderLinksDesktop(
+          docHubRoot,
+          activeCategory.title,
+          strictName,
+          projectDetails.docHubStructureV1
+        );
+
+        if (await folderExists(strictPath)) {
+          console.log('[DocHub] Found strict (underscored) folder:', strictPath);
+          openOrCopyDocHubPath(strictPath);
+          return;
+        }
+
+        // Fallback to standard if neither found explicitly (let Explorer handle error or opening parent)
+        console.log('[DocHub] Folder not found, attempting standard:', supplierPath);
+        openOrCopyDocHubPath(supplierPath);
+      };
+
+      handleDesktopPath();
     } else {
       const links = getDocHubTenderLinks(
         docHubRoot,
