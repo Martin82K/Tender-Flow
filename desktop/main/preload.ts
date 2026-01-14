@@ -47,6 +47,9 @@ const electronAPI: ElectronAPI = {
         deleteFolder: (folderPath: string): Promise<{ success: boolean; error?: string }> =>
             ipcRenderer.invoke('fs:deleteFolder', folderPath),
 
+        renameFolder: (oldPath: string, newPath: string): Promise<{ success: boolean; error?: string }> =>
+            ipcRenderer.invoke('fs:renameFolder', oldPath, newPath),
+
         folderExists: (folderPath: string): Promise<boolean> =>
             ipcRenderer.invoke('fs:folderExists', folderPath),
     },

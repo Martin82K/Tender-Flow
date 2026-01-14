@@ -20,6 +20,7 @@ import {
     type McpEnsureStructureRequest,
     type McpEnsureStructureResponse,
 } from './mcpBridgeClient';
+import { invokeAuthedFunction } from './functionsClient';
 import type { DocHubStructureV1, DocHubHierarchyItem } from '../utils/docHub';
 
 export interface FileSystemStatus {
@@ -104,13 +105,35 @@ export async function folderExists(folderPath: string): Promise<boolean> {
 /**
  * Create a single folder
  */
-export async function createFolder(folderPath: string): Promise<FolderOperationResult> {
-    if (isDesktop) {
+export async function createFolder(pathOrName: string, options?: { provider?: string, projectId?: string, parentId?: string }): Promise<FolderOperationResult> {
+    const { provider, projectId, parentId } = options || {};
+
+    if (provider === 'gdrive' || provider === 'onedrive_cloud') {
+        if (!projectId) return { success: false, error: 'Missing projectId for cloud create' };
         try {
-            const result = await fileSystemAdapter.createFolder(folderPath);
+            const res = await invokeAuthedFunction<{ success: boolean, id: string, webUrl?: string }>('dochub-manage-folder', {
+                body: {
+                    action: 'create',
+                    projectId,
+                    provider: provider === 'onedrive_cloud' ? 'onedrive' : provider,
+                    name: pathOrName,
+                    parentId
+                }
+            });
+            return { success: true, path: res?.id };
+        } catch (e) {
+            return { success: false, error: e instanceof Error ? e.message : String(e) };
+        }
+    }
+
+    // Desktop / Local / MCP
+    // pathOrName is full path here
+    if (isDesktop && (!provider || provider === 'onedrive')) {
+        try {
+            const result = await fileSystemAdapter.createFolder(pathOrName);
             return {
                 success: result.success,
-                path: result.success ? folderPath : undefined,
+                path: result.success ? pathOrName : undefined,
                 error: result.error,
             };
         } catch (e) {
@@ -123,7 +146,7 @@ export async function createFolder(folderPath: string): Promise<FolderOperationR
 
     // Web: use MCP
     try {
-        const result = await mcpCreateFolder(folderPath);
+        const result = await mcpCreateFolder(pathOrName);
         return {
             success: result.success,
             path: result.path,
@@ -140,8 +163,26 @@ export async function createFolder(folderPath: string): Promise<FolderOperationR
 /**
  * Delete a folder (within rootPath for safety)
  */
-export async function deleteFolder(rootPath: string, folderPath: string): Promise<FolderOperationResult> {
-    if (isDesktop) {
+export async function deleteFolder(rootPath: string, folderPath: string, options?: { provider?: string, projectId?: string, folderId?: string }): Promise<FolderOperationResult> {
+    const { provider, projectId, folderId } = options || {};
+
+    if ((provider === 'gdrive' || provider === 'onedrive_cloud') && folderId && projectId) {
+        try {
+            await invokeAuthedFunction('dochub-manage-folder', {
+                body: {
+                    action: 'delete',
+                    projectId,
+                    provider: provider === 'onedrive_cloud' ? 'onedrive' : provider,
+                    folderId
+                }
+            });
+            return { success: true };
+        } catch (e) {
+            return { success: false, error: e instanceof Error ? e.message : String(e) };
+        }
+    }
+
+    if (isDesktop && (!provider || provider === 'onedrive')) {
         try {
             const result = await fileSystemAdapter.deleteFolder(folderPath);
             return {
@@ -169,6 +210,49 @@ export async function deleteFolder(rootPath: string, folderPath: string): Promis
             error: e instanceof Error ? e.message : String(e),
         };
     }
+}
+
+/**
+ * Rename a folder
+ */
+export async function renameFolder(oldPath: string, newPath: string, options?: { provider?: string, projectId?: string, folderId?: string, newName?: string }): Promise<FolderOperationResult> {
+    const { provider, projectId, folderId, newName } = options || {};
+
+    if ((provider === 'gdrive' || provider === 'onedrive_cloud') && folderId && projectId && newName) {
+        try {
+            await invokeAuthedFunction('dochub-manage-folder', {
+                body: {
+                    action: 'rename',
+                    projectId,
+                    provider: provider === 'onedrive_cloud' ? 'onedrive' : provider,
+                    folderId,
+                    newName
+                }
+            });
+            return { success: true };
+        } catch (e) {
+            return { success: false, error: e instanceof Error ? e.message : String(e) };
+        }
+    }
+
+    if (isDesktop && (!provider || provider === 'onedrive')) {
+        try {
+            const result = await fileSystemAdapter.renameFolder(oldPath, newPath);
+            return {
+                success: result.success,
+                error: result.error,
+            };
+        } catch (e) {
+            return {
+                success: false,
+                error: e instanceof Error ? e.message : String(e),
+            };
+        }
+    }
+
+    // MCP does not currently support rename directly, would need to implement in bridge
+    // For now, return not supported or fallback
+    return { success: false, error: "Rename not supported on MCP yet." };
 }
 
 /**

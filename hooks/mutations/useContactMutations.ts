@@ -5,6 +5,10 @@ import { useAuth } from "../../context/AuthContext";
 import { CONTACT_KEYS } from "../queries/useContactsQuery";
 import { getDemoData, saveDemoData } from "../../services/demoData";
 import { mergeContacts } from "../../services/contactsImportService";
+import { useLocation } from "../../components/routing/router";
+import { parseAppRoute } from "../../components/routing/routeUtils";
+import { renameFolder } from '../../services/fileSystemService';
+import { ProjectDetails } from '../../types';
 
 export const useAddContactMutation = () => {
     const queryClient = useQueryClient();
@@ -55,6 +59,9 @@ export const useAddContactMutation = () => {
 export const useUpdateContactMutation = () => {
     const queryClient = useQueryClient();
     const { user } = useAuth();
+    const { pathname, search } = useLocation();
+    const route = parseAppRoute(pathname, search);
+    const projectId = (route.isApp && 'view' in route && route.view === "project") ? route.projectId : undefined;
 
     return useMutation({
         mutationFn: async ({ id, updates }: { id: string, updates: Partial<Subcontractor> }) => {
@@ -89,8 +96,73 @@ export const useUpdateContactMutation = () => {
             );
             return { previousContacts };
         },
-        onSettled: () => {
+        onSuccess: (_data, variables) => {
+            // Auto-Rename DocHub Folder if name changed and we are in a project context
+            if (projectId && variables.updates.company) {
+                const updatedName = variables.updates.company;
+                // Get previous contact from cache to verify name change (we can look at query cache before invalidation, or use context)
+                // Context from onMutate has previousContacts
+                // But let's look up the contact in the list (it might be stale in cache vs mutated local state, but previousContacts has the old state)
+
+                const previousContact = queryClient.getQueryData<Subcontractor[]>(CONTACT_KEYS.list())?.find(c => c.id === variables.id);
+                // Wait, we optimistic updated in onMutate, so 'active' cache has new name.
+                // We need PRE-UPDATE name.
+                // We can pass it in context? Yes but `onSuccess` receives `context`.
+                // But `context` is the 3rd arg. `(_data, variables, context)`.
+
+                // Let's refactor slightly to access context
+            }
+        },
+        onSettled: (data, error, variables, context: any) => {
             queryClient.invalidateQueries({ queryKey: CONTACT_KEYS.list() });
+
+            // Moving logic to onSettled to ensure context access or just handle it here.
+            // Actually, we can do it in onSuccess with 3rd arg.
+            // But let's do it here. 
+            // We need `updatedName` and `oldName`.
+            // `variables.updates.company` is new name.
+            // `context.previousContacts` has old list.
+
+            const newName = variables.updates.company;
+            if (projectId && newName && context?.previousContacts) {
+                const oldContact = (context.previousContacts as Subcontractor[]).find(c => c.id === variables.id);
+                if (oldContact && oldContact.company !== newName) {
+                    const oldName = oldContact.company;
+
+                    // Get Project Details
+                    const project = queryClient.getQueryData<ProjectDetails>(['project', projectId]);
+                    if (project && project.docHubEnabled && project.docHubStatus === 'connected') {
+                        const provider = project.docHubProvider;
+                        const rootPath = project.docHubRootLink;
+                        const structure = (project.docHubStructureV1 as any) || {};
+                        const tendersName = structure.tenders || "01_VÝBĚROVÁ_ŘÍZENÍ";
+
+                        // Helper for path separator
+                        const isWin = navigator.userAgent.includes('Windows');
+                        const sep = (provider === 'onedrive' && isWin) ? '\\' : '/';
+
+                        if (project.bids) {
+                            // Iterate categories to find usage
+                            for (const [catId, bids] of Object.entries(project.bids)) {
+                                const isUsed = bids.some((b: any) => b.subcontractorId === variables.id);
+                                if (isUsed) {
+                                    const category = project.categories?.find(c => c.id === catId);
+                                    if (category && rootPath) {
+                                        // Desktop/MCP only for now
+                                        if (provider === 'onedrive' || provider === 'mcp') {
+                                            const oldPath = `${rootPath}${sep}${tendersName}${sep}${category.title.trim()}${sep}${oldName.trim()}`;
+                                            const newPath = `${rootPath}${sep}${tendersName}${sep}${category.title.trim()}${sep}${newName.trim()}`;
+
+                                            // Trigger rename (fire and forget)
+                                            renameFolder(oldPath, newPath, { provider, projectId }).catch(e => console.error("Auto-rename failed", e));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     });
 };

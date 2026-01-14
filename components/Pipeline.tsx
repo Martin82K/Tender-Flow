@@ -44,7 +44,8 @@ import {
   isProbablyUrl,
   resolveDocHubStructureV1,
 } from "../utils/docHub";
-import { mcpEnsureStructure, mcpDeleteFolder, mcpOpenPath } from "../services/mcpBridgeClient";
+import { ensureStructure, deleteFolder } from "../services/fileSystemService";
+import { mcpOpenPath } from "../services/mcpBridgeClient";
 import platformAdapter from "../services/platformAdapter";
 import { DEFAULT_STATUSES } from "../config/constants";
 import {
@@ -575,27 +576,43 @@ export const Pipeline: React.FC<PipelineProps> = ({
         } else {
           console.log("🟢 Successfully inserted bids:", data);
 
-          // AUTO-CREATE: MCP
-          if (
-            isDocHubEnabled &&
-            canUseDocHubBackend === false && // Only for local MCP
-            projectData.dochub_provider === 'mcp'
-          ) {
-            const mcpSuppliers: Record<string, Array<{ id: string; name: string }>> = {};
-            mcpSuppliers[activeCategory.id] = newBids.map(b => ({
-              id: b.subcontractorId,
-              name: b.companyName // or b.subcontractorId
-            }));
+          // AUTO-CREATE: Unified (Desktop, MCP, Cloud)
+          if (isDocHubEnabled) {
+            const provider = projectData.docHubProvider;
 
-            // We need to resolve structure
-            const structure = resolveDocHubStructureV1(projectData.docHubStructureV1 || undefined);
+            // Desktop & MCP: Use fileSystemService (which delegates to Electron or MCP)
+            if (provider === 'onedrive' || provider === 'mcp') {
+              const mcpSuppliers: Record<string, Array<{ id: string; name: string }>> = {};
+              mcpSuppliers[activeCategory.id] = newBids.map(b => ({
+                id: b.subcontractorId,
+                name: b.companyName
+              }));
 
-            mcpEnsureStructure({
-              rootPath: docHubRoot,
-              structure,
-              categories: [{ id: activeCategory.id, title: activeCategory.title }],
-              suppliers: mcpSuppliers
-            }).catch(err => console.error("MCP Auto-create supplier folders failed:", err));
+              const structure = resolveDocHubStructureV1(projectData.docHubStructureV1 || undefined);
+              const { buildHierarchyTree } = await import('../utils/docHub'); // Import helper if not top-level
+              const hierarchyTree = buildHierarchyTree(structure.extraHierarchy || []);
+
+              // For MCP, docHubRoot is the path. For Desktop (onedrive), it is also the path.
+              ensureStructure({
+                rootPath: docHubRoot,
+                structure,
+                categories: [{ id: activeCategory.id, title: activeCategory.title }],
+                suppliers: mcpSuppliers,
+                hierarchy: hierarchyTree
+              }).then(res => {
+                if (res.success) {
+                  // toast.success("Složky vytvořeny.");
+                } else {
+                  console.error("Auto-create folders failed:", res.error);
+                  showAlert({ title: "Chyba vytvoření složek", message: res.error || "Neznámá chyba", variant: "danger" });
+                }
+              });
+            } else if (provider === 'gdrive' || provider === 'onedrive_cloud') {
+              // Cloud: Trigger backend
+              invokeAuthedFunction('dochub-autocreate', {
+                body: { projectId: projectData.id }
+              }).catch(e => console.error("Cloud auto-create trigger failed:", e));
+            }
           }
         }
       } catch (err) {

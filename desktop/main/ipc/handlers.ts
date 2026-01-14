@@ -203,6 +203,15 @@ export function registerIpcHandlers(): void {
         }
     });
 
+    ipcMain.handle('fs:renameFolder', async (_, oldPath: string, newPath: string): Promise<{ success: boolean; error?: string }> => {
+        try {
+            await fs.rename(oldPath, newPath);
+            return { success: true };
+        } catch (e) {
+            return { success: false, error: e instanceof Error ? e.message : String(e) };
+        }
+    });
+
     ipcMain.handle('fs:folderExists', async (_, folderPath: string): Promise<boolean> => {
         try {
             const stat = await fs.stat(folderPath);

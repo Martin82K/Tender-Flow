@@ -105,6 +105,16 @@ export const fileSystemAdapter = {
         }
         return false;
     },
+
+    /**
+     * Rename a folder (desktop only)
+     */
+    async renameFolder(oldPath: string, newPath: string): Promise<{ success: boolean; error?: string }> {
+        if (isDesktop && window.electronAPI) {
+            return window.electronAPI.fs.renameFolder(oldPath, newPath);
+        }
+        return { success: false, error: 'Folder renaming not available on web.' };
+    },
 };
 
 /**

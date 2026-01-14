@@ -40,6 +40,7 @@ export interface FileSystemAPI {
     openFile: (filePath: string) => Promise<void>;
     createFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
     deleteFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
+    renameFolder: (oldPath: string, newPath: string) => Promise<{ success: boolean; error?: string }>;
     folderExists: (folderPath: string) => Promise<boolean>;
 }
 
