@@ -19,7 +19,7 @@ export const TEMPLATE_VARIABLES: TemplateVariable[] = [
     { code: '{OPRAVNENA_OSOBA}', description: 'Oprávněná osoba', category: 'Project' },
     { code: '{TECHNICKY_DOZOR}', description: 'Technický dozor', category: 'Project' },
     { code: '{ODKAZ_DOKUMENTACE}', description: 'Odkaz na dokumentaci', category: 'Project' },
-    
+
     { code: '{SOD_CENA}', description: 'Cena SOD smlouvy', category: 'Financial' },
     { code: '{SPLATNOST}', description: 'Splatnost faktury', category: 'Financial' },
     { code: '{ZARUKA}', description: 'Záruční doba', category: 'Financial' },
@@ -28,6 +28,7 @@ export const TEMPLATE_VARIABLES: TemplateVariable[] = [
     { code: '{ZARIZENI_STAVENISTE}', description: 'Zařízení staveniště', category: 'Financial' },
 
     { code: '{KATEGORIE_NAZEV}', description: 'Název poptávky', category: 'Project' },
+    { code: '{POPIS_PRACI}', description: 'Seznam prací (z poptávky)', category: 'Project' },
     { code: '{DATUM_ODESLANI}', description: 'Datum odeslání', category: 'Project' },
     { code: '{TERMIN_REALIZACE}', description: 'Termín realizace', category: 'Project' },
     { code: '{TERMIN_POPTAVKY}', description: 'Termín pro podání nabídky', category: 'Project' },
@@ -39,26 +40,26 @@ export const getPreviewData = (project?: ProjectDetails, category?: DemandCatego
 
     if (project) {
         // Safe mapping for project status
-        
+
         const cat = category || (project.categories && project.categories.length > 0 ? project.categories[0] : null);
-        const realizationDate = cat && cat.realizationStart && cat.realizationEnd 
+        const realizationDate = cat && cat.realizationStart && cat.realizationEnd
             ? `${new Date(cat.realizationStart).toLocaleDateString('cs-CZ')} - ${new Date(cat.realizationEnd).toLocaleDateString('cs-CZ')}`
             : 'Dle harmonogramu';
-        
-        const bidDeadline = cat && cat.deadline 
+
+        const bidDeadline = cat && cat.deadline
             ? new Date(cat.deadline).toLocaleDateString('cs-CZ')
             : 'Dle dohody';
 
         const signature = userSignature || project.siteManager || 'S pozdravem Tým';
-        
+
         // Auto-detect HTML: if it contains tags like <p, <div, <br, <span, <a, assume it's HTML.
         const isHtmlSignature = /<[a-z][\s\S]*>/i.test(signature);
 
         // If HTML format requested:
         // - If signature IS HTML, leave it alone (user provided HTML source)
         // - If signature is NOT HTML, convert newlines to <br>
-        const formattedSignature = format === 'html' 
-            ? (isHtmlSignature ? signature : signature.replace(/\n/g, '<br>')) 
+        const formattedSignature = format === 'html'
+            ? (isHtmlSignature ? signature : signature.replace(/\n/g, '<br>'))
             : signature;
 
         return {
@@ -68,24 +69,24 @@ export const getPreviewData = (project?: ProjectDetails, category?: DemandCatego
             '{TERMIN_DOKONCENI}': project.finishDate || '31.12.2025',
             '{TYP_STAVBY}': project.status === 'tender' ? 'Soutěž' : (project.status === 'realization' ? 'Realizace' : 'Realizace'),
             '{SOUTEZ_REALIZACE}': project.status === 'tender' ? 'Soutěž' : (project.status === 'realization' ? 'Realizace' : 'Realizace'),
-            
+
             '{HLAVNI_STAVBYVEDOUCI}': project.siteManager || 'Ing. Jan Hlavní',
             '{STAVBYVEDOUCI}': project.constructionManager || 'Ing. Petr Stavitel',
             '{STAVEBNI_TECHNIK}': project.constructionTechnician || 'Tomáš Technik',
-            
-            '{OPRAVNENA_OSOBA}': 'Ing. Petr Svoboda', 
+
+            '{OPRAVNENA_OSOBA}': 'Ing. Petr Svoboda',
             '{TECHNICKY_DOZOR}': project.technicalSupervisor || 'Ing. Kontrola',
             '{ODKAZ_DOKUMENTACE}': (() => {
                 if (project.documentLinks && project.documentLinks.length > 0) {
                     if (format === 'html') {
-                        return project.documentLinks.map(l => `📂 <a href="${l.url}">${l.label}</a>`).join('<br>');    
+                        return project.documentLinks.map(l => `📂 <a href="${l.url}">${l.label}</a>`).join('<br>');
                     }
                     return project.documentLinks.map(l => `📂 ${l.label}: ${l.url}`).join('\n');
                 }
                 const link = project.documentationLink || 'https://drive.google.com/...';
                 return format === 'html' ? `<a href="${link}">Odkaz na dokumentaci</a>` : link;
             })(),
-            
+
             '{SOD_CENA}': project.investorFinancials?.sodPrice ? `${project.investorFinancials.sodPrice.toLocaleString('cs-CZ')} Kč` : '1 000 000 Kč',
             '{SPLATNOST}': project.contract?.maturity ? `${project.contract.maturity} dnů` : '30 dnů',
             '{ZARUKA}': project.contract?.warranty ? `${project.contract.warranty} měsíců` : '60 měsíců',
@@ -94,13 +95,33 @@ export const getPreviewData = (project?: ProjectDetails, category?: DemandCatego
             '{ZARIZENI_STAVENISTE}': project.contract?.siteFacilities ? `${project.contract.siteFacilities} %` : '0 %',
 
             '{KATEGORIE_NAZEV}': cat ? cat.title : 'Ocelová konstrukce',
+            '{POPIS_PRACI}': (() => {
+                if (cat && cat.workItems && cat.workItems.length > 0) {
+                    if (format === 'html') {
+                        return `<ul>${cat.workItems.map(item => `<li>${item}</li>`).join('')}</ul>`;
+                    }
+                    return cat.workItems.map(item => `- ${item}`).join('\n');
+                }
+                if (cat && cat.description) {
+                    // Fallback to splitting description by newline if workItems missing but description exists (legacy)
+                    const items = cat.description.split('\n').filter(Boolean);
+                    if (items.length > 1) {
+                        if (format === 'html') {
+                            return `<ul>${items.map(item => `<li>${item}</li>`).join('')}</ul>`;
+                        }
+                        return items.map(item => `- ${item}`).join('\n');
+                    }
+                    return cat.description;
+                }
+                return 'Popis prací neuveden';
+            })(),
             '{DATUM_ODESLANI}': today,
             '{TERMIN_REALIZACE}': realizationDate,
             '{TERMIN_POPTAVKY}': bidDeadline,
             '{PODPIS_UZIVATELE}': formattedSignature,
         };
     }
-    
+
     // Fallback dummy data
     return {
         '{NAZEV_STAVBY}': 'Rezidence Parková',
@@ -115,7 +136,7 @@ export const getPreviewData = (project?: ProjectDetails, category?: DemandCatego
         '{OPRAVNENA_OSOBA}': 'Ing. Petr Ředitel',
         '{TECHNICKY_DOZOR}': 'TDI Servis s.r.o.',
         '{ODKAZ_DOKUMENTACE}': format === 'html' ? '<a href="https://sharepoint.com/project-123">Odkaz na dokumentaci</a>' : 'https://sharepoint.com/project-123',
-        
+
         '{SOD_CENA}': '15 500 000 Kč',
         '{SPLATNOST}': '45 dnů',
         '{ZARUKA}': '60 měsíců',
@@ -124,6 +145,7 @@ export const getPreviewData = (project?: ProjectDetails, category?: DemandCatego
         '{ZARIZENI_STAVENISTE}': '2.5 %',
 
         '{KATEGORIE_NAZEV}': 'Tesařské konstrukce',
+        '{POPIS_PRACI}': format === 'html' ? '<ul><li>Dodávka materiálu</li><li>Montáž krovu</li><li>Nátěry</li></ul>' : '- Dodávka materiálu\n- Montáž krovu\n- Nátěry',
         '{DATUM_ODESLANI}': today,
         '{TERMIN_REALIZACE}': '01.03.2024 - 15.04.2024',
         '{TERMIN_POPTAVKY}': '20.01.2024',
@@ -133,7 +155,7 @@ export const getPreviewData = (project?: ProjectDetails, category?: DemandCatego
 
 export const processTemplate = (template: string, projectOrData: ProjectDetails | Record<string, string>, category?: DemandCategory, format: 'text' | 'html' = 'text', userSignature?: string): string => {
     let data: Record<string, string>;
-    
+
     // Check if projectOrData is strict ProjectDetails (has 'id', 'title' etc) or just a Record
     if ('title' in projectOrData && 'investor' in projectOrData) {
         // It's ProjectDetails

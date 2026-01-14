@@ -59,6 +59,7 @@ const fetchProjectDetails = async (projectId: string): Promise<ProjectDetails> =
         status: c.status || "open",
         subcontractorCount: 0,
         description: c.description || "",
+        workItems: c.work_items || [],
         deadline: c.deadline || undefined,
         realizationStart: c.realization_start || undefined,
         realizationEnd: c.realization_end || undefined,

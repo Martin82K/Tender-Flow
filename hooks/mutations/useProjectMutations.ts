@@ -279,6 +279,7 @@ export const useAddCategoryMutation = () => {
                 deadline: category.deadline || null,
                 realization_start: category.realizationStart || null,
                 realization_end: category.realizationEnd || null,
+                work_items: category.workItems || null,
             });
             if (error) throw error;
 
@@ -355,6 +356,7 @@ export const useEditCategoryMutation = () => {
                 deadline: category.deadline || null,
                 realization_start: category.realizationStart || null,
                 realization_end: category.realizationEnd || null,
+                work_items: category.workItems || null,
             }).eq("id", category.id).eq("project_id", projectId);
 
             if (error) throw error;

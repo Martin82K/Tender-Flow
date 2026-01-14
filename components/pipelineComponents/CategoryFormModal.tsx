@@ -16,6 +16,7 @@ export interface CategoryFormData {
     sodBudget: string;
     planBudget: string;
     description: string;
+    workItems: string[];
     deadline: string;
     realizationStart: string;
     realizationEnd: string;
@@ -35,6 +36,7 @@ const initialFormState: CategoryFormData = {
     sodBudget: '',
     planBudget: '',
     description: '',
+    workItems: [],
     deadline: '',
     realizationStart: '',
     realizationEnd: '',
@@ -66,6 +68,7 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
                 sodBudget: initialData.sodBudget?.toString() || '',
                 planBudget: initialData.planBudget?.toString() || '',
                 description: initialData.description || '',
+                workItems: initialData.workItems || (initialData.description ? initialData.description.split('\n') : []),
                 deadline: initialData.deadline || '',
                 realizationStart: initialData.realizationStart || '',
                 realizationEnd: initialData.realizationEnd || '',
@@ -80,7 +83,12 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
         e.preventDefault();
         setIsSubmitting(true);
         try {
-            await onSubmit(formData, selectedFiles);
+            // Sync description with workItems if needed, or just pass both
+            const submissionData = {
+                ...formData,
+                description: formData.workItems.join('\n')
+            };
+            await onSubmit(submissionData, selectedFiles);
         } finally {
             setIsSubmitting(false);
         }
@@ -105,6 +113,20 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
 
     const removeFile = (index: number) => {
         setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+    };
+
+    const addWorkItem = () => {
+        setFormData(prev => ({ ...prev, workItems: [...prev.workItems, ''] }));
+    };
+
+    const removeWorkItem = (index: number) => {
+        setFormData(prev => ({ ...prev, workItems: prev.workItems.filter((_, i) => i !== index) }));
+    };
+
+    const updateWorkItem = (index: number, value: string) => {
+        const newItems = [...formData.workItems];
+        newItems[index] = value;
+        setFormData(prev => ({ ...prev, workItems: newItems }));
     };
 
     if (!isOpen) return null;
@@ -187,19 +209,58 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
                         </div>
 
                         {/* Description */}
+                        {/* Description / Work Items */}
                         <div>
-                            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                                Popis prací
-                            </label>
-                            <textarea
-                                rows={4}
-                                value={formData.description}
-                                onChange={(e) =>
-                                    setFormData({ ...formData, description: e.target.value })
-                                }
-                                className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white resize-none"
-                                placeholder="Detailní popis požadovaných prací..."
-                            />
+                            <div className="flex justify-between items-center mb-2">
+                                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">
+                                    Popis prací (položky pro šablonu)
+                                </label>
+                                <button
+                                    type="button"
+                                    onClick={addWorkItem}
+                                    className="text-xs font-medium text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
+                                >
+                                    <span className="material-symbols-outlined text-[16px]">add</span>
+                                    Přidat položku
+                                </button>
+                            </div>
+                            <div className="space-y-2">
+                                {formData.workItems.map((item, index) => (
+                                    <div key={index} className="flex gap-2 items-start">
+                                        <textarea
+                                            rows={1}
+                                            value={item}
+                                            onChange={(e) => {
+                                                updateWorkItem(index, e.target.value);
+                                                // Auto-grow
+                                                e.target.style.height = 'auto';
+                                                e.target.style.height = e.target.scrollHeight + 'px';
+                                            }}
+                                            className="flex-1 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white resize-none overflow-hidden"
+                                            placeholder="Popis položky..."
+                                            style={{ minHeight: '38px' }}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => removeWorkItem(index)}
+                                            className="p-2 text-slate-400 hover:text-red-500 transition-colors"
+                                            title="Odstranit položku"
+                                        >
+                                            <span className="material-symbols-outlined text-[18px]">delete</span>
+                                        </button>
+                                    </div>
+                                ))}
+                                {formData.workItems.length === 0 && (
+                                    <div
+                                        onClick={addWorkItem}
+                                        className="text-center p-4 border border-dashed border-slate-300 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                                    >
+                                        <p className="text-xs text-slate-400">
+                                            Zatím žádné položky. Klikněte pro přidání.
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {/* Deadline */}

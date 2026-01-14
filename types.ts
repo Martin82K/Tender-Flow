@@ -64,6 +64,7 @@ export interface DemandCategory {
   status: "open" | "negotiating" | "closed" | "sod";
   subcontractorCount: number;
   description: string;
+  workItems?: string[]; // Dynamic list of work items for email templates
   documents?: DemandDocument[];
   deadline?: string; // Termín pro podání nabídky (ISO date string)
   realizationStart?: string; // Termín realizace - začátek (ISO date string)
