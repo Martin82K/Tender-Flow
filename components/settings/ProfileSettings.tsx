@@ -12,6 +12,7 @@ import {
 import { useUI } from "../../context/UIContext";
 import { useAuth } from "../../context/AuthContext";
 import { BiometricSettings } from "./BiometricSettings";
+import { useElectronUpdater } from "../UpdateNotification";
 
 interface ProfileSettingsProps {
   theme: "light" | "dark" | "system";
@@ -456,6 +457,11 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
         </div>
       </section>
 
+      {/* App Update Section */}
+      <section className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl">
+        <AppUpdateSection />
+      </section>
+
       {/* Contact Statuses Management */}
       <section className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl">
         <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
@@ -557,6 +563,89 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
           </button>
         </form>
       </section>
+    </div>
+  );
+};
+
+const AppUpdateSection: React.FC = () => {
+  const { checkForUpdates, status, info, error, downloadUpdate, installUpdate } =
+    useElectronUpdater();
+  const [lastCheck, setLastCheck] = useState<Date | null>(null);
+
+  const handleCheck = async () => {
+    setLastCheck(new Date());
+    await checkForUpdates();
+  };
+
+  return (
+    <div>
+      <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+        <span className="material-symbols-outlined text-sky-500">system_update</span>
+        Aktualizace aplikace
+      </h2>
+
+      <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+        <div className="flex-1">
+          <div className="flex items-center gap-3 mb-2">
+            <div className={`w-3 h-3 rounded-full ${status === 'available' ? 'bg-green-500 animate-pulse' :
+              status === 'checking' ? 'bg-blue-500 animate-pulse' :
+                status === 'error' ? 'bg-red-500' :
+                  'bg-slate-400'
+              }`} />
+            <h3 className="font-medium text-slate-900 dark:text-white">
+              {status === 'checking' && 'Kontrola aktualizací...'}
+              {status === 'available' && `Nová verze ${info?.version} je k dispozici`}
+              {status === 'not-available' && 'Máte nejnovější verzi'}
+              {status === 'downloading' && 'Stahování aktualizace...'}
+              {status === 'downloaded' && 'Aktualizace připravena k instalaci'}
+              {status === 'error' && 'Chyba při kontrole'}
+            </h3>
+          </div>
+
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            {status === 'not-available' ? (
+              <>Systém automaticky kontroluje aktualizace. {lastCheck && `Poslední kontrola: ${lastCheck.toLocaleTimeString()}`}</>
+            ) : status === 'available' ? (
+              <>Je dostupná nová verze aplikace. Doporučujeme aktualizovat.</>
+            ) : status === 'error' ? (
+              <>Nepodařilo se spojit se serverem aktualizací. ({error})</>
+            ) : (
+              <>Probíhá komunikace se serverem...</>
+            )}
+          </p>
+        </div>
+
+        <div className="flex gap-3">
+          {status === 'available' ? (
+            <button
+              onClick={() => downloadUpdate()}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined text-[18px]">download</span>
+              Stáhnout
+            </button>
+          ) : status === 'downloaded' ? (
+            <button
+              onClick={() => installUpdate()}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined text-[18px]">restart_alt</span>
+              Restartovat
+            </button>
+          ) : (
+            <button
+              onClick={handleCheck}
+              disabled={status === 'checking' || status === 'downloading'}
+              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
+            >
+              <span className={`material-symbols-outlined text-[18px] ${status === 'checking' ? 'animate-spin' : ''}`}>
+                refresh
+              </span>
+              Zkontrolovat
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
