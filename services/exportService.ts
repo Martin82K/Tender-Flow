@@ -1,7 +1,7 @@
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { DemandCategory, Bid, ProjectDetails, TenderPlanItem } from '../types';
+import { DemandCategory, Bid, ProjectDetails, TenderPlanItem, Subcontractor, StatusConfig } from '../types';
 import { RobotoRegularBase64 } from '../fonts/roboto-regular';
 
 /**
@@ -573,5 +573,120 @@ export async function importTenderPlanFromXLSX(file: File): Promise<Partial<Tend
     reader.onerror = (error) => reject(error);
     reader.readAsArrayBuffer(file);
   });
+}
+
+/**
+ * Export Contacts to XLSX
+ */
+export function exportContactsToXLSX(contacts: Subcontractor[], statuses: StatusConfig[]): void {
+  const workbook = XLSX.utils.book_new();
+
+  // Create data array
+  const data: (string | number)[][] = [
+    ['DATABÁZE KONTAKTŮ', '', '', '', '', '', '', '', ''],
+    ['Datum exportu:', formatDate(new Date().toISOString()), '', '', '', '', '', '', ''],
+    [],
+    ['Firma', 'IČO', 'Region', 'Obory', 'Stav', 'Kontakt', 'Telefon', 'Email', 'Další kontakty']
+  ];
+
+  // Helper to find status label
+  const getStatusLabel = (statusId: string) => {
+    const s = statuses.find(s => s.id === statusId);
+    return s ? s.label : statusId;
+  };
+
+  contacts.forEach(contact => {
+    // Primary contact (first one)
+    const primaryContact = contact.contacts[0] || { name: '', phone: '', email: '' };
+
+    // Other contacts formatted
+    const otherContacts = contact.contacts.slice(1).map(c =>
+      `${c.name} (${c.phone || '-'}, ${c.email || '-'})`
+    ).join('; ');
+
+    data.push([
+      contact.company,
+      contact.ico || '-',
+      contact.region || '-',
+      contact.specialization.join(', '),
+      getStatusLabel(contact.status),
+      primaryContact.name,
+      primaryContact.phone || '-',
+      primaryContact.email || '-',
+      otherContacts
+    ]);
+  });
+
+  const sheet = XLSX.utils.aoa_to_sheet(data);
+
+  // Set column widths
+  sheet['!cols'] = [
+    { wch: 30 }, // Firma
+    { wch: 12 }, // IČO
+    { wch: 15 }, // Region
+    { wch: 25 }, // Obory
+    { wch: 15 }, // Stav
+    { wch: 20 }, // Kontakt
+    { wch: 15 }, // Telefon
+    { wch: 25 }, // Email
+    { wch: 40 }  // Další kontakty
+  ];
+
+  // Merge title
+  sheet['!merges'] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 8 } },
+  ];
+
+  XLSX.utils.book_append_sheet(workbook, sheet, 'Kontakty');
+
+  const filename = `kontakty_${new Date().toISOString().split('T')[0]}.xlsx`;
+  XLSX.writeFile(workbook, filename);
+}
+
+/**
+ * Export Contacts to CSV
+ */
+export function exportContactsToCSV(contacts: Subcontractor[], statuses: StatusConfig[]): void {
+  // We can reuse the same structure but simpler for CSV
+  const data: (string | number)[][] = [
+    ['Firma', 'ICO', 'Region', 'Obory', 'Stav', 'Kontakt', 'Telefon', 'Email', 'Dalsi kontakty']
+  ];
+
+  const getStatusLabel = (statusId: string) => {
+    const s = statuses.find(s => s.id === statusId);
+    return s ? s.label : statusId;
+  };
+
+  contacts.forEach(contact => {
+    const primaryContact = contact.contacts[0] || { name: '', phone: '', email: '' };
+    const otherContacts = contact.contacts.slice(1).map(c =>
+      `${c.name} (${c.phone || '-'}, ${c.email || '-'})`
+    ).join('; ');
+
+    data.push([
+      contact.company,
+      contact.ico || '',
+      contact.region || '',
+      contact.specialization.join(', '),
+      getStatusLabel(contact.status),
+      primaryContact.name,
+      primaryContact.phone || '',
+      primaryContact.email || '',
+      otherContacts
+    ]);
+  });
+
+  const sheet = XLSX.utils.aoa_to_sheet(data);
+  const csv = XLSX.utils.sheet_to_csv(sheet);
+
+  // Download logic for CSV
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', `kontakty_${new Date().toISOString().split('T')[0]}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
