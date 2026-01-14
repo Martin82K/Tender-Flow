@@ -6,6 +6,7 @@
 
 import React, { useState } from "react";
 import { Subcontractor, StatusConfig } from "../../types";
+import { DEFAULT_STATUSES } from "../../config/constants";
 
 export interface CreateContactModalProps {
     initialName: string;
@@ -24,6 +25,9 @@ export const CreateContactModal: React.FC<CreateContactModalProps> = ({
     onClose,
     onSave,
 }) => {
+    // Fallback to DEFAULT_STATUSES if statuses is null, undefined, or empty
+    const safeStatuses = statuses && statuses.length > 0 ? statuses : DEFAULT_STATUSES;
+
     // Helper to extract first contact info safely
     const primaryContact = initialData?.contacts?.[0] || { name: "", email: "", phone: "" };
 
@@ -235,7 +239,7 @@ export const CreateContactModal: React.FC<CreateContactModalProps> = ({
                                 onChange={(e) => setForm({ ...form, status: e.target.value })}
                                 className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
                             >
-                                {statuses.map(s => (
+                                {safeStatuses.map(s => (
                                     <option key={s.id} value={s.id}>{s.label}</option>
                                 ))}
                             </select>

@@ -144,7 +144,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
         setIsContactModalOpen(true);
     };
 
-    const handleSaveContact = (e: React.FormEvent) => {
+    const handleSaveContact = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!formData.company || !formData.specialization || formData.specialization.length === 0) return;
@@ -158,12 +158,19 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
             status: formData.status || 'available'
         };
 
-        if (editingContact) {
-            onUpdateContact({ ...baseContact, id: editingContact.id } as Subcontractor);
-        } else {
-            onAddContact({ ...baseContact, id: crypto.randomUUID() } as Subcontractor);
+        try {
+            if (editingContact) {
+                await onUpdateContact({ ...baseContact, id: editingContact.id } as Subcontractor);
+            } else {
+                await onAddContact({ ...baseContact, id: crypto.randomUUID() } as Subcontractor);
+            }
+            // Only close modal if no error was thrown
+            setIsContactModalOpen(false);
+            setEditingContact(null);
+        } catch (error) {
+            console.error('Error saving contact:', error);
+            // Modal stays open so user can see the error or retry
         }
-        setIsContactModalOpen(false);
     };
 
     const handleAddContactPerson = () => {

@@ -1275,12 +1275,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
   };
 
   const handleSaveNewContact = async (newContact: Subcontractor) => {
-    // Optimistic update
-    setLocalContacts((prev) => [...prev, newContact]);
-    setSelectedSubcontractorIds((prev) => new Set(prev).add(newContact.id));
-    setIsCreateContactModalOpen(false);
-
-    // Persist to Supabase or Demo Storage
+    // Persist to Supabase or Demo Storage FIRST
     try {
       if (user?.role === "demo") {
         const demoData = getDemoData();
@@ -1288,36 +1283,37 @@ export const Pipeline: React.FC<PipelineProps> = ({
           demoData.contacts = [...demoData.contacts, newContact];
           saveDemoData(demoData);
         }
-        return;
+      } else {
+        const { error } = await supabase.from("subcontractors").insert({
+          id: newContact.id,
+          company_name: newContact.company,
+          contact_person_name: newContact.name,
+          email: newContact.email,
+          phone: newContact.phone,
+          specialization: newContact.specialization,
+          ico: newContact.ico,
+          region: newContact.region,
+          status_id: newContact.status,
+        });
+
+        if (error) {
+          console.error("Error saving contact to Supabase:", error);
+          throw error; // Re-throw to prevent modal close
+        }
       }
 
-      const { error } = await supabase.from("subcontractors").insert({
-        id: newContact.id,
-        company_name: newContact.company,
-        contact_person_name: newContact.name,
-        email: newContact.email,
-        phone: newContact.phone,
-        specialization: newContact.specialization,
-        ico: newContact.ico,
-        region: newContact.region,
-        status_id: newContact.status,
-      });
-
-      if (error) {
-        console.error("Error saving contact to Supabase:", error);
-        // Optionally revert state or show notification
-      }
+      // Only update UI and close modal if save was successful
+      setLocalContacts((prev) => [...prev, newContact]);
+      setSelectedSubcontractorIds((prev) => new Set(prev).add(newContact.id));
+      setIsCreateContactModalOpen(false);
     } catch (err) {
       console.error("Unexpected error saving contact:", err);
+      // Modal stays open so user can retry
     }
   };
 
   const handleUpdateContact = async (updatedContact: Subcontractor) => {
-    // Optimistic update
-    setLocalContacts((prev) => prev.map(c => c.id === updatedContact.id ? updatedContact : c));
-    setEditingContact(null);
-
-    // Persist to Supabase or Demo Storage
+    // Persist to Supabase or Demo Storage FIRST
     try {
       if (user?.role === "demo") {
         const demoData = getDemoData();
@@ -1325,28 +1321,33 @@ export const Pipeline: React.FC<PipelineProps> = ({
           demoData.contacts = demoData.contacts.map((c: Subcontractor) => c.id === updatedContact.id ? updatedContact : c);
           saveDemoData(demoData);
         }
-        return;
+      } else {
+        const { error } = await supabase
+          .from("subcontractors")
+          .update({
+            company_name: updatedContact.company,
+            contact_person_name: updatedContact.name,
+            email: updatedContact.email,
+            phone: updatedContact.phone,
+            specialization: updatedContact.specialization,
+            ico: updatedContact.ico,
+            region: updatedContact.region,
+            status_id: updatedContact.status,
+          })
+          .eq("id", updatedContact.id);
+
+        if (error) {
+          console.error("Error updating contact in Supabase:", error);
+          throw error; // Re-throw to prevent modal close
+        }
       }
 
-      const { error } = await supabase
-        .from("subcontractors")
-        .update({
-          company_name: updatedContact.company,
-          contact_person_name: updatedContact.name,
-          email: updatedContact.email,
-          phone: updatedContact.phone,
-          specialization: updatedContact.specialization,
-          ico: updatedContact.ico,
-          region: updatedContact.region,
-          status_id: updatedContact.status,
-        })
-        .eq("id", updatedContact.id);
-
-      if (error) {
-        console.error("Error updating contact in Supabase:", error);
-      }
+      // Only update UI and close modal if update was successful
+      setLocalContacts((prev) => prev.map(c => c.id === updatedContact.id ? updatedContact : c));
+      setEditingContact(null);
     } catch (err) {
       console.error("Unexpected error updating contact:", err);
+      // Modal stays open so user can retry
     }
   };
 
