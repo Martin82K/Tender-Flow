@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState, useRef } from "react";
 import { AppProviders } from "./components/providers/AppProviders";
 import { MainLayout } from "./components/layouts/MainLayout";
 import { AuthLayout } from "./components/layouts/AuthLayout";
@@ -19,31 +19,31 @@ import { supabase } from "./services/supabase";
 const ProjectManager = React.lazy(() =>
   import("./components/ProjectManager").then((m) => ({
     default: m.ProjectManager,
-  }))
+  })),
 );
 const Dashboard = React.lazy(() =>
-  import("./components/Dashboard").then((m) => ({ default: m.Dashboard }))
+  import("./components/Dashboard").then((m) => ({ default: m.Dashboard })),
 );
 const ProjectLayout = React.lazy(() =>
   import("./components/ProjectLayout").then((m) => ({
     default: m.ProjectLayout,
-  }))
+  })),
 );
 const Contacts = React.lazy(() =>
-  import("./components/Contacts").then((m) => ({ default: m.Contacts }))
+  import("./components/Contacts").then((m) => ({ default: m.Contacts })),
 );
 const Settings = React.lazy(() =>
-  import("./components/Settings").then((m) => ({ default: m.Settings }))
+  import("./components/Settings").then((m) => ({ default: m.Settings })),
 );
 const ProjectOverview = React.lazy(() =>
   import("./components/ProjectOverview").then((m) => ({
     default: m.ProjectOverview,
-  }))
+  })),
 );
 const UrlShortener = React.lazy(() =>
   import("./components/tools/UrlShortener").then((m) => ({
     default: m.UrlShortener,
-  }))
+  })),
 );
 
 // Auth Pages
@@ -52,6 +52,10 @@ import { LoginPage } from "./components/auth/LoginPage";
 import { RegisterPage } from "./components/auth/RegisterPage";
 import { ForgotPasswordPage } from "./components/auth/ForgotPasswordPage";
 import { ShortUrlRedirect } from "./components/routing/ShortUrlRedirect";
+import {
+  ProjectLayoutSkeleton,
+  DashboardSkeleton,
+} from "./components/ui/SkeletonLoader";
 
 function AppContent() {
   const {
@@ -65,12 +69,7 @@ function AppContent() {
   const { pathname, search } = useLocation();
 
   // Desktop features
-  const {
-    isDesktop,
-    showWelcome,
-    dismissWelcome,
-    selectFolder,
-  } = useDesktop();
+  const { isDesktop, showWelcome, dismissWelcome, selectFolder } = useDesktop();
 
   // Data Hook
   const { state, actions } = useAppData(showUiModal);
@@ -83,9 +82,24 @@ function AppContent() {
     string | null
   >(null);
 
-  // Sync URL to View
+  // Track last navigation to prevent race conditions
+  const lastNavigationRef = useRef<{ pathname: string; search: string } | null>(
+    null,
+  );
+
+  // Sync URL to View - with race condition protection
   useEffect(() => {
     if (!isAuthenticated) return;
+
+    // Skip if same navigation (prevents duplicate processing)
+    const navKey = `${pathname}${search}`;
+    if (
+      lastNavigationRef.current?.pathname === pathname &&
+      lastNavigationRef.current?.search === search
+    ) {
+      return;
+    }
+    lastNavigationRef.current = { pathname, search };
 
     const route = parseAppRoute(pathname, search);
     if (!route.isApp) return;
@@ -102,6 +116,11 @@ function AppContent() {
       }
       if (route.tab) setActiveProjectTab(route.tab);
       if (route.categoryId) setActivePipelineCategoryId(route.categoryId);
+    } else {
+      // Reset category ID when leaving project view to prevent stale state
+      if (activePipelineCategoryId) {
+        setActivePipelineCategoryId(null);
+      }
     }
   }, [pathname, search, isAuthenticated]);
 
@@ -117,7 +136,7 @@ function AppContent() {
       if (window.self !== window.top && "scrollRestoration" in window.history) {
         window.history.scrollRestoration = "manual";
       }
-    } catch { }
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -139,7 +158,7 @@ function AppContent() {
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         pushToken(session?.access_token ?? null);
-      }
+      },
     );
 
     return () => {
@@ -289,12 +308,7 @@ function AppContent() {
             </div>
           );
         if (!state.allProjectDetails[state.selectedProjectId])
-          return (
-            <div className="flex flex-col items-center justify-center h-full">
-              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
-              <p className="mt-4 text-slate-500">Načítám detail projektu...</p>
-            </div>
-          );
+          return <ProjectLayoutSkeleton />;
         return (
           <RequireFeature feature={FEATURES.MODULE_PROJECTS}>
             <ProjectLayout
@@ -303,7 +317,7 @@ function AppContent() {
               onUpdateDetails={(updates) =>
                 actions.handleUpdateProjectDetails(
                   state.selectedProjectId,
-                  updates
+                  updates,
                 )
               }
               onAddCategory={(cat) =>
@@ -325,7 +339,7 @@ function AppContent() {
                     tab,
                     categoryId: activePipelineCategoryId ?? undefined,
                   }),
-                  { replace: true }
+                  { replace: true },
                 );
               }}
               contacts={state.contacts}
@@ -341,7 +355,7 @@ function AppContent() {
                     tab: "pipeline",
                     categoryId: catId,
                   }),
-                  { replace: true }
+                  { replace: true },
                 );
               }}
             />
@@ -375,7 +389,7 @@ function AppContent() {
             onDeleteContacts={actions.handleDeleteContacts}
             contacts={state.contacts}
             isAdmin={state.isAdmin}
-            onSaveSettings={async () => { }}
+            onSaveSettings={async () => {}}
             user={user}
           />
         );

@@ -33,7 +33,10 @@ import {
   formatInputNumber,
   parseFormattedNumber,
 } from "../utils/formatters";
-import { getTemplateById, getDefaultTemplate } from "../services/templateService";
+import {
+  getTemplateById,
+  getDefaultTemplate,
+} from "../services/templateService";
 import { Template } from "../types";
 import { processTemplate } from "../utils/templateUtils";
 import { useAuth } from "../context/AuthContext";
@@ -45,7 +48,11 @@ import {
   resolveDocHubStructureV1,
   slugifyDocHubSegmentStrict,
 } from "../utils/docHub";
-import { ensureStructure, deleteFolder, folderExists } from "../services/fileSystemService";
+import {
+  ensureStructure,
+  deleteFolder,
+  folderExists,
+} from "../services/fileSystemService";
 import { mcpOpenPath } from "../services/mcpBridgeClient";
 import platformAdapter from "../services/platformAdapter";
 import { DEFAULT_STATUSES } from "../config/constants";
@@ -105,12 +112,12 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const isDocHubEnabled =
     !!projectDetails.docHubEnabled && docHubRoot.length > 0;
   const docHubStructure = resolveDocHubStructureV1(
-    projectDetails.docHubStructureV1 || undefined
+    projectDetails.docHubStructureV1 || undefined,
   );
   const canUseDocHubBackend =
     !!projectDetails.docHubProvider &&
-    projectDetails.docHubProvider !== 'mcp' &&
-    projectDetails.docHubProvider !== 'onedrive' &&
+    projectDetails.docHubProvider !== "mcp" &&
+    projectDetails.docHubProvider !== "onedrive" &&
     !!projectDetails.docHubRootId &&
     projectDetails.docHubStatus === "connected";
 
@@ -149,35 +156,42 @@ export const Pipeline: React.FC<PipelineProps> = ({
   );
 
   const openOrCopyDocHubPath = async (path: string) => {
-    console.log('[DocHub] openOrCopyDocHubPath called with path:', path);
+    console.log("[DocHub] openOrCopyDocHubPath called with path:", path);
     if (!path) {
-      console.warn('[DocHub] Empty path, returning');
+      console.warn("[DocHub] Empty path, returning");
       return;
     }
     if (isProbablyUrl(path)) {
-      console.log('[DocHub] Path is URL, opening in browser');
+      console.log("[DocHub] Path is URL, opening in browser");
       window.open(path, "_blank", "noopener,noreferrer");
       return;
     }
 
     // Try native Electron folder opening first (for Tender Flow Desktop / onedrive provider)
-    console.log('[DocHub] Attempting to open local path. isDocHubEnabled:', isDocHubEnabled);
+    console.log(
+      "[DocHub] Attempting to open local path. isDocHubEnabled:",
+      isDocHubEnabled,
+    );
     if (isDocHubEnabled && !isProbablyUrl(path)) {
       try {
         // Dynamic import to avoid issues on web
-        const { fileSystemAdapter, isDesktop } = await import('../services/platformAdapter');
-        console.log('[DocHub] isDesktop:', isDesktop);
+        const { fileSystemAdapter, isDesktop } =
+          await import("../services/platformAdapter");
+        console.log("[DocHub] isDesktop:", isDesktop);
         if (isDesktop) {
-          console.log('[DocHub] Calling fileSystemAdapter.openInExplorer with path:', path);
+          console.log(
+            "[DocHub] Calling fileSystemAdapter.openInExplorer with path:",
+            path,
+          );
           await fileSystemAdapter.openInExplorer(path);
-          console.log('[DocHub] openInExplorer completed successfully');
+          console.log("[DocHub] openInExplorer completed successfully");
           return; // Opened successfully - Desktop doesn't need MCP fallback
         }
 
         // Only try MCP if NOT on desktop (web browser with MCP bridge)
-        console.log('[DocHub] Not on desktop, trying MCP open for path:', path);
+        console.log("[DocHub] Not on desktop, trying MCP open for path:", path);
         const result = await mcpOpenPath(path);
-        console.log('[DocHub] MCP result:', result);
+        console.log("[DocHub] MCP result:", result);
         if (result.success) return; // Opened successfully
       } catch (e) {
         console.warn("[DocHub] Open failed, falling back to copy", e);
@@ -196,15 +210,20 @@ export const Pipeline: React.FC<PipelineProps> = ({
         title: "Kopírování selhalo",
         message: "Automatické kopírování selhalo. Zkopírujte cestu ručně:",
         variant: "info",
-        copyableText: path
+        copyableText: path,
       });
     }
   };
 
   const openDocHubBackendLink = async (payload: any) => {
     // Safety guard: Never allow backend calls for MCP/Tender Flow Desktop
-    if (projectData.docHubProvider === 'mcp' || projectData.docHubProvider === 'onedrive') {
-      console.warn('[DocHub] Blocked backend call for MCP/Tender Flow Desktop provider');
+    if (
+      projectData.docHubProvider === "mcp" ||
+      projectData.docHubProvider === "onedrive"
+    ) {
+      console.warn(
+        "[DocHub] Blocked backend call for MCP/Tender Flow Desktop provider",
+      );
       return;
     }
 
@@ -222,7 +241,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
   };
 
   const [activeCategory, setActiveCategory] = useState<DemandCategory | null>(
-    null
+    null,
   );
   const [demandFilter, setDemandFilter] = useState<
     "all" | "open" | "closed" | "sod"
@@ -274,7 +293,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
   // Helper to update bids and mark as internal change
   const updateBidsInternal = (
-    updater: (prev: Record<string, Bid[]>) => Record<string, Bid[]>
+    updater: (prev: Record<string, Bid[]>) => Record<string, Bid[]>,
   ) => {
     isInternalBidsChange.current = true;
     setBids((prev) => {
@@ -299,7 +318,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<DemandCategory | null>(
-    null
+    null,
   );
   const [newCategoryForm, setNewCategoryForm] = useState({
     title: "",
@@ -322,7 +341,9 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const [isCreateContactModalOpen, setIsCreateContactModalOpen] =
     useState(false);
   const [newContactName, setNewContactName] = useState("");
-  const [editingContact, setEditingContact] = useState<Subcontractor | null>(null);
+  const [editingContact, setEditingContact] = useState<Subcontractor | null>(
+    null,
+  );
 
   // Confirmation Modal State
   const [confirmModal, setConfirmModal] = useState<{
@@ -330,7 +351,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
     title: string;
     message: string;
     onConfirm: () => void;
-  }>({ isOpen: false, title: "", message: "", onConfirm: () => { } });
+  }>({ isOpen: false, title: "", message: "", onConfirm: () => {} });
 
   const closeConfirmModal = () => {
     setConfirmModal((prev) => ({ ...prev, isOpen: false }));
@@ -349,17 +370,25 @@ export const Pipeline: React.FC<PipelineProps> = ({
     });
   };
 
+  // Track previous project ID to detect actual project changes
+  const prevProjectIdRef = useRef<string | null>(null);
+
   // Reset active category when switching projects, unless we have an initial category to open
   useEffect(() => {
+    const projectActuallyChanged =
+      prevProjectIdRef.current !== null &&
+      prevProjectIdRef.current !== projectId;
+    prevProjectIdRef.current = projectId;
+
     if (initialOpenCategoryId) {
       const categoryToOpen = projectDetails.categories.find(
-        (c) => c.id === initialOpenCategoryId
+        (c) => c.id === initialOpenCategoryId,
       );
       if (categoryToOpen) {
         setActiveCategory(categoryToOpen);
-        // Scroll to view if needed? For now just opening the modal/view is enough.
       }
-    } else {
+    } else if (projectActuallyChanged) {
+      // Only reset if project actually changed, not on initial render or category updates
       setActiveCategory(null);
     }
   }, [projectId, initialOpenCategoryId, projectDetails.categories]);
@@ -498,7 +527,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
       if (contact) {
         // Check if already exists
         const existing = (bids[activeCategory.id] || []).find(
-          (b) => b.subcontractorId === contact.id
+          (b) => b.subcontractorId === contact.id,
         );
         if (!existing) {
           const primaryContact = contact.contacts[0];
@@ -558,7 +587,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
         console.log(
           "🔵 Attempting to insert bids:",
-          JSON.stringify(bidsToInsert, null, 2)
+          JSON.stringify(bidsToInsert, null, 2),
         );
 
         const { data, error } = await supabase
@@ -578,7 +607,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
           showAlert({
             title: "Chyba při ukládání",
             message: `Chyba při ukládání nabídek: ${error.message}\n\nKód: ${error.code}\nDetail: ${error.details || "N/A"}\nHint: ${error.hint || "N/A"}`,
-            variant: "danger"
+            variant: "danger",
           });
         } else {
           console.log("🟢 Successfully inserted bids:", data);
@@ -588,47 +617,65 @@ export const Pipeline: React.FC<PipelineProps> = ({
             const provider = projectData.docHubProvider;
 
             // Desktop & MCP: Use fileSystemService (which delegates to Electron or MCP)
-            if (provider === 'onedrive' || provider === 'mcp') {
-              const mcpSuppliers: Record<string, Array<{ id: string; name: string }>> = {};
-              mcpSuppliers[activeCategory.id] = newBids.map(b => ({
+            if (provider === "onedrive" || provider === "mcp") {
+              const mcpSuppliers: Record<
+                string,
+                Array<{ id: string; name: string }>
+              > = {};
+              mcpSuppliers[activeCategory.id] = newBids.map((b) => ({
                 id: b.subcontractorId,
-                name: b.companyName
+                name: b.companyName,
               }));
 
-              const structure = resolveDocHubStructureV1(projectData.docHubStructureV1 || undefined);
-              const { buildHierarchyTree } = await import('../utils/docHub'); // Import helper if not top-level
-              const hierarchyTree = buildHierarchyTree(structure.extraHierarchy || []);
+              const structure = resolveDocHubStructureV1(
+                projectData.docHubStructureV1 || undefined,
+              );
+              const { buildHierarchyTree } = await import("../utils/docHub"); // Import helper if not top-level
+              const hierarchyTree = buildHierarchyTree(
+                structure.extraHierarchy || [],
+              );
 
               // For MCP, docHubRoot is the path. For Desktop (onedrive), it is also the path.
               ensureStructure({
                 rootPath: docHubRoot,
                 structure,
-                categories: [{ id: activeCategory.id, title: activeCategory.title }],
+                categories: [
+                  { id: activeCategory.id, title: activeCategory.title },
+                ],
                 suppliers: mcpSuppliers,
-                hierarchy: hierarchyTree
-              }).then(res => {
+                hierarchy: hierarchyTree,
+              }).then((res) => {
                 if (res.success) {
                   // toast.success("Složky vytvořeny.");
                 } else {
                   console.error("Auto-create folders failed:", res.error);
-                  showAlert({ title: "Chyba vytvoření složek", message: res.error || "Neznámá chyba", variant: "danger" });
+                  showAlert({
+                    title: "Chyba vytvoření složek",
+                    message: res.error || "Neznámá chyba",
+                    variant: "danger",
+                  });
                 }
               });
-            } else if (provider === 'gdrive' || provider === 'onedrive_cloud') {
+            } else if (provider === "gdrive" || provider === "onedrive_cloud") {
               // Cloud: Trigger backend
-              invokeAuthedFunction('dochub-autocreate', {
-                body: { projectId: projectData.id }
-              }).catch(e => console.error("Cloud auto-create trigger failed:", e));
+              invokeAuthedFunction("dochub-autocreate", {
+                body: { projectId: projectData.id },
+              }).catch((e) =>
+                console.error("Cloud auto-create trigger failed:", e),
+              );
             }
           }
         }
       } catch (err) {
         console.error("🔴 Unexpected error inserting bids:", err);
 
-        showAlert({ title: "Chyba", message: `Neočekávaná chyba: ${err}`, variant: "danger" });
+        showAlert({
+          title: "Chyba",
+          message: `Neočekávaná chyba: ${err}`,
+          variant: "danger",
+        });
       }
     }
-
 
     setIsSubcontractorModalOpen(false);
     setSelectedSubcontractorIds(new Set());
@@ -647,12 +694,16 @@ export const Pipeline: React.FC<PipelineProps> = ({
       setUploadingFiles(true);
       try {
         uploadedDocuments = await Promise.all(
-          selectedFiles.map((file) => uploadDocument(file, categoryId))
+          selectedFiles.map((file) => uploadDocument(file, categoryId)),
         );
       } catch (error) {
         console.error("Error uploading documents:", error);
         console.error("Error uploading documents:", error);
-        showAlert({ title: "Chyba", message: "Chyba při nahrávání dokumentů. Zkuste to prosím znovu.", variant: "danger" });
+        showAlert({
+          title: "Chyba",
+          message: "Chyba při nahrávání dokumentů. Zkuste to prosím znovu.",
+          variant: "danger",
+        });
         setUploadingFiles(false);
         setUploadingFiles(false);
         return;
@@ -666,7 +717,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
       budget:
         "~" +
         new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 0 }).format(
-          sod
+          sod,
         ) +
         " Kč", // Legacy
       sodBudget: sod,
@@ -706,12 +757,16 @@ export const Pipeline: React.FC<PipelineProps> = ({
       setUploadingFiles(true);
       try {
         const newDocs = await Promise.all(
-          selectedFiles.map((file) => uploadDocument(file, editingCategory.id))
+          selectedFiles.map((file) => uploadDocument(file, editingCategory.id)),
         );
         uploadedDocuments = [...uploadedDocuments, ...newDocs];
       } catch (error) {
         console.error("Error uploading documents:", error);
-        showAlert({ title: "Chyba", message: "Chyba při nahrávání dokumentů. Zkuste to prosím znovu.", variant: "danger" });
+        showAlert({
+          title: "Chyba",
+          message: "Chyba při nahrávání dokumentů. Zkuste to prosím znovu.",
+          variant: "danger",
+        });
         setUploadingFiles(false);
         return;
       }
@@ -724,7 +779,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
       budget:
         "~" +
         new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 0 }).format(
-          sod
+          sod,
         ) +
         " Kč",
       sodBudget: sod,
@@ -754,7 +809,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
   // Wrapper for CategoryFormModal - Create mode
   const handleCreateCategoryFromModal = async (
     formData: CategoryFormData,
-    files: File[]
+    files: File[],
   ) => {
     if (!onAddCategory) return;
 
@@ -766,11 +821,15 @@ export const Pipeline: React.FC<PipelineProps> = ({
     if (files.length > 0) {
       try {
         uploadedDocuments = await Promise.all(
-          files.map((file) => uploadDocument(file, categoryId))
+          files.map((file) => uploadDocument(file, categoryId)),
         );
       } catch (error) {
         console.error("Error uploading documents:", error);
-        showAlert({ title: "Chyba", message: "Chyba při nahrávání dokumentů. Zkuste to prosím znovu.", variant: "danger" });
+        showAlert({
+          title: "Chyba",
+          message: "Chyba při nahrávání dokumentů. Zkuste to prosím znovu.",
+          variant: "danger",
+        });
         return;
       }
     }
@@ -781,7 +840,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
       budget:
         "~" +
         new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 0 }).format(
-          sod
+          sod,
         ) +
         " Kč",
       sodBudget: sod,
@@ -802,7 +861,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
   // Wrapper for CategoryFormModal - Edit mode
   const handleEditCategoryFromModal = async (
     formData: CategoryFormData,
-    files: File[]
+    files: File[],
   ) => {
     if (!onEditCategory || !editingCategory) return;
 
@@ -813,12 +872,16 @@ export const Pipeline: React.FC<PipelineProps> = ({
     if (files.length > 0) {
       try {
         const newDocs = await Promise.all(
-          files.map((file) => uploadDocument(file, editingCategory.id))
+          files.map((file) => uploadDocument(file, editingCategory.id)),
         );
         uploadedDocuments = [...uploadedDocuments, ...newDocs];
       } catch (error) {
         console.error("Error uploading documents:", error);
-        showAlert({ title: "Chyba", message: "Chyba při nahrávání dokumentů. Zkuste to prosím znovu.", variant: "danger" });
+        showAlert({
+          title: "Chyba",
+          message: "Chyba při nahrávání dokumentů. Zkuste to prosím znovu.",
+          variant: "danger",
+        });
         return;
       }
     }
@@ -829,7 +892,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
       budget:
         "~" +
         new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 0 }).format(
-          sod
+          sod,
         ) +
         " Kč",
       sodBudget: sod,
@@ -914,7 +977,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
             demoData.projectDetails[projectData.id].bids || {};
           const categoryBids = projectBids[activeCategory.id] || [];
           const index = categoryBids.findIndex(
-            (b: Bid) => b.id === updatedBid.id
+            (b: Bid) => b.id === updatedBid.id,
           );
           if (index > -1) {
             categoryBids[index] = updatedBid;
@@ -954,12 +1017,14 @@ export const Pipeline: React.FC<PipelineProps> = ({
     if (!activeCategory) return;
 
     // Find bid before deletion for MCP cleanup
-    const bidToDelete = (bids[activeCategory.id] || []).find(b => b.id === bidId);
+    const bidToDelete = (bids[activeCategory.id] || []).find(
+      (b) => b.id === bidId,
+    );
 
     // Optimistic update
     updateBidsInternal((prev) => {
       const categoryBids = (prev[activeCategory.id] || []).filter(
-        (b) => b.id !== bidId
+        (b) => b.id !== bidId,
       );
       return { ...prev, [activeCategory.id]: categoryBids };
     });
@@ -989,17 +1054,24 @@ export const Pipeline: React.FC<PipelineProps> = ({
         if (
           bidToDelete &&
           isDocHubEnabled &&
-          projectData.dochub_provider === 'mcp' &&
+          projectData.dochub_provider === "mcp" &&
           docHubRoot
         ) {
-          const structure = resolveDocHubStructureV1(projectData.docHubStructureV1 || undefined);
-          const links = getDocHubTenderLinks(docHubRoot, activeCategory.title, structure);
+          const structure = resolveDocHubStructureV1(
+            projectData.docHubStructureV1 || undefined,
+          );
+          const links = getDocHubTenderLinks(
+            docHubRoot,
+            activeCategory.title,
+            structure,
+          );
           const supplierFolder = links.supplierBase(bidToDelete.companyName);
 
-          deleteFolder(docHubRoot, supplierFolder, { provider: 'mcp' }).catch(err => {
-            console.error("MCP Auto-delete supplier folder failed:", err);
-          });
-
+          deleteFolder(docHubRoot, supplierFolder, { provider: "mcp" }).catch(
+            (err) => {
+              console.error("MCP Auto-delete supplier folder failed:", err);
+            },
+          );
         }
       }
     } catch (err) {
@@ -1041,18 +1113,15 @@ export const Pipeline: React.FC<PipelineProps> = ({
     if (!template) {
       showAlert({
         title: "Chyba šablony",
-        message: "Nepodařilo se načíst šablonu emailu. Prosím zkontrolujte nastavení šablon.",
-        variant: "danger"
+        message:
+          "Nepodařilo se načíst šablonu emailu. Prosím zkontrolujte nastavení šablon.",
+        variant: "danger",
       });
       return;
     }
 
     // Use template system
-    subject = processTemplate(
-      template.subject,
-      projectDetails,
-      activeCategory
-    );
+    subject = processTemplate(template.subject, projectDetails, activeCategory);
 
     if (mode === "eml") {
       // EML Mode: Process as HTML, convert newlines to <br> if needed
@@ -1060,7 +1129,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
         template.content,
         projectDetails,
         activeCategory,
-        "html"
+        "html",
       );
       // Let's assume standard templates are plain-text formatted.
       htmlBody = rawBody.replace(/\n/g, "<br>");
@@ -1073,7 +1142,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
         template.content,
         projectDetails,
         activeCategory,
-        "text"
+        "text",
       );
 
       // Cleanup HTML tags if any (legacy safety)
@@ -1087,9 +1156,13 @@ export const Pipeline: React.FC<PipelineProps> = ({
     if (mode === "eml") {
       // Desktop: Open EML directly without download dialog
       if (platformAdapter.isDesktop) {
-        const emlContent = generateEmlContent(bid.email || "", subject, htmlBody);
+        const emlContent = generateEmlContent(
+          bid.email || "",
+          subject,
+          htmlBody,
+        );
         const filename = `Poptavka_${Date.now()}.eml`;
-        console.log('[Pipeline] Opening EML on desktop:', filename);
+        console.log("[Pipeline] Opening EML on desktop:", filename);
         platformAdapter.shell.openTempFile(emlContent, filename);
       } else {
         // Web: Download EML file
@@ -1108,7 +1181,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
     } else {
       // Mailto - open in default email client
       const mailtoLink = createMailtoLink(bid.email || "", subject, body);
-      console.log('[Pipeline] Sending inquiry via mailto:', mailtoLink);
+      console.log("[Pipeline] Sending inquiry via mailto:", mailtoLink);
       platformAdapter.shell.openExternal(mailtoLink);
 
       // Optimistic update status
@@ -1127,7 +1200,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
   };
 
   const handleOpenSupplierDocHub = (bid: Bid) => {
-    console.log('[DocHub] handleOpenSupplierDocHub called', {
+    console.log("[DocHub] handleOpenSupplierDocHub called", {
       bid: bid.companyName,
       isDocHubEnabled,
       docHubRoot,
@@ -1137,12 +1210,19 @@ export const Pipeline: React.FC<PipelineProps> = ({
     });
 
     if (!isDocHubEnabled || !activeCategory) {
-      console.warn('[DocHub] Early exit: isDocHubEnabled=', isDocHubEnabled, 'activeCategory=', activeCategory);
+      console.warn(
+        "[DocHub] Early exit: isDocHubEnabled=",
+        isDocHubEnabled,
+        "activeCategory=",
+        activeCategory,
+      );
       return;
     }
 
     // Explicitly force local handling for MCP/Tender Flow Desktop to avoid backend calls
-    const isMcpOrLocal = projectData.docHubProvider === 'mcp' || projectData.docHubProvider === 'onedrive';
+    const isMcpOrLocal =
+      projectData.docHubProvider === "mcp" ||
+      projectData.docHubProvider === "onedrive";
 
     if (canUseDocHubBackend && projectData.id && !isMcpOrLocal) {
       openDocHubBackendLink({
@@ -1158,8 +1238,9 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
     // For desktop: use desktop-specific function that preserves diacritics
     // For web/MCP: use original function with slugified names
-    const isDesktopMode = typeof window !== 'undefined' && window.electronAPI?.platform?.isDesktop;
-    console.log('[DocHub] isDesktopMode:', isDesktopMode);
+    const isDesktopMode =
+      typeof window !== "undefined" && window.electronAPI?.platform?.isDesktop;
+    console.log("[DocHub] isDesktopMode:", isDesktopMode);
 
     if (isDesktopMode) {
       // Desktop: Check for both standard (Raw) and strict (Underscored) folder names
@@ -1169,11 +1250,11 @@ export const Pipeline: React.FC<PipelineProps> = ({
           docHubRoot,
           activeCategory.title,
           bid.companyName,
-          projectDetails.docHubStructureV1
+          projectDetails.docHubStructureV1,
         );
 
         if (await folderExists(supplierPath)) {
-          console.log('[DocHub] Found aligned folder:', supplierPath);
+          console.log("[DocHub] Found aligned folder:", supplierPath);
           openOrCopyDocHubPath(supplierPath);
           return;
         }
@@ -1184,17 +1265,23 @@ export const Pipeline: React.FC<PipelineProps> = ({
           docHubRoot,
           activeCategory.title,
           strictName,
-          projectDetails.docHubStructureV1
+          projectDetails.docHubStructureV1,
         );
 
         if (await folderExists(strictPath)) {
-          console.log('[DocHub] Found strict (underscored) folder:', strictPath);
+          console.log(
+            "[DocHub] Found strict (underscored) folder:",
+            strictPath,
+          );
           openOrCopyDocHubPath(strictPath);
           return;
         }
 
         // Fallback to standard if neither found explicitly (let Explorer handle error or opening parent)
-        console.log('[DocHub] Folder not found, attempting standard:', supplierPath);
+        console.log(
+          "[DocHub] Folder not found, attempting standard:",
+          supplierPath,
+        );
         openOrCopyDocHubPath(supplierPath);
       };
 
@@ -1203,7 +1290,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
       const links = getDocHubTenderLinks(
         docHubRoot,
         activeCategory.title,
-        docHubStructure
+        docHubStructure,
       );
       openOrCopyDocHubPath(links.supplierBase(bid.companyName));
     }
@@ -1232,7 +1319,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
       showAlert({
         title: "Chyba exportu",
         message: "Chyba při exportu. Zkuste to prosím znovu.",
-        variant: "danger"
+        variant: "danger",
       });
     }
   };
@@ -1277,7 +1364,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
       showAlert({
         title: "Info",
         message: "Nejsou žádní nevybráni účastníci s cenou.",
-        variant: "info"
+        variant: "info",
       });
       return;
     }
@@ -1289,7 +1376,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
       showAlert({
         title: "Info",
         message: "Žádný z nevybraných účastníků nemá uvedený email.",
-        variant: "info"
+        variant: "info",
       });
       return;
     }
@@ -1310,12 +1397,12 @@ export const Pipeline: React.FC<PipelineProps> = ({
         subject = processTemplate(
           template.subject,
           projectDetails,
-          activeCategory
+          activeCategory,
         );
         const processed = processTemplate(
           template.content,
           projectDetails,
-          activeCategory
+          activeCategory,
         );
         body = htmlToPlainText(processed);
       }
@@ -1323,7 +1410,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
     // Open mailto with BCC to all losers
     window.location.href = `mailto:?bcc=${emails.join(
-      ","
+      ",",
     )}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 
@@ -1371,7 +1458,9 @@ export const Pipeline: React.FC<PipelineProps> = ({
       if (user?.role === "demo") {
         const demoData = getDemoData();
         if (demoData) {
-          demoData.contacts = demoData.contacts.map((c: Subcontractor) => c.id === updatedContact.id ? updatedContact : c);
+          demoData.contacts = demoData.contacts.map((c: Subcontractor) =>
+            c.id === updatedContact.id ? updatedContact : c,
+          );
           saveDemoData(demoData);
         }
       } else {
@@ -1396,15 +1485,15 @@ export const Pipeline: React.FC<PipelineProps> = ({
       }
 
       // Only update UI and close modal if update was successful
-      setLocalContacts((prev) => prev.map(c => c.id === updatedContact.id ? updatedContact : c));
+      setLocalContacts((prev) =>
+        prev.map((c) => (c.id === updatedContact.id ? updatedContact : c)),
+      );
       setEditingContact(null);
     } catch (err) {
       console.error("Unexpected error updating contact:", err);
       // Modal stays open so user can retry
     }
   };
-
-
 
   if (activeCategory) {
     // --- DETAIL VIEW (PIPELINE) ---
@@ -1436,7 +1525,9 @@ export const Pipeline: React.FC<PipelineProps> = ({
             <button
               onClick={() => {
                 // For desktop: open tender/category folder directly
-                const isDesktopMode = typeof window !== 'undefined' && window.electronAPI?.platform?.isDesktop;
+                const isDesktopMode =
+                  typeof window !== "undefined" &&
+                  window.electronAPI?.platform?.isDesktop;
 
                 if (canUseDocHubBackend && projectData.id && !isDesktopMode) {
                   openDocHubBackendLink({
@@ -1450,18 +1541,29 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
                 // Desktop: build path to tender folder from hierarchy
                 if (isDesktopMode) {
-                  const hierarchy = (projectDetails.docHubStructureV1 as any)?.extraHierarchy;
-                  const tendersItem = hierarchy?.find((item: any) => item.key === 'tenders' && item.enabled !== false);
-                  const tendersFolder = tendersItem?.name || "03_Vyberova_rizeni";
-                  const cleanTitle = activeCategory.title.replace(/[<>:"|?*]/g, "").trim();
-                  const tenderPath = [docHubRoot, tendersFolder, cleanTitle].join("\\");
-                  console.log('[DocHub] Opening tender folder:', tenderPath);
+                  const hierarchy = (projectDetails.docHubStructureV1 as any)
+                    ?.extraHierarchy;
+                  const tendersItem = hierarchy?.find(
+                    (item: any) =>
+                      item.key === "tenders" && item.enabled !== false,
+                  );
+                  const tendersFolder =
+                    tendersItem?.name || "03_Vyberova_rizeni";
+                  const cleanTitle = activeCategory.title
+                    .replace(/[<>:"|?*]/g, "")
+                    .trim();
+                  const tenderPath = [
+                    docHubRoot,
+                    tendersFolder,
+                    cleanTitle,
+                  ].join("\\");
+                  console.log("[DocHub] Opening tender folder:", tenderPath);
                   openOrCopyDocHubPath(tenderPath);
                 } else {
                   const links = getDocHubTenderLinks(
                     docHubRoot,
                     activeCategory.title,
-                    docHubStructure
+                    docHubStructure,
                   );
                   openOrCopyDocHubPath(links.tenderBase);
                 }
@@ -1565,7 +1667,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                     </button>
                   </div>
                 </>,
-                document.body
+                document.body,
               )}
           </div>
 
@@ -1647,10 +1749,10 @@ export const Pipeline: React.FC<PipelineProps> = ({
               ))}
               {getBidsForColumn(activeCategory.id, "contacted").length ===
                 0 && (
-                  <div className="text-center p-4 text-slate-400 text-sm italic">
-                    Žádní dodavatelé v této fázi
-                  </div>
-                )}
+                <div className="text-center p-4 text-slate-400 text-sm italic">
+                  Žádní dodavatelé v této fázi
+                </div>
+              )}
             </Column>
 
             {/* 2. Odesláno (Sent) */}
@@ -1743,10 +1845,11 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   {/* Contract icon - clickable */}
                   <button
                     onClick={() => handleToggleContracted(bid)}
-                    className={`absolute -top-2 right-6 rounded-full p-1 z-10 shadow-sm transition-all hover:scale-110 ${bid.contracted
-                      ? "bg-yellow-400 text-yellow-900 ring-2 ring-yellow-300 animate-pulse"
-                      : "bg-slate-600 text-slate-300 hover:bg-slate-500"
-                      }`}
+                    className={`absolute -top-2 right-6 rounded-full p-1 z-10 shadow-sm transition-all hover:scale-110 ${
+                      bid.contracted
+                        ? "bg-yellow-400 text-yellow-900 ring-2 ring-yellow-300 animate-pulse"
+                        : "bg-slate-600 text-slate-300 hover:bg-slate-500"
+                    }`}
                     title={
                       bid.contracted
                         ? "Zasmluvněno ✓"
@@ -1813,7 +1916,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
             initialName={newContactName}
             initialData={editingContact || undefined}
             existingSpecializations={Array.from(
-              new Set(localContacts.flatMap((c) => c.specialization))
+              new Set(localContacts.flatMap((c) => c.specialization)),
             ).sort()}
             statuses={externalStatuses}
             onClose={() => {
