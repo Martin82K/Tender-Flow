@@ -591,6 +591,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 href="/user-manual/index.html"
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={(e) => {
+                  if (isDesktop) {
+                    e.preventDefault();
+                    const url = new URL("/user-manual/index.html", window.location.href).href;
+                    platformAdapter.shell.openExternal(url);
+                  }
+                }}
                 className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
                 title="Otevře uživatelskou příručku v nové záložce"
               >
