@@ -50,7 +50,7 @@ function createWindow(): void {
         const iconPath = path.join(__dirname, '../../assets/icon.icns');
         try {
             require('fs').accessSync(iconPath);
-            app.dock.setIcon(iconPath);
+            app.dock?.setIcon(iconPath);
         } catch (error) {
             console.error('Dock icon not accessible:', error);
         }
