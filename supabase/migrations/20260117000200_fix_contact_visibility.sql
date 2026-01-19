@@ -9,6 +9,7 @@
 -- 1. Drop the legacy permissive legacy policy (usually named "Users can view own or public subcontractors")
 DROP POLICY IF EXISTS "Users can view own or public subcontractors" ON public.subcontractors;
 DROP POLICY IF EXISTS "Subcontractors visible to owner or org" ON public.subcontractors;
+DROP POLICY IF EXISTS "Strict Subcontractor Visibility" ON public.subcontractors;
 
 -- 2. Create STRICT Select Policy
 CREATE POLICY "Strict Subcontractor Visibility" ON public.subcontractors
@@ -27,6 +28,7 @@ CREATE POLICY "Strict Subcontractor Visibility" ON public.subcontractors
 -- Usually you want Org Members to be able to edit Org Contacts.
 DROP POLICY IF EXISTS "Users can update own or public subcontractors" ON public.subcontractors;
 DROP POLICY IF EXISTS "Manage own or org subcontractors" ON public.subcontractors;
+DROP POLICY IF EXISTS "Strict Subcontractor Update" ON public.subcontractors;
 
 CREATE POLICY "Strict Subcontractor Update" ON public.subcontractors
     FOR UPDATE
@@ -40,6 +42,7 @@ CREATE POLICY "Strict Subcontractor Update" ON public.subcontractors
 
 -- 4. Delete Permissions
 DROP POLICY IF EXISTS "Users can delete own or public subcontractors" ON public.subcontractors;
+DROP POLICY IF EXISTS "Strict Subcontractor Delete" ON public.subcontractors;
 
 CREATE POLICY "Strict Subcontractor Delete" ON public.subcontractors
     FOR DELETE
@@ -50,4 +53,3 @@ CREATE POLICY "Strict Subcontractor Delete" ON public.subcontractors
         OR
         organization_id = ANY(public.get_my_org_ids())
     );
-

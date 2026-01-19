@@ -268,4 +268,57 @@ export class ExcelService {
     onProgress?.('Hotovo. Stahování se spustí automaticky.');
     return new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   }
+
+  /**
+   * Merges sheets via Supabase Edge Function API (for web version)
+   * This uses the cloud-based processing instead of local ExcelJS
+   */
+  static async mergeSheetsViaApi(
+    file: File,
+    sheetsToInclude: string[],
+    onProgress?: (message: string) => void,
+    onProgressUpdate?: (progress: number) => void
+  ): Promise<Blob> {
+    const supabaseUrl = (import.meta as any)?.env?.VITE_SUPABASE_URL;
+    const supabaseAnonKey = (import.meta as any)?.env?.VITE_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error('Supabase configuration missing');
+    }
+
+    onProgress?.('Připravuji soubor k odeslání...');
+    onProgressUpdate?.(5);
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('sheets', JSON.stringify(sheetsToInclude));
+
+    onProgress?.('Odesílám soubor na server...');
+    onProgressUpdate?.(20);
+
+    const response = await fetch(`${supabaseUrl}/functions/v1/excel-merge`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+      },
+      body: formData,
+    });
+
+    onProgressUpdate?.(80);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Server error: ${response.status}`);
+    }
+
+    onProgress?.('Zpracovávám výsledek...');
+    onProgressUpdate?.(90);
+
+    const blob = await response.blob();
+
+    onProgress?.('Hotovo. Stahování se spustí automaticky.');
+    onProgressUpdate?.(100);
+
+    return blob;
+  }
 }
