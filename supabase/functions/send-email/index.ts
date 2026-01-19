@@ -15,7 +15,7 @@ interface EmailRequest {
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 // Default sender if not specified. Ideally configured in env, fallback to a placeholder.
 const DEFAULT_FROM =
-  Deno.env.get("DEFAULT_EMAIL_FROM") || "Tender Flow <info@tender-flow.cz>";
+  Deno.env.get("DEFAULT_EMAIL_FROM") || "Tender Flow <noreply@tenderflow.cz>";
 
 serve(async (req) => {
   // Handle CORS
@@ -90,7 +90,7 @@ serve(async (req) => {
 
     if (!res.ok) {
       console.error("Resend API error:", data);
-      return new Response(JSON.stringify({ error: data }), {
+      return new Response(JSON.stringify(data), {
         status: res.status,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

@@ -105,7 +105,8 @@ export const invokeAuthedFunction = async <TResponse>(
     }
 
     if (!res.ok) {
-      const message = json?.error || json?.message || text || `HTTP ${res.status}`;
+      const errorData = json?.error || json?.message || json;
+      const message = typeof errorData === 'object' ? JSON.stringify(errorData) : (errorData || text || `HTTP ${res.status}`);
       throw new Error(message);
     }
 
