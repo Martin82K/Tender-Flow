@@ -15,7 +15,7 @@ interface EmailRequest {
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 // Default sender if not specified. Ideally configured in env, fallback to a placeholder.
 const DEFAULT_FROM =
-  Deno.env.get("DEFAULT_EMAIL_FROM") || "Zuppa Base <onboarding@resend.dev>";
+  Deno.env.get("DEFAULT_EMAIL_FROM") || "Tender Flow <info@tender-flow.cz>";
 
 serve(async (req) => {
   // Handle CORS
