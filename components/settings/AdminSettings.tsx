@@ -184,6 +184,9 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
 
           {!isLoadingSettings && (
             <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-700/50">
+              <h3 className="text-md font-bold text-slate-900 dark:text-white mb-4">
+                Testování emailů
+              </h3>
               <EmailTestPanel />
             </div>
           )}

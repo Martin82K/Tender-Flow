@@ -37,13 +37,17 @@ serve(async (req) => {
     // For tighter security, we should use createClient and getUser.
 
     // 2. Parse Request Body
-    const { to, subject, html, text, from, cc, bcc, reply_to }: EmailRequest =
-      await req.json();
+    const { to, subject, data, template }: { 
+        to: string | string[], 
+        subject?: string, 
+        data?: any,
+        template?: string
+    } = await req.json();
 
-    if (!to || !subject || (!html && !text)) {
+    if (!to || !template) {
       return new Response(
         JSON.stringify({
-          error: "Missing required fields: to, subject, and (html or text)",
+          error: "Missing required fields: to, template",
         }),
         {
           status: 400,
@@ -67,7 +71,27 @@ serve(async (req) => {
       );
     }
 
-    // 3. Send via Resend
+    // Map template name to ID from Env
+    let templateId = "";
+    if (template === 'registration') {
+        templateId = Deno.env.get("RESEND_TEMPLATE_REGISTRATION_WELCOME_ID") || "";
+    } else if (template === 'forgotPassword') {
+        templateId = Deno.env.get("RESEND_TEMPLATE_FORGOT_PASSWORD_ID") || "";
+    }
+
+    if (!templateId) {
+         return new Response(
+        JSON.stringify({
+          error: `Template ID not found for template: ${template}`,
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    // 3. Send via Resend using Template
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -75,28 +99,24 @@ serve(async (req) => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: from || DEFAULT_FROM,
+        from: DEFAULT_FROM,
         to,
-        subject,
-        html,
-        text,
-        cc,
-        bcc,
-        reply_to,
+        template_id: templateId,
+        data: data || {} // Dynamic data for the template
       }),
     });
 
-    const data = await res.json();
+    const resData = await res.json();
 
     if (!res.ok) {
-      console.error("Resend API error:", data);
-      return new Response(JSON.stringify(data), {
+      console.error("Resend API error:", resData);
+      return new Response(JSON.stringify(resData), {
         status: res.status,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    return new Response(JSON.stringify(data), {
+    return new Response(JSON.stringify(resData), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
