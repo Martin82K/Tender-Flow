@@ -320,6 +320,11 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const [editingCategory, setEditingCategory] = useState<DemandCategory | null>(
     null,
   );
+  // Linked tender plan dates for syncing (loaded when editing category)
+  const [linkedTenderPlanDates, setLinkedTenderPlanDates] = useState<{
+    dateFrom: string;
+    dateTo: string;
+  } | null>(null);
   const [newCategoryForm, setNewCategoryForm] = useState({
     title: "",
     sodBudget: "",
@@ -909,7 +914,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
     setIsEditModalOpen(false);
   };
 
-  const handleEditCategoryClick = (category: DemandCategory) => {
+  const handleEditCategoryClick = async (category: DemandCategory) => {
     setEditingCategory(category);
     setNewCategoryForm({
       title: category.title,
@@ -921,7 +926,29 @@ export const Pipeline: React.FC<PipelineProps> = ({
       realizationEnd: category.realizationEnd || "",
     });
     setSelectedFiles([]);
+    setLinkedTenderPlanDates(null); // Reset before loading
     setIsEditModalOpen(true);
+
+    // Load linked tender plan dates from database
+    try {
+      const { data, error } = await supabase
+        .from("tender_plans")
+        .select("date_from, date_to")
+        .eq("project_id", projectId)
+        .or(`category_id.eq.${category.id},name.ilike.${category.title}`)
+        .limit(1)
+        .single();
+
+      if (!error && data) {
+        setLinkedTenderPlanDates({
+          dateFrom: data.date_from || "",
+          dateTo: data.date_to || "",
+        });
+      }
+    } catch (err) {
+      // Silently ignore - linked plan may not exist
+      console.debug("No linked tender plan found for category:", category.id);
+    }
   };
 
   const handleToggleCategoryComplete = (category: DemandCategory) => {
@@ -1983,9 +2010,11 @@ export const Pipeline: React.FC<PipelineProps> = ({
         mode="edit"
         initialData={editingCategory || undefined}
         existingDocuments={editingCategory?.documents}
+        linkedTenderPlanDates={linkedTenderPlanDates}
         onClose={() => {
           setIsEditModalOpen(false);
           setEditingCategory(null);
+          setLinkedTenderPlanDates(null);
         }}
         onSubmit={handleEditCategoryFromModal}
       />
