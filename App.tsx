@@ -115,7 +115,8 @@ function AppContent() {
         actions.setSelectedProjectId(route.projectId);
       }
       if (route.tab) setActiveProjectTab(route.tab);
-      if (route.categoryId) setActivePipelineCategoryId(route.categoryId);
+      // Always sync categoryId from URL (including clearing when not present)
+      setActivePipelineCategoryId(route.categoryId ?? null);
     } else {
       // Reset category ID when leaving project view to prevent stale state
       if (activePipelineCategoryId) {
@@ -333,13 +334,16 @@ function AppContent() {
               activeTab={activeProjectTab}
               onTabChange={(tab) => {
                 setActiveProjectTab(tab);
+                // Clear category when switching away from pipeline tab
+                if (tab !== "pipeline") {
+                  setActivePipelineCategoryId(null);
+                }
                 navigate(
                   buildAppUrl("project", {
                     projectId: state.selectedProjectId,
                     tab,
-                    categoryId: activePipelineCategoryId ?? undefined,
+                    categoryId: tab === "pipeline" ? (activePipelineCategoryId ?? undefined) : undefined,
                   }),
-                  { replace: true },
                 );
               }}
               contacts={state.contacts}
@@ -355,7 +359,16 @@ function AppContent() {
                     tab: "pipeline",
                     categoryId: catId,
                   }),
-                  { replace: true },
+                );
+              }}
+              onCategoryNavigate={(catId) => {
+                setActivePipelineCategoryId(catId);
+                navigate(
+                  buildAppUrl("project", {
+                    projectId: state.selectedProjectId,
+                    tab: "pipeline",
+                    categoryId: catId ?? undefined,
+                  }),
                 );
               }}
             />

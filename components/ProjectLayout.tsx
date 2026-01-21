@@ -30,6 +30,7 @@ interface ProjectLayoutProps {
   onUpdateContact: (contact: Subcontractor) => void;
   initialPipelineCategoryId?: string;
   onNavigateToPipeline?: (categoryId: string) => void;
+  onCategoryNavigate?: (categoryId: string | null) => void;
 }
 
 export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
@@ -47,6 +48,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
   onUpdateContact,
   initialPipelineCategoryId,
   onNavigateToPipeline,
+  onCategoryNavigate,
 }) => {
   const project = projectDetails;
   const [searchQuery, setSearchQuery] = useState("");
@@ -181,6 +183,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
             onUpdateContact={onUpdateContact}
             searchQuery={searchQuery}
             initialOpenCategoryId={initialPipelineCategoryId}
+            onCategoryNavigate={onCategoryNavigate}
           />
         )}
         {activeTab === "schedule" && (

@@ -84,6 +84,7 @@ interface PipelineProps {
   onUpdateContact?: (contact: Subcontractor) => void;
   searchQuery?: string;
   initialOpenCategoryId?: string;
+  onCategoryNavigate?: (categoryId: string | null) => void;
 }
 
 type PipelineViewMode = "grid" | "table";
@@ -101,6 +102,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
   onUpdateContact,
   searchQuery = "",
   initialOpenCategoryId,
+  onCategoryNavigate,
 }) => {
   const { user } = useAuth();
   // ... (existing code omitted for brevity)
@@ -375,15 +377,19 @@ export const Pipeline: React.FC<PipelineProps> = ({
     });
   };
 
-  // Track previous project ID to detect actual project changes
+  // Track previous values to detect changes
   const prevProjectIdRef = useRef<string | null>(null);
+  const prevCategoryIdRef = useRef<string | null | undefined>(undefined);
 
-  // Reset active category when switching projects, unless we have an initial category to open
+  // Sync active category with initialOpenCategoryId (from URL)
   useEffect(() => {
     const projectActuallyChanged =
       prevProjectIdRef.current !== null &&
       prevProjectIdRef.current !== projectId;
+    const categoryIdChanged = prevCategoryIdRef.current !== initialOpenCategoryId;
+
     prevProjectIdRef.current = projectId;
+    prevCategoryIdRef.current = initialOpenCategoryId;
 
     if (initialOpenCategoryId) {
       const categoryToOpen = projectDetails.categories.find(
@@ -392,8 +398,8 @@ export const Pipeline: React.FC<PipelineProps> = ({
       if (categoryToOpen) {
         setActiveCategory(categoryToOpen);
       }
-    } else if (projectActuallyChanged) {
-      // Only reset if project actually changed, not on initial render or category updates
+    } else if (projectActuallyChanged || categoryIdChanged) {
+      // Clear category when project changes OR when URL categoryId is cleared (back button)
       setActiveCategory(null);
     }
   }, [projectId, initialOpenCategoryId, projectDetails.categories]);
@@ -1534,7 +1540,10 @@ export const Pipeline: React.FC<PipelineProps> = ({
           showNotifications={false}
         >
           <button
-            onClick={() => setActiveCategory(null)}
+            onClick={() => {
+              setActiveCategory(null);
+              onCategoryNavigate?.(null);
+            }}
             className="mr-auto flex items-center gap-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors px-2"
           >
             <span className="material-symbols-outlined">arrow_back</span>
@@ -1989,7 +1998,10 @@ export const Pipeline: React.FC<PipelineProps> = ({
         viewMode={viewMode}
         onFilterChange={setDemandFilter}
         onViewModeChange={setViewMode}
-        onCategoryClick={setActiveCategory}
+        onCategoryClick={(category) => {
+          setActiveCategory(category);
+          onCategoryNavigate?.(category.id);
+        }}
         onAddClick={() => setIsAddModalOpen(true)}
         onEditCategory={handleEditCategoryClick}
         onDeleteCategory={handleDeleteCategory}
