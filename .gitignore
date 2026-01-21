@@ -49,3 +49,6 @@ sub.csv
 
 # Local Netlify folder
 .netlify
+
+# Local Claude folder
+.claude
