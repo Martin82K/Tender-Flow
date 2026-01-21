@@ -30,6 +30,7 @@ npm run version:major
 ```
 
 Tyto příkazy automaticky:
+
 - Aktualizují `package.json`
 - Synchronizují `config/version.ts`
 
@@ -58,6 +59,7 @@ npm run desktop:build:win
 ```
 
 Toto vytvoří:
+
 - `dist-electron/Tender Flow Setup X.Y.Z.exe` - Instalátor pro Windows
 - `dist-electron/latest.yml` - Metadata pro auto-updater
 
@@ -83,6 +85,7 @@ dist-electron/
 ### Ruční Způsob
 
 1. **Přejděte na GitHub Releases**
+
    ```
    https://github.com/Martin82K/Tender-Flow/releases/new
    ```
@@ -93,14 +96,20 @@ dist-electron/
    - **Description**: Popište změny v této verzi
 
 3. **Uploadujte Soubory**
-   
-   **DŮLEŽITÉ**: Musíte uploadovat všechny soubory z `dist-electron/`:
-   
+
+   **DŮLEŽITÉ**: Musíte uploadovat tyto soubory z `dist-electron/`:
+
+   **Windows:**
    - ✅ `Tender Flow Setup X.Y.Z.exe`
    - ✅ `Tender Flow Setup X.Y.Z.exe.blockmap`
    - ✅ `latest.yml`
 
-   ⚠️ **Bez `latest.yml` auto-updater nebude fungovat!**
+   **macOS:**
+   - ✅ `Tender Flow-X.Y.Z-mac.zip` (x64)
+   - ✅ `Tender Flow-X.Y.Z-arm64-mac.zip` (ARM64)
+   - ✅ `latest-mac.yml`
+
+   ⚠️ **Bez `latest.yml` / `latest-mac.yml` auto-updater nebude fungovat!**
 
 4. **Publikujte Release**
    - Klikněte na "Publish release"
@@ -134,6 +143,7 @@ git push origin v1.0.0
 ### Monitoring
 
 Aplikace kontroluje aktualizace:
+
 - ✅ Při startu (po 5 sekundách)
 - ✅ Automaticky každých 6 hodin
 
@@ -169,23 +179,27 @@ Stáhněte si instalátor níže a spusťte ho. Existující instalace budou aut
 ### Auto-updater nenajde update
 
 **Příčiny:**
-- ❌ Nepřítomný `latest.yml` soubor v release
+
+- ❌ Nepřítomný `latest.yml` (Windows) nebo `latest-mac.yml` (macOS) v release
 - ❌ Špatný tag (musí být ve formátu `vX.Y.Z`)
 - ❌ Release není publikovaný (je draft)
 
 **Řešení:**
-1. Zkontrolujte, že všechny 3 soubory jsou nahrané
+
+1. Zkontrolujte, že `latest.yml` a/nebo `latest-mac.yml` jsou nahrané
 2. Zkontrolujte tag formát
 3. Publikujte release (ne draft)
 
 ### Build selhává
 
 **Příčiny:**
+
 - ❌ Node modules nejsou aktuální
 - ❌ Chybějící závislosti
 - ❌ Nekompatibilní verze Node.js
 
 **Řešení:**
+
 ```bash
 # Vyčistit a reinstalovat
 rm -rf node_modules dist dist-electron
@@ -215,6 +229,7 @@ Pro publikování releases potřebujete GitHub Personal Access Token:
 4. Zkopírujte token a uložte si ho
 
 Token použijte jako environment variable:
+
 ```bash
 # Windows PowerShell
 $env:GH_TOKEN="your_token_here"
@@ -230,9 +245,9 @@ set GH_TOKEN=your_token_here
 - [ ] Verze bumpnutá (`npm run version:patch/minor/major`)
 - [ ] Changelog/Release notes připravené
 - [ ] Git tag vytvořen a pushnutý
-- [ ] Build úspěšný (`npm run desktop:build:win`)
-- [ ] Všechny soubory z dist-electron/ uploadnuté na GitHub
-- [ ] latest.yml přítomný v release
+- [ ] Build úspěšný (`npm run desktop:build:win` / `npm run desktop:build:mac`)
+- [ ] Windows: `Tender Flow Setup X.Y.Z.exe` + `latest.yml` uploadnuté
+- [ ] macOS: ZIP soubory + `latest-mac.yml` uploadnuté
 - [ ] Release publikován (ne draft)
 - [ ] Auto-updater otestován na starší verzi
 ```
@@ -258,6 +273,7 @@ Write-Host "Build complete! Create GitHub release manually and upload files from
 ```
 
 Použití:
+
 ```bash
 .\scripts\release.ps1 -version 1.0.1
 ```
@@ -265,9 +281,11 @@ Použití:
 ## Podporované Platformy
 
 Aktuálně:
+
 - ✅ Windows (x64)
 
 V budoucnu:
+
 - 🔄 macOS (Intel + Apple Silicon)
 - 🔄 Linux (AppImage, deb)
 
