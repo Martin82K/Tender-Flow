@@ -19,7 +19,7 @@ export const AuthCard: React.FC<{
         <img
           src={logo}
           alt="Tender Flow"
-          className="w-28 h-28 object-contain drop-shadow-2xl"
+          className="w-32 h-32 object-contain drop-shadow-2xl"
         />
         <h1 className="mt-4 text-3xl font-light text-white tracking-wide">
           {title}
@@ -74,7 +74,6 @@ export const AuthCard: React.FC<{
                 Registrace povolena pouze pro klienty
               </span>
             )}
-
           </div>
         )}
       </div>

@@ -34,13 +34,15 @@ export const PublicHeader: React.FC<{ variant?: "marketing" | "auth" }> = ({
           <img
             src={logo}
             alt="Tender Flow"
-            className="w-9 h-9 object-contain drop-shadow group-hover:scale-[1.03] transition-transform"
+            className="w-12 h-12 object-contain drop-shadow group-hover:scale-[1.03] transition-transform"
           />
           <div className="leading-tight">
             <div className="text-white font-semibold tracking-wide">
               Tender Flow
             </div>
-            <div className="text-xs text-white/60">Tender Management System</div>
+            <div className="text-xs text-white/60">
+              Tender Management System
+            </div>
           </div>
         </Link>
 

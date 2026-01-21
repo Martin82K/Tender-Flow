@@ -22,7 +22,7 @@ const PROJECT_TABS: { id: ProjectTab; label: string; icon: string }[] = [
 // Helper function to get display role
 const getUserRole = (
   email: string | undefined,
-  defaultRole?: string
+  defaultRole?: string,
 ): string => {
   if (!email) return defaultRole || "User";
   if (ADMIN_EMAILS.includes(email)) return "Admin";
@@ -36,17 +36,17 @@ interface SidebarProps {
     opts?: {
       settingsTab?: "user" | "admin";
       settingsSubTab?:
-      | "profile"
-      | "contacts"
-      | "excelUnlocker"
-      | "excelMerger"
-      | "urlShortener"
-      | "registration"
-      | "users"
-      | "subscriptions"
-      | "ai"
-      | "tools";
-    }
+        | "profile"
+        | "contacts"
+        | "excelUnlocker"
+        | "excelMerger"
+        | "urlShortener"
+        | "registration"
+        | "users"
+        | "subscriptions"
+        | "ai"
+        | "tools";
+    },
   ) => void;
   selectedProjectId: string;
   onProjectSelect: (id: string, tab?: string) => void;
@@ -80,12 +80,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }
   };
 
-  const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({});
+  const [expandedProjects, setExpandedProjects] = useState<
+    Record<string, boolean>
+  >({});
 
   const toggleProjectExpand = (e: React.MouseEvent, projectId: string) => {
     e.preventDefault();
     e.stopPropagation();
-    setExpandedProjects(prev => ({ ...prev, [projectId]: !prev[projectId] }));
+    setExpandedProjects((prev) => ({ ...prev, [projectId]: !prev[projectId] }));
   };
 
   const settingsRoute = (() => {
@@ -95,14 +97,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const tab = tabParam === "admin" || tabParam === "user" ? tabParam : null;
     const rawSubTab =
       subTabParam === "profile" ||
-        subTabParam === "contacts" ||
-        subTabParam === "excelUnlocker" ||
-        subTabParam === "excelMerger" ||
-        subTabParam === "registration" ||
-        subTabParam === "users" ||
-        subTabParam === "subscriptions" ||
-        subTabParam === "ai" ||
-        subTabParam === "tools" // legacy
+      subTabParam === "contacts" ||
+      subTabParam === "excelUnlocker" ||
+      subTabParam === "excelMerger" ||
+      subTabParam === "registration" ||
+      subTabParam === "users" ||
+      subTabParam === "subscriptions" ||
+      subTabParam === "ai" ||
+      subTabParam === "tools" // legacy
         ? subTabParam
         : null;
     const subTab = rawSubTab === "tools" ? "excelUnlocker" : rawSubTab;
@@ -114,7 +116,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       if (item.feature && !hasFeature(item.feature)) return false;
       return true;
     },
-    [hasFeature]
+    [hasFeature],
   );
 
   const isNavItemActive = useCallback(
@@ -123,7 +125,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         return (
           Array.isArray(item.children) &&
           item.children.some(
-            (child: any) => isNavItemEnabled(child) && isNavItemActive(child)
+            (child: any) => isNavItemEnabled(child) && isNavItemActive(child),
           )
         );
       }
@@ -141,7 +143,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         settingsRoute.subTab === null || settingsRoute.subTab === "profile"
       );
     },
-    [currentView, isNavItemEnabled, settingsRoute.subTab, settingsRoute.tab]
+    [currentView, isNavItemEnabled, settingsRoute.subTab, settingsRoute.tab],
   );
 
   // Note: Removed auto-open effect for tools group to allow manual close behavior
@@ -165,7 +167,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         }
       }
     },
-    [isResizing]
+    [isResizing],
   );
 
   useEffect(() => {
@@ -206,8 +208,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }
   };
 
-
-
   // Drag & Drop State for Projects (Read-only here)
   const [projectOrder, setProjectOrder] = useState<string[]>([]);
 
@@ -247,15 +247,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
       return (
         <details key={item.id} className="group" open>
           <summary
-            className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer list-none ${currentView === "project"
-              ? "bg-primary/20 text-primary border border-primary/30 font-semibold"
-              : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
-              }`}
+            className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer list-none ${
+              currentView === "project"
+                ? "bg-primary/20 text-primary border border-primary/30 font-semibold"
+                : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
+            }`}
           >
             <div className="flex items-center gap-3 min-w-0">
               <span
-                className={`material-symbols-outlined shrink-0 ${currentView === "project" ? "fill text-primary" : ""
-                  }`}
+                className={`material-symbols-outlined shrink-0 ${
+                  currentView === "project" ? "fill text-primary" : ""
+                }`}
               >
                 {item.icon}
               </span>
@@ -274,7 +276,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             )}
             {orderedProjects.map((project) => {
               const isExpanded = expandedProjects[project.id];
-              const isSelected = currentView === "project" && selectedProjectId === project.id;
+              const isSelected =
+                currentView === "project" && selectedProjectId === project.id;
 
               return (
                 <div key={project.id} className="flex flex-col">
@@ -284,10 +287,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       onProjectSelect(project.id, "overview");
                       closeMobileMenu();
                     }}
-                    className={`flex items-center gap-2 text-left text-sm px-3 py-2 rounded-lg transition-all relative overflow-hidden cursor-pointer group/item ${isSelected
-                      ? "text-slate-900 dark:text-white font-medium"
-                      : "text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                      }`}
+                    className={`flex items-center gap-2 text-left text-sm px-3 py-2 rounded-lg transition-all relative overflow-hidden cursor-pointer group/item ${
+                      isSelected
+                        ? "text-slate-900 dark:text-white font-medium"
+                        : "text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                    }`}
                     title={project.name}
                   >
                     {/* Gradient highlight for selected project */}
@@ -297,10 +301,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                     {/* Status Badge */}
                     <span
-                      className={`relative z-10 flex items-center justify-center size-5 rounded text-[11px] font-bold shrink-0 ${project.status === "realization"
-                        ? "bg-amber-500/20 text-amber-400"
-                        : "bg-blue-500/20 text-blue-400"
-                        }`}
+                      className={`relative z-10 flex items-center justify-center size-5 rounded text-[11px] font-bold shrink-0 ${
+                        project.status === "realization"
+                          ? "bg-amber-500/20 text-amber-400"
+                          : "bg-blue-500/20 text-blue-400"
+                      }`}
                     >
                       {project.status === "realization" ? "R" : "S"}
                     </span>
@@ -313,10 +318,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     {/* Expand Button */}
                     <button
                       onClick={(e) => toggleProjectExpand(e, project.id)}
-                      className={`relative z-10 p-0.5 rounded-md hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 transition-all ${isExpanded ? "rotate-180" : ""
-                        }`}
+                      className={`relative z-10 p-0.5 rounded-md hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 transition-all ${
+                        isExpanded ? "rotate-180" : ""
+                      }`}
                     >
-                      <span className="material-symbols-outlined text-[18px]">expand_more</span>
+                      <span className="material-symbols-outlined text-[18px]">
+                        expand_more
+                      </span>
                     </button>
                   </div>
 
@@ -330,7 +338,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         // But wait, `isNavItemActive` uses `settingsRoute` which parses URL.
                         // I can parse URL here too or pass the prop.
                         // I'll stick to simple rendering for now, maybe simple highlight if possible.
-                        const isTabActive = isSelected && window.location.search.includes(`tab=${tab.id}`); // Rough check or rely on passed prop if I add it.
+                        const isTabActive =
+                          isSelected &&
+                          window.location.search.includes(`tab=${tab.id}`); // Rough check or rely on passed prop if I add it.
                         // Actually, I modified MainLayout to support `activeProjectTab`.
                         // I DID NOT add `activeProjectTab` to SidebarProps yet.
                         // I should probably have done that.
@@ -340,7 +350,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         // I can check search params.
 
                         const searchParams = new URLSearchParams(search);
-                        const isTabActiveReal = isSelected && (searchParams.get('tab') || 'overview') === tab.id;
+                        const isTabActiveReal =
+                          isSelected &&
+                          (searchParams.get("tab") || "overview") === tab.id;
 
                         return (
                           <button
@@ -350,12 +362,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                               onProjectSelect(project.id, tab.id);
                               closeMobileMenu();
                             }}
-                            className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs transition-colors ${isTabActiveReal
-                              ? "text-primary bg-primary/10 font-medium"
-                              : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/30"
-                              }`}
+                            className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs transition-colors ${
+                              isTabActiveReal
+                                ? "text-primary bg-primary/10 font-medium"
+                                : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/30"
+                            }`}
                           >
-                            <span className="material-symbols-outlined text-[16px]">{tab.icon}</span>
+                            <span className="material-symbols-outlined text-[16px]">
+                              {tab.icon}
+                            </span>
                             <span>{tab.label}</span>
                           </button>
                         );
@@ -385,15 +400,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
           }}
         >
           <summary
-            className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer list-none ${isItemActive
-              ? "bg-primary/20 text-primary border border-primary/30"
-              : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
-              }`}
+            className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer list-none ${
+              isItemActive
+                ? "bg-primary/20 text-primary border border-primary/30"
+                : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
+            }`}
           >
             <div className="flex items-center gap-3 min-w-0">
               <span
-                className={`material-symbols-outlined shrink-0 ${isItemActive ? "fill" : ""
-                  }`}
+                className={`material-symbols-outlined shrink-0 ${
+                  isItemActive ? "fill" : ""
+                }`}
               >
                 {item.icon}
               </span>
@@ -410,7 +427,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             className={`flex flex-col mt-1 ml-2 gap-1 ${childrenMaxHeightClass} overflow-y-auto pr-1`}
           >
             {(item.children || []).map((child: any) =>
-              renderNavItem(child, item.id)
+              renderNavItem(child, item.id),
             )}
           </div>
         </details>
@@ -450,27 +467,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
             item.view,
             item.view === "settings"
               ? {
-                settingsTab: item.settingsTab,
-                settingsSubTab: item.settingsSubTab,
-              }
-              : undefined
+                  settingsTab: item.settingsTab,
+                  settingsSubTab: item.settingsSubTab,
+                }
+              : undefined,
           );
           closeMobileMenu();
         }}
-        className={`flex items-center gap-3 w-full px-3 py-2 nav-pill group ${isItemActive
-          ? "nav-pill-active"
-          : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200"
-          }`}
+        className={`flex items-center gap-3 w-full px-3 py-2 nav-pill group ${
+          isItemActive
+            ? "nav-pill-active"
+            : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200"
+        }`}
       >
         <span
-          className={`material-symbols-outlined shrink-0 text-[20px] ${isItemActive ? "fill" : ""
-            }`}
+          className={`material-symbols-outlined shrink-0 text-[20px] ${
+            isItemActive ? "fill" : ""
+          }`}
         >
           {item.icon}
         </span>
-        <p className="text-sm font-medium leading-none">
-          {item.label}
-        </p>
+        <p className="text-sm font-medium leading-none">{item.label}</p>
       </button>
     );
   };
@@ -509,10 +526,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <aside
         ref={sidebarRef}
         style={{ width: isOpen ? `${width}px` : "0px" }}
-        className={`relative flex h-full flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex-shrink-0 z-20 select-none group/sidebar transition-all duration-300 ease-in-out max-md:fixed max-md:inset-0 max-md:z-50 max-md:!w-full ${!isOpen
-          ? "overflow-hidden border-none max-md:pointer-events-none max-md:opacity-0"
-          : "max-md:opacity-100"
-          }`}
+        className={`relative flex h-full flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex-shrink-0 z-20 select-none group/sidebar transition-all duration-300 ease-in-out max-md:fixed max-md:inset-0 max-md:z-50 max-md:!w-full ${
+          !isOpen
+            ? "overflow-hidden border-none max-md:pointer-events-none max-md:opacity-0"
+            : "max-md:opacity-100"
+        }`}
       >
         {/* Mobile Overlay - not needed for fullscreen */}
         {isOpen && (
@@ -524,8 +542,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Sidebar Content is moved into a wrapper to avoid layout jump during transition */}
         <div
-          className={`flex flex-col h-full w-full min-w-[200px] ${!isOpen ? "opacity-0 invisible" : "opacity-100 visible"
-            } transition-opacity duration-200`}
+          className={`flex flex-col h-full w-full min-w-[200px] ${
+            !isOpen ? "opacity-0 invisible" : "opacity-100 visible"
+          } transition-opacity duration-200`}
         >
           {/* Resizer Handle - only on desktop */}
           <div
@@ -540,7 +559,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <img
                   src={logo}
                   alt="Tender Flow Logo"
-                  className="size-14 min-w-14 object-contain drop-shadow-md shrink-0"
+                  className="size-16 min-w-16 object-contain drop-shadow-md shrink-0"
                 />
                 <div className="flex flex-1 flex-col min-w-0">
                   <h1 className="text-slate-900 dark:text-white text-xl font-bold leading-tight whitespace-nowrap truncate">
@@ -594,7 +613,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onClick={(e) => {
                   if (isDesktop) {
                     e.preventDefault();
-                    const url = new URL("/user-manual/index.html", window.location.href).href;
+                    const url = new URL(
+                      "/user-manual/index.html",
+                      window.location.href,
+                    ).href;
                     platformAdapter.shell.openExternal(url);
                   }
                 }}
@@ -655,8 +677,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div className="px-3 pb-2">
                 <div className="h-px bg-slate-700/50 w-full my-3"></div>
                 <p className="text-[13px] text-center leading-relaxed font-medium tracking-wide">
-                  <span className="text-slate-400 dark:text-slate-500">Created by </span>
-                  <span className="bg-gradient-to-r from-orange-400 to-amber-500 bg-clip-text text-transparent font-bold">Martin Kalkuš 2026</span>
+                  <span className="text-slate-400 dark:text-slate-500">
+                    Created by{" "}
+                  </span>
+                  <span className="bg-gradient-to-r from-orange-400 to-amber-500 bg-clip-text text-transparent font-bold">
+                    Martin Kalkuš 2026
+                  </span>
                 </p>
                 <p className="text-[10px] text-white text-center mt-1 font-mono hover:text-white/80 transition-colors cursor-default">
                   v{APP_VERSION}
@@ -675,7 +701,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
               Chcete ukončit aplikaci?
             </h3>
             <p className="text-slate-400 mb-6">
-              Můžete aplikaci ukončit a zůstat přihlášeni (pro Touch ID), nebo se úplně odhlásit.
+              Můžete aplikaci ukončit a zůstat přihlášeni (pro Touch ID), nebo
+              se úplně odhlásit.
             </p>
 
             <div className="flex flex-col gap-3">
@@ -683,7 +710,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onClick={handleConfirmQuit}
                 className="w-full py-3 px-4 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-400 hover:to-amber-500 text-white font-bold rounded-xl shadow-lg shadow-orange-500/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
               >
-                <span className="material-symbols-outlined">power_settings_new</span>
+                <span className="material-symbols-outlined">
+                  power_settings_new
+                </span>
                 Ukončit aplikaci (Ponechat přihlášení)
               </button>
 
