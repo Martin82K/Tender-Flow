@@ -5,7 +5,6 @@ Deployment / hosting materiály jsou přesunuté z rootu do `docs/deploy/`, aby 
 ## Co zůstává v rootu (kvůli platformám)
 
 - `railway.json` (Railway detekuje v rootu)
-- `netlify.toml` a `public/_headers` (Netlify / hosting hlaviček)
 - `app.yaml` (Google App Engine)
 - `server.js` (produkční start: `npm start`)
 

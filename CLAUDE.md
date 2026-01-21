@@ -8,9 +8,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Tech Stack:**
 - Frontend: React 19 + TypeScript, Vite, Tailwind CSS
-- Backend: Supabase (PostgreSQL), Netlify Functions
+- Backend: Supabase (PostgreSQL), Vercel (hosting)
 - Desktop: Electron 40
-- Additional: Python backend for Excel tools, MCP Bridge Server for local filesystem access
+- Additional: MCP Bridge Server for local filesystem access
 
 ## Development Commands
 
@@ -133,7 +133,7 @@ Project
 - `mcpBridgeClient.ts` - Communication with MCP bridge server
 - `fileSystemService.ts` - Desktop filesystem operations
 - `excelMergerService.ts` - Excel merge tool integration
-- `urlShortenerService.ts` - URL shortening (TinyURL, custom TFUrl)
+- `urlShortenerService.ts` - URL shortening (TinyURL)
 - `geminiService.ts` - AI-powered insights using Google Gemini
 
 **Platform Abstraction:**
@@ -162,14 +162,6 @@ Project
 - `SkeletonLoader` - Loading states
 
 ### Backend & Serverless
-
-**Netlify Functions (netlify/functions/):**
-- Serverless functions for operations requiring secrets or server-side logic
-- Used for features like URL shortening, email generation
-
-**Python Excel Tools (server/excel_tools_api):**
-- Separate Python backend for Excel manipulation (merge, unlock)
-- Proxied in Vite dev server via `/api/merge` and `/api/excel-tools`
 
 **Supabase:**
 - PostgreSQL database with Row-Level Security (RLS)

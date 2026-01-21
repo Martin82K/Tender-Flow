@@ -144,7 +144,7 @@ export async function shortenUrl(url: string): Promise<ShortenResult> {
     const { data: { user } } = await supabase.auth.getUser();
 
     // Check user preference
-    let provider = 'tfurl'; // Default
+    let provider = 'tinyurl'; // Default (TF URL removed - no longer hosted on Netlify)
     if (user) {
       const { data: settings } = await supabase
         .from('user_settings')

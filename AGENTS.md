@@ -5,7 +5,7 @@
 - UI and state live in `components/`, `hooks/`, `context/`, `services/`, `utils/`, and `config/`.
 - Assets and static files: `assets/`, `public/`, `fonts/`, and `docs/`.
 - Desktop app: `desktop/` (Electron main/preload/IPC), outputs in `desktop/dist/` and `dist-electron/`.
-- Backend/server helpers: `server/`, `server.js`, `server_py/`, `netlify/functions/`, `mcp-bridge-server/`.
+- Backend/server helpers: `server/`, `server.js`, `server_py/`, `mcp-bridge-server/`.
 - Tests and fixtures: `tests/` with shared setup in `tests/setup.ts`; database migrations in `migrations/`.
 
 ## Build, Test, and Development Commands
