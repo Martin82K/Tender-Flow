@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*' # Trigger on version tags like v1.0.0
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build (e.g., 1.1.8)'
+        required: true
+        default: '1.1.8'
 
 permissions:
   contents: write # Required for creating releases
@@ -11,7 +17,7 @@ permissions:
 jobs:
   build-windows:
     runs-on: windows-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -56,30 +62,19 @@ jobs:
           name: windows-build
           path: ./release-files
 
-      - name: Get version from tag
+      - name: Get version
         id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          fi
 
-      - name: Create Release
+      - name: Upload to existing Release
         uses: softprops/action-gh-release@v1
         with:
-          name: Tender Flow v${{ steps.get_version.outputs.VERSION }}
-          draft: false
-          prerelease: false
+          tag_name: v${{ steps.get_version.outputs.VERSION }}
           files: ./release-files/*
-          body: |
-            ## 🎉 Tender Flow v${{ steps.get_version.outputs.VERSION }}
-            
-            ### Instalace
-            
-            Stáhněte si instalátor níže a spusťte ho. Pokud již máte nainstalovanou předchozí verzi, aplikace se automaticky aktualizuje.
-            
-            ### Změny
-            
-            <!-- TODO: Přidejte popis změn -->
-            
-            ---
-            
-            **Poznámka**: Auto-updater automaticky notifikuje existující uživatele o této nové verzi.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
