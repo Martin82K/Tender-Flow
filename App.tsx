@@ -51,6 +51,7 @@ import { LandingPage } from "./components/LandingPage";
 import { LoginPage } from "./components/auth/LoginPage";
 import { RegisterPage } from "./components/auth/RegisterPage";
 import { ForgotPasswordPage } from "./components/auth/ForgotPasswordPage";
+import { ResetPasswordPage } from "./components/auth/ResetPasswordPage";
 import { ShortUrlRedirect } from "./components/routing/ShortUrlRedirect";
 import {
   ProjectLayoutSkeleton,
@@ -137,7 +138,7 @@ function AppContent() {
       if (window.self !== window.top && "scrollRestoration" in window.history) {
         window.history.scrollRestoration = "manual";
       }
-    } catch {}
+    } catch { }
   }, []);
 
   useEffect(() => {
@@ -270,7 +271,7 @@ function AppContent() {
     }
 
     // For unknown routes, redirect to login with the original path as next parameter
-    if (!["/login", "/register", "/forgot-password", "/"].includes(pathname)) {
+    if (!["/login", "/register", "/forgot-password", "/reset-password", "/"].includes(pathname)) {
       const nextUrl = encodeURIComponent(pathname + search);
       navigate(`/login?next=${nextUrl}`, { replace: true });
       return null;
@@ -281,6 +282,7 @@ function AppContent() {
         {pathname === "/login" && <LoginPage />}
         {pathname === "/register" && <RegisterPage />}
         {pathname === "/forgot-password" && <ForgotPasswordPage />}
+        {pathname === "/reset-password" && <ResetPasswordPage />}
       </AuthLayout>
     );
   }
@@ -402,7 +404,7 @@ function AppContent() {
             onDeleteContacts={actions.handleDeleteContacts}
             contacts={state.contacts}
             isAdmin={state.isAdmin}
-            onSaveSettings={async () => {}}
+            onSaveSettings={async () => { }}
             user={user}
           />
         );

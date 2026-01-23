@@ -16,6 +16,7 @@ import { UrlShortener } from "./tools/UrlShortener";
 import { ExcelIndexerSettings } from "./settings/ExcelIndexerSettings";
 import { McpDiagnostics } from "./settings/McpDiagnostics";
 import { AIApiTest } from "./settings/AIApiTest";
+import { SubscriptionSettings } from "./settings/SubscriptionSettings";
 
 import { useFeatures } from "../context/FeatureContext";
 import { FEATURES } from "../config/features";
@@ -57,6 +58,7 @@ export const Settings: React.FC<SettingsProps> = ({
   const { hasFeature, isLoading: isFeaturesLoading } = useFeatures();
   type UserSubTab =
     | "profile"
+    | "subscription"
     | "contacts"
     | "excelUnlocker"
     | "excelMerger"
@@ -76,6 +78,7 @@ export const Settings: React.FC<SettingsProps> = ({
     if (tab === "user") {
       subTab =
         subTabParam === "profile" ||
+          subTabParam === "subscription" ||
           subTabParam === "contacts" ||
           subTabParam === "excelUnlocker" ||
           subTabParam === "excelMerger" ||
@@ -104,6 +107,7 @@ export const Settings: React.FC<SettingsProps> = ({
   });
   const [activeUserSubTab, setActiveUserSubTab] = useState<UserSubTab>(() => {
     if (
+      settingsRoute.subTab === "subscription" ||
       settingsRoute.subTab === "contacts" ||
       settingsRoute.subTab === "excelMerger" ||
       settingsRoute.subTab === "urlShortener" ||
@@ -367,6 +371,23 @@ export const Settings: React.FC<SettingsProps> = ({
                   </div>
                 </button>
 
+                <button
+                  onClick={() =>
+                    updateSettingsUrl({ tab: "user", subTab: "subscription" })
+                  }
+                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${activeUserSubTab === "subscription"
+                    ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                    : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                    }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[20px]">
+                      credit_card
+                    </span>
+                    Předplatné
+                  </div>
+                </button>
+
                 {canContactsImport && (
                   <button
                     onClick={() =>
@@ -480,6 +501,10 @@ export const Settings: React.FC<SettingsProps> = ({
                   contacts={contacts}
                   user={user}
                 />
+              )}
+
+              {activeUserSubTab === "subscription" && (
+                <SubscriptionSettings />
               )}
 
               {activeUserSubTab === "contacts" && canContactsImport && (

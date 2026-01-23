@@ -234,6 +234,23 @@ export interface UserPreferences {
 export type SubscriptionTier = "demo" | "free" | "pro" | "enterprise" | "admin";
 // Note: For new code, prefer importing SubscriptionTierId from config/subscriptionTiers.ts
 
+export type SubscriptionStatus = "active" | "trial" | "cancelled" | "expired" | "pending";
+
+export type BillingProvider = "stripe" | "paddle" | "manual" | null;
+
+export interface SubscriptionInfo {
+  tier: SubscriptionTier;
+  effectiveTier: SubscriptionTier; // Takes expiration into account
+  status: SubscriptionStatus;
+  expiresAt: string | null;
+  startedAt: string | null;
+  trialEndsAt: string | null;
+  cancelAtPeriodEnd: boolean;
+  billingCustomerId: string | null;
+  billingProvider: BillingProvider;
+  daysRemaining: number | null;
+}
+
 export interface SubscriptionFeature {
   key: string;
   name: string;
@@ -254,6 +271,13 @@ export interface User {
   email: string;
   role: "admin" | "user" | "demo";
   subscriptionTier?: SubscriptionTier;
+  subscriptionStatus?: SubscriptionStatus;
+  subscriptionExpiresAt?: string;
+  subscriptionStartedAt?: string;
+  trialEndsAt?: string;
+  cancelAtPeriodEnd?: boolean;
+  billingCustomerId?: string;
+  billingProvider?: BillingProvider;
   avatarUrl?: string;
   preferences?: UserPreferences;
   organizationId?: string;

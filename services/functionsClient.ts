@@ -114,3 +114,81 @@ export const invokeAuthedFunction = async <TResponse>(
   }
 };
 
+export const invokePublicFunction = async <TResponse>(
+  name: string,
+  options: InvokeOptions = {}
+): Promise<TResponse> => {
+  const supabaseUrl = getRequiredEnv("VITE_SUPABASE_URL");
+  const anonKey = getRequiredEnv("VITE_SUPABASE_ANON_KEY");
+
+  const url = `${supabaseUrl}/functions/v1/${name}`;
+  const method = options.method || "POST";
+
+  // @ts-ignore - electronAPI is injected via preload
+  const isDesktop = typeof window !== 'undefined' && window.electronAPI?.platform?.isDesktop;
+
+  if (isDesktop) {
+    console.log(`[Functions] Using Desktop IPC Proxy for ${name} (Public)`);
+    // @ts-ignore
+    const res = await window.electronAPI.net.request(url, {
+      method,
+      headers: {
+        apikey: anonKey,
+        Authorization: `Bearer ${anonKey}`, // Use Anon Key as Bearer for public functions if needed, or just omit if function handles it. Supabase functions usually need Authorization: Bearer <anon_key> for public access if VerifyJWT is not strictly identifying user but just valid client.
+        "content-type": "application/json",
+      },
+      body: method === "GET" ? undefined : JSON.stringify(options.body ?? {}),
+    });
+
+    if (!res.ok) {
+      let errorMsg = res.statusText || `HTTP ${res.status}`;
+      try {
+        const errorJson = JSON.parse(res.text);
+        errorMsg = errorJson.error || errorJson.message || errorMsg;
+      } catch {
+        if (res.text && res.text.length < 500) errorMsg = res.text;
+      }
+      throw new Error(errorMsg);
+    }
+
+    try {
+      return (res.text ? JSON.parse(res.text) : {}) as TResponse;
+    } catch (e) {
+      return {} as TResponse;
+    }
+
+  } else {
+    // Normal Web Fetch
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method,
+        headers: {
+          apikey: anonKey,
+          Authorization: `Bearer ${anonKey}`, // Public functions still need anon key as Bearer usually
+          "content-type": "application/json",
+        },
+        body: method === "GET" ? undefined : JSON.stringify(options.body ?? {}),
+        mode: 'cors',
+      });
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      throw new Error(`Failed to fetch ${url}. Original error: ${errorMsg}`);
+    }
+
+    const text = await res.text();
+    let json: any = null;
+    try {
+      json = text ? JSON.parse(text) : null;
+    } catch { }
+
+    if (!res.ok) {
+      const errorData = json?.error || json?.message || json;
+      const message = typeof errorData === 'object' ? JSON.stringify(errorData) : (errorData || text || `HTTP ${res.status}`);
+      throw new Error(message);
+    }
+
+    return (json ?? {}) as TResponse;
+  }
+};
+

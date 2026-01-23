@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { invokePublicFunction } from './functionsClient';
 import { SubscriptionTier, User } from '../types';
 
 const DEFAULT_PREFERENCES = {
@@ -42,13 +43,13 @@ const getCachedUserData = (): User | null => {
         const raw = window.localStorage?.getItem(USER_CACHE_KEY);
         if (!raw) return null;
         const parsed = JSON.parse(raw);
-        
+
         // Check TTL - if cache is too old, ignore it
         if (parsed?.timestamp && Date.now() - parsed.timestamp > USER_CACHE_TTL) {
             window.localStorage?.removeItem(USER_CACHE_KEY);
             return null;
         }
-        
+
         return parsed?.user || null;
     } catch {
         return null;
@@ -169,9 +170,9 @@ export const authService = {
             // Check if email domain is in whitelist
             const allowedDomains: string[] = settings?.allowed_domains || [];
             if (allowedDomains.length === 0) {
-                return { 
-                    allowed: false, 
-                    reason: 'Registrace je zakázána. Kontaktujte administrátora.' 
+                return {
+                    allowed: false,
+                    reason: 'Registrace je zakázána. Kontaktujte administrátora.'
                 };
             }
 
@@ -183,9 +184,9 @@ export const authService = {
             });
 
             if (!isDomainAllowed) {
-                return { 
-                    allowed: false, 
-                    reason: `Registrace je povolena pouze pro domény: ${allowedDomains.join(', ')}` 
+                return {
+                    allowed: false,
+                    reason: `Registrace je povolena pouze pro domény: ${allowedDomains.join(', ')}`
                 };
             }
 
@@ -197,17 +198,17 @@ export const authService = {
                 if (whitelistError) {
                     console.error('Error checking email whitelist:', whitelistError);
                     // Fail-closed: if we can't check whitelist, deny registration
-                    return { 
-                        allowed: false, 
-                        reason: 'Nelze ověřit oprávnění. Kontaktujte administrátora.' 
+                    return {
+                        allowed: false,
+                        reason: 'Nelze ověřit oprávnění. Kontaktujte administrátora.'
                     };
                 }
 
                 const isWhitelisted = whitelistCheck?.[0]?.is_whitelisted ?? false;
                 if (!isWhitelisted) {
-                    return { 
-                        allowed: false, 
-                        reason: 'Váš email není na seznamu povolených uživatelů. Kontaktujte administrátora pro přidání.' 
+                    return {
+                        allowed: false,
+                        reason: 'Váš email není na seznamu povolených uživatelů. Kontaktujte administrátora pro přidání.'
                     };
                 }
             }
@@ -342,15 +343,15 @@ export const authService = {
         if (!session?.user) {
             return null;
         }
-        
+
         // Try to get cached user data first for fast startup
         const cachedUser = getCachedUserData();
         const sessionUserId = session.user.id;
-        
+
         // If we have cached data for this user, use it while refreshing in background
         if (cachedUser && cachedUser.id === sessionUserId) {
             console.log('[authService] getUserFromSession: Using cached user data for fast startup');
-            
+
             // Refresh in background (fire and forget)
             authService._buildUserFromSession(session).then(freshUser => {
                 if (freshUser) {
@@ -359,10 +360,10 @@ export const authService = {
             }).catch(e => {
                 console.warn('[authService] Background refresh failed', e);
             });
-            
+
             return cachedUser;
         }
-        
+
         try {
             const user = await authService._buildUserFromSession(session);
             if (user) {
@@ -371,12 +372,12 @@ export const authService = {
             return user;
         } catch (e) {
             console.warn('[authService] Failed to build user from session, using fallback', e);
-            
+
             // If we have cached data, use it
             if (cachedUser && cachedUser.id === sessionUserId) {
                 return cachedUser;
             }
-            
+
             // Otherwise return minimal fallback user
             const isSystemAdmin = session.user.email ? ADMIN_EMAILS.includes(session.user.email) : false;
             return {
@@ -449,38 +450,38 @@ export const authService = {
         })();
 
         const overridePromise = (async () => {
-             try {
-                 const res = await withTimeout(
-                     Promise.resolve(
-                         supabase
-                             .from('user_profiles')
-                             .select('subscription_tier_override')
-                             .eq('user_id', session.user.id)
-                             .maybeSingle()
-                     ),
-                     queryTimeoutMs,
-                     'Subscription override load'
-                 );
-                 const { data, error } = res as any;
-                 if (error) return null;
-                 return data?.subscription_tier_override || null;
-             } catch (e) {
-                 console.warn('[authService] Could not fetch subscription override', e);
-                 return null;
-             }
-         })();
+            try {
+                const res = await withTimeout(
+                    Promise.resolve(
+                        supabase
+                            .from('user_profiles')
+                            .select('subscription_tier_override')
+                            .eq('user_id', session.user.id)
+                            .maybeSingle()
+                    ),
+                    queryTimeoutMs,
+                    'Subscription override load'
+                );
+                const { data, error } = res as any;
+                if (error) return null;
+                return data?.subscription_tier_override || null;
+            } catch (e) {
+                console.warn('[authService] Could not fetch subscription override', e);
+                return null;
+            }
+        })();
 
         // Await Batch 1
         const [profile, settings, subscriptionOverride] = await Promise.all([
-            profilePromise, 
-            settingsPromise, 
+            profilePromise,
+            settingsPromise,
             overridePromise
         ]);
 
         // BATCH 2: Extended Data (Org Member)
         // Org member data is heavy (potentially) but secondary if we have an override.
         const orgMemberPromise = (async () => {
-             try {
+            try {
                 const res = await withTimeout(
                     Promise.resolve(
                         supabase
@@ -494,8 +495,8 @@ export const authService = {
                     'Org member load'
                 );
                 const { data, error } = res as any;
-                 if (error) return null;
-                 return data?.organization_id || null;
+                if (error) return null;
+                return data?.organization_id || null;
             } catch (e) {
                 console.warn('[authService] Could not fetch org member', e);
                 return null;
@@ -513,15 +514,15 @@ export const authService = {
         // Apply override if present
         if (subscriptionOverride) {
             const override = String(subscriptionOverride).trim().toLowerCase();
-             if (['free', 'pro', 'enterprise', 'admin'].includes(override)) {
-                 subscriptionTier = override as SubscriptionTier;
-             }
+            if (['free', 'pro', 'enterprise', 'admin'].includes(override)) {
+                subscriptionTier = override as SubscriptionTier;
+            }
         }
 
         // 5. Fetch Organization Details (Dependent) - only if we have an ID and no direct override
         // (Actually we should fetch org details anyway for name/type even if override exists)
         if (organizationId) {
-             try {
+            try {
                 const orgRes = await withTimeout(
                     Promise.resolve(
                         supabase
@@ -611,7 +612,7 @@ export const authService = {
             console.error('[authService] updateUserPreferences: No user logged in');
             throw new Error('No user logged in');
         }
-        
+
         const newPreferences = {
             ...user.preferences,
             ...preferences
@@ -623,8 +624,8 @@ export const authService = {
         // Upsert to user_settings
         const { error, data } = await supabase
             .from('user_settings')
-            .upsert({ 
-                user_id: user.id, 
+            .upsert({
+                user_id: user.id,
                 preferences: newPreferences,
                 updated_at: new Date().toISOString()
             }, { onConflict: 'user_id' })
@@ -637,10 +638,36 @@ export const authService = {
             console.log('[authService] updateUserPreferences: Preferences saved successfully');
             console.log('[authService] updateUserPreferences: Upsert result:', data);
         }
-        
+
         return {
             ...user,
             preferences: newPreferences
         };
+    }
+    ,
+
+    requestPasswordReset: async (email: string): Promise<void> => {
+        try {
+            await invokePublicFunction('request-password-reset', {
+                body: { email }
+            });
+        } catch (error) {
+            console.error('[authService] Request password reset failed:', error);
+            // Re-throw to let UI handle it, or swallow if we want to be silent about user existence?
+            // The edge function already returns success even if user doesn't exist to prevent enumeration.
+            // So if this fails, it's a real network/server error.
+            throw error;
+        }
+    },
+
+    confirmPasswordReset: async (token: string, password: string): Promise<void> => {
+        try {
+            await invokePublicFunction('confirm-password-reset', {
+                body: { token, password }
+            });
+        } catch (error) {
+            console.error('[authService] Confirm password reset failed:', error);
+            throw error;
+        }
     }
 };
