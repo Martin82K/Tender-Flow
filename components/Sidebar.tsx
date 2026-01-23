@@ -269,6 +269,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </summary>
 
           <div className="flex flex-col mt-1 ml-2 gap-1">
+            {/* Tlačítko Nová stavba */}
+            <button
+              onClick={() => {
+                onViewChange("project-management");
+                closeMobileMenu();
+              }}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 border border-dashed border-emerald-500/30 hover:border-emerald-500/50"
+            >
+              <span className="material-symbols-outlined text-[18px]">add</span>
+              <span>Nová stavba</span>
+            </button>
+
             {orderedProjects.length === 0 && (
               <div className="px-4 py-2 text-xs text-slate-500 italic">
                 Žádné aktivní stavby
