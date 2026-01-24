@@ -17,7 +17,7 @@
     "test:coverage": "vitest run --coverage",
     "desktop:compile": "cd desktop && tsc",
     "desktop:dev": "npm run desktop:compile && electron .",
-    "desktop:build": "npm run build && npm run desktop:compile && electron-builder",
+    "desktop:build": "ELECTRON_BUILD=true npm run build && npm run desktop:compile && electron-builder",
     "desktop:build:mac": "npm run desktop:build -- --mac",
     "desktop:build:win": "npm run desktop:build -- --win",
     "version:patch": "npm version patch --no-git-tag-version && node scripts/sync-version.mjs",

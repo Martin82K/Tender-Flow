@@ -3,7 +3,7 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ command }) => {
-  const isElectronBuild = process.env.ELECTRON_BUILD === 'true' || command === 'build';
+  const isElectronBuild = process.env.ELECTRON_BUILD === 'true';
   return {
     base: isElectronBuild ? './' : '/',
     server: {
