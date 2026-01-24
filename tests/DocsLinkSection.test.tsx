@@ -2,7 +2,11 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { DocsLinkSection } from '../components/projectLayoutComponents/documents/DocsLinkSection';
-import { ProjectDetails } from '../types';
+import type { ProjectDetails } from '../types';
+
+vi.mock('../context/AuthContext', () => ({
+    useAuth: () => ({ user: null }),
+}));
 
 const mockProject = {
     id: '1',
@@ -22,19 +26,20 @@ describe('DocsLinkSection', () => {
         docHubPdLink: null,
         docHubStructure: { pd: 'pd_folder' } as any,
         showModal: vi.fn(),
+        onUpdate: vi.fn(),
     };
 
     it('renders correctly in view mode with link', () => {
         render(<DocsLinkSection {...defaultProps} />);
-        expect(screen.getByText('PD (projektová dokumentace)')).toBeInTheDocument();
-        expect(screen.getByText('Nastaveno')).toBeInTheDocument();
+        expect(screen.getByText('Dokumenty projektu')).toBeInTheDocument();
+        expect(screen.getByText('PD')).toBeInTheDocument();
         expect(screen.getByText('https://docs.com')).toBeInTheDocument();
     });
 
     it('renders correctly in view mode without link', () => {
         render(<DocsLinkSection {...defaultProps} hasDocsLink={false} project={{ ...mockProject, documentationLink: '' } as any} />);
-        expect(screen.queryByText('Nastaveno')).not.toBeInTheDocument();
-        expect(screen.getByText('Žádný odkaz není nastaven')).toBeInTheDocument();
+        expect(screen.getByText('Dokumenty projektu')).toBeInTheDocument();
+        expect(screen.getByText('Zatím nemáte žádné odkazy na dokumenty. Přidejte první odkaz.')).toBeInTheDocument();
     });
 
     it('switches to edit mode on edit click', () => {
@@ -45,20 +50,39 @@ describe('DocsLinkSection', () => {
         expect(defaultProps.onEditToggle).toHaveBeenCalledWith(true);
     });
 
-    it('renders input in edit mode', () => {
-        render(<DocsLinkSection {...defaultProps} isEditing={true} linkValue="https://new.com" />);
-        const input = screen.getByDisplayValue('https://new.com');
-        expect(input).toBeInTheDocument();
-
-        fireEvent.change(input, { target: { value: 'https://updated.com' } });
-        expect(defaultProps.onLinkValueChange).toHaveBeenCalledWith('https://updated.com');
+    it('shows add link form when requested', () => {
+        render(<DocsLinkSection {...defaultProps} />);
+        fireEvent.click(screen.getByText('Přidat odkaz'));
+        expect(screen.getByPlaceholderText('Název (např. PD Hlavní budova)')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('URL nebo cesta (např. https://... nebo C:\\Projekty\\...)')).toBeInTheDocument();
     });
 
-    it('calls onSave on check click', () => {
-        render(<DocsLinkSection {...defaultProps} isEditing={true} />);
-        const saveButton = screen.getByText('check').closest('button');
-        fireEvent.click(saveButton!);
-        expect(defaultProps.onSave).toHaveBeenCalled();
+    it('calls onUpdate when adding new link', () => {
+        Object.defineProperty(global, 'crypto', {
+            value: { randomUUID: () => 'link-1' },
+            writable: true,
+        });
+        render(<DocsLinkSection {...defaultProps} />);
+
+        fireEvent.click(screen.getByText('Přidat odkaz'));
+        fireEvent.change(screen.getByPlaceholderText('Název (např. PD Hlavní budova)'), {
+            target: { value: 'Rozpocet' },
+        });
+        fireEvent.change(screen.getByPlaceholderText('URL nebo cesta (např. https://... nebo C:\\Projekty\\...)'), {
+            target: { value: 'https://new.com' },
+        });
+        fireEvent.click(screen.getByText('Přidat'));
+
+        expect(defaultProps.onUpdate).toHaveBeenCalledWith({
+            documentLinks: [
+                expect.objectContaining({
+                    id: 'link-1',
+                    label: 'Rozpocet',
+                    url: 'https://new.com',
+                    dateAdded: expect.any(String),
+                }),
+            ],
+        });
     });
 
     it('shows DocHub link if connected', () => {

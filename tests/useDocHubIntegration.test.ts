@@ -62,7 +62,7 @@ describe('useDocHubIntegration', () => {
         expect(result.current.state.isConnected).toBe(false);
     });
 
-    it('should sync state from project props', () => {
+    it('should sync state from project props', async () => {
         const connectedProject = {
             ...mockProject,
             docHubEnabled: true,
@@ -72,9 +72,11 @@ describe('useDocHubIntegration', () => {
         };
         const { result } = renderHook(() => useDocHubIntegration(connectedProject as any, onUpdateMock));
 
-        expect(result.current.state.enabled).toBe(true);
-        expect(result.current.state.status).toBe('connected');
-        expect(result.current.state.isConnected).toBe(true);
+        await waitFor(() => {
+            expect(result.current.state.enabled).toBe(true);
+            expect(result.current.state.status).toBe('connected');
+            expect(result.current.state.isConnected).toBe(true);
+        });
     });
 
     it('should handle disconnect action', () => {
@@ -122,10 +124,13 @@ describe('useDocHubIntegration', () => {
     });
 
     it('should handle resolveRoot action', async () => {
-        const { result } = renderHook(() => useDocHubIntegration(mockProject as any, onUpdateMock));
+        const projectWithProvider = {
+            ...mockProject,
+            docHubProvider: 'gdrive',
+        };
+        const { result } = renderHook(() => useDocHubIntegration(projectWithProvider as any, onUpdateMock));
 
         act(() => {
-            result.current.setters.setProvider('gdrive');
             result.current.setters.setRootLink('https://folder.url');
         });
 
