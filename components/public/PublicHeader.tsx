@@ -7,7 +7,6 @@ const navItems = [
   { id: "solution", label: "Řešení" },
   { id: "demo", label: "Demo" },
   { id: "pricing", label: "Ceník" },
-  { id: "security", label: "Bezpečnost" },
 ];
 
 export const PublicHeader: React.FC<{ variant?: "marketing" | "auth" }> = ({
