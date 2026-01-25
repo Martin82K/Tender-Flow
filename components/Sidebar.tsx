@@ -17,6 +17,7 @@ const PROJECT_TABS: { id: ProjectTab; label: string; icon: string }[] = [
   { id: "pipeline", label: "Výběrová řízení", icon: "view_kanban" },
   { id: "schedule", label: "Harmonogram", icon: "calendar_month" },
   { id: "documents", label: "Dokumenty", icon: "folder" },
+  { id: "contracts", label: "Smlouvy", icon: "description" },
 ];
 
 // Helper function to get display role
@@ -36,16 +37,16 @@ interface SidebarProps {
     opts?: {
       settingsTab?: "user" | "admin";
       settingsSubTab?:
-      | "profile"
-      | "contacts"
-      | "excelUnlocker"
-      | "excelMerger"
-      | "urlShortener"
-      | "registration"
-      | "users"
-      | "subscriptions"
-      | "ai"
-      | "tools";
+        | "profile"
+        | "contacts"
+        | "excelUnlocker"
+        | "excelMerger"
+        | "urlShortener"
+        | "registration"
+        | "users"
+        | "subscriptions"
+        | "ai"
+        | "tools";
     },
   ) => void;
   selectedProjectId: string;
@@ -97,14 +98,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const tab = tabParam === "admin" || tabParam === "user" ? tabParam : null;
     const rawSubTab =
       subTabParam === "profile" ||
-        subTabParam === "contacts" ||
-        subTabParam === "excelUnlocker" ||
-        subTabParam === "excelMerger" ||
-        subTabParam === "registration" ||
-        subTabParam === "users" ||
-        subTabParam === "subscriptions" ||
-        subTabParam === "ai" ||
-        subTabParam === "tools" // legacy
+      subTabParam === "contacts" ||
+      subTabParam === "excelUnlocker" ||
+      subTabParam === "excelMerger" ||
+      subTabParam === "registration" ||
+      subTabParam === "users" ||
+      subTabParam === "subscriptions" ||
+      subTabParam === "ai" ||
+      subTabParam === "tools" // legacy
         ? subTabParam
         : null;
     const subTab = rawSubTab === "tools" ? "excelUnlocker" : rawSubTab;
@@ -247,15 +248,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
       return (
         <details key={item.id} className="group" open>
           <summary
-            className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer list-none ${currentView === "project"
+            className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer list-none ${
+              currentView === "project"
                 ? "bg-primary/20 text-primary border border-primary/30 font-semibold"
                 : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
-              }`}
+            }`}
           >
             <div className="flex items-center gap-3 min-w-0">
               <span
-                className={`material-symbols-outlined shrink-0 ${currentView === "project" ? "fill text-primary" : ""
-                  }`}
+                className={`material-symbols-outlined shrink-0 ${
+                  currentView === "project" ? "fill text-primary" : ""
+                }`}
               >
                 {item.icon}
               </span>
@@ -297,10 +300,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       onProjectSelect(project.id, "overview");
                       closeMobileMenu();
                     }}
-                    className={`flex items-center gap-3 text-left text-sm px-3 py-2.5 rounded-xl transition-all relative overflow-hidden cursor-pointer group/item ${isSelected
+                    className={`flex items-center gap-3 text-left text-sm px-3 py-2.5 rounded-xl transition-all relative overflow-hidden cursor-pointer group/item ${
+                      isSelected
                         ? "text-slate-900 dark:text-white font-semibold"
                         : "text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-slate-800/40"
-                      }`}
+                    }`}
                     title={project.name}
                   >
                     {/* Gradient highlight for selected project */}
@@ -310,10 +314,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                     {/* Status Badge */}
                     <span
-                      className={`relative z-10 flex items-center justify-center size-5 rounded-lg text-[10px] font-extrabold shrink-0 shadow-sm ${project.status === "realization"
+                      className={`relative z-10 flex items-center justify-center size-5 rounded-lg text-[10px] font-extrabold shrink-0 shadow-sm ${
+                        project.status === "realization"
                           ? "bg-amber-500 text-white"
                           : "bg-blue-500 text-white"
-                        }`}
+                      }`}
                     >
                       {project.status === "realization" ? "R" : "S"}
                     </span>
@@ -326,8 +331,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     {/* Expand Button */}
                     <button
                       onClick={(e) => toggleProjectExpand(e, project.id)}
-                      className={`relative z-10 p-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 transition-all ${isExpanded ? "rotate-180" : ""
-                        }`}
+                      className={`relative z-10 p-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 transition-all ${
+                        isExpanded ? "rotate-180" : ""
+                      }`}
                     >
                       <span className="material-symbols-outlined text-[18px]">
                         expand_more
@@ -369,10 +375,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                               onProjectSelect(project.id, tab.id);
                               closeMobileMenu();
                             }}
-                            className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs transition-colors ${isTabActiveReal
+                            className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs transition-colors ${
+                              isTabActiveReal
                                 ? "text-primary bg-primary/10 font-medium"
                                 : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/30"
-                              }`}
+                            }`}
                           >
                             <span className="material-symbols-outlined text-[16px]">
                               {tab.icon}
@@ -406,15 +413,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
           }}
         >
           <summary
-            className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer list-none ${isItemActive
+            className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer list-none ${
+              isItemActive
                 ? "bg-primary/20 text-primary border border-primary/30"
                 : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
-              }`}
+            }`}
           >
             <div className="flex items-center gap-3 min-w-0">
               <span
-                className={`material-symbols-outlined shrink-0 ${isItemActive ? "fill" : ""
-                  }`}
+                className={`material-symbols-outlined shrink-0 ${
+                  isItemActive ? "fill" : ""
+                }`}
               >
                 {item.icon}
               </span>
@@ -471,21 +480,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
             item.view,
             item.view === "settings"
               ? {
-                settingsTab: item.settingsTab,
-                settingsSubTab: item.settingsSubTab,
-              }
+                  settingsTab: item.settingsTab,
+                  settingsSubTab: item.settingsSubTab,
+                }
               : undefined,
           );
           closeMobileMenu();
         }}
-        className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all group ${isItemActive
+        className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all group ${
+          isItemActive
             ? "bg-primary/10 text-primary border border-primary/20 font-semibold"
             : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-100"
-          }`}
+        }`}
       >
         <span
-          className={`material-symbols-outlined shrink-0 text-[20px] ${isItemActive ? "fill text-primary" : "text-slate-400 dark:text-slate-500 group-hover:text-slate-900 dark:group-hover:text-slate-100"
-            }`}
+          className={`material-symbols-outlined shrink-0 text-[20px] ${
+            isItemActive
+              ? "fill text-primary"
+              : "text-slate-400 dark:text-slate-500 group-hover:text-slate-900 dark:group-hover:text-slate-100"
+          }`}
         >
           {item.icon}
         </span>
@@ -528,10 +541,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <aside
         ref={sidebarRef}
         style={{ width: isOpen ? `${width}px` : "0px" }}
-        className={`relative flex h-full flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex-shrink-0 z-20 select-none group/sidebar transition-all duration-300 ease-in-out max-md:fixed max-md:inset-0 max-md:z-50 max-md:!w-full ${!isOpen
+        className={`relative flex h-full flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex-shrink-0 z-20 select-none group/sidebar transition-all duration-300 ease-in-out max-md:fixed max-md:inset-0 max-md:z-50 max-md:!w-full ${
+          !isOpen
             ? "overflow-hidden border-none max-md:pointer-events-none max-md:opacity-0"
             : "max-md:opacity-100"
-          }`}
+        }`}
       >
         {/* Mobile Overlay - not needed for fullscreen */}
         {isOpen && (
@@ -543,8 +557,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Sidebar Content is moved into a wrapper to avoid layout jump during transition */}
         <div
-          className={`flex flex-col h-full w-full min-w-[200px] ${!isOpen ? "opacity-0 invisible" : "opacity-100 visible"
-            } transition-opacity duration-200`}
+          className={`flex flex-col h-full w-full min-w-[200px] ${
+            !isOpen ? "opacity-0 invisible" : "opacity-100 visible"
+          } transition-opacity duration-200`}
         >
           {/* Resizer Handle - only on desktop */}
           <div

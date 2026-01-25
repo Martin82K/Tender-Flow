@@ -196,6 +196,8 @@ const electronAPI: ElectronAPI = {
             ipcRenderer.invoke('shell:openExternal', url),
         openTempFile: (content: string, filename: string): Promise<void> =>
             ipcRenderer.invoke('shell:openTempFile', content, filename),
+        convertToDocx: (inputPath: string): Promise<{ success: boolean; outputPath?: string; error?: string }> =>
+            ipcRenderer.invoke('shell:convertToDocx', inputPath),
     },
 };
 

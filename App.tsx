@@ -138,7 +138,7 @@ function AppContent() {
       if (window.self !== window.top && "scrollRestoration" in window.history) {
         window.history.scrollRestoration = "manual";
       }
-    } catch { }
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -271,7 +271,15 @@ function AppContent() {
     }
 
     // For unknown routes, redirect to login with the original path as next parameter
-    if (!["/login", "/register", "/forgot-password", "/reset-password", "/"].includes(pathname)) {
+    if (
+      ![
+        "/login",
+        "/register",
+        "/forgot-password",
+        "/reset-password",
+        "/",
+      ].includes(pathname)
+    ) {
       const nextUrl = encodeURIComponent(pathname + search);
       navigate(`/login?next=${nextUrl}`, { replace: true });
       return null;
@@ -344,7 +352,10 @@ function AppContent() {
                   buildAppUrl("project", {
                     projectId: state.selectedProjectId,
                     tab,
-                    categoryId: tab === "pipeline" ? (activePipelineCategoryId ?? undefined) : undefined,
+                    categoryId:
+                      tab === "pipeline"
+                        ? (activePipelineCategoryId ?? undefined)
+                        : undefined,
                   }),
                 );
               }}
@@ -404,7 +415,7 @@ function AppContent() {
             onDeleteContacts={actions.handleDeleteContacts}
             contacts={state.contacts}
             isAdmin={state.isAdmin}
-            onSaveSettings={async () => { }}
+            onSaveSettings={async () => {}}
             user={user}
           />
         );

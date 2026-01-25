@@ -541,4 +541,41 @@ export function registerIpcHandlers(): void {
             throw error;
         }
     });
+
+    ipcMain.handle('shell:convertToDocx', async (_, inputPath: string): Promise<{ success: boolean; outputPath?: string; error?: string }> => {
+        console.log('[Shell] convertToDocx called for:', inputPath);
+        
+        if (process.platform !== 'darwin') {
+            return { success: false, error: 'Conversion is only supported on macOS' };
+        }
+
+        const { exec } = require('child_process');
+        const util = require('util');
+        const execAsync = util.promisify(exec);
+        const os = require('os');
+        const path = require('path');
+
+        try {
+            // Generate temp output path
+            const tempDir = os.tmpdir();
+            const filename = path.basename(inputPath, path.extname(inputPath)); // strip .doc
+            const outputPath = path.join(tempDir, `${filename}_${Date.now()}.docx`);
+
+            // Use macOS textutil
+            // textutil -convert docx source.doc -output target.docx
+            const command = `textutil -convert docx "${inputPath}" -output "${outputPath}"`;
+            console.log('[Shell] Running command:', command);
+
+            await execAsync(command);
+            
+            // Verify file exists
+            await fs.access(outputPath);
+            console.log('[Shell] Conversion successful ->', outputPath);
+
+            return { success: true, outputPath };
+        } catch (error) {
+            console.error('[Shell] Conversion failed:', error);
+            return { success: false, error: error instanceof Error ? error.message : String(error) };
+        }
+    });
 }

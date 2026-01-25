@@ -12,7 +12,7 @@ import {
   StatusConfig,
 } from "../types";
 import { ProjectOverviewNew } from "./ProjectOverviewNew";
-import { ProjectDocuments } from "./projectLayoutComponents";
+import { ProjectDocuments, Contracts } from "./projectLayoutComponents";
 // --- Main Layout Component ---
 
 interface ProjectLayoutProps {
@@ -81,6 +81,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
               <option value="pipeline">Výběrová řízení</option>
               <option value="schedule">Harmonogram</option>
               <option value="documents">Dokumenty</option>
+              <option value="contracts">Smlouvy</option>
             </select>
             <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-sm">expand_more</span>
           </div>
@@ -92,7 +93,8 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
               { id: 'tender-plan', label: 'Plán VŘ', icon: 'calendar_today' },
               { id: 'pipeline', label: 'Výběrová řízení', icon: 'account_tree' },
               { id: 'schedule', label: 'Harmonogram', icon: 'event_note' },
-              { id: 'documents', label: 'Dokumenty', icon: 'folder_open' }
+              { id: 'documents', label: 'Dokumenty', icon: 'folder_open' },
+              { id: 'contracts', label: 'Smlouvy', icon: 'description' }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -191,6 +193,9 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
         )}
         {activeTab === "documents" && (
           <ProjectDocuments project={project} onUpdate={onUpdateDetails} />
+        )}
+        {activeTab === "contracts" && (
+          <Contracts projectId={projectId} projectDetails={project} />
         )}
       </div>
     </div>

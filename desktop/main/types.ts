@@ -22,6 +22,7 @@ export interface ElectronAPI {
 export interface ShellAPI {
     openExternal: (url: string) => Promise<void>;
     openTempFile: (content: string, filename: string) => Promise<void>;
+    convertToDocx: (inputPath: string) => Promise<{ success: boolean; outputPath?: string; error?: string }>;
 }
 
 export interface PlatformInfo {

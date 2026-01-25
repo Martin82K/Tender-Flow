@@ -60,6 +60,10 @@ export const invokeAuthedFunction = async <TResponse>(
       try {
         const errorJson = JSON.parse(res.text);
         errorMsg = errorJson.error || errorJson.message || errorMsg;
+        if (errorJson.details) {
+          const detailStr = typeof errorJson.details === 'object' ? JSON.stringify(errorJson.details) : String(errorJson.details);
+          errorMsg += ` (${detailStr})`;
+        }
       } catch {
         // ignore JSON parse error, use text if available
         if (res.text && res.text.length < 500) errorMsg = res.text;
@@ -106,7 +110,12 @@ export const invokeAuthedFunction = async <TResponse>(
 
     if (!res.ok) {
       const errorData = json?.error || json?.message || json;
-      const message = typeof errorData === 'object' ? JSON.stringify(errorData) : (errorData || text || `HTTP ${res.status}`);
+      let message = typeof errorData === 'object' ? JSON.stringify(errorData) : (errorData || text || `HTTP ${res.status}`);
+      
+      if (json?.details) {
+        const detailStr = typeof json.details === 'object' ? JSON.stringify(json.details) : String(json.details);
+        message += ` Details: ${detailStr}`;
+      }
       throw new Error(message);
     }
 
@@ -145,6 +154,10 @@ export const invokePublicFunction = async <TResponse>(
       try {
         const errorJson = JSON.parse(res.text);
         errorMsg = errorJson.error || errorJson.message || errorMsg;
+        if (errorJson.details) {
+            const detailStr = typeof errorJson.details === 'object' ? JSON.stringify(errorJson.details) : String(errorJson.details);
+            errorMsg += ` (${detailStr})`;
+        }
       } catch {
         if (res.text && res.text.length < 500) errorMsg = res.text;
       }
@@ -184,7 +197,12 @@ export const invokePublicFunction = async <TResponse>(
 
     if (!res.ok) {
       const errorData = json?.error || json?.message || json;
-      const message = typeof errorData === 'object' ? JSON.stringify(errorData) : (errorData || text || `HTTP ${res.status}`);
+      let message = typeof errorData === 'object' ? JSON.stringify(errorData) : (errorData || text || `HTTP ${res.status}`);
+      
+      if (json?.details) {
+        const detailStr = typeof json.details === 'object' ? JSON.stringify(json.details) : String(json.details);
+        message += ` Details: ${detailStr}`;
+      }
       throw new Error(message);
     }
 

@@ -8,8 +8,10 @@ export const FEATURES = {
   MODULE_PROJECTS: 'module_projects',
   MODULE_CONTACTS: 'module_contacts',
   MODULE_PIPELINE: 'module_pipeline',
+  MODULE_CONTRACTS: 'module_contracts',
   MODULE_INVOICING: 'module_invoicing', // Planned
   MODULE_DOCUMENTS: 'module_documents', // Planned
+
   
   // Advanced Features
   FEATURE_AI_INSIGHTS: 'feature_ai_insights',

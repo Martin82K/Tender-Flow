@@ -7,7 +7,7 @@ export type View =
   | "project-overview"
   | "url-shortener";
 
-export type ProjectTab = "overview" | "tender-plan" | "pipeline" | "schedule" | "documents";
+export type ProjectTab = "overview" | "tender-plan" | "pipeline" | "schedule" | "documents" | "contracts";
 
 // Tender Plan Item
 export interface TenderPlanItem {
@@ -300,4 +300,97 @@ export interface ShortUrl {
   createdAt: string;
   createdBy?: string;
   clicks: number;
+}
+
+// =====================================================
+// CONTRACTS MODULE TYPES
+// =====================================================
+
+export type ContractStatus = 'draft' | 'active' | 'closed' | 'cancelled';
+export type ContractSource = 'manual' | 'from_tender_winner' | 'ai_extracted';
+
+export interface Contract {
+  id: string;
+  projectId: string;
+  vendorId?: string;
+  vendorName: string;
+
+  title: string;
+  contractNumber?: string;
+  status: ContractStatus;
+
+  signedAt?: string;
+  effectiveFrom?: string;
+  effectiveTo?: string;
+
+  currency: string;
+  basePrice: number;
+
+  retentionPercent?: number;
+  retentionAmount?: number;
+  warrantyMonths?: number;
+  paymentTerms?: string;
+  scopeSummary?: string;
+
+  source: ContractSource;
+  sourceBidId?: string;
+
+  documentUrl?: string;
+  extractionConfidence?: number;
+  extractionJson?: Record<string, unknown>;
+
+  createdBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ContractAmendment {
+  id: string;
+  contractId: string;
+  amendmentNo: number;
+
+  signedAt?: string;
+  effectiveFrom?: string;
+
+  deltaPrice: number;
+  deltaDeadline?: string;
+  reason?: string;
+
+  documentUrl?: string;
+  extractionJson?: Record<string, unknown>;
+  extractionConfidence?: number;
+
+  createdBy?: string;
+  createdAt?: string;
+}
+
+export interface ContractDrawdown {
+  id: string;
+  contractId: string;
+  period: string; // YYYY-MM
+
+  claimedAmount: number;
+  approvedAmount: number;
+
+  note?: string;
+  documentUrl?: string;
+  extractionJson?: Record<string, unknown>;
+  extractionConfidence?: number;
+
+  createdBy?: string;
+  createdAt?: string;
+}
+
+export interface ContractWithDetails extends Contract {
+  amendments: ContractAmendment[];
+  drawdowns: ContractDrawdown[];
+  currentTotal: number; // basePrice + sum(amendments.deltaPrice)
+  approvedSum: number;  // sum(drawdowns.approvedAmount)
+  remaining: number;    // currentTotal - approvedSum
+}
+
+export interface ContractExtractionResult {
+  fields: Partial<Contract>;
+  confidence: Record<string, number>;
+  rawText?: string;
 }
