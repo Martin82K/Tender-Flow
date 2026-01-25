@@ -4,6 +4,7 @@ import {
   UserWithProfile,
   Role,
   PermissionDefinition,
+  SubscriptionFilterType,
 } from "../services/userManagementService";
 import { useUI } from "../context/UIContext";
 import { getAllTiers } from "../config/subscriptionTiers";
@@ -19,6 +20,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [domainFilter, setDomainFilter] = useState("");
+  const [subscriptionFilter, setSubscriptionFilter] = useState<SubscriptionFilterType>("all");
 
   // Roles state
   const [roles, setRoles] = useState<Role[]>([]);
@@ -100,11 +102,11 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
         prev.map((u) =>
           u.user_id === userId
             ? {
-                ...u,
-                role_id: roleId,
-                role_label:
-                  availableRoles.find((r) => r.id === roleId)?.label || null,
-              }
+              ...u,
+              role_id: roleId,
+              role_label:
+                availableRoles.find((r) => r.id === roleId)?.label || null,
+            }
             : u
         )
       );
@@ -151,11 +153,11 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
         prev.map((u) =>
           u.user_id === userId
             ? {
-                ...u,
-                subscription_tier_override: next,
-                effective_subscription_tier:
-                  next || u.org_subscription_tier || "free",
-              }
+              ...u,
+              subscription_tier_override: next,
+              effective_subscription_tier:
+                next || u.org_subscription_tier || "free",
+            }
             : u
         )
       );
@@ -189,9 +191,9 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
         prev.map((r) =>
           r.role_id === roleId
             ? {
-                ...r,
-                permissions: { ...r.permissions, [permissionKey]: enabled },
-              }
+              ...r,
+              permissions: { ...r.permissions, [permissionKey]: enabled },
+            }
             : r
         )
       );
@@ -214,7 +216,8 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
   const filteredUsers = userManagementService.filterUsers(
     users,
     searchQuery,
-    domainFilter
+    domainFilter,
+    subscriptionFilter
   );
 
   // Group permissions by category
@@ -267,6 +270,17 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
                   @{domain}
                 </option>
               ))}
+            </select>
+          </div>
+          <div className="w-[180px]">
+            <select
+              value={subscriptionFilter}
+              onChange={(e) => setSubscriptionFilter(e.target.value as SubscriptionFilterType)}
+              className="w-full rounded-lg bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-cyan-500/50 focus:outline-none"
+            >
+              <option value="all">Všechna předplatná</option>
+              <option value="manual">🔧 Manuální</option>
+              <option value="auto">⚡ Automatické</option>
             </select>
           </div>
         </div>
@@ -396,36 +410,50 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
                         </div>
                       </td>
                       <td className="py-3 px-2">
-                        <div className="relative">
-                          <select
-                            value={(
-                              user.subscription_tier_override || ""
-                            ).toLowerCase()}
-                            onChange={(e) =>
-                              handleSubscriptionTierChange(
-                                user.user_id,
-                                e.target.value
-                              )
-                            }
-                            disabled={
-                              updatingSubscriptionUserId === user.user_id
-                            }
-                            className="rounded-lg bg-white dark:bg-slate-700/50 border border-slate-300 dark:border-slate-600/50 px-2 py-1.5 text-sm text-slate-900 dark:text-white focus:border-cyan-500/50 focus:outline-none disabled:opacity-50 min-w-[160px]"
-                          >
-                            <option value="">{`Auto (${(
-                              user.org_subscription_tier || "free"
-                            ).toLowerCase()})`}</option>
-                            {getAllTiers().map((tier) => (
-                              <option key={tier.id} value={tier.id}>
-                                {tier.label}
-                              </option>
-                            ))}
-                          </select>
-                          {updatingSubscriptionUserId === user.user_id && (
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 material-symbols-outlined animate-spin text-cyan-400 text-[16px]">
-                              sync
+                        <div className="flex items-center gap-2">
+                          {/* Manual override badge */}
+                          {user.subscription_tier_override && (
+                            <span
+                              className="shrink-0 px-1.5 py-0.5 bg-amber-500/20 text-amber-500 text-[10px] font-bold rounded border border-amber-500/30"
+                              title="Manuálně nastavené předplatné administrátorem"
+                            >
+                              🔧
                             </span>
                           )}
+                          <div className="relative flex-1">
+                            <select
+                              value={(
+                                user.subscription_tier_override || ""
+                              ).toLowerCase()}
+                              onChange={(e) =>
+                                handleSubscriptionTierChange(
+                                  user.user_id,
+                                  e.target.value
+                                )
+                              }
+                              disabled={
+                                updatingSubscriptionUserId === user.user_id
+                              }
+                              className={`rounded-lg px-2 py-1.5 text-sm focus:outline-none disabled:opacity-50 min-w-[140px] ${user.subscription_tier_override
+                                  ? "bg-amber-500/10 border-amber-500/40 text-amber-200 dark:text-amber-300"
+                                  : "bg-white dark:bg-slate-700/50 border-slate-300 dark:border-slate-600/50 text-slate-900 dark:text-white"
+                                } border focus:border-cyan-500/50`}
+                            >
+                              <option value="">{`Auto (${(
+                                user.org_subscription_tier || "free"
+                              ).toLowerCase()})`}</option>
+                              {getAllTiers().map((tier) => (
+                                <option key={tier.id} value={tier.id}>
+                                  {tier.label}
+                                </option>
+                              ))}
+                            </select>
+                            {updatingSubscriptionUserId === user.user_id && (
+                              <span className="absolute right-2 top-1/2 -translate-y-1/2 material-symbols-outlined animate-spin text-cyan-400 text-[16px]">
+                                sync
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </td>
                       <td className="py-3 px-2">
@@ -453,9 +481,8 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
             className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
           >
             <span
-              className={`material-symbols-outlined text-[16px] ${
-                isLoadingUsers ? "animate-spin" : ""
-              }`}
+              className={`material-symbols-outlined text-[16px] ${isLoadingUsers ? "animate-spin" : ""
+                }`}
             >
               refresh
             </span>
@@ -500,9 +527,8 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
                 >
                   <div className="flex items-center gap-3">
                     <span
-                      className={`material-symbols-outlined text-[20px] transition-transform ${
-                        expandedRole === role.role_id ? "rotate-90" : ""
-                      }`}
+                      className={`material-symbols-outlined text-[20px] transition-transform ${expandedRole === role.role_id ? "rotate-90" : ""
+                        }`}
                     >
                       chevron_right
                     </span>
@@ -542,11 +568,10 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
                                 return (
                                   <label
                                     key={perm.key}
-                                    className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer ${
-                                      isEnabled
-                                        ? "bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20"
-                                        : "bg-slate-50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                                    }`}
+                                    className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer ${isEnabled
+                                      ? "bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20"
+                                      : "bg-slate-50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                                      }`}
                                   >
                                     <input
                                       type="checkbox"
@@ -562,11 +587,10 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
                                       className="sr-only"
                                     />
                                     <div
-                                      className={`size-5 rounded flex items-center justify-center transition-colors ${
-                                        isEnabled
-                                          ? "bg-emerald-500 text-white"
-                                          : "bg-slate-300 dark:bg-slate-700 text-transparent"
-                                      }`}
+                                      className={`size-5 rounded flex items-center justify-center transition-colors ${isEnabled
+                                        ? "bg-emerald-500 text-white"
+                                        : "bg-slate-300 dark:bg-slate-700 text-transparent"
+                                        }`}
                                     >
                                       {isUpdating ? (
                                         <span className="material-symbols-outlined animate-spin text-[14px] text-white">
@@ -580,11 +604,10 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
                                     </div>
                                     <div className="flex-1 min-w-0">
                                       <p
-                                        className={`text-sm font-medium truncate ${
-                                          isEnabled
-                                            ? "text-emerald-700 dark:text-emerald-300"
-                                            : "text-slate-700 dark:text-slate-300"
-                                        }`}
+                                        className={`text-sm font-medium truncate ${isEnabled
+                                          ? "text-emerald-700 dark:text-emerald-300"
+                                          : "text-slate-700 dark:text-slate-300"
+                                          }`}
                                       >
                                         {perm.label}
                                       </p>

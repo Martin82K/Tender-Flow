@@ -1,0 +1,5 @@
+<svg width="80" height="24" viewBox="0 0 80 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="80" height="24" rx="6" fill="#f59e0b" fill-opacity="0.15"/>
+  <rect x="0.5" y="0.5" width="79" height="23" rx="5.5" stroke="#f59e0b" stroke-opacity="0.2"/>
+  <text x="40" y="16" text-anchor="middle" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600" fill="#d97706">Admin</text>
+</svg>

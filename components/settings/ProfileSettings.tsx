@@ -289,242 +289,227 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
   ];
 
   return (
-    <div className="space-y-8 animate-fadeIn">
-      {/* User Profile Section */}
-      <section className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl">
-        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary">person</span>
-          Můj profil
-        </h2>
+    <div className="max-w-6xl mx-auto space-y-5 animate-fadeIn">
+      {/* Top Grid: Profile & Appearance */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* User Profile Section */}
+        <section className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+          <h2 className="text-base font-bold text-slate-900 dark:text-white mb-5 flex items-center gap-2">
+            <span className="material-symbols-outlined text-primary text-xl">person</span>
+            Můj profil
+          </h2>
 
-        <div className="flex flex-col md:flex-row gap-8">
-          <div className="flex-1 space-y-4">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-              Zobrazované jméno
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="Vaše jméno (např. Jan Novák)"
-                className="flex-1 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/50 outline-none transition-all"
-              />
-              <button
-                onClick={handleSaveDisplayName}
-                disabled={isSavingDisplayName}
-                className="px-5 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
-              >
-                {isSavingDisplayName ? "..." : "Uložit"}
-              </button>
-            </div>
-            <p className="text-xs text-slate-500">
-              Toto jméno se bude zobrazovat u vámi vytvořených projektů a
-              komentářů.
-            </p>
-          </div>
+          <div className="space-y-5">
+            <div className="flex flex-col gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  Zobrazované jméno
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    placeholder="Vaše jméno"
+                    className="flex-1 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 px-3.5 py-2 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/30 outline-none transition-all"
+                  />
+                  <button
+                    onClick={handleSaveDisplayName}
+                    disabled={isSavingDisplayName}
+                    className="px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold hover:brightness-110 active:scale-95 transition-all disabled:opacity-50"
+                  >
+                    {isSavingDisplayName ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : "Uložit"}
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  Zobrazuje se u projektů a komentářů.
+                </p>
+              </div>
 
-          <div className="flex-1 space-y-4 border-l border-slate-200 dark:border-slate-700 md:pl-8">
-            <div>
-              <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Email
-              </p>
-              <p className="text-slate-900 dark:text-white font-mono bg-slate-100 dark:bg-slate-800 py-1.5 px-3 rounded-lg inline-block text-sm">
-                {user?.email}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Role
-              </p>
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary uppercase tracking-wide">
-                {user?.role || "user"}
-              </span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Biometric Authentication (Desktop only) */}
-      <BiometricSettings className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl shadow-xl" />
-
-      {/* Appearance Settings */}
-      <section className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl">
-        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-          <span className="material-symbols-outlined text-pink-500">
-            palette
-          </span>
-          Vzhled aplikace
-        </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Theme Preference */}
-          <div className="space-y-4">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-              Režim zobrazení
-            </label>
-            <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
-              {[
-                { id: "light", icon: "light_mode", label: "Světlý" },
-                { id: "dark", icon: "dark_mode", label: "Tmavý" },
-                { id: "system", icon: "brightness_auto", label: "Systém" },
-              ].map((opt) => (
-                <button
-                  key={opt.id}
-                  onClick={() => onSetTheme(opt.id as any)}
-                  className={`
-                                        flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all
-                                        ${theme === opt.id
-                      ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
-                      : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-                    }
-                                    `}
-                >
-                  <span className="material-symbols-outlined text-[18px]">
-                    {opt.icon}
+              <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-100 dark:border-slate-800/50">
+                <div className="space-y-1">
+                  <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    Email
+                  </p>
+                  <p className="text-sm text-slate-700 dark:text-slate-300 truncate" title={user?.email}>
+                    {user?.email}
+                  </p>
+                </div>
+                <div className="space-y-1 text-right">
+                  <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    Role
+                  </p>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-primary/10 text-primary uppercase">
+                    {user?.role || "user"}
                   </span>
-                  {opt.label}
-                </button>
-              ))}
+                </div>
+              </div>
             </div>
           </div>
+        </section>
 
-          {/* Primary Color */}
-          <div className="space-y-4">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-              Hlavní barva
-            </label>
-            <div className="flex flex-wrap gap-3">
-              {themeColors.map((color) => (
-                <button
-                  key={color}
-                  onClick={() => onSetPrimaryColor(color)}
-                  className={`
-                                        w-10 h-10 rounded-full transition-all flex items-center justify-center
-                                        ${primaryColor === color
-                      ? "ring-4 ring-offset-2 ring-primary dark:ring-offset-slate-900 scale-110"
-                      : "hover:scale-110"
-                    }
-                                    `}
-                  style={{ backgroundColor: color }}
-                >
-                  {primaryColor === color && (
-                    <span className="material-symbols-outlined text-white text-sm">
-                      check
+        {/* Appearance Settings */}
+        <section className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+          <h2 className="text-base font-bold text-slate-900 dark:text-white mb-5 flex items-center gap-2">
+            <span className="material-symbols-outlined text-pink-500 text-xl">palette</span>
+            Vzhled aplikace
+          </h2>
+
+          <div className="space-y-5">
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Režim zobrazení
+              </label>
+              <div className="flex gap-1.5 p-1 bg-slate-100/50 dark:bg-slate-800/50 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
+                {[
+                  { id: "light", icon: "light_mode", label: "Světlý" },
+                  { id: "dark", icon: "dark_mode", label: "Tmavý" },
+                  { id: "system", icon: "brightness_auto", label: "Systém" },
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => onSetTheme(opt.id as any)}
+                    className={`
+                      flex-1 flex items-center justify-center gap-2 py-1.5 rounded-lg text-xs font-medium transition-all
+                      ${theme === opt.id
+                        ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm ring-1 ring-slate-200 dark:ring-slate-600"
+                        : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                      }
+                    `}
+                  >
+                    <span className="material-symbols-outlined text-[16px]">
+                      {opt.icon}
                     </span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Other Settings */}
-      <section className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl">
-        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-          <span className="material-symbols-outlined text-violet-500">
-            tune
-          </span>
-          Další nastavení
-        </h2>
-
-        <div className="space-y-6">
-          {/* Auto Shorten PD Links Toggle */}
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="font-medium text-slate-900 dark:text-white">
-                Automatické zkracování odkazů pro PD
-              </div>
-              <div className="text-sm text-slate-500 dark:text-slate-400">
-                Při vložení dlouhého odkazu na dokumentaci jej automaticky zkrátit.
+                    {opt.label}
+                  </button>
+                ))}
               </div>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                className="sr-only peer"
-                checked={user?.preferences?.autoShortenProjectDocs ?? false}
-                onChange={(e) => {
-                  updatePreferences({
-                    autoShortenProjectDocs: e.target.checked,
-                  });
-                }}
-              />
-              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-            </label>
+
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Hlavní barva
+              </label>
+              <div className="flex flex-wrap gap-2.5">
+                {themeColors.map((color) => (
+                  <button
+                    key={color}
+                    onClick={() => onSetPrimaryColor(color)}
+                    className={`
+                      w-8 h-8 rounded-full transition-all flex items-center justify-center relative group
+                      ${primaryColor === color
+                        ? "ring-2 ring-offset-2 ring-primary dark:ring-offset-slate-900 scale-105"
+                        : "hover:scale-110"
+                      }
+                    `}
+                    style={{ backgroundColor: color }}
+                  >
+                    {primaryColor === color && (
+                      <span className="material-symbols-outlined text-white text-[14px]">
+                        check
+                      </span>
+                    )}
+                    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
+
+      {/* Middle Grid: Biometrics & Other Settings */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* Biometric Authentication */}
+        <BiometricSettings className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm" />
+
+        {/* Other Settings */}
+        <section className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+          <h2 className="text-base font-bold text-slate-900 dark:text-white mb-5 flex items-center gap-2">
+            <span className="material-symbols-outlined text-violet-500 text-xl">tune</span>
+            Další nastavení
+          </h2>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between gap-4 p-3 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800/50">
+              <div className="flex-1">
+                <div className="text-sm font-medium text-slate-900 dark:text-white">
+                  Automatické zkracování odkazů
+                </div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Při vložení dlouhého odkazu jej automaticky zkrátit.
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={user?.preferences?.autoShortenProjectDocs ?? false}
+                  onChange={(e) => {
+                    updatePreferences({
+                      autoShortenProjectDocs: e.target.checked,
+                    });
+                  }}
+                />
+                <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none dark:bg-slate-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+              </label>
+            </div>
+          </div>
+        </section>
+      </div>
 
       {/* App Update Section */}
-      <section className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl">
+      <section className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
         <AppUpdateSection />
       </section>
 
       {/* Contact Statuses Management */}
-      <section className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl">
-        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-          <span className="material-symbols-outlined text-blue-500">label</span>
+      <section className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+        <h2 className="text-base font-bold text-slate-900 dark:text-white mb-5 flex items-center gap-2">
+          <span className="material-symbols-outlined text-blue-500 text-xl">label</span>
           Typy kontaktů
         </h2>
 
-        <div className="space-y-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
           {contactStatuses.length === 0 && (
-            <div className="text-center py-8 text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
-              Použijte formulář níže pro přidání prvního hodnocení.
+            <div className="col-span-full text-center py-6 text-slate-500 dark:text-slate-400 bg-slate-50/50 dark:bg-slate-800/30 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+              Žádné vlastní typy kontaktů.
             </div>
           )}
           {contactStatuses.map((status) => (
             <div
               key={status.id}
-              className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50 group"
+              className="flex items-center gap-3 p-2.5 bg-slate-50/50 dark:bg-slate-800/30 rounded-xl border border-slate-100 dark:border-slate-800/50 group hover:border-slate-200 dark:hover:border-slate-700 transition-all"
             >
-              <div className="relative">
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center ${colorOptions.find((c) => c.value === status.color)?.class ||
-                    "bg-slate-500"
-                    } text-white shadow-sm`}
-                >
-                  <span className="material-symbols-outlined text-[16px]">
-                    star
-                  </span>
-                </div>
+              <div
+                className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${colorOptions.find((c) => c.value === status.color)?.class || "bg-slate-500"} text-white shadow-sm`}
+              >
+                <span className="material-symbols-outlined text-[14px]">star</span>
               </div>
 
               <input
                 type="text"
                 value={status.label}
-                onChange={(e) =>
-                  handleUpdateStatusLabel(status.id, e.target.value)
-                }
+                onChange={(e) => handleUpdateStatusLabel(status.id, e.target.value)}
                 onBlur={(e) => handleStatusLabelBlur(status.id, e.target.value)}
-                className="flex-1 bg-transparent border-none text-sm font-bold text-slate-700 dark:text-slate-200 focus:ring-0 px-2"
+                className="flex-1 bg-transparent border-none text-xs font-bold text-slate-700 dark:text-slate-200 focus:ring-0 px-1"
               />
 
-              <div className="flex items-center gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="hidden group-hover:flex items-center gap-1">
                 {colorOptions.map((opt) => (
                   <button
                     key={opt.value}
-                    onClick={() =>
-                      handleUpdateStatusColor(status.id, opt.value)
-                    }
-                    className={`w-5 h-5 rounded-full ${opt.class} ${status.color === opt.value
-                      ? "ring-2 ring-offset-1 ring-slate-400"
-                      : "hover:scale-110"
-                      } transition-all`}
+                    onClick={() => handleUpdateStatusColor(status.id, opt.value)}
+                    className={`w-4 h-4 rounded-full ${opt.class} ${status.color === opt.value ? "ring-2 ring-offset-1 ring-slate-400" : "hover:scale-110 opacity-40 hover:opacity-100"} transition-all`}
                   />
                 ))}
               </div>
 
               <button
                 onClick={() => handleDeleteStatus(status.id)}
-                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors ml-2"
-                title="Smazat hodnocení"
+                className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
               >
-                <span className="material-symbols-outlined text-[18px]">
-                  delete
-                </span>
+                <span className="material-symbols-outlined text-[16px]">delete</span>
               </button>
             </div>
           ))}
@@ -532,24 +517,24 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
 
         <form
           onSubmit={handleAddStatus}
-          className="flex gap-3 p-4 bg-slate-50 dark:bg-slate-800/80 rounded-xl border-dashed border-2 border-slate-200 dark:border-slate-700"
+          className="flex gap-3 p-3 bg-slate-50/30 dark:bg-slate-800/20 rounded-xl border-dashed border border-slate-200 dark:border-slate-700"
         >
           <input
             type="text"
             value={newStatusLabel}
             onChange={(e) => setNewStatusLabel(e.target.value)}
-            placeholder="Název nového hodnocení..."
-            className="flex-1 bg-transparent border-none text-sm focus:ring-0 placeholder:text-slate-400"
+            placeholder="Nový typ kontaktu..."
+            className="flex-1 bg-transparent border-none text-xs focus:ring-0 placeholder:text-slate-400 dark:text-white"
           />
-          <div className="flex items-center gap-2 border-l border-slate-200 dark:border-slate-700 pl-3">
+          <div className="flex items-center gap-1.5 border-l border-slate-200 dark:border-slate-700 pl-3">
             {colorOptions.map((opt) => (
               <button
                 key={opt.value}
                 type="button"
                 onClick={() => setNewStatusColor(opt.value)}
-                className={`w-6 h-6 rounded-full ${opt.class} ${newStatusColor === opt.value
-                  ? "ring-2 ring-offset-2 ring-slate-400 scale-110"
-                  : "opacity-40 hover:opacity-100"
+                className={`w-5 h-5 rounded-full ${opt.class} ${newStatusColor === opt.value
+                  ? "ring-2 ring-offset-1 ring-slate-400 scale-105"
+                  : "opacity-30 hover:opacity-100"
                   } transition-all`}
               />
             ))}
@@ -557,7 +542,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
           <button
             type="submit"
             disabled={!newStatusLabel}
-            className="ml-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4 py-1.5 rounded-lg text-sm font-bold disabled:opacity-50 hover:shadow-lg transition-all"
+            className="bg-primary text-white px-4 py-1.5 rounded-lg text-xs font-bold disabled:opacity-50 hover:brightness-110 transition-all"
           >
             Přidat
           </button>

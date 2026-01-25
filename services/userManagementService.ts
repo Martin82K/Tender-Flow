@@ -183,12 +183,13 @@ export const userManagementService = {
     },
 
     /**
-     * Filter users by search query and domain
+     * Filter users by search query, domain, and subscription type
      */
     filterUsers: (
         users: UserWithProfile[],
         searchQuery: string,
-        domainFilter: string
+        domainFilter: string,
+        subscriptionFilter: 'all' | 'manual' | 'auto' = 'all'
     ): UserWithProfile[] => {
         return users.filter(user => {
             // Domain filter
@@ -205,8 +206,32 @@ export const userManagementService = {
                 if (!matchEmail && !matchName) return false;
             }
 
+            // Subscription type filter
+            if (subscriptionFilter === 'manual') {
+                if (!user.subscription_tier_override) return false;
+            } else if (subscriptionFilter === 'auto') {
+                if (user.subscription_tier_override) return false;
+            }
+
             return true;
         });
+    },
+
+    /**
+     * Get subscription audit log (admin only)
+     */
+    getSubscriptionAuditLog: async (userId?: string, limit: number = 50): Promise<SubscriptionAuditLog[]> => {
+        const { data, error } = await supabase.rpc('get_subscription_audit_log', {
+            target_user_id: userId || null,
+            limit_count: limit
+        });
+
+        if (error) {
+            console.error('Error fetching subscription audit log:', error);
+            throw new Error(error.message);
+        }
+
+        return data || [];
     },
 
     /**
@@ -284,3 +309,18 @@ export interface WhitelistedEmail {
     is_active: boolean;
     created_at: string;
 }
+
+export interface SubscriptionAuditLog {
+    id: string;
+    user_id: string;
+    user_email: string;
+    changed_by: string | null;
+    changed_by_email: string | null;
+    old_tier: string | null;
+    new_tier: string | null;
+    change_type: string;
+    notes: string | null;
+    created_at: string;
+}
+
+export type SubscriptionFilterType = 'all' | 'manual' | 'auto';

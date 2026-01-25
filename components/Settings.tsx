@@ -218,7 +218,7 @@ export const Settings: React.FC<SettingsProps> = ({
         subtitle="Konfigurace aplikace a správa staveb"
       />
 
-      <div className="p-6 lg:p-10 w-full pb-20">
+      <div className="p-4 lg:p-6 xl:p-8 w-full pb-20">
         {/* Main Tab Navigation (Top Level) */}
         <div className="flex items-center gap-4 mb-8 border-b border-slate-200 dark:border-slate-700/50">
           <button
@@ -324,7 +324,7 @@ export const Settings: React.FC<SettingsProps> = ({
               </nav>
             </aside>
 
-            <main className="flex-1 min-w-0">
+            <main className="flex-1 min-w-0 overflow-x-hidden">
               {activeAdminSubTab === "registration" && (
                 <>
                   <AdminSettings isAdmin={isAdmin} section="registration" />
@@ -488,7 +488,7 @@ export const Settings: React.FC<SettingsProps> = ({
             </aside>
 
             {/* Content Area */}
-            <main className="flex-1 min-w-0">
+            <main className="flex-1 min-w-0 overflow-x-hidden">
               {activeUserSubTab === "profile" && (
                 <ProfileSettings
                   theme={theme}

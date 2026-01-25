@@ -18,44 +18,44 @@ export interface TierConfig {
 }
 
 // Internal tier IDs (must match DB check constraint)
-export type SubscriptionTierId = 'demo' | 'free' | 'pro' | 'enterprise' | 'admin';
+export type SubscriptionTierId = 'free' | 'starter' | 'pro' | 'enterprise' | 'admin';
 
 /**
  * All subscription tiers with their configuration
  */
 export const SUBSCRIPTION_TIERS: Record<SubscriptionTierId, TierConfig> = {
-  demo: {
-    id: 'demo',
-    label: 'Demo',
-    badgeClass: 'bg-sky-500/15 text-sky-600 dark:text-sky-300 border-sky-500/20',
+  free: {
+    id: 'free',
+    label: 'Free',
+    badgeClass: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700',
     sortOrder: 0,
     isVisible: true,
   },
-  free: {
-    id: 'free',
+  starter: {
+    id: 'starter',
     label: 'Starter',
-    badgeClass: 'bg-slate-500/15 text-slate-600 dark:text-slate-300 border-slate-500/20',
+    badgeClass: 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300 border-sky-200 dark:border-sky-800',
     sortOrder: 1,
     isVisible: true,
   },
   pro: {
     id: 'pro',
     label: 'Pro',
-    badgeClass: 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 border-indigo-500/20',
+    badgeClass: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800',
     sortOrder: 2,
     isVisible: true,
   },
   enterprise: {
     id: 'enterprise',
     label: 'Enterprise',
-    badgeClass: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/20',
+    badgeClass: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
     sortOrder: 3,
     isVisible: true,
   },
   admin: {
     id: 'admin',
     label: 'Admin',
-    badgeClass: 'bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/20',
+    badgeClass: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border-amber-200 dark:border-amber-800',
     sortOrder: 4,
     isVisible: false, // Admin tier is implicit, not shown in matrix
   },

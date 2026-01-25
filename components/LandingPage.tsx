@@ -13,6 +13,7 @@ import { Link, useLocation, navigate } from "./routing/router";
 import { useAuth } from "../context/AuthContext";
 import { APP_VERSION } from "../config/version";
 import { ScrollReveal } from "./ui/ScrollReveal";
+import { PRICING_CONFIG } from "../services/billingService";
 
 const Stat: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4">
@@ -411,22 +412,20 @@ export const LandingPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setBillingPeriod("monthly")}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    billingPeriod === "monthly"
-                      ? "bg-orange-500 text-white shadow-lg"
-                      : "text-white/60 hover:text-white hover:bg-white/5"
-                  }`}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${billingPeriod === "monthly"
+                    ? "bg-orange-500 text-white shadow-lg"
+                    : "text-white/60 hover:text-white hover:bg-white/5"
+                    }`}
                 >
                   Měsíčně
                 </button>
                 <button
                   type="button"
                   onClick={() => setBillingPeriod("yearly")}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                    billingPeriod === "yearly"
-                      ? "bg-orange-500 text-white shadow-lg"
-                      : "text-white/60 hover:text-white hover:bg-white/5"
-                  }`}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${billingPeriod === "yearly"
+                    ? "bg-orange-500 text-white shadow-lg"
+                    : "text-white/60 hover:text-white hover:bg-white/5"
+                    }`}
                 >
                   Ročně
                   <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
@@ -441,15 +440,16 @@ export const LandingPage: React.FC = () => {
             {[
               {
                 title: "Starter",
-                monthlyPrice: 299,
-                yearlyPrice: 2990,
-                priceLabel: "/seat/měsíc",
+                monthlyPrice: PRICING_CONFIG.starter.monthlyPrice / 100,
+                yearlyPrice: PRICING_CONFIG.starter.yearlyPrice / 100,
+                priceLabel: "/měsíc",
                 trial: "14 dní zdarma",
                 items: [
-                  "5 aktivních projektů",
+                  "Neomezené projekty",
                   "Základní přehledy",
                   "Databáze subdodavatelů",
                   "Export do Excel",
+                  "Excel Unlocker",
                 ],
                 cta: {
                   label: "Vyzkoušet 14 dní zdarma",
@@ -458,23 +458,22 @@ export const LandingPage: React.FC = () => {
                 },
               },
               {
-                title: "Professional",
-                monthlyPrice: 499,
-                yearlyPrice: 4990,
-                priceLabel: "/seat/měsíc",
+                title: "Pro",
+                monthlyPrice: PRICING_CONFIG.pro.monthlyPrice / 100,
+                yearlyPrice: PRICING_CONFIG.pro.yearlyPrice / 100,
+                priceLabel: "/měsíc",
                 badge: "Nejvýhodnější",
                 trial: "14 dní zdarma",
                 featured: true,
                 items: [
-                  "Neomezené projekty",
+                  "Vše ze Starter",
                   "Dashboard + KPI",
                   "Plán výběrových řízení",
-                  "AI reporty a doplnění informací kontaktů",
+                  "AI reporty a analýzy",
                   "Excel Merger PRO",
                   "Excel Unlocker PRO",
                   "Document Hub - složkomat",
                   "Harmonogram s grafem",
-                  "Exporty harmonogramu",
                 ],
                 cta: {
                   label: "Vyzkoušet 14 dní zdarma",
@@ -488,7 +487,7 @@ export const LandingPage: React.FC = () => {
                 yearlyPrice: null,
                 priceLabel: "individuálně",
                 items: [
-                  "Vše z Professional",
+                  "Vše z Pro",
                   "Možnost in house řešení",
                   "On‑premise nasazení",
                   "Vlastní integrace",
@@ -553,7 +552,7 @@ export const LandingPage: React.FC = () => {
                           <div className="text-sm text-white/50 pb-1">
                             {billingPeriod === "monthly"
                               ? p.priceLabel
-                              : `/seat/rok`}
+                              : `/rok`}
                           </div>
                         </>
                       ) : (

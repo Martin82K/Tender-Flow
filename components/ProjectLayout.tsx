@@ -61,58 +61,52 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
   if (!project) return <div>Project not found</div>;
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50 dark:bg-slate-950">
+    <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950">
       <Header
         title={project.title}
         subtitle="Detail stavby"
         onSearchChange={setSearchQuery}
         searchPlaceholder="Hledat v projektu..."
       >
-        {/* Mobile dropdown tabs */}
-        <select
-          value={activeTab}
-          onChange={(e) => onTabChange(e.target.value as ProjectTab)}
-          className="md:hidden w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white px-4 py-2.5 rounded-xl text-sm font-medium focus:border-primary focus:ring-2 focus:ring-primary/20"
-        >
-          <option value="overview">Přehled</option>
-          <option value="tender-plan">Plán VŘ</option>
-          <option value="pipeline">Výběrová řízení</option>
-          <option value="schedule">Harmonogram</option>
-          <option value="documents">Dokumenty</option>
-        </select>
+        <div className="flex items-center gap-4">
+          {/* Mobile dropdown tabs */}
+          <div className="md:hidden relative min-w-[140px]">
+            <select
+              value={activeTab}
+              onChange={(e) => onTabChange(e.target.value as ProjectTab)}
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-tighter focus:ring-2 focus:ring-primary/20 appearance-none"
+            >
+              <option value="overview">Přehled</option>
+              <option value="tender-plan">Plán VŘ</option>
+              <option value="pipeline">Výběrová řízení</option>
+              <option value="schedule">Harmonogram</option>
+              <option value="documents">Dokumenty</option>
+            </select>
+            <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-sm">expand_more</span>
+          </div>
 
-        {/* Desktop horizontal tabs */}
-        <div className="hidden md:flex items-center gap-1 bg-slate-200 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-300 dark:border-slate-700/50">
-          <button
-            onClick={() => onTabChange("overview")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "overview" ? "bg-primary text-white shadow-lg" : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300 dark:hover:bg-slate-700/50"}`}
-          >
-            Přehled
-          </button>
-          <button
-            onClick={() => onTabChange("tender-plan")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "tender-plan" ? "bg-primary text-white shadow-lg" : "text-slate-400 hover:text-white hover:bg-slate-700/50"}`}
-          >
-            Plán VŘ
-          </button>
-          <button
-            onClick={() => onTabChange("pipeline")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "pipeline" ? "bg-primary text-white shadow-lg" : "text-slate-400 hover:text-white hover:bg-slate-700/50"}`}
-          >
-            Výběrová řízení
-          </button>
-          <button
-            onClick={() => onTabChange("schedule")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "schedule" ? "bg-primary text-white shadow-lg" : "text-slate-400 hover:text-white hover:bg-slate-700/50"}`}
-          >
-            Harmonogram
-          </button>
-          <button
-            onClick={() => onTabChange("documents")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "documents" ? "bg-primary text-white shadow-lg" : "text-slate-400 hover:text-white hover:bg-slate-700/50"}`}
-          >
-            Dokumenty
-          </button>
+          {/* Desktop horizontal tabs */}
+          <div className="hidden md:flex items-center gap-1.5 bg-slate-100 dark:bg-slate-950/50 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800">
+            {[
+              { id: 'overview', label: 'Přehled', icon: 'dashboard' },
+              { id: 'tender-plan', label: 'Plán VŘ', icon: 'calendar_today' },
+              { id: 'pipeline', label: 'Výběrová řízení', icon: 'account_tree' },
+              { id: 'schedule', label: 'Harmonogram', icon: 'event_note' },
+              { id: 'documents', label: 'Dokumenty', icon: 'folder_open' }
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => onTabChange(tab.id as ProjectTab)}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all duration-300 ${activeTab === tab.id
+                  ? 'bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700'
+                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+              >
+                <span className="material-symbols-outlined text-[18px] opacity-70">{tab.icon}</span>
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
       </Header>
 

@@ -231,7 +231,7 @@ export interface UserPreferences {
   signature?: string; // HTML compatible signature
 }
 
-export type SubscriptionTier = "demo" | "free" | "pro" | "enterprise" | "admin";
+export type SubscriptionTier = "free" | "starter" | "pro" | "enterprise" | "admin";
 // Note: For new code, prefer importing SubscriptionTierId from config/subscriptionTiers.ts
 
 export type SubscriptionStatus = "active" | "trial" | "cancelled" | "expired" | "pending";

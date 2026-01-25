@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Export Subscription Badges</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; padding: 40px; background: #f8fafc; }
+        h1 { margin-bottom: 24px; color: #0f172a; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 24px; }
+        .card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; }
+        .preview { margin-bottom: 16px; min-height: 40px; display: flex; align-items: center; justify-content: center; }
+        button {
+            background: #2563eb; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 500;
+            transition: background 0.2s;
+        }
+        button:hover { background: #1d4ed8; }
+        canvas { display: none; }
+    </style>
+</head>
+<body>
+    <h1>Subscription Badges Export</h1>
+    <p style="margin-bottom: 32px; color: #64748b;">Click download to get the PNG version for Stripe.</p>
+    
+    <div class="grid" id="container">
+        <!-- Cards will be generated here -->
+    </div>
+
+    <script>
+        const TIERS = ['free', 'starter', 'pro', 'enterprise', 'admin'];
+        
+        async function init() {
+            const container = document.getElementById('container');
+            
+            for (const tier of TIERS) {
+                // Create card
+                const card = document.createElement('div');
+                card.className = 'card';
+                
+                // Load SVG content
+                const response = await fetch(`./${tier}.svg`);
+                const svgText = await response.text();
+                
+                // SVG Preview
+                const preview = document.createElement('div');
+                preview.className = 'preview';
+                preview.innerHTML = svgText;
+                card.appendChild(preview);
+                
+                // Create canvas and convert
+                const canvas = document.createElement('canvas');
+                // Scale up for better quality (retina)
+                canvas.width = 160; // 80 * 2
+                canvas.height = 48; // 24 * 2
+                
+                const ctx = canvas.getContext('2d');
+                const img = new Image();
+                
+                // Convert SVG to base64 to avoid taint issues
+                const svgBlob = new Blob([svgText], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(svgBlob);
+                
+                img.onload = () => {
+                    ctx.drawImage(img, 0, 0, 160, 48);
+                    URL.revokeObjectURL(url);
+                    
+                    // Add download button
+                    const btn = document.createElement('button');
+                    btn.textContent = `Download ${tier}.png`;
+                    btn.onclick = () => {
+                        const pngUrl = canvas.toDataURL('image/png');
+                        const link = document.createElement('a');
+                        link.download = `subscription-${tier}.png`;
+                        link.href = pngUrl;
+                        link.click();
+                    };
+                    card.appendChild(btn);
+                    
+                    // Append hidden canvas (optional)
+                    // card.appendChild(canvas);
+                };
+                
+                img.src = url;
+                container.appendChild(card);
+            }
+        }
+        
+        init();
+    </script>
+</body>
+</html>

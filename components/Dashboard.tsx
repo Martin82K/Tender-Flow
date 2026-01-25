@@ -184,21 +184,28 @@ export const Dashboard: React.FC<DashboardProps> = ({
   }
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto bg-slate-50 dark:bg-slate-950">
-      <Header title="Dashboard" subtitle="Detailní přehled projektu">
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-          {/* Project Selector */}
-          <div className="relative flex-1 min-w-[180px] sm:min-w-[220px] sm:flex-none">
-            <Select
-              value={selectedProjectId}
-              onChange={(val) => setSelectedProjectId(val)}
-              options={activeProjects.map((project) => ({
-                value: project.id,
-                label: projectDetails[project.id]?.title || project.name,
-              }))}
-              placeholder="Vyberte projekt"
-            />
+    <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950">
+      <Header title="Dashboard" subtitle="Detailní přehled vybraného projektu">
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Project Selector Container */}
+          <div className="flex items-center gap-2 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border border-slate-200 dark:border-slate-800 p-1 rounded-2xl shadow-sm">
+            <div className="pl-3 pr-1 text-slate-400">
+              <span className="material-symbols-outlined text-[20px]">architecture</span>
+            </div>
+            <div className="relative min-w-[200px] sm:min-w-[240px]">
+              <Select
+                value={selectedProjectId}
+                onChange={(val) => setSelectedProjectId(val)}
+                options={activeProjects.map((project) => ({
+                  value: project.id,
+                  label: projectDetails[project.id]?.title || project.name,
+                }))}
+                placeholder="Vyberte projekt"
+              />
+            </div>
           </div>
+
+          <div className="h-8 w-px bg-slate-200 dark:bg-slate-800 mx-1 hidden sm:block"></div>
 
           {/* Export Button */}
           <Button
@@ -206,32 +213,36 @@ export const Dashboard: React.FC<DashboardProps> = ({
             onClick={handleExport}
             leftIcon={
               <span className="material-symbols-outlined text-[18px]">
-                download
+                file_download
               </span>
             }
-            className="rounded-xl whitespace-nowrap"
+            className="rounded-2xl px-6 h-[44px] font-black uppercase text-[11px] tracking-wider shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/20 transition-all transition-transform active:scale-95"
           >
-            <span className="hidden sm:inline">Export XLSX</span>
+            <span className="hidden sm:inline">Export Přehledu</span>
             <span className="sm:hidden">Export</span>
           </Button>
         </div>
       </Header>
 
-      <div className="flex-1 overflow-auto bg-slate-50 dark:bg-slate-950 animate-fade-in-up">
-        {selectedProject ? (
-          <ProjectOverviewNew
-            project={selectedProject}
-            onUpdate={(updates) =>
-              onUpdateProjectDetails?.(selectedProjectId, updates)
-            }
-            variant="compact"
-            onNavigateToPipeline={(categoryId) =>
-              onNavigateToProject?.(selectedProjectId, "pipeline", categoryId)
-            }
-          />
-        ) : (
-          <DashboardSkeleton />
-        )}
+      <div className="flex-1 overflow-auto bg-slate-50 dark:bg-slate-950">
+        <div className="max-w-[1600px] mx-auto animate-fadeIn">
+          {selectedProject ? (
+            <ProjectOverviewNew
+              project={selectedProject}
+              onUpdate={(updates) =>
+                onUpdateProjectDetails?.(selectedProjectId, updates)
+              }
+              variant="compact"
+              onNavigateToPipeline={(categoryId) =>
+                onNavigateToProject?.(selectedProjectId, "pipeline", categoryId)
+              }
+            />
+          ) : (
+            <div className="p-8">
+              <DashboardSkeleton />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

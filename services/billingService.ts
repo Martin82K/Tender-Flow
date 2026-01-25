@@ -5,11 +5,14 @@
  * Currently contains placeholder methods that will be implemented when billing is set up.
  */
 
+import { invokeAuthedFunction } from './functionsClient';
+
 // Types for billing operations
 export interface CheckoutSessionRequest {
-    tier: 'pro' | 'enterprise';
+    tier: 'starter' | 'pro' | 'enterprise';
     successUrl: string;
     cancelUrl: string;
+    billingPeriod?: 'monthly' | 'yearly';
 }
 
 export interface CheckoutSessionResponse {
@@ -40,17 +43,23 @@ export interface WebhookResult {
 
 // Pricing configuration (can be moved to environment or database)
 export const PRICING_CONFIG = {
+    starter: {
+        monthlyPrice: 49900, // In cents (CZK) = 499 Kč
+        yearlyPrice: 479000, // 4790 Kč (20% discount)
+        stripePriceIdMonthly: import.meta.env.VITE_STRIPE_PRICE_ID_STARTER_MONTHLY || '',
+        stripePriceIdYearly: import.meta.env.VITE_STRIPE_PRICE_ID_STARTER_YEARLY || '',
+    },
     pro: {
         monthlyPrice: 499900, // In cents (CZK) = 4999 Kč
         yearlyPrice: 4799000, // 47990 Kč (20% discount)
-        stripePriceIdMonthly: '', // Fill when Stripe is configured
-        stripePriceIdYearly: '',
+        stripePriceIdMonthly: import.meta.env.VITE_STRIPE_PRICE_ID_PRO_MONTHLY || '',
+        stripePriceIdYearly: import.meta.env.VITE_STRIPE_PRICE_ID_PRO_YEARLY || '',
     },
     enterprise: {
         monthlyPrice: null, // Custom pricing
         yearlyPrice: null,
-        stripePriceIdMonthly: '',
-        stripePriceIdYearly: '',
+        stripePriceIdMonthly: import.meta.env.VITE_STRIPE_PRICE_ID_ENTERPRISE_MONTHLY || '',
+        stripePriceIdYearly: import.meta.env.VITE_STRIPE_PRICE_ID_ENTERPRISE_YEARLY || '',
     },
 };
 
@@ -61,14 +70,19 @@ export const billingService = {
      * TODO: Implement when Stripe is integrated
      */
     createCheckoutSession: async (
-        _request: CheckoutSessionRequest
+        request: CheckoutSessionRequest
     ): Promise<CheckoutSessionResponse> => {
-        // Placeholder - will call Supabase Edge Function that creates Stripe session
-        console.warn('Billing not configured: createCheckoutSession called');
-        return {
-            success: false,
-            error: 'Platební brána není zatím nakonfigurována. Kontaktujte administrátora.',
-        };
+        try {
+            return await invokeAuthedFunction<CheckoutSessionResponse>(
+                'stripe-create-checkout-session',
+                { body: request },
+            );
+        } catch (error) {
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Platební brána není dostupná.',
+            };
+        }
     },
 
     /**
@@ -77,13 +91,49 @@ export const billingService = {
      * 
      * TODO: Implement when Stripe is integrated
      */
-    createBillingPortalSession: async (): Promise<BillingPortalResponse> => {
-        // Placeholder - will call Supabase Edge Function
-        console.warn('Billing not configured: createBillingPortalSession called');
-        return {
-            success: false,
-            error: 'Platební brána není zatím nakonfigurována.',
-        };
+    createBillingPortalSession: async (options?: {
+        returnUrl?: string;
+    }): Promise<BillingPortalResponse> => {
+        try {
+            return await invokeAuthedFunction<BillingPortalResponse>(
+                'stripe-create-billing-portal-session',
+                { body: options ?? {} },
+            );
+        } catch (error) {
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Platební brána není dostupná.',
+            };
+        }
+    },
+
+    /**
+     * Force sync subscription data from Stripe.
+     * Use when webhook data is stale or missing.
+     */
+    syncSubscription: async (): Promise<{
+        success: boolean;
+        message?: string;
+        subscription?: {
+            id: string;
+            tier: string;
+            status: string;
+            expiresAt: string | null;
+            cancelAtPeriodEnd: boolean;
+        } | null;
+        error?: string;
+    }> => {
+        try {
+            return await invokeAuthedFunction(
+                'stripe-sync-subscription',
+                { body: {} },
+            );
+        } catch (error) {
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Synchronizace selhala.',
+            };
+        }
     },
 
     /**
@@ -112,10 +162,14 @@ export const billingService = {
      */
     isBillingConfigured: (): boolean => {
         // Check for Stripe price IDs or other billing config
-        return (
-            !!PRICING_CONFIG.pro.stripePriceIdMonthly &&
-            !!PRICING_CONFIG.pro.stripePriceIdYearly
-        );
+        return [
+            PRICING_CONFIG.starter.stripePriceIdMonthly,
+            PRICING_CONFIG.starter.stripePriceIdYearly,
+            PRICING_CONFIG.pro.stripePriceIdMonthly,
+            PRICING_CONFIG.pro.stripePriceIdYearly,
+            PRICING_CONFIG.enterprise.stripePriceIdMonthly,
+            PRICING_CONFIG.enterprise.stripePriceIdYearly,
+        ].some(Boolean);
     },
 
     /**

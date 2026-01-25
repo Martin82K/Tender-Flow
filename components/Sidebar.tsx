@@ -36,16 +36,16 @@ interface SidebarProps {
     opts?: {
       settingsTab?: "user" | "admin";
       settingsSubTab?:
-        | "profile"
-        | "contacts"
-        | "excelUnlocker"
-        | "excelMerger"
-        | "urlShortener"
-        | "registration"
-        | "users"
-        | "subscriptions"
-        | "ai"
-        | "tools";
+      | "profile"
+      | "contacts"
+      | "excelUnlocker"
+      | "excelMerger"
+      | "urlShortener"
+      | "registration"
+      | "users"
+      | "subscriptions"
+      | "ai"
+      | "tools";
     },
   ) => void;
   selectedProjectId: string;
@@ -97,14 +97,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const tab = tabParam === "admin" || tabParam === "user" ? tabParam : null;
     const rawSubTab =
       subTabParam === "profile" ||
-      subTabParam === "contacts" ||
-      subTabParam === "excelUnlocker" ||
-      subTabParam === "excelMerger" ||
-      subTabParam === "registration" ||
-      subTabParam === "users" ||
-      subTabParam === "subscriptions" ||
-      subTabParam === "ai" ||
-      subTabParam === "tools" // legacy
+        subTabParam === "contacts" ||
+        subTabParam === "excelUnlocker" ||
+        subTabParam === "excelMerger" ||
+        subTabParam === "registration" ||
+        subTabParam === "users" ||
+        subTabParam === "subscriptions" ||
+        subTabParam === "ai" ||
+        subTabParam === "tools" // legacy
         ? subTabParam
         : null;
     const subTab = rawSubTab === "tools" ? "excelUnlocker" : rawSubTab;
@@ -247,17 +247,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
       return (
         <details key={item.id} className="group" open>
           <summary
-            className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer list-none ${
-              currentView === "project"
+            className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer list-none ${currentView === "project"
                 ? "bg-primary/20 text-primary border border-primary/30 font-semibold"
                 : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
-            }`}
+              }`}
           >
             <div className="flex items-center gap-3 min-w-0">
               <span
-                className={`material-symbols-outlined shrink-0 ${
-                  currentView === "project" ? "fill text-primary" : ""
-                }`}
+                className={`material-symbols-outlined shrink-0 ${currentView === "project" ? "fill text-primary" : ""
+                  }`}
               >
                 {item.icon}
               </span>
@@ -299,25 +297,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       onProjectSelect(project.id, "overview");
                       closeMobileMenu();
                     }}
-                    className={`flex items-center gap-2 text-left text-sm px-3 py-2 rounded-lg transition-all relative overflow-hidden cursor-pointer group/item ${
-                      isSelected
-                        ? "text-slate-900 dark:text-white font-medium"
-                        : "text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                    }`}
+                    className={`flex items-center gap-3 text-left text-sm px-3 py-2.5 rounded-xl transition-all relative overflow-hidden cursor-pointer group/item ${isSelected
+                        ? "text-slate-900 dark:text-white font-semibold"
+                        : "text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-slate-800/40"
+                      }`}
                     title={project.name}
                   >
                     {/* Gradient highlight for selected project */}
                     {isSelected && (
-                      <div className="absolute inset-0 bg-gradient-to-r from-primary/30 via-primary/10 to-transparent rounded-lg border-l-2 border-primary" />
+                      <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-xl border-l-2 border-primary" />
                     )}
 
                     {/* Status Badge */}
                     <span
-                      className={`relative z-10 flex items-center justify-center size-5 rounded text-[11px] font-bold shrink-0 ${
-                        project.status === "realization"
-                          ? "bg-amber-500/20 text-amber-400"
-                          : "bg-blue-500/20 text-blue-400"
-                      }`}
+                      className={`relative z-10 flex items-center justify-center size-5 rounded-lg text-[10px] font-extrabold shrink-0 shadow-sm ${project.status === "realization"
+                          ? "bg-amber-500 text-white"
+                          : "bg-blue-500 text-white"
+                        }`}
                     >
                       {project.status === "realization" ? "R" : "S"}
                     </span>
@@ -330,9 +326,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     {/* Expand Button */}
                     <button
                       onClick={(e) => toggleProjectExpand(e, project.id)}
-                      className={`relative z-10 p-0.5 rounded-md hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 transition-all ${
-                        isExpanded ? "rotate-180" : ""
-                      }`}
+                      className={`relative z-10 p-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 transition-all ${isExpanded ? "rotate-180" : ""
+                        }`}
                     >
                       <span className="material-symbols-outlined text-[18px]">
                         expand_more
@@ -374,11 +369,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                               onProjectSelect(project.id, tab.id);
                               closeMobileMenu();
                             }}
-                            className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs transition-colors ${
-                              isTabActiveReal
+                            className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs transition-colors ${isTabActiveReal
                                 ? "text-primary bg-primary/10 font-medium"
                                 : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/30"
-                            }`}
+                              }`}
                           >
                             <span className="material-symbols-outlined text-[16px]">
                               {tab.icon}
@@ -412,17 +406,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
           }}
         >
           <summary
-            className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer list-none ${
-              isItemActive
+            className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer list-none ${isItemActive
                 ? "bg-primary/20 text-primary border border-primary/30"
                 : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
-            }`}
+              }`}
           >
             <div className="flex items-center gap-3 min-w-0">
               <span
-                className={`material-symbols-outlined shrink-0 ${
-                  isItemActive ? "fill" : ""
-                }`}
+                className={`material-symbols-outlined shrink-0 ${isItemActive ? "fill" : ""
+                  }`}
               >
                 {item.icon}
               </span>
@@ -479,27 +471,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
             item.view,
             item.view === "settings"
               ? {
-                  settingsTab: item.settingsTab,
-                  settingsSubTab: item.settingsSubTab,
-                }
+                settingsTab: item.settingsTab,
+                settingsSubTab: item.settingsSubTab,
+              }
               : undefined,
           );
           closeMobileMenu();
         }}
-        className={`flex items-center gap-3 w-full px-3 py-2 nav-pill group ${
-          isItemActive
-            ? "nav-pill-active"
-            : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200"
-        }`}
+        className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all group ${isItemActive
+            ? "bg-primary/10 text-primary border border-primary/20 font-semibold"
+            : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-100"
+          }`}
       >
         <span
-          className={`material-symbols-outlined shrink-0 text-[20px] ${
-            isItemActive ? "fill" : ""
-          }`}
+          className={`material-symbols-outlined shrink-0 text-[20px] ${isItemActive ? "fill text-primary" : "text-slate-400 dark:text-slate-500 group-hover:text-slate-900 dark:group-hover:text-slate-100"
+            }`}
         >
           {item.icon}
         </span>
-        <p className="text-sm font-medium leading-none">{item.label}</p>
+        <p className="text-sm leading-none">{item.label}</p>
       </button>
     );
   };
@@ -538,11 +528,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <aside
         ref={sidebarRef}
         style={{ width: isOpen ? `${width}px` : "0px" }}
-        className={`relative flex h-full flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex-shrink-0 z-20 select-none group/sidebar transition-all duration-300 ease-in-out max-md:fixed max-md:inset-0 max-md:z-50 max-md:!w-full ${
-          !isOpen
+        className={`relative flex h-full flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex-shrink-0 z-20 select-none group/sidebar transition-all duration-300 ease-in-out max-md:fixed max-md:inset-0 max-md:z-50 max-md:!w-full ${!isOpen
             ? "overflow-hidden border-none max-md:pointer-events-none max-md:opacity-0"
             : "max-md:opacity-100"
-        }`}
+          }`}
       >
         {/* Mobile Overlay - not needed for fullscreen */}
         {isOpen && (
@@ -554,9 +543,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Sidebar Content is moved into a wrapper to avoid layout jump during transition */}
         <div
-          className={`flex flex-col h-full w-full min-w-[200px] ${
-            !isOpen ? "opacity-0 invisible" : "opacity-100 visible"
-          } transition-opacity duration-200`}
+          className={`flex flex-col h-full w-full min-w-[200px] ${!isOpen ? "opacity-0 invisible" : "opacity-100 visible"
+            } transition-opacity duration-200`}
         >
           {/* Resizer Handle - only on desktop */}
           <div
@@ -567,18 +555,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="flex h-full flex-col p-4 overflow-y-auto">
             <div className="flex flex-col gap-4 flex-1 min-h-0">
               {/* Logo */}
-              <div className="flex items-center gap-3 p-2 min-w-0 shrink-0">
-                <img
-                  src={logo}
-                  alt="Tender Flow Logo"
-                  className="size-16 min-w-16 object-contain drop-shadow-md shrink-0"
-                />
+              <div className="flex items-center gap-3 p-2 py-4 border-b border-slate-100 dark:border-slate-800/50 min-w-0 shrink-0">
+                <div className="relative group/logo">
+                  <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full opacity-0 group-hover/logo:opacity-100 transition-opacity" />
+                  <img
+                    src={logo}
+                    alt="Tender Flow Logo"
+                    className="relative size-12 min-w-12 object-contain drop-shadow-xl shrink-0 transition-transform group-hover/logo:scale-110"
+                  />
+                </div>
                 <div className="flex flex-1 flex-col min-w-0">
-                  <h1 className="text-slate-900 dark:text-white text-xl font-bold leading-tight whitespace-nowrap truncate">
+                  <h1 className="text-slate-900 dark:text-white text-lg font-black tracking-tight leading-tight whitespace-nowrap truncate">
                     Tender Flow
                   </h1>
-                  <p className="text-slate-500 text-[8px] font-normal leading-tight whitespace-nowrap truncate">
-                    Tender Management System
+                  <p className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-widest leading-tight whitespace-nowrap truncate">
+                    Enterprise Edition
                   </p>
                 </div>
                 {/* Close Toggle for Mobile */}
@@ -647,9 +638,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </span>
               </a>
 
-              <div className="flex items-center gap-3 px-3 py-3 mt-1 overflow-hidden bg-slate-50 dark:bg-slate-950/30 rounded-xl border border-slate-200 dark:border-slate-700/40">
+              <div className="flex items-center gap-3 px-3 py-3 mt-2 overflow-hidden bg-slate-50 dark:bg-slate-800/40 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700/50 shadow-sm">
                 {user?.subscriptionTier ? (
-                  <div className="size-8 min-w-8 flex items-center justify-center">
+                  <div className="size-9 min-w-9 flex items-center justify-center">
                     <span
                       className={`badge-neon badge-neon-${user.subscriptionTier}`}
                     >
@@ -662,22 +653,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <img
                     src={user.avatarUrl}
                     alt={user.name}
-                    className="size-8 min-w-8 rounded-full"
+                    className="size-9 min-w-9 rounded-full border-2 border-white dark:border-slate-700 shadow-sm"
                   />
                 ) : (
-                  <div className="size-8 min-w-8 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400"></div>
+                  <div className="size-9 min-w-9 rounded-xl bg-gradient-to-tr from-primary to-primary-light flex items-center justify-center text-white font-black text-sm shadow-inner">
+                    {(displayName || user?.email || "U")[0].toUpperCase()}
+                  </div>
                 )}
                 <div className="flex flex-col overflow-hidden flex-1">
-                  <p className="text-sm font-bold text-slate-800 dark:text-white break-words truncate">
+                  <p className="text-sm font-extrabold text-slate-800 dark:text-white break-words truncate">
                     {displayName || user?.email?.split("@")[0] || "User"}
                   </p>
-                  <p className="text-xs text-slate-500 truncate capitalize">
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter truncate">
                     {getUserRole(user?.email, user?.role)}
                   </p>
                 </div>
                 <button
                   onClick={handleLogoutClick}
-                  className="ml-auto p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                  className="ml-auto p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
                   title="Odhlásit se"
                 >
                   <span className="material-symbols-outlined text-[20px]">
