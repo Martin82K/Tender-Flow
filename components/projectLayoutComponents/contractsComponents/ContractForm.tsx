@@ -342,7 +342,9 @@ export const ContractForm: React.FC<ContractFormProps> = ({
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className={labelClasses}>Pozastávka (%)</label>
+            <label className={`${labelClasses} min-h-[40px] flex items-end`}>
+              Pozastávka (%)
+            </label>
             <input
               type="text"
               value={formData.retentionPercent}
@@ -361,7 +363,9 @@ export const ContractForm: React.FC<ContractFormProps> = ({
           </div>
 
           <div>
-            <label className={labelClasses}>Záruční doba (měsíce)</label>
+            <label className={`${labelClasses} min-h-[40px] flex items-end`}>
+              Záruční doba (měsíce)
+            </label>
             <input
               type="text"
               value={formData.warrantyMonths}
@@ -380,7 +384,9 @@ export const ContractForm: React.FC<ContractFormProps> = ({
           </div>
 
           <div>
-            <label className={labelClasses}>Splatnost</label>
+            <label className={`${labelClasses} min-h-[40px] flex items-end`}>
+              Splatnost
+            </label>
             <input
               type="text"
               value={formData.paymentTerms}

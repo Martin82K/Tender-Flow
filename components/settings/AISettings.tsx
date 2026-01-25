@@ -126,8 +126,10 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
 
   const [googleKey, setGoogleKey] = useState("");
   const [openRouterKey, setOpenRouterKey] = useState("");
+  const [mistralKey, setMistralKey] = useState("");
   const [isGoogleKeySet, setIsGoogleKeySet] = useState(false);
   const [isOpenRouterKeySet, setIsOpenRouterKeySet] = useState(false);
+  const [isMistralKeySet, setIsMistralKeySet] = useState(false);
   const [secretsSaved, setSecretsSaved] = useState(false);
 
   // Load secret status (not values)
@@ -135,7 +137,7 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
     const checkSecrets = async () => {
       const { data, error } = await supabase
         .from("app_secrets")
-        .select("google_api_key, openrouter_api_key")
+        .select("google_api_key, openrouter_api_key, mistral_api_key")
         .eq("id", "default")
         .single();
 
@@ -145,6 +147,9 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
         );
         setIsOpenRouterKeySet(
           !!data.openrouter_api_key && data.openrouter_api_key.length > 0,
+        );
+        setIsMistralKeySet(
+          !!data.mistral_api_key && data.mistral_api_key.length > 0,
         );
       }
     };
@@ -158,6 +163,7 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
     };
     if (googleKey.trim()) updates.google_api_key = googleKey.trim();
     if (openRouterKey.trim()) updates.openrouter_api_key = openRouterKey.trim();
+    if (mistralKey.trim()) updates.mistral_api_key = mistralKey.trim();
 
     if (Object.keys(updates).length <= 2) {
       // Nothing to update
@@ -174,12 +180,14 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
     } else {
       setGoogleKey("");
       setOpenRouterKey("");
+      setMistralKey("");
       setSecretsSaved(true);
       setTimeout(() => setSecretsSaved(false), 3000);
 
       // Refresh status
       if (updates.google_api_key) setIsGoogleKeySet(true);
       if (updates.openrouter_api_key) setIsOpenRouterKeySet(true);
+      if (updates.mistral_api_key) setIsMistralKeySet(true);
     }
   };
 
@@ -191,18 +199,36 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
   };
 
   // AI Models State
-  const [ocrModel, setOcrModel] = useState("mistralai/mistral-ocr");
+  const [ocrProvider, setOcrProvider] = useState("mistral");
+  const [ocrModel, setOcrModel] = useState("mistral-ocr-latest");
+  const [extractionProvider, setExtractionProvider] = useState("openrouter");
   const [extractionModel, setExtractionModel] = useState(
     "anthropic/claude-3.5-sonnet",
   );
   const [modelsSaved, setModelsSaved] = useState(false);
+  const [mistralChatModels, setMistralChatModels] = useState<string[]>([]);
+  const [mistralOcrModels, setMistralOcrModels] = useState<string[]>([]);
+  const [isMistralModelsLoading, setIsMistralModelsLoading] = useState(false);
+  const [mistralModelsError, setMistralModelsError] = useState<string | null>(
+    null,
+  );
+  const [mistralModelsFetchedAt, setMistralModelsFetchedAt] =
+    useState<Date | null>(null);
+
+  const DEFAULT_MISTRAL_CHAT_MODELS = [
+    "mistral-large-latest",
+    "mistral-small-latest",
+  ];
+  const DEFAULT_MISTRAL_OCR_MODELS = ["mistral-ocr-latest"];
 
   // Load models
   useEffect(() => {
     const loadModels = async () => {
       const { data } = await supabase
         .from("app_settings")
-        .select("ai_ocr_model, ai_extraction_model")
+        .select(
+          "ai_ocr_model, ai_extraction_model, ai_ocr_provider, ai_extraction_provider",
+        )
         .eq("id", "default")
         .single();
 
@@ -210,10 +236,93 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
         if (data.ai_ocr_model) setOcrModel(data.ai_ocr_model);
         if (data.ai_extraction_model)
           setExtractionModel(data.ai_extraction_model);
+        if (data.ai_ocr_provider) setOcrProvider(data.ai_ocr_provider);
+        if (data.ai_extraction_provider)
+          setExtractionProvider(data.ai_extraction_provider);
       }
     };
     loadModels();
   }, []);
+
+  const fetchMistralModels = async (apiKey: string) => {
+    const trimmedKey = apiKey.trim();
+    if (!trimmedKey) {
+      return;
+    }
+
+    setIsMistralModelsLoading(true);
+    setMistralModelsError(null);
+
+    try {
+      const response = await fetch("https://api.mistral.ai/v1/models", {
+        headers: {
+          Authorization: `Bearer ${trimmedKey}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const message =
+          data?.error?.message ||
+          data?.message ||
+          "Mistral API Error";
+        throw new Error(message);
+      }
+
+      const rawModels = Array.isArray(data?.data) ? data.data : [];
+      const chatModels = new Set<string>();
+      const ocrModels = new Set<string>();
+
+      rawModels.forEach((model: any) => {
+        if (!model?.id || typeof model.id !== "string") return;
+        const id = model.id;
+        const lowerId = id.toLowerCase();
+
+        if (lowerId.includes("ocr")) {
+          ocrModels.add(id);
+          return;
+        }
+
+        const capabilities = model?.capabilities;
+        const isChatCapable =
+          capabilities?.chat || capabilities?.completion || capabilities?.stream;
+        const isExcluded =
+          lowerId.includes("embed") ||
+          lowerId.includes("embedding") ||
+          lowerId.includes("moderation") ||
+          lowerId.includes("rerank") ||
+          lowerId.includes("vision") ||
+          lowerId.includes("audio") ||
+          lowerId.includes("transcribe") ||
+          lowerId.includes("image");
+
+        if ((isChatCapable || lowerId.includes("mistral")) && !isExcluded) {
+          chatModels.add(id);
+        }
+      });
+
+      setMistralChatModels(Array.from(chatModels).sort());
+      setMistralOcrModels(Array.from(ocrModels).sort());
+      setMistralModelsFetchedAt(new Date());
+    } catch (error: any) {
+      setMistralModelsError(
+        error?.message || "Nepodařilo se načíst Mistral modely.",
+      );
+    } finally {
+      setIsMistralModelsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!mistralKey.trim()) return;
+
+    const timeout = setTimeout(() => {
+      fetchMistralModels(mistralKey);
+    }, 600);
+
+    return () => clearTimeout(timeout);
+  }, [mistralKey]);
 
   const saveModels = async () => {
     const { error } = await supabase
@@ -221,16 +330,19 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
       .update({
         ai_ocr_model: ocrModel,
         ai_extraction_model: extractionModel,
+        ai_ocr_provider: ocrProvider,
+        ai_extraction_provider: extractionProvider,
       })
       .eq("id", "default");
 
     if (error) {
       console.error("Error saving models:", error);
-      // Try insert if update failed (maybe row doesn't exist)
       await supabase.from("app_settings").upsert({
         id: "default",
         ai_ocr_model: ocrModel,
         ai_extraction_model: extractionModel,
+        ai_ocr_provider: ocrProvider,
+        ai_extraction_provider: extractionProvider,
       });
       alert("Nastavení modelů bylo uloženo (vytvořen nový záznam).");
     }
@@ -240,6 +352,29 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
   };
 
   if (!isAdmin) return null;
+
+  const resolveModelOptions = (
+    options: string[],
+    selected: string,
+    defaults: string[],
+  ) => {
+    const base = options.length ? options : defaults;
+    if (selected && !base.includes(selected)) {
+      return [selected, ...base];
+    }
+    return base;
+  };
+
+  const mistralOcrOptions = resolveModelOptions(
+    mistralOcrModels,
+    ocrModel,
+    DEFAULT_MISTRAL_OCR_MODELS,
+  );
+  const mistralChatOptions = resolveModelOptions(
+    mistralChatModels,
+    extractionModel,
+    DEFAULT_MISTRAL_CHAT_MODELS,
+  );
 
   return (
     <section className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl mb-8 animate-fadeIn">
@@ -259,7 +394,7 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
             Povolit AI analýzu
           </p>
           <p className="text-xs text-slate-500">
-            Aktivuje AI Insights na Dashboardu pomocí Gemini API.
+            Aktivuje AI Insights na Dashboardu a automatickou analýzu dokumentů.
           </p>
         </div>
         <button
@@ -302,10 +437,10 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
               politikou).
             </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex justify-between">
-                  <span>Google Gemini API Key</span>
+                  <span>Gemini API Key</span>
                   {isGoogleKeySet ? (
                     <span className="text-emerald-500 text-xs font-bold flex items-center gap-1">
                       <span className="material-symbols-outlined text-[14px]">
@@ -337,7 +472,7 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex justify-between">
-                  <span>OpenRouter API Key</span>
+                  <span>OpenRouter Key</span>
                   {isOpenRouterKeySet ? (
                     <span className="text-emerald-500 text-xs font-bold flex items-center gap-1">
                       <span className="material-symbols-outlined text-[14px]">
@@ -366,6 +501,38 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 dark:text-white"
                 />
               </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex justify-between">
+                  <span>Mistral API Key</span>
+                  {isMistralKeySet ? (
+                    <span className="text-emerald-500 text-xs font-bold flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[14px]">
+                        check_circle
+                      </span>{" "}
+                      Nastaveno
+                    </span>
+                  ) : (
+                    <span className="text-slate-400 text-xs flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[14px]">
+                        cancel
+                      </span>{" "}
+                      Nenastaveno
+                    </span>
+                  )}
+                </label>
+                <input
+                  type="password"
+                  value={mistralKey}
+                  onChange={(e) => setMistralKey(e.target.value)}
+                  placeholder={
+                    isMistralKeySet
+                      ? "●●●●●●●●●●●● (Klíč je uložen)"
+                      : "Vložte nový API klíč..."
+                  }
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 dark:text-white"
+                />
+              </div>
             </div>
 
             <div className="flex justify-end pt-2">
@@ -379,9 +546,9 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
               )}
               <button
                 onClick={saveSecrets}
-                disabled={!googleKey && !openRouterKey}
+                disabled={!googleKey && !openRouterKey && !mistralKey}
                 className={`px-4 py-2 rounded-lg font-bold text-sm shadow-lg transition-all flex items-center gap-2 ${
-                  !googleKey && !openRouterKey
+                  !googleKey && !openRouterKey && !mistralKey
                     ? "bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed"
                     : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-500/20"
                 }`}
@@ -394,69 +561,254 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
             </div>
           </div>
 
-          {/* Model Selection */}
-          <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+          {/* New Contract AI Section */}
+          <div className="space-y-6 pt-6 border-t border-slate-200 dark:border-slate-700">
             <h3 className="text-md font-bold text-slate-900 dark:text-white pb-2 flex items-center gap-2">
               <span className="material-symbols-outlined text-blue-400">
-                psychology
+                description
               </span>
-              Výběr AI Modelů
+              Smlouvy & Dokumenty (AI OCR)
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  OCR Model (Scanování PDF)
-                </label>
-                <select
-                  value={ocrModel}
-                  onChange={(e) => setOcrModel(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-blue-500 dark:text-white"
-                >
-                  <option value="mistralai/mistral-ocr">
-                    Mistral OCR (Doporučeno pro dokumenty)
-                  </option>
-                  <option value="google/gemini-flash-1.5">
-                    Google Gemini Flash 1.5 (Rychlé, levné)
-                  </option>
-                  <option value="google/gemini-pro-1.5">
-                    Google Gemini Pro 1.5 (Přesnější)
-                  </option>
-                  <option value="openai/gpt-4o">
-                    OpenAI GPT-4o (Nejlepší, dražší)
-                  </option>
-                  <option value="microsoft/phi-3.5-vision-instruct">
-                    Phi-3.5 Vision (Nízká cena)
-                  </option>
-                </select>
-                <p className="text-xs text-slate-500">
-                  Tento model se použije pro převedení PDF na text.
-                </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 ring-1 ring-slate-200 dark:ring-slate-800 p-6 rounded-2xl bg-slate-50/50 dark:bg-slate-900/30">
+              {/* OCR SETTINGS */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-emerald-500 text-xl">
+                      scan
+                    </span>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                      1. Scanování a OCR
+                    </h4>
+                    <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
+                      Převod souboru na text
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3 pl-10">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                      Poskytovatel
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => {
+                          setOcrProvider("mistral");
+                          setOcrModel("mistral-ocr-latest");
+                        }}
+                        className={`px-3 py-2 text-xs font-bold rounded-xl border transition-all ${ocrProvider === "mistral" ? "bg-emerald-500/10 border-emerald-500/50 text-emerald-600 dark:text-emerald-400" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500"}`}
+                      >
+                        Mistral (Nativní)
+                      </button>
+                      <button
+                        onClick={() => {
+                          setOcrProvider("google");
+                          setOcrModel("gemini-1.5-flash");
+                        }}
+                        className={`px-3 py-2 text-xs font-bold rounded-xl border transition-all ${ocrProvider === "google" ? "bg-blue-500/10 border-blue-500/50 text-blue-600 dark:text-blue-400" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500"}`}
+                      >
+                        Google Gemini
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                      Model
+                    </label>
+                    <select
+                      value={ocrModel}
+                      onChange={(e) => setOcrModel(e.target.value)}
+                      className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-emerald-500 dark:text-white"
+                    >
+                      {ocrProvider === "mistral" ? (
+                        mistralOcrOptions.map((model) => (
+                          <option key={model} value={model}>
+                            {model === "mistral-ocr-latest"
+                              ? "Mistral OCR (Nejlepší pro text)"
+                              : model}
+                          </option>
+                        ))
+                      ) : (
+                        <>
+                          <option value="gemini-1.5-flash">
+                            Gemini 1.5 Flash (Rychlé)
+                          </option>
+                          <option value="gemini-2.0-flash-exp">
+                            Gemini 2.0 Flash EXP (Nové)
+                          </option>
+                          <option value="gemini-1.5-pro">
+                            Gemini 1.5 Pro (Přesné)
+                          </option>
+                        </>
+                      )}
+                    </select>
+                    {ocrProvider === "mistral" && (
+                      <div className="flex items-center justify-between text-[11px] text-slate-500">
+                        <span>
+                          {isMistralModelsLoading
+                            ? "Načítám Mistral modely..."
+                            : mistralModelsError
+                              ? mistralModelsError
+                              : mistralModelsFetchedAt
+                                ? `Aktualizováno ${mistralModelsFetchedAt.toLocaleTimeString()}`
+                                : "Použijte Mistral klíč pro načtení modelů"}
+                        </span>
+                        <button
+                          onClick={() => fetchMistralModels(mistralKey)}
+                          className="text-emerald-600 hover:text-emerald-500 font-semibold"
+                          disabled={isMistralModelsLoading || !mistralKey.trim()}
+                          type="button"
+                        >
+                          Obnovit
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[14px] text-violet-400">
+                        key
+                      </span>
+                      Vyžaduje:{" "}
+                      <span className="font-bold text-slate-900 dark:text-white">
+                        {ocrProvider === "mistral"
+                          ? "Mistral API Key"
+                          : "Google Gemini Key"}
+                      </span>
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Extraction Model (Analýza dat)
-                </label>
-                <select
-                  value={extractionModel}
-                  onChange={(e) => setExtractionModel(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-blue-500 dark:text-white"
-                >
-                  <option value="anthropic/claude-3.5-sonnet">
-                    Claude 3.5 Sonnet (Výchozí)
-                  </option>
-                  <option value="openai/gpt-4o">OpenAI GPT-4o</option>
-                  <option value="google/gemini-pro-1.5">
-                    Google Gemini Pro 1.5
-                  </option>
-                  <option value="mistralai/mistral-large-latest">
-                    Mistral Large
-                  </option>
-                </select>
-                <p className="text-xs text-slate-500">
-                  Tento model analyzuje text z OCR a hledá v něm data (ceny,
-                  data, názvy).
-                </p>
+              {/* EXTRACTION SETTINGS */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-blue-500 text-xl">
+                      psychology
+                    </span>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                      2. Analýza a data
+                    </h4>
+                    <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
+                      Extrakce polí JSON
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3 pl-10">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                      Poskytovatel
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {["openrouter", "google", "mistral"].map((p) => (
+                        <button
+                          key={p}
+                          onClick={() => {
+                            setExtractionProvider(p);
+                            if (p === "openrouter")
+                              setExtractionModel("anthropic/claude-3.5-sonnet");
+                            if (p === "google")
+                              setExtractionModel("gemini-1.5-pro");
+                            if (p === "mistral")
+                              setExtractionModel("mistral-large-latest");
+                          }}
+                          className={`px-3 py-2 text-xs font-bold rounded-xl border transition-all capitalize ${extractionProvider === p ? "bg-blue-500/10 border-blue-500/50 text-blue-600 dark:text-blue-400" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500"}`}
+                        >
+                          {p === "openrouter" ? "OpenRouter" : p}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                      Model
+                    </label>
+                    {extractionProvider === "openrouter" ? (
+                      <input
+                        type="text"
+                        value={extractionModel}
+                        onChange={(e) => setExtractionModel(e.target.value)}
+                        placeholder="Např: anthropic/claude-3-haiku"
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-blue-500 dark:text-white"
+                      />
+                    ) : (
+                      <select
+                        value={extractionModel}
+                        onChange={(e) => setExtractionModel(e.target.value)}
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-blue-500 dark:text-white"
+                      >
+                        {extractionProvider === "google" ? (
+                          <>
+                            <option value="gemini-1.5-pro">
+                              Gemini 1.5 Pro (Nejlepší)
+                            </option>
+                            <option value="gemini-1.5-flash">
+                              Gemini 1.5 Flash (Rychlé)
+                            </option>
+                          </>
+                        ) : (
+                          mistralChatOptions.map((model) => (
+                            <option key={model} value={model}>
+                              {model === "mistral-large-latest"
+                                ? "Mistral Large (Vlajková loď)"
+                                : model === "mistral-small-latest"
+                                  ? "Mistral Small (Úsporný)"
+                                  : model}
+                            </option>
+                          ))
+                        )}
+                      </select>
+                    )}
+                    {extractionProvider === "mistral" && (
+                      <div className="flex items-center justify-between text-[11px] text-slate-500">
+                        <span>
+                          {isMistralModelsLoading
+                            ? "Načítám Mistral modely..."
+                            : mistralModelsError
+                              ? mistralModelsError
+                              : mistralModelsFetchedAt
+                                ? `Aktualizováno ${mistralModelsFetchedAt.toLocaleTimeString()}`
+                                : "Použijte Mistral klíč pro načtení modelů"}
+                        </span>
+                        <button
+                          onClick={() => fetchMistralModels(mistralKey)}
+                          className="text-blue-600 hover:text-blue-500 font-semibold"
+                          disabled={isMistralModelsLoading || !mistralKey.trim()}
+                          type="button"
+                        >
+                          Obnovit
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[14px] text-violet-400">
+                        key
+                      </span>
+                      Vyžaduje:{" "}
+                      <span className="font-bold text-slate-900 dark:text-white">
+                        {extractionProvider === "openrouter"
+                          ? "OpenRouter API Key"
+                          : extractionProvider === "google"
+                            ? "Google Gemini Key"
+                            : "Mistral API Key"}
+                      </span>
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -471,7 +823,7 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
               )}
               <button
                 onClick={saveModels}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold shadow-lg transition-all flex items-center gap-2"
+                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2"
               >
                 <span className="material-symbols-outlined text-[18px]">
                   save
@@ -482,8 +834,14 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
           </div>
 
           <div className="space-y-6 pt-4 border-t border-slate-200 dark:border-slate-700">
-            <h3 className="text-md font-bold text-slate-900 dark:text-white pb-2">
+            <h3 className="text-md font-bold text-slate-900 dark:text-white pb-2 flex items-center justify-between">
               Prompt Engineering
+              <button
+                onClick={() => setPromptOverview(DEFAULT_PROMPT_OVERVIEW)}
+                className="text-xs font-bold text-violet-400 hover:text-violet-300 border border-violet-400/30 px-2 py-1 rounded-lg bg-violet-400/5"
+              >
+                Obnovit výchozí
+              </button>
             </h3>
 
             {/* Overview Prompt */}

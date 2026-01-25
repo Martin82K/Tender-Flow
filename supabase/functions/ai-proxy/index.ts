@@ -1,7 +1,5 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { createServiceClient } from "../_shared/supabase.ts";
 
 // CORS headers
 const corsHeaders = {
@@ -9,13 +7,14 @@ const corsHeaders = {
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Define message interface for clarity
 interface Message {
     role: string;
     content: string | any[];
 }
 
-
-serve(async (req) => {
+// Native Deno.serve (more robust)
+Deno.serve(async (req) => {
     // Handle CORS preflight request
     if (req.method === "OPTIONS") {
         return new Response("ok", { headers: corsHeaders });
@@ -47,14 +46,20 @@ serve(async (req) => {
         }
 
         const supabaseUrl = (Deno.env.get("SUPABASE_URL") || "").trim();
-        if (!supabaseUrl) {
+        const supabaseServiceKey = (Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "").trim();
+        
+        if (!supabaseUrl || !supabaseServiceKey) {
+            console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
             return new Response(
                 JSON.stringify({ error: "Server configuration error" }),
                 { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
         }
 
-        // Verify token directly against Auth API to avoid env mismatches
+        // Helper: Create Service Client
+        const createServiceClient = () => createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } });
+
+        // Verify token directly against Auth API
         const apikey = req.headers.get("apikey") || Deno.env.get("SUPABASE_ANON_KEY") || "";
         const authRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
             headers: {
@@ -62,6 +67,7 @@ serve(async (req) => {
                 Authorization: authHeader,
             },
         });
+        
         if (!authRes.ok) {
             return new Response(
                 JSON.stringify({ error: "Invalid token" }),
@@ -71,8 +77,6 @@ serve(async (req) => {
         const user = await authRes.json();
 
         // 3. Subscription Check
-        // We can use the RPC function `get_user_subscription_tier` or query `user_profiles` directly.
-        // RPC is safer as it encapsulates logic.
         const service = createServiceClient();
         const { data: tier, error: tierError } = await service.rpc('get_user_subscription_tier', { target_user_id: user.id });
 
@@ -84,8 +88,6 @@ serve(async (req) => {
             );
         }
 
-        // Allowed tiers: 'pro', 'enterprise', 'admin'
-        // 'demo' and 'free' are blocked from AI features
         const ALLOWED_TIERS = ['pro', 'enterprise', 'admin'];
         if (!ALLOWED_TIERS.includes(tier)) {
             return new Response(
@@ -101,7 +103,6 @@ serve(async (req) => {
             );
         }
 
-        // 4. Proxy Logic
         // 4. Proxy Logic
         let body;
         try {
@@ -141,60 +142,43 @@ serve(async (req) => {
             const apiKey = clientApiKey || secrets.google_api_key || Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_API_KEY");
             if (!apiKey) {
                 return new Response(
-                    JSON.stringify({ error: "Missing Google API Key (System or Provided)" }),
+                    JSON.stringify({ error: "Missing Google API Key" }),
                     { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
                 );
             }
 
             const model = (clientModel || "gemini-pro").trim();
-            console.log(`Using Google Model: ${model}`);
-
-            // Map messages to Google format (contents: [{role, parts: [{text}] }])
-            // Google roles: 'user', 'model'
             let contents = [];
-
             if (history && Array.isArray(history)) {
                 contents = history.map((msg: any) => ({
                     role: msg.role === 'assistant' ? 'model' : 'user',
                     parts: [{ text: Array.isArray(msg.parts) ? msg.parts.map((p: any) => p.text).join('') : (typeof msg.parts === 'string' ? msg.parts : JSON.stringify(msg.parts)) }]
                 }));
             }
-
-            if (prompt) {
-                contents.push({
-                    role: 'user',
-                    parts: [{ text: prompt }]
-                });
-            }
+            if (prompt) contents.push({ role: 'user', parts: [{ text: prompt }] });
 
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-
             const response = await fetch(url, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ contents }),
             });
-
             const data = await response.json();
 
             if (!response.ok) {
-                console.error("Google API Error:", data);
-                return new Response(
+                 return new Response(
                     JSON.stringify({ error: "Google API Error", details: data }),
                     { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
                 );
             }
-
-            // Extract text from Google response
             const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
             return new Response(
                 JSON.stringify({ text, raw: data }),
                 { headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
         }
 
-        // --- MISTRAL OCR HANDLER ---
+            // --- MISTRAL OCR HANDLER ---
         if (provider === 'mistral-ocr') {
             const apiKey = clientApiKey || secrets.mistral_api_key || Deno.env.get("MISTRAL_API_KEY");
             if (!apiKey) {
@@ -211,7 +195,13 @@ serve(async (req) => {
                 );
             }
 
-            console.log("Calling Mistral OCR for URL:", documentUrl);
+            // Sanitize model (prevent OpenRouter-style IDs from crashing native Mistral API)
+            let ocrModelName = clientModel || "mistral-ocr-latest";
+            if (ocrModelName.includes("mistralai/mistral-ocr") || ocrModelName === "mistralai/mistral-ocr") {
+                ocrModelName = "mistral-ocr-latest";
+            }
+
+            console.log("Calling Mistral OCR for URL:", documentUrl, "Model:", ocrModelName);
 
             try {
                 const ocrResponse = await fetch("https://api.mistral.ai/v1/ocr", {
@@ -221,7 +211,7 @@ serve(async (req) => {
                         "Authorization": `Bearer ${apiKey}`
                     },
                     body: JSON.stringify({
-                        model: "mistral-ocr-latest",
+                        model: ocrModelName,
                         document: {
                             type: "document_url",
                             document_url: documentUrl
@@ -240,8 +230,6 @@ serve(async (req) => {
                 }
 
                 console.log("Mistral OCR Success. Pages:", data.pages?.length || 0);
-
-                // Aggregate markdown from all pages
                 const pages = data.pages || [];
                 const text = pages.map((p: any) => p.markdown).join("\n\n");
 
@@ -252,32 +240,112 @@ serve(async (req) => {
             } catch (mistralErr) {
                 console.error("Mistral Fetched Failed:", mistralErr);
                 return new Response(
-                    JSON.stringify({ error: `Mistral Network Error: ${mistralErr.message}` }),
+                    JSON.stringify({ error: `Mistral Network Error: ${mistralErr instanceof Error ? mistralErr.message : String(mistralErr)}` }),
                     { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
                 );
             }
         }
 
+        // --- MISTRAL CHAT HANDLER ---
+        if (provider === 'mistral') {
+            const apiKey = clientApiKey || secrets.mistral_api_key || Deno.env.get("MISTRAL_API_KEY");
+            if (!apiKey) {
+                return new Response(
+                    JSON.stringify({ error: "Missing Mistral API Key" }),
+                    { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                );
+            }
+
+            const model = clientModel || "mistral-small-latest";
+            console.log(`Using Mistral Model: ${model}`);
+
+            const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model,
+                    messages: prompt ? [{ role: "user", content: prompt }] : history,
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                console.error("Mistral API Error:", data);
+                return new Response(
+                    JSON.stringify({ error: "Mistral API Error", details: data }),
+                    { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                );
+            }
+
+            const text = data.choices[0].message.content;
+            return new Response(
+                JSON.stringify({ text, raw: data }),
+                { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+        }
+
         // --- OPENROUTER HANDLER (Default) ---
         const apiKey = clientApiKey || secrets.openrouter_api_key || Deno.env.get("OPENROUTER_API_KEY");
-        
-        // ... rest of OpenRouter handler (unchanged logic mostly)
-        // Re-inject the body reading we replaced ...
-        // Actually, to avoid breaking the rest of file which I can't see fully in replacement chunk, 
-        // I need to be careful. The chunk starts at `const { prompt...` in original.
-        // My replacement creates `body` first.
-        
-        // Let's stick to the visible part.
-        // The original logic `const { ... } = await req.json();` is at line 105.
-        // I will replace from 105 down to Mistral handler end.
-        
-        // ... rest of OpenRouter handler ...
+        if (!apiKey) {
+            return new Response(
+                JSON.stringify({ error: "Missing OpenRouter API Key" }),
+                { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+        }
 
+        const model = clientModel || "anthropic/claude-3-haiku";
+        console.log(`Using OpenRouter Model: ${model}`);
+        
+        // Debug key (safe)
+        const keyDebug = {
+            length: apiKey.length,
+            prefix: apiKey.substring(0, 7) + '...',
+            suffix: '...' + apiKey.substring(apiKey.length - 4)
+        };
+        console.log("Using OpenRouter Key:", keyDebug);
+
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${apiKey}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                model,
+                messages: prompt ? [{ role: "user", content: prompt }] : history,
+            }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+            console.error("OpenRouter API Error:", data);
+            return new Response(
+                JSON.stringify({ 
+                    error: "OpenRouter API Error", 
+                    details: data,
+                    debug: {
+                        key_info: keyDebug,
+                        provider: provider
+                    }
+                }),
+                { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+        }
+
+        const text = data.choices[0].message.content;
+        return new Response(
+            JSON.stringify({ text, raw: data }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
 
     } catch (error) {
         console.error("Edge Function Error:", error);
         return new Response(
-            JSON.stringify({ error: error.message }),
+            JSON.stringify({ error: error instanceof Error ? error.message : "Unknown Error" }),
             {
                 status: 500,
                 headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -50,10 +50,11 @@ PRAVIDLA:
 5. Datumy vždy v formátu YYYY-MM-DD.
 6. Hledej tyto alternativní názvy:
    - vendorName: "zhotovitel", "dodavatel", "poskytovatel"
-   - basePrice: "cena díla", "celková cena", "smluvní cena", "cena za dílo"
-   - retentionPercent: "pozastávka", "zádržné"
-   - warrantyMonths: "záruční doba", "záruka"
-   - paymentTerms: "splatnost", "platební podmínky"
+   - basePrice: "cena díla", "celková cena", "smluvní cena", "cena za dílo", "činí"
+   - Hledej částku v blízkosti slova "činí" nebo "celková cena".
+   - Částka může být formátována s tečkami jako oddělovači tisíců (např. 4.530.832,00) nebo mezerami.
+   - Ignoruj DPH, pokud je uvedeno "bez DPH".
+7. Pokud je cena uvedena i slovně, použij ji pro kontrolu řádu, ale extrahuj číslo.
 
 TEXT SMLOUVY:
 `;
@@ -131,13 +132,15 @@ function convertFileToBase64(file: File): Promise<string> {
 async function getAIModels() {
   const { data } = await supabase
     .from('app_settings')
-    .select('ai_ocr_model, ai_extraction_model')
+    .select('ai_ocr_model, ai_extraction_model, ai_ocr_provider, ai_extraction_provider')
     .eq('id', 'default')
     .single();
   
   return {
-    ocrModel: data?.ai_ocr_model || 'mistralai/mistral-ocr',
-    extractionModel: data?.ai_extraction_model || 'anthropic/claude-sonnet-4'
+    ocrProvider: data?.ai_ocr_provider || 'mistral',
+    ocrModel: data?.ai_ocr_model || 'mistral-ocr-latest',
+    extractionProvider: data?.ai_extraction_provider || 'openrouter',
+    extractionModel: data?.ai_extraction_model || 'anthropic/claude-3.5-sonnet'
   };
 }
 
@@ -148,7 +151,7 @@ async function getAIModels() {
  * Extract text from Document (PDF, DOCX) using Mistral OCR via AI Proxy
  */
 async function extractTextFromDocument(file: File, onProgress?: (status: string) => void): Promise<string> {
-  const { ocrModel } = await getAIModels();
+  const { ocrModel, ocrProvider } = await getAIModels();
   
   const fileExt = file.name.split('.').pop()?.toLowerCase();
   
@@ -218,11 +221,11 @@ async function extractTextFromDocument(file: File, onProgress?: (status: string)
 
     console.log('Sending to Mistral OCR:', urlData.signedUrl);
 
-    // 3. Call AI Proxy with Mistral OCR provider
+    // 3. Call AI Proxy with correct provider/model
     onProgress?.('Analyzuji obsah dokumentu pomocí AI...');
     const response = await invokeAuthedFunction<AIProxyResponse>('ai-proxy', {
       body: {
-        provider: 'mistral-ocr',
+        provider: ocrProvider === 'google' ? 'google' : 'mistral-ocr',
         model: ocrModel, 
         documentUrl: urlData.signedUrl
       },
@@ -276,12 +279,12 @@ export const contractExtractionService = {
       throw new Error('Text je příliš krátký pro extrakci');
     }
 
-    const { extractionModel } = await getAIModels();
+    const { extractionModel, extractionProvider } = await getAIModels();
 
     const response = await invokeAuthedFunction<AIProxyResponse>('ai-proxy', {
       body: {
         prompt: CONTRACT_EXTRACTION_PROMPT + text.substring(0, 15000), // Limit text length
-        provider: 'openrouter',
+        provider: extractionProvider,
         model: extractionModel,
       },
     });
@@ -327,12 +330,12 @@ export const contractExtractionService = {
       throw new Error('Text je příliš krátký pro extrakci');
     }
 
-    const { extractionModel } = await getAIModels();
+    const { extractionModel, extractionProvider } = await getAIModels();
 
     const response = await invokeAuthedFunction<AIProxyResponse>('ai-proxy', {
       body: {
         prompt: AMENDMENT_EXTRACTION_PROMPT + text.substring(0, 10000),
-        provider: 'openrouter',
+        provider: extractionProvider,
         model: extractionModel,
       },
     });
@@ -380,12 +383,12 @@ export const contractExtractionService = {
       throw new Error('Text je příliš krátký pro extrakci');
     }
 
-    const { extractionModel } = await getAIModels();
+    const { extractionModel, extractionProvider } = await getAIModels();
 
     const response = await invokeAuthedFunction<AIProxyResponse>('ai-proxy', {
       body: {
         prompt: DRAWDOWN_EXTRACTION_PROMPT + text.substring(0, 10000),
-        provider: 'openrouter',
+        provider: extractionProvider,
         model: extractionModel,
       },
     });

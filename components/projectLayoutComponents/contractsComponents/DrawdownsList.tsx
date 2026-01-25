@@ -127,7 +127,7 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
     try {
       setExtracting(true);
       const result =
-        await contractExtractionService.extractDrawdownFromPdf(file);
+        await contractExtractionService.extractDrawdownFromDocument(file);
       setFormData({
         period: result.fields.period?.toString() || getCurrentPeriod(),
         claimedAmount: result.fields.claimedAmount?.toString() || "",
@@ -159,7 +159,8 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
             <option value="">Vyberte...</option>
             {contracts.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.title}
+                {c.contractNumber ? `[${c.contractNumber}] ` : ""}
+                {c.title} | {c.vendorName}
               </option>
             ))}
           </select>

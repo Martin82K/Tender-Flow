@@ -388,6 +388,7 @@ export const ContractsList: React.FC<ContractsListProps> = ({
         }}
         title="Ověření extrahovaných dat"
         size="lg"
+        persistent={true}
       >
         {extractedData && (
           <ExtractionValidation

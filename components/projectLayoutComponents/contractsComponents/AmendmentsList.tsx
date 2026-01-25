@@ -92,7 +92,7 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
     try {
       setExtracting(true);
       const result =
-        await contractExtractionService.extractAmendmentFromPdf(file);
+        await contractExtractionService.extractAmendmentFromDocument(file);
       setFormData({
         signedAt: result.fields.signedAt?.toString() || "",
         effectiveFrom: result.fields.effectiveFrom?.toString() || "",
@@ -124,7 +124,8 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
             <option value="">Vyberte...</option>
             {contracts.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.title}
+                {c.contractNumber ? `[${c.contractNumber}] ` : ""}
+                {c.title} | {c.vendorName}
               </option>
             ))}
           </select>
