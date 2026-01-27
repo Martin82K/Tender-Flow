@@ -40,6 +40,7 @@ mac:
   entitlementsInherit: desktop/entitlements.mac.plist
 
 win:
+  artifactName: Tender-Flow-Setup-${version}.${ext}
   target:
     - target: nsis
       arch:
