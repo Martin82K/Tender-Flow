@@ -594,7 +594,7 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
                     <label className="text-xs font-bold text-slate-600 dark:text-slate-400">
                       Poskytovatel
                     </label>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       <button
                         onClick={() => {
                           setOcrProvider("mistral");
@@ -613,6 +613,15 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
                       >
                         Google Gemini
                       </button>
+                      <button
+                        onClick={() => {
+                          setOcrProvider("openrouter");
+                          setOcrModel("google/gemini-2.0-flash-001");
+                        }}
+                        className={`px-3 py-2 text-xs font-bold rounded-xl border transition-all ${ocrProvider === "openrouter" ? "bg-indigo-500/10 border-indigo-500/50 text-indigo-600 dark:text-indigo-400" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500"}`}
+                      >
+                        OpenRouter
+                      </button>
                     </div>
                   </div>
 
@@ -620,33 +629,43 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
                     <label className="text-xs font-bold text-slate-600 dark:text-slate-400">
                       Model
                     </label>
-                    <select
-                      value={ocrModel}
-                      onChange={(e) => setOcrModel(e.target.value)}
-                      className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-emerald-500 dark:text-white"
-                    >
-                      {ocrProvider === "mistral" ? (
-                        mistralOcrOptions.map((model) => (
-                          <option key={model} value={model}>
-                            {model === "mistral-ocr-latest"
-                              ? "Mistral OCR (Nejlepší pro text)"
-                              : model}
-                          </option>
-                        ))
-                      ) : (
-                        <>
-                          <option value="gemini-1.5-flash">
-                            Gemini 1.5 Flash (Rychlé)
-                          </option>
-                          <option value="gemini-2.0-flash-exp">
-                            Gemini 2.0 Flash EXP (Nové)
-                          </option>
-                          <option value="gemini-1.5-pro">
-                            Gemini 1.5 Pro (Přesné)
-                          </option>
-                        </>
-                      )}
-                    </select>
+                    {ocrProvider === "openrouter" ? (
+                      <input
+                        type="text"
+                        value={ocrModel}
+                        onChange={(e) => setOcrModel(e.target.value)}
+                        placeholder="Např: google/gemini-2.0-flash-001"
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-emerald-500 dark:text-white"
+                      />
+                    ) : (
+                      <select
+                        value={ocrModel}
+                        onChange={(e) => setOcrModel(e.target.value)}
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-emerald-500 dark:text-white"
+                      >
+                        {ocrProvider === "mistral" ? (
+                          mistralOcrOptions.map((model) => (
+                            <option key={model} value={model}>
+                              {model === "mistral-ocr-latest"
+                                ? "Mistral OCR (Nejlepší pro text)"
+                                : model}
+                            </option>
+                          ))
+                        ) : (
+                          <>
+                            <option value="gemini-1.5-flash">
+                              Gemini 1.5 Flash (Rychlé)
+                            </option>
+                            <option value="gemini-2.0-flash-exp">
+                              Gemini 2.0 Flash EXP (Nové)
+                            </option>
+                            <option value="gemini-1.5-pro">
+                              Gemini 1.5 Pro (Přesné)
+                            </option>
+                          </>
+                        )}
+                      </select>
+                    )}
                     {ocrProvider === "mistral" && (
                       <div className="flex items-center justify-between text-[11px] text-slate-500">
                         <span>
@@ -679,7 +698,9 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
                       <span className="font-bold text-slate-900 dark:text-white">
                         {ocrProvider === "mistral"
                           ? "Mistral API Key"
-                          : "Google Gemini Key"}
+                          : ocrProvider === "openrouter"
+                            ? "OpenRouter API Key"
+                            : "Google Gemini Key"}
                       </span>
                     </p>
                   </div>

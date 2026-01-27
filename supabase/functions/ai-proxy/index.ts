@@ -308,6 +308,19 @@ Deno.serve(async (req) => {
         };
         console.log("Using OpenRouter Key:", keyDebug);
 
+        const defaultOcrPrompt = "Extract all readable text from the document. Return plain text only.";
+        const messages = documentUrl
+            ? [
+                {
+                    role: "user",
+                    content: [
+                        { type: "text", text: prompt || defaultOcrPrompt },
+                        { type: "image_url", image_url: { url: documentUrl } }
+                    ]
+                }
+            ]
+            : (prompt ? [{ role: "user", content: prompt }] : history);
+
         const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
             method: "POST",
             headers: {
@@ -316,7 +329,7 @@ Deno.serve(async (req) => {
             },
             body: JSON.stringify({
                 model,
-                messages: prompt ? [{ role: "user", content: prompt }] : history,
+                messages,
             }),
         });
 

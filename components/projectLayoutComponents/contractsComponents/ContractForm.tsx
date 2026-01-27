@@ -52,6 +52,7 @@ export const ContractForm: React.FC<ContractFormProps> = ({
     basePrice: initialData?.basePrice?.toString() || "",
     retentionPercent: initialData?.retentionPercent?.toString() || "",
     retentionAmount: initialData?.retentionAmount?.toString() || "",
+    siteSetupPercent: initialData?.siteSetupPercent?.toString() || "",
     warrantyMonths: initialData?.warrantyMonths?.toString() || "",
     paymentTerms: initialData?.paymentTerms || "",
     scopeSummary: initialData?.scopeSummary || "",
@@ -92,6 +93,14 @@ export const ContractForm: React.FC<ContractFormProps> = ({
       newErrors.retentionPercent = "Neplatné procento (0-100)";
     }
 
+    if (
+      formData.siteSetupPercent &&
+      (isNaN(parseFloat(formData.siteSetupPercent)) ||
+        parseFloat(formData.siteSetupPercent) > 100)
+    ) {
+      newErrors.siteSetupPercent = "Neplatné procento (0-100)";
+    }
+
     if (formData.warrantyMonths && isNaN(parseInt(formData.warrantyMonths))) {
       newErrors.warrantyMonths = "Neplatný počet měsíců";
     }
@@ -126,6 +135,9 @@ export const ContractForm: React.FC<ContractFormProps> = ({
         retentionAmount: formData.retentionAmount
           ? parseFloat(formData.retentionAmount)
           : undefined,
+        siteSetupPercent: formData.siteSetupPercent
+          ? parseFloat(formData.siteSetupPercent)
+          : undefined,
         warrantyMonths: formData.warrantyMonths
           ? parseInt(formData.warrantyMonths)
           : undefined,
@@ -144,6 +156,26 @@ export const ContractForm: React.FC<ContractFormProps> = ({
   const labelClasses =
     "block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1";
   const errorClasses = "text-xs text-red-500 mt-1";
+
+  const parseNumberInput = (value: string): number | null => {
+    const cleaned = value
+      .replace(/\s+/g, "")
+      .replace(/\./g, "")
+      .replace(/,(?=\d{1,2}$)/, ".")
+      .replace(/[^0-9.-]/g, "");
+    const parsed = Number.parseFloat(cleaned);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const formatNumberInput = (value: string): string => {
+    const parsed = parseNumberInput(value);
+    if (parsed === null) return value;
+    const hasDecimals = /,\d{1,2}$/.test(value) || /\.\d{1,2}$/.test(value);
+    return new Intl.NumberFormat("cs-CZ", {
+      minimumFractionDigits: hasDecimals ? 2 : 0,
+      maximumFractionDigits: 2,
+    }).format(parsed);
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
@@ -312,6 +344,12 @@ export const ContractForm: React.FC<ContractFormProps> = ({
                     basePrice: e.target.value,
                   }))
                 }
+                onBlur={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    basePrice: formatNumberInput(prev.basePrice),
+                  }))
+                }
                 className={`${inputClasses} pr-14`}
                 placeholder="0"
               />
@@ -340,7 +378,7 @@ export const ContractForm: React.FC<ContractFormProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className={`${labelClasses} min-h-[40px] flex items-end`}>
               Pozastávka (%)
@@ -359,6 +397,27 @@ export const ContractForm: React.FC<ContractFormProps> = ({
             />
             {errors.retentionPercent && (
               <p className={errorClasses}>{errors.retentionPercent}</p>
+            )}
+          </div>
+
+          <div>
+            <label className={`${labelClasses} min-h-[40px] flex items-end`}>
+              Zařízení staveniště (%)
+            </label>
+            <input
+              type="text"
+              value={formData.siteSetupPercent}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  siteSetupPercent: e.target.value,
+                }))
+              }
+              className={inputClasses}
+              placeholder="2"
+            />
+            {errors.siteSetupPercent && (
+              <p className={errorClasses}>{errors.siteSetupPercent}</p>
             )}
           </div>
 

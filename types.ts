@@ -328,6 +328,7 @@ export interface Contract {
 
   retentionPercent?: number;
   retentionAmount?: number;
+  siteSetupPercent?: number;
   warrantyMonths?: number;
   paymentTerms?: string;
   scopeSummary?: string;

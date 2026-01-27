@@ -17,6 +17,7 @@ const mapContract = (row: Record<string, unknown>): Contract => ({
   basePrice: parseFloat(row.base_price as string) || 0,
   retentionPercent: row.retention_percent ? parseFloat(row.retention_percent as string) : undefined,
   retentionAmount: row.retention_amount ? parseFloat(row.retention_amount as string) : undefined,
+  siteSetupPercent: row.site_setup_percent ? parseFloat(row.site_setup_percent as string) : undefined,
   warrantyMonths: row.warranty_months as number | undefined,
   paymentTerms: row.payment_terms as string | undefined,
   scopeSummary: row.scope_summary as string | undefined,
@@ -168,6 +169,7 @@ export const contractService = {
         base_price: contract.basePrice,
         retention_percent: contract.retentionPercent || null,
         retention_amount: contract.retentionAmount || null,
+        site_setup_percent: contract.siteSetupPercent || null,
         warranty_months: contract.warrantyMonths || null,
         payment_terms: contract.paymentTerms || null,
         scope_summary: contract.scopeSummary || null,
@@ -218,6 +220,7 @@ export const contractService = {
     if (updates.basePrice !== undefined) dbUpdates.base_price = updates.basePrice;
     if (updates.retentionPercent !== undefined) dbUpdates.retention_percent = updates.retentionPercent;
     if (updates.retentionAmount !== undefined) dbUpdates.retention_amount = updates.retentionAmount;
+    if (updates.siteSetupPercent !== undefined) dbUpdates.site_setup_percent = updates.siteSetupPercent;
     if (updates.warrantyMonths !== undefined) dbUpdates.warranty_months = updates.warrantyMonths;
     if (updates.paymentTerms !== undefined) dbUpdates.payment_terms = updates.paymentTerms;
     if (updates.scopeSummary !== undefined) dbUpdates.scope_summary = updates.scopeSummary;

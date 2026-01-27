@@ -1,5 +1,10 @@
 import React, { useState } from "react";
-import { ContractWithDetails, Contract, ContractStatus } from "../../../types";
+import type {
+  Contract,
+  ContractExtractionResult,
+  ContractStatus,
+  ContractWithDetails,
+} from "../../../types";
 import { contractService } from "../../../services/contractService";
 import { ContractForm } from "./ContractForm";
 import { ExtractionValidation } from "./ExtractionValidation";
@@ -58,10 +63,8 @@ export const ContractsList: React.FC<ContractsListProps> = ({
   const [showExtractionModal, setShowExtractionModal] = useState(false);
   const [selectedContract, setSelectedContract] =
     useState<ContractWithDetails | null>(null);
-  const [extractedData, setExtractedData] = useState<{
-    fields: Partial<Contract>;
-    confidence: Record<string, number>;
-  } | null>(null);
+  const [extractedData, setExtractedData] =
+    useState<ContractExtractionResult | null>(null);
   const [extracting, setExtracting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -394,6 +397,7 @@ export const ContractsList: React.FC<ContractsListProps> = ({
           <ExtractionValidation
             extractedFields={extractedData.fields}
             confidence={extractedData.confidence}
+            rawText={extractedData.rawText}
             onConfirm={handleExtractionConfirm}
             onCancel={() => {
               setShowExtractionModal(false);

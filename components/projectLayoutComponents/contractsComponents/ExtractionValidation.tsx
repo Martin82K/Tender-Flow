@@ -5,6 +5,7 @@ import { contractExtractionService } from "../../../services/contractExtractionS
 interface ExtractionValidationProps {
   extractedFields: Partial<Contract>;
   confidence: Record<string, number>;
+  rawText?: string;
   onConfirm: (data: Partial<Contract>) => void;
   onCancel: () => void;
 }
@@ -47,6 +48,12 @@ const fieldConfigs: FieldConfig[] = [
     placeholder: "5",
   },
   {
+    key: "siteSetupPercent",
+    label: "Zařízení staveniště (%)",
+    type: "number",
+    placeholder: "2",
+  },
+  {
     key: "warrantyMonths",
     label: "Záruční doba (měsíce)",
     type: "number",
@@ -84,9 +91,30 @@ const getConfidenceBg = (confidence: number): string => {
   return "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700";
 };
 
+const parseNumberInput = (value: string): number | null => {
+  const cleaned = value
+    .replace(/\s+/g, "")
+    .replace(/\./g, "")
+    .replace(/,(?=\d{1,2}$)/, ".")
+    .replace(/[^0-9.-]/g, "");
+  const parsed = Number.parseFloat(cleaned);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const formatNumberInput = (value: string): string => {
+  const parsed = parseNumberInput(value);
+  if (parsed === null) return value;
+  const hasDecimals = /,\d{1,2}$/.test(value) || /\.\d{1,2}$/.test(value);
+  return new Intl.NumberFormat("cs-CZ", {
+    minimumFractionDigits: hasDecimals ? 2 : 0,
+    maximumFractionDigits: 2,
+  }).format(parsed);
+};
+
 export const ExtractionValidation: React.FC<ExtractionValidationProps> = ({
   extractedFields,
   confidence,
+  rawText,
   onConfirm,
   onCancel,
 }) => {
@@ -102,6 +130,7 @@ export const ExtractionValidation: React.FC<ExtractionValidationProps> = ({
   const overallConfidence =
     contractExtractionService.getOverallConfidence(confidence);
   const isReliable = contractExtractionService.isExtractionReliable(confidence);
+  const [showRawText, setShowRawText] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -153,6 +182,43 @@ export const ExtractionValidation: React.FC<ExtractionValidationProps> = ({
         </div>
       </div>
 
+      {/* OCR Text Preview */}
+      <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-900/40">
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-slate-400 text-lg">
+              text_snippet
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                Přečtený text (OCR)
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {rawText
+                  ? `${rawText.length.toLocaleString("cs-CZ")} znaků`
+                  : "Text není k dispozici"}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowRawText((prev) => !prev)}
+            className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+          >
+            {showRawText ? "Skrýt" : "Zobrazit"}
+          </button>
+        </div>
+        {showRawText && (
+          <div className="px-4 pb-4">
+            <div className="max-h-72 overflow-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950">
+              <pre className="text-xs text-slate-700 dark:text-slate-300 whitespace-pre-wrap p-3 font-mono">
+                {rawText || "OCR text nebyl uložen."}
+              </pre>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Fields */}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -199,6 +265,13 @@ export const ExtractionValidation: React.FC<ExtractionValidationProps> = ({
                         [key]: e.target.value,
                       }))
                     }
+                    onBlur={() => {
+                      if (key !== "basePrice") return;
+                      setFormData((prev) => ({
+                        ...prev,
+                        [key]: formatNumberInput(prev[key] || ""),
+                      }));
+                    }}
                     className={`${inputClasses} border-slate-300 dark:border-slate-600`}
                     placeholder={placeholder}
                   />

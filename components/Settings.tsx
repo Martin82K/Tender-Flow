@@ -11,7 +11,6 @@ import { ProfileSettings } from "./settings/ProfileSettings";
 import { ContactsImportWizard } from "./ContactsImportWizard";
 import { ExcelUnlockerProSettings } from "./settings/ExcelUnlockerProSettings";
 import { ExcelMergerProSettings } from "./settings/ExcelMergerProSettings";
-import { ExcelMergerAdminSettings } from "./settings/ExcelMergerAdminSettings";
 import { UrlShortener } from "./tools/UrlShortener";
 import { ExcelIndexerSettings } from "./settings/ExcelIndexerSettings";
 import { McpDiagnostics } from "./settings/McpDiagnostics";
@@ -326,10 +325,7 @@ export const Settings: React.FC<SettingsProps> = ({
 
             <main className="flex-1 min-w-0 overflow-x-hidden">
               {activeAdminSubTab === "registration" && (
-                <>
-                  <AdminSettings isAdmin={isAdmin} section="registration" />
-                  <ExcelMergerAdminSettings isAdmin={isAdmin} />
-                </>
+                <AdminSettings isAdmin={isAdmin} section="registration" />
               )}
               {activeAdminSubTab === "users" && (
                 <AdminSettings isAdmin={isAdmin} section="users" />

@@ -22,6 +22,7 @@ VÝSTUP MUSÍ BÝT VALIDNÍ JSON v tomto formátu:
     "basePrice": 123456.00,
     "currency": "CZK",
     "retentionPercent": 5.0,
+    "siteSetupPercent": 2.0,
     "warrantyMonths": 60,
     "paymentTerms": "30 dní od doručení faktury",
     "scopeSummary": "Stručný popis předmětu díla (max 200 slov)"
@@ -36,6 +37,7 @@ VÝSTUP MUSÍ BÝT VALIDNÍ JSON v tomto formátu:
     "basePrice": 0.85,
     "currency": 0.99,
     "retentionPercent": 0.75,
+    "siteSetupPercent": 0.70,
     "warrantyMonths": 0.80,
     "paymentTerms": 0.70,
     "scopeSummary": 0.90
@@ -48,12 +50,13 @@ PRAVIDLA:
 3. Pro pole, která nelze nalézt, nastav confidence na 0.0.
 4. basePrice musí být číslo bez měny (pouze numerická hodnota).
 5. Datumy vždy v formátu YYYY-MM-DD.
-6. Hledej tyto alternativní názvy:
+  6. Hledej tyto alternativní názvy:
    - vendorName: "zhotovitel", "dodavatel", "poskytovatel"
    - basePrice: "cena díla", "celková cena", "smluvní cena", "cena za dílo", "činí"
    - Hledej částku v blízkosti slova "činí" nebo "celková cena".
    - Částka může být formátována s tečkami jako oddělovači tisíců (např. 4.530.832,00) nebo mezerami.
    - Ignoruj DPH, pokud je uvedeno "bez DPH".
+   - siteSetupPercent: "zařízení staveniště", "ZS", "ZS (%)", "zařízení staveniště (%)".
 7. Pokud je cena uvedena i slovně, použij ji pro kontrolu řádu, ale extrahuj číslo.
 
 TEXT SMLOUVY:
@@ -223,19 +226,50 @@ async function extractTextFromDocument(file: File, onProgress?: (status: string)
 
     // 3. Call AI Proxy with correct provider/model
     onProgress?.('Analyzuji obsah dokumentu pomocí AI...');
+    const ocrPrompt = 'Extrahuj vsechen text z dokumentu. Vrat pouze cisty text bez formatovani.';
+    const provider =
+      ocrProvider === 'google'
+        ? 'google'
+        : ocrProvider === 'openrouter'
+          ? 'openrouter'
+          : 'mistral-ocr';
     const response = await invokeAuthedFunction<AIProxyResponse>('ai-proxy', {
       body: {
-        provider: ocrProvider === 'google' ? 'google' : 'mistral-ocr',
-        model: ocrModel, 
-        documentUrl: urlData.signedUrl
+        provider,
+        model: ocrModel,
+        documentUrl: urlData.signedUrl,
+        ...(provider === 'openrouter' ? { prompt: ocrPrompt } : {}),
       },
     });
 
     if (!response.text) {
       throw new Error('OCR model nevrátil žádný text.');
     }
+    let combinedText = response.text;
 
-    return response.text;
+    if (ocrProvider === 'openrouter') {
+      try {
+        onProgress?.('Zpřesňuji cenu díla...');
+        const priceHintResponse = await invokeAuthedFunction<AIProxyResponse>('ai-proxy', {
+          body: {
+            provider: 'openrouter',
+            model: ocrModel,
+            documentUrl: urlData.signedUrl,
+            prompt:
+              'Najdi v dokumentu cenu dila nebo celkovou cenu. Vrat pouze cislo a menu (napr. 1.407.351,- Kč) bez dalsiho textu. Pokud nenajdes, vrat prazdny retezec.',
+          },
+        });
+        const priceHint = parseAmountFromText(priceHintResponse.text || '');
+        if (priceHint) {
+          const currencyLabel = priceHint.currency ? ` ${priceHint.currency}` : '';
+          combinedText += `\n\nCena dila (OCR fokus): ${priceHint.value}${currencyLabel}`;
+        }
+      } catch (error) {
+        console.warn('Failed to extract OCR price hint:', error);
+      }
+    }
+
+    return combinedText;
 
   } finally {
     // 4. Cleanup
@@ -270,6 +304,150 @@ function parseJsonFromResponse(responseText: string): { fields: Partial<Contract
   }
 }
 
+type AmountMatch = {
+  value: number;
+  currency?: string;
+};
+
+function normalizeAmount(raw: string): number | null {
+  let cleaned = raw.replace(/\s+/g, '');
+  cleaned = cleaned.replace(/,(\d{2}),-/g, ',$1');
+  cleaned = cleaned.replace(/,-/g, ',00');
+  cleaned = cleaned.replace(/\./g, '');
+  cleaned = cleaned.replace(/[^0-9,.-]/g, '');
+  if (cleaned.endsWith('-')) cleaned = cleaned.slice(0, -1);
+  cleaned = cleaned.replace(',', '.');
+  const value = Number.parseFloat(cleaned);
+  if (!Number.isFinite(value)) return null;
+  return value;
+}
+
+function parseAmountFromText(text: string): AmountMatch | null {
+  const regex = /(-?\d{1,3}(?:[ .]\d{3})*(?:,\d{2}|,-)?|-?\d+)\s*(kč|kc|czk|eur|€)?/gi;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(text)) !== null) {
+    const value = normalizeAmount(match[1]);
+    if (value === null) continue;
+    const currencyRaw = match[2];
+    const currency = currencyRaw
+      ? currencyRaw.toLowerCase() === '€'
+        ? 'EUR'
+        : currencyRaw.toUpperCase().replace('KC', 'CZK')
+      : undefined;
+    return { value, currency };
+  }
+  return null;
+}
+
+function extractAmountNearKeywords(text: string, keywords: string[]): AmountMatch | null {
+  const normalized = text.replace(/\s+/g, ' ');
+  const lower = normalized.toLowerCase();
+
+  for (const keyword of keywords) {
+    let index = lower.indexOf(keyword);
+    while (index !== -1) {
+      const start = Math.max(0, index - 120);
+      const end = Math.min(normalized.length, index + 600);
+      const windowText = normalized.slice(start, end);
+      const regex = /(-?\d{1,3}(?:[ .]\d{3})*(?:,\d{2}|,-)?|-?\d+)\s*(kč|kc|czk|eur|€)?/gi;
+      let match: RegExpExecArray | null;
+      let best: AmountMatch | null = null;
+
+      while ((match = regex.exec(windowText)) !== null) {
+        const value = normalizeAmount(match[1]);
+        if (value === null) continue;
+        const currencyRaw = match[2];
+        const currency = currencyRaw
+          ? currencyRaw.toLowerCase() === '€'
+            ? 'EUR'
+            : currencyRaw.toUpperCase()
+          : undefined;
+
+        if (!best || (currency && !best.currency)) {
+          best = { value, currency };
+        }
+      }
+
+      if (best) return best;
+      index = lower.indexOf(keyword, index + keyword.length);
+    }
+  }
+
+  return null;
+}
+
+function extractAmountFromLineWindow(text: string, keywords: string[]): AmountMatch | null {
+  const lines = text.split(/\r?\n/);
+  const normalizedKeywords = keywords.map((k) => k.toLowerCase());
+
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i].toLowerCase();
+    if (!normalizedKeywords.some((keyword) => line.includes(keyword))) {
+      continue;
+    }
+
+    for (let offset = 0; offset <= 4; offset += 1) {
+      const targetLine = lines[i + offset];
+      if (!targetLine) continue;
+      const regex = /(-?\d{1,3}(?:[ .]\d{3})*(?:,\d{2}|,-)?|-?\d+)\s*(kč|kc|czk|eur|€)?/gi;
+      let match: RegExpExecArray | null;
+
+      while ((match = regex.exec(targetLine)) !== null) {
+        const value = normalizeAmount(match[1]);
+        if (value === null) continue;
+        const currencyRaw = match[2];
+        const currency = currencyRaw
+          ? currencyRaw.toLowerCase() === '€'
+            ? 'EUR'
+            : currencyRaw.toUpperCase().replace('KC', 'CZK')
+          : undefined;
+        return { value, currency };
+      }
+    }
+  }
+
+  return null;
+}
+
+function extractAmountNearSpelled(text: string): AmountMatch | null {
+  const keywords = ['slovy', 'korun', 'korun českých', 'kc', 'kč'];
+  return extractAmountFromLineWindow(text, keywords);
+}
+
+function normalizePercent(raw: string): number | null {
+  const cleaned = raw.replace(',', '.');
+  const value = Number.parseFloat(cleaned);
+  if (!Number.isFinite(value)) return null;
+  if (value < 0 || value > 100) return null;
+  return value;
+}
+
+function extractPercentNearKeywords(text: string, keywords: string[]): number | null {
+  const normalized = text.replace(/\s+/g, ' ');
+  const lower = normalized.toLowerCase();
+
+  for (const keyword of keywords) {
+    let index = lower.indexOf(keyword);
+    while (index !== -1) {
+      const start = Math.max(0, index - 120);
+      const end = Math.min(normalized.length, index + 400);
+      const windowText = normalized.slice(start, end);
+      const regex = /(\d{1,3}(?:[.,]\d{1,2})?)\s*%/g;
+      let match: RegExpExecArray | null;
+
+      while ((match = regex.exec(windowText)) !== null) {
+        const value = normalizePercent(match[1]);
+        if (value === null) continue;
+        return value;
+      }
+
+      index = lower.indexOf(keyword, index + keyword.length);
+    }
+  }
+
+  return null;
+}
+
 export const contractExtractionService = {
   /**
    * Extract contract data from plain text using AI
@@ -290,10 +468,65 @@ export const contractExtractionService = {
     });
 
     const parsed = parseJsonFromResponse(response.text);
+    const fields = { ...(parsed.fields || {}) } as Partial<Contract>;
+    const confidence = { ...(parsed.confidence || {}) } as Record<string, number>;
+
+    if (
+      !fields.basePrice ||
+      !Number.isFinite(fields.basePrice) ||
+      (typeof fields.basePrice === 'number' && fields.basePrice <= 0)
+    ) {
+      const keywords = [
+        'cena dila',
+        'cena díla',
+        'cena dila a platebni podminky',
+        'cena díla a platební podmínky',
+        'celkova cena',
+        'celková cena',
+        'celkova cena dila',
+        'celková cena díla',
+        'smluvni cena',
+        'smluvní cena',
+        'cena za dilo',
+        'cena za dílo',
+        'cini',
+        'činí',
+      ];
+      const fallback =
+        extractAmountNearKeywords(text, keywords) ||
+        extractAmountFromLineWindow(text, keywords) ||
+        extractAmountNearSpelled(text);
+      if (fallback) {
+        fields.basePrice = fallback.value as never;
+        if (!fields.currency && fallback.currency) {
+          fields.currency = fallback.currency as never;
+        }
+        confidence.basePrice = Math.max(confidence.basePrice || 0, 0.45);
+      }
+    }
+
+    if (
+      fields.siteSetupPercent === undefined ||
+      !Number.isFinite(fields.siteSetupPercent as number)
+    ) {
+      const fallbackPercent = extractPercentNearKeywords(text, [
+        'zařízení staveniště',
+        'zarizeni staveniste',
+        'zs (%)',
+        'zs',
+      ]);
+      if (fallbackPercent !== null) {
+        fields.siteSetupPercent = fallbackPercent as never;
+        confidence.siteSetupPercent = Math.max(
+          confidence.siteSetupPercent || 0,
+          0.45,
+        );
+      }
+    }
 
     return {
-      fields: parsed.fields || {},
-      confidence: parsed.confidence || {},
+      fields,
+      confidence,
       rawText: text,
     };
   },
