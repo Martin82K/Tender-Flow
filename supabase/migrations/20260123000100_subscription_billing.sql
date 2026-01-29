@@ -127,16 +127,19 @@ CREATE INDEX IF NOT EXISTS idx_subscription_history_org
 ALTER TABLE subscription_history ENABLE ROW LEVEL SECURITY;
 
 -- Users can read their own history
+DROP POLICY IF EXISTS "Users can view own subscription history" ON subscription_history;
 CREATE POLICY "Users can view own subscription history"
   ON subscription_history FOR SELECT
   USING (user_id = auth.uid());
 
 -- Admins can view all
+DROP POLICY IF EXISTS "Admins can view all subscription history" ON subscription_history;
 CREATE POLICY "Admins can view all subscription history"
   ON subscription_history FOR SELECT
   USING (is_admin());
 
 -- Only system/admin can insert
+DROP POLICY IF EXISTS "System can insert subscription history" ON subscription_history;
 CREATE POLICY "System can insert subscription history"
   ON subscription_history FOR INSERT
   WITH CHECK (is_admin() OR auth.uid() = user_id);
@@ -189,10 +192,12 @@ ON CONFLICT (id) DO UPDATE SET
 -- RLS for plans (public read)
 ALTER TABLE subscription_plans ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Anyone can view plans" ON subscription_plans;
 CREATE POLICY "Anyone can view plans"
   ON subscription_plans FOR SELECT
   USING (is_visible = TRUE);
 
+DROP POLICY IF EXISTS "Admins can manage plans" ON subscription_plans;
 CREATE POLICY "Admins can manage plans"
   ON subscription_plans FOR ALL
   USING (is_admin());
@@ -402,7 +407,8 @@ END;
 $$;
 
 -- Cancel subscription (effective at period end)
-CREATE OR REPLACE FUNCTION cancel_subscription(p_user_id UUID, p_reason TEXT DEFAULT NULL)
+DROP FUNCTION IF EXISTS cancel_subscription(); -- Drop old 0-arg version to avoid ambiguity
+CREATE OR REPLACE FUNCTION cancel_subscription(p_user_id UUID DEFAULT auth.uid(), p_reason TEXT DEFAULT NULL)
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -436,7 +442,8 @@ END;
 $$;
 
 -- Reactivate cancelled subscription
-CREATE OR REPLACE FUNCTION reactivate_subscription(p_user_id UUID)
+DROP FUNCTION IF EXISTS reactivate_subscription(); -- Drop old 0-arg version
+CREATE OR REPLACE FUNCTION reactivate_subscription(p_user_id UUID DEFAULT auth.uid())
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -598,9 +605,9 @@ CREATE TRIGGER on_user_profile_created_start_trial
 
 COMMENT ON TABLE subscription_history IS 'Audit trail for all subscription changes';
 COMMENT ON TABLE subscription_plans IS 'Configurable pricing plans';
-COMMENT ON FUNCTION get_user_subscription_tier IS 'Returns effective tier respecting expiration';
-COMMENT ON FUNCTION get_user_subscription_details IS 'Returns full subscription info for UI';
-COMMENT ON FUNCTION start_user_trial IS 'Starts a trial period for a user';
-COMMENT ON FUNCTION activate_subscription IS 'Activates paid subscription';
-COMMENT ON FUNCTION cancel_subscription IS 'Cancels subscription (effective at period end)';
-COMMENT ON FUNCTION reactivate_subscription IS 'Reactivates a cancelled subscription';
+COMMENT ON FUNCTION get_user_subscription_tier(UUID) IS 'Returns effective tier respecting expiration';
+COMMENT ON FUNCTION get_user_subscription_details(UUID) IS 'Returns full subscription info for UI';
+COMMENT ON FUNCTION start_user_trial(UUID, TEXT, INTEGER) IS 'Starts a trial period for a user';
+COMMENT ON FUNCTION activate_subscription(UUID, TEXT, TEXT, INTEGER, TEXT, TEXT) IS 'Activates paid subscription';
+COMMENT ON FUNCTION cancel_subscription(UUID, TEXT) IS 'Cancels subscription (effective at period end)';
+COMMENT ON FUNCTION reactivate_subscription(UUID) IS 'Reactivates a cancelled subscription';

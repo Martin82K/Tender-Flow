@@ -2,12 +2,13 @@ import React, { useEffect, useRef, useState } from "react";
 
 interface ScrollRevealProps {
     children: React.ReactNode;
-    direction?: "up" | "down" | "left" | "right" | "scale";
+    direction?: "up" | "down" | "left" | "right" | "scale" | "rotate-left" | "rotate-right" | "blur";
     delay?: number;
     duration?: number;
     threshold?: number;
     className?: string;
     once?: boolean;
+    staggerIndex?: number;
 }
 
 export const ScrollReveal: React.FC<ScrollRevealProps> = ({
@@ -17,6 +18,7 @@ export const ScrollReveal: React.FC<ScrollRevealProps> = ({
     threshold = 0.1,
     className = "",
     once = true,
+    staggerIndex,
 }) => {
     const [isVisible, setIsVisible] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
@@ -51,12 +53,12 @@ export const ScrollReveal: React.FC<ScrollRevealProps> = ({
     }, [threshold, once]);
 
     const directionClass = `reveal-${direction}`;
+    const staggerClass = staggerIndex ? `stagger-${Math.min(staggerIndex, 6)}` : "";
 
     return (
         <div
             ref={ref}
-            className={`reveal ${directionClass} ${isVisible ? "reveal-active" : ""
-                } ${className}`}
+            className={`reveal ${directionClass} ${staggerClass} ${isVisible ? "reveal-active" : ""} ${className}`}
             style={{
                 transitionDelay: `${delay}ms`,
             }}

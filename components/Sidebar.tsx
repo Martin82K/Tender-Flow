@@ -541,13 +541,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <aside
         ref={sidebarRef}
         style={{ width: isOpen ? `${width}px` : "0px" }}
-        className={`relative flex h-full flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex-shrink-0 z-20 select-none group/sidebar transition-all duration-300 ease-in-out max-md:fixed max-md:inset-0 max-md:z-50 max-md:!w-full ${
+        className={`relative flex h-full flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex-shrink-0 z-20 select-none group/sidebar transition-all duration-300 ease-in-out max-md:fixed max-md:inset-0 max-md:z-50 max-md:!w-full max-md:h-[100dvh] max-md:max-h-[100dvh] ${
           !isOpen
             ? "overflow-hidden border-none max-md:pointer-events-none max-md:opacity-0"
             : "max-md:opacity-100"
         }`}
       >
-        {/* Mobile Overlay - not needed for fullscreen */}
+        {/* Mobile Overlay */}
         {isOpen && (
           <div
             className="fixed inset-0 bg-black/50 z-[-1] md:hidden"

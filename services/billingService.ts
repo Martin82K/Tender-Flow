@@ -44,14 +44,14 @@ export interface WebhookResult {
 // Pricing configuration (can be moved to environment or database)
 export const PRICING_CONFIG = {
     starter: {
-        monthlyPrice: 49900, // In cents (CZK) = 499 Kč
-        yearlyPrice: 479000, // 4790 Kč (20% discount)
+        monthlyPrice: 35000, // In cents (CZK) = 350 Kč
+        yearlyPrice: 336000, // 3360 Kč (20% discount)
         stripePriceIdMonthly: import.meta.env.VITE_STRIPE_PRICE_ID_STARTER_MONTHLY || '',
         stripePriceIdYearly: import.meta.env.VITE_STRIPE_PRICE_ID_STARTER_YEARLY || '',
     },
     pro: {
-        monthlyPrice: 499900, // In cents (CZK) = 4999 Kč
-        yearlyPrice: 4799000, // 47990 Kč (20% discount)
+        monthlyPrice: 49900, // In cents (CZK) = 499 Kč
+        yearlyPrice: 479000, // 4790 Kč (20% discount)
         stripePriceIdMonthly: import.meta.env.VITE_STRIPE_PRICE_ID_PRO_MONTHLY || '',
         stripePriceIdYearly: import.meta.env.VITE_STRIPE_PRICE_ID_PRO_YEARLY || '',
     },
