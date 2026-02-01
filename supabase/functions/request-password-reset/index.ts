@@ -99,7 +99,7 @@ serve(async (req) => {
 
         // Styled HTML email matching Tender Flow branding
         const emailBody = {
-            from: "Tender Flow <noreply@mail.tenderflow.cz>",
+            from: "Martin z Tender Flow <martin@mail.tenderflow.cz>",
             to: email,
             subject: "Obnovení hesla – Tender Flow",
             html: `
