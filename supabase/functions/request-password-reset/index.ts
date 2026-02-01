@@ -97,33 +97,73 @@ serve(async (req) => {
             });
         }
 
-        const templateId = RESEND_TEMPLATE_FORGOT_PASSWORD_ID;
-
-        let emailBody = {};
-
-        if (templateId) {
-            emailBody = {
-                from: "Tender Flow <noreply@mail.tenderflow.cz>",
-                to: email,
-                template_id: templateId,
-                data: {
-                    resetLink: resetLink
-                }
-            };
-        } else {
-            // Fallback HTML if no template ID
-            emailBody = {
-                from: "Tender Flow <noreply@mail.tenderflow.cz>",
-                to: email,
-                subject: "Obnovení hesla",
-                html: `
-              <p>Dobrý den,</p>
-              <p>Obdrželi jsme žádost o obnovu hesla.</p>
-              <p><a href="${resetLink}">Klikněte zde pro nastavení nového hesla</a></p>
-              <p>Pokud jste o změnu nežádali, tento email ignorujte.</p>
+        // Styled HTML email matching Tender Flow branding
+        const emailBody = {
+            from: "Tender Flow <noreply@mail.tenderflow.cz>",
+            to: email,
+            subject: "Obnovení hesla – Tender Flow",
+            html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; background-color: #0f172a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #0f172a; padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 500px; background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%); border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
+          <tr>
+            <td style="padding: 40px;">
+              <!-- Logo -->
+              <div style="text-align: center; margin-bottom: 32px;">
+                <span style="font-size: 32px; font-weight: bold; color: #f97316;">TF</span>
+                <span style="font-size: 20px; color: #ffffff; margin-left: 8px;">Tender Flow</span>
+              </div>
+              
+              <!-- Title -->
+              <h1 style="color: #ffffff; font-size: 24px; font-weight: 600; text-align: center; margin: 0 0 24px 0;">
+                Obnovení hesla
+              </h1>
+              
+              <!-- Content -->
+              <p style="color: rgba(255,255,255,0.8); font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">
+                Dobrý den,
+              </p>
+              <p style="color: rgba(255,255,255,0.8); font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
+                Obdrželi jsme žádost o obnovu hesla k vašemu účtu v aplikaci Tender Flow.
+              </p>
+              
+              <!-- CTA Button -->
+              <div style="text-align: center; margin: 32px 0;">
+                <a href="${resetLink}" style="display: inline-block; background-color: #f97316; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 16px; padding: 14px 32px; border-radius: 12px; box-shadow: 0 4px 14px rgba(249, 115, 22, 0.4);">
+                  Nastavit nové heslo
+                </a>
+              </div>
+              
+              <!-- Note -->
+              <p style="color: rgba(255,255,255,0.5); font-size: 14px; line-height: 1.6; margin: 24px 0 0 0; text-align: center;">
+                Pokud jste o změnu hesla nežádali, tento email můžete ignorovat.
+              </p>
+              <p style="color: rgba(255,255,255,0.4); font-size: 12px; line-height: 1.6; margin: 16px 0 0 0; text-align: center;">
+                Odkaz je platný 1 hodinu.
+              </p>
+            </td>
+          </tr>
+        </table>
+        
+        <!-- Footer -->
+        <p style="color: rgba(255,255,255,0.3); font-size: 12px; margin-top: 24px; text-align: center;">
+          © ${new Date().getFullYear()} Tender Flow · tenderflow.cz
+        </p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
             `
-            };
-        }
+        };
 
         const res = await fetch("https://api.resend.com/emails", {
             method: "POST",
