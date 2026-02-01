@@ -103,7 +103,7 @@ serve(async (req) => {
 
         if (templateId) {
             emailBody = {
-                from: "Tender Flow <noreply@tenderflow.cz>",
+                from: "Tender Flow <noreply@mail.tenderflow.cz>",
                 to: email,
                 template_id: templateId,
                 data: {
@@ -113,7 +113,7 @@ serve(async (req) => {
         } else {
             // Fallback HTML if no template ID
             emailBody = {
-                from: "Tender Flow <noreply@tenderflow.cz>",
+                from: "Tender Flow <noreply@mail.tenderflow.cz>",
                 to: email,
                 subject: "Obnovení hesla",
                 html: `
@@ -137,9 +137,7 @@ serve(async (req) => {
         if (!res.ok) {
             const errorData = await res.json();
             console.error("Resend API error:", errorData);
-            // We still return success to frontend to avoid leaking system state/errors too much?
-            // Or maybe 500 if sending fails? Let's return 500 so frontend can say "Zkuste to prosím později".
-            throw new Error("Failed to send email via Resend");
+            throw new Error(`Failed to send email via Resend: ${JSON.stringify(errorData)}`);
         }
 
         return new Response(JSON.stringify({ success: true }), {
