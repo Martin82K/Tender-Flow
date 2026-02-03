@@ -79,11 +79,11 @@ Deno.serve(async (req) => {
         });
 
         if (subscriptions.data.length === 0) {
-            // No subscription - set to free
+            // No subscription - clear Stripe tier (don't touch admin override!)
             await service
                 .from("user_profiles")
                 .update({
-                    subscription_tier_override: "free",
+                    stripe_subscription_tier: null,
                     subscription_status: "expired",
                     subscription_expires_at: null,
                     subscription_cancel_at_period_end: false,
@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
 
             return json(200, {
                 success: true,
-                message: "No active subscription found, reset to free",
+                message: "No active subscription found, Stripe tier cleared",
                 subscription: null,
             });
         }
@@ -122,10 +122,12 @@ Deno.serve(async (req) => {
             : null;
 
         // Update DB with fresh data from Stripe
+        // NOTE: We update stripe_subscription_tier, NOT subscription_tier_override
+        // subscription_tier_override is for admin-set values only
         const { error: updateError } = await service
             .from("user_profiles")
             .update({
-                subscription_tier_override: tier,
+                stripe_subscription_tier: tier,
                 subscription_status: status,
                 subscription_expires_at: expiresAt,
                 subscription_cancel_at_period_end: isCancelAtPeriodEnd,

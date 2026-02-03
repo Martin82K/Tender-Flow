@@ -335,7 +335,7 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
                       : "Zrušeno"}
                   </span>
                 )}
-                {isExpired && (
+                {isExpired && subscription.effectiveTier !== "free" && (
                   <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-red-500/10 text-red-500 uppercase tracking-wider border border-red-500/20">
                     Vypršelo
                   </span>
@@ -353,41 +353,44 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
                 </p>
                 {(subscription.daysRemaining !== null ||
                   isTrialing ||
-                  isActive) && (
-                  <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-                    <Clock className="w-3 h-3" />
-                    {isTrialing ? (
-                      <span>
-                        Končí za{" "}
-                        <strong>{subscription.daysRemaining ?? 0} dní</strong>
-                      </span>
-                    ) : isCancelled && subscription.daysRemaining !== null ? (
-                      <span>
-                        Platné ještě{" "}
-                        <strong>{subscription.daysRemaining} dní</strong>
-                      </span>
-                    ) : isActive && subscription.expiresAt ? (
-                      <span>
-                        Další fakturace{" "}
-                        <strong>
-                          {userSubscriptionService.formatExpirationDate(
-                            subscription.expiresAt,
-                          )}
-                        </strong>
-                      </span>
-                    ) : subscription.daysRemaining !== null ? (
-                      <span>
-                        Platné <strong>{subscription.daysRemaining} dní</strong>
-                      </span>
-                    ) : null}
-                  </div>
-                )}
+                  isActive) &&
+                  subscription.tier !== "free" && (
+                    <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                      <Clock className="w-3 h-3" />
+                      {isTrialing ? (
+                        <span>
+                          Končí za{" "}
+                          <strong>{subscription.daysRemaining ?? 0} dní</strong>
+                        </span>
+                      ) : isCancelled && subscription.daysRemaining !== null ? (
+                        <span>
+                          Platné ještě{" "}
+                          <strong>{subscription.daysRemaining} dní</strong>
+                        </span>
+                      ) : isActive && subscription.expiresAt ? (
+                        <span>
+                          Další fakturace{" "}
+                          <strong>
+                            {userSubscriptionService.formatExpirationDate(
+                              subscription.expiresAt,
+                            )}
+                          </strong>
+                        </span>
+                      ) : subscription.daysRemaining !== null ? (
+                        <span>
+                          Platné{" "}
+                          <strong>{subscription.daysRemaining} dní</strong>
+                        </span>
+                      ) : null}
+                    </div>
+                  )}
               </div>
             </div>
 
             {/* Auto-renewal Toggle */}
             {(isActive || (isCancelled && !isExpired)) &&
-              subscription.tier !== "admin" && (
+              subscription.tier !== "admin" &&
+              subscription.tier !== "free" && (
                 <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-xl border border-slate-100 dark:border-slate-800">
                   <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
                     Automatické obnovení
@@ -466,6 +469,24 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
                 </div>
               )}
 
+            {/* Expired Renewal Action */}
+            {isExpired && subscription.tier !== "free" && (
+              <div className="flex items-center gap-3 bg-red-50 dark:bg-red-900/10 p-2 rounded-xl border border-red-100 dark:border-red-900/30">
+                <span className="text-xs font-medium text-red-600 dark:text-red-400">
+                  Předplatné vypršelo
+                </span>
+                <button
+                  onClick={() =>
+                    handleUpgradeRequest(subscription.tier as SubscriptionTier)
+                  }
+                  disabled={actionLoading}
+                  className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-[10px] font-bold uppercase tracking-wide rounded-lg transition-all shadow-sm shadow-red-600/20"
+                >
+                  Obnovit
+                </button>
+              </div>
+            )}
+
             {/* Quick Actions (only billing portal remaining) */}
             <div className="flex flex-wrap items-center gap-2 self-end sm:self-auto">
               {billingService.isBillingConfigured() &&
@@ -535,299 +556,298 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
       </div>
 
       {/* Manage Plan Section */}
-      {subscription.effectiveTier !== "admin" &&
-        billingService.isBillingConfigured() && (
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 shadow-sm relative z-0">
-            <div className="flex items-center justify-between mb-8">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2.5">
-                <Zap className="w-5 h-5 text-orange-500 fill-orange-500/20" />
-                {subscription.tier === "free"
-                  ? "Vyberte si svůj plán"
-                  : "Změnit tarif"}
-              </h3>
+      {subscription.effectiveTier !== "admin" && (
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 shadow-sm relative z-0">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2.5">
+              <Zap className="w-5 h-5 text-orange-500 fill-orange-500/20" />
+              {subscription.tier === "free"
+                ? "Vyberte si svůj plán"
+                : "Změnit tarif"}
+            </h3>
 
-              {/* Monthly / Yearly Toggle */}
-              <div className="flex bg-slate-100/50 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
-                <button
-                  onClick={() => setBillingPeriod("monthly")}
-                  className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                    billingPeriod === "monthly"
-                      ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm ring-1 ring-slate-200 dark:ring-slate-600"
-                      : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-                  }`}
-                >
-                  Měsíčně
-                </button>
-                <button
-                  onClick={() => setBillingPeriod("yearly")}
-                  className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
-                    billingPeriod === "yearly"
-                      ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm ring-1 ring-slate-200 dark:ring-slate-600"
-                      : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-                  }`}
-                >
-                  Ročně
-                  <span className="text-[9px] bg-green-500 text-white px-1.5 py-0.5 rounded-full font-black">
-                    -20%
-                  </span>
-                </button>
-              </div>
+            {/* Monthly / Yearly Toggle */}
+            <div className="flex bg-slate-100/50 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
+              <button
+                onClick={() => setBillingPeriod("monthly")}
+                className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                  billingPeriod === "monthly"
+                    ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm ring-1 ring-slate-200 dark:ring-slate-600"
+                    : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                }`}
+              >
+                Měsíčně
+              </button>
+              <button
+                onClick={() => setBillingPeriod("yearly")}
+                className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+                  billingPeriod === "yearly"
+                    ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm ring-1 ring-slate-200 dark:ring-slate-600"
+                    : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                }`}
+              >
+                Ročně
+                <span className="text-[9px] bg-green-500 text-white px-1.5 py-0.5 rounded-full font-black">
+                  -20%
+                </span>
+              </button>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-4 gap-6">
-              {/* Free Plan */}
-              <div
-                className={`border rounded-2xl p-6 transition-all flex flex-col relative ${
-                  subscription.effectiveTier === "free"
-                    ? "border-slate-400 bg-slate-400/5 ring-1 ring-slate-400 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 shadow-lg"
-                    : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-black text-slate-500 dark:text-slate-400 font-mono uppercase tracking-widest">
-                    Free
-                  </span>
-                  {subscription.effectiveTier === "free" && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-slate-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-tighter shadow-lg ring-2 ring-white dark:ring-slate-900 whitespace-nowrap">
-                      AKTIVNÍ
-                    </span>
-                  )}
-                </div>
-                <div className="mb-5">
-                  <p className="text-3xl font-black text-slate-900 dark:text-white">
-                    Zdarma
-                  </p>
-                </div>
-                <ul className="space-y-2 mb-6 flex-1">
-                  <li className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-                    <Check className="w-3.5 h-3.5 text-emerald-500" />
-                    Základní funkce
-                  </li>
-                  <li className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-                    <Check className="w-3.5 h-3.5 text-emerald-500" />1 aktivní
-                    projekt
-                  </li>
-                </ul>
-                {subscription.effectiveTier !== "free" && (
-                  <button
-                    onClick={async () => {
-                      setActionLoading(true);
-                      try {
-                        const result =
-                          await billingService.createBillingPortalSession({
-                            returnUrl:
-                              window.location.origin +
-                              "/app/settings?tab=user&subTab=subscription",
-                          });
-                        if (result.success && result.portalUrl) {
-                          window.location.href = result.portalUrl;
-                        }
-                      } finally {
-                        setActionLoading(false);
-                      }
-                    }}
-                    disabled={actionLoading}
-                    className="w-full py-2 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl text-xs font-bold transition-all disabled:opacity-50"
-                  >
-                    Downgrade
-                  </button>
-                )}
-              </div>
-
-              {/* Starter Plan */}
-              <div
-                className={`border rounded-2xl p-6 transition-all flex flex-col relative ${
-                  subscription.effectiveTier === "starter"
-                    ? "border-sky-500 bg-sky-500/5 ring-1 ring-sky-500 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 shadow-lg"
-                    : "border-sky-100 dark:border-sky-900/30 bg-white dark:bg-slate-900 hover:border-sky-200 dark:hover:border-sky-800 shadow-sm"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-1.5">
-                    <Zap className="w-4 h-4 text-sky-500 fill-current" />
-                    <span className="text-xs font-black text-sky-600 dark:text-sky-400 font-mono uppercase tracking-widest">
-                      Starter
-                    </span>
-                  </div>
-                  {subscription.effectiveTier === "starter" && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-sky-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-tighter shadow-lg ring-2 ring-white dark:ring-slate-900 whitespace-nowrap">
-                      AKTIVNÍ
-                    </span>
-                  )}
-                </div>
-                <div className="mb-5">
-                  {billingPeriod === "yearly" && (
-                    <p className="text-sm font-medium text-slate-400 line-through mb-0.5">
-                      {billingService.formatPrice(
-                        PRICING_CONFIG.starter.monthlyPrice,
-                      )}
-                    </p>
-                  )}
-                  <p className="text-3xl font-black text-slate-900 dark:text-white">
-                    {billingPeriod === "monthly"
-                      ? billingService.formatPrice(
-                          PRICING_CONFIG.starter.monthlyPrice,
-                        )
-                      : billingService.formatPrice(
-                          Math.round(PRICING_CONFIG.starter.yearlyPrice / 12),
-                        )}
-                    <span className="text-xs font-medium text-slate-400 ml-1">
-                      /m
-                    </span>
-                  </p>
-                </div>
-                <ul className="space-y-2 mb-6 flex-1">
-                  <li className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-                    <Check className="w-3.5 h-3.5 text-sky-500" />
-                    Neomezené projekty
-                  </li>
-                  <li className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-                    <Check className="w-3.5 h-3.5 text-sky-500" />
-                    Excel Unlocker
-                  </li>
-                </ul>
-                {subscription.effectiveTier !== "starter" && (
-                  <button
-                    onClick={() => handleUpgradeRequest("starter")}
-                    disabled={actionLoading}
-                    className={`w-full py-2 rounded-xl text-xs font-bold transition-all disabled:opacity-50 ${
-                      subscription.effectiveTier === "free"
-                        ? "bg-sky-500 hover:bg-sky-600 text-white shadow-sm shadow-sky-500/20"
-                        : "border border-sky-400 text-sky-600 dark:text-sky-400 hover:bg-sky-500/10"
-                    }`}
-                  >
-                    {subscription.effectiveTier === "free"
-                      ? "Vybrat Starter"
-                      : "Downgrade"}
-                  </button>
-                )}
-              </div>
-
-              {/* Pro Plan */}
-              <div
-                className={`border rounded-2xl p-6 transition-all flex flex-col relative ${
-                  subscription.effectiveTier === "pro"
-                    ? "border-orange-500 bg-orange-500/5 ring-1 ring-orange-500 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 shadow-lg"
-                    : "border-orange-100 dark:border-orange-900/30 bg-white dark:bg-slate-900 hover:border-orange-200 dark:hover:border-orange-800 shadow-sm"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-1.5">
-                    <Zap className="w-4 h-4 text-orange-500 fill-current" />
-                    <span className="text-xs font-black text-orange-600 dark:text-orange-400 font-mono uppercase tracking-widest">
-                      PRO
-                    </span>
-                  </div>
-                  {subscription.effectiveTier === "pro" && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-orange-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-tighter shadow-lg ring-2 ring-white dark:ring-slate-900 whitespace-nowrap">
-                      AKTIVNÍ
-                    </span>
-                  )}
-                </div>
-                <div className="mb-5">
-                  {billingPeriod === "yearly" && (
-                    <p className="text-sm font-medium text-slate-400 line-through mb-0.5">
-                      {billingService.formatPrice(
-                        PRICING_CONFIG.pro.monthlyPrice,
-                      )}
-                    </p>
-                  )}
-                  <p className="text-3xl font-black text-slate-900 dark:text-white">
-                    {billingPeriod === "monthly"
-                      ? billingService.formatPrice(
-                          PRICING_CONFIG.pro.monthlyPrice,
-                        )
-                      : billingService.formatPrice(
-                          Math.round(PRICING_CONFIG.pro.yearlyPrice / 12),
-                        )}
-                    <span className="text-xs font-medium text-slate-400 ml-1">
-                      /m
-                    </span>
-                  </p>
-                </div>
-                <ul className="space-y-2 mb-6 flex-1 text-xs text-slate-600 dark:text-slate-400">
-                  <li className="flex items-center gap-2">
-                    <Check className="w-3.5 h-3.5 text-orange-500" />
-                    AI nástroje & analýzy
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="w-3.5 h-3.5 text-orange-500" />
-                    Excel nástroje PRO
-                  </li>
-                </ul>
-                {subscription.effectiveTier !== "pro" && (
-                  <button
-                    onClick={() => handleUpgradeRequest("pro")}
-                    disabled={actionLoading}
-                    className={`w-full py-2 rounded-xl text-xs font-bold transition-all disabled:opacity-50 ${
-                      subscription.effectiveTier === "free" ||
-                      subscription.effectiveTier === "starter"
-                        ? "bg-orange-500 hover:bg-orange-600 text-white shadow-sm shadow-orange-500/20"
-                        : "border border-orange-400 text-orange-600 dark:text-orange-400 hover:bg-orange-500/10"
-                    }`}
-                  >
-                    {subscription.effectiveTier === "free" ||
-                    subscription.effectiveTier === "starter"
-                      ? "Vybrat Pro"
-                      : "Downgrade"}
-                  </button>
-                )}
-              </div>
-
-              {/* Enterprise Plan */}
-              <div
-                className={`border rounded-2xl p-6 transition-all flex flex-col relative ${
-                  subscription.effectiveTier === "enterprise"
-                    ? "border-emerald-500 bg-emerald-500/5 ring-1 ring-emerald-500 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 shadow-lg"
-                    : "border-emerald-100 dark:border-emerald-900/30 bg-white dark:bg-slate-900 hover:border-emerald-200 dark:hover:border-emerald-800 shadow-sm"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-1.5">
-                    <Shield className="w-4 h-4 text-emerald-600 fill-current" />
-                    <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 font-mono uppercase tracking-widest">
-                      ENTERPRISE
-                    </span>
-                  </div>
-                  {subscription.effectiveTier === "enterprise" && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-tighter shadow-lg ring-2 ring-white dark:ring-slate-900 whitespace-nowrap">
-                      AKTIVNÍ
-                    </span>
-                  )}
-                </div>
-                <div className="mb-5">
-                  <p className="text-3xl font-black text-slate-900 dark:text-white">
-                    Na míru
-                  </p>
-                </div>
-                <ul className="space-y-2 mb-6 flex-1 text-xs text-slate-600 dark:text-slate-400">
-                  <li className="flex items-center gap-2">
-                    <Check className="w-3.5 h-3.5 text-emerald-600" />
-                    On-premise nasazení
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="w-3.5 h-3.5 text-emerald-600" />
-                    Prioritní podpora
-                  </li>
-                </ul>
-                {subscription.effectiveTier !== "enterprise" && (
-                  <button
-                    onClick={() => handleUpgradeRequest("enterprise")}
-                    disabled={actionLoading}
-                    className="w-full py-2 border border-emerald-500 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 rounded-xl text-xs font-bold transition-all disabled:opacity-50"
-                  >
-                    Kontaktovat
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <p className="mt-5 text-[10px] text-slate-400 dark:text-slate-500 text-center">
-              Bezpečné platby přes Stripe. Nevyužité období je automaticky
-              přepočítáno.
-            </p>
           </div>
-        )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-4 gap-6">
+            {/* Free Plan */}
+            <div
+              className={`border rounded-2xl p-6 transition-all flex flex-col relative ${
+                subscription.effectiveTier === "free"
+                  ? "border-slate-400 bg-slate-400/5 ring-1 ring-slate-400 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 shadow-lg"
+                  : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-black text-slate-500 dark:text-slate-400 font-mono uppercase tracking-widest">
+                  Free
+                </span>
+                {subscription.effectiveTier === "free" && (
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-slate-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-tighter shadow-lg ring-2 ring-white dark:ring-slate-900 whitespace-nowrap">
+                    AKTIVNÍ
+                  </span>
+                )}
+              </div>
+              <div className="mb-5">
+                <p className="text-3xl font-black text-slate-900 dark:text-white">
+                  Zdarma
+                </p>
+              </div>
+              <ul className="space-y-2 mb-6 flex-1">
+                <li className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+                  <Check className="w-3.5 h-3.5 text-emerald-500" />
+                  Základní funkce
+                </li>
+                <li className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+                  <Check className="w-3.5 h-3.5 text-emerald-500" />1 aktivní
+                  projekt
+                </li>
+              </ul>
+              {subscription.effectiveTier !== "free" && (
+                <button
+                  onClick={async () => {
+                    setActionLoading(true);
+                    try {
+                      const result =
+                        await billingService.createBillingPortalSession({
+                          returnUrl:
+                            window.location.origin +
+                            "/app/settings?tab=user&subTab=subscription",
+                        });
+                      if (result.success && result.portalUrl) {
+                        window.location.href = result.portalUrl;
+                      }
+                    } finally {
+                      setActionLoading(false);
+                    }
+                  }}
+                  disabled={actionLoading}
+                  className="w-full py-2 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl text-xs font-bold transition-all disabled:opacity-50"
+                >
+                  Downgrade
+                </button>
+              )}
+            </div>
+
+            {/* Starter Plan */}
+            <div
+              className={`border rounded-2xl p-6 transition-all flex flex-col relative ${
+                subscription.effectiveTier === "starter"
+                  ? "border-sky-500 bg-sky-500/5 ring-1 ring-sky-500 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 shadow-lg"
+                  : "border-sky-100 dark:border-sky-900/30 bg-white dark:bg-slate-900 hover:border-sky-200 dark:hover:border-sky-800 shadow-sm"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-1.5">
+                  <Zap className="w-4 h-4 text-sky-500 fill-current" />
+                  <span className="text-xs font-black text-sky-600 dark:text-sky-400 font-mono uppercase tracking-widest">
+                    Starter
+                  </span>
+                </div>
+                {subscription.effectiveTier === "starter" && (
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-sky-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-tighter shadow-lg ring-2 ring-white dark:ring-slate-900 whitespace-nowrap">
+                    AKTIVNÍ
+                  </span>
+                )}
+              </div>
+              <div className="mb-5">
+                {billingPeriod === "yearly" && (
+                  <p className="text-sm font-medium text-slate-400 line-through mb-0.5">
+                    {billingService.formatPrice(
+                      PRICING_CONFIG.starter.monthlyPrice,
+                    )}
+                  </p>
+                )}
+                <p className="text-3xl font-black text-slate-900 dark:text-white">
+                  {billingPeriod === "monthly"
+                    ? billingService.formatPrice(
+                        PRICING_CONFIG.starter.monthlyPrice,
+                      )
+                    : billingService.formatPrice(
+                        Math.round(PRICING_CONFIG.starter.yearlyPrice / 12),
+                      )}
+                  <span className="text-xs font-medium text-slate-400 ml-1">
+                    /m
+                  </span>
+                </p>
+              </div>
+              <ul className="space-y-2 mb-6 flex-1">
+                <li className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+                  <Check className="w-3.5 h-3.5 text-sky-500" />
+                  Neomezené projekty
+                </li>
+                <li className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+                  <Check className="w-3.5 h-3.5 text-sky-500" />
+                  Excel Unlocker
+                </li>
+              </ul>
+              {subscription.effectiveTier !== "starter" && (
+                <button
+                  onClick={() => handleUpgradeRequest("starter")}
+                  disabled={actionLoading}
+                  className={`w-full py-2 rounded-xl text-xs font-bold transition-all disabled:opacity-50 ${
+                    subscription.effectiveTier === "free"
+                      ? "bg-sky-500 hover:bg-sky-600 text-white shadow-sm shadow-sky-500/20"
+                      : "border border-sky-400 text-sky-600 dark:text-sky-400 hover:bg-sky-500/10"
+                  }`}
+                >
+                  {subscription.effectiveTier === "free"
+                    ? "Vybrat Starter"
+                    : "Downgrade"}
+                </button>
+              )}
+            </div>
+
+            {/* Pro Plan */}
+            <div
+              className={`border rounded-2xl p-6 transition-all flex flex-col relative ${
+                subscription.effectiveTier === "pro"
+                  ? "border-orange-500 bg-orange-500/5 ring-1 ring-orange-500 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 shadow-lg"
+                  : "border-orange-100 dark:border-orange-900/30 bg-white dark:bg-slate-900 hover:border-orange-200 dark:hover:border-orange-800 shadow-sm"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-1.5">
+                  <Zap className="w-4 h-4 text-orange-500 fill-current" />
+                  <span className="text-xs font-black text-orange-600 dark:text-orange-400 font-mono uppercase tracking-widest">
+                    PRO
+                  </span>
+                </div>
+                {subscription.effectiveTier === "pro" && (
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-orange-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-tighter shadow-lg ring-2 ring-white dark:ring-slate-900 whitespace-nowrap">
+                    AKTIVNÍ
+                  </span>
+                )}
+              </div>
+              <div className="mb-5">
+                {billingPeriod === "yearly" && (
+                  <p className="text-sm font-medium text-slate-400 line-through mb-0.5">
+                    {billingService.formatPrice(
+                      PRICING_CONFIG.pro.monthlyPrice,
+                    )}
+                  </p>
+                )}
+                <p className="text-3xl font-black text-slate-900 dark:text-white">
+                  {billingPeriod === "monthly"
+                    ? billingService.formatPrice(
+                        PRICING_CONFIG.pro.monthlyPrice,
+                      )
+                    : billingService.formatPrice(
+                        Math.round(PRICING_CONFIG.pro.yearlyPrice / 12),
+                      )}
+                  <span className="text-xs font-medium text-slate-400 ml-1">
+                    /m
+                  </span>
+                </p>
+              </div>
+              <ul className="space-y-2 mb-6 flex-1 text-xs text-slate-600 dark:text-slate-400">
+                <li className="flex items-center gap-2">
+                  <Check className="w-3.5 h-3.5 text-orange-500" />
+                  AI nástroje & analýzy
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-3.5 h-3.5 text-orange-500" />
+                  Excel nástroje PRO
+                </li>
+              </ul>
+              {subscription.effectiveTier !== "pro" && (
+                <button
+                  onClick={() => handleUpgradeRequest("pro")}
+                  disabled={actionLoading}
+                  className={`w-full py-2 rounded-xl text-xs font-bold transition-all disabled:opacity-50 ${
+                    subscription.effectiveTier === "free" ||
+                    subscription.effectiveTier === "starter"
+                      ? "bg-orange-500 hover:bg-orange-600 text-white shadow-sm shadow-orange-500/20"
+                      : "border border-orange-400 text-orange-600 dark:text-orange-400 hover:bg-orange-500/10"
+                  }`}
+                >
+                  {subscription.effectiveTier === "free" ||
+                  subscription.effectiveTier === "starter"
+                    ? "Vybrat Pro"
+                    : "Downgrade"}
+                </button>
+              )}
+            </div>
+
+            {/* Enterprise Plan */}
+            <div
+              className={`border rounded-2xl p-6 transition-all flex flex-col relative ${
+                subscription.effectiveTier === "enterprise"
+                  ? "border-emerald-500 bg-emerald-500/5 ring-1 ring-emerald-500 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 shadow-lg"
+                  : "border-emerald-100 dark:border-emerald-900/30 bg-white dark:bg-slate-900 hover:border-emerald-200 dark:hover:border-emerald-800 shadow-sm"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-1.5">
+                  <Shield className="w-4 h-4 text-emerald-600 fill-current" />
+                  <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 font-mono uppercase tracking-widest">
+                    ENTERPRISE
+                  </span>
+                </div>
+                {subscription.effectiveTier === "enterprise" && (
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-tighter shadow-lg ring-2 ring-white dark:ring-slate-900 whitespace-nowrap">
+                    AKTIVNÍ
+                  </span>
+                )}
+              </div>
+              <div className="mb-5">
+                <p className="text-3xl font-black text-slate-900 dark:text-white">
+                  Na míru
+                </p>
+              </div>
+              <ul className="space-y-2 mb-6 flex-1 text-xs text-slate-600 dark:text-slate-400">
+                <li className="flex items-center gap-2">
+                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  On-premise nasazení
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  Prioritní podpora
+                </li>
+              </ul>
+              {subscription.effectiveTier !== "enterprise" && (
+                <button
+                  onClick={() => handleUpgradeRequest("enterprise")}
+                  disabled={actionLoading}
+                  className="w-full py-2 border border-emerald-500 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 rounded-xl text-xs font-bold transition-all disabled:opacity-50"
+                >
+                  Kontaktovat
+                </button>
+              )}
+            </div>
+          </div>
+
+          <p className="mt-5 text-[10px] text-slate-400 dark:text-slate-500 text-center">
+            Bezpečné platby přes Stripe. Nevyužité období je automaticky
+            přepočítáno.
+          </p>
+        </div>
+      )}
     </section>
   );
 };

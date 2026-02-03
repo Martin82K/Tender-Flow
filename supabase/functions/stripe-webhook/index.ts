@@ -42,8 +42,10 @@ async function updateUserSubscription(
 ) {
     const supabase = createServiceClient();
 
+    // NOTE: We update stripe_subscription_tier, NOT subscription_tier_override
+    // subscription_tier_override is for admin-set values only
     const updateData: Record<string, unknown> = {
-        subscription_tier_override: tier,
+        stripe_subscription_tier: tier,
         subscription_status: status,
         subscription_cancel_at_period_end: status === 'cancelled', // Explicitly set based on status
         subscription_expires_at: expiresAt ? expiresAt.toISOString() : null,
