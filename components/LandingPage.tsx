@@ -53,8 +53,12 @@ const Feature: React.FC<{
     <div className="feature-icon-wrapper w-11 h-11 rounded-xl bg-orange-500/15 border border-orange-500/30 flex items-center justify-center text-orange-400 transition-all duration-500 group-hover:scale-110 group-hover:rotate-3 group-hover:shadow-lg group-hover:shadow-orange-500/30">
       {icon}
     </div>
-    <h3 className="mt-4 text-white font-semibold transition-colors duration-300 group-hover:text-orange-200">{title}</h3>
-    <p className="mt-2 text-sm text-white/60 leading-relaxed transition-colors duration-300 group-hover:text-white/80">{text}</p>
+    <h3 className="mt-4 text-white font-semibold transition-colors duration-300 group-hover:text-orange-200">
+      {title}
+    </h3>
+    <p className="mt-2 text-sm text-white/60 leading-relaxed transition-colors duration-300 group-hover:text-white/80">
+      {text}
+    </p>
   </div>
 );
 
@@ -64,7 +68,9 @@ export const LandingPage: React.FC = () => {
   const [activePricingPlan, setActivePricingPlan] =
     useState<string>("Professional");
   const [activeDemoTab, setActiveDemoTab] = useState<string>("prehled");
-  const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly");
+  const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">(
+    "monthly",
+  );
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   const handleDemo = () => {
@@ -78,7 +84,7 @@ export const LandingPage: React.FC = () => {
     const el = document.getElementById(id);
     if (!el) return;
     requestAnimationFrame(() =>
-      el.scrollIntoView({ behavior: "smooth", block: "start" })
+      el.scrollIntoView({ behavior: "smooth", block: "start" }),
     );
   }, [hash]);
 
@@ -134,7 +140,10 @@ export const LandingPage: React.FC = () => {
             <ScrollReveal delay={400}>
               <div className="mt-8 flex flex-wrap gap-3">
                 {[
-                  { icon: <LayoutDashboard size={14} />, text: "Kanban poptávek" },
+                  {
+                    icon: <LayoutDashboard size={14} />,
+                    text: "Kanban poptávek",
+                  },
                   { icon: <Mail size={14} />, text: "Hromadné rozesílky" },
                   { icon: <FileText size={14} />, text: "Reporty" },
                   { icon: <Users size={14} />, text: "Adresář kontaktů" },
@@ -148,7 +157,9 @@ export const LandingPage: React.FC = () => {
                     <span className="text-orange-400 group-hover:text-orange-300 transition-colors duration-300">
                       {item.icon}
                     </span>
-                    <span className="text-sm text-white/70 group-hover:text-orange-200">{item.text}</span>
+                    <span className="text-sm text-white/70 group-hover:text-orange-200">
+                      {item.text}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -166,7 +177,8 @@ export const LandingPage: React.FC = () => {
                         Čas je mnohdy to nejdražší
                       </div>
                       <div className="text-white/50 text-sm mt-1 leading-relaxed">
-                        Mnoholeté zkušenosti nás přivádějí ke snížení repetitivních úkonů. Tohle je náš způsob, jak to změnit.
+                        Mnoholeté zkušenosti nás přivádějí ke snížení
+                        repetitivních úkonů. Tohle je náš způsob, jak to změnit.
                       </div>
                     </div>
                   </div>
@@ -226,10 +238,11 @@ export const LandingPage: React.FC = () => {
                         key={tab.id}
                         type="button"
                         onClick={() => setActiveDemoTab(tab.id)}
-                        className={`px-3 py-2 rounded-lg text-xs font-medium transition-all duration-300 flex items-center gap-1.5 magnetic-btn ${activeDemoTab === tab.id
-                          ? "bg-orange-500 text-white shadow-lg shadow-orange-500/30"
-                          : "text-white/60 hover:text-white hover:bg-white/5 hover:scale-105"
-                          }`}
+                        className={`px-3 py-2 rounded-lg text-xs font-medium transition-all duration-300 flex items-center gap-1.5 magnetic-btn ${
+                          activeDemoTab === tab.id
+                            ? "bg-orange-500 text-white shadow-lg shadow-orange-500/30"
+                            : "text-white/60 hover:text-white hover:bg-white/5 hover:scale-105"
+                        }`}
                       >
                         <span className="material-symbols-outlined text-[16px] transition-transform duration-300">
                           {tab.icon}
@@ -432,7 +445,8 @@ export const LandingPage: React.FC = () => {
                 Vše, co potřebujete <GradientText>na jednom místě</GradientText>
               </h2>
               <p className="mt-3 text-white/60 max-w-2xl mx-auto">
-                Kompletní řešení pro správu výběrových řízení od plánování po vyhodnocení
+                Kompletní řešení pro správu výběrových řízení od plánování po
+                vyhodnocení
               </p>
             </div>
           </ScrollReveal>
@@ -444,24 +458,37 @@ export const LandingPage: React.FC = () => {
                 <div className="w-10 h-10 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:bg-orange-500/30">
                   <LayoutDashboard size={24} />
                 </div>
-                <h3 className="mt-4 text-white font-semibold group-hover:text-orange-200 transition-colors duration-300">Dashboard a přehledy</h3>
-                <p className="mt-2 text-white/60 text-sm leading-relaxed group-hover:text-white/70 transition-colors duration-300">Aktuální stav zakázek, pipeline a rychlé akce bez zbytečného hledání.</p>
+                <h3 className="mt-4 text-white font-semibold group-hover:text-orange-200 transition-colors duration-300">
+                  Dashboard a přehledy
+                </h3>
+                <p className="mt-2 text-white/60 text-sm leading-relaxed group-hover:text-white/70 transition-colors duration-300">
+                  Aktuální stav zakázek, pipeline a rychlé akce bez zbytečného
+                  hledání.
+                </p>
               </div>
 
               <div className="group relative rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-500/10 to-gray-950/40 backdrop-blur p-6 transition-all duration-500 hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-500/10 hover:border-blue-500/40">
                 <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:bg-blue-500/30">
                   <FileText size={24} />
                 </div>
-                <h3 className="mt-4 text-white font-semibold group-hover:text-blue-200 transition-colors duration-300">Dokumenty</h3>
-                <p className="mt-2 text-white/60 text-sm leading-relaxed group-hover:text-white/70 transition-colors duration-300">Nabídky, podklady a exporty na jednom místě.</p>
+                <h3 className="mt-4 text-white font-semibold group-hover:text-blue-200 transition-colors duration-300">
+                  Dokumenty
+                </h3>
+                <p className="mt-2 text-white/60 text-sm leading-relaxed group-hover:text-white/70 transition-colors duration-300">
+                  Nabídky, podklady a exporty na jednom místě.
+                </p>
               </div>
 
               <div className="group relative rounded-2xl border border-purple-500/20 bg-gradient-to-br from-purple-500/10 to-gray-950/40 backdrop-blur p-6 transition-all duration-500 hover:-translate-y-1 hover:shadow-xl hover:shadow-purple-500/10 hover:border-purple-500/40">
                 <div className="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:bg-purple-500/30">
                   <Users size={24} />
                 </div>
-                <h3 className="mt-4 text-white font-semibold group-hover:text-purple-200 transition-colors duration-300">Kontakty</h3>
-                <p className="mt-2 text-white/60 text-sm leading-relaxed group-hover:text-white/70 transition-colors duration-300">Historie spolupráce a rychlý výběr.</p>
+                <h3 className="mt-4 text-white font-semibold group-hover:text-purple-200 transition-colors duration-300">
+                  Kontakty
+                </h3>
+                <p className="mt-2 text-white/60 text-sm leading-relaxed group-hover:text-white/70 transition-colors duration-300">
+                  Historie spolupráce a rychlý výběr.
+                </p>
               </div>
 
               {/* Row 2 */}
@@ -469,24 +496,37 @@ export const LandingPage: React.FC = () => {
                 <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:bg-emerald-500/30">
                   <ShieldCheck size={24} />
                 </div>
-                <h3 className="mt-4 text-white font-semibold group-hover:text-emerald-200 transition-colors duration-300">Bezpečnost</h3>
-                <p className="mt-2 text-white/60 text-sm leading-relaxed group-hover:text-white/70 transition-colors duration-300">Přístupová práva podle firmy.</p>
+                <h3 className="mt-4 text-white font-semibold group-hover:text-emerald-200 transition-colors duration-300">
+                  Bezpečnost
+                </h3>
+                <p className="mt-2 text-white/60 text-sm leading-relaxed group-hover:text-white/70 transition-colors duration-300">
+                  Přístupová práva podle firmy.
+                </p>
               </div>
 
               <div className="md:col-span-2 group relative rounded-2xl border border-orange-500/20 bg-gradient-to-br from-orange-500/10 to-gray-950/40 backdrop-blur p-6 transition-all duration-500 hover:-translate-y-1 hover:shadow-xl hover:shadow-orange-500/10 hover:border-orange-500/40">
                 <div className="w-10 h-10 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:bg-orange-500/30">
                   <Sparkles size={24} />
                 </div>
-                <h3 className="mt-4 text-white font-semibold group-hover:text-orange-200 transition-colors duration-300">Harmonogram</h3>
-                <p className="mt-2 text-white/60 text-sm leading-relaxed group-hover:text-white/70 transition-colors duration-300">Generuje se sám na základě dat v plánu výběrů subdodavatelů. Základ snadno upravujete.</p>
+                <h3 className="mt-4 text-white font-semibold group-hover:text-orange-200 transition-colors duration-300">
+                  Harmonogram
+                </h3>
+                <p className="mt-2 text-white/60 text-sm leading-relaxed group-hover:text-white/70 transition-colors duration-300">
+                  Generuje se sám na základě dat v plánu výběrů subdodavatelů.
+                  Základ snadno upravujete.
+                </p>
               </div>
 
               <div className="group relative rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-500/10 to-gray-950/40 backdrop-blur p-6 transition-all duration-500 hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-500/10 hover:border-blue-500/40">
                 <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:bg-blue-500/30">
                   <Settings size={24} />
                 </div>
-                <h3 className="mt-4 text-white font-semibold group-hover:text-blue-200 transition-colors duration-300">Nástroje</h3>
-                <p className="mt-2 text-white/60 text-sm leading-relaxed group-hover:text-white/70 transition-colors duration-300">Excel nástroje pro rychlejší práci.</p>
+                <h3 className="mt-4 text-white font-semibold group-hover:text-blue-200 transition-colors duration-300">
+                  Nástroje
+                </h3>
+                <p className="mt-2 text-white/60 text-sm leading-relaxed group-hover:text-white/70 transition-colors duration-300">
+                  Excel nástroje pro rychlejší práci.
+                </p>
               </div>
 
               {/* Row 3 */}
@@ -494,8 +534,13 @@ export const LandingPage: React.FC = () => {
                 <div className="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:bg-purple-500/30">
                   <ScanText size={24} />
                 </div>
-                <h3 className="mt-4 text-white font-semibold group-hover:text-purple-200 transition-colors duration-300">OCR dokumenty</h3>
-                <p className="mt-2 text-white/60 text-sm leading-relaxed group-hover:text-white/70 transition-colors duration-300">Vytěžování dokumentů pomocí technologie OCR a AI pro další zpracování.</p>
+                <h3 className="mt-4 text-white font-semibold group-hover:text-purple-200 transition-colors duration-300">
+                  OCR dokumenty
+                </h3>
+                <p className="mt-2 text-white/60 text-sm leading-relaxed group-hover:text-white/70 transition-colors duration-300">
+                  Vytěžování dokumentů pomocí technologie OCR a AI pro další
+                  zpracování.
+                </p>
               </div>
 
               <div className="md:col-span-2 group relative rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-gray-950/40 backdrop-blur p-6 transition-all duration-500 hover:-translate-y-1 hover:shadow-xl hover:border-white/20">
@@ -503,8 +548,12 @@ export const LandingPage: React.FC = () => {
                   <div className="w-12 h-12 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center mb-3">
                     <Check size={24} />
                   </div>
-                  <h3 className="text-white font-semibold">A mnoho dalšího...</h3>
-                  <p className="mt-1 text-white/50 text-sm">Objevte všechny funkce v demo verzi</p>
+                  <h3 className="text-white font-semibold">
+                    A mnoho dalšího...
+                  </h3>
+                  <p className="mt-1 text-white/50 text-sm">
+                    Objevte všechny funkce v demo verzi
+                  </p>
                 </div>
               </div>
             </div>
@@ -519,20 +568,22 @@ export const LandingPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setBillingPeriod("monthly")}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 magnetic-btn ${billingPeriod === "monthly"
-                    ? "bg-orange-500 text-white shadow-lg shadow-orange-500/30"
-                    : "text-white/60 hover:text-white hover:bg-white/5"
-                    }`}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 magnetic-btn ${
+                    billingPeriod === "monthly"
+                      ? "bg-orange-500 text-white shadow-lg shadow-orange-500/30"
+                      : "text-white/60 hover:text-white hover:bg-white/5"
+                  }`}
                 >
                   Měsíčně
                 </button>
                 <button
                   type="button"
                   onClick={() => setBillingPeriod("yearly")}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 magnetic-btn flex items-center gap-2 ${billingPeriod === "yearly"
-                    ? "bg-orange-500 text-white shadow-lg shadow-orange-500/30"
-                    : "text-white/60 hover:text-white hover:bg-white/5"
-                    }`}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 magnetic-btn flex items-center gap-2 ${
+                    billingPeriod === "yearly"
+                      ? "bg-orange-500 text-white shadow-lg shadow-orange-500/30"
+                      : "text-white/60 hover:text-white hover:bg-white/5"
+                  }`}
                 >
                   Ročně
                   <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 animate-pulse">
@@ -634,7 +685,9 @@ export const LandingPage: React.FC = () => {
                     onFocus={() => setActivePricingPlan(p.title)}
                   >
                     <div className="flex items-start justify-between gap-4">
-                      <div className="text-white font-semibold group-hover:text-orange-100 transition-colors duration-300">{p.title}</div>
+                      <div className="text-white font-semibold group-hover:text-orange-100 transition-colors duration-300">
+                        {p.title}
+                      </div>
                       <div className="flex items-center gap-2">
                         {p.trial && (
                           <div className="shrink-0 text-[11px] rounded-full px-3 py-1 border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 group-hover:bg-emerald-500/20 transition-all duration-300">
@@ -648,34 +701,38 @@ export const LandingPage: React.FC = () => {
                         )}
                       </div>
                     </div>
-                    <div className="mt-3 flex items-end gap-2">
+                    <div className="mt-5 flex items-end gap-2">
                       {p.monthlyPrice !== null ? (
-                        <>
-                          <div className="text-4xl text-white font-light leading-none">
-                            {billingPeriod === "monthly"
-                              ? `${p.monthlyPrice} Kč`
-                              : `${p.yearlyPrice} Kč`}
+                        <div className="flex flex-col items-start">
+                          {billingPeriod === "yearly" && (
+                            <span className="text-lg font-medium text-slate-500 line-through decoration-slate-500/50 mb-0.5 ml-1">
+                              {p.monthlyPrice} Kč
+                            </span>
+                          )}
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="text-5xl font-black text-white tracking-tighter shadow-orange-500/20 drop-shadow-sm">
+                              {billingPeriod === "monthly"
+                                ? `${p.monthlyPrice} Kč`
+                                : `${Math.round(p.yearlyPrice / 12)} Kč`}
+                            </span>
+                            <span className="text-sm font-bold text-slate-500 uppercase tracking-wider">
+                              /m
+                            </span>
                           </div>
-                          <div className="text-sm text-white/50 pb-1">
-                            {billingPeriod === "monthly"
-                              ? p.priceLabel
-                              : `/rok`}
-                          </div>
-                        </>
+                        </div>
                       ) : (
-                        <>
-                          <div className="text-4xl text-white font-light leading-none">
-                            Na míru
+                        <div className="flex flex-col items-start pt-2">
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="text-4xl font-black text-white tracking-tight">
+                              Na míru
+                            </span>
+                            <span className="text-sm font-medium text-slate-500">
+                              {p.priceLabel}
+                            </span>
                           </div>
-                          <div className="text-sm text-white/50 pb-1">{p.priceLabel}</div>
-                        </>
+                        </div>
                       )}
                     </div>
-                    {billingPeriod === "yearly" && p.monthlyPrice !== null && (
-                      <div className="mt-2 text-xs text-emerald-400">
-                        Ušetříte {p.monthlyPrice * 2} Kč/seat/rok
-                      </div>
-                    )}
 
                     <ul className="mt-6 space-y-2 text-sm text-white/70">
                       {p.items.map((t, idx) => (
@@ -684,7 +741,9 @@ export const LandingPage: React.FC = () => {
                           className="flex items-start gap-2 group-hover:text-white/80 transition-all duration-300"
                           style={{ transitionDelay: `${idx * 50}ms` }}
                         >
-                          <span className="mt-0.5 text-orange-300 group-hover:text-orange-400 group-hover:scale-125 transition-all duration-300">•</span>
+                          <span className="mt-0.5 text-orange-300 group-hover:text-orange-400 group-hover:scale-125 transition-all duration-300">
+                            •
+                          </span>
                           <span>{t}</span>
                         </li>
                       ))}
