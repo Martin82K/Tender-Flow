@@ -98,7 +98,7 @@ export const PRICING_CONFIG = {
         accent: "emerald",
         features: [
             "Vše z Pro",
-            "Desktopová aplikace Tender Flow",
+            "OCR Dokumenty",
             "Automatické aktualizace v aplikaci",
             "Pokročilé integrace",
             "Hodnocení dodavatelů",

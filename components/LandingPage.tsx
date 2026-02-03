@@ -68,6 +68,62 @@ const Feature: React.FC<{
   </div>
 );
 
+interface PricingFeatureListProps {
+  features: string[];
+  colors: {
+    icon: string;
+    [key: string]: string;
+  };
+}
+
+const PricingFeatureList: React.FC<PricingFeatureListProps> = ({
+  features,
+  colors,
+}) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const LIMIT = 6;
+  const validFeatures = features.filter((t) => t && t.trim().length > 0);
+  const shouldTruncate = validFeatures.length > LIMIT;
+
+  const visibleFeatures =
+    shouldTruncate && !isExpanded
+      ? validFeatures.slice(0, LIMIT)
+      : validFeatures;
+
+  return (
+    <div className="mt-4">
+      <ul className="space-y-3 text-sm text-slate-300">
+        {visibleFeatures.map((t, idx) => (
+          <li
+            key={t}
+            className="flex items-start gap-3 group-hover:text-slate-200 transition-colors duration-300"
+            style={{ transitionDelay: `${idx * 50}ms` }}
+          >
+            <Check className={`w-4 h-4 shrink-0 mt-0.5 ${colors.icon}`} />
+            <span>{t}</span>
+          </li>
+        ))}
+      </ul>
+      {shouldTruncate && (
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className={`mt-4 text-xs font-semibold uppercase tracking-wider hover:underline transition-all duration-300 flex items-center gap-1 ${colors.icon}`}
+        >
+          {isExpanded ? (
+            <>
+              Zobrazit méně <ChevronDown className="w-3 h-3 rotate-180" />
+            </>
+          ) : (
+            <>
+              Zobrazit další <ChevronDown className="w-3 h-3" />
+            </>
+          )}
+        </button>
+      )}
+    </div>
+  );
+};
+
 export const LandingPage: React.FC = () => {
   const { hash } = useLocation();
   const { loginAsDemo } = useAuth();
@@ -746,22 +802,7 @@ export const LandingPage: React.FC = () => {
                     {/* Placeholder for spacing stability if needed, or remove */}
                     <div className="h-4"></div>
 
-                    <ul className="mt-4 space-y-3 text-sm text-slate-300">
-                      {p.features
-                        .filter((t: string) => t && t.trim().length > 0)
-                        .map((t: string, idx: number) => (
-                          <li
-                            key={t}
-                            className="flex items-start gap-3 group-hover:text-slate-200 transition-colors duration-300"
-                            style={{ transitionDelay: `${idx * 50}ms` }}
-                          >
-                            <Check
-                              className={`w-4 h-4 shrink-0 mt-0.5 ${colors.icon}`}
-                            />
-                            <span>{t}</span>
-                          </li>
-                        ))}
-                    </ul>
+                    <PricingFeatureList features={p.features} colors={colors} />
 
                     <div className="mt-auto pt-8">
                       {p.cta.isMailto ? (
