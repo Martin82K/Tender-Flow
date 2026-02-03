@@ -1,29 +1,35 @@
 import React, { useEffect, useState } from "react";
 import {
-  ShieldCheck,
-  FileText,
-  Users,
-  LayoutDashboard,
-  Sparkles,
-  Check,
+  ArrowRight,
   Building2,
-  FileSpreadsheet,
   Calendar,
-  FolderOpen,
-  X,
-  Mail,
-  Search,
-  HelpCircle,
-  Cloud,
-  LayoutTemplate,
+  Check,
+  ChevronDown,
   ClipboardList,
-  Zap,
+  Cloud,
+  Download,
+  FileSpreadsheet,
+  FileText,
+  FolderOpen,
   GanttChart,
   GitBranch,
-  Download,
-  Star,
-  Settings,
+  Globe,
+  HelpCircle,
+  Layout,
+  LayoutDashboard,
+  LayoutTemplate,
+  Mail,
+  Play,
   ScanText,
+  Search,
+  Settings,
+  Shield,
+  ShieldCheck,
+  Sparkles,
+  Star,
+  Users,
+  X,
+  Zap,
 } from "lucide-react";
 import { PublicLayout } from "./public/PublicLayout";
 import { PublicHeader } from "./public/PublicHeader";
@@ -594,73 +600,62 @@ export const LandingPage: React.FC = () => {
             </div>
           </ScrollReveal>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[
-              {
-                title: "Starter",
-                monthlyPrice: PRICING_CONFIG.starter.monthlyPrice / 100,
-                yearlyPrice: PRICING_CONFIG.starter.yearlyPrice / 100,
-                priceLabel: "/měsíc",
-                trial: "14 dní zdarma",
-                items: [
-                  "Neomezené projekty",
-                  "Základní přehledy",
-                  "Databáze subdodavatelů",
-                  "Export do Excel",
-                  "Excel Unlocker",
-                ],
-                cta: {
-                  label: "Vyzkoušet 14 dní zdarma",
-                  kind: "link" as const,
-                  to: "/register",
-                },
-              },
-              {
-                title: "Pro",
-                monthlyPrice: PRICING_CONFIG.pro.monthlyPrice / 100,
-                yearlyPrice: PRICING_CONFIG.pro.yearlyPrice / 100,
-                priceLabel: "/měsíc",
-                badge: "Nejvýhodnější",
-                trial: "14 dní zdarma",
-                featured: true,
-                items: [
-                  "Vše ze Starter",
-                  "Dashboard + KPI",
-                  "Plán výběrových řízení",
-                  "AI reporty a analýzy",
-                  "Excel Merger PRO",
-                  "Excel Unlocker PRO",
-                  "Document Hub - složkomat",
-                  "Harmonogram s grafem",
-                ],
-                cta: {
-                  label: "Vyzkoušet 14 dní zdarma",
-                  kind: "link" as const,
-                  to: "/register",
-                },
-              },
-              {
-                title: "Enterprise",
-                monthlyPrice: null,
-                yearlyPrice: null,
-                priceLabel: "individuálně",
-                items: [
-                  "Vše z Pro",
-                  "Možnost in house řešení",
-                  "On‑premise nasazení",
-                  "Vlastní integrace",
-                  "Možnost návrhu funkcí",
-                  "Onboarding asistence",
-                  "Vývoj vlastního modulu API",
-                ],
-                cta: {
-                  label: "Kontaktovat",
-                  kind: "mailto" as const,
-                  to: "mailto:?subject=Enterprise%20Tender%20Flow",
-                },
-              },
-            ].map((p, i) => {
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {Object.values(PRICING_CONFIG).map((p: any, i) => {
               const isActive = activePricingPlan === p.title || !!p.featured;
+
+              // Helper for dynamic classes based on accent color
+              const getAccentClasses = () => {
+                switch (p.accent) {
+                  case "sky":
+                    return {
+                      border: "border-sky-500/20 hover:border-sky-500/40",
+                      bg: "from-sky-500/10",
+                      text: "text-sky-400",
+                      pill: "bg-sky-500/10 text-sky-400 border-sky-500/20",
+                      icon: "text-sky-500",
+                      btn: "bg-sky-500 hover:bg-sky-600 shadow-sky-500/20",
+                      btnText: "text-white",
+                    };
+                  case "orange":
+                    return {
+                      border: "border-orange-500/20 hover:border-orange-500/40",
+                      bg: "from-orange-500/10",
+                      text: "text-orange-400",
+                      pill: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+                      icon: "text-orange-500",
+                      btn: "bg-orange-500 hover:bg-orange-600 shadow-orange-500/20",
+                      btnText: "text-white",
+                    };
+                  case "emerald":
+                    return {
+                      border:
+                        "border-emerald-500/20 hover:border-emerald-500/40",
+                      bg: "from-emerald-500/10",
+                      text: "text-emerald-400",
+                      pill: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+                      icon: "text-emerald-500",
+                      btn: "border border-emerald-500/30 hover:bg-emerald-500/10",
+                      btnText: "text-emerald-400",
+                    };
+                  default:
+                    return {
+                      border: "border-white/10 hover:border-white/20",
+                      bg: "from-white/5",
+                      text: "text-white",
+                      pill: "bg-white/10 text-white",
+                      icon: "text-white",
+                      btn: "bg-white/10 hover:bg-white/20",
+                      btnText: "text-white",
+                    };
+                }
+              };
+
+              const colors = getAccentClasses();
+
+              // Determine price label
+              let priceLabel = "/měsíc";
+              if (p.monthlyPrice === null) priceLabel = "individuálně";
 
               return (
                 <ScrollReveal
@@ -672,48 +667,66 @@ export const LandingPage: React.FC = () => {
                 >
                   <div
                     className={[
-                      "group relative rounded-3xl border backdrop-blur p-8 flex flex-col h-full transition-all duration-300 transform-gpu",
-                      "hover:-translate-y-1 hover:scale-[1.01] active:scale-[0.99]",
+                      "group relative rounded-3xl border backdrop-blur p-8 flex flex-col h-full transition-all duration-300 transform-gpu bg-gray-950/40",
+                      "hover:-translate-y-1 hover:scale-[1.01] active:scale-[0.99] hover:shadow-2xl hover:shadow-black/40",
+                      colors.border,
                       p.featured
-                        ? "bg-gradient-to-br from-orange-500/15 via-gray-950/40 to-transparent"
-                        : "bg-gray-950/40",
-                      isActive
-                        ? "border-orange-500/25 bg-white/[0.06] shadow-2xl shadow-orange-500/10"
-                        : "border-white/10 hover:border-orange-500/20 hover:bg-white/[0.05] hover:shadow-2xl hover:shadow-black/40",
+                        ? "bg-gradient-to-br " +
+                          colors.bg +
+                          " via-gray-950/40 to-transparent"
+                        : "",
                     ].join(" ")}
                     onMouseEnter={() => setActivePricingPlan(p.title)}
                     onFocus={() => setActivePricingPlan(p.title)}
                   >
                     <div className="flex items-start justify-between gap-4">
-                      <div className="text-white font-semibold group-hover:text-orange-100 transition-colors duration-300">
-                        {p.title}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {p.trial && (
-                          <div className="shrink-0 text-[11px] rounded-full px-3 py-1 border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 group-hover:bg-emerald-500/20 transition-all duration-300">
-                            {p.trial}
-                          </div>
+                      {/* Title with Icon */}
+                      <div className="flex items-center gap-3">
+                        {p.accent === "sky" && (
+                          <Zap
+                            className={`w-5 h-5 ${colors.icon} fill-current opacity-80`}
+                          />
                         )}
-                        {p.badge && (
-                          <div className="shrink-0 text-[11px] rounded-full px-3 py-1 border border-orange-500/20 bg-orange-500/10 text-orange-100/90 group-hover:bg-orange-500/20 group-hover:shadow-lg group-hover:shadow-orange-500/20 transition-all duration-300">
-                            {p.badge}
+                        {p.accent === "orange" && (
+                          <Zap
+                            className={`w-5 h-5 ${colors.icon} fill-current opacity-80`}
+                          />
+                        )}
+                        {p.accent === "emerald" && (
+                          <Shield
+                            className={`w-5 h-5 ${colors.icon} fill-current opacity-80`}
+                          />
+                        )}
+                        <div className="text-white font-bold tracking-wide uppercase text-sm">
+                          {p.title}
+                        </div>
+                      </div>
+
+                      {/* Badges */}
+                      <div className="flex items-center gap-2">
+                        {p.trialDurationDays && (
+                          <div
+                            className={`shrink-0 text-[10px] font-bold uppercase tracking-wider rounded-lg px-2 py-1 border ${colors.pill}`}
+                          >
+                            {p.trialDurationDays} dní zdarma
                           </div>
                         )}
                       </div>
                     </div>
-                    <div className="mt-5 flex items-end gap-2">
+
+                    <div className="mt-6 flex items-end gap-2">
                       {p.monthlyPrice !== null ? (
-                        <div className="flex flex-col items-start">
+                        <div className="flex flex-col items-start w-full">
                           {billingPeriod === "yearly" && (
                             <span className="text-lg font-medium text-slate-500 line-through decoration-slate-500/50 mb-0.5 ml-1">
-                              {p.monthlyPrice} Kč
+                              {p.monthlyPrice / 100} Kč
                             </span>
                           )}
                           <div className="flex items-baseline gap-1.5">
-                            <span className="text-5xl font-black text-white tracking-tighter shadow-orange-500/20 drop-shadow-sm">
+                            <span className="text-5xl font-black text-white tracking-tighter">
                               {billingPeriod === "monthly"
-                                ? `${p.monthlyPrice} Kč`
-                                : `${Math.round(p.yearlyPrice / 12)} Kč`}
+                                ? `${p.monthlyPrice / 100} Kč`
+                                : `${Math.round(p.yearlyPrice / 100 / 12)} Kč`}
                             </span>
                             <span className="text-sm font-bold text-slate-500 uppercase tracking-wider">
                               /m
@@ -723,44 +736,45 @@ export const LandingPage: React.FC = () => {
                       ) : (
                         <div className="flex flex-col items-start pt-2">
                           <div className="flex items-baseline gap-1.5">
-                            <span className="text-4xl font-black text-white tracking-tight">
+                            <span className="text-5xl font-black text-white tracking-tight">
                               Na míru
-                            </span>
-                            <span className="text-sm font-medium text-slate-500">
-                              {p.priceLabel}
                             </span>
                           </div>
                         </div>
                       )}
                     </div>
+                    {/* Placeholder for spacing stability if needed, or remove */}
+                    <div className="h-4"></div>
 
-                    <ul className="mt-6 space-y-2 text-sm text-white/70">
-                      {p.items.map((t, idx) => (
-                        <li
-                          key={t}
-                          className="flex items-start gap-2 group-hover:text-white/80 transition-all duration-300"
-                          style={{ transitionDelay: `${idx * 50}ms` }}
-                        >
-                          <span className="mt-0.5 text-orange-300 group-hover:text-orange-400 group-hover:scale-125 transition-all duration-300">
-                            •
-                          </span>
-                          <span>{t}</span>
-                        </li>
-                      ))}
+                    <ul className="mt-4 space-y-3 text-sm text-slate-300">
+                      {p.features
+                        .filter((t: string) => t && t.trim().length > 0)
+                        .map((t: string, idx: number) => (
+                          <li
+                            key={t}
+                            className="flex items-start gap-3 group-hover:text-slate-200 transition-colors duration-300"
+                            style={{ transitionDelay: `${idx * 50}ms` }}
+                          >
+                            <Check
+                              className={`w-4 h-4 shrink-0 mt-0.5 ${colors.icon}`}
+                            />
+                            <span>{t}</span>
+                          </li>
+                        ))}
                     </ul>
 
                     <div className="mt-auto pt-8">
-                      {p.cta.kind === "mailto" ? (
+                      {p.cta.isMailto ? (
                         <a
-                          href={p.cta.to}
-                          className="inline-flex w-full h-12 items-center justify-center px-5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-white/90 transition-colors"
+                          href={p.cta.href}
+                          className={`inline-flex w-full h-12 items-center justify-center px-5 rounded-xl text-sm font-bold transition-all duration-300 ${colors.btn} ${colors.btnText}`}
                         >
                           {p.cta.label}
                         </a>
                       ) : (
                         <Link
-                          to={p.cta.to}
-                          className="inline-flex w-full h-12 items-center justify-center px-5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-medium transition-all shadow-lg shadow-orange-500/15 group-hover:shadow-orange-500/25"
+                          to={p.cta.href}
+                          className={`inline-flex w-full h-12 items-center justify-center px-5 rounded-xl text-sm font-bold transition-all duration-300 shadow-lg ${colors.btn} ${colors.btnText}`}
                         >
                           {p.cta.label}
                         </Link>

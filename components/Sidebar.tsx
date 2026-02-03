@@ -584,7 +584,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     Tender Flow
                   </h1>
                   <p className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-widest leading-tight whitespace-nowrap truncate">
-                    Enterprise Edition
+                    {(() => {
+                      const tier = user?.subscriptionTier || "free";
+                      switch (tier) {
+                        case "pro":
+                          return "PRO Edition";
+                        case "enterprise":
+                        case "admin":
+                          return "ENTERPRISE Edition";
+                        case "starter":
+                          return "STARTER Edition";
+                        default:
+                          return "FREE Edition";
+                      }
+                    })()}
                   </p>
                 </div>
                 {/* Close Toggle for Mobile */}

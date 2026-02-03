@@ -44,22 +44,76 @@ export interface WebhookResult {
 // Pricing configuration (can be moved to environment or database)
 export const PRICING_CONFIG = {
     starter: {
+        title: "Starter",
         monthlyPrice: 39900, // In cents (CZK) = 399 Kč
         yearlyPrice: 383040, // 3830 Kč (20% discount)
         stripePriceIdMonthly: import.meta.env.VITE_STRIPE_PRICE_ID_STARTER_MONTHLY || '',
         stripePriceIdYearly: import.meta.env.VITE_STRIPE_PRICE_ID_STARTER_YEARLY || '',
+        accent: "sky",
+        features: [
+            "Neomezené projekty",
+            "Základní přehledy",
+            "Modul subdodavatelé",
+            "Export do Excel",
+            "Export do PDF",
+            "Excel Unlocker",
+        ],
+        cta: {
+            label: "Zaregistrovat se",
+            href: "/register",
+        },
     },
     pro: {
+        title: "Pro",
         monthlyPrice: 49900, // In cents (CZK) = 499 Kč
         yearlyPrice: 479000, // 4790 Kč (20% discount)
         stripePriceIdMonthly: import.meta.env.VITE_STRIPE_PRICE_ID_PRO_MONTHLY || '',
         stripePriceIdYearly: import.meta.env.VITE_STRIPE_PRICE_ID_PRO_YEARLY || '',
+        accent: "orange",
+        featured: true,
+        trialDurationDays: 14,
+        features: [
+            "Vše ze Starter",
+            "Zaváděcí akce: Desktopová aplikace",
+            "Složkomat - automatizace složek",
+            "Plán výběrových řízení",
+            "Importy VŘ",
+            "Harmonogram měs/týden/den",
+            "Modul Smlouvy",
+            "Excel Merger - spojování listů excelu",
+            "Archivace projektů",
+            "Sdílení projektů"
+        ],
+        cta: {
+            label: "Zaregistrovat se",
+            href: "/register",
+        },
     },
     enterprise: {
+        title: "Enterprise",
         monthlyPrice: null, // Custom pricing
         yearlyPrice: null,
         stripePriceIdMonthly: import.meta.env.VITE_STRIPE_PRICE_ID_ENTERPRISE_MONTHLY || '',
         stripePriceIdYearly: import.meta.env.VITE_STRIPE_PRICE_ID_ENTERPRISE_YEARLY || '',
+        accent: "emerald",
+        features: [
+            "Vše z Pro",
+            "Desktopová aplikace Tender Flow",
+            "Automatické aktualizace v aplikaci",
+            "Pokročilé integrace",
+            "Hodnocení dodavatelů",
+            "Detailní reporty nad daty",
+            "Onboarding asistence",
+            "Excel Indexer - auto tvoření podkladů pro VŘ",
+            "Okamžitý přístup k novinkám",
+            "Možnost vlastního vývoje API napojení",
+            "Vývoj modulů na zakázku"
+        ],
+        cta: {
+            label: "Kontaktovat",
+            href: "mailto:?subject=Enterprise%20Tender%20Flow",
+            isMailto: true,
+        },
     },
 };
 
