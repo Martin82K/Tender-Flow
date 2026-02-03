@@ -29,6 +29,7 @@ export const FEATURES = {
   DOC_HUB: 'doc_hub',
   AI_INSIGHTS: 'ai_insights',
   URL_SHORTENER: 'url_shortener',
+  EXCEL_INDEXER: 'excel_indexer',
 } as const;
 
 export type FeatureKey = typeof FEATURES[keyof typeof FEATURES];
@@ -66,6 +67,7 @@ export const PLANS = {
       FEATURES.EXPORT_EXCEL,
       FEATURES.AI_INSIGHTS,
       FEATURES.URL_SHORTENER,
+      FEATURES.EXCEL_INDEXER,
     ]
   },
   ENTERPRISE: {

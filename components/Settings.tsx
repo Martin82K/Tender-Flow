@@ -2,7 +2,10 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Header } from "./Header";
 import { StatusConfig, Subcontractor } from "../types";
 import { navigate, useLocation } from "./routing/router";
-import { exportContactsToXLSX, exportContactsToCSV } from "../services/exportService";
+import {
+  exportContactsToXLSX,
+  exportContactsToCSV,
+} from "../services/exportService";
 
 // Sub-components
 import { AdminSettings } from "./settings/AdminSettings";
@@ -30,7 +33,7 @@ interface SettingsProps {
   onUpdateStatuses: (statuses: StatusConfig[]) => void;
   onImportContacts: (
     contacts: Subcontractor[],
-    onProgress?: (percent: number) => void
+    onProgress?: (percent: number) => void,
   ) => Promise<void>;
   onDeleteContacts: (ids: string[]) => void;
   contacts: Subcontractor[];
@@ -77,22 +80,22 @@ export const Settings: React.FC<SettingsProps> = ({
     if (tab === "user") {
       subTab =
         subTabParam === "profile" ||
-          subTabParam === "subscription" ||
-          subTabParam === "contacts" ||
-          subTabParam === "excelUnlocker" ||
-          subTabParam === "excelMerger" ||
-          subTabParam === "urlShortener" ||
-          subTabParam === "indexMatcher" ||
-          subTabParam === "excelIndexer" ||
-          subTabParam === "tools" // legacy
+        subTabParam === "subscription" ||
+        subTabParam === "contacts" ||
+        subTabParam === "excelUnlocker" ||
+        subTabParam === "excelMerger" ||
+        subTabParam === "urlShortener" ||
+        subTabParam === "indexMatcher" ||
+        subTabParam === "excelIndexer" ||
+        subTabParam === "tools" // legacy
           ? subTabParam
           : null;
     } else if (tab === "admin") {
       subTab =
         subTabParam === "registration" ||
-          subTabParam === "users" ||
-          subTabParam === "subscriptions" ||
-          subTabParam === "ai"
+        subTabParam === "users" ||
+        subTabParam === "subscriptions" ||
+        subTabParam === "ai"
           ? subTabParam
           : null;
     }
@@ -128,18 +131,18 @@ export const Settings: React.FC<SettingsProps> = ({
         return settingsRoute.subTab;
       }
       return "registration";
-    }
+    },
   );
 
   const updateSettingsUrl = (
     next: { tab: "user" | "admin"; subTab?: UserSubTab | AdminSubTab },
-    opts?: { replace?: boolean }
+    opts?: { replace?: boolean },
   ) => {
     const params = new URLSearchParams();
     params.set("tab", next.tab);
     params.set(
       "subTab",
-      next.subTab || (next.tab === "user" ? "profile" : "registration")
+      next.subTab || (next.tab === "user" ? "profile" : "registration"),
     );
     navigate(`/app/settings?${params.toString()}`, {
       replace: opts?.replace ?? true,
@@ -150,6 +153,7 @@ export const Settings: React.FC<SettingsProps> = ({
   const canExcelUnlocker = hasFeature(FEATURES.EXCEL_UNLOCKER);
   const canExcelMerger = hasFeature(FEATURES.EXCEL_MERGER);
   const canUrlShortener = hasFeature(FEATURES.URL_SHORTENER);
+  const canExcelIndexer = hasFeature(FEATURES.EXCEL_INDEXER);
 
   useEffect(() => {
     if (isFeaturesLoading) return;
@@ -159,7 +163,8 @@ export const Settings: React.FC<SettingsProps> = ({
       (activeUserSubTab === "contacts" && !canContactsImport) ||
       (activeUserSubTab === "excelUnlocker" && !canExcelUnlocker) ||
       (activeUserSubTab === "excelMerger" && !canExcelMerger) ||
-      (activeUserSubTab === "urlShortener" && !canUrlShortener);
+      (activeUserSubTab === "urlShortener" && !canUrlShortener) ||
+      (activeUserSubTab === "excelIndexer" && !canExcelIndexer);
 
     if (!isGated) return;
 
@@ -172,6 +177,7 @@ export const Settings: React.FC<SettingsProps> = ({
     canExcelMerger,
     canExcelUnlocker,
     canUrlShortener,
+    canExcelIndexer,
     isFeaturesLoading,
   ]);
 
@@ -225,10 +231,11 @@ export const Settings: React.FC<SettingsProps> = ({
               setActiveTab("user");
               updateSettingsUrl({ tab: "user", subTab: activeUserSubTab });
             }}
-            className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === "user"
-              ? "border-primary text-primary"
-              : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-              }`}
+            className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${
+              activeTab === "user"
+                ? "border-primary text-primary"
+                : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+            }`}
           >
             Prostředí uživatele
           </button>
@@ -238,10 +245,11 @@ export const Settings: React.FC<SettingsProps> = ({
                 setActiveTab("admin");
                 updateSettingsUrl({ tab: "admin", subTab: activeAdminSubTab });
               }}
-              className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === "admin"
-                ? "border-primary text-primary"
-                : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-                }`}
+              className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${
+                activeTab === "admin"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+              }`}
             >
               Administrace
             </button>
@@ -257,10 +265,11 @@ export const Settings: React.FC<SettingsProps> = ({
                   onClick={() =>
                     updateSettingsUrl({ tab: "admin", subTab: "registration" })
                   }
-                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${activeAdminSubTab === "registration"
-                    ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                    : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                    }`}
+                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                    activeAdminSubTab === "registration"
+                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                  }`}
                 >
                   <div className="flex items-center gap-3">
                     <span className="material-symbols-outlined text-[20px]">
@@ -274,10 +283,11 @@ export const Settings: React.FC<SettingsProps> = ({
                   onClick={() =>
                     updateSettingsUrl({ tab: "admin", subTab: "users" })
                   }
-                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${activeAdminSubTab === "users"
-                    ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                    : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                    }`}
+                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                    activeAdminSubTab === "users"
+                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                  }`}
                 >
                   <div className="flex items-center gap-3">
                     <span className="material-symbols-outlined text-[20px]">
@@ -291,10 +301,11 @@ export const Settings: React.FC<SettingsProps> = ({
                   onClick={() =>
                     updateSettingsUrl({ tab: "admin", subTab: "subscriptions" })
                   }
-                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${activeAdminSubTab === "subscriptions"
-                    ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                    : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                    }`}
+                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                    activeAdminSubTab === "subscriptions"
+                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                  }`}
                 >
                   <div className="flex items-center gap-3">
                     <span className="material-symbols-outlined text-[20px]">
@@ -308,10 +319,11 @@ export const Settings: React.FC<SettingsProps> = ({
                   onClick={() =>
                     updateSettingsUrl({ tab: "admin", subTab: "ai" })
                   }
-                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${activeAdminSubTab === "ai"
-                    ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                    : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                    }`}
+                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                    activeAdminSubTab === "ai"
+                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                  }`}
                 >
                   <div className="flex items-center gap-3">
                     <span className="material-symbols-outlined text-[20px]">
@@ -354,10 +366,11 @@ export const Settings: React.FC<SettingsProps> = ({
                   onClick={() =>
                     updateSettingsUrl({ tab: "user", subTab: "profile" })
                   }
-                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${activeUserSubTab === "profile"
-                    ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                    : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                    }`}
+                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                    activeUserSubTab === "profile"
+                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                  }`}
                 >
                   <div className="flex items-center gap-3">
                     <span className="material-symbols-outlined text-[20px]">
@@ -371,10 +384,11 @@ export const Settings: React.FC<SettingsProps> = ({
                   onClick={() =>
                     updateSettingsUrl({ tab: "user", subTab: "subscription" })
                   }
-                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${activeUserSubTab === "subscription"
-                    ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                    : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                    }`}
+                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                    activeUserSubTab === "subscription"
+                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                  }`}
                 >
                   <div className="flex items-center gap-3">
                     <span className="material-symbols-outlined text-[20px]">
@@ -389,10 +403,11 @@ export const Settings: React.FC<SettingsProps> = ({
                     onClick={() =>
                       updateSettingsUrl({ tab: "user", subTab: "contacts" })
                     }
-                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${activeUserSubTab === "contacts"
-                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                      }`}
+                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                      activeUserSubTab === "contacts"
+                        ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                        : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                    }`}
                   >
                     <div className="flex items-center gap-3">
                       <span className="material-symbols-outlined text-[20px]">
@@ -411,10 +426,11 @@ export const Settings: React.FC<SettingsProps> = ({
                         subTab: "excelUnlocker",
                       })
                     }
-                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${activeUserSubTab === "excelUnlocker"
-                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                      }`}
+                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                      activeUserSubTab === "excelUnlocker"
+                        ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                        : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                    }`}
                   >
                     <div className="flex items-center gap-3">
                       <span className="material-symbols-outlined text-[20px]">
@@ -430,10 +446,11 @@ export const Settings: React.FC<SettingsProps> = ({
                     onClick={() =>
                       updateSettingsUrl({ tab: "user", subTab: "excelMerger" })
                     }
-                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${activeUserSubTab === "excelMerger"
-                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                      }`}
+                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                      activeUserSubTab === "excelMerger"
+                        ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                        : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                    }`}
                   >
                     <div className="flex items-center gap-3">
                       <span className="material-symbols-outlined text-[20px]">
@@ -444,33 +461,37 @@ export const Settings: React.FC<SettingsProps> = ({
                   </button>
                 )}
 
-                <button
-                  onClick={() =>
-                    updateSettingsUrl({ tab: "user", subTab: "excelIndexer" })
-                  }
-                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${activeUserSubTab === "excelIndexer" ||
-                    activeUserSubTab === "indexMatcher"
-                    ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                    : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                {canExcelIndexer && (
+                  <button
+                    onClick={() =>
+                      updateSettingsUrl({ tab: "user", subTab: "excelIndexer" })
+                    }
+                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                      activeUserSubTab === "excelIndexer" ||
+                      activeUserSubTab === "indexMatcher"
+                        ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                        : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
                     }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="material-symbols-outlined text-[20px]">
-                      join_inner
-                    </span>
-                    Excel Indexer
-                  </div>
-                </button>
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="material-symbols-outlined text-[20px]">
+                        join_inner
+                      </span>
+                      Excel Indexer
+                    </div>
+                  </button>
+                )}
 
                 {canUrlShortener && (
                   <button
                     onClick={() =>
                       updateSettingsUrl({ tab: "user", subTab: "urlShortener" })
                     }
-                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${activeUserSubTab === "urlShortener"
-                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                      }`}
+                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                      activeUserSubTab === "urlShortener"
+                        ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                        : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                    }`}
                   >
                     <div className="flex items-center gap-3">
                       <span className="material-symbols-outlined text-[20px]">
@@ -499,9 +520,7 @@ export const Settings: React.FC<SettingsProps> = ({
                 />
               )}
 
-              {activeUserSubTab === "subscription" && (
-                <SubscriptionSettings />
-              )}
+              {activeUserSubTab === "subscription" && <SubscriptionSettings />}
 
               {activeUserSubTab === "contacts" && canContactsImport && (
                 <section className="space-y-6">
@@ -524,25 +543,34 @@ export const Settings: React.FC<SettingsProps> = ({
                   {/* Export Section */}
                   <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50 rounded-xl p-6">
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                      <span className="material-symbols-outlined text-emerald-500">download</span>
+                      <span className="material-symbols-outlined text-emerald-500">
+                        download
+                      </span>
                       Export databáze
                     </h3>
                     <p className="text-sm text-slate-500 mb-6 max-w-2xl">
-                      Stáhněte si kompletní databázi kontaktů ve formátu Excel nebo CSV.
-                      Export obsahuje všechny dodavatele, kontaktní osoby a detaily.
+                      Stáhněte si kompletní databázi kontaktů ve formátu Excel
+                      nebo CSV. Export obsahuje všechny dodavatele, kontaktní
+                      osoby a detaily.
                     </p>
 
                     <div className="flex flex-wrap gap-3">
                       <button
-                        onClick={() => exportContactsToXLSX(contacts, contactStatuses)}
+                        onClick={() =>
+                          exportContactsToXLSX(contacts, contactStatuses)
+                        }
                         className="flex items-center gap-2 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20 rounded-lg font-medium border border-emerald-200 dark:border-emerald-500/20 transition-all hover:shadow-sm"
                       >
-                        <span className="material-symbols-outlined">table_view</span>
+                        <span className="material-symbols-outlined">
+                          table_view
+                        </span>
                         Stáhnout Excel (.xlsx)
                       </button>
 
                       <button
-                        onClick={() => exportContactsToCSV(contacts, contactStatuses)}
+                        onClick={() =>
+                          exportContactsToCSV(contacts, contactStatuses)
+                        }
                         className="flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700/50 rounded-lg font-medium border border-slate-200 dark:border-slate-700 transition-all hover:shadow-sm"
                       >
                         <span className="material-symbols-outlined">csv</span>
@@ -554,7 +582,9 @@ export const Settings: React.FC<SettingsProps> = ({
                   {/* Import Section */}
                   <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50 rounded-xl p-6">
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                      <span className="material-symbols-outlined text-blue-500">upload</span>
+                      <span className="material-symbols-outlined text-blue-500">
+                        upload
+                      </span>
                       Import kontaktů
                     </h3>
                     <ContactsImportWizard
@@ -578,9 +608,8 @@ export const Settings: React.FC<SettingsProps> = ({
               )}
 
               {(activeUserSubTab === "excelIndexer" ||
-                activeUserSubTab === "indexMatcher") && (
-                  <ExcelIndexerSettings />
-                )}
+                activeUserSubTab === "indexMatcher") &&
+                canExcelIndexer && <ExcelIndexerSettings />}
             </main>
           </div>
         )}
