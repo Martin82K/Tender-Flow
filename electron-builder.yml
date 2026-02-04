@@ -8,6 +8,7 @@ directories:
 
 files:
   - desktop/dist/**/*
+  - desktop/node_modules/**/*
   - dist/**/*
   - package.json
 
@@ -16,6 +17,11 @@ extraMetadata:
   type: commonjs
 
 asar: true
+
+# Native modules must be unpacked from ASAR for proper loading
+asarUnpack:
+  - "**/node_modules/win-hello/**"
+  - "**/*.node"
 
 # Auto-update publish configuration
 publish:
