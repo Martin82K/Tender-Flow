@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Subcontractor, StatusConfig } from "../types";
+import { StarRating } from "./ui/StarRating";
 
 interface SubcontractorSelectorProps {
   contacts: Subcontractor[];
@@ -275,6 +276,7 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
                 <th className="px-6 py-2 font-medium">Telefon / Email</th>
                 <th className="px-6 py-2 font-medium">IČO</th>
                 <th className="px-6 py-2 font-medium">Region</th>
+                <th className="px-6 py-2 font-medium">Hodnocení</th>
                 <th className="px-6 py-2 font-medium">Stav</th>
                 <th className="px-6 py-2 font-medium text-right"></th>
               </tr>
@@ -416,6 +418,26 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
                         ? "bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
                         : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"}
                     `}>
+                      {contact.vendorRatingAverage !== undefined && contact.vendorRatingAverage !== null ? (
+                        <div
+                          className="inline-flex items-center gap-2"
+                          title={contact.vendorRatingCount ? `Hodnoceno: ${contact.vendorRatingCount}×` : undefined}
+                        >
+                          <StarRating value={contact.vendorRatingAverage} readOnly size="sm" />
+                          <span className="text-xs text-slate-500">
+                            {contact.vendorRatingAverage.toFixed(1)}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-400">Neohodnoceno</span>
+                      )}
+                    </td>
+                    <td className={`
+                      px-6 py-4 border-y
+                      ${selectedIds.has(contact.id)
+                        ? "bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
+                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"}
+                    `}>
                       <span
                         className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap shadow-sm border border-transparent ${getStatusColorClasses(
                           status.color
@@ -453,7 +475,7 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
               {filteredContacts.length === 0 && (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={10}
                     className="px-6 py-12 text-center"
                   >
                     <div className="flex flex-col items-center justify-center text-slate-400">

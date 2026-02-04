@@ -65,7 +65,7 @@ export const BOTTOM_NAVIGATION: NavItemConfig[] = [
       },
       {
         id: 'project-overview',
-        label: 'Přehled staveb',
+        label: 'Přehledy',
         icon: 'analytics',
         view: 'project-overview',
         feature: FEATURES.FEATURE_ADVANCED_REPORTING,

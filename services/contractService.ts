@@ -26,6 +26,13 @@ const mapContract = (row: Record<string, unknown>): Contract => ({
   documentUrl: row.document_url as string | undefined,
   extractionConfidence: row.extraction_confidence as number | undefined,
   extractionJson: row.extraction_json as Record<string, unknown> | undefined,
+  vendorRating:
+    row.vendor_rating === null || row.vendor_rating === undefined
+      ? null
+      : Number.parseFloat(row.vendor_rating as string),
+  vendorRatingNote: (row.vendor_rating_note as string | null | undefined) ?? null,
+  vendorRatingAt: (row.vendor_rating_at as string | null | undefined) ?? null,
+  vendorRatingBy: (row.vendor_rating_by as string | null | undefined) ?? null,
   createdBy: row.created_by as string | undefined,
   createdAt: row.created_at as string | undefined,
   updatedAt: row.updated_at as string | undefined,
@@ -229,6 +236,10 @@ export const contractService = {
     if (updates.extractionJson !== undefined) dbUpdates.extraction_json = updates.extractionJson;
     if (updates.vendorId !== undefined) dbUpdates.vendor_id = updates.vendorId;
     if (updates.vendorName !== undefined) dbUpdates.vendor_name = updates.vendorName;
+    if (updates.vendorRating !== undefined) dbUpdates.vendor_rating = updates.vendorRating;
+    if (updates.vendorRatingNote !== undefined) dbUpdates.vendor_rating_note = updates.vendorRatingNote;
+    if (updates.vendorRatingAt !== undefined) dbUpdates.vendor_rating_at = updates.vendorRatingAt;
+    if (updates.vendorRatingBy !== undefined) dbUpdates.vendor_rating_by = updates.vendorRatingBy;
 
     if (Object.keys(dbUpdates).length === 0) return;
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from './Header';
+import { StarRating } from './ui/StarRating';
 import { Subcontractor, StatusConfig } from '../types';
 import { findCompanyRegions } from '../services/geminiService';
 import { SubcontractorSelector } from './SubcontractorSelector';
@@ -495,7 +496,23 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
 
                                     {/* Status / Rating */}
                                     <div className="col-span-2 pt-4 border-t border-slate-100 dark:border-slate-800 mt-2">
-                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Hodnocení kontaktu</label>
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Hodnocení dodavatele</label>
+                                        <div className="flex items-center gap-3 mb-4">
+                                            {editingContact?.vendorRatingAverage !== undefined && editingContact?.vendorRatingAverage !== null ? (
+                                                <div
+                                                    className="inline-flex items-center gap-2"
+                                                    title={editingContact.vendorRatingCount ? `Hodnoceno: ${editingContact.vendorRatingCount}×` : undefined}
+                                                >
+                                                    <StarRating value={editingContact.vendorRatingAverage} readOnly size="sm" />
+                                                    <span className="text-xs text-slate-500">
+                                                        {editingContact.vendorRatingAverage.toFixed(1)}
+                                                    </span>
+                                                </div>
+                                            ) : (
+                                                <span className="text-xs text-slate-400">Neohodnoceno</span>
+                                            )}
+                                        </div>
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Stav kontaktu</label>
                                         <div className="flex gap-2">
                                             <select
                                                 value={formData.status || 'available'}
@@ -556,4 +573,3 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
         </div>
     );
 };
-

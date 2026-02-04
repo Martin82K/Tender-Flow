@@ -535,3 +535,22 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
     transform: rotate(360deg);
   }
 }
+
+.print-only {
+  display: none;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+}

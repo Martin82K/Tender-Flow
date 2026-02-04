@@ -41,10 +41,12 @@
 - Platform builds: `npm run desktop:build:mac`, `npm run desktop:build:win`
 - Release prep: `npm run release:prepare`
 - Version bump (syncs `config/version.ts`): `npm run version:patch|minor|major`
+- Supabase function deploys: `npm run deploy:stripe-webhook`, `npm run deploy:stripe-sync`
 
 ## Linting
 - No explicit lint script in `package.json`.
 - Match the surrounding file style; do not introduce formatting-only changes.
+- Do not add Prettier/ESLint config or run formatters unless explicitly requested.
 
 ## Testing (Vitest + Testing Library)
 - Watch mode: `npm test`
@@ -52,6 +54,7 @@
 - Coverage: `npm run test:coverage`
 - Single test file: `npm run test:run -- tests/PriceListsSection.test.tsx`
 - Single test by name: `npm run test:run -- -t "should render header"`
+- Single test by name (watch): `npm test -- -t "should render header"`
 - Prefer behavior-focused tests with Testing Library queries
 
 ## Code Style & Formatting
@@ -65,6 +68,7 @@
 - Keep functions small; extract helpers into `utils/` or `services/` when reused.
 - Use `async/await` for asynchronous flows; avoid promise nesting.
 - Favor early returns to keep conditional logic shallow.
+- Prefer named exports unless the file already uses a default export pattern.
 
 ## Imports & Module Boundaries
 - Import order: external packages → local modules → type-only imports.

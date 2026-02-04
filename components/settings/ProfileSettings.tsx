@@ -13,6 +13,8 @@ import { useUI } from "../../context/UIContext";
 import { useAuth } from "../../context/AuthContext";
 import { BiometricSettings } from "./BiometricSettings";
 import { useElectronUpdater } from "../UpdateNotification";
+import { organizationService } from "../../services/organizationService";
+import { formatOrgRequestStatus } from "../../utils/organizationUtils";
 
 interface ProfileSettingsProps {
   theme: "light" | "dark" | "system";
@@ -40,6 +42,13 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
   const { showAlert, showConfirm } = useUI();
   const queryClient = useQueryClient();
   const { updatePreferences } = useAuth();
+  const [orgStatus, setOrgStatus] = useState<{
+    organization_id: string;
+    organization_name: string;
+    status: string;
+  } | null>(null);
+  const [orgLoading, setOrgLoading] = useState(false);
+  const [orgRequesting, setOrgRequesting] = useState(false);
   // Status Form State
   const [newStatusLabel, setNewStatusLabel] = useState("");
   const [newStatusColor, setNewStatusColor] =
@@ -55,6 +64,47 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
       loadDisplayName();
     }
   }, [user?.id]);
+
+  useEffect(() => {
+    if (user?.email) {
+      loadOrgStatus();
+    }
+  }, [user?.email]);
+
+  const loadOrgStatus = async () => {
+    setOrgLoading(true);
+    try {
+      const data = await organizationService.getMyOrgRequestStatus();
+      setOrgStatus(data);
+    } catch (error) {
+      console.error("Error loading org status:", error);
+    } finally {
+      setOrgLoading(false);
+    }
+  };
+
+  const handleRequestOrgJoin = async () => {
+    if (!user?.email) return;
+    setOrgRequesting(true);
+    try {
+      await organizationService.requestOrgJoinByEmail(user.email);
+      await loadOrgStatus();
+      showAlert({
+        title: "Žádost odeslána",
+        message: "Žádost byla odeslána ke schválení administrátorem.",
+        variant: "success",
+      });
+    } catch (error: any) {
+      console.error("Error requesting org join:", error);
+      showAlert({
+        title: "Chyba",
+        message: error?.message || "Nepodařilo se odeslat žádost.",
+        variant: "danger",
+      });
+    } finally {
+      setOrgRequesting(false);
+    }
+  };
 
   const loadDisplayName = async () => {
     try {
@@ -343,6 +393,34 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                     {user?.role || "user"}
                   </span>
                 </div>
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800/50 space-y-3">
+                <div>
+                  <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    Organizace
+                  </p>
+                  {orgLoading ? (
+                    <p className="text-sm text-slate-500">Načítám stav...</p>
+                  ) : orgStatus ? (
+                    <p className="text-sm text-slate-700 dark:text-slate-300">
+                      {orgStatus.organization_name} · {formatOrgRequestStatus(orgStatus.status)}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-slate-500">Žádná žádost.</p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRequestOrgJoin}
+                  disabled={orgRequesting}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-emerald-600 text-white disabled:opacity-60"
+                >
+                  {orgRequesting ? "Odesílám..." : "Požádat o přidání do organizace"}
+                </button>
+                <p className="text-[11px] text-slate-500">
+                  Žádost bude muset potvrdit správce organizace v administraci.
+                </p>
               </div>
             </div>
           </div>

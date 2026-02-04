@@ -41,6 +41,9 @@ export interface Subcontractor {
   region?: string;
   status: string; // Dynamic ID linking to StatusConfig
 
+  vendorRatingAverage?: number;
+  vendorRatingCount?: number;
+
   // Legacy fields for backward compatibility / migration
   name?: string;
   phone?: string;
@@ -339,6 +342,11 @@ export interface Contract {
   documentUrl?: string;
   extractionConfidence?: number;
   extractionJson?: Record<string, unknown>;
+
+  vendorRating?: number | null;
+  vendorRatingNote?: string | null;
+  vendorRatingAt?: string | null;
+  vendorRatingBy?: string | null;
 
   createdBy?: string;
   createdAt?: string;

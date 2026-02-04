@@ -19,6 +19,7 @@ import { ExcelIndexerSettings } from "./settings/ExcelIndexerSettings";
 import { McpDiagnostics } from "./settings/McpDiagnostics";
 import { AIApiTest } from "./settings/AIApiTest";
 import { SubscriptionSettings } from "./settings/SubscriptionSettings";
+import { OrganizationSettings } from "./settings/OrganizationSettings";
 
 import { useFeatures } from "../context/FeatureContext";
 import { FEATURES } from "../config/features";
@@ -66,7 +67,7 @@ export const Settings: React.FC<SettingsProps> = ({
     | "excelMerger"
     | "urlShortener"
     | "excelIndexer";
-  type AdminSubTab = "registration" | "users" | "subscriptions" | "ai";
+  type AdminSubTab = "registration" | "users" | "subscriptions" | "ai" | "organization";
 
   // -------------------------------------------------------------------------
   // Routing Logic
@@ -95,7 +96,8 @@ export const Settings: React.FC<SettingsProps> = ({
         subTabParam === "registration" ||
         subTabParam === "users" ||
         subTabParam === "subscriptions" ||
-        subTabParam === "ai"
+        subTabParam === "ai" ||
+        subTabParam === "organization"
           ? subTabParam
           : null;
     }
@@ -126,7 +128,8 @@ export const Settings: React.FC<SettingsProps> = ({
       if (
         settingsRoute.subTab === "users" ||
         settingsRoute.subTab === "subscriptions" ||
-        settingsRoute.subTab === "ai"
+        settingsRoute.subTab === "ai" ||
+        settingsRoute.subTab === "organization"
       ) {
         return settingsRoute.subTab;
       }
@@ -299,6 +302,24 @@ export const Settings: React.FC<SettingsProps> = ({
 
                 <button
                   onClick={() =>
+                    updateSettingsUrl({ tab: "admin", subTab: "organization" })
+                  }
+                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                    activeAdminSubTab === "organization"
+                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[20px]">
+                      domain
+                    </span>
+                    Organizace
+                  </div>
+                </button>
+
+                <button
+                  onClick={() =>
                     updateSettingsUrl({ tab: "admin", subTab: "subscriptions" })
                   }
                   className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
@@ -345,6 +366,7 @@ export const Settings: React.FC<SettingsProps> = ({
               {activeAdminSubTab === "subscriptions" && (
                 <AdminSettings isAdmin={isAdmin} section="subscriptions" />
               )}
+              {activeAdminSubTab === "organization" && <OrganizationSettings />}
               {activeAdminSubTab === "ai" && (
                 <>
                   <AISettings isAdmin={isAdmin} />

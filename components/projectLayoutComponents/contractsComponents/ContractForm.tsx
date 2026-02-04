@@ -5,6 +5,8 @@ import {
   ContractSource,
   Subcontractor,
 } from "../../../types";
+import { useAuth } from "../../../context/AuthContext";
+import { StarRating } from "../../ui/StarRating";
 
 interface ContractFormProps {
   projectId: string;
@@ -37,6 +39,9 @@ export const ContractForm: React.FC<ContractFormProps> = ({
   vendors = [],
 }) => {
   const isEditing = !!initialData?.id;
+  const { user } = useAuth();
+  const initialVendorRating = initialData?.vendorRating ?? null;
+  const initialVendorRatingNote = initialData?.vendorRatingNote ?? "";
 
   const [formData, setFormData] = useState({
     title: initialData?.title || "",
@@ -56,6 +61,8 @@ export const ContractForm: React.FC<ContractFormProps> = ({
     warrantyMonths: initialData?.warrantyMonths?.toString() || "",
     paymentTerms: initialData?.paymentTerms || "",
     scopeSummary: initialData?.scopeSummary || "",
+    vendorRating: initialVendorRating,
+    vendorRatingNote: initialVendorRatingNote,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -116,6 +123,13 @@ export const ContractForm: React.FC<ContractFormProps> = ({
 
     setSubmitting(true);
     try {
+      const ratingChanged =
+        (initialVendorRating ?? null) !== (formData.vendorRating ?? null) ||
+        (initialVendorRatingNote ?? "") !== (formData.vendorRatingNote ?? "");
+      const shouldStampRating =
+        ratingChanged &&
+        (formData.vendorRating !== null || formData.vendorRatingNote.trim().length > 0);
+
       const data: Omit<Contract, "id" | "createdAt" | "updatedAt"> = {
         projectId,
         vendorId: formData.vendorId || undefined,
@@ -143,6 +157,12 @@ export const ContractForm: React.FC<ContractFormProps> = ({
           : undefined,
         paymentTerms: formData.paymentTerms || undefined,
         scopeSummary: formData.scopeSummary || undefined,
+        vendorRating: formData.vendorRating,
+        vendorRatingNote: formData.vendorRatingNote.trim() || null,
+        vendorRatingAt: shouldStampRating
+          ? new Date().toISOString()
+          : undefined,
+        vendorRatingBy: shouldStampRating ? user?.id || null : undefined,
       };
 
       onSubmit(data);
@@ -474,6 +494,44 @@ export const ContractForm: React.FC<ContractFormProps> = ({
           rows={3}
           placeholder="Stručný popis předmětu smlouvy..."
         />
+      </div>
+
+      {/* Vendor Rating */}
+      <div className="space-y-3">
+        <h4 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wide">
+          Hodnocení dodavatele
+        </h4>
+        <div className="flex items-center gap-3">
+          <StarRating
+            value={formData.vendorRating ?? 0}
+            onChange={(value) =>
+              setFormData((prev) => ({
+                ...prev,
+                vendorRating: value,
+              }))
+            }
+          />
+          <span className="text-xs text-slate-500">
+            {formData.vendorRating !== null && formData.vendorRating !== undefined
+              ? `${formData.vendorRating.toFixed(1)} / 5`
+              : "Neohodnoceno"}
+          </span>
+        </div>
+        <div>
+          <label className={labelClasses}>Poznámka k hodnocení</label>
+          <textarea
+            value={formData.vendorRatingNote}
+            onChange={(e) =>
+              setFormData((prev) => ({
+                ...prev,
+                vendorRatingNote: e.target.value,
+              }))
+            }
+            className={`${inputClasses} resize-none`}
+            rows={2}
+            placeholder="Krátké hodnocení spolupráce..."
+          />
+        </div>
       </div>
 
       {/* Source (hidden for manual editing) */}

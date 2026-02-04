@@ -10,6 +10,7 @@ import { ContractForm } from "./ContractForm";
 import { ExtractionValidation } from "./ExtractionValidation";
 import { contractExtractionService } from "../../../services/contractExtractionService";
 import { Modal } from "../../ui/Modal";
+import { StarRating } from "../../ui/StarRating";
 
 interface ContractsListProps {
   projectId: string;
@@ -238,6 +239,9 @@ export const ContractsList: React.FC<ContractsListProps> = ({
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                     Stav
                   </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                    Hodnocení
+                  </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                     Hodnota
                   </th>
@@ -280,6 +284,18 @@ export const ContractsList: React.FC<ContractsListProps> = ({
                       >
                         {statusLabels[contract.status]}
                       </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {contract.vendorRating === null || contract.vendorRating === undefined ? (
+                        <span className="text-xs text-slate-400">Neohodnoceno</span>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <StarRating value={contract.vendorRating} readOnly size="sm" />
+                          <span className="text-xs text-slate-500">
+                            {contract.vendorRating.toFixed(1)}
+                          </span>
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <p className="text-sm font-semibold text-slate-900 dark:text-white">
