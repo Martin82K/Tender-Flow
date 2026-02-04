@@ -67,7 +67,7 @@ export const Settings: React.FC<SettingsProps> = ({
     | "excelMerger"
     | "urlShortener"
     | "excelIndexer";
-  type AdminSubTab = "registration" | "users" | "subscriptions" | "ai" | "organization";
+  type AdminSubTab = "registration" | "users" | "subscriptions" | "ai";
 
   // -------------------------------------------------------------------------
   // Routing Logic
@@ -76,7 +76,10 @@ export const Settings: React.FC<SettingsProps> = ({
     const params = new URLSearchParams(search);
     const tabParam = params.get("tab");
     const subTabParam = params.get("subTab");
-    const tab = tabParam === "admin" || tabParam === "user" ? tabParam : null;
+    const tab =
+      tabParam === "admin" || tabParam === "user" || tabParam === "organization"
+        ? tabParam
+        : null;
     let subTab: string | null = null;
     if (tab === "user") {
       subTab =
@@ -96,8 +99,7 @@ export const Settings: React.FC<SettingsProps> = ({
         subTabParam === "registration" ||
         subTabParam === "users" ||
         subTabParam === "subscriptions" ||
-        subTabParam === "ai" ||
-        subTabParam === "organization"
+        subTabParam === "ai"
           ? subTabParam
           : null;
     }
@@ -105,7 +107,8 @@ export const Settings: React.FC<SettingsProps> = ({
   }, [search]);
 
   // Internal State for Tabs (Syncs with URL)
-  const [activeTab, setActiveTab] = useState<"user" | "admin">(() => {
+  const [activeTab, setActiveTab] = useState<"user" | "admin" | "organization">(() => {
+    if (settingsRoute.tab === "organization") return "organization";
     if (settingsRoute.tab === "admin" && isAdmin) return "admin";
     return "user";
   });
@@ -138,15 +141,17 @@ export const Settings: React.FC<SettingsProps> = ({
   );
 
   const updateSettingsUrl = (
-    next: { tab: "user" | "admin"; subTab?: UserSubTab | AdminSubTab },
+    next: { tab: "user" | "admin" | "organization"; subTab?: UserSubTab | AdminSubTab },
     opts?: { replace?: boolean },
   ) => {
     const params = new URLSearchParams();
     params.set("tab", next.tab);
-    params.set(
-      "subTab",
-      next.subTab || (next.tab === "user" ? "profile" : "registration"),
-    );
+    if (next.tab !== "organization") {
+      params.set(
+        "subTab",
+        next.subTab || (next.tab === "user" ? "profile" : "registration"),
+      );
+    }
     navigate(`/app/settings?${params.toString()}`, {
       replace: opts?.replace ?? true,
     });
@@ -185,6 +190,11 @@ export const Settings: React.FC<SettingsProps> = ({
   ]);
 
   useEffect(() => {
+    if (settingsRoute.tab === "organization") {
+      if (activeTab !== "organization") setActiveTab("organization");
+      return;
+    }
+
     if (settingsRoute.tab === "admin") {
       if (isAdmin && activeTab !== "admin") setActiveTab("admin");
       const normalizedAdminSubTab =
@@ -242,6 +252,19 @@ export const Settings: React.FC<SettingsProps> = ({
           >
             Prostředí uživatele
           </button>
+          <button
+            onClick={() => {
+              setActiveTab("organization");
+              updateSettingsUrl({ tab: "organization" });
+            }}
+            className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${
+              activeTab === "organization"
+                ? "border-primary text-primary"
+                : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+            }`}
+          >
+            Organizace
+          </button>
           {isAdmin && (
             <button
               onClick={() => {
@@ -260,6 +283,12 @@ export const Settings: React.FC<SettingsProps> = ({
         </div>
 
         {/* --- ADMIN TAB CONTENT --- */}
+        {activeTab === "organization" && (
+          <div className="animate-fadeIn">
+            <OrganizationSettings />
+          </div>
+        )}
+
         {activeTab === "admin" && isAdmin && (
           <div className="flex flex-col md:flex-row gap-8 animate-fadeIn">
             <aside className="w-full md:w-64 flex-shrink-0">
@@ -300,23 +329,6 @@ export const Settings: React.FC<SettingsProps> = ({
                   </div>
                 </button>
 
-                <button
-                  onClick={() =>
-                    updateSettingsUrl({ tab: "admin", subTab: "organization" })
-                  }
-                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
-                    activeAdminSubTab === "organization"
-                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="material-symbols-outlined text-[20px]">
-                      domain
-                    </span>
-                    Organizace
-                  </div>
-                </button>
 
                 <button
                   onClick={() =>
@@ -366,7 +378,6 @@ export const Settings: React.FC<SettingsProps> = ({
               {activeAdminSubTab === "subscriptions" && (
                 <AdminSettings isAdmin={isAdmin} section="subscriptions" />
               )}
-              {activeAdminSubTab === "organization" && <OrganizationSettings />}
               {activeAdminSubTab === "ai" && (
                 <>
                   <AISettings isAdmin={isAdmin} />

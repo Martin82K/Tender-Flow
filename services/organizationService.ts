@@ -10,6 +10,7 @@ export type OrganizationSummary = {
 export type OrganizationMember = {
   user_id: string;
   email: string;
+  display_name?: string | null;
   role: "owner" | "admin" | "member";
   joined_at: string;
 };
@@ -18,6 +19,7 @@ export type OrganizationJoinRequest = {
   request_id: string;
   user_id: string;
   email: string;
+  display_name?: string | null;
   status: "pending" | "approved" | "rejected";
   created_at: string;
 };
@@ -52,6 +54,40 @@ export const organizationService = {
       org_id_input: orgId,
       user_id_input: userId,
       role_input: role,
+    });
+    if (error) throw new Error(error.message);
+  },
+
+  addOrganizationMemberByEmail: async (
+    orgId: string,
+    email: string,
+    role: "owner" | "admin" | "member" = "member",
+  ): Promise<void> => {
+    const { error } = await supabase.rpc("add_org_member_by_email", {
+      org_id_input: orgId,
+      email_input: email,
+      role_input: role,
+    });
+    if (error) throw new Error(error.message);
+  },
+
+  updateOrganizationMemberRole: async (
+    orgId: string,
+    userId: string,
+    role: "admin" | "member",
+  ): Promise<void> => {
+    const { error } = await supabase.rpc("update_org_member_role", {
+      org_id_input: orgId,
+      user_id_input: userId,
+      role_input: role,
+    });
+    if (error) throw new Error(error.message);
+  },
+
+  transferOrganizationOwnership: async (orgId: string, newOwnerUserId: string): Promise<void> => {
+    const { error } = await supabase.rpc("transfer_org_ownership", {
+      org_id_input: orgId,
+      new_owner_user_id: newOwnerUserId,
     });
     if (error) throw new Error(error.message);
   },

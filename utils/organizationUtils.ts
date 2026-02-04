@@ -17,3 +17,16 @@ export const formatOrgRequestStatus = (status: string | null | undefined): strin
 export const isOrgAdminRole = (role: string | null | undefined): boolean => {
   return role === "owner" || role === "admin";
 };
+
+export const isOrgOwnerRole = (role: string | null | undefined): boolean => {
+  return role === "owner";
+};
+
+export const getUserLabel = (email: string, displayName?: string | null): string => {
+  const name = displayName?.trim();
+  return name ? name : email;
+};
+
+export const getUserSortKey = (email: string, displayName?: string | null): string => {
+  return getUserLabel(email, displayName).toLowerCase();
+};

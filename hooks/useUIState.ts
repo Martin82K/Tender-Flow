@@ -10,6 +10,7 @@ export interface UiModalState {
     isOpen: boolean;
     title: string;
     message: string;
+    messageNode?: React.ReactNode;
     variant?: 'danger' | 'info' | 'success';
     confirmLabel?: string;
     cancelLabel?: string;
@@ -20,6 +21,7 @@ export interface UiModalState {
 export interface ShowModalOptions {
     title: string;
     message: string;
+    messageNode?: React.ReactNode;
     variant?: 'danger' | 'info' | 'success';
     confirmLabel?: string;
     cancelLabel?: string;
@@ -93,6 +95,7 @@ export const useUIState = (): UseUIStateReturn => {
             isOpen: true,
             title: opts.title,
             message: opts.message,
+            messageNode: opts.messageNode,
             variant: opts.variant ?? 'info',
             confirmLabel: opts.confirmLabel ?? 'OK',
             cancelLabel: shouldShowCancel ? (opts.cancelLabel ?? 'Zrušit') : undefined,

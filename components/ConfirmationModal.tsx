@@ -6,6 +6,7 @@ interface ConfirmationModalProps {
     isOpen: boolean;
     title: string;
     message: string;
+    messageNode?: React.ReactNode;
     confirmLabel?: string;
     cancelLabel?: string;
     onConfirm: () => void;
@@ -18,6 +19,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     isOpen,
     title,
     message,
+    messageNode,
     confirmLabel = 'OK',
     cancelLabel = 'Zrušit',
     onConfirm,
@@ -63,7 +65,13 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                     <span className="material-symbols-outlined text-3xl">{getIcon()}</span>
                 </div>
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">{title}</h3>
-                <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed whitespace-pre-line">{message}</p>
+                {messageNode ? (
+                    <div className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed whitespace-pre-line">
+                        {messageNode}
+                    </div>
+                ) : (
+                    <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed whitespace-pre-line">{message}</p>
+                )}
 
                 {copyableText && (
                     <div className="flex items-center gap-2 w-full max-w-sm mt-3">

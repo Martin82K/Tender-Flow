@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { formatOrgRequestStatus, formatOrgRole, isOrgAdminRole } from "../utils/organizationUtils";
+import {
+  formatOrgRequestStatus,
+  formatOrgRole,
+  getUserLabel,
+  getUserSortKey,
+  isOrgAdminRole,
+  isOrgOwnerRole,
+} from "../utils/organizationUtils";
 
 describe("formatOrgRole", () => {
   it("formats known roles", () => {
@@ -32,5 +39,30 @@ describe("isOrgAdminRole", () => {
     expect(isOrgAdminRole("owner")).toBe(true);
     expect(isOrgAdminRole("admin")).toBe(true);
     expect(isOrgAdminRole("member")).toBe(false);
+  });
+});
+
+describe("isOrgOwnerRole", () => {
+  it("detects owner role", () => {
+    expect(isOrgOwnerRole("owner")).toBe(true);
+    expect(isOrgOwnerRole("admin")).toBe(false);
+  });
+});
+
+describe("getUserLabel", () => {
+  it("prefers display name when available", () => {
+    expect(getUserLabel("user@example.com", "Jana Novakova")).toBe("Jana Novakova");
+  });
+
+  it("falls back to email when display name is empty", () => {
+    expect(getUserLabel("user@example.com", "   ")).toBe("user@example.com");
+    expect(getUserLabel("user@example.com", null)).toBe("user@example.com");
+  });
+});
+
+describe("getUserSortKey", () => {
+  it("returns lowercased label", () => {
+    expect(getUserSortKey("USER@EXAMPLE.COM", "Jana Novakova")).toBe("jana novakova");
+    expect(getUserSortKey("USER@EXAMPLE.COM", null)).toBe("user@example.com");
   });
 });

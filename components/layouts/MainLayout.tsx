@@ -12,6 +12,7 @@ interface MainLayoutProps {
         isOpen: boolean;
         title: string;
         message: string;
+        messageNode?: React.ReactNode;
         variant: 'danger' | 'info' | 'success';
         confirmLabel?: string;
         cancelLabel?: string;
@@ -85,6 +86,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                 isOpen={uiModal.isOpen}
                 title={uiModal.title}
                 message={uiModal.message}
+                messageNode={uiModal.messageNode}
                 variant={uiModal.variant}
                 confirmLabel={uiModal.confirmLabel}
                 cancelLabel={uiModal.cancelLabel}

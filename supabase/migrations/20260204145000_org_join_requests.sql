@@ -66,6 +66,19 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+CREATE OR REPLACE FUNCTION public.is_org_owner(org_id_input UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1
+    FROM public.organization_members om
+    WHERE om.organization_id = org_id_input
+      AND om.user_id = auth.uid()
+      AND om.role = 'owner'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- 4) Join requests table
 CREATE TABLE IF NOT EXISTS public.organization_join_requests (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -147,6 +160,7 @@ CREATE OR REPLACE FUNCTION public.get_org_members(org_id_input UUID)
 RETURNS TABLE (
   user_id UUID,
   email VARCHAR(255),
+  display_name TEXT,
   role VARCHAR(50),
   joined_at TIMESTAMPTZ
 )
@@ -155,14 +169,18 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  IF NOT public.is_org_admin(org_id_input) THEN
+  IF NOT EXISTS (
+    SELECT 1 FROM public.organization_members om
+    WHERE om.organization_id = org_id_input AND om.user_id = auth.uid()
+  ) THEN
     RAISE EXCEPTION 'Not authorized';
   END IF;
 
   RETURN QUERY
-  SELECT om.user_id, u.email, om.role, om.created_at
+  SELECT om.user_id, u.email, up.display_name, om.role, om.created_at
   FROM public.organization_members om
   JOIN auth.users u ON u.id = om.user_id
+  LEFT JOIN public.user_profiles up ON up.user_id = om.user_id
   WHERE om.organization_id = org_id_input
   ORDER BY om.created_at;
 END;
@@ -173,6 +191,7 @@ RETURNS TABLE (
   request_id UUID,
   user_id UUID,
   email TEXT,
+  display_name TEXT,
   status TEXT,
   created_at TIMESTAMPTZ
 )
@@ -181,13 +200,14 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  IF NOT public.is_org_admin(org_id_input) THEN
+  IF NOT public.is_org_owner(org_id_input) THEN
     RAISE EXCEPTION 'Not authorized';
   END IF;
 
   RETURN QUERY
-  SELECT r.id, r.user_id, r.email, r.status, r.created_at
+  SELECT r.id, r.user_id, r.email, up.display_name, r.status, r.created_at
   FROM public.organization_join_requests r
+  LEFT JOIN public.user_profiles up ON up.user_id = r.user_id
   WHERE r.organization_id = org_id_input
   ORDER BY r.created_at DESC;
 END;
@@ -210,7 +230,7 @@ BEGIN
   IF org_id IS NULL THEN
     RAISE EXCEPTION 'Request not found';
   END IF;
-  IF NOT public.is_org_admin(org_id) THEN
+  IF NOT public.is_org_owner(org_id) THEN
     RAISE EXCEPTION 'Not authorized';
   END IF;
 
@@ -218,9 +238,18 @@ BEGIN
   SET status = 'approved', decided_at = NOW(), decided_by = auth.uid()
   WHERE id = request_id_input;
 
+  IF NOT EXISTS (
+    SELECT 1 FROM public.organization_members
+    WHERE organization_id = org_id AND role = 'owner'
+  ) THEN
+    INSERT INTO public.organization_members (organization_id, user_id, role)
+    VALUES (org_id, target_user, 'owner')
+    ON CONFLICT (organization_id, user_id) DO NOTHING;
+  ELSE
   INSERT INTO public.organization_members (organization_id, user_id, role)
   VALUES (org_id, target_user, 'member')
   ON CONFLICT (organization_id, user_id) DO NOTHING;
+  END IF;
 
   RETURN TRUE;
 END;
@@ -242,7 +271,7 @@ BEGIN
   IF org_id IS NULL THEN
     RAISE EXCEPTION 'Request not found';
   END IF;
-  IF NOT public.is_org_admin(org_id) THEN
+  IF NOT public.is_org_owner(org_id) THEN
     RAISE EXCEPTION 'Not authorized';
   END IF;
 
@@ -324,12 +353,19 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  IF NOT public.is_org_admin(org_id_input) THEN
+  IF NOT public.is_org_owner(org_id_input) THEN
     RAISE EXCEPTION 'Not authorized';
   END IF;
 
   IF role_input NOT IN ('owner', 'admin', 'member') THEN
     RAISE EXCEPTION 'Invalid role';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.organization_members
+    WHERE organization_id = org_id_input AND role = 'owner'
+  ) THEN
+    role_input := 'owner';
   END IF;
 
   INSERT INTO public.organization_members (organization_id, user_id, role)
@@ -341,6 +377,102 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.add_org_member(UUID, UUID, TEXT) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.add_org_member_by_email(org_id_input UUID, email_input TEXT, role_input TEXT DEFAULT 'member')
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  target_user UUID;
+BEGIN
+  IF NOT public.is_org_owner(org_id_input) THEN
+    RAISE EXCEPTION 'Not authorized';
+  END IF;
+
+  IF role_input NOT IN ('owner', 'admin', 'member') THEN
+    RAISE EXCEPTION 'Invalid role';
+  END IF;
+
+  SELECT id INTO target_user
+  FROM auth.users
+  WHERE lower(email) = lower(trim(email_input))
+  LIMIT 1;
+
+  IF target_user IS NULL THEN
+    RAISE EXCEPTION 'User not found';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.organization_members
+    WHERE organization_id = org_id_input AND role = 'owner'
+  ) THEN
+    role_input := 'owner';
+  END IF;
+
+  INSERT INTO public.organization_members (organization_id, user_id, role)
+  VALUES (org_id_input, target_user, role_input)
+  ON CONFLICT (organization_id, user_id) DO NOTHING;
+
+  RETURN TRUE;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.add_org_member_by_email(UUID, TEXT, TEXT) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.update_org_member_role(org_id_input UUID, user_id_input UUID, role_input TEXT)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NOT public.is_org_owner(org_id_input) THEN
+    RAISE EXCEPTION 'Not authorized';
+  END IF;
+
+  IF role_input NOT IN ('admin', 'member') THEN
+    RAISE EXCEPTION 'Invalid role';
+  END IF;
+
+  UPDATE public.organization_members
+  SET role = role_input
+  WHERE organization_id = org_id_input AND user_id = user_id_input;
+
+  RETURN TRUE;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.transfer_org_ownership(org_id_input UUID, new_owner_user_id UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NOT public.is_org_owner(org_id_input) THEN
+    RAISE EXCEPTION 'Not authorized';
+  END IF;
+
+  -- Demote all owners to admin
+  UPDATE public.organization_members
+  SET role = 'admin'
+  WHERE organization_id = org_id_input
+    AND role = 'owner';
+
+  -- Promote target to owner (must exist)
+  UPDATE public.organization_members
+  SET role = 'owner'
+  WHERE organization_id = org_id_input
+    AND user_id = new_owner_user_id;
+
+  RETURN TRUE;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.update_org_member_role(UUID, UUID, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.transfer_org_ownership(UUID, UUID) TO authenticated;
 
 -- 6) Auto-create join request on registration (non-public domains only)
 CREATE OR REPLACE FUNCTION public.maybe_create_org_join_request(user_id_input UUID, email_input TEXT)
