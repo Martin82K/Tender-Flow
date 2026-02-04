@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { DeleteConfirmationModal } from './DeleteConfirmationModal';
 import { AlertModal } from './AlertModal';
 import { ConfirmationModal } from './ConfirmationModal';
+import { useFeatures } from '../context/FeatureContext';
 
 interface ProjectManagerProps {
     projects: Project[];
@@ -94,6 +95,13 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
     onArchiveProject
 }) => {
     const { user } = useAuth();
+    const { currentPlan, isLoading: isFeaturesLoading } = useFeatures();
+    const ownedActiveProjectsCount = projects.filter((project) => {
+        if (project.status === 'archived') return false;
+        return project.ownerId === user?.id;
+    }).length;
+    const isFreeTier = !isFeaturesLoading && currentPlan === 'free';
+    const isProjectLimitReached = isFreeTier && ownedActiveProjectsCount >= 1;
 
     // Create Form State
     const [newProjectName, setNewProjectName] = useState('');
@@ -224,6 +232,15 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
 
     const handleCreateProject = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isProjectLimitReached) {
+            setAlertModal({
+                isOpen: true,
+                title: 'Limit tarifu Free',
+                message: 'Tarif Free umožňuje pouze 1 aktivní stavbu. Pro další stavby prosím upgradujte plán nebo stávající stavbu archivujte.',
+                variant: 'info'
+            });
+            return;
+        }
         if (!newProjectName || !newProjectLocation) return;
         setIsCreating(true);
 
@@ -231,7 +248,8 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
             id: `p${Date.now()}`, // Temporary ID, service should likely handle real ID if DB gen
             name: newProjectName,
             location: newProjectLocation,
-            status: newProjectStatus
+            status: newProjectStatus,
+            ownerId: user?.id
             // Owner ID handled by service/backend
         };
 
@@ -382,6 +400,12 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                         Nová stavba
                     </h2>
 
+                    {isProjectLimitReached && (
+                        <div className="mb-4 rounded-xl border border-amber-300/60 bg-amber-50 text-amber-900 px-4 py-3 text-sm">
+                            Tarif Free umožňuje pouze 1 aktivní stavbu. Pro další stavby prosím upgradujte plán nebo stávající stavbu archivujte.
+                        </div>
+                    )}
+
                     <form onSubmit={handleCreateProject} className="bg-slate-50 dark:bg-slate-950/30 p-4 rounded-xl border border-slate-200 dark:border-slate-700/40">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                             <div>
@@ -391,6 +415,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                     value={newProjectName}
                                     onChange={(e) => setNewProjectName(e.target.value)}
                                     placeholder="Např. Rezidence Park"
+                                    disabled={isProjectLimitReached}
                                     className="w-full rounded-lg bg-white dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
                                 />
                             </div>
@@ -401,6 +426,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                     value={newProjectLocation}
                                     onChange={(e) => setNewProjectLocation(e.target.value)}
                                     placeholder="Např. Plzeň"
+                                    disabled={isProjectLimitReached}
                                     className="w-full rounded-lg bg-white dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
                                 />
                             </div>
@@ -409,6 +435,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                 <select
                                     value={newProjectStatus}
                                     onChange={(e) => setNewProjectStatus(e.target.value as ProjectStatus)}
+                                    disabled={isProjectLimitReached}
                                     className="w-full rounded-lg bg-white dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
                                 >
                                     <option value="tender">Soutěž (Příprava)</option>
@@ -419,7 +446,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                         <div className="flex justify-end">
                             <button
                                 type="submit"
-                                disabled={!newProjectName || !newProjectLocation || isCreating}
+                                disabled={!newProjectName || !newProjectLocation || isCreating || isProjectLimitReached}
                                 className="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                             >
                                 {isCreating && <span className="material-symbols-outlined animate-spin text-[18px]">sync</span>}

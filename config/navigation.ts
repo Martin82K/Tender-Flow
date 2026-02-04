@@ -102,6 +102,7 @@ export const BOTTOM_NAVIGATION: NavItemConfig[] = [
         label: 'Excel Indexer',
         icon: 'join_inner',
         view: 'settings',
+        feature: FEATURES.EXCEL_INDEXER,
         settingsTab: 'user',
         settingsSubTab: 'excelIndexer',
       },

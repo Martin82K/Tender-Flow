@@ -30,6 +30,9 @@ export const FEATURES = {
   AI_INSIGHTS: 'ai_insights',
   URL_SHORTENER: 'url_shortener',
   EXCEL_INDEXER: 'excel_indexer',
+  DYNAMIC_TEMPLATES: 'dynamic_templates',
+  DEMAND_GENERATION: 'demand_generation',
+  LOSER_EMAIL: 'loser_email',
 } as const;
 
 export type FeatureKey = typeof FEATURES[keyof typeof FEATURES];

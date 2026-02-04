@@ -4,7 +4,7 @@
  * Extracted from ProjectLayout.tsx for better modularity.
  */
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ProjectDetails } from "../../types";
 import { uploadDocument, formatFileSize } from "../../services/documentService";
 import { TemplateManager } from "../TemplateManager";
@@ -20,6 +20,8 @@ import { ConfirmationModal } from "../ConfirmationModal";
 import { DocsLinkSection } from "./documents/DocsLinkSection";
 import { TemplatesSection } from "./documents/TemplatesSection";
 import { PriceListsSection } from "./documents/PriceListsSection";
+import { useFeatures } from "../../context/FeatureContext";
+import { FEATURES } from "../../config/features";
 
 // --- Helper Functions ---
 const parseMoney = (valueStr: string): number => {
@@ -66,6 +68,22 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
   const [isEditingDocs, setIsEditingDocs] = useState(false);
   const [isEditingLetter, setIsEditingLetter] = useState(false);
   const [documentsSubTab, setDocumentsSubTab] = useState<DocumentsSubTab>("pd");
+  const { hasFeature } = useFeatures();
+  const canDocHub = hasFeature(FEATURES.DOC_HUB);
+  const canTemplates =
+    hasFeature(FEATURES.DYNAMIC_TEMPLATES) ||
+    hasFeature(FEATURES.DEMAND_GENERATION) ||
+    hasFeature(FEATURES.LOSER_EMAIL);
+  const availableSubTabs = useMemo(
+    () =>
+      [
+        "pd",
+        ...(canTemplates ? ["templates"] : []),
+        ...(canDocHub ? ["dochub"] : []),
+        "ceniky",
+      ] as DocumentsSubTab[],
+    [canDocHub, canTemplates],
+  );
   const [docsLinkValue, setDocsLinkValue] = useState("");
   const [priceListLinkValue, setPriceListLinkValue] = useState("");
   const [letterLinkValue, setLetterLinkValue] = useState("");
@@ -150,6 +168,12 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
   }, [project.documentationLink, isEditingDocs]);
 
   const [isEditingPriceList, setIsEditingPriceList] = useState(false);
+  useEffect(() => {
+    if (!availableSubTabs.includes(documentsSubTab)) {
+      setDocumentsSubTab("pd");
+    }
+  }, [availableSubTabs, documentsSubTab]);
+
   useEffect(() => {
     setPriceListLinkValue(project.priceListLink || "");
   }, [project.priceListLink, isEditingPriceList]);
@@ -297,35 +321,39 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
                 </div>
               </button>
 
-              <button
-                onClick={() => setDocumentsSubTab("templates")}
-                className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${documentsSubTab === "templates"
-                  ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                  : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                  }`}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-[20px]">
-                    history_edu
-                  </span>
-                  Šablony
-                </div>
-              </button>
+              {canTemplates && (
+                <button
+                  onClick={() => setDocumentsSubTab("templates")}
+                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${documentsSubTab === "templates"
+                    ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                    : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                    }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[20px]">
+                      history_edu
+                    </span>
+                    Šablony
+                  </div>
+                </button>
+              )}
 
-              <button
-                onClick={() => setDocumentsSubTab("dochub")}
-                className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${documentsSubTab === "dochub"
-                  ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                  : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                  }`}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-[20px]">
-                    cloud_sync
-                  </span>
-                  Složkomat
-                </div>
-              </button>
+              {canDocHub && (
+                <button
+                  onClick={() => setDocumentsSubTab("dochub")}
+                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${documentsSubTab === "dochub"
+                    ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                    : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                    }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[20px]">
+                      cloud_sync
+                    </span>
+                    Složkomat
+                  </div>
+                </button>
+              )}
 
               <button
                 onClick={() => setDocumentsSubTab("ceniky")}
@@ -372,15 +400,15 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
                 linkValue={docsLinkValue}
                 onLinkValueChange={(val) => setDocsLinkValue(val)}
                 onSave={handleSaveDocs}
-                isDocHubConnected={isDocHubConnected}
-                docHubPdLink={docHubProjectLinks?.pd || null}
+                isDocHubConnected={canDocHub && isDocHubConnected}
+                docHubPdLink={canDocHub ? docHubProjectLinks?.pd || null : null}
                 docHubStructure={docHubStructure}
                 showModal={showModal}
                 onUpdate={onUpdate}
               />
             )}
 
-            {documentsSubTab === "templates" && (
+            {documentsSubTab === "templates" && canTemplates && (
               <TemplatesSection
                 project={project}
                 templateName={templateName}
@@ -390,7 +418,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
             )}
 
             {/* DocHub Section (Wizard) */}
-            {documentsSubTab === "dochub" && (
+            {documentsSubTab === "dochub" && canDocHub && (
               <div className="space-y-6">
                 <DocHubStatusCard
                   state={docHub.state}
@@ -447,8 +475,8 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
                 linkValue={priceListLinkValue}
                 onLinkValueChange={(val) => setPriceListLinkValue(val)}
                 onSave={handleSavePriceList}
-                isDocHubConnected={isDocHubConnected}
-                docHubCenikyLink={docHubProjectLinks?.ceniky || null}
+                isDocHubConnected={canDocHub && isDocHubConnected}
+                docHubCenikyLink={canDocHub ? docHubProjectLinks?.ceniky || null : null}
                 showModal={showModal}
               />
             )}

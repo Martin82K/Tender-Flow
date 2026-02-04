@@ -438,7 +438,11 @@ function AppContent() {
           </RequireFeature>
         );
       case "url-shortener":
-        return <UrlShortener />;
+        return (
+          <RequireFeature feature={FEATURES.URL_SHORTENER}>
+            <UrlShortener />
+          </RequireFeature>
+        );
       default:
         return (
           <Dashboard

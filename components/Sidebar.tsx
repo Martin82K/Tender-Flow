@@ -4,6 +4,7 @@ import { platformAdapter, isDesktop } from "../services/platformAdapter";
 import { View, Project, ProjectTab } from "../types";
 import logo from "../assets/logo.png";
 import { SIDEBAR_NAVIGATION, BOTTOM_NAVIGATION } from "../config/navigation";
+import { FEATURES, type FeatureKey } from "../config/features";
 import { useFeatures } from "../context/FeatureContext";
 import { useLocation } from "./routing/router";
 
@@ -11,13 +12,33 @@ import { APP_VERSION } from "../config/version";
 
 // Admin role configuration (must match App.tsx)
 const ADMIN_EMAILS = ["martinkalkus82@gmail.com", "kalkus@baustav.cz"];
-const PROJECT_TABS: { id: ProjectTab; label: string; icon: string }[] = [
+const PROJECT_TABS: {
+  id: ProjectTab;
+  label: string;
+  icon: string;
+  feature?: FeatureKey;
+}[] = [
   { id: "overview", label: "Přehled", icon: "dashboard" },
   { id: "tender-plan", label: "Plán VŘ", icon: "assignment" },
-  { id: "pipeline", label: "Výběrová řízení", icon: "view_kanban" },
-  { id: "schedule", label: "Harmonogram", icon: "calendar_month" },
+  {
+    id: "pipeline",
+    label: "Výběrová řízení",
+    icon: "view_kanban",
+    feature: FEATURES.MODULE_PIPELINE,
+  },
+  {
+    id: "schedule",
+    label: "Harmonogram",
+    icon: "calendar_month",
+    feature: FEATURES.PROJECT_SCHEDULE,
+  },
   { id: "documents", label: "Dokumenty", icon: "folder" },
-  { id: "contracts", label: "Smlouvy", icon: "description" },
+  {
+    id: "contracts",
+    label: "Smlouvy",
+    icon: "description",
+    feature: FEATURES.MODULE_CONTRACTS,
+  },
 ];
 
 // Helper function to get display role
@@ -344,7 +365,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   {/* Submenu */}
                   {isExpanded && (
                     <div className="flex flex-col ml-3 pl-3 border-l border-slate-200 dark:border-slate-700/50 mt-1 mb-1 gap-0.5 animate-in slide-in-from-top-2 duration-200">
-                      {PROJECT_TABS.map((tab) => {
+                      {PROJECT_TABS.filter(
+                        (tab) => !tab.feature || hasFeature(tab.feature),
+                      ).map((tab) => {
                         // Logic to determine if sub-tab is active could be tricky since we don't have tab info in SidebarProps except strictly via currentView/route check which I'd have to implement.
                         // But for sidebar highlight, we can rely on `selectedProjectId` + `activeProjectTab` if Sidebar received it.
                         // Sidebar doesn't receive `activeProjectTab`. MainLayout has it. I should have passed it!
