@@ -202,6 +202,32 @@ body {
   border: 1px solid rgba(16, 185, 129, 0.4);
 }
 
+/* Subscription tier text (edition label) */
+.tier-edition {
+  color: #94a3b8;
+}
+
+.tier-edition-free {
+  color: #cbd5f5;
+  text-shadow: 0 0 8px rgba(203, 213, 245, 0.3);
+}
+
+.tier-edition-starter {
+  color: #38bdf8;
+  text-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
+}
+
+.tier-edition-pro {
+  color: #818cf8;
+  text-shadow: 0 0 10px rgba(129, 140, 248, 0.4);
+}
+
+.tier-edition-enterprise,
+.tier-edition-admin {
+  color: #fbbf24;
+  text-shadow: 0 0 10px rgba(251, 191, 36, 0.4);
+}
+
 /* Mobile Responsive Utilities */
 .table-responsive {
   overflow-x: auto;

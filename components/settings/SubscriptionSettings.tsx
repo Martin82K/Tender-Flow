@@ -27,6 +27,11 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
   );
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [expandedPlans, setExpandedPlans] = useState({
+    starter: false,
+    pro: false,
+    enterprise: false,
+  });
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [message, setMessage] = useState<{
     type: "success" | "error";
@@ -696,16 +701,35 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
                   </span>
                 </p>
               </div>
-              <ul className="space-y-2 mb-6 flex-1">
-                <li className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-                  <Check className="w-3.5 h-3.5 text-sky-500" />
-                  Neomezené projekty
-                </li>
-                <li className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-                  <Check className="w-3.5 h-3.5 text-sky-500" />
-                  Excel Unlocker
-                </li>
-              </ul>
+              <div className="mb-6 flex-1 flex flex-col">
+                <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
+                  {(expandedPlans.starter
+                    ? PRICING_CONFIG.starter.features
+                    : PRICING_CONFIG.starter.features.slice(0, 5)
+                  ).map((feature) => (
+                    <li key={feature} className="flex items-start gap-2">
+                      <Check className="w-3.5 h-3.5 text-sky-500 mt-0.5" />
+                      <span className="leading-snug">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-auto pt-3 h-6 flex items-center">
+                  {PRICING_CONFIG.starter.features.length > 5 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setExpandedPlans((prev) => ({
+                          ...prev,
+                          starter: !prev.starter,
+                        }))
+                      }
+                      className="text-[10px] font-bold uppercase tracking-wider text-sky-600 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300 transition-colors"
+                    >
+                      {expandedPlans.starter ? "Zobrazit méně" : "Zobrazit více"}
+                    </button>
+                  )}
+                </div>
+              </div>
               {subscription.effectiveTier !== "starter" && (
                 <button
                   onClick={() => handleUpgradeRequest("starter")}
@@ -765,16 +789,35 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
                   </span>
                 </p>
               </div>
-              <ul className="space-y-2 mb-6 flex-1 text-xs text-slate-600 dark:text-slate-400">
-                <li className="flex items-center gap-2">
-                  <Check className="w-3.5 h-3.5 text-orange-500" />
-                  AI nástroje & analýzy
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-3.5 h-3.5 text-orange-500" />
-                  Excel nástroje PRO
-                </li>
-              </ul>
+              <div className="mb-6 flex-1 flex flex-col">
+                <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
+                  {(expandedPlans.pro
+                    ? PRICING_CONFIG.pro.features
+                    : PRICING_CONFIG.pro.features.slice(0, 5)
+                  ).map((feature) => (
+                    <li key={feature} className="flex items-start gap-2">
+                      <Check className="w-3.5 h-3.5 text-orange-500 mt-0.5" />
+                      <span className="leading-snug">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-auto pt-3 h-6 flex items-center">
+                  {PRICING_CONFIG.pro.features.length > 5 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setExpandedPlans((prev) => ({
+                          ...prev,
+                          pro: !prev.pro,
+                        }))
+                      }
+                      className="text-[10px] font-bold uppercase tracking-wider text-orange-600 hover:text-orange-700 dark:text-orange-400 dark:hover:text-orange-300 transition-colors"
+                    >
+                      {expandedPlans.pro ? "Zobrazit méně" : "Zobrazit více"}
+                    </button>
+                  )}
+                </div>
+              </div>
               {subscription.effectiveTier !== "pro" && (
                 <button
                   onClick={() => handleUpgradeRequest("pro")}
@@ -820,16 +863,37 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
                   Na míru
                 </p>
               </div>
-              <ul className="space-y-2 mb-6 flex-1 text-xs text-slate-600 dark:text-slate-400">
-                <li className="flex items-center gap-2">
-                  <Check className="w-3.5 h-3.5 text-emerald-600" />
-                  On-premise nasazení
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-3.5 h-3.5 text-emerald-600" />
-                  Prioritní podpora
-                </li>
-              </ul>
+              <div className="mb-6 flex-1 flex flex-col">
+                <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
+                  {(expandedPlans.enterprise
+                    ? PRICING_CONFIG.enterprise.features
+                    : PRICING_CONFIG.enterprise.features.slice(0, 5)
+                  ).map((feature) => (
+                    <li key={feature} className="flex items-start gap-2">
+                      <Check className="w-3.5 h-3.5 text-emerald-600 mt-0.5" />
+                      <span className="leading-snug">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-auto pt-3 h-6 flex items-center">
+                  {PRICING_CONFIG.enterprise.features.length > 5 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setExpandedPlans((prev) => ({
+                          ...prev,
+                          enterprise: !prev.enterprise,
+                        }))
+                      }
+                      className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors"
+                    >
+                      {expandedPlans.enterprise
+                        ? "Zobrazit méně"
+                        : "Zobrazit více"}
+                    </button>
+                  )}
+                </div>
+              </div>
               {subscription.effectiveTier !== "enterprise" && (
                 <button
                   onClick={() => handleUpgradeRequest("enterprise")}

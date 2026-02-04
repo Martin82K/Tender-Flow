@@ -4,6 +4,7 @@ import { MainLayout } from "./components/layouts/MainLayout";
 import { AuthLayout } from "./components/layouts/AuthLayout";
 import { useAppData } from "./hooks/useAppData";
 import { useAuth } from "./context/AuthContext";
+import { useFeatures } from "./context/FeatureContext";
 import { useUI } from "./context/UIContext";
 import { useTheme } from "./hooks/useTheme";
 import { useDesktop } from "./hooks/useDesktop";
@@ -14,6 +15,8 @@ import { RequireFeature } from "./components/routing/RequireFeature";
 import { FEATURES } from "./config/features";
 import { DesktopWelcome, UpdateBanner } from "./components/desktop";
 import { supabase } from "./services/supabase";
+import { platformAdapter } from "./services/platformAdapter";
+import { SubscriptionSettings } from "./components/settings/SubscriptionSettings";
 
 // Components (Lazy)
 const ProjectManager = React.lazy(() =>
@@ -52,6 +55,10 @@ import { LoginPage } from "./components/auth/LoginPage";
 import { RegisterPage } from "./components/auth/RegisterPage";
 import { ForgotPasswordPage } from "./components/auth/ForgotPasswordPage";
 import { ResetPasswordPage } from "./components/auth/ResetPasswordPage";
+import { LegalTerms } from "./components/public/LegalTerms";
+import { LegalPrivacy } from "./components/public/LegalPrivacy";
+import { LegalCookies } from "./components/public/LegalCookies";
+import { LegalImprint } from "./components/public/LegalImprint";
 import { ShortUrlRedirect } from "./components/routing/ShortUrlRedirect";
 import {
   ProjectLayoutSkeleton,
@@ -66,6 +73,7 @@ function AppContent() {
     logout,
     updatePreferences,
   } = useAuth();
+  const { currentPlan, isLoading: isFeaturesLoading } = useFeatures();
   const { showUiModal, uiModal, closeUiModal } = useUI();
   const { pathname, search } = useLocation();
 
@@ -174,6 +182,26 @@ function AppContent() {
   const shouldShowLoader =
     (authLoading && isAppPath) || (isAuthenticated && state.isDataLoading);
 
+  const desktopAllowedTiers = ["pro", "enterprise", "admin"] as const;
+  const isDesktopPlanBlocked =
+    isDesktop &&
+    isAuthenticated &&
+    !isFeaturesLoading &&
+    !desktopAllowedTiers.includes(
+      currentPlan as (typeof desktopAllowedTiers)[number],
+    );
+  const webAppUrl = "https://tenderflow.cz";
+
+  useEffect(() => {
+    if (!isDesktopPlanBlocked) return;
+    const isSubscriptionRoute =
+      pathname === "/app/settings" &&
+      new URLSearchParams(search).get("subTab") === "subscription";
+    if (!isSubscriptionRoute) {
+      navigate("/app/settings?tab=user&subTab=subscription", { replace: true });
+    }
+  }, [isDesktopPlanBlocked, pathname, search]);
+
   if (shouldShowLoader) {
     const percent = state.appLoadProgress?.percent;
     const label = state.appLoadProgress?.label;
@@ -215,6 +243,35 @@ function AppContent() {
     );
   }
 
+  if (isDesktopPlanBlocked) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+        <div className="max-w-6xl mx-auto px-6 py-10">
+          <div className="mb-8 rounded-2xl border border-amber-300/60 bg-amber-50 text-amber-900 px-5 py-4 text-sm">
+            Desktop aplikace je dostupná pro tarif PRO a vyšší. Pokud máte
+            Free nebo Starter, prosím použijte webovou aplikaci. Pro pokračování
+            na desktopu aktivujte PRO/Enterprise předplatné.
+          </div>
+          <SubscriptionSettings />
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <button
+              onClick={() => platformAdapter.shell.openExternal(webAppUrl)}
+              className="px-5 py-2.5 rounded-xl bg-white text-slate-900 text-sm font-bold border border-slate-200 hover:bg-slate-50 transition-colors"
+            >
+              Otevřít webovou aplikaci
+            </button>
+            <button
+              onClick={() => logout()}
+              className="px-5 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-colors"
+            >
+              Odhlásit se
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Handle Short Link Redirect
   // This must be checked before other loading states to ensure fast redirect
   if (pathname.startsWith("/s/")) {
@@ -246,6 +303,17 @@ function AppContent() {
         </div>
       </div>
     );
+  }
+
+  const legalPageByPath: Record<string, React.ReactNode> = {
+    "/terms": <LegalTerms />,
+    "/privacy": <LegalPrivacy />,
+    "/cookies": <LegalCookies />,
+    "/imprint": <LegalImprint />,
+  };
+
+  if (legalPageByPath[pathname]) {
+    return legalPageByPath[pathname];
   }
 
   if (!isAuthenticated) {

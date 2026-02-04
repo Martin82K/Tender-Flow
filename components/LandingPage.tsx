@@ -843,6 +843,32 @@ export const LandingPage: React.FC = () => {
           <div className="hover:text-white/70 transition-colors duration-300">
             © {new Date().getFullYear()} Tender Flow • v{APP_VERSION}
           </div>
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-4 text-white/60">
+            <Link
+              to="/terms"
+              className="hover:text-white transition-colors duration-300"
+            >
+              Podmínky užívání
+            </Link>
+            <Link
+              to="/privacy"
+              className="hover:text-white transition-colors duration-300"
+            >
+              Ochrana osobních údajů
+            </Link>
+            <Link
+              to="/cookies"
+              className="hover:text-white transition-colors duration-300"
+            >
+              Cookies
+            </Link>
+            <Link
+              to="/imprint"
+              className="hover:text-white transition-colors duration-300"
+            >
+              Provozovatel
+            </Link>
+          </div>
           <div className="mt-2 text-white/40 hover:text-white/50 transition-colors duration-300">
             Cloud řešení pro správu výběrových řízení ve stavebnictví
           </div>

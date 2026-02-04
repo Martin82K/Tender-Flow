@@ -106,6 +106,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
     Record<string, boolean>
   >({});
 
+  type Tier = "free" | "starter" | "pro" | "enterprise" | "admin";
+  const subscriptionTier = (user?.subscriptionTier || "free") as Tier;
+  const editionTextClassMap: Record<Tier, string> = {
+    free: "text-slate-400",
+    starter: "text-sky-400",
+    pro: "text-indigo-400",
+    enterprise: "text-amber-400",
+    admin: "text-amber-400",
+  };
+  const profileCardClassMap: Record<Tier, string> = {
+    free: "border border-slate-300/60 dark:border-slate-600/60 bg-slate-100/60 dark:bg-slate-800/50",
+    starter: "border border-sky-400/60 dark:border-sky-400/60 bg-sky-500/10 dark:bg-sky-500/10",
+    pro: "border border-indigo-400/60 dark:border-indigo-400/60 bg-indigo-500/10 dark:bg-indigo-500/10",
+    enterprise: "border border-amber-400/60 dark:border-amber-400/60 bg-amber-500/10 dark:bg-amber-500/10",
+    admin: "border border-emerald-400/60 dark:border-emerald-400/60 bg-emerald-500/10 dark:bg-emerald-500/10",
+  };
+  const profileNameClassMap: Record<Tier, string> = {
+    free: "text-slate-700 dark:text-slate-300",
+    starter: "text-sky-700 dark:text-sky-300",
+    pro: "text-indigo-700 dark:text-indigo-300",
+    enterprise: "text-amber-700 dark:text-amber-300",
+    admin: "text-emerald-700 dark:text-emerald-300",
+  };
+
   const toggleProjectExpand = (e: React.MouseEvent, projectId: string) => {
     e.preventDefault();
     e.stopPropagation();
@@ -606,20 +630,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <h1 className="text-slate-900 dark:text-white text-lg font-black tracking-tight leading-tight whitespace-nowrap truncate">
                     Tender Flow
                   </h1>
-                  <p className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-widest leading-tight whitespace-nowrap truncate">
+                  <p
+                    className={`${editionTextClassMap[subscriptionTier]} text-[10px] font-bold uppercase tracking-widest leading-tight whitespace-nowrap truncate`}
+                  >
                     {(() => {
-                      const tier = user?.subscriptionTier || "free";
-                      switch (tier) {
-                        case "pro":
-                          return "PRO Edition";
-                        case "enterprise":
-                        case "admin":
-                          return "ENTERPRISE Edition";
-                        case "starter":
-                          return "STARTER Edition";
-                        default:
-                          return "FREE Edition";
-                      }
+                      const tier = subscriptionTier;
+                      const labelMap: Record<
+                        "free" | "starter" | "pro" | "enterprise" | "admin",
+                        string
+                      > = {
+                        free: "FREE",
+                        starter: "STARTER",
+                        pro: "PRO",
+                        enterprise: "ENTERPRISE",
+                        admin: "ENTERPRISE",
+                      };
+                      return `${labelMap[tier] ?? "FREE"} Edition`;
                     })()}
                   </p>
                 </div>
@@ -689,7 +715,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </span>
               </a>
 
-              <div className="flex items-center gap-3 px-3 py-3 mt-2 overflow-hidden bg-slate-50 dark:bg-slate-800/40 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700/50 shadow-sm">
+              <div
+                className={`flex items-center gap-3 px-3 py-3 mt-2 overflow-hidden backdrop-blur-md rounded-2xl shadow-sm ${profileCardClassMap[subscriptionTier]}`}
+              >
                 {user?.subscriptionTier ? (
                   <div className="size-9 min-w-9 flex items-center justify-center">
                     <span
@@ -712,7 +740,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </div>
                 )}
                 <div className="flex flex-col overflow-hidden flex-1">
-                  <p className="text-sm font-extrabold text-slate-800 dark:text-white break-words truncate">
+                  <p
+                    className={`text-sm font-extrabold break-words truncate ${profileNameClassMap[subscriptionTier]}`}
+                  >
                     {displayName || user?.email?.split("@")[0] || "User"}
                   </p>
                   <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter truncate">
