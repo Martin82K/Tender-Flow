@@ -4,7 +4,7 @@ import { PublicLayout } from "../public/PublicLayout";
 import { PublicHeader } from "../public/PublicHeader";
 import { AuthCard } from "./AuthCard";
 import { Link, navigate, useLocation } from "../routing/router";
-import { isDesktop } from "../../services/platformAdapter";
+import { isDesktop, platformAdapter } from "../../services/platformAdapter";
 import { Fingerprint } from "lucide-react";
 
 const getNext = (search: string) => {
@@ -32,6 +32,8 @@ export const LoginPage: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(true);
 
   const nextPath = getNext(search);
+
+  const biometricLabel = platformAdapter.platform.os === "win32" ? "Windows Hello" : "Touch ID / Face ID";
 
   // Show biometric button if available and has saved credentials
   const showBiometricButton = isDesktop && canUseBiometric && hasSavedCredentials;
@@ -125,7 +127,7 @@ export const LoginPage: React.FC = () => {
                 className="w-4 h-4 rounded border-white/20 bg-white/10 text-orange-500 focus:ring-orange-500 focus:ring-offset-0"
               />
               <span className="text-sm text-white/70">
-                Zapamatovat si mě (Touch ID)
+                Zapamatovat si mě ({biometricLabel})
               </span>
             </label>
           )}
@@ -144,7 +146,7 @@ export const LoginPage: React.FC = () => {
             {loading ? "Pracuji..." : "Přihlásit se"}
           </button>
 
-          {/* Touch ID / Biometric login button */}
+          {/* Biometric login button */}
           {showBiometricButton && (
             <>
               <div className="flex items-center gap-3 my-2">
@@ -159,7 +161,7 @@ export const LoginPage: React.FC = () => {
                 className="w-full py-3.5 px-6 bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-all duration-300 border border-white/20 flex items-center justify-center gap-3"
               >
                 <Fingerprint className="w-5 h-5" />
-                {biometricLoading ? "Ověřuji..." : "Přihlásit přes Touch ID"}
+                {biometricLoading ? "Ověřuji..." : `Přihlásit přes ${biometricLabel}`}
               </button>
             </>
           )}

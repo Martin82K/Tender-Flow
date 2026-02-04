@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Header } from "./Header";
 import { useContactsQuery } from "../hooks/queries/useContactsQuery";
+import { useOverviewTenantDataQuery } from "../hooks/queries/useOverviewTenantDataQuery";
 import { buildOverviewAnalytics, formatMoney, type OverviewAnalytics } from "../utils/overviewAnalytics";
 import { buildOverviewChatContext } from "../utils/overviewChat";
 import { sendOverviewChatMessage, type OverviewChatMessage } from "../services/overviewChatService";
@@ -116,6 +117,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
   projectDetails,
 }) => {
   const { data: contacts = [] } = useContactsQuery();
+  const { data: tenantData } = useOverviewTenantDataQuery();
   const [selectedProjectId, setSelectedProjectId] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "tender" | "realization" | "archived">("all");
   const [scope, setScope] = useState<"tenant" | "project">("tenant");
@@ -129,15 +131,31 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
 
+  const tenantProjects = tenantData?.projects ?? [];
+  const tenantProjectDetails = tenantData?.projectDetails ?? {};
+  const availableProjects = tenantProjects.length > 0 ? tenantProjects : projects;
+  const availableProjectDetails =
+    tenantProjects.length > 0 ? tenantProjectDetails : projectDetails;
+
+  useEffect(() => {
+    if (scope !== "project") return;
+    if (selectedProjectId === "all") return;
+    if (availableProjects.length === 0) return;
+    const exists = availableProjects.some((project) => project.id === selectedProjectId);
+    if (!exists) {
+      setSelectedProjectId("all");
+    }
+  }, [availableProjects, scope, selectedProjectId]);
+
   const filteredProjectDetails = useMemo(() => {
-    if (scope === "tenant") return projectDetails;
-    if (selectedProjectId === "all") return projectDetails;
-    return { [selectedProjectId]: projectDetails[selectedProjectId] };
-  }, [projectDetails, selectedProjectId, scope]);
+    if (scope === "tenant") return availableProjectDetails;
+    if (selectedProjectId === "all") return availableProjectDetails;
+    return { [selectedProjectId]: availableProjectDetails[selectedProjectId] };
+  }, [availableProjectDetails, selectedProjectId, scope]);
 
   const analytics = useMemo(
-    () => buildOverviewAnalytics(projects, filteredProjectDetails, statusFilter),
-    [projects, filteredProjectDetails, statusFilter],
+    () => buildOverviewAnalytics(availableProjects, filteredProjectDetails, statusFilter),
+    [availableProjects, filteredProjectDetails, statusFilter],
   );
 
   const supplierRows = useMemo(() => {
@@ -182,7 +200,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
   const selectedProjectLabel =
     selectedProjectId === "all"
       ? "Všechny stavby"
-      : projects.find((project) => project.id === selectedProjectId)?.name || "Vybraný projekt";
+      : availableProjects.find((project) => project.id === selectedProjectId)?.name || "Vybraný projekt";
   const selectedStatusLabel =
     statusFilter === "all"
       ? "Všechny stavy"
@@ -254,7 +272,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
             className="h-9 rounded-lg border border-slate-200/70 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-slate-700 dark:text-slate-200"
           >
             <option value="all">Všechny stavby</option>
-            {projects.map((project) => (
+            {availableProjects.map((project) => (
               <option key={project.id} value={project.id}>
                 {project.name}
               </option>

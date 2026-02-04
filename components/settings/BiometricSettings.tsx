@@ -8,13 +8,14 @@ interface BiometricSettingsProps {
 
 /**
  * Biometric Authentication Settings Component
- * Allows users to enable/disable Touch ID / Face ID unlock
+ * Allows users to enable/disable biometric unlock (Touch ID / Face ID / Windows Hello)
  */
 export function BiometricSettings({ className = '' }: BiometricSettingsProps) {
     const [isAvailable, setIsAvailable] = useState(false);
     const [isEnabled, setIsEnabled] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [testResult, setTestResult] = useState<'success' | 'failed' | null>(null);
+    const biometricLabel = platformAdapter.platform.os === 'win32' ? 'Windows Hello' : 'Touch ID / Face ID';
 
     useEffect(() => {
         const init = async () => {
@@ -89,7 +90,7 @@ export function BiometricSettings({ className = '' }: BiometricSettingsProps) {
                         Biometrické přihlášení
                     </h3>
                     <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                        Použijte Touch ID nebo Face ID pro rychlé odemknutí aplikace.
+                        Použijte {biometricLabel} pro rychlé odemknutí aplikace.
                     </p>
 
                     {!isAvailable ? (

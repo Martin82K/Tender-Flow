@@ -583,6 +583,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     setShowLogoutConfirm(false);
   };
 
+  const biometricLabel = platformAdapter.platform.os === "win32" ? "Windows Hello" : "Touch ID / Face ID";
+
   return (
     <>
       <aside
@@ -788,7 +790,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               Chcete ukončit aplikaci?
             </h3>
             <p className="text-slate-400 mb-6">
-              Můžete aplikaci ukončit a zůstat přihlášeni (pro Touch ID), nebo
+              Můžete aplikaci ukončit a zůstat přihlášeni (pro {biometricLabel}), nebo
               se úplně odhlásit.
             </p>
 

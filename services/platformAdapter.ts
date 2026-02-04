@@ -300,7 +300,7 @@ export const updaterAdapter = {
 
 /**
  * Biometric Authentication Adapter
- * Touch ID / Face ID on macOS desktop
+ * Biometric authentication on desktop (Touch ID / Face ID / Windows Hello)
  */
 export const biometricAdapter = {
     /**

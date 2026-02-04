@@ -349,7 +349,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   /**
-   * Login using biometric authentication (Touch ID / Face ID)
+   * Login using biometric authentication (Touch ID / Face ID / Windows Hello)
    * Uses stored refresh token to create a new session
    */
   const loginWithBiometric = async (): Promise<boolean> => {

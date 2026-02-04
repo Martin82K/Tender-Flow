@@ -108,4 +108,25 @@ describe("overviewAnalytics", () => {
     expect(analytics.totalsByStatus.tender.offerCount).toBe(2);
     expect(analytics.totalsByStatus.realization.offerCount).toBe(1);
   });
+
+  it("handles missing project details without crashing", () => {
+    const projects: Project[] = [
+      { id: "p1", name: "Projekt A", location: "Praha", status: "tender" },
+      { id: "p2", name: "Projekt B", location: "Brno", status: "realization" },
+    ];
+
+    const projectDetails: Record<string, ProjectDetails> = {
+      p1: {
+        title: "Projekt A",
+        location: "Praha",
+        finishDate: "2025-02-10",
+        siteManager: "Novak",
+        categories: [],
+      },
+    };
+
+    const analytics = buildOverviewAnalytics(projects, projectDetails);
+    expect(analytics.totals.projectCount).toBe(2);
+    expect(analytics.totals.categoryCount).toBe(0);
+  });
 });

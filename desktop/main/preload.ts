@@ -132,7 +132,7 @@ const electronAPI: ElectronAPI = {
         },
     },
 
-    // Biometric authentication (Touch ID / Face ID)
+    // Biometric authentication (Touch ID / Face ID / Windows Hello)
     biometric: {
         isAvailable: (): Promise<boolean> =>
             ipcRenderer.invoke('biometric:isAvailable'),

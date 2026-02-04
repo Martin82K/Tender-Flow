@@ -1,5 +1,8 @@
 {
     "name": "tender-flow-desktop-main",
     "type": "commonjs",
-    "private": true
+    "private": true,
+    "dependencies": {
+        "win-hello": "^1.1.1"
+    }
 }
