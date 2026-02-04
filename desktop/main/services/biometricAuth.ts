@@ -53,9 +53,10 @@ export class BiometricAuthService {
     /**
      * Prompt user for biometric authentication
      * @param reason - Reason displayed to user (e.g., "unlock Tender Flow")
+     * @param windowHandle - Native window handle for Windows Hello prompt
      * @returns true if authentication successful, false otherwise
      */
-     async prompt(reason: string): Promise<boolean> {
+     async prompt(reason: string, windowHandle?: Buffer): Promise<boolean> {
         if (process.platform === 'darwin') {
             try {
                 await systemPreferences.promptTouchID(reason);
@@ -70,7 +71,11 @@ export class BiometricAuthService {
         if (process.platform === 'win32') {
             try {
                 const api = await getWinHelloApi();
-                await api.requestHello(reason);
+                if (windowHandle) {
+                    await api.requestHello(reason, windowHandle);
+                } else {
+                    await api.requestHello(reason);
+                }
                 return true;
             } catch (error) {
                 // User cancelled or authentication failed

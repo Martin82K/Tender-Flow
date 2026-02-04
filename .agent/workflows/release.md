@@ -62,6 +62,10 @@ Nahraďte X.Y.Z novou verzí.
 ## 4. Build aplikace pro Windows
 
 ```bash
+# Instalace desktop závislostí (win-hello pro Windows Hello)
+npm run desktop:install
+
+# Build
 npm run desktop:build:win
 ```
 
@@ -200,8 +204,9 @@ Stáhněte soubor `Tender Flow-X.Y.Z-arm64.dmg` a přetáhněte aplikaci do slo�
 ### Build selhává
 
 ```bash
-rm -rf node_modules dist dist-electron
+rm -rf node_modules dist dist-electron desktop/node_modules
 npm install
+npm run desktop:install
 npm run desktop:build:win
 ```
 

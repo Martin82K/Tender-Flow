@@ -339,9 +339,11 @@ export function registerIpcHandlers(): void {
         return getBiometricAuthService().isAvailable();
     });
 
-    ipcMain.handle('biometric:prompt', async (_, reason: string): Promise<boolean> => {
+    ipcMain.handle('biometric:prompt', async (event, reason: string): Promise<boolean> => {
         const { getBiometricAuthService } = await import('../services/biometricAuth');
-        return getBiometricAuthService().prompt(reason);
+        const win = BrowserWindow.fromWebContents(event.sender);
+        const windowHandle = win?.getNativeWindowHandle();
+        return getBiometricAuthService().prompt(reason, windowHandle);
     });
 
     // --- SESSION CREDENTIALS ---

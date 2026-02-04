@@ -15,6 +15,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "desktop:install": "cd desktop && npm install --ignore-scripts",
     "desktop:compile": "cd desktop && tsc",
     "desktop:dev": "npm run desktop:compile && electron .",
     "desktop:build": "ELECTRON_BUILD=true npm run build && npm run desktop:compile && electron-builder",
