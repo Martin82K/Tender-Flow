@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
   ArrowRight,
+  Brain,
   Building2,
   Calendar,
   Check,
@@ -41,6 +42,7 @@ import { GradientText } from "./ui/GradientText";
 import { FloatingElements } from "./ui/FloatingElements";
 import { PulseBadge } from "./ui/PulseBadge";
 import { Timeline, HorizontalTimeline, BentoGrid } from "./ui/Timeline";
+import { TimeSavingsVisualizer } from "./ui/TimeSavingsVisualizer";
 import { PRICING_CONFIG } from "../services/billingService";
 
 const Stat: React.FC<{ label: string; value: string }> = ({ label, value }) => (
@@ -171,82 +173,54 @@ export const LandingPage: React.FC = () => {
             <div className="absolute bottom-1/4 left-1/4 w-48 h-48 bg-blue-500/5 rounded-full blur-3xl" />
           </div>
 
-          <div className="relative p-10 md:p-14">
-            <ScrollReveal direction="down" delay={100}>
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-white/70 hover:border-orange-500/30 hover:bg-white/10 transition-all duration-300 cursor-default">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
-                </span>
-                v{APP_VERSION} • Cloud-based řešení
-              </div>
-            </ScrollReveal>
-
-            <ScrollReveal delay={200}>
-              <h1 className="mt-6 text-4xl md:text-6xl font-semibold tracking-tight text-white leading-[1.05]">
-                Staví se lépe,
-                <br />
-                když máte <GradientText>přehled</GradientText>
-              </h1>
-            </ScrollReveal>
-
-            <ScrollReveal delay={300}>
-              <p className="mt-5 text-white/65 leading-relaxed text-base md:text-lg max-w-2xl">
-                Cloud řešení pro řízení výběrových řízení ve stavebnictví.
-                <br />
-                Jedno místo pro podklady, nabídky, rozhodnutí a sdílení v týmu.
-                <br />
-              </p>
-            </ScrollReveal>
-
-            <ScrollReveal delay={400}>
-              <div className="mt-8 flex flex-wrap gap-3">
-                {[
-                  {
-                    icon: <LayoutDashboard size={14} />,
-                    text: "Kanban poptávek",
-                  },
-                  { icon: <Mail size={14} />, text: "Hromadné rozesílky" },
-                  { icon: <FileText size={14} />, text: "Reporty" },
-                  { icon: <Users size={14} />, text: "Adresář kontaktů" },
-                  { icon: <Calendar size={14} />, text: "Harmonogram" },
-                ].map((item, i) => (
-                  <div
-                    key={item.text}
-                    className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 hover:border-orange-500/30 hover:bg-orange-500/10 hover:text-orange-200 transition-all duration-300 cursor-default group"
-                    style={{ animationDelay: `${i * 100}ms` }}
-                  >
-                    <span className="text-orange-400 group-hover:text-orange-300 transition-colors duration-300">
-                      {item.icon}
+          <div className="relative p-8 md:p-10">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+              {/* Levy obsah */}
+              <div>
+                <ScrollReveal direction="down" delay={100}>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-white/70 hover:border-orange-500/30 hover:bg-white/10 transition-all duration-300 cursor-default">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
                     </span>
-                    <span className="text-sm text-white/70 group-hover:text-orange-200">
-                      {item.text}
+                    v{APP_VERSION} • Cloud-based řešení
+                  </div>
+                </ScrollReveal>
+
+                <ScrollReveal delay={200}>
+                  <h1 className="mt-6 text-4xl md:text-6xl font-semibold tracking-tight text-white leading-[1.05]">
+                    Staví se lépe,
+                    <br />
+                    když máte <GradientText>přehled</GradientText>
+                  </h1>
+                </ScrollReveal>
+
+                <ScrollReveal delay={300}>
+                  <p className="mt-4 text-white/65 leading-relaxed text-base md:text-lg max-w-2xl">
+                    Cloud řešení pro řízení výběrových řízení ve stavebnictví.
+                    <br />
+                    Jedno místo pro podklady, nabídky, rozhodnutí a sdílení v týmu.
+                    <br />
+                  </p>
+                </ScrollReveal>
+
+                <ScrollReveal delay={500} direction="up">
+                  <div className="mt-8 flex items-center gap-2 text-white/60">
+                    <Brain className="w-4 h-4 text-orange-400" />
+                    <span className="text-sm">
+                      Čas je mnohdy to nejdražší — snižujeme repetitivní úkony
                     </span>
                   </div>
-                ))}
+                </ScrollReveal>
               </div>
-            </ScrollReveal>
 
-            <ScrollReveal delay={500} direction="up">
-              <div className="mt-10 max-w-2xl">
-                <div className="group rounded-xl border border-orange-500/20 bg-gradient-to-r from-orange-500/10 to-transparent backdrop-blur px-5 py-4 hover:border-orange-500/30 hover:from-orange-500/15 transition-all duration-500">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-orange-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                      <Sparkles className="w-4 h-4 text-orange-400" />
-                    </div>
-                    <div>
-                      <div className="text-orange-300 text-base font-medium">
-                        Čas je mnohdy to nejdražší
-                      </div>
-                      <div className="text-white/50 text-sm mt-1 leading-relaxed">
-                        Mnoholeté zkušenosti nás přivádějí ke snížení
-                        repetitivních úkonů. Tohle je náš způsob, jak to změnit.
-                      </div>
-                    </div>
-                  </div>
-                </div>
+              {/* Pravy obsah - animovane hodiny */}
+              <div className="hidden lg:flex justify-end pt-4">
+                <ScrollReveal direction="left" delay={400}>
+                  <TimeSavingsVisualizer hoursSaved={15} />
+                </ScrollReveal>
               </div>
-            </ScrollReveal>
+            </div>
           </div>
         </section>
 
