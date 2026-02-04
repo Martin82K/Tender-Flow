@@ -1,12 +1,27 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Header } from "./Header";
+import {
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { useContactsQuery } from "../hooks/queries/useContactsQuery";
 import { useOverviewTenantDataQuery } from "../hooks/queries/useOverviewTenantDataQuery";
 import { buildOverviewAnalytics, formatMoney, type OverviewAnalytics } from "../utils/overviewAnalytics";
+import { getOfferStatusMeta } from "../utils/offerStatus";
 import { buildOverviewChatContext } from "../utils/overviewChat";
 import { sendOverviewChatMessage, type OverviewChatMessage } from "../services/overviewChatService";
+import { exportSupplierAnalysisToPDF } from "../services/exportService";
 import { filterSuppliers } from "../utils/supplierFilters";
+import { useAuth } from "../context/AuthContext";
+import { isUserAdmin } from "../utils/helpers";
 import type { Project, ProjectDetails, Subcontractor } from "../types";
+import html2canvas from "html2canvas";
 
 interface ProjectOverviewProps {
   projects: Project[];
@@ -15,7 +30,6 @@ interface ProjectOverviewProps {
 
 const SECTION_DEFAULTS = {
   suppliers: true,
-  profitability: true,
   trends: true,
   chatbot: true,
 };
@@ -116,14 +130,14 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
   projects,
   projectDetails,
 }) => {
+  const { user } = useAuth();
   const { data: contacts = [] } = useContactsQuery();
-  const { data: tenantData } = useOverviewTenantDataQuery();
+  const { data: tenantData, isLoading: tenantLoading, error: tenantError } = useOverviewTenantDataQuery();
   const [selectedProjectId, setSelectedProjectId] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "tender" | "realization" | "archived">("all");
   const [scope, setScope] = useState<"tenant" | "project">("tenant");
   const [sections, setSections] = useState(SECTION_DEFAULTS);
   const [showAllSuppliers, setShowAllSuppliers] = useState(false);
-  const [showAllCategories, setShowAllCategories] = useState(false);
   const [supplierQuery, setSupplierQuery] = useState("");
   const [supplierSpecialization, setSupplierSpecialization] = useState("");
   const [chatInput, setChatInput] = useState("");
@@ -136,6 +150,13 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
   const availableProjects = tenantProjects.length > 0 ? tenantProjects : projects;
   const availableProjectDetails =
     tenantProjects.length > 0 ? tenantProjectDetails : projectDetails;
+  const isAdmin = isUserAdmin(user?.email);
+  const showDebugBanner = useMemo(() => {
+    if (!isAdmin) return false;
+    if (typeof window === "undefined") return false;
+    const params = new URLSearchParams(window.location.search);
+    return params.get("debugOverview") === "1";
+  }, [isAdmin]);
 
   useEffect(() => {
     if (scope !== "project") return;
@@ -190,12 +211,181 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
     [supplierRows, supplierQuery, supplierSpecialization],
   );
 
-  const topSuppliers = showAllSuppliers ? filteredSuppliers : filteredSuppliers.slice(0, 6);
-  const sortedCategories = analytics.categoryProfit;
-  const topCategories = showAllCategories ? sortedCategories : sortedCategories.slice(0, 8);
-  const topProfitable = topCategories.filter((category) => category.profit >= 0);
-  const topLosses = topCategories.filter((category) => category.profit < 0);
+  const selectedSupplier = useMemo(() => {
+    const normalizedQuery = supplierQuery.trim().toLowerCase();
+    if (!normalizedQuery) return null;
+    const exactMatches = filteredSuppliers.filter(
+      (supplier) => supplier.name.toLowerCase() === normalizedQuery,
+    );
+    if (exactMatches.length !== 1) return null;
+    return exactMatches[0];
+  }, [filteredSuppliers, supplierQuery]);
 
+  const selectedSupplierOffers = useMemo(() => {
+    if (!selectedSupplier) return [];
+    return [...selectedSupplier.offers].sort((a, b) => {
+      if (!a.date && !b.date) return 0;
+      if (!a.date) return 1;
+      if (!b.date) return -1;
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    });
+  }, [selectedSupplier]);
+
+  const selectedSupplierSummary = useMemo(() => {
+    if (!selectedSupplier) {
+      return {
+        totalAwardedValue: 0,
+        totalSodRealizationValue: 0,
+        offerCount: 0,
+        shortlistCount: 0,
+        sodCount: 0,
+        rejectedCount: 0,
+        successRate: 0,
+        avgDiffSodPercent: null as number | null,
+        avgDiffPlanPercent: null as number | null,
+      };
+    }
+
+    let totalAwardedValue = 0;
+    let totalSodRealizationValue = 0;
+    let offerCount = 0;
+    let shortlistCount = 0;
+    let sodCount = 0;
+    let rejectedCount = 0;
+    const sodDiffs: number[] = [];
+    const planDiffs: number[] = [];
+
+    selectedSupplier.offers.forEach((offer) => {
+      totalAwardedValue += offer.priceValue;
+      offerCount += 1;
+
+      if (offer.status === "shortlist") shortlistCount += 1;
+      if (offer.status === "sod") {
+        sodCount += 1;
+        if (offer.projectStatus === "realization") {
+          totalSodRealizationValue += offer.priceValue;
+        }
+      }
+      if (offer.status === "rejected") rejectedCount += 1;
+
+      if (offer.sodBudget && offer.sodBudget > 0) {
+        sodDiffs.push(((offer.priceValue - offer.sodBudget) / offer.sodBudget) * 100);
+      }
+      if (offer.planBudget && offer.planBudget > 0) {
+        planDiffs.push(((offer.priceValue - offer.planBudget) / offer.planBudget) * 100);
+      }
+    });
+
+    const avgDiffSodPercent =
+      sodDiffs.length > 0 ? sodDiffs.reduce((sum, value) => sum + value, 0) / sodDiffs.length : null;
+    const avgDiffPlanPercent =
+      planDiffs.length > 0 ? planDiffs.reduce((sum, value) => sum + value, 0) / planDiffs.length : null;
+
+    return {
+      totalAwardedValue,
+      totalSodRealizationValue,
+      offerCount,
+      shortlistCount,
+      sodCount,
+      rejectedCount,
+      successRate: offerCount > 0 ? (sodCount / offerCount) * 100 : 0,
+      avgDiffSodPercent,
+      avgDiffPlanPercent,
+    };
+  }, [selectedSupplier]);
+
+  const selectedSupplierMonthlySeries = useMemo(() => {
+    if (!selectedSupplier) return { data: [], years: [] as number[] };
+    const yearMap = new Map<number, number[]>();
+
+    selectedSupplier.offers.forEach((offer) => {
+      if (!offer.date) return;
+      const parsed = new Date(offer.date);
+      if (Number.isNaN(parsed.getTime())) return;
+      const year = parsed.getFullYear();
+      const monthIndex = parsed.getMonth();
+      const values = yearMap.get(year) || Array.from({ length: 12 }, () => 0);
+      values[monthIndex] += offer.priceValue;
+      yearMap.set(year, values);
+    });
+
+    const years = Array.from(yearMap.keys()).sort((a, b) => a - b);
+    const data = Array.from({ length: 12 }, (_, index) => {
+      const row: Record<string, number | string> = { month: (index + 1).toString() };
+      years.forEach((year) => {
+        row[year.toString()] = yearMap.get(year)?.[index] || 0;
+      });
+      return row;
+    });
+
+    return { data, years };
+  }, [selectedSupplier]);
+
+  const formatMillions = (value: number) =>
+    `${(value / 1_000_000).toFixed(1).replace(".", ",")} mil.`;
+
+  const chartRef = useRef<HTMLDivElement | null>(null);
+
+  const handleSupplierExport = () => {
+    if (!selectedSupplier) return;
+    const appUrl =
+      typeof window !== "undefined" && window.location?.origin
+        ? window.location.origin
+        : "Tender Flow";
+
+    const exportWithChart = async () => {
+      if (!chartRef.current) {
+        exportSupplierAnalysisToPDF(
+          selectedSupplier.name,
+          selectedSupplierSummary,
+          selectedSupplierOffers,
+          appUrl,
+        );
+        return;
+      }
+
+      const canvas = await html2canvas(chartRef.current, {
+        backgroundColor: null,
+        scale: 2,
+      });
+      const dataUrl = canvas.toDataURL("image/png");
+
+      exportSupplierAnalysisToPDF(
+        selectedSupplier.name,
+        selectedSupplierSummary,
+        selectedSupplierOffers,
+        appUrl,
+        {
+          dataUrl,
+          width: canvas.width,
+          height: canvas.height,
+        },
+      );
+    };
+
+    void exportWithChart();
+  };
+
+  const formatPercent = (value: number) => `${value.toFixed(1).replace(".", ",")} %`;
+
+  const formatAvgDiff = (value: number | null, label: string) => {
+    if (value === null) {
+      return `Bez dat pro ${label}.`;
+    }
+    const isPositive = value >= 0;
+    return `Nabídky jsou v průměru ${isPositive ? "nad" : "pod"} ${label} o ${formatPercent(
+      Math.abs(value),
+    )}.`;
+  };
+
+  const formatOfferDate = (value?: string) => {
+    if (!value) return "";
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return "";
+    return parsed.toLocaleDateString("cs-CZ");
+  };
+
+  const topSuppliers = showAllSuppliers ? filteredSuppliers : filteredSuppliers.slice(0, 6);
   const trendYears = analytics.yearTrends.map((trend) => trend.year);
   const selectedProjectLabel =
     selectedProjectId === "all"
@@ -253,6 +443,22 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
       </div>
 
       <div className="flex-1 space-y-6 p-6">
+        {showDebugBanner ? (
+          <div className="rounded-2xl border border-amber-300/70 bg-amber-50/90 text-amber-900 px-4 py-3 text-sm">
+            <div className="font-semibold mb-1">Debug: Přehledy (tenant)</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <div>Tenant projects: {tenantProjects.length}</div>
+              <div>Tenant details: {Object.keys(tenantProjectDetails).length}</div>
+              <div>Fallback projects: {projects.length}</div>
+              <div>Fallback details: {Object.keys(projectDetails).length}</div>
+              <div>Scope: {scope}</div>
+              <div>Status filter: {statusFilter}</div>
+              <div>Selected project: {selectedProjectId}</div>
+              <div>Tenant loading: {tenantLoading ? "ano" : "ne"}</div>
+              <div>Tenant error: {tenantError ? (tenantError instanceof Error ? tenantError.message : "ano") : "ne"}</div>
+            </div>
+          </div>
+        ) : null}
         <div className="no-print flex flex-wrap items-center gap-3 bg-white/80 dark:bg-slate-900/70 border border-slate-200/70 dark:border-slate-700/70 rounded-2xl px-4 py-3 shadow-sm">
           <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
             Filtry
@@ -356,13 +562,33 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
           isOpen={sections.suppliers}
           onToggle={toggleSection}
           rightSlot={
-            <button
-              type="button"
-              onClick={() => setShowAllSuppliers((prev) => !prev)}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200"
-            >
-              {showAllSuppliers ? "Zobrazit méně" : "Zobrazit vše"}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleSupplierExport}
+                disabled={!selectedSupplier}
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium border transition ${
+                  selectedSupplier
+                    ? "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200/70 dark:border-slate-700/70 hover:bg-slate-50 dark:hover:bg-slate-700"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200/40 dark:border-slate-700/40 cursor-not-allowed"
+                }`}
+                title={
+                  selectedSupplier
+                    ? "Exportovat analýzu dodavatele do PDF"
+                    : "Vyberte dodavatele ve filtru"
+                }
+              >
+                <span className="material-symbols-outlined text-[18px]">picture_as_pdf</span>
+                Export PDF
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowAllSuppliers((prev) => !prev)}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200"
+              >
+                {showAllSuppliers ? "Zobrazit méně" : "Zobrazit vše"}
+              </button>
+            </div>
           }
         >
           <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -455,8 +681,38 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
                   <tr key={supplier.id} className="border-b border-slate-100 dark:border-slate-800">
                     <td className="py-3 pr-4 text-slate-800 dark:text-slate-100">{supplier.name}</td>
                     <td className="py-3 pr-4 text-slate-600 dark:text-slate-300">
-                      {getRatingLabel(supplier.rating)}
-                      {supplier.ratingCount ? ` (${supplier.ratingCount})` : ""}
+                      {supplier.rating && supplier.rating > 0 ? (
+                        <div className="inline-flex items-center gap-2">
+                          <span className="flex items-center gap-1">
+                            {Array.from({ length: 5 }, (_, index) => {
+                              const starValue = index + 1;
+                              const isFilled = supplier.rating >= starValue;
+                              return (
+                                <span
+                                  key={starValue}
+                                  className={`material-symbols-rounded text-[16px] ${
+                                    isFilled
+                                      ? "text-amber-400"
+                                      : "text-slate-300 dark:text-slate-600"
+                                  }`}
+                                >
+                                  {isFilled ? "star" : "star_outline"}
+                                </span>
+                              );
+                            })}
+                          </span>
+                          <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                            {supplier.rating.toFixed(1).replace(".", ",")}
+                          </span>
+                          {supplier.ratingCount ? (
+                            <span className="text-xs text-slate-400">
+                              {supplier.ratingCount}×
+                            </span>
+                          ) : null}
+                        </div>
+                      ) : (
+                        getRatingLabel(supplier.rating)
+                      )}
                     </td>
                     <td className="py-3 pr-4 text-slate-600 dark:text-slate-300">{supplier.offerCount}</td>
                     <td className="py-3 pr-4 text-slate-600 dark:text-slate-300">{supplier.sodCount}</td>
@@ -473,82 +729,201 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
               </tbody>
             </table>
           </div>
-        </Section>
 
-        <Section
-          id="profitability"
-          title="Přehled ziskovosti částí"
-          subtitle="Které části jsou nejziskovější a kde se nejčastěji prodělává"
-          isOpen={sections.profitability}
-          onToggle={toggleSection}
-          rightSlot={
-            <button
-              type="button"
-              onClick={() => setShowAllCategories((prev) => !prev)}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200"
-            >
-              {showAllCategories ? "Zobrazit méně" : "Zobrazit vše"}
-            </button>
-          }
-        >
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                Nejziskovější části
-              </div>
-              <BarList
-                items={topProfitable.map((category) => ({
-                  label: category.label,
-                  value: category.profit,
-                  helper: category.projectName,
-                }))}
-                valueFormatter={formatMoney}
-              />
+          <div className="mt-6 rounded-xl border border-slate-200/70 dark:border-slate-700/70 bg-white/80 dark:bg-slate-900/60 p-4">
+            <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+              Nabídky vybraného dodavatele
             </div>
-            <div className="space-y-4">
-              <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                Nejčastěji ztrátové části
+            {!supplierQuery.trim() ? (
+              <div className="mt-2 text-sm text-slate-500">
+                Vyberte dodavatele v poli „Dodavatel“ pro zobrazení nabídek.
               </div>
-              <BarList
-                items={topLosses.map((category) => ({
-                  label: category.label,
-                  value: Math.abs(category.profit),
-                  helper: category.projectName,
-                }))}
-                valueFormatter={formatMoney}
-              />
-            </div>
-          </div>
+            ) : !selectedSupplier ? (
+              <div className="mt-2 text-sm text-slate-500">
+                Upravte filtr tak, aby přesně odpovídal jednomu dodavateli.
+              </div>
+            ) : selectedSupplierOffers.length === 0 ? (
+              <div className="mt-2 text-sm text-slate-500">
+                Pro vybraného dodavatele zatím nejsou k dispozici žádné cenové nabídky.
+              </div>
+            ) : (
+              <div className="mt-3 space-y-4">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-slate-500 border-b border-slate-200/70 dark:border-slate-700/70">
+                        <th className="py-2 pr-4">Projekt</th>
+                        <th className="py-2 pr-4">Poptávka</th>
+                        <th className="py-2 pr-4">Cena</th>
+                        <th className="py-2 pr-4">Status</th>
+                        <th className="py-2 pr-4">Datum</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedSupplierOffers.map((offer, index) => (
+                        <tr key={`${offer.projectId}-${offer.categoryId}-${index}`} className="border-b border-slate-100 dark:border-slate-800">
+                          <td className="py-3 pr-4 text-slate-800 dark:text-slate-100">
+                            {offer.projectName}
+                          </td>
+                          <td className="py-3 pr-4 text-slate-600 dark:text-slate-300">
+                            {offer.categoryTitle}
+                          </td>
+                          <td className="py-3 pr-4 text-slate-600 dark:text-slate-300 font-semibold">
+                            {formatMoney(offer.priceValue)}
+                          </td>
+                          <td className="py-3 pr-4 text-slate-600 dark:text-slate-300">
+                            <span
+                              className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wide ${getOfferStatusMeta(offer.status).className}`}
+                            >
+                              {getOfferStatusMeta(offer.status).label}
+                            </span>
+                          </td>
+                          <td className="py-3 pr-4 text-slate-600 dark:text-slate-300">
+                            {formatOfferDate(offer.date) || "-"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
 
-          <div className="mt-6 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-slate-500 border-b border-slate-200/70 dark:border-slate-700/70">
-                  <th className="py-2 pr-4">Část / Výběr</th>
-                  <th className="py-2 pr-4">Projekt</th>
-                  <th className="py-2 pr-4">Rozpočet</th>
-                  <th className="py-2 pr-4">Vítězná cena</th>
-                  <th className="py-2 pr-4">Zisk / ztráta</th>
-                </tr>
-              </thead>
-              <tbody>
-                {topCategories.map((category) => (
-                  <tr key={category.id} className="border-b border-slate-100 dark:border-slate-800">
-                    <td className="py-3 pr-4 text-slate-800 dark:text-slate-100">{category.label}</td>
-                    <td className="py-3 pr-4 text-slate-600 dark:text-slate-300">{category.projectName}</td>
-                    <td className="py-3 pr-4 text-slate-600 dark:text-slate-300">
-                      {formatMoney(category.revenue)}
-                    </td>
-                    <td className="py-3 pr-4 text-slate-600 dark:text-slate-300">
-                      {formatMoney(category.cost)}
-                    </td>
-                    <td className={`py-3 pr-4 font-medium ${category.profit >= 0 ? "text-emerald-600" : "text-rose-500"}`}>
-                      {formatMoney(category.profit)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="rounded-xl border border-slate-200/70 dark:border-slate-700/70 bg-white/70 dark:bg-slate-900/60 p-4">
+                    <div className="text-xs uppercase tracking-wide text-slate-500">
+                      Celkem oceněno
+                    </div>
+                    <div className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">
+                      {formatMoney(selectedSupplierSummary.totalAwardedValue)}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-slate-200/70 dark:border-slate-700/70 bg-white/70 dark:bg-slate-900/60 p-4">
+                    <div className="text-xs uppercase tracking-wide text-slate-500">
+                      Celkem zasmluvněno (realizace)
+                    </div>
+                    <div className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">
+                      {formatMoney(selectedSupplierSummary.totalSodRealizationValue)}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-slate-200/70 dark:border-slate-700/70 bg-white/70 dark:bg-slate-900/60 p-4">
+                    <div className="text-xs uppercase tracking-wide text-slate-500">Úspěšnost</div>
+                    <div className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">
+                      {selectedSupplierSummary.successRate.toFixed(1).replace(".", ",")} %
+                    </div>
+                    <div className="mt-1 text-xs text-slate-500">
+                      {selectedSupplierSummary.sodCount} z {selectedSupplierSummary.offerCount} nabídek
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="rounded-lg border border-slate-200/70 dark:border-slate-700/70 bg-white/70 dark:bg-slate-900/60 p-3">
+                    <div className="text-xs uppercase tracking-wide text-slate-500">Nabídky</div>
+                    <div className="mt-1 text-base font-semibold text-slate-900 dark:text-white">
+                      {selectedSupplierSummary.offerCount}
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-slate-200/70 dark:border-slate-700/70 bg-white/70 dark:bg-slate-900/60 p-3">
+                    <div className="text-xs uppercase tracking-wide text-slate-500">Užší výběr</div>
+                    <div className="mt-1 text-base font-semibold text-slate-900 dark:text-white">
+                      {selectedSupplierSummary.shortlistCount}
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-slate-200/70 dark:border-slate-700/70 bg-white/70 dark:bg-slate-900/60 p-3">
+                    <div className="text-xs uppercase tracking-wide text-slate-500">Vítěz (SOD)</div>
+                    <div className="mt-1 text-base font-semibold text-slate-900 dark:text-white">
+                      {selectedSupplierSummary.sodCount}
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-slate-200/70 dark:border-slate-700/70 bg-white/70 dark:bg-slate-900/60 p-3">
+                    <div className="text-xs uppercase tracking-wide text-slate-500">Zamítnuto</div>
+                    <div className="mt-1 text-base font-semibold text-slate-900 dark:text-white">
+                      {selectedSupplierSummary.rejectedCount}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-slate-200/70 dark:border-slate-700/70 bg-white/70 dark:bg-slate-900/60 p-4">
+                  <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                    Průměrná odchylka nabídek
+                  </div>
+                  <div className="mt-2 space-y-1 text-sm">
+                    <div
+                      className={
+                        selectedSupplierSummary.avgDiffSodPercent !== null &&
+                        selectedSupplierSummary.avgDiffSodPercent <= 0
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-rose-500"
+                      }
+                    >
+                      {formatAvgDiff(selectedSupplierSummary.avgDiffSodPercent, "SOD rozpočtem")}
+                    </div>
+                    <div
+                      className={
+                        selectedSupplierSummary.avgDiffPlanPercent !== null &&
+                        selectedSupplierSummary.avgDiffPlanPercent <= 0
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-rose-500"
+                      }
+                    >
+                      {formatAvgDiff(selectedSupplierSummary.avgDiffPlanPercent, "plánem")}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-slate-200/70 dark:border-slate-700/70 bg-white/70 dark:bg-slate-900/60 p-4">
+                  <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                    Objem nabídek v čase (měsíce)
+                  </div>
+                  {selectedSupplierMonthlySeries.data.length === 0 ||
+                  selectedSupplierMonthlySeries.years.length === 0 ? (
+                    <div className="mt-2 text-sm text-slate-500">
+                      Pro časovou osu nejsou dostupná data s datem nabídky.
+                    </div>
+                  ) : (
+                    <div className="mt-3 h-56" ref={chartRef}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={selectedSupplierMonthlySeries.data}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.2)" />
+                          <XAxis dataKey="month" tick={{ fill: "#94a3b8", fontSize: 12 }} />
+                          <YAxis
+                            tick={{ fill: "#94a3b8", fontSize: 12 }}
+                            tickFormatter={(value) => formatMillions(value)}
+                          />
+                          <Tooltip
+                            formatter={(value: number) => formatMoney(value)}
+                            labelFormatter={(label) => `Měsíc ${label}`}
+                            labelStyle={{ color: "#334155" }}
+                          />
+                          <Legend />
+                          {selectedSupplierMonthlySeries.years.map((year, index) => {
+                            const palette = [
+                              "#38bdf8",
+                              "#22c55e",
+                              "#f59e0b",
+                              "#a855f7",
+                              "#f97316",
+                              "#14b8a6",
+                              "#e11d48",
+                            ];
+                            return (
+                              <Line
+                                key={year}
+                                type="monotone"
+                                dataKey={year.toString()}
+                                stroke={palette[index % palette.length]}
+                                strokeWidth={2}
+                                dot={false}
+                                name={year.toString()}
+                              />
+                            );
+                          })}
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </Section>
 

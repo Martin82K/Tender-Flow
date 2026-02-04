@@ -8,6 +8,20 @@ export interface SupplierCategoryRef {
   documents: DemandDocument[];
 }
 
+export interface SupplierOfferRef {
+  projectId: string;
+  projectName: string;
+  projectStatus: Project["status"];
+  categoryId: string;
+  categoryTitle: string;
+  sodBudget?: number;
+  planBudget?: number;
+  status: Bid["status"];
+  price: string;
+  priceValue: number;
+  date?: string;
+}
+
 export interface SupplierStats {
   id: string;
   subcontractorId?: string;
@@ -19,6 +33,7 @@ export interface SupplierStats {
   lastAwardedAt?: string;
   lastAwardedLabel?: string;
   categories: SupplierCategoryRef[];
+  offers: SupplierOfferRef[];
 }
 
 export interface CategoryProfit {
@@ -137,6 +152,32 @@ const addSupplierCategory = (
   });
 };
 
+const addSupplierOffer = (
+  supplier: SupplierStats,
+  bid: Bid,
+  category: DemandCategory,
+  projectName: string,
+  projectId: string,
+  projectStatus: Project["status"],
+  project: ProjectDetails,
+) => {
+  if (!bid.price) return;
+  const date = resolveBidDate(bid, category, project);
+  supplier.offers.push({
+    projectId,
+    projectName,
+    projectStatus,
+    categoryId: category.id,
+    categoryTitle: category.title,
+    sodBudget: category.sodBudget ?? parseMoneyValue(category.budget),
+    planBudget: category.planBudget,
+    status: bid.status,
+    price: bid.price,
+    priceValue: parseMoneyValue(bid.price),
+    date,
+  });
+};
+
 export const buildOverviewAnalytics = (
   projects: Project[],
   projectDetails: Record<string, ProjectDetails | undefined>,
@@ -215,10 +256,20 @@ export const buildOverviewAnalytics = (
             successRate: 0,
             totalAwardedValue: 0,
             categories: [],
+            offers: [],
           };
 
         supplier.offerCount += 1;
         addSupplierCategory(supplier, category, projectName, projectId);
+        addSupplierOffer(
+          supplier,
+          bid,
+          category,
+          projectName,
+          projectId,
+          projectStatus,
+          details,
+        );
 
         if (bid.status === "sod") {
           supplier.sodCount += 1;

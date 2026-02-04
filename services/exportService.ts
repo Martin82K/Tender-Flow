@@ -2,6 +2,8 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { DemandCategory, Bid, ProjectDetails, TenderPlanItem, Subcontractor, StatusConfig } from '../types';
+import type { SupplierOfferRef } from '../utils/overviewAnalytics';
+import { getOfferStatusMeta } from '../utils/offerStatus';
 import { RobotoRegularBase64 } from '../fonts/roboto-regular';
 
 /**
@@ -54,6 +56,45 @@ function parseMoney(value: string): number {
   const val = parseFloat(cleanStr);
   return isNaN(val) ? 0 : val;
 }
+
+type SupplierAnalysisSummary = {
+  totalAwardedValue: number;
+  totalSodRealizationValue: number;
+  offerCount: number;
+  shortlistCount: number;
+  sodCount: number;
+  rejectedCount: number;
+  successRate: number;
+  avgDiffSodPercent: number | null;
+  avgDiffPlanPercent: number | null;
+};
+
+type ChartImage = {
+  dataUrl: string;
+  width: number;
+  height: number;
+};
+
+const formatMoneyPDF = (value: number) =>
+  new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 }).format(value);
+
+const formatPercentPDF = (value: number) =>
+  `${value.toFixed(1).replace('.', ',')} %`;
+
+const formatDateOrDash = (value?: string) => {
+  if (!value) return '-';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return '-';
+  return formatDate(value);
+};
+
+const formatAvgDiffText = (value: number | null, label: string) => {
+  if (value === null) return `Bez dat pro ${label}`;
+  const isPositive = value >= 0;
+  return `Nabídky jsou v průměru ${isPositive ? 'nad' : 'pod'} ${label} o ${formatPercentPDF(
+    Math.abs(value),
+  )}`;
+};
 
 /**
  * Export to XLSX format with styling
@@ -330,6 +371,111 @@ export function exportToPDF(
 
   // Download
   const filename = `poptavka_${category.title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+  doc.save(filename);
+}
+
+/**
+ * Export supplier analysis to PDF
+ */
+export function exportSupplierAnalysisToPDF(
+  supplierName: string,
+  summary: SupplierAnalysisSummary,
+  offers: SupplierOfferRef[],
+  appUrl: string,
+  chartImage?: ChartImage,
+): void {
+  const doc = new jsPDF({ orientation: 'portrait', format: 'a4' });
+
+  registerRobotoFont(doc);
+
+  doc.setFontSize(18);
+  doc.setFont('Roboto', 'normal');
+  doc.text(`Analýza dodavatele: ${supplierName}`, 14, 15);
+
+  doc.setFontSize(10);
+  doc.text(`Datum exportu: ${formatDate(new Date().toISOString())}`, 14, 23);
+
+  autoTable(doc, {
+    startY: 28,
+    head: [['Souhrn', 'Hodnota']],
+    body: [
+      ['Celkem oceněno', formatMoneyPDF(summary.totalAwardedValue)],
+      ['Celkem zasmluvněno (realizace)', formatMoneyPDF(summary.totalSodRealizationValue)],
+      ['Úspěšnost', formatPercentPDF(summary.successRate)],
+      ['Nabídky', summary.offerCount.toString()],
+      ['Užší výběr', summary.shortlistCount.toString()],
+      ['Vítěz (SOD)', summary.sodCount.toString()],
+      ['Zamítnuto', summary.rejectedCount.toString()],
+      ['Průměrná odchylka vs SOD', formatAvgDiffText(summary.avgDiffSodPercent, 'SOD rozpočtem')],
+      ['Průměrná odchylka vs plán', formatAvgDiffText(summary.avgDiffPlanPercent, 'plánem')],
+    ],
+    styles: { fontSize: 9, cellPadding: 2, font: 'Roboto' },
+    headStyles: { fillColor: [71, 85, 105], textColor: 255, fontStyle: 'normal' },
+    columnStyles: { 0: { cellWidth: 55 }, 1: { cellWidth: 130 } },
+    margin: { left: 14, right: 14 },
+  });
+
+  const offersTable = offers.map((offer) => [
+    offer.projectName,
+    offer.categoryTitle,
+    formatMoneyPDF(offer.priceValue),
+    getOfferStatusMeta(offer.status).label,
+    formatDateOrDash(offer.date),
+  ]);
+
+  autoTable(doc, {
+    startY: (doc as any).lastAutoTable.finalY + 6,
+    head: [['Projekt', 'Poptávka', 'Cena', 'Status', 'Datum']],
+    body: offersTable,
+    styles: { fontSize: 8, cellPadding: 2, font: 'Roboto' },
+    headStyles: { fillColor: [71, 85, 105], textColor: 255, fontStyle: 'normal' },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    columnStyles: {
+      0: { cellWidth: 45 },
+      1: { cellWidth: 55 },
+      2: { cellWidth: 20 },
+      3: { cellWidth: 18 },
+      4: { cellWidth: 18 },
+    },
+    margin: { left: 14, right: 14 },
+  });
+
+  if (chartImage) {
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const maxWidth = pageWidth - 28;
+    const scale = maxWidth / chartImage.width;
+    const imageWidth = maxWidth;
+    const imageHeight = chartImage.height * scale;
+    let y = (doc as any).lastAutoTable.finalY + 10;
+    const requiredHeight = imageHeight + 14;
+    if (y + requiredHeight > pageHeight - 12) {
+      doc.addPage();
+      y = 20;
+    }
+
+    doc.setFontSize(11);
+    doc.setTextColor(71, 85, 105);
+    doc.text('Objem nabídek v čase (měsíce)', 14, y);
+
+    doc.addImage(chartImage.dataUrl, 'PNG', 14, y + 4, imageWidth, imageHeight);
+  }
+
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(128);
+    doc.text(
+      `Tender Flow | ${appUrl} | Exportováno: ${formatDate(new Date().toISOString())} | Strana ${i} z ${pageCount}`,
+      14,
+      doc.internal.pageSize.height - 10,
+    );
+  }
+
+  const filename = `analyza_dodavatele_${supplierName.replace(/\s+/g, '_')}_${new Date()
+    .toISOString()
+    .split('T')[0]}.pdf`;
   doc.save(filename);
 }
 
@@ -651,4 +797,3 @@ export function exportContactsToCSV(contacts: Subcontractor[], statuses: StatusC
   link.click();
   document.body.removeChild(link);
 }
-

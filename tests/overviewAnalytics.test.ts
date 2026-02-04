@@ -109,6 +109,62 @@ describe("overviewAnalytics", () => {
     expect(analytics.totalsByStatus.realization.offerCount).toBe(1);
   });
 
+  it("includes supplier offers with price and resolves project/category labels", () => {
+    const projects: Project[] = [
+      { id: "p1", name: "Projekt X", location: "Praha", status: "tender" },
+    ];
+
+    const projectDetails: Record<string, ProjectDetails> = {
+      p1: {
+        title: "Projekt X",
+        location: "Praha",
+        finishDate: "2025-02-10",
+        siteManager: "Novak",
+        categories: [
+          {
+            id: "c1",
+            title: "Elektro",
+            budget: "100 000 Kč",
+            sodBudget: 100000,
+            planBudget: 95000,
+            status: "sod",
+            subcontractorCount: 2,
+            description: "Elektro práce",
+          },
+        ],
+        bids: {
+          c1: [
+            {
+              id: "b1",
+              subcontractorId: "s1",
+              companyName: "Alfa",
+              contactPerson: "A",
+              status: "offer",
+              price: "90 000 Kč",
+              updateDate: "2025-01-02",
+            },
+            {
+              id: "b2",
+              subcontractorId: "s1",
+              companyName: "Alfa",
+              contactPerson: "A",
+              status: "offer",
+              updateDate: "2025-01-03",
+            },
+          ],
+        },
+      },
+    };
+
+    const analytics = buildOverviewAnalytics(projects, projectDetails);
+    const alfa = analytics.suppliers.find((s) => s.id === "s1");
+    expect(alfa?.offers.length).toBe(1);
+    expect(alfa?.offers[0].projectName).toBe("Projekt X");
+    expect(alfa?.offers[0].categoryTitle).toBe("Elektro");
+    expect(alfa?.offers[0].date).toBe("2025-01-02");
+    expect(alfa?.offers[0].projectStatus).toBe("tender");
+  });
+
   it("handles missing project details without crashing", () => {
     const projects: Project[] = [
       { id: "p1", name: "Projekt A", location: "Praha", status: "tender" },

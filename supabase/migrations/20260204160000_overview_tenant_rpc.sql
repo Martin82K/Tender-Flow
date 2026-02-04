@@ -76,7 +76,6 @@ BEGIN
           'subcontractorCount', COALESCE(bc.bid_count, 0),
           'description', COALESCE(c.description, ''),
           'workItems', COALESCE(c.work_items, ARRAY[]::text[]),
-          'documents', COALESCE(c.documents, '[]'::jsonb),
           'deadline', c.deadline,
           'realizationStart', c.realization_start,
           'realizationEnd', c.realization_end
