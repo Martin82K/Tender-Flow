@@ -32,6 +32,20 @@ export const SIDEBAR_NAVIGATION: NavItemConfig[] = [
     type: 'group'
   },
   {
+    id: 'project-management',
+    label: 'Správa staveb',
+    icon: 'domain_add',
+    view: 'project-management',
+    feature: FEATURES.MODULE_PROJECTS,
+  },
+  {
+    id: 'project-overview',
+    label: 'Přehledy',
+    icon: 'analytics',
+    view: 'project-overview',
+    feature: FEATURES.FEATURE_ADVANCED_REPORTING,
+  },
+  {
     id: 'contacts',
     label: 'Subdodavatelé',
     icon: 'handshake',
@@ -56,20 +70,6 @@ export const BOTTOM_NAVIGATION: NavItemConfig[] = [
     view: 'settings',
     type: 'group',
     children: [
-      {
-        id: 'project-management',
-        label: 'Správa staveb',
-        icon: 'domain_add',
-        view: 'project-management',
-        feature: FEATURES.MODULE_PROJECTS,
-      },
-      {
-        id: 'project-overview',
-        label: 'Přehledy',
-        icon: 'analytics',
-        view: 'project-overview',
-        feature: FEATURES.FEATURE_ADVANCED_REPORTING,
-      },
       {
         id: 'settings-contacts-import',
         label: 'Import kontaktů',
