@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, shell, session } from 'electron';
 import * as path from 'path';
 import { registerIpcHandlers } from './ipc/handlers';
 import { getAutoUpdaterService } from './services/autoUpdater';
@@ -15,6 +15,19 @@ let mcpServerStop: (() => Promise<void>) | null = null;
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
 function createWindow(): void {
+    // Configure session to allow Supabase API calls
+    const defaultSession = session.defaultSession;
+
+    // Set permissive Content-Security-Policy for Supabase
+    defaultSession.webRequest.onHeadersReceived((details, callback) => {
+        callback({
+            responseHeaders: {
+                ...details.responseHeaders,
+                'Content-Security-Policy': ["default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:; connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in https://api.stripe.com https://fonts.googleapis.com https://fonts.gstatic.com;"]
+            }
+        });
+    });
+
     mainWindow = new BrowserWindow({
         width: 1400,
         height: 900,
@@ -37,13 +50,15 @@ function createWindow(): void {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
             nodeIntegration: false,
-            sandbox: true,
+            sandbox: false, // Disabled to allow fetch requests on Windows
+            webSecurity: !isDev, // Disable web security in dev mode for easier testing
         },
         titleBarStyle: 'hiddenInset', // macOS native feel
         trafficLightPosition: { x: 15, y: 15 },
         show: false, // Show when ready
         backgroundColor: '#0f172a', // Match app dark theme
     });
+
 
     // Set dock icon on macOS
     if (process.platform === 'darwin') {
