@@ -1,5 +1,6 @@
+/** @vitest-environment node */
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { systemPreferences } from 'electron';
 
 type MockedPreferences = {
     canPromptTouchID: ReturnType<typeof vi.fn>;
@@ -16,14 +17,14 @@ vi.mock('win-hello', () => ({
     }),
 }));
 
-vi.mock('electron', () => ({
-    systemPreferences: {
-        canPromptTouchID: vi.fn(),
-        promptTouchID: vi.fn(),
-    },
-}));
+const mockedPreferences: MockedPreferences = {
+    canPromptTouchID: vi.fn(),
+    promptTouchID: vi.fn(),
+};
 
-const mockedPreferences = systemPreferences as unknown as MockedPreferences;
+vi.mock('electron', () => ({
+    systemPreferences: mockedPreferences,
+}));
 
 const setPlatform = (value: NodeJS.Platform) => {
     Object.defineProperty(process, 'platform', { value, configurable: true });
@@ -33,7 +34,6 @@ describe('BiometricAuthService', () => {
     const originalPlatform = process.platform;
 
     beforeEach(() => {
-        vi.resetModules();
         mockIsHelloAvailable.mockReset();
         mockRequestHello.mockReset();
         mockedPreferences.canPromptTouchID.mockReset();
