@@ -247,22 +247,33 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
             if (authenticated) {
               console.log("[AuthContext] Restoring session from refresh token...");
-              const { data, error } = await supabase.auth.setSession({
-                access_token: '', // ignored when refresh_token is provided
+              // Use refreshSession instead of setSession - setSession with empty access_token causes 406 errors
+              const { data, error } = await supabase.auth.refreshSession({
                 refresh_token: creds.refreshToken,
               });
 
               if (!error && data.session) {
                 console.log("[AuthContext] Session restored successfully");
+
+                // Update stored credentials with new refresh token
+                await platformAdapter.session.saveCredentials({
+                  refreshToken: data.session.refresh_token,
+                  email: creds.email,
+                });
+
                 const user = await authService.getUserFromSession(data.session);
                 if (user) {
                   setUser(user);
                   setIsLoading(false);
+                  window.clearTimeout(timer);
+                  finish();
                   return;
                 }
               } else {
                 console.warn("[AuthContext] Failed to restore session:", error);
-                // Optional: clear invalid credentials?
+                // Clear invalid credentials to prevent repeated failures
+                await platformAdapter.session.clearCredentials();
+                setHasSavedCredentials(false);
               }
             }
           }
