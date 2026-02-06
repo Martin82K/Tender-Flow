@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
@@ -6,10 +7,111 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('Supabase URL or Anon Key is missing. Please check your .env file.');
 }
 
+/**
+ * Safe fetch wrapper that sanitizes headers before sending.
+ * Prevents "TypeError: Failed to execute 'fetch' on 'Window': Invalid value"
+ * which occurs when a header value is undefined/null or contains non-Latin1 characters.
+ */
+let _authErrorCount = 0;
+const MAX_AUTH_ERRORS = 5;
+const AUTH_ERROR_RESET_MS = 30_000;
+let _authErrorResetTimer: ReturnType<typeof setTimeout> | null = null;
+
+const safeFetch: typeof fetch = async (input, init) => {
+  // Sanitize headers: ensure all values are valid strings
+  if (init?.headers) {
+    if (init.headers instanceof Headers) {
+      // Headers object - check each entry
+      const sanitized = new Headers();
+      init.headers.forEach((value, key) => {
+        if (typeof value === 'string') {
+          sanitized.set(key, value);
+        } else {
+          console.warn(`[Supabase] Removing invalid header "${key}": value is not a string`);
+        }
+      });
+      init = { ...init, headers: sanitized };
+    } else if (typeof init.headers === 'object' && !Array.isArray(init.headers)) {
+      // Plain object - filter out invalid values
+      const sanitized: Record<string, string> = {};
+      for (const [key, value] of Object.entries(init.headers as Record<string, unknown>)) {
+        if (value === undefined || value === null) {
+          console.warn(`[Supabase] Removing invalid header "${key}": value is ${value}`);
+          continue;
+        }
+        const strValue = String(value);
+        sanitized[key] = strValue;
+      }
+      init = { ...init, headers: sanitized };
+    } else if (Array.isArray(init.headers)) {
+      // Array of [key, value] pairs
+      const sanitized: [string, string][] = [];
+      for (const pair of init.headers) {
+        if (Array.isArray(pair) && pair.length >= 2) {
+          const [key, value] = pair;
+          if (value === undefined || value === null) {
+            console.warn(`[Supabase] Removing invalid header "${key}": value is ${value}`);
+            continue;
+          }
+          sanitized.push([String(key), String(value)]);
+        }
+      }
+      init = { ...init, headers: sanitized };
+    }
+  }
+
+  try {
+    const response = await fetch(input, init);
+
+    // Reset error counter on success
+    if (_authErrorCount > 0) {
+      _authErrorCount = 0;
+    }
+
+    return response;
+  } catch (error) {
+    // Track persistent auth/fetch errors
+    if (error instanceof TypeError && error.message.includes('Invalid value')) {
+      _authErrorCount++;
+
+      // Reset counter after a period of time
+      if (_authErrorResetTimer) clearTimeout(_authErrorResetTimer);
+      _authErrorResetTimer = setTimeout(() => {
+        _authErrorCount = 0;
+      }, AUTH_ERROR_RESET_MS);
+
+      // If too many consecutive auth errors, the session is likely corrupted
+      if (_authErrorCount >= MAX_AUTH_ERRORS) {
+        console.error(
+          `[Supabase] ${MAX_AUTH_ERRORS} consecutive "Invalid value" errors detected. ` +
+          `Session may be corrupted. Clearing session data.`
+        );
+        _authErrorCount = 0;
+
+        // Clear the stored session to break the infinite retry loop
+        try {
+          window.localStorage.removeItem('crm-auth-token');
+          window.localStorage.removeItem('crm-user-cache');
+        } catch { /* ignore */ }
+
+        // Redirect to login after a short delay to let current operations settle
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 500);
+      }
+    }
+
+    throw error;
+  }
+};
+
 export const supabase = createClient(
   supabaseUrl || '',
   supabaseAnonKey || '',
   {
+    global: {
+      fetch: safeFetch,
+    },
     auth: {
       // Use localStorage instead of cookies to avoid Safari blocking
       storage: window.localStorage,
@@ -21,5 +123,3 @@ export const supabase = createClient(
     }
   }
 );
-
-
