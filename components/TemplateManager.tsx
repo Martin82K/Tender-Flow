@@ -11,6 +11,14 @@ interface TemplateManagerProps {
     initialTemplateId?: string | null;
 }
 
+const escapeHtml = (value: string): string =>
+    value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
 export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSelectTemplate, onClose, initialTemplateId }) => {
     const [templates, setTemplates] = useState<Template[]>([]);
     const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
@@ -479,7 +487,11 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
                                             <div
                                                 className="prose dark:prose-invert max-w-none"
                                                 dangerouslySetInnerHTML={{
-                                                    __html: (previewMode ? processTemplate(selectedTemplate.content, previewData) : selectedTemplate.content).replace(/\n/g, '<br/>')
+                                                    __html: escapeHtml(
+                                                        previewMode
+                                                            ? processTemplate(selectedTemplate.content, previewData)
+                                                            : selectedTemplate.content
+                                                    ).replace(/\n/g, '<br/>')
                                                 }}
                                             />
                                         </div>

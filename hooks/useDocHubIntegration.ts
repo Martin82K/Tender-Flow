@@ -331,20 +331,14 @@ export const useDocHubIntegration = (
         try {
             if (provider === "gdrive" && isDesktop) {
                 const clientId = import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID_DESKTOP as string | undefined;
-                const clientSecret = import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_SECRET_DESKTOP as string | undefined;
 
                 console.log('DEBUG Google Login:', {
                     hasClientId: !!clientId,
-                    hasClientSecret: !!clientSecret,
                     clientIdPrefix: clientId?.substring(0, 5),
-                    clientSecretPrefix: clientSecret ? '***' : 'MISSING'
                 });
 
                 if (!clientId) {
                     throw new Error("Chybí VITE_GOOGLE_OAUTH_CLIENT_ID_DESKTOP v .env.");
-                }
-                if (!clientSecret) {
-                    throw new Error("Chybí VITE_GOOGLE_OAUTH_CLIENT_SECRET_DESKTOP v .env. Prosím přidejte jej a restartujte aplikaci.");
                 }
 
                 // @ts-ignore - electronAPI is injected via preload
@@ -355,7 +349,6 @@ export const useDocHubIntegration = (
 
                 const token = await oauth.googleLogin({
                     clientId,
-                    clientSecret,
                     scopes: [
                         "https://www.googleapis.com/auth/drive.file",
                         "openid",

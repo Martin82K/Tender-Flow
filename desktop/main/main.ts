@@ -14,16 +14,41 @@ let mcpServerStop: (() => Promise<void>) | null = null;
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
+const ALLOWED_EXTERNAL_PROTOCOLS = new Set(['https:', 'mailto:']);
+const ALLOWED_EXTERNAL_HOSTS = new Set([
+    'accounts.google.com',
+    'oauth2.googleapis.com',
+    'api.github.com',
+    'github.com',
+    'www.github.com',
+    'tenderflow.cz',
+    'www.tenderflow.cz',
+]);
+
+const canOpenExternalUrl = (rawUrl: string): boolean => {
+    try {
+        const parsed = new URL(rawUrl);
+        if (!ALLOWED_EXTERNAL_PROTOCOLS.has(parsed.protocol)) return false;
+        if (parsed.protocol === 'mailto:') return true;
+        return ALLOWED_EXTERNAL_HOSTS.has(parsed.hostname);
+    } catch {
+        return false;
+    }
+};
+
 function createWindow(): void {
     // Configure session to allow Supabase API calls
     const defaultSession = session.defaultSession;
 
-    // Set permissive Content-Security-Policy for Supabase
+    // Set CSP for desktop renderer (stricter in production)
     defaultSession.webRequest.onHeadersReceived((details, callback) => {
+        const csp = isDev
+            ? "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:; connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in https://api.stripe.com https://fonts.googleapis.com https://fonts.gstatic.com;"
+            : "default-src 'self' 'unsafe-inline' https: data: blob:; connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in https://api.stripe.com https://fonts.googleapis.com https://fonts.gstatic.com;";
         callback({
             responseHeaders: {
                 ...details.responseHeaders,
-                'Content-Security-Policy': ["default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:; connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in https://api.stripe.com https://fonts.googleapis.com https://fonts.gstatic.com;"]
+                'Content-Security-Policy': [csp]
             }
         });
     });
@@ -88,7 +113,9 @@ function createWindow(): void {
 
     // Handle external links
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-        shell.openExternal(url);
+        if (canOpenExternalUrl(url)) {
+            shell.openExternal(url);
+        }
         return { action: 'deny' };
     });
 
@@ -153,7 +180,9 @@ app.on('web-contents-created', (_, contents) => {
         // Allow mailto links to open in default mail client
         if (url.startsWith('mailto:')) {
             event.preventDefault();
-            shell.openExternal(url);
+            if (canOpenExternalUrl(url)) {
+                shell.openExternal(url);
+            }
             return;
         }
 

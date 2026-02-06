@@ -22,6 +22,49 @@ const createCodeVerifier = (): string => base64UrlEncode(crypto.randomBytes(32))
 const createCodeChallenge = (verifier: string): string =>
     base64UrlEncode(crypto.createHash('sha256').update(verifier).digest());
 
+const ALLOWED_EXTERNAL_PROTOCOLS = new Set(['https:', 'mailto:']);
+const ALLOWED_EXTERNAL_HOSTS = new Set([
+    'accounts.google.com',
+    'oauth2.googleapis.com',
+    'api.github.com',
+    'github.com',
+    'www.github.com',
+    'tenderflow.cz',
+    'www.tenderflow.cz',
+]);
+
+const ALLOWED_PROXY_HOST_SUFFIXES = ['.supabase.co', '.supabase.in'];
+const ALLOWED_PROXY_HOSTS = new Set([
+    'api.stripe.com',
+    'oauth2.googleapis.com',
+    'accounts.google.com',
+]);
+
+const parseUrl = (rawUrl: string): URL => {
+    let parsed: URL;
+    try {
+        parsed = new URL(rawUrl);
+    } catch {
+        throw new Error('Invalid URL');
+    }
+
+    if (!ALLOWED_EXTERNAL_PROTOCOLS.has(parsed.protocol)) {
+        throw new Error(`Blocked protocol: ${parsed.protocol}`);
+    }
+    return parsed;
+};
+
+const isAllowedExternalUrl = (parsed: URL): boolean => {
+    if (parsed.protocol === 'mailto:') return true;
+    return ALLOWED_EXTERNAL_HOSTS.has(parsed.hostname);
+};
+
+const isAllowedProxyUrl = (parsed: URL): boolean => {
+    if (parsed.protocol !== 'https:') return false;
+    if (ALLOWED_PROXY_HOSTS.has(parsed.hostname)) return true;
+    return ALLOWED_PROXY_HOST_SUFFIXES.some((suffix) => parsed.hostname.endsWith(suffix));
+};
+
 const startLoopbackServer = (timeoutMs: number) => {
     return new Promise<{
         port: number;
@@ -428,7 +471,11 @@ export function registerIpcHandlers(): void {
         authUrl.searchParams.set('code_challenge_method', 'S256');
         authUrl.searchParams.set('state', state);
 
-        await shell.openExternal(authUrl.toString());
+        const parsedAuthUrl = parseUrl(authUrl.toString());
+        if (!isAllowedExternalUrl(parsedAuthUrl)) {
+            throw new Error('Blocked OAuth URL host');
+        }
+        await shell.openExternal(parsedAuthUrl.toString());
         const { code, state: returnedState } = await waitForCode;
         if (returnedState !== state) {
             throw new Error('Invalid OAuth state');
@@ -470,7 +517,12 @@ export function registerIpcHandlers(): void {
     // But since we are receiving serialized JSON, we can treat it as any
     ipcMain.handle('net:request', async (_, url: string, options?: any) => {
         try {
-            console.log(`[Proxy] Fetching ${url} (Main Process) via electron.net.fetch`);
+            const parsedUrl = new URL(url);
+            if (!isAllowedProxyUrl(parsedUrl)) {
+                throw new Error(`Proxy target not allowed: ${parsedUrl.hostname}`);
+            }
+
+            console.log(`[Proxy] Fetching ${parsedUrl.origin} (Main Process) via electron.net.fetch`);
 
             // Debug headers presence
             if (options?.headers) {
@@ -483,7 +535,7 @@ export function registerIpcHandlers(): void {
             // Use electron.net.fetch instead of Node's native fetch to use Chromium's network stack
             // This handles system proxies, SSL, etc. better and bypasses CORS
             const { net } = require('electron');
-            const response = await net.fetch(url, options);
+            const response = await net.fetch(parsedUrl.toString(), options);
             const text = await response.text();
 
             console.log(`[Proxy] Response: ${response.status} ${response.statusText}`);
@@ -503,7 +555,7 @@ export function registerIpcHandlers(): void {
                 headers
             };
         } catch (error: any) {
-            console.error(`[Proxy] Error fetching ${url}:`, error);
+            console.error(`[Proxy] Error fetching URL via proxy:`, error);
             console.error(`[Proxy] Error Details:`, {
                 message: error.message,
                 code: error.code,
@@ -517,9 +569,12 @@ export function registerIpcHandlers(): void {
     // --- SHELL ---
 
     ipcMain.handle('shell:openExternal', async (_, url: string): Promise<void> => {
-        console.log('[Shell] openExternal called with URL:', url);
         try {
-            await shell.openExternal(url);
+            const parsedUrl = parseUrl(url);
+            if (!isAllowedExternalUrl(parsedUrl)) {
+                throw new Error(`Blocked external URL host: ${parsedUrl.hostname}`);
+            }
+            await shell.openExternal(parsedUrl.toString());
             console.log('[Shell] openExternal completed successfully');
         } catch (error) {
             console.error('[Shell] openExternal failed:', error);
