@@ -8,6 +8,29 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 /**
+ * Global XMLHttpRequest interceptor to sanitize headers.
+ * This catches any XHR requests that might bypass our safeFetch wrapper.
+ */
+const originalXHRSetRequestHeader = XMLHttpRequest.prototype.setRequestHeader;
+XMLHttpRequest.prototype.setRequestHeader = function(name: string, value: string) {
+  // Validate header value before setting
+  if (value === undefined || value === null) {
+    console.warn(`[XHR] Skipping invalid header "${name}": value is ${value}`);
+    return;
+  }
+  if (typeof value !== 'string') {
+    console.warn(`[XHR] Converting non-string header "${name}" to string`);
+    value = String(value);
+  }
+  // Check for empty or whitespace-only Authorization headers (corrupted tokens)
+  if (name.toLowerCase() === 'authorization' && (!value.trim() || value.trim() === 'Bearer' || value.trim() === 'Bearer null' || value.trim() === 'Bearer undefined')) {
+    console.warn(`[XHR] Skipping corrupted Authorization header: "${value}"`);
+    return;
+  }
+  return originalXHRSetRequestHeader.call(this, name, value);
+};
+
+/**
  * Safe fetch wrapper that sanitizes headers before sending.
  * Prevents "TypeError: Failed to execute 'fetch' on 'Window': Invalid value"
  * which occurs when a header value is undefined/null or contains non-Latin1 characters.
@@ -17,6 +40,14 @@ const MAX_AUTH_ERRORS = 5;
 const AUTH_ERROR_RESET_MS = 30_000;
 let _authErrorResetTimer: ReturnType<typeof setTimeout> | null = null;
 
+/**
+ * Check if an Authorization header value is corrupted/invalid
+ */
+const isCorruptedAuthHeader = (value: string): boolean => {
+  const trimmed = value.trim();
+  return !trimmed || trimmed === 'Bearer' || trimmed === 'Bearer null' || trimmed === 'Bearer undefined';
+};
+
 const safeFetch: typeof fetch = async (input, init) => {
   // Sanitize headers: ensure all values are valid strings
   if (init?.headers) {
@@ -25,6 +56,11 @@ const safeFetch: typeof fetch = async (input, init) => {
       const sanitized = new Headers();
       init.headers.forEach((value, key) => {
         if (typeof value === 'string') {
+          // Check for corrupted auth headers
+          if (key.toLowerCase() === 'authorization' && isCorruptedAuthHeader(value)) {
+            console.warn(`[Supabase] Removing corrupted Authorization header`);
+            return;
+          }
           sanitized.set(key, value);
         } else {
           console.warn(`[Supabase] Removing invalid header "${key}": value is not a string`);
@@ -40,6 +76,11 @@ const safeFetch: typeof fetch = async (input, init) => {
           continue;
         }
         const strValue = String(value);
+        // Check for corrupted auth headers
+        if (key.toLowerCase() === 'authorization' && isCorruptedAuthHeader(strValue)) {
+          console.warn(`[Supabase] Removing corrupted Authorization header`);
+          continue;
+        }
         sanitized[key] = strValue;
       }
       init = { ...init, headers: sanitized };
@@ -53,7 +94,13 @@ const safeFetch: typeof fetch = async (input, init) => {
             console.warn(`[Supabase] Removing invalid header "${key}": value is ${value}`);
             continue;
           }
-          sanitized.push([String(key), String(value)]);
+          const strValue = String(value);
+          // Check for corrupted auth headers
+          if (key.toLowerCase() === 'authorization' && isCorruptedAuthHeader(strValue)) {
+            console.warn(`[Supabase] Removing corrupted Authorization header`);
+            continue;
+          }
+          sanitized.push([String(key), strValue]);
         }
       }
       init = { ...init, headers: sanitized };
@@ -70,9 +117,16 @@ const safeFetch: typeof fetch = async (input, init) => {
 
     return response;
   } catch (error) {
-    // Track persistent auth/fetch errors
-    if (error instanceof TypeError && error.message.includes('Invalid value')) {
+    // Track persistent auth/fetch errors (both fetch and XMLHttpRequest errors)
+    const isInvalidValueError = error instanceof TypeError && (
+      error.message.includes('Invalid value') ||
+      error.message.includes('setRequestHeader') ||
+      error.message.includes('Failed to execute')
+    );
+
+    if (isInvalidValueError) {
       _authErrorCount++;
+      console.warn(`[Supabase] Auth error detected (${_authErrorCount}/${MAX_AUTH_ERRORS}):`, error.message);
 
       // Reset counter after a period of time
       if (_authErrorResetTimer) clearTimeout(_authErrorResetTimer);
@@ -83,7 +137,7 @@ const safeFetch: typeof fetch = async (input, init) => {
       // If too many consecutive auth errors, the session is likely corrupted
       if (_authErrorCount >= MAX_AUTH_ERRORS) {
         console.error(
-          `[Supabase] ${MAX_AUTH_ERRORS} consecutive "Invalid value" errors detected. ` +
+          `[Supabase] ${MAX_AUTH_ERRORS} consecutive auth errors detected. ` +
           `Session may be corrupted. Clearing session data.`
         );
         _authErrorCount = 0;
@@ -92,6 +146,7 @@ const safeFetch: typeof fetch = async (input, init) => {
         try {
           window.localStorage.removeItem('crm-auth-token');
           window.localStorage.removeItem('crm-user-cache');
+          window.localStorage.removeItem('session_credentials');
         } catch { /* ignore */ }
 
         // Redirect to login after a short delay to let current operations settle

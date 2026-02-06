@@ -23,6 +23,7 @@ npm run preview          # Preview production build
 
 ### Desktop (Electron) Development
 ```bash
+npm run desktop:install  # Install Electron dependencies
 npm run desktop:compile  # Compile Electron TypeScript
 npm run desktop:dev      # Run Electron app in dev mode
 npm run desktop:build    # Build desktop app for current platform
@@ -54,6 +55,15 @@ npm run version:major    # Bump major version (1.1.5 → 2.0.0)
 
 Version bumps automatically sync across package.json and config/version.ts.
 
+### Supabase
+```bash
+npx supabase start         # Start local Supabase stack
+npx supabase db push       # Push migrations to remote
+npx supabase functions deploy <function-name>  # Deploy edge function
+npm run deploy:stripe-webhook   # Deploy Stripe webhook function
+npm run deploy:stripe-sync      # Deploy Stripe sync function
+```
+
 ### Other
 ```bash
 npm run build:user-manual  # Build user manual documentation
@@ -73,7 +83,7 @@ npm run release:prepare    # Prepare release artifacts
 
 **Views:** Defined in `types.ts` as `View` type:
 - `dashboard` - Main overview
-- `project` - Project detail (with tabs: overview, tender-plan, pipeline, schedule, documents)
+- `project` - Project detail (with tabs: overview, tender-plan, pipeline, schedule, documents, contracts)
 - `contacts` - Contact management
 - `settings` - User settings
 - `project-management` - Project CRUD
@@ -166,7 +176,9 @@ Project
 **Supabase:**
 - PostgreSQL database with Row-Level Security (RLS)
 - Real-time subscriptions not currently used extensively
-- Schema managed via migrations in `migrations/`
+- Schema managed via migrations in `supabase/migrations/`
+- Edge Functions in `supabase/functions/` (DocHub OAuth, MCP endpoints, Excel merge)
+- Shared utilities in `supabase/functions/_shared/`
 
 ### Desktop (Electron) Architecture
 
@@ -251,7 +263,7 @@ Tests use Vitest + Testing Library:
 - Toast notifications for async operations
 
 **TypeScript:**
-- Strict mode enabled
+- Path alias `@/*` maps to project root
 - All major types in `types.ts`
 - Additional type definitions in service files
 

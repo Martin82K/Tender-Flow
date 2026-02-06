@@ -16,6 +16,7 @@ import {
 } from "../services/demoData";
 import { isDesktop, platformAdapter } from "../services/platformAdapter";
 import { supabase } from "../services/supabase";
+import { navigate } from "../components/routing/router";
 
 interface AuthContextType {
   user: User | null;
@@ -47,9 +48,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const lastHydratedTokenRef = useRef<string | null>(null);
   const biometricLoginAttemptedRef = useRef(false);
 
-  // Check biometric availability on mount
+  // Check biometric availability and validate stored credentials on mount
   useEffect(() => {
-    const checkBiometric = async () => {
+    const checkBiometricAndValidateCredentials = async () => {
       if (!isDesktop) return;
 
       try {
@@ -58,6 +59,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           platformAdapter.session.isBiometricEnabled(),
           platformAdapter.session.getCredentials(),
         ]);
+
+        // Early validation of stored credentials - clear if corrupted
+        if (credentials) {
+          const isValidToken = (token: unknown): boolean => {
+            if (!token) return false;
+            if (typeof token !== 'string') return false;
+            const t = token.trim();
+            return t.length >= 10 && t !== 'null' && t !== 'undefined';
+          };
+
+          if (!isValidToken(credentials.refreshToken)) {
+            console.warn("[AuthContext] Invalid stored credentials detected on startup, clearing...");
+            await platformAdapter.session.clearCredentials();
+            setHasSavedCredentials(false);
+            setCanUseBiometric(available && enabled);
+            return;
+          }
+        }
 
         setCanUseBiometric(available && enabled);
         setHasSavedCredentials(!!credentials);
@@ -68,7 +87,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       }
     };
 
-    checkBiometric();
+    checkBiometricAndValidateCredentials();
   }, []);
 
   useEffect(() => {
@@ -76,16 +95,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
     // Priority 0: Validate stored session before Supabase tries to use it.
     // A corrupted session can cause "Invalid value" header errors in fetch requests.
+    const isInvalidToken = (token: unknown): boolean => {
+      if (token === undefined || token === null) return false; // Not present is OK
+      if (typeof token !== 'string') return true; // Must be string
+      const t = token.trim();
+      // Check for corrupted/placeholder values
+      return t === '' || t === 'null' || t === 'undefined' || t.length < 10;
+    };
+
     try {
       const raw = window.localStorage.getItem('crm-auth-token');
       if (raw) {
         const parsed = JSON.parse(raw);
         // Validate the session object has the expected shape
-        const token = parsed?.access_token
+        const accessToken = parsed?.access_token
           ?? parsed?.currentSession?.access_token
           ?? parsed?.session?.access_token
           ?? parsed?.data?.session?.access_token;
-        if (token !== undefined && token !== null && typeof token !== 'string') {
+        const refreshToken = parsed?.refresh_token
+          ?? parsed?.currentSession?.refresh_token
+          ?? parsed?.session?.refresh_token
+          ?? parsed?.data?.session?.refresh_token;
+
+        if (isInvalidToken(accessToken) || isInvalidToken(refreshToken)) {
           console.warn('[AuthContext] Corrupted session token detected, clearing session');
           window.localStorage.removeItem('crm-auth-token');
           window.localStorage.removeItem('crm-user-cache');
@@ -123,13 +155,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           return false;
         }
 
-        // Check if we already have a valid session
-        const { data: existingSession } = await supabase.auth.getSession();
-        if (existingSession?.session?.user) {
-          console.log("[AuthContext] Auto-login: Already have valid session");
-          setHasSavedCredentials(true);
-          setCanUseBiometric(true);
-          return false; // Let normal flow handle it
+        // Validate refresh token format before using it
+        if (typeof credentials.refreshToken !== 'string' || credentials.refreshToken.length < 10) {
+          console.warn("[AuthContext] Auto-login: Invalid refresh token format, clearing");
+          await platformAdapter.session.clearCredentials();
+          setHasSavedCredentials(false);
+          return false;
         }
 
         console.log("[AuthContext] Auto-login: Prompting for biometric...");
@@ -144,7 +175,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           return false;
         }
 
-        // Refresh session with stored token
+        // Clear any existing (potentially corrupted) session before refreshing
+        // This ensures we always use a fresh session from the refresh token
+        console.log("[AuthContext] Auto-login: Clearing old session before refresh...");
+        try {
+          window.localStorage.removeItem('crm-auth-token');
+        } catch { /* ignore */ }
+
+        // Refresh session with stored token - this creates a completely fresh session
+        console.log("[AuthContext] Auto-login: Refreshing session with stored token...");
         const { data, error } = await supabase.auth.refreshSession({
           refresh_token: credentials.refreshToken,
         });
@@ -157,7 +196,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           return false;
         }
 
-        // Update stored credentials
+        console.log("[AuthContext] Auto-login: Session refreshed successfully");
+
+        // Update stored credentials with new refresh token
         await platformAdapter.session.saveCredentials({
           refreshToken: data.session.refresh_token,
           email: credentials.email,
@@ -178,6 +219,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         return false;
       } catch (e) {
         console.error("[AuthContext] Auto-login error:", e);
+        // Clear potentially corrupted credentials
+        try {
+          await platformAdapter.session.clearCredentials();
+          setHasSavedCredentials(false);
+          window.localStorage.removeItem('crm-auth-token');
+          window.localStorage.removeItem('crm-user-cache');
+        } catch { /* ignore */ }
         biometricLoginAttemptedRef.current = false;
         return false;
       }
@@ -267,41 +315,79 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           const creds = await platformAdapter.session.getCredentials();
 
           if (creds?.refreshToken) {
-            console.log("[AuthContext] Found stored credentials, checking biometric status...");
-            let biometricEnabled = false;
-            try {
-              biometricEnabled = await platformAdapter.session.isBiometricEnabled();
-              console.log("[AuthContext] Biometric enabled status:", biometricEnabled);
-            } catch (e) {
-              console.error("[AuthContext] Failed to check biometric status:", e);
-            }
-
-            let authenticated = true;
-            if (biometricEnabled) {
-              console.log("[AuthContext] Biometric enabled, prompting...");
-              authenticated = await platformAdapter.biometric.prompt("Přihlášení do Tender Flow");
+            // Validate refresh token is a proper string before using it
+            if (typeof creds.refreshToken !== 'string' || creds.refreshToken.length < 10) {
+              console.warn("[AuthContext] Invalid refresh token format, clearing credentials");
+              await platformAdapter.session.clearCredentials();
+              setHasSavedCredentials(false);
             } else {
-              console.log("[AuthContext] Biometric disabled, auto-login");
-            }
+              console.log("[AuthContext] Found stored credentials, checking biometric status...");
+              let biometricEnabled = false;
+              try {
+                biometricEnabled = await platformAdapter.session.isBiometricEnabled();
+                console.log("[AuthContext] Biometric enabled status:", biometricEnabled);
+              } catch (e) {
+                console.error("[AuthContext] Failed to check biometric status:", e);
+              }
 
-            if (authenticated) {
-              console.log("[AuthContext] Restoring session from refresh token...");
-              const { data, error } = await supabase.auth.setSession({
-                access_token: '', // ignored when refresh_token is provided
-                refresh_token: creds.refreshToken,
-              });
-
-              if (!error && data.session) {
-                console.log("[AuthContext] Session restored successfully");
-                const user = await authService.getUserFromSession(data.session);
-                if (user) {
-                  setUser(user);
-                  setIsLoading(false);
-                  return;
-                }
+              let authenticated = true;
+              if (biometricEnabled) {
+                console.log("[AuthContext] Biometric enabled, prompting...");
+                authenticated = await platformAdapter.biometric.prompt("Přihlášení do Tender Flow");
               } else {
-                console.warn("[AuthContext] Failed to restore session:", error);
-                // Optional: clear invalid credentials?
+                console.log("[AuthContext] Biometric disabled, auto-login");
+              }
+
+              if (authenticated) {
+                console.log("[AuthContext] Restoring session from refresh token...");
+                try {
+                  // Clear any existing (potentially corrupted) localStorage session first
+                  // This ensures we get a completely fresh session from the refresh token
+                  try {
+                    window.localStorage.removeItem('crm-auth-token');
+                  } catch { /* ignore */ }
+
+                  const { data, error } = await supabase.auth.refreshSession({
+                    refresh_token: creds.refreshToken,
+                  });
+
+                  if (!error && data.session) {
+                    console.log("[AuthContext] Session restored successfully");
+
+                    // Update stored credentials with new refresh token
+                    await platformAdapter.session.saveCredentials({
+                      refreshToken: data.session.refresh_token,
+                      email: creds.email,
+                    });
+
+                    const user = await authService.getUserFromSession(data.session);
+                    if (user) {
+                      setUser(user);
+                      setIsLoading(false);
+                      window.clearTimeout(timer);
+                      return;
+                    }
+                  } else {
+                    console.warn("[AuthContext] Failed to restore session:", error);
+                    // Clear invalid credentials to prevent retry loops
+                    await platformAdapter.session.clearCredentials();
+                    setHasSavedCredentials(false);
+                    // Also clear localStorage session data
+                    try {
+                      window.localStorage.removeItem('crm-auth-token');
+                      window.localStorage.removeItem('crm-user-cache');
+                    } catch { /* ignore */ }
+                  }
+                } catch (sessionError) {
+                  console.error("[AuthContext] Session restore threw error:", sessionError);
+                  // Clear corrupted credentials
+                  await platformAdapter.session.clearCredentials();
+                  setHasSavedCredentials(false);
+                  try {
+                    window.localStorage.removeItem('crm-auth-token');
+                    window.localStorage.removeItem('crm-user-cache');
+                  } catch { /* ignore */ }
+                }
               }
             }
           }
@@ -499,8 +585,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     } finally {
       // Always clear local session even if server request fails
       setUser(null);
-      // Navigate to landing page using router
-      window.location.href = "/";
+      // Navigate to login page - use navigate for SPA routing (works better with Electron)
+      if (isDesktop) {
+        navigate("/login", { replace: true });
+      } else {
+        window.location.href = "/";
+      }
     }
   };
 
