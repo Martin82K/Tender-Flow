@@ -16,7 +16,8 @@ extraMetadata:
   main: desktop/dist/main.js
   type: commonjs
 
-asar: true
+asar:
+  smartUnpack: false
 
 # Native modules must be unpacked from ASAR for proper loading
 asarUnpack:

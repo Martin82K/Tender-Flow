@@ -1,5 +1,6 @@
 import { QueryClient } from "@tanstack/react-query";
 import { clearStoredSessionData } from "./supabase";
+import { navigate } from "../components/routing/router";
 
 /**
  * Check if an error is likely an auth/session error
@@ -47,7 +48,7 @@ const handleQueryError = (error: unknown) => {
 
             // Redirect to login after a short delay
             setTimeout(() => {
-                window.location.href = '/login';
+                navigate('/login', { replace: true });
             }, 500);
         }
     }

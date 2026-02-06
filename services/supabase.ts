@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { navigate } from '../components/routing/router';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -247,7 +248,7 @@ const safeFetch: typeof fetch = async (input, init) => {
 
         // Redirect to login after a short delay to let current operations settle
         setTimeout(() => {
-          window.location.href = '/login';
+          navigate('/login', { replace: true });
         }, 500);
       }
     }
