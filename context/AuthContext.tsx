@@ -74,6 +74,32 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   useEffect(() => {
     console.log("AuthContext: Initializing...");
 
+    // Priority 0: Validate stored session before Supabase tries to use it.
+    // A corrupted session can cause "Invalid value" header errors in fetch requests.
+    try {
+      const raw = window.localStorage.getItem('crm-auth-token');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        // Validate the session object has the expected shape
+        const token = parsed?.access_token
+          ?? parsed?.currentSession?.access_token
+          ?? parsed?.session?.access_token
+          ?? parsed?.data?.session?.access_token;
+        if (token !== undefined && token !== null && typeof token !== 'string') {
+          console.warn('[AuthContext] Corrupted session token detected, clearing session');
+          window.localStorage.removeItem('crm-auth-token');
+          window.localStorage.removeItem('crm-user-cache');
+        }
+      }
+    } catch (e) {
+      // If we can't parse the session, it's corrupted - clear it
+      console.warn('[AuthContext] Could not parse stored session, clearing:', e);
+      try {
+        window.localStorage.removeItem('crm-auth-token');
+        window.localStorage.removeItem('crm-user-cache');
+      } catch { /* ignore */ }
+    }
+
     // Priority 1: Demo session
     if (isDemoSession()) {
       console.log("AuthContext: Demo session detected");
@@ -182,20 +208,33 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
             return;
           }
           // Use session directly from callback - no extra API call needed!
-          const currentUser = await authService.getUserFromSession(session);
-          if (currentUser) {
-            setUser(currentUser);
-            setIsLoading(false);
-            if (token) lastHydratedTokenRef.current = token;
-          } else {
-            console.warn(
-              "[AuthContext] Event but could not build user from session"
-            );
+          try {
+            const currentUser = await authService.getUserFromSession(session);
+            if (currentUser) {
+              setUser(currentUser);
+              setIsLoading(false);
+              if (token) lastHydratedTokenRef.current = token;
+            } else {
+              console.warn(
+                "[AuthContext] Event but could not build user from session"
+              );
+            }
+          } catch (err) {
+            console.error("[AuthContext] Error hydrating user from session:", err);
+            // If this was an INITIAL_SESSION and hydration failed, finish loading
+            // to avoid an infinite loading screen
+            if (event === "INITIAL_SESSION") {
+              setIsLoading(false);
+            }
           }
+        } else if (event === "INITIAL_SESSION") {
+          // No session on initial load - not authenticated
+          setIsLoading(false);
         }
       } else if (event === "SIGNED_OUT") {
         console.warn("[AuthContext] Received SIGNED_OUT event from Supabase");
         setUser(null);
+        setIsLoading(false);
       }
     });
 

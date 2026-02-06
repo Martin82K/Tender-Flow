@@ -33,16 +33,20 @@ export const useAppData = (showUiModal: (props: any) => void) => {
     const [backgroundWarning, setBackgroundWarning] = useState<{ message: string; type: "warning" | "error" | "info" } | null>(null);
 
     // Queries
-    const { data: projects = [], isLoading: projectsLoading } = useProjectsQuery();
-    const { data: contactStatuses = [], isLoading: statusesLoading } = useContactStatusesQuery();
-    const { data: contacts = [], isLoading: contactsLoading } = useContactsQuery();
+    const { data: projects = [], isLoading: projectsLoading, error: projectsError } = useProjectsQuery();
+    const { data: contactStatuses = [], isLoading: statusesLoading, error: statusesError } = useContactStatusesQuery();
+    const { data: contacts = [], isLoading: contactsLoading, error: contactsError } = useContactsQuery();
     const { data: allProjectDetails = {}, isLoading: detailsLoading } = useAllProjectDetailsQuery(projects);
 
     const isDataLoading = projectsLoading || statusesLoading || contactsLoading || detailsLoading;
 
-    // Loading Progress/Error simulation (React Query doesn't give granular % progress for queries)
+    // Surface critical loading errors to the UI instead of silently swallowing them.
+    // If all three core queries fail, it's likely a systemic issue (auth, network, etc.)
+    const criticalErrors = [projectsError, statusesError, contactsError].filter(Boolean);
     const appLoadProgress = null;
-    const loadingError = null;
+    const loadingError = criticalErrors.length >= 2
+        ? `Nepodařilo se načíst data aplikace. Zkuste obnovit stránku nebo se znovu přihlásit. (${criticalErrors[0]?.message || 'Neznámá chyba'})`
+        : null;
     const isBackgroundLoading = false; // Could track mutation 'isPending'
 
     const isAdmin = isUserAdmin(user?.email);
