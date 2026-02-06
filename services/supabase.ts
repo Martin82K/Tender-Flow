@@ -1,5 +1,51 @@
 import { createClient } from '@supabase/supabase-js';
 
+// ========================================================================
+// HEADERS SAFETY PATCH
+// Prevents "TypeError: Failed to execute 'set' on 'Headers': Invalid value"
+// which occurs when Supabase internal code (fetchWithAuth) passes
+// undefined/null header values. Common on Chromium-based Electron apps.
+// Must run before createClient() so Supabase captures the patched Headers.
+// ========================================================================
+(() => {
+  if (typeof globalThis.Headers === 'undefined') return;
+
+  const OriginalHeaders = globalThis.Headers;
+
+  // Patch .set() to gracefully skip undefined/null values
+  const origSet = OriginalHeaders.prototype.set;
+  OriginalHeaders.prototype.set = function(name: string, value: string) {
+    if (value === undefined || value === null) return;
+    return origSet.call(this, name, String(value));
+  };
+
+  // Patch .append() similarly
+  const origAppend = OriginalHeaders.prototype.append;
+  OriginalHeaders.prototype.append = function(name: string, value: string) {
+    if (value === undefined || value === null) return;
+    return origAppend.call(this, name, String(value));
+  };
+
+  // Replace constructor with sanitizing version to handle
+  // new Headers({ key: undefined }) which throws in Chromium
+  // @ts-ignore - extending native Headers with broader init type
+  globalThis.Headers = class SafeHeaders extends OriginalHeaders {
+    constructor(init?: HeadersInit | Record<string, unknown>) {
+      if (init && typeof init === 'object' && !(init instanceof OriginalHeaders) && !Array.isArray(init)) {
+        const sanitized: Record<string, string> = {};
+        for (const [key, value] of Object.entries(init)) {
+          if (value !== undefined && value !== null) {
+            sanitized[key] = String(value);
+          }
+        }
+        super(sanitized);
+      } else {
+        super(init as HeadersInit);
+      }
+    }
+  } as typeof Headers;
+})();
+
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
@@ -89,9 +135,12 @@ const safeFetch: typeof fetch = async (input, init) => {
         _authErrorCount = 0;
 
         // Clear the stored session to break the infinite retry loop
+        // Also clear demo session flag to prevent false demo detection
         try {
           window.localStorage.removeItem('crm-auth-token');
           window.localStorage.removeItem('crm-user-cache');
+          window.localStorage.removeItem('demo_session');
+          window.localStorage.removeItem('demo_data');
         } catch { /* ignore */ }
 
         // Redirect to login after a short delay to let current operations settle

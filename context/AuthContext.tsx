@@ -100,12 +100,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       } catch { /* ignore */ }
     }
 
-    // Priority 1: Demo session
+    // Priority 1: Demo session - only if there's no real auth session
     if (isDemoSession()) {
-      console.log("AuthContext: Demo session detected");
-      setUser(DEMO_USER);
-      setIsLoading(false);
-      return;
+      const hasRealSession = !!window.localStorage.getItem('crm-auth-token');
+      if (hasRealSession) {
+        // Real session exists alongside demo flag - the demo flag is stale, clear it
+        console.warn('[AuthContext] Stale demo_session flag found alongside real auth session. Clearing demo flag.');
+        endDemoSession();
+        // Fall through to normal auth flow below
+      } else {
+        console.log("AuthContext: Demo session detected (no real auth session)");
+        setUser(DEMO_USER);
+        setIsLoading(false);
+        return;
+      }
     }
 
     // Priority 2: Try biometric auto-login on desktop (if enabled and no active session)
