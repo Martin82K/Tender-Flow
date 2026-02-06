@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import DOMPurify from 'dompurify';
 import { Template, ProjectDetails } from '../types';
 import { TEMPLATE_VARIABLES, getPreviewData, processTemplate } from '../utils/templateUtils';
 import { getTemplates, saveTemplate, deleteTemplate as serviceDeleteTemplate } from '../services/templateService';
@@ -10,14 +11,6 @@ interface TemplateManagerProps {
     onClose?: () => void;
     initialTemplateId?: string | null;
 }
-
-const escapeHtml = (value: string): string =>
-    value
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
 
 export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSelectTemplate, onClose, initialTemplateId }) => {
     const [templates, setTemplates] = useState<Template[]>([]);
@@ -487,11 +480,12 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
                                             <div
                                                 className="prose dark:prose-invert max-w-none"
                                                 dangerouslySetInnerHTML={{
-                                                    __html: escapeHtml(
-                                                        previewMode
+                                                    __html: DOMPurify.sanitize(
+                                                        (previewMode
                                                             ? processTemplate(selectedTemplate.content, previewData)
                                                             : selectedTemplate.content
-                                                    ).replace(/\n/g, '<br/>')
+                                                        ).replace(/\n/g, '<br/>')
+                                                    )
                                                 }}
                                             />
                                         </div>
