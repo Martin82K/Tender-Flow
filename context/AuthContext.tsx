@@ -141,8 +141,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     }
 
     // Priority 2: Try biometric auto-login on desktop (if enabled and no active session)
-    const tryBiometricAutoLogin = async () => {
-      if (!isDesktop || biometricLoginAttemptedRef.current) return false;
+    const tryBiometricAutoLogin = async (): Promise<"success" | "cancelled" | "skipped" | "failed"> => {
+      if (!isDesktop || biometricLoginAttemptedRef.current) return "skipped";
 
       try {
         const [biometricEnabled, credentials] = await Promise.all([
@@ -152,7 +152,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
         if (!biometricEnabled || !credentials) {
           console.log("[AuthContext] Auto-login: No biometric or credentials");
-          return false;
+          return "skipped";
         }
 
         // Validate refresh token format before using it
@@ -160,7 +160,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           console.warn("[AuthContext] Auto-login: Invalid refresh token format, clearing");
           await platformAdapter.session.clearCredentials();
           setHasSavedCredentials(false);
-          return false;
+          return "failed";
         }
 
         console.log("[AuthContext] Auto-login: Prompting for biometric...");
@@ -172,15 +172,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           biometricLoginAttemptedRef.current = false;
           setHasSavedCredentials(true);
           setCanUseBiometric(true);
-          return false;
+          return "cancelled";
         }
-
-        // Clear any existing (potentially corrupted) session before refreshing
-        // This ensures we always use a fresh session from the refresh token
-        console.log("[AuthContext] Auto-login: Clearing old session before refresh...");
-        try {
-          window.localStorage.removeItem('crm-auth-token');
-        } catch { /* ignore */ }
 
         // Refresh session with stored token - this creates a completely fresh session
         console.log("[AuthContext] Auto-login: Refreshing session with stored token...");
@@ -193,7 +186,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           await platformAdapter.session.clearCredentials();
           setHasSavedCredentials(false);
           biometricLoginAttemptedRef.current = false;
-          return false;
+          return "failed";
         }
 
         console.log("[AuthContext] Auto-login: Session refreshed successfully");
@@ -212,11 +205,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           setIsLoading(false);
           console.log("[AuthContext] Auto-login: Success!", currentUser.email);
           biometricLoginAttemptedRef.current = false;
-          return true;
+          return "success";
         }
 
         biometricLoginAttemptedRef.current = false;
-        return false;
+        return "failed";
       } catch (e) {
         console.error("[AuthContext] Auto-login error:", e);
         // Clear potentially corrupted credentials
@@ -227,7 +220,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           window.localStorage.removeItem('crm-user-cache');
         } catch { /* ignore */ }
         biometricLoginAttemptedRef.current = false;
-        return false;
+        return "failed";
       }
     };
 
@@ -303,8 +296,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     (async () => {
       try {
         // First try biometric auto-login on desktop
-        const biometricSuccess = await tryBiometricAutoLogin();
-        if (biometricSuccess) {
+        const biometricStatus = await tryBiometricAutoLogin();
+        if (biometricStatus === "success") {
           window.clearTimeout(timer);
           return; // Already logged in via biometric
         }
@@ -332,22 +325,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
 
               let authenticated = true;
-              if (biometricEnabled) {
+              if (biometricEnabled && biometricStatus !== "cancelled") {
                 console.log("[AuthContext] Biometric enabled, prompting...");
                 authenticated = await platformAdapter.biometric.prompt("Přihlášení do Tender Flow");
               } else {
-                console.log("[AuthContext] Biometric disabled, auto-login");
+                console.log("[AuthContext] Biometric disabled or already cancelled, skipping prompt");
               }
 
               if (authenticated) {
                 console.log("[AuthContext] Restoring session from refresh token...");
                 try {
-                  // Clear any existing (potentially corrupted) localStorage session first
-                  // This ensures we get a completely fresh session from the refresh token
-                  try {
-                    window.localStorage.removeItem('crm-auth-token');
-                  } catch { /* ignore */ }
-
                   const { data, error } = await supabase.auth.refreshSession({
                     refresh_token: creds.refreshToken,
                   });

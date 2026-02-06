@@ -433,12 +433,12 @@ export const authService = {
                         .from('user_settings')
                         .select('preferences')
                         .eq('user_id', session.user.id)
-                        .single()),
+                        .maybeSingle()),
                     queryTimeoutMs,
                     'User settings load'
                 );
                 const { data, error } = res as any;
-                if (error && error.code !== 'PGRST116') {
+                if (error) {
                     console.error('[authService] Error fetching user settings:', error);
                     return null;
                 }
