@@ -644,7 +644,7 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
                                                 type="file"
                                                 ref={fileInputRef}
                                                 onChange={handleFileChange}
-                                                accept=".xlsx, .xls"
+                                                accept=".xlsx"
                                                 className="hidden"
                                             />
                                             <button

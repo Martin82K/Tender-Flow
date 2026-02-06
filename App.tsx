@@ -14,7 +14,7 @@ import { View } from "./types";
 import { RequireFeature } from "./components/routing/RequireFeature";
 import { FEATURES } from "./config/features";
 import { DesktopWelcome, UpdateBanner } from "./components/desktop";
-import { supabase } from "./services/supabase";
+import { clearStoredSessionData, supabase } from "./services/supabase";
 import { platformAdapter } from "./services/platformAdapter";
 import { SubscriptionSettings } from "./components/settings/SubscriptionSettings";
 
@@ -217,9 +217,7 @@ function AppContent() {
 
         // Clear potentially corrupted session data
         try {
-          window.localStorage.removeItem('crm-auth-token');
-          window.localStorage.removeItem('crm-user-cache');
-          window.localStorage.removeItem('session_credentials');
+          clearStoredSessionData();
         } catch { /* ignore */ }
 
         // Clear desktop credentials if available

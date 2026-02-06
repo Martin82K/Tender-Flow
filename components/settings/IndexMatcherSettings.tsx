@@ -82,8 +82,8 @@ export const IndexMatcherSettings: React.FC = () => {
 
   // Handle index file upload
   const handleIndexFile = async (file: File) => {
-    if (!/\.(xlsx|xls)$/i.test(file.name)) {
-      setIndexError("Podporované jsou pouze soubory .xlsx a .xls");
+    if (!/\.xlsx$/i.test(file.name)) {
+      setIndexError("Podporované jsou pouze soubory .xlsx");
       return;
     }
 
@@ -126,11 +126,11 @@ export const IndexMatcherSettings: React.FC = () => {
 
   // Handle budget file
   const handleBudgetFile = (file: File) => {
-    if (!/\.(xlsx|xls)$/i.test(file.name)) {
+    if (!/\.xlsx$/i.test(file.name)) {
       setAlertModal({
         isOpen: true,
         title: "Nepodporovaný formát",
-        message: "Podporované jsou pouze soubory .xlsx a .xls",
+        message: "Podporované jsou pouze soubory .xlsx",
         variant: "error"
       });
       return;
@@ -171,7 +171,7 @@ export const IndexMatcherSettings: React.FC = () => {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
 
-      const baseName = budgetFile.name.replace(/\.(xlsx|xls)$/i, "");
+      const baseName = budgetFile.name.replace(/\.xlsx$/i, "");
       const outputName = `${baseName}_vyplneno.xlsx`;
 
       const url = URL.createObjectURL(blob);
@@ -275,7 +275,7 @@ export const IndexMatcherSettings: React.FC = () => {
                 type="file"
                 id="index-upload"
                 className="hidden"
-                accept=".xlsx,.xls"
+                accept=".xlsx"
                 onChange={(e) => {
                   if (e.target.files?.[0]) handleIndexFile(e.target.files[0]);
                 }}
@@ -363,7 +363,7 @@ export const IndexMatcherSettings: React.FC = () => {
               type="file"
               id="budget-upload"
               className="hidden"
-              accept=".xlsx,.xls"
+              accept=".xlsx"
               onChange={(e) => {
                 if (e.target.files?.[0]) handleBudgetFile(e.target.files[0]);
               }}

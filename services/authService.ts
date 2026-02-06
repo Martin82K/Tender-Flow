@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { getStoredAuthSessionRaw, supabase } from './supabase';
 import { invokePublicFunction } from './functionsClient';
 import { SubscriptionTier, User } from '../types';
 
@@ -20,7 +20,7 @@ const ADMIN_EMAILS = ["martinkalkus82@gmail.com", "kalkus@baustav.cz"];
 
 // Cache keys for localStorage
 const USER_CACHE_KEY = 'crm-user-cache';
-const USER_CACHE_TTL = 1000 * 60 * 60; // 1 hour
+const USER_CACHE_TTL = 1000 * 60 * 15; // 15 minutes
 
 // Cache user data to localStorage for fast startup
 const cacheUserData = (user: User): void => {
@@ -69,7 +69,7 @@ const clearUserCache = (): void => {
 const getCachedSession = (): any | null => {
     try {
         if (typeof window === 'undefined') return null;
-        const raw = window.localStorage?.getItem('crm-auth-token');
+        const raw = getStoredAuthSessionRaw();
         if (!raw) return null;
         const parsed = JSON.parse(raw);
 

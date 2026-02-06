@@ -31,11 +31,11 @@ export const ToolsSettings: React.FC<ToolsSettingsProps> = () => {
   const closeAlertModal = () => setAlertModal(prev => ({ ...prev, isOpen: false }));
 
   const acceptExcelFile = (file: File) => {
-    if (!/\.(xlsx|xlsm)$/i.test(file.name)) {
+    if (!/\.xlsx$/i.test(file.name)) {
       setAlertModal({
         isOpen: true,
         title: "Nepodporovaný formát",
-        message: "Podporované jsou pouze soubory .xlsx a .xlsm.",
+        message: "Podporované jsou pouze soubory .xlsx.",
         variant: "error"
       });
       return;
@@ -60,8 +60,8 @@ export const ToolsSettings: React.FC<ToolsSettingsProps> = () => {
     setExcelSuccessInfo(null);
     try {
       setExcelProgress({ percent: 5, label: "Kontroluji soubor…" });
-      if (!/\.(xlsx|xlsm)$/i.test(excelFile.name)) {
-        throw new Error("Podporované jsou pouze soubory .xlsx a .xlsm.");
+      if (!/\.xlsx$/i.test(excelFile.name)) {
+        throw new Error("Podporované jsou pouze soubory .xlsx.");
       }
 
       const downloadFromResponse = (blob: Blob, filename: string) => {
@@ -75,11 +75,8 @@ export const ToolsSettings: React.FC<ToolsSettingsProps> = () => {
         URL.revokeObjectURL(url);
       };
 
-      const baseName = excelFile.name.replace(/\.(xlsx|xlsm)$/i, "");
-      const extMatch = excelFile.name.match(/\.(xlsx|xlsm)$/i);
-      const originalExt = (extMatch?.[1] || "xlsx").toLowerCase();
-      const outputExt = originalExt === "xlsm" ? "xlsm" : "xlsx";
-      const fallbackOutName = `${baseName}-odemceno.${outputExt}`;
+      const baseName = excelFile.name.replace(/\.xlsx$/i, "");
+      const fallbackOutName = `${baseName}-odemceno.xlsx`;
 
       setExcelProgress({ percent: 15, label: "Načítám soubor…" });
       const arrayBuffer = await excelFile.arrayBuffer();
@@ -89,10 +86,7 @@ export const ToolsSettings: React.FC<ToolsSettingsProps> = () => {
       });
 
       const blob = new Blob([out as any], {
-        type:
-          outputExt === "xlsm"
-            ? "application/vnd.ms-excel.sheet.macroEnabled.12"
-            : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
 
       downloadFromResponse(blob, fallbackOutName);
@@ -213,7 +207,7 @@ export const ToolsSettings: React.FC<ToolsSettingsProps> = () => {
         </h2>
 
         <p className="text-sm text-slate-600 dark:text-slate-300 mb-6 max-w-2xl">
-          Tento nástroj odstraní zámek (heslo) sešitů a listů z .xlsx/.xlsm
+          Tento nástroj odstraní zámek (heslo) sešitů a listů z .xlsx
           souborů. Vše probíhá lokálně ve vašem prohlížeči, soubory se nikam
           neodesílají.
         </p>
@@ -245,7 +239,7 @@ export const ToolsSettings: React.FC<ToolsSettingsProps> = () => {
             type="file"
             id="excel-upload-trigger"
             className="hidden"
-            accept=".xlsx,.xlsm"
+            accept=".xlsx"
             onChange={(e) => {
               if (e.target.files?.[0]) acceptExcelFile(e.target.files[0]);
             }}
@@ -283,7 +277,7 @@ export const ToolsSettings: React.FC<ToolsSettingsProps> = () => {
                 Vyberte nebo přetáhněte Excel soubor
               </div>
               <div className="text-xs text-slate-500">
-                Podporuje .xlsx a .xlsm
+                Podporuje .xlsx
               </div>
             </div>
           )}

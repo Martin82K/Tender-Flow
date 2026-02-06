@@ -25,12 +25,12 @@ Server poběží na `http://localhost:5000`.
 ### `POST /unlock`
 
 - `multipart/form-data`
-- pole: `file` (`.xlsx` nebo `.xlsm`)
-- odpověď: `.xlsm` soubor `*-odemceno.xlsm`
+- pole: `file` (`.xlsx`)
+- odpověď: `.xlsx` soubor `*-odemceno.xlsx`
 
 Příklad (curl):
 
-`curl -F "file=@./input.xlsx" http://localhost:5000/unlock --output odemceno.xlsm`
+`curl -F "file=@./input.xlsx" http://localhost:5000/unlock --output odemceno.xlsx`
 
 ## Konfigurace frontendu
 

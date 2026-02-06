@@ -17,7 +17,7 @@
     "test:coverage": "vitest run --coverage",
     "desktop:install": "cd desktop && npm install --ignore-scripts",
     "desktop:compile": "cd desktop && tsc",
-    "desktop:dev": "npm run desktop:compile && electron .",
+    "desktop:dev": "concurrently -k \"npm run dev -- --host 127.0.0.1 --port 3000\" \"wait-on tcp:3000 && npm run desktop:compile && electron .\"",
     "desktop:build": "ELECTRON_BUILD=true npm run build && npm run desktop:compile && electron-builder",
     "desktop:build:mac": "npm run desktop:build -- --mac",
     "desktop:build:win": "npm run desktop:build -- --win",
@@ -64,6 +64,7 @@
     "@types/node": "^22.19.3",
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.22",
+    "concurrently": "^9.2.1",
     "baseline-browser-mapping": "^2.9.17",
     "electron": "40.0.0",
     "electron-builder": "^26.5.0",
@@ -74,6 +75,7 @@
     "tailwindcss": "^4.1.17",
     "typescript": "~5.8.2",
     "vite": "^6.2.0",
-    "vitest": "^4.0.16"
+    "vitest": "^4.0.16",
+    "wait-on": "^8.0.5"
   }
 }

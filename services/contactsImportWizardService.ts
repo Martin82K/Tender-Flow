@@ -201,7 +201,7 @@ const guessFileTypeFromNameOrContentType = (
 ): "csv" | "xlsx" | "unknown" => {
   const lower = nameOrUrl.toLowerCase();
   if (lower.includes(".csv") || lower.includes("format=csv")) return "csv";
-  if (lower.includes(".xlsx") || lower.includes(".xls")) return "xlsx";
+  if (lower.includes(".xlsx")) return "xlsx";
   if (contentType) {
     if (contentType.includes("csv") || contentType.includes("text/")) return "csv";
     if (contentType.includes("spreadsheet") || contentType.includes("excel")) return "xlsx";

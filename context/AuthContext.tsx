@@ -15,7 +15,12 @@ import {
   startDemoSession,
 } from "../services/demoData";
 import { isDesktop, platformAdapter } from "../services/platformAdapter";
-import { supabase } from "../services/supabase";
+import {
+  clearStoredSessionData,
+  getStoredAuthSessionRaw,
+  setRememberMePreference,
+  supabase,
+} from "../services/supabase";
 import { navigate } from "../components/routing/router";
 
 interface AuthContextType {
@@ -104,7 +109,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     };
 
     try {
-      const raw = window.localStorage.getItem('crm-auth-token');
+      const raw = getStoredAuthSessionRaw();
       if (raw) {
         const parsed = JSON.parse(raw);
         // Validate the session object has the expected shape
@@ -119,16 +124,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
         if (isInvalidToken(accessToken) || isInvalidToken(refreshToken)) {
           console.warn('[AuthContext] Corrupted session token detected, clearing session');
-          window.localStorage.removeItem('crm-auth-token');
-          window.localStorage.removeItem('crm-user-cache');
+          clearStoredSessionData();
         }
       }
     } catch (e) {
       // If we can't parse the session, it's corrupted - clear it
       console.warn('[AuthContext] Could not parse stored session, clearing:', e);
       try {
-        window.localStorage.removeItem('crm-auth-token');
-        window.localStorage.removeItem('crm-user-cache');
+        clearStoredSessionData();
       } catch { /* ignore */ }
     }
 
@@ -216,8 +219,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         try {
           await platformAdapter.session.clearCredentials();
           setHasSavedCredentials(false);
-          window.localStorage.removeItem('crm-auth-token');
-          window.localStorage.removeItem('crm-user-cache');
+          clearStoredSessionData();
         } catch { /* ignore */ }
         biometricLoginAttemptedRef.current = false;
         return "failed";
@@ -363,8 +365,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
                     setHasSavedCredentials(false);
                     // Also clear localStorage session data
                     try {
-                      window.localStorage.removeItem('crm-auth-token');
-                      window.localStorage.removeItem('crm-user-cache');
+                      clearStoredSessionData();
                     } catch { /* ignore */ }
                   }
                 } catch (sessionError) {
@@ -373,8 +374,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
                   await platformAdapter.session.clearCredentials();
                   setHasSavedCredentials(false);
                   try {
-                    window.localStorage.removeItem('crm-auth-token');
-                    window.localStorage.removeItem('crm-user-cache');
+                    clearStoredSessionData();
                   } catch { /* ignore */ }
                 }
               }
@@ -404,6 +404,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
   const login = async (email: string, password: string, rememberMe: boolean = true) => {
     try {
+      setRememberMePreference(rememberMe);
+
       const timeoutMs = 10000;
       const user = await Promise.race([
         authService.login(email, password),

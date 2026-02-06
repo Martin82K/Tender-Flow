@@ -63,7 +63,7 @@ const detectFileType = (url: string, contentType: string): 'csv' | 'xlsx' | 'unk
   if (urlLower.includes('.csv') || urlLower.includes('format=csv')) {
     return 'csv';
   }
-  if (urlLower.includes('.xlsx') || urlLower.includes('.xls')) {
+  if (urlLower.includes('.xlsx')) {
     return 'xlsx';
   }
 

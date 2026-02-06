@@ -21,7 +21,7 @@ Vrací `{"ok": true}`.
 ### `POST /merge`
 
 - `multipart/form-data`
-- pole: `file` (`.xlsx` nebo `.xlsm`)
+- pole: `file` (`.xlsx`)
 - odpověď: `.xlsx` soubor `*_combined_final.xlsx`
 
 Funkce:

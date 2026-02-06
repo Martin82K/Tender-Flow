@@ -28,7 +28,7 @@ export class ExcelMerger {
 
     const outputPath =
       this.options.outputPath ??
-      this.options.inputPath.replace(/\.(xlsx|xlsm)$/i, "") + "_combined_final.xlsx";
+      this.options.inputPath.replace(/\.xlsx$/i, "") + "_combined_final.xlsx";
 
     await fs.mkdir(path.dirname(outputPath), { recursive: true });
     await fs.writeFile(outputPath, out);

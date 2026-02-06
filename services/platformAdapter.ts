@@ -330,6 +330,29 @@ export const biometricAdapter = {
  * Session Credentials Adapter
  * Secure storage for session tokens with biometric protection
  */
+const WEB_SESSION_CREDENTIALS_KEY = 'session_credentials';
+
+const readWebSessionCredentials = (): { refreshToken: string; email: string } | null => {
+    const fromSession = sessionStorage.getItem(WEB_SESSION_CREDENTIALS_KEY);
+    const fromLegacyLocal = localStorage.getItem(WEB_SESSION_CREDENTIALS_KEY);
+    const raw = fromSession || fromLegacyLocal;
+    if (!raw) return null;
+
+    try {
+        const parsed = JSON.parse(raw) as { refreshToken?: string; email?: string };
+        if (!parsed?.refreshToken || !parsed?.email) return null;
+
+        if (!fromSession && fromLegacyLocal) {
+            sessionStorage.setItem(WEB_SESSION_CREDENTIALS_KEY, raw);
+            localStorage.removeItem(WEB_SESSION_CREDENTIALS_KEY);
+        }
+
+        return { refreshToken: parsed.refreshToken, email: parsed.email };
+    } catch {
+        return null;
+    }
+};
+
 export const sessionAdapter = {
     /**
      * Save session credentials securely
@@ -338,9 +361,10 @@ export const sessionAdapter = {
         if (isDesktop && window.electronAPI && window.electronAPI.session) {
             return window.electronAPI.session.saveCredentials(credentials);
         }
-        console.warn('Session API not available on desktop, falling back to localStorage');
-        // Web: store in localStorage (less secure)
-        localStorage.setItem('session_credentials', JSON.stringify(credentials));
+
+        // Web fallback: use sessionStorage and explicitly clear any legacy localStorage copy.
+        sessionStorage.setItem(WEB_SESSION_CREDENTIALS_KEY, JSON.stringify(credentials));
+        localStorage.removeItem(WEB_SESSION_CREDENTIALS_KEY);
     },
 
     /**
@@ -350,14 +374,8 @@ export const sessionAdapter = {
         if (isDesktop && window.electronAPI && window.electronAPI.session) {
             return window.electronAPI.session.getCredentials();
         }
-        // Web: get from localStorage
-        const data = localStorage.getItem('session_credentials');
-        if (!data) return null;
-        try {
-            return JSON.parse(data);
-        } catch {
-            return null;
-        }
+
+        return readWebSessionCredentials();
     },
 
     /**
@@ -367,8 +385,9 @@ export const sessionAdapter = {
         if (isDesktop && window.electronAPI && window.electronAPI.session) {
             return window.electronAPI.session.clearCredentials();
         }
-        // Web: remove from localStorage
-        localStorage.removeItem('session_credentials');
+
+        sessionStorage.removeItem(WEB_SESSION_CREDENTIALS_KEY);
+        localStorage.removeItem(WEB_SESSION_CREDENTIALS_KEY);
     },
 
     /**

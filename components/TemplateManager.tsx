@@ -12,6 +12,12 @@ interface TemplateManagerProps {
     initialTemplateId?: string | null;
 }
 
+const sanitizeTemplateHtml = (rawHtml: string): string =>
+    DOMPurify.sanitize(rawHtml, {
+        FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form'],
+        FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onmouseenter', 'onmouseleave'],
+    });
+
 export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSelectTemplate, onClose, initialTemplateId }) => {
     const [templates, setTemplates] = useState<Template[]>([]);
     const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
@@ -480,7 +486,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
                                             <div
                                                 className="prose dark:prose-invert max-w-none"
                                                 dangerouslySetInnerHTML={{
-                                                    __html: DOMPurify.sanitize(
+                                                    __html: sanitizeTemplateHtml(
                                                         (previewMode
                                                             ? processTemplate(selectedTemplate.content, previewData)
                                                             : selectedTemplate.content

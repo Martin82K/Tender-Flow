@@ -41,10 +41,10 @@ export const ExcelMergerProSettings: React.FC = () => {
   // Desktop Handlers
   // ─────────────────────────────────────────
   const acceptFile = async (file: File) => {
-    if (!/\.(xlsx|xlsm)$/i.test(file.name)) {
+    if (!/\.xlsx$/i.test(file.name)) {
       showAlert({
         title: "Nepodporovaný soubor",
-        message: "Podporované jsou pouze soubory .xlsx a .xlsm.",
+        message: "Podporované jsou pouze soubory .xlsx.",
         variant: "danger",
       });
       return;
@@ -153,7 +153,7 @@ export const ExcelMergerProSettings: React.FC = () => {
           );
 
       // Download result
-      const baseName = excelFile.name.replace(/\.(xlsx|xlsm)$/i, "");
+      const baseName = excelFile.name.replace(/\.xlsx$/i, "");
       const outputName = `${baseName}-merged.xlsx`;
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -252,7 +252,7 @@ export const ExcelMergerProSettings: React.FC = () => {
             type="file"
             id="excel-merger-upload"
             className="hidden"
-            accept=".xlsx,.xlsm"
+            accept=".xlsx"
             onChange={(e) => {
               if (e.target.files?.[0]) acceptFile(e.target.files[0]);
             }}
@@ -291,7 +291,7 @@ export const ExcelMergerProSettings: React.FC = () => {
                 Přetáhněte soubor sem nebo klikněte
               </div>
               <span className="mt-2 px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-full">
-                .xlsx / .xlsm
+                .xlsx
               </span>
             </div>
           )}

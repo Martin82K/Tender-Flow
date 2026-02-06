@@ -157,11 +157,11 @@ export const ExcelIndexerSettings: React.FC = () => {
 
   // Import from Excel
   const handleImportExcel = async (file: File) => {
-    if (!/\.(xlsx|xls)$/i.test(file.name)) {
+    if (!/\.xlsx$/i.test(file.name)) {
       setAlertModal({
         isOpen: true,
         title: "Nepodporovaný formát",
-        message: "Podporované jsou pouze soubory .xlsx a .xls",
+        message: "Podporované jsou pouze soubory .xlsx",
         variant: "error"
       });
       return;
@@ -323,11 +323,11 @@ export const ExcelIndexerSettings: React.FC = () => {
 
   // Handle budget file
   const handleBudgetFile = (file: File) => {
-    if (!/\.(xlsx|xls)$/i.test(file.name)) {
+    if (!/\.xlsx$/i.test(file.name)) {
       setAlertModal({
         isOpen: true,
         title: "Nepodporovaný formát",
-        message: "Podporované jsou pouze soubory .xlsx a .xls",
+        message: "Podporované jsou pouze soubory .xlsx",
         variant: "error"
       });
       return;
@@ -443,7 +443,7 @@ export const ExcelIndexerSettings: React.FC = () => {
       });
 
       // Download result
-      const baseName = budgetFile?.name.replace(/\.(xlsx|xls)$/i, "") || "output";
+      const baseName = budgetFile?.name.replace(/\.xlsx$/i, "") || "output";
       const outputName = `${baseName}_indexovano.xlsx`;
 
       const blob = new Blob([result.outputBuffer], {
@@ -485,7 +485,7 @@ export const ExcelIndexerSettings: React.FC = () => {
   const handleDownloadPhase1 = () => {
     if (!phase1OutputBuffer || !budgetFile) return;
 
-    const baseName = budgetFile.name.replace(/\.(xlsx|xls)$/i, "");
+    const baseName = budgetFile.name.replace(/\.xlsx$/i, "");
     const outputName = `${baseName}_oddily.xlsx`;
 
     const blob = new Blob([phase1OutputBuffer], {
@@ -674,7 +674,7 @@ export const ExcelIndexerSettings: React.FC = () => {
                   <input
                     type="file"
                     className="hidden"
-                    accept=".xlsx,.xls"
+                    accept=".xlsx"
                     onChange={(e) => {
                       if (e.target.files?.[0])
                         handleImportExcel(e.target.files[0]);
@@ -960,7 +960,7 @@ export const ExcelIndexerSettings: React.FC = () => {
             type="file"
             id="budget-upload-new"
             className="hidden"
-            accept=".xlsx,.xls"
+            accept=".xlsx"
             onChange={(e) => {
               if (e.target.files?.[0]) handleBudgetFile(e.target.files[0]);
             }}
@@ -1001,7 +1001,7 @@ export const ExcelIndexerSettings: React.FC = () => {
                 Přetáhněte soubor ke zpracování
               </div>
               <div className="text-xs text-slate-500 mt-1">
-                Excel (.xlsx, .xls)
+                Excel (.xlsx)
               </div>
             </div>
           )}

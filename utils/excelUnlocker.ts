@@ -5,8 +5,7 @@ import { unlockWorkbook } from "./excelUnlockerShared";
 
 /**
  * Unlocks sheet protection in an Excel workbook by removing SheetJS `!protect` metadata from each sheet.
- * Saves the resulting workbook as `.xlsm` (macro-enabled) to make it clear the file may contain macros
- * (macros are preserved if present; this does not add VBA).
+ * Saves the resulting workbook as `.xlsx`.
  */
 export const unlockExcel = async (
   inputPath: string,
@@ -23,8 +22,8 @@ export const unlockExcel = async (
 
   const normalizedOutputPath = (() => {
     const parsed = path.parse(outputPath);
-    if (parsed.ext.toLowerCase() === ".xlsm") return outputPath;
-    return path.join(parsed.dir, `${parsed.name}.xlsm`);
+    if (parsed.ext.toLowerCase() === ".xlsx") return outputPath;
+    return path.join(parsed.dir, `${parsed.name}.xlsx`);
   })();
 
   console.log("[excelUnlocker] reading workbook...");
@@ -36,9 +35,8 @@ export const unlockExcel = async (
 
   console.log("[excelUnlocker] writing workbook...");
   const outBuffer = XLSX.write(workbook, {
-    bookType: "xlsm",
+    bookType: "xlsx",
     type: "buffer",
-    bookVBA: true,
     // Prefer Shared String Table to avoid huge inline string XML and keep ZIP compression enabled.
     bookSST: true,
     compression: true,
@@ -55,6 +53,6 @@ export const unlockExcel = async (
  *
  * await unlockExcel(
  *   "/path/to/input.xlsx",
- *   "/path/to/output.xlsm" // extension is enforced to .xlsm
+ *   "/path/to/output.xlsx" // extension is enforced to .xlsx
  * );
  */

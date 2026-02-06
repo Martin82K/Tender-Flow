@@ -1,4 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
+import { clearStoredSessionData } from "./supabase";
 
 /**
  * Check if an error is likely an auth/session error
@@ -41,9 +42,7 @@ const handleQueryError = (error: unknown) => {
             authErrorCount = 0;
 
             try {
-                window.localStorage.removeItem('crm-auth-token');
-                window.localStorage.removeItem('crm-user-cache');
-                window.localStorage.removeItem('session_credentials');
+                clearStoredSessionData();
             } catch { /* ignore */ }
 
             // Redirect to login after a short delay

@@ -384,7 +384,7 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
                       type="file"
                       multiple
                       className="hidden"
-                      accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                      accept=".pdf,.doc,.docx,.xlsx,.jpg,.jpeg,.png"
                       onChange={handleFileChange}
                     />
                   </label>

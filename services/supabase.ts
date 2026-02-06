@@ -3,6 +3,11 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+const AUTH_STORAGE_KEY = 'crm-auth-token';
+const USER_CACHE_KEY = 'crm-user-cache';
+const SESSION_CREDENTIALS_KEY = 'session_credentials';
+const REMEMBER_ME_STORAGE_KEY = 'crm-remember-me';
+
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('Supabase URL or Anon Key is missing. Please check your .env file.');
 }
@@ -46,6 +51,99 @@ let _authErrorResetTimer: ReturnType<typeof setTimeout> | null = null;
 const isCorruptedAuthHeader = (value: string): boolean => {
   const trimmed = value.trim();
   return !trimmed || trimmed === 'Bearer' || trimmed === 'Bearer null' || trimmed === 'Bearer undefined';
+};
+
+const getStorageValue = (storage: Storage, key: string): string | null => {
+  try {
+    return storage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
+const removeStorageValue = (storage: Storage, key: string): void => {
+  try {
+    storage.removeItem(key);
+  } catch {
+    // ignore
+  }
+};
+
+const setStorageValue = (storage: Storage, key: string, value: string): void => {
+  try {
+    storage.setItem(key, value);
+  } catch {
+    // ignore
+  }
+};
+
+const shouldPersistSession = (): boolean => getStorageValue(window.localStorage, REMEMBER_ME_STORAGE_KEY) !== 'false';
+
+const getPrimaryAuthStorage = (): Storage => (shouldPersistSession() ? window.localStorage : window.sessionStorage);
+const getSecondaryAuthStorage = (): Storage => (shouldPersistSession() ? window.sessionStorage : window.localStorage);
+
+const migrateAuthSessionIfNeeded = (): void => {
+  const primary = getPrimaryAuthStorage();
+  const secondary = getSecondaryAuthStorage();
+  const primaryValue = getStorageValue(primary, AUTH_STORAGE_KEY);
+  if (primaryValue) return;
+
+  const secondaryValue = getStorageValue(secondary, AUTH_STORAGE_KEY);
+  if (!secondaryValue) return;
+
+  setStorageValue(primary, AUTH_STORAGE_KEY, secondaryValue);
+  removeStorageValue(secondary, AUTH_STORAGE_KEY);
+};
+
+export const setRememberMePreference = (rememberMe: boolean): void => {
+  setStorageValue(window.localStorage, REMEMBER_ME_STORAGE_KEY, rememberMe ? 'true' : 'false');
+  migrateAuthSessionIfNeeded();
+};
+
+export const getStoredAuthSessionRaw = (): string | null => {
+  migrateAuthSessionIfNeeded();
+  const primary = getPrimaryAuthStorage();
+  const secondary = getSecondaryAuthStorage();
+  return getStorageValue(primary, AUTH_STORAGE_KEY) ?? getStorageValue(secondary, AUTH_STORAGE_KEY);
+};
+
+export const clearStoredSessionData = (): void => {
+  removeStorageValue(window.localStorage, AUTH_STORAGE_KEY);
+  removeStorageValue(window.sessionStorage, AUTH_STORAGE_KEY);
+  removeStorageValue(window.localStorage, USER_CACHE_KEY);
+  removeStorageValue(window.localStorage, SESSION_CREDENTIALS_KEY);
+  removeStorageValue(window.sessionStorage, SESSION_CREDENTIALS_KEY);
+};
+
+const supabaseAuthStorage = {
+  getItem: (key: string): string | null => {
+    if (key !== AUTH_STORAGE_KEY) {
+      return getStorageValue(window.localStorage, key) ?? getStorageValue(window.sessionStorage, key);
+    }
+
+    return getStoredAuthSessionRaw();
+  },
+  setItem: (key: string, value: string): void => {
+    if (key !== AUTH_STORAGE_KEY) {
+      setStorageValue(window.localStorage, key, value);
+      return;
+    }
+
+    const primary = getPrimaryAuthStorage();
+    const secondary = getSecondaryAuthStorage();
+    setStorageValue(primary, key, value);
+    removeStorageValue(secondary, key);
+  },
+  removeItem: (key: string): void => {
+    if (key !== AUTH_STORAGE_KEY) {
+      removeStorageValue(window.localStorage, key);
+      removeStorageValue(window.sessionStorage, key);
+      return;
+    }
+
+    removeStorageValue(window.localStorage, key);
+    removeStorageValue(window.sessionStorage, key);
+  },
 };
 
 const safeFetch: typeof fetch = async (input, init) => {
@@ -144,9 +242,7 @@ const safeFetch: typeof fetch = async (input, init) => {
 
         // Clear the stored session to break the infinite retry loop
         try {
-          window.localStorage.removeItem('crm-auth-token');
-          window.localStorage.removeItem('crm-user-cache');
-          window.localStorage.removeItem('session_credentials');
+          clearStoredSessionData();
         } catch { /* ignore */ }
 
         // Redirect to login after a short delay to let current operations settle
@@ -168,9 +264,9 @@ export const supabase = createClient(
       fetch: safeFetch,
     },
     auth: {
-      // Use localStorage instead of cookies to avoid Safari blocking
-      storage: window.localStorage,
-      storageKey: 'crm-auth-token',
+      // Use remember-me aware storage (localStorage for persistent, sessionStorage for session-only).
+      storage: supabaseAuthStorage,
+      storageKey: AUTH_STORAGE_KEY,
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true,

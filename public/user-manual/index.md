@@ -308,7 +308,7 @@ Manažerské souhrny napříč stavbami: metriky, grafy a volitelně AI analýza
 
 - **Profil** – zobrazované jméno, vzhled (tmavý režim, primární barva, pozadí) a správa statusů kontaktů.
 - **Import kontaktů** – synchronizace z URL / ruční upload (může být v sekci **Nástroje** dle předplatného).
-- **Excel Unlocker PRO** – odemknutí `.xlsx/.xlsm` lokálně v prohlížeči (soubor se nikam neodesílá; dle předplatného).
+- **Excel Unlocker PRO** – odemknutí `.xlsx` lokálně v prohlížeči (soubor se nikam neodesílá; dle předplatného).
 - **Excel Merger PRO** – slučování Excel listů; v desktop verzi nativní, ve web verzi externí aplikace (dle předplatného).
 - **Excel Indexer** – dvou-fázová indexace a zpracování rozpočtů s automatickým doplněním popisů.
 - **Index Matcher** – rychlé doplnění popisů podle indexu (zjednodušená verze Indexer).
@@ -323,7 +323,7 @@ Tender Flow nabízí sadu nástrojů pro práci s Excel soubory.
 
 ### Excel Unlocker PRO
 
-Nástroj pro odemknutí ochrany `.xlsx` a `.xlsm` souborů. Funguje lokálně v prohlížeči – soubor se nikam neodesílá.
+Nástroj pro odemknutí ochrany `.xlsx` souborů. Funguje lokálně v prohlížeči – soubor se nikam neodesílá.
 
 **Použití**:
 1. Otevřete **Nastavení → Excel Unlocker PRO**

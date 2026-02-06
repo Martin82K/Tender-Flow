@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog, shell, session } from 'electron';
 import * as path from 'path';
+import * as fs from 'fs';
 import { registerIpcHandlers } from './ipc/handlers';
 import { getAutoUpdaterService } from './services/autoUpdater';
 import { startMcpServer } from './services/mcpServer';
@@ -35,6 +36,25 @@ const canOpenExternalUrl = (rawUrl: string): boolean => {
         return false;
     }
 };
+
+const configureCachePaths = (): void => {
+    const cacheRoot = path.join(app.getPath('temp'), 'tender-flow', 'electron-cache');
+    const sessionDataPath = path.join(cacheRoot, 'session-data');
+    const diskCachePath = path.join(cacheRoot, 'disk-cache');
+
+    try {
+        fs.mkdirSync(sessionDataPath, { recursive: true });
+        fs.mkdirSync(diskCachePath, { recursive: true });
+
+        app.setPath('sessionData', sessionDataPath);
+        app.commandLine.appendSwitch('disk-cache-dir', diskCachePath);
+        app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
+    } catch (error) {
+        console.warn('[Cache] Failed to configure custom cache paths:', error);
+    }
+};
+
+configureCachePaths();
 
 function createWindow(): void {
     // Configure session to allow Supabase API calls

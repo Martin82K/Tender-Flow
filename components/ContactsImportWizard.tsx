@@ -273,7 +273,7 @@ export const ContactsImportWizard: React.FC<ContactsImportWizardProps> = ({
                   </span>
                   <input
                     type="file"
-                    accept=".csv,.xlsx,.xls"
+                    accept=".csv,.xlsx"
                     onChange={(e) => setSourceFile(e.target.files?.[0] || null)}
                     className="hidden"
                   />

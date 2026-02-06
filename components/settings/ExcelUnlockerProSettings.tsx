@@ -11,8 +11,8 @@ export const ExcelUnlockerProSettings: React.FC = () => {
     const [isExcelDropActive, setIsExcelDropActive] = useState(false);
 
     const acceptExcelFile = (file: File) => {
-        if (!/\.(xlsx|xlsm)$/i.test(file.name)) {
-            showAlert({ title: 'Nepodporovaný soubor', message: 'Podporované jsou pouze soubory .xlsx a .xlsm.', variant: 'danger' });
+        if (!/\.xlsx$/i.test(file.name)) {
+            showAlert({ title: 'Nepodporovaný soubor', message: 'Podporované jsou pouze soubory .xlsx.', variant: 'danger' });
             return;
         }
         setExcelFile(file);
@@ -22,7 +22,7 @@ export const ExcelUnlockerProSettings: React.FC = () => {
 
     const handleUnlockExcelInBrowser = async () => {
         if (!excelFile) {
-            showAlert({ title: 'Chybí soubor', message: 'Vyberte prosím Excel soubor (.xlsx/.xlsm).', variant: 'info' });
+            showAlert({ title: 'Chybí soubor', message: 'Vyberte prosím Excel soubor (.xlsx).', variant: 'info' });
             return;
         }
 
@@ -30,8 +30,8 @@ export const ExcelUnlockerProSettings: React.FC = () => {
         setExcelSuccessInfo(null);
         try {
             setExcelProgress({ percent: 5, label: 'Kontroluji soubor…' });
-            if (!/\.(xlsx|xlsm)$/i.test(excelFile.name)) {
-                throw new Error('Podporované jsou pouze soubory .xlsx a .xlsm.');
+            if (!/\.xlsx$/i.test(excelFile.name)) {
+                throw new Error('Podporované jsou pouze soubory .xlsx.');
             }
 
             const downloadFromResponse = (blob: Blob, filename: string) => {
@@ -45,11 +45,8 @@ export const ExcelUnlockerProSettings: React.FC = () => {
                 URL.revokeObjectURL(url);
             };
 
-            const baseName = excelFile.name.replace(/\.(xlsx|xlsm)$/i, '');
-            const extMatch = excelFile.name.match(/\.(xlsx|xlsm)$/i);
-            const originalExt = (extMatch?.[1] || 'xlsx').toLowerCase();
-            const outputExt = originalExt === 'xlsm' ? 'xlsm' : 'xlsx';
-            const fallbackOutName = `${baseName}-odemceno.${outputExt}`;
+            const baseName = excelFile.name.replace(/\.xlsx$/i, '');
+            const fallbackOutName = `${baseName}-odemceno.xlsx`;
 
             setExcelProgress({ percent: 15, label: 'Načítám soubor…' });
             const arrayBuffer = await excelFile.arrayBuffer();
@@ -59,10 +56,7 @@ export const ExcelUnlockerProSettings: React.FC = () => {
             });
 
             const blob = new Blob([out as any], {
-                type:
-                    outputExt === 'xlsm'
-                        ? 'application/vnd.ms-excel.sheet.macroEnabled.12'
-                        : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             });
 
             downloadFromResponse(blob, fallbackOutName);
@@ -86,12 +80,12 @@ export const ExcelUnlockerProSettings: React.FC = () => {
                         Excel Unlocker PRO
                     </h2>
                 </div>
-                <p className="text-sm text-slate-500">Odemknutí listů/sešitů z .xlsx/.xlsm (lokálně v prohlížeči)</p>
+                <p className="text-sm text-slate-500">Odemknutí listů/sešitů z .xlsx (lokálně v prohlížeči)</p>
             </div>
 
             <section className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl">
                 <p className="text-sm text-slate-600 dark:text-slate-300 mb-6 max-w-2xl">
-                    Tento nástroj odstraní zámek (heslo) sešitů a listů z .xlsx/.xlsm souborů.
+                    Tento nástroj odstraní zámek (heslo) sešitů a listů z .xlsx souborů.
                     Vše probíhá lokálně ve vašem prohlížeči, soubory se nikam neodesílají.
                 </p>
 
@@ -117,7 +111,7 @@ export const ExcelUnlockerProSettings: React.FC = () => {
                         type="file"
                         id="excel-upload-trigger"
                         className="hidden"
-                        accept=".xlsx,.xlsm"
+                        accept=".xlsx"
                         onChange={(e) => {
                             if (e.target.files?.[0]) acceptExcelFile(e.target.files[0]);
                         }}
@@ -151,7 +145,7 @@ export const ExcelUnlockerProSettings: React.FC = () => {
                                 Vyberte nebo přetáhněte Excel soubor
                             </div>
                             <div className="text-xs text-slate-500">
-                                Podporuje .xlsx a .xlsm
+                                Podporuje .xlsx
                             </div>
                         </div>
                     )}

@@ -267,7 +267,7 @@ serve(async (req) => {
     const outputBuffer = await targetWorkbook.xlsx.writeBuffer();
 
     // Return the merged Excel file
-    const baseName = file.name.replace(/\.(xlsx|xlsm)$/i, "");
+    const baseName = file.name.replace(/\.xlsx$/i, "");
     const outputFilename = `${baseName}-merged.xlsx`;
 
     return new Response(outputBuffer, {

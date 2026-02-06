@@ -24,14 +24,14 @@ app.post("/merge", upload.single("file"), async (req, res) => {
 
   const name = file.originalname || "input.xlsx";
   const lower = name.toLowerCase();
-  if (!lower.endsWith(".xlsx") && !lower.endsWith(".xlsm")) {
-    res.status(400).send("Chyba: Podporované jsou pouze soubory .xlsx a .xlsm");
+  if (!lower.endsWith(".xlsx")) {
+    res.status(400).send("Chyba: Podporované jsou pouze soubory .xlsx");
     return;
   }
 
   try {
     const out = await mergeWorkbookToSingleSheet(file.buffer);
-    const base = name.replace(/\.(xlsx|xlsm)$/i, "");
+    const base = name.replace(/\.xlsx$/i, "");
     const downloadName = `${base}_combined_final.xlsx`;
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     res.setHeader("Content-Disposition", `attachment; filename="${downloadName}"`);

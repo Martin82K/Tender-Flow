@@ -15,7 +15,7 @@ Server běží na `http://localhost:5001`.
 ## Endpoints
 
 - `GET /health`
-- `POST /merge` (`multipart/form-data`, pole `file` = `.xlsx` / `.xlsm`)
+- `POST /merge` (`multipart/form-data`, pole `file` = `.xlsx`)
   - vrací `*_combined_final.xlsx`
   - vytvoří list `Kombinovane` s hlavičkou + oddělovači
   - přeskočí listy `Rekapitulace stavby`, `Pokyny pro vyplnění` + hidden/veryHidden
