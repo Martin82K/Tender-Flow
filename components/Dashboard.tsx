@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Header } from "./Header";
 import { Button } from "./ui/Button";
 import { Project, ProjectDetails } from "../types";
@@ -6,6 +6,7 @@ import { ProjectOverviewNew } from "./ProjectOverviewNew";
 import { Select } from "./ui/Select";
 import { DashboardSkeleton } from "./ui/SkeletonLoader";
 import * as XLSX from "xlsx";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface DashboardProps {
   projects: Project[];
@@ -56,6 +57,44 @@ export const Dashboard: React.FC<DashboardProps> = ({
   }, [activeProjects, selectedProjectId]);
 
   const selectedProject = projectDetails[selectedProjectId];
+  const queryClient = useQueryClient();
+
+  // Stuck loading detection - auto-retry if project details don't load
+  const skeletonStartTimeRef = useRef<number | null>(null);
+  const retryCountRef = useRef(0);
+  const MAX_RETRIES = 2;
+  const SKELETON_TIMEOUT_MS = 10000; // 10 seconds
+
+  useEffect(() => {
+    if (!selectedProjectId) return;
+
+    if (!selectedProject) {
+      // Start tracking skeleton time
+      if (!skeletonStartTimeRef.current) {
+        skeletonStartTimeRef.current = Date.now();
+      }
+
+      const checkStuck = setTimeout(() => {
+        if (!skeletonStartTimeRef.current) return;
+
+        const elapsed = Date.now() - skeletonStartTimeRef.current;
+        if (elapsed > SKELETON_TIMEOUT_MS && !selectedProject && retryCountRef.current < MAX_RETRIES) {
+          console.warn(`[Dashboard] Project details stuck loading for ${elapsed}ms, retrying... (attempt ${retryCountRef.current + 1})`);
+          retryCountRef.current++;
+          skeletonStartTimeRef.current = Date.now();
+
+          // Invalidate and refetch project details
+          queryClient.invalidateQueries({ queryKey: ["projectDetails", selectedProjectId] });
+        }
+      }, SKELETON_TIMEOUT_MS);
+
+      return () => clearTimeout(checkStuck);
+    } else {
+      // Reset when data loads
+      skeletonStartTimeRef.current = null;
+      retryCountRef.current = 0;
+    }
+  }, [selectedProjectId, selectedProject, queryClient]);
 
   // Helper for Export (duplicated logic for now to preserve functionality without rendering)
   const handleExport = () => {

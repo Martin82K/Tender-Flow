@@ -118,8 +118,31 @@ export const subscriptionFeaturesService = {
    * Get current user's effective subscription tier from the backend.
    */
   getUserSubscriptionTier: async (): Promise<string> => {
-    const { data, error } = await supabase.rpc('get_user_subscription_tier', { target_user_id: (await supabase.auth.getUser()).data.user?.id });
-    if (error) throw error;
-    return data || 'free';
+    try {
+      const userResult = await supabase.auth.getUser();
+      const userId = userResult.data.user?.id;
+      console.log('[subscriptionFeaturesService] getUserSubscriptionTier: userId =', userId);
+
+      if (!userId) {
+        console.warn('[subscriptionFeaturesService] getUserSubscriptionTier: No user ID, returning free');
+        return 'free';
+      }
+
+      const { data, error } = await supabase.rpc('get_user_subscription_tier', { target_user_id: userId });
+      console.log('[subscriptionFeaturesService] getUserSubscriptionTier: RPC result =', { data, error });
+
+      if (error) {
+        console.error('[subscriptionFeaturesService] getUserSubscriptionTier: RPC error =', error);
+        return 'free';
+      }
+
+      const tier = data || 'free';
+      console.log('[subscriptionFeaturesService] getUserSubscriptionTier: returning tier =', tier);
+      return tier;
+    } catch (e) {
+      console.error('[subscriptionFeaturesService] getUserSubscriptionTier: exception =', e);
+      return 'free';
+    }
   },
 };
+

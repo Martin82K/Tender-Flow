@@ -14,14 +14,32 @@ import { useContactsQuery } from "../hooks/queries/useContactsQuery";
 import { useOverviewTenantDataQuery } from "../hooks/queries/useOverviewTenantDataQuery";
 import { buildOverviewAnalytics, formatMoney, type OverviewAnalytics } from "../utils/overviewAnalytics";
 import { getOfferStatusMeta } from "../utils/offerStatus";
-import { buildOverviewChatContext } from "../utils/overviewChat";
-import { sendOverviewChatMessage, type OverviewChatMessage } from "../services/overviewChatService";
 import { exportSupplierAnalysisToPDF } from "../services/exportService";
 import { filterSuppliers } from "../utils/supplierFilters";
 import { useAuth } from "../context/AuthContext";
 import { isUserAdmin } from "../utils/helpers";
 import type { Project, ProjectDetails, Subcontractor } from "../types";
 import html2canvas from "html2canvas";
+import {
+  Wallet,
+  Target,
+  Users,
+  FolderKanban,
+  Building2,
+  Filter,
+  Printer,
+  FileText,
+  ChevronDown,
+  ChevronUp,
+  Search,
+  RotateCcw,
+} from "lucide-react";
+import { KPICard } from "./overview/KPICard";
+import { StatusCard } from "./overview/StatusCard";
+import { SupplierBarChart } from "./overview/SupplierBarChart";
+import { SupplierTable } from "./overview/SupplierTable";
+import { StatusDistributionChart } from "./overview/StatusDistributionChart";
+import { BudgetDeviationGauge } from "./overview/BudgetDeviationGauge";
 
 interface ProjectOverviewProps {
   projects: Project[];
@@ -31,12 +49,6 @@ interface ProjectOverviewProps {
 const SECTION_DEFAULTS = {
   suppliers: true,
   trends: true,
-  chatbot: true,
-};
-
-const getRatingLabel = (rating?: number) => {
-  if (!rating || rating <= 0) return "Bez hodnocení";
-  return rating.toFixed(1);
 };
 
 const resolveContact = (
@@ -62,8 +74,8 @@ const Section: React.FC<{
   rightSlot?: React.ReactNode;
 }> = ({ id, title, subtitle, isOpen, onToggle, children, rightSlot }) => {
   return (
-    <div className="rounded-2xl border border-slate-200/70 dark:border-slate-700/70 bg-white/80 dark:bg-slate-900/60 shadow-sm overflow-hidden">
-      <div className="flex items-start justify-between gap-4 px-5 py-4 bg-slate-50/80 dark:bg-slate-900/80">
+    <div className="rounded-2xl border border-slate-200/70 dark:border-slate-700/70 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+      <div className="flex items-start justify-between gap-4 px-5 py-4 bg-slate-50/80 dark:bg-slate-800/50 border-b border-slate-200/70 dark:border-slate-700/70">
         <div>
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{title}</h2>
           {subtitle ? (
@@ -75,53 +87,14 @@ const Section: React.FC<{
           <button
             type="button"
             onClick={() => onToggle(id)}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-300/70 dark:hover:bg-slate-700 transition"
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
           >
-            <span className="material-symbols-outlined text-[18px]">
-              {isOpen ? "unfold_less" : "unfold_more"}
-            </span>
+            {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             {isOpen ? "Skrýt" : "Zobrazit"}
           </button>
         </div>
       </div>
       {isOpen ? <div className="p-5">{children}</div> : null}
-    </div>
-  );
-};
-
-const BarList: React.FC<{
-  items: { label: string; value: number; helper?: string }[];
-  valueFormatter?: (value: number) => string;
-}> = ({ items, valueFormatter }) => {
-  if (items.length === 0) {
-    return <div className="text-sm text-slate-500">Zatím bez dat.</div>;
-  }
-
-  const max = Math.max(...items.map((item) => item.value), 1);
-  return (
-    <div className="space-y-3">
-      {items.map((item) => {
-        const width = Math.max((item.value / max) * 100, 4);
-        return (
-          <div key={item.label} className="flex items-center gap-3">
-            <div className="w-44 text-sm text-slate-700 dark:text-slate-200 truncate">
-              {item.label}
-            </div>
-            <div className="flex-1 h-2 rounded-full bg-slate-200 dark:bg-slate-800">
-              <div
-                className="h-2 rounded-full bg-emerald-500"
-                style={{ width: `${width}%` }}
-              />
-            </div>
-            <div className="w-24 text-right text-sm text-slate-600 dark:text-slate-300">
-              {valueFormatter ? valueFormatter(item.value) : item.value.toLocaleString("cs-CZ")}
-            </div>
-            {item.helper ? (
-              <div className="hidden md:block w-32 text-xs text-slate-400">{item.helper}</div>
-            ) : null}
-          </div>
-        );
-      })}
     </div>
   );
 };
@@ -140,10 +113,6 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
   const [showAllSuppliers, setShowAllSuppliers] = useState(false);
   const [supplierQuery, setSupplierQuery] = useState("");
   const [supplierSpecialization, setSupplierSpecialization] = useState("");
-  const [chatInput, setChatInput] = useState("");
-  const [chatMessages, setChatMessages] = useState<OverviewChatMessage[]>([]);
-  const [chatLoading, setChatLoading] = useState(false);
-  const [chatError, setChatError] = useState<string | null>(null);
 
   const tenantProjects = tenantData?.projects ?? [];
   const tenantProjectDetails = tenantData?.projectDetails ?? {};
@@ -399,50 +368,64 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
         : statusFilter === "realization"
           ? "Realizace"
           : "Archiv";
-  const chatContext = useMemo(
-    () =>
-      buildOverviewChatContext(
-        analytics,
-        `${scope === "tenant" ? "Celý tenant" : selectedProjectLabel} · ${selectedStatusLabel}`,
-      ),
-    [analytics, selectedProjectLabel, selectedStatusLabel, scope],
-  );
-
   const toggleSection = (id: keyof typeof SECTION_DEFAULTS) => {
     setSections((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const handleSendChat = async () => {
-    const trimmed = chatInput.trim();
-    if (!trimmed || chatLoading) return;
+  const successRate = analytics.totals.offerCount > 0
+    ? (analytics.totals.sodCount / analytics.totals.offerCount) * 100
+    : 0;
 
-    setChatLoading(true);
-    setChatError(null);
-    const nextMessages = [...chatMessages, { role: "user", content: trimmed }];
-    setChatMessages(nextMessages);
-    setChatInput("");
+  // Calculate status distribution from all offers
+  const statusCounts = useMemo(() => {
+    const counts = {
+      sod: 0,
+      shortlist: 0,
+      offer: 0,
+      rejected: 0,
+      contacted: 0,
+      sent: 0,
+    };
+    
+    analytics.suppliers.forEach(supplier => {
+      supplier.offers.forEach(offer => {
+        if (offer.status === 'sod') counts.sod++;
+        else if (offer.status === 'shortlist') counts.shortlist++;
+        else if (offer.status === 'offer') counts.offer++;
+        else if (offer.status === 'rejected') counts.rejected++;
+        else if (offer.status === 'contacted') counts.contacted++;
+        else if (offer.status === 'sent') counts.sent++;
+      });
+    });
+    
+    return counts;
+  }, [analytics.suppliers]);
 
-    try {
-      const response = await sendOverviewChatMessage(chatContext, nextMessages.slice(-12));
-      setChatMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: response || "Model nevrátil odpověď." },
-      ]);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Neznámá chyba";
-      setChatError(message);
-    } finally {
-      setChatLoading(false);
-    }
-  };
+  // Calculate average budget deviation
+  const avgBudgetDeviation = useMemo(() => {
+    const deviations: number[] = [];
+    
+    analytics.suppliers.forEach(supplier => {
+      supplier.offers.forEach(offer => {
+        if (offer.sodBudget && offer.sodBudget > 0 && offer.priceValue > 0) {
+          const deviation = ((offer.priceValue - offer.sodBudget) / offer.sodBudget) * 100;
+          deviations.push(deviation);
+        }
+      });
+    });
+    
+    if (deviations.length === 0) return null;
+    return deviations.reduce((sum, val) => sum + val, 0) / deviations.length;
+  }, [analytics.suppliers]);
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto bg-slate-100 dark:bg-slate-950">
+    <div className="flex flex-col h-full overflow-y-auto bg-slate-50 dark:bg-slate-950">
       <div className="no-print">
         <Header title="Přehledy" subtitle="Analytika dodavatelů, výběrů a trendů" />
       </div>
 
       <div className="flex-1 space-y-6 p-6">
+        {/* Debug Banner */}
         {showDebugBanner ? (
           <div className="rounded-2xl border border-amber-300/70 bg-amber-50/90 text-amber-900 px-4 py-3 text-sm">
             <div className="font-semibold mb-1">Debug: Přehledy (tenant)</div>
@@ -459,14 +442,17 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
             </div>
           </div>
         ) : null}
-        <div className="no-print flex flex-wrap items-center gap-3 bg-white/80 dark:bg-slate-900/70 border border-slate-200/70 dark:border-slate-700/70 rounded-2xl px-4 py-3 shadow-sm">
-          <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+
+        {/* Filters Bar */}
+        <div className="no-print flex flex-wrap items-center gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 shadow-sm">
+          <div className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
+            <Filter className="w-4 h-4" />
             Filtry
           </div>
           <select
             value={scope}
             onChange={(e) => setScope(e.target.value as typeof scope)}
-            className="h-9 rounded-lg border border-slate-200/70 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-slate-700 dark:text-slate-200"
+            className="h-9 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
           >
             <option value="tenant">Celá společnost (tenant)</option>
             <option value="project">Vybraný projekt</option>
@@ -475,7 +461,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
             value={selectedProjectId}
             onChange={(e) => setSelectedProjectId(e.target.value)}
             disabled={scope === "tenant"}
-            className="h-9 rounded-lg border border-slate-200/70 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-slate-700 dark:text-slate-200"
+            className="h-9 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-slate-700 dark:text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
           >
             <option value="all">Všechny stavby</option>
             {availableProjects.map((project) => (
@@ -487,7 +473,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-            className="h-9 rounded-lg border border-slate-200/70 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-slate-700 dark:text-slate-200"
+            className="h-9 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
           >
             <option value="all">Všechny stavy</option>
             <option value="tender">Soutěž</option>
@@ -498,63 +484,72 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
             <button
               type="button"
               onClick={() => window.print()}
-              className="inline-flex items-center gap-2 rounded-lg bg-slate-900 text-white text-sm font-medium px-4 py-2 hover:bg-slate-800 transition"
+              className="inline-flex items-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-800 text-white text-sm font-medium px-4 py-2 hover:bg-slate-800 dark:hover:bg-slate-700 transition shadow-sm"
             >
-              <span className="material-symbols-outlined text-[18px]">print</span>
+              <Printer className="w-4 h-4" />
               Tisk / PDF
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="rounded-xl bg-white/90 dark:bg-slate-900/80 p-4 border border-slate-200/70 dark:border-slate-700/70">
-            <div className="text-xs uppercase tracking-wide text-slate-500">Objem zakázek</div>
-            <div className="text-xl font-semibold text-slate-900 dark:text-white">
-              {formatMoney(analytics.totals.awardedValue)}
-            </div>
-          </div>
-          <div className="rounded-xl bg-white/90 dark:bg-slate-900/80 p-4 border border-slate-200/70 dark:border-slate-700/70">
-            <div className="text-xs uppercase tracking-wide text-slate-500">Úspěšnost VŘ</div>
-            <div className="text-xl font-semibold text-slate-900 dark:text-white">
-              {analytics.totals.offerCount > 0
-                ? `${((analytics.totals.sodCount / analytics.totals.offerCount) * 100).toFixed(1)} %`
-                : "0 %"}
-            </div>
-          </div>
-          <div className="rounded-xl bg-white/90 dark:bg-slate-900/80 p-4 border border-slate-200/70 dark:border-slate-700/70">
-            <div className="text-xs uppercase tracking-wide text-slate-500">Počet dodavatelů</div>
-            <div className="text-xl font-semibold text-slate-900 dark:text-white">
-              {analytics.suppliers.length}
-            </div>
-          </div>
-          <div className="rounded-xl bg-white/90 dark:bg-slate-900/80 p-4 border border-slate-200/70 dark:border-slate-700/70">
-            <div className="text-xs uppercase tracking-wide text-slate-500">Kategorie s daty</div>
-            <div className="text-xl font-semibold text-slate-900 dark:text-white">
-              {analytics.categoryProfit.length}
-            </div>
-          </div>
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <KPICard
+            title="Objem zakázek"
+            value={formatMoney(analytics.totals.awardedValue)}
+            subtitle="Celkový objem oceněných zakázek"
+            icon={<Wallet className="w-6 h-6" />}
+            color="emerald"
+          />
+          <KPICard
+            title="Celkem poptávek"
+            value={analytics.categoryProfit.length}
+            subtitle="Počet poptávek v systému"
+            icon={<FolderKanban className="w-6 h-6" />}
+            color="blue"
+          />
+          <KPICard
+            title="Poptaní subdodavatelé"
+            value={analytics.suppliers.length}
+            subtitle="Celkem oslovených dodavatelů"
+            icon={<Users className="w-6 h-6" />}
+            color="violet"
+          />
+          <KPICard
+            title="Celkem nabídek"
+            value={analytics.totals.offerCount}
+            subtitle="Všechny přijaté nabídky"
+            icon={<Target className="w-6 h-6" />}
+            color="amber"
+          />
         </div>
 
+        {/* Status Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {([
-            { key: "tender", label: "Soutěž", accent: "text-sky-600" },
-            { key: "realization", label: "Realizace", accent: "text-emerald-600" },
-            { key: "archived", label: "Archiv", accent: "text-slate-600" },
-          ] as const).map((item) => (
-            <div
-              key={item.key}
-              className="rounded-xl bg-white/90 dark:bg-slate-900/80 p-4 border border-slate-200/70 dark:border-slate-700/70"
-            >
-              <div className={`text-xs uppercase tracking-wide ${item.accent}`}>{item.label}</div>
-              <div className="mt-2 space-y-1 text-sm text-slate-600 dark:text-slate-300">
-                <div>Objem: {formatMoney(analytics.totalsByStatus[item.key].awardedValue)}</div>
-                <div>SOD: {analytics.totalsByStatus[item.key].sodCount}</div>
-                <div>Nabídky: {analytics.totalsByStatus[item.key].offerCount}</div>
-              </div>
-            </div>
-          ))}
+          <StatusCard
+            type="tender"
+            awardedValue={analytics.totalsByStatus.tender.awardedValue}
+            sodCount={analytics.totalsByStatus.tender.sodCount}
+            offerCount={analytics.totalsByStatus.tender.offerCount}
+            formatMoney={formatMoney}
+          />
+          <StatusCard
+            type="realization"
+            awardedValue={analytics.totalsByStatus.realization.awardedValue}
+            sodCount={analytics.totalsByStatus.realization.sodCount}
+            offerCount={analytics.totalsByStatus.realization.offerCount}
+            formatMoney={formatMoney}
+          />
+          <StatusCard
+            type="archived"
+            awardedValue={analytics.totalsByStatus.archived.awardedValue}
+            sodCount={analytics.totalsByStatus.archived.sodCount}
+            offerCount={analytics.totalsByStatus.archived.offerCount}
+            formatMoney={formatMoney}
+          />
         </div>
 
+        {/* Suppliers Section */}
         <Section
           id="suppliers"
           title="Analýza dodavatelů"
@@ -569,8 +564,8 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
                 disabled={!selectedSupplier}
                 className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium border transition ${
                   selectedSupplier
-                    ? "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200/70 dark:border-slate-700/70 hover:bg-slate-50 dark:hover:bg-slate-700"
-                    : "bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200/40 dark:border-slate-700/40 cursor-not-allowed"
+                    ? "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700 cursor-not-allowed"
                 }`}
                 title={
                   selectedSupplier
@@ -578,29 +573,28 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
                     : "Vyberte dodavatele ve filtru"
                 }
               >
-                <span className="material-symbols-outlined text-[18px]">picture_as_pdf</span>
+                <FileText className="w-4 h-4" />
                 Export PDF
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowAllSuppliers((prev) => !prev)}
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200"
-              >
-                {showAllSuppliers ? "Zobrazit méně" : "Zobrazit vše"}
               </button>
             </div>
           }
         >
-          <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+          {/* Filter Inputs */}
+          <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
-              <label className="text-xs font-semibold text-slate-500">Dodavatel</label>
-              <input
-                value={supplierQuery}
-                onChange={(e) => setSupplierQuery(e.target.value)}
-                list="supplier-suggestions"
-                placeholder="Vyhledat dodavatele..."
-                className="mt-1 w-full h-9 rounded-lg border border-slate-200/70 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-slate-700 dark:text-slate-200"
-              />
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                Dodavatel
+              </label>
+              <div className="relative mt-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  value={supplierQuery}
+                  onChange={(e) => setSupplierQuery(e.target.value)}
+                  list="supplier-suggestions"
+                  placeholder="Vyhledat dodavatele..."
+                  className="w-full h-10 pl-10 pr-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                />
+              </div>
               <datalist id="supplier-suggestions">
                 {supplierRows.map((supplier) => (
                   <option key={supplier.id} value={supplier.name} />
@@ -608,11 +602,13 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
               </datalist>
             </div>
             <div>
-              <label className="text-xs font-semibold text-slate-500">Zaměření</label>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                Zaměření
+              </label>
               <select
                 value={supplierSpecialization}
                 onChange={(e) => setSupplierSpecialization(e.target.value)}
-                className="mt-1 w-full h-9 rounded-lg border border-slate-200/70 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-slate-700 dark:text-slate-200"
+                className="mt-1 w-full h-10 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               >
                 <option value="">Všechna zaměření</option>
                 {specializationOptions.map((item) => (
@@ -629,156 +625,146 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
                   setSupplierQuery("");
                   setSupplierSpecialization("");
                 }}
-                className="h-9 px-4 rounded-lg text-sm font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+                className="h-10 px-4 rounded-lg text-sm font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition flex items-center gap-2"
               >
+                <RotateCcw className="w-4 h-4" />
                 Reset filtrů
               </button>
             </div>
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                Nejčastěji zasmluvňovaní dodavatelé
-              </div>
-              <BarList
-                items={topSuppliers.map((supplier) => ({
-                  label: supplier.name,
-                  value: supplier.sodCount,
-                  helper: `${supplier.offerCount} nabídek`,
-                }))}
+
+          {/* Charts Grid - 2x2 layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <SupplierBarChart
+              items={topSuppliers.map((s) => ({
+                label: s.name,
+                value: s.sodCount,
+                helper: `${s.offerCount} nabídek`,
+              }))}
+              title="Nejčastěji zasmluvňovaní"
+              subtitle="Dodavatelé podle počtu SOD"
+              color="emerald"
+            />
+            <SupplierBarChart
+              items={topSuppliers.map((s) => ({
+                label: s.name,
+                value: s.totalAwardedValue,
+                helper: s.lastAwardedLabel || "Bez ocenění",
+              }))}
+              valueFormatter={formatMoney}
+              title="Nejvyšší objemy"
+              subtitle="Dodavatelé podle oceněných zakázek"
+              color="blue"
+            />
+            <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-5">
+              <StatusDistributionChart
+                sodCount={statusCounts.sod}
+                shortlistCount={statusCounts.shortlist}
+                offerCount={statusCounts.offer}
+                rejectedCount={statusCounts.rejected}
+                contactedCount={statusCounts.contacted}
+                sentCount={statusCounts.sent}
               />
             </div>
-
-            <div className="space-y-4">
-              <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                Nejvyšší objem oceněných zakázek
-              </div>
-              <BarList
-                items={topSuppliers.map((supplier) => ({
-                  label: supplier.name,
-                  value: supplier.totalAwardedValue,
-                  helper: supplier.lastAwardedLabel || "Bez ocenění",
-                }))}
-                valueFormatter={formatMoney}
+            <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-5">
+              <BudgetDeviationGauge
+                avgDeviationPercent={avgBudgetDeviation}
               />
             </div>
           </div>
 
-          <div className="mt-6 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-slate-500 border-b border-slate-200/70 dark:border-slate-700/70">
-                  <th className="py-2 pr-4">Dodavatel</th>
-                  <th className="py-2 pr-4">Hodnocení</th>
-                  <th className="py-2 pr-4">Nabídky</th>
-                  <th className="py-2 pr-4">SOD</th>
-                  <th className="py-2 pr-4">Úspěšnost</th>
-                  <th className="py-2 pr-4">Poslední ocenění</th>
-                </tr>
-              </thead>
-              <tbody>
-                {topSuppliers.map((supplier) => (
-                  <tr key={supplier.id} className="border-b border-slate-100 dark:border-slate-800">
-                    <td className="py-3 pr-4 text-slate-800 dark:text-slate-100">{supplier.name}</td>
-                    <td className="py-3 pr-4 text-slate-600 dark:text-slate-300">
-                      {supplier.rating && supplier.rating > 0 ? (
-                        <div className="inline-flex items-center gap-2">
-                          <span className="flex items-center gap-1">
-                            {Array.from({ length: 5 }, (_, index) => {
-                              const starValue = index + 1;
-                              const isFilled = supplier.rating >= starValue;
-                              return (
-                                <span
-                                  key={starValue}
-                                  className={`material-symbols-rounded text-[16px] ${
-                                    isFilled
-                                      ? "text-amber-400"
-                                      : "text-slate-300 dark:text-slate-600"
-                                  }`}
-                                >
-                                  {isFilled ? "star" : "star_outline"}
-                                </span>
-                              );
-                            })}
-                          </span>
-                          <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                            {supplier.rating.toFixed(1).replace(".", ",")}
-                          </span>
-                          {supplier.ratingCount ? (
-                            <span className="text-xs text-slate-400">
-                              {supplier.ratingCount}×
-                            </span>
-                          ) : null}
-                        </div>
-                      ) : (
-                        getRatingLabel(supplier.rating)
-                      )}
-                    </td>
-                    <td className="py-3 pr-4 text-slate-600 dark:text-slate-300">{supplier.offerCount}</td>
-                    <td className="py-3 pr-4 text-slate-600 dark:text-slate-300">{supplier.sodCount}</td>
-                    <td className="py-3 pr-4 text-slate-600 dark:text-slate-300">
-                      {supplier.offerCount > 0
-                        ? `${((supplier.sodCount / supplier.offerCount) * 100).toFixed(1)} %`
-                        : "0 %"}
-                    </td>
-                    <td className="py-3 pr-4 text-slate-600 dark:text-slate-300">
-                      {supplier.lastAwardedLabel || "Bez ocenění"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {/* Suppliers Table */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                  <Building2 className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                    Seznam dodavatelů
+                  </h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    {filteredSuppliers.length} dodavatelů celkem
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAllSuppliers((prev) => !prev)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+              >
+                {showAllSuppliers ? "Zobrazit méně" : "Zobrazit vše"}
+              </button>
+            </div>
+
+            <SupplierTable
+              suppliers={topSuppliers}
+              onSupplierClick={(supplier) => setSupplierQuery(supplier.name)}
+              selectedSupplierId={selectedSupplier?.id}
+            />
           </div>
 
-          <div className="mt-6 rounded-xl border border-slate-200/70 dark:border-slate-700/70 bg-white/80 dark:bg-slate-900/60 p-4">
-            <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-              Nabídky vybraného dodavatele
+          {/* Selected Supplier Details */}
+          <div className="mt-6 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-5">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                <Building2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                  Nabídky vybraného dodavatele
+                </h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  {selectedSupplier ? selectedSupplier.name : "Vyberte dodavatele pro zobrazení detailů"}
+                </p>
+              </div>
             </div>
+
             {!supplierQuery.trim() ? (
-              <div className="mt-2 text-sm text-slate-500">
-                Vyberte dodavatele v poli „Dodavatel“ pro zobrazení nabídek.
+              <div className="text-sm text-slate-500 dark:text-slate-400 text-center py-8 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                Vyberte dodavatele v poli „Dodavatel" pro zobrazení nabídek.
               </div>
             ) : !selectedSupplier ? (
-              <div className="mt-2 text-sm text-slate-500">
+              <div className="text-sm text-slate-500 dark:text-slate-400 text-center py-8 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                 Upravte filtr tak, aby přesně odpovídal jednomu dodavateli.
               </div>
             ) : selectedSupplierOffers.length === 0 ? (
-              <div className="mt-2 text-sm text-slate-500">
+              <div className="text-sm text-slate-500 dark:text-slate-400 text-center py-8 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                 Pro vybraného dodavatele zatím nejsou k dispozici žádné cenové nabídky.
               </div>
             ) : (
-              <div className="mt-3 space-y-4">
+              <div className="space-y-4">
+                {/* Offers Table */}
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="text-left text-slate-500 border-b border-slate-200/70 dark:border-slate-700/70">
-                        <th className="py-2 pr-4">Projekt</th>
-                        <th className="py-2 pr-4">Poptávka</th>
-                        <th className="py-2 pr-4">Cena</th>
-                        <th className="py-2 pr-4">Status</th>
-                        <th className="py-2 pr-4">Datum</th>
+                      <tr className="text-left border-b border-slate-200 dark:border-slate-700">
+                        <th className="py-3 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Projekt</th>
+                        <th className="py-3 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Poptávka</th>
+                        <th className="py-3 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Cena</th>
+                        <th className="py-3 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Status</th>
+                        <th className="py-3 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Datum</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {selectedSupplierOffers.map((offer, index) => (
-                        <tr key={`${offer.projectId}-${offer.categoryId}-${index}`} className="border-b border-slate-100 dark:border-slate-800">
-                          <td className="py-3 pr-4 text-slate-800 dark:text-slate-100">
+                        <tr key={`${offer.projectId}-${offer.categoryId}-${index}`} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                          <td className="py-3 px-4 text-slate-800 dark:text-slate-100 font-medium">
                             {offer.projectName}
                           </td>
-                          <td className="py-3 pr-4 text-slate-600 dark:text-slate-300">
+                          <td className="py-3 px-4 text-slate-600 dark:text-slate-300">
                             {offer.categoryTitle}
                           </td>
-                          <td className="py-3 pr-4 text-slate-600 dark:text-slate-300 font-semibold">
+                          <td className="py-3 px-4 text-slate-900 dark:text-white font-semibold tabular-nums">
                             {formatMoney(offer.priceValue)}
                           </td>
-                          <td className="py-3 pr-4 text-slate-600 dark:text-slate-300">
-                            <span
-                              className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wide ${getOfferStatusMeta(offer.status).className}`}
-                            >
+                          <td className="py-3 px-4">
+                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${getOfferStatusMeta(offer.status).className}`}>
                               {getOfferStatusMeta(offer.status).label}
                             </span>
                           </td>
-                          <td className="py-3 pr-4 text-slate-600 dark:text-slate-300">
+                          <td className="py-3 px-4 text-slate-600 dark:text-slate-300">
                             {formatOfferDate(offer.date) || "-"}
                           </td>
                         </tr>
@@ -787,100 +773,88 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
                   </table>
                 </div>
 
+                {/* Summary Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="rounded-xl border border-slate-200/70 dark:border-slate-700/70 bg-white/70 dark:bg-slate-900/60 p-4">
-                    <div className="text-xs uppercase tracking-wide text-slate-500">
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-4">
+                    <div className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                       Celkem oceněno
                     </div>
-                    <div className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">
+                    <div className="mt-2 text-xl font-bold text-slate-900 dark:text-white tabular-nums">
                       {formatMoney(selectedSupplierSummary.totalAwardedValue)}
                     </div>
                   </div>
-                  <div className="rounded-xl border border-slate-200/70 dark:border-slate-700/70 bg-white/70 dark:bg-slate-900/60 p-4">
-                    <div className="text-xs uppercase tracking-wide text-slate-500">
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-4">
+                    <div className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                       Celkem zasmluvněno (realizace)
                     </div>
-                    <div className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">
+                    <div className="mt-2 text-xl font-bold text-slate-900 dark:text-white tabular-nums">
                       {formatMoney(selectedSupplierSummary.totalSodRealizationValue)}
                     </div>
                   </div>
-                  <div className="rounded-xl border border-slate-200/70 dark:border-slate-700/70 bg-white/70 dark:bg-slate-900/60 p-4">
-                    <div className="text-xs uppercase tracking-wide text-slate-500">Úspěšnost</div>
-                    <div className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">
-                      {selectedSupplierSummary.successRate.toFixed(1).replace(".", ",")} %
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-4">
+                    <div className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                      Úspěšnost
                     </div>
-                    <div className="mt-1 text-xs text-slate-500">
+                    <div className="mt-2 text-xl font-bold text-slate-900 dark:text-white tabular-nums">
+                      {selectedSupplierSummary.successRate.toFixed(1).replace(".", ",")}%
+                    </div>
+                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                       {selectedSupplierSummary.sodCount} z {selectedSupplierSummary.offerCount} nabídek
                     </div>
                   </div>
                 </div>
 
+                {/* Status Breakdown */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div className="rounded-lg border border-slate-200/70 dark:border-slate-700/70 bg-white/70 dark:bg-slate-900/60 p-3">
-                    <div className="text-xs uppercase tracking-wide text-slate-500">Nabídky</div>
-                    <div className="mt-1 text-base font-semibold text-slate-900 dark:text-white">
-                      {selectedSupplierSummary.offerCount}
+                  {[
+                    { label: "Nabídky", value: selectedSupplierSummary.offerCount, color: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300" },
+                    { label: "Užší výběr", value: selectedSupplierSummary.shortlistCount, color: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300" },
+                    { label: "Vítěz (SOD)", value: selectedSupplierSummary.sodCount, color: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300" },
+                    { label: "Zamítnuto", value: selectedSupplierSummary.rejectedCount, color: "bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300" },
+                  ].map((item) => (
+                    <div key={item.label} className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3">
+                      <div className="text-xs text-slate-500 dark:text-slate-400">{item.label}</div>
+                      <div className={`mt-1 inline-flex items-center px-2.5 py-1 rounded-md text-sm font-semibold ${item.color}`}>
+                        {item.value}
+                      </div>
                     </div>
-                  </div>
-                  <div className="rounded-lg border border-slate-200/70 dark:border-slate-700/70 bg-white/70 dark:bg-slate-900/60 p-3">
-                    <div className="text-xs uppercase tracking-wide text-slate-500">Užší výběr</div>
-                    <div className="mt-1 text-base font-semibold text-slate-900 dark:text-white">
-                      {selectedSupplierSummary.shortlistCount}
-                    </div>
-                  </div>
-                  <div className="rounded-lg border border-slate-200/70 dark:border-slate-700/70 bg-white/70 dark:bg-slate-900/60 p-3">
-                    <div className="text-xs uppercase tracking-wide text-slate-500">Vítěz (SOD)</div>
-                    <div className="mt-1 text-base font-semibold text-slate-900 dark:text-white">
-                      {selectedSupplierSummary.sodCount}
-                    </div>
-                  </div>
-                  <div className="rounded-lg border border-slate-200/70 dark:border-slate-700/70 bg-white/70 dark:bg-slate-900/60 p-3">
-                    <div className="text-xs uppercase tracking-wide text-slate-500">Zamítnuto</div>
-                    <div className="mt-1 text-base font-semibold text-slate-900 dark:text-white">
-                      {selectedSupplierSummary.rejectedCount}
-                    </div>
-                  </div>
+                  ))}
                 </div>
 
-                <div className="rounded-xl border border-slate-200/70 dark:border-slate-700/70 bg-white/70 dark:bg-slate-900/60 p-4">
-                  <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                {/* Average Diff */}
+                <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-4">
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white mb-3">
                     Průměrná odchylka nabídek
                   </div>
-                  <div className="mt-2 space-y-1 text-sm">
-                    <div
-                      className={
-                        selectedSupplierSummary.avgDiffSodPercent !== null &&
-                        selectedSupplierSummary.avgDiffSodPercent <= 0
-                          ? "text-emerald-600 dark:text-emerald-400"
-                          : "text-rose-500"
-                      }
-                    >
+                  <div className="space-y-2">
+                    <div className={`text-sm ${
+                      selectedSupplierSummary.avgDiffSodPercent !== null && selectedSupplierSummary.avgDiffSodPercent <= 0
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : "text-rose-600 dark:text-rose-400"
+                    }`}>
                       {formatAvgDiff(selectedSupplierSummary.avgDiffSodPercent, "SOD rozpočtem")}
                     </div>
-                    <div
-                      className={
-                        selectedSupplierSummary.avgDiffPlanPercent !== null &&
-                        selectedSupplierSummary.avgDiffPlanPercent <= 0
-                          ? "text-emerald-600 dark:text-emerald-400"
-                          : "text-rose-500"
-                      }
-                    >
+                    <div className={`text-sm ${
+                      selectedSupplierSummary.avgDiffPlanPercent !== null && selectedSupplierSummary.avgDiffPlanPercent <= 0
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : "text-rose-600 dark:text-rose-400"
+                    }`}>
                       {formatAvgDiff(selectedSupplierSummary.avgDiffPlanPercent, "plánem")}
                     </div>
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-slate-200/70 dark:border-slate-700/70 bg-white/70 dark:bg-slate-900/60 p-4">
-                  <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                {/* Monthly Chart */}
+                <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white mb-4">
                     Objem nabídek v čase (měsíce)
                   </div>
-                  {selectedSupplierMonthlySeries.data.length === 0 ||
-                  selectedSupplierMonthlySeries.years.length === 0 ? (
-                    <div className="mt-2 text-sm text-slate-500">
+                  {selectedSupplierMonthlySeries.data.length === 0 || selectedSupplierMonthlySeries.years.length === 0 ? (
+                    <div className="text-sm text-slate-500 dark:text-slate-400 text-center py-8">
                       Pro časovou osu nejsou dostupná data s datem nabídky.
                     </div>
                   ) : (
-                    <div className="mt-3 h-56" ref={chartRef}>
+                    <div className="h-56" ref={chartRef}>
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={selectedSupplierMonthlySeries.data}>
                           <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.2)" />
@@ -892,18 +866,18 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
                           <Tooltip
                             formatter={(value: number) => formatMoney(value)}
                             labelFormatter={(label) => `Měsíc ${label}`}
-                            labelStyle={{ color: "#334155" }}
+                            contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px' }}
                           />
                           <Legend />
                           {selectedSupplierMonthlySeries.years.map((year, index) => {
                             const palette = [
-                              "#38bdf8",
-                              "#22c55e",
-                              "#f59e0b",
-                              "#a855f7",
-                              "#f97316",
-                              "#14b8a6",
-                              "#e11d48",
+                              "#0EA5E9",
+                              "#10B981",
+                              "#F59E0B",
+                              "#8B5CF6",
+                              "#EC4899",
+                              "#06B6D4",
+                              "#EF4444",
                             ];
                             return (
                               <Line
@@ -927,6 +901,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
           </div>
         </Section>
 
+        {/* Trends Section */}
         <Section
           id="trends"
           title="Trendy v čase"
@@ -934,120 +909,40 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
           isOpen={sections.trends}
           onToggle={toggleSection}
         >
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-4">
-              <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                Objem oceněných zakázek po letech
-              </div>
-              <BarList
-                items={analytics.yearTrends.map((trend) => ({
-                  label: trend.year.toString(),
-                  value: trend.awardedValue,
-                  helper: `${trend.sodCount} SOD`,
-                }))}
-                valueFormatter={formatMoney}
-              />
-            </div>
-            <div className="space-y-4">
-              <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                Aktivita nabídek
-              </div>
-              <BarList
-                items={analytics.yearTrends.map((trend) => ({
-                  label: trend.year.toString(),
-                  value: trend.offerCount,
-                  helper: `${trend.categoryCount} kategorií`,
-                }))}
-              />
-            </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <SupplierBarChart
+              items={analytics.yearTrends.map((t) => ({
+                label: t.year.toString(),
+                value: t.awardedValue,
+                helper: `${t.sodCount} SOD`,
+              }))}
+              valueFormatter={formatMoney}
+              title="Objem oceněných zakázek"
+              subtitle="Podle roku ocenění"
+              color="violet"
+            />
+            <SupplierBarChart
+              items={analytics.yearTrends.map((t) => ({
+                label: t.year.toString(),
+                value: t.offerCount,
+                helper: `${t.categoryCount} kategorií`,
+              }))}
+              title="Aktivita nabídek"
+              subtitle="Počet nabídek podle roku"
+              color="amber"
+            />
           </div>
-          {trendYears.length === 0 ? (
-            <div className="mt-4 text-sm text-slate-500">
+          {trendYears.length === 0 && (
+            <div className="mt-4 text-sm text-slate-500 dark:text-slate-400 text-center py-4">
               Pro trendové grafy nejsou zatím dostupná data s datem ocenění.
             </div>
-          ) : null}
+          )}
         </Section>
 
-        <Section
-          id="chatbot"
-          title="AI chatbot nad daty"
-          subtitle="Napojeno na OpenRouter přes uložený klíč v administraci"
-          isOpen={sections.chatbot}
-          onToggle={toggleSection}
-        >
-          <div className="no-print grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-3">
-              <div className="space-y-3 max-h-[320px] overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3">
-                {chatMessages.length === 0 ? (
-                  <div className="text-sm text-slate-500">
-                    Zeptejte se na dodavatele, trendy nebo ziskovost.
-                  </div>
-                ) : (
-                  chatMessages.map((msg, idx) => (
-                    <div
-                      key={`${msg.role}-${idx}`}
-                      className={`rounded-lg px-3 py-2 text-sm ${
-                        msg.role === "assistant"
-                          ? "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200"
-                          : "bg-emerald-100/60 dark:bg-emerald-900/30 text-emerald-900 dark:text-emerald-200"
-                      }`}
-                    >
-                      <div className="text-xs uppercase tracking-wide opacity-70 mb-1">
-                        {msg.role === "assistant" ? "AI" : "Vy"}
-                      </div>
-                      <div className="whitespace-pre-wrap">{msg.content}</div>
-                    </div>
-                  ))
-                )}
-              </div>
-              <textarea
-                className="w-full min-h-[120px] rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-sm text-slate-700 dark:text-slate-200"
-                placeholder="Zeptejte se na dodavatele, trendy nebo ziskovost..."
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-              />
-              <div className="flex items-center justify-between">
-                {chatError ? (
-                  <div className="text-xs text-rose-500">{chatError}</div>
-                ) : (
-                  <div className="text-xs text-slate-500">
-                    Kontext: {selectedProjectLabel}
-                  </div>
-                )}
-                <button
-                  type="button"
-                  onClick={handleSendChat}
-                  disabled={chatLoading || !chatInput.trim()}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 text-white disabled:opacity-60"
-                >
-                  {chatLoading ? "Odesílám..." : "Odeslat"}
-                </button>
-              </div>
-            </div>
-            <div className="space-y-3">
-              <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                Rychlé dotazy
-              </div>
-              <div className="flex flex-col gap-2">
-                {[
-                  "Kteří dodavatelé mají nejvyšší úspěšnost?",
-                  "Jak se vyvíjí objem zakázek meziročně?",
-                  "Které části jsou dlouhodobě ztrátové?",
-                ].map((item) => (
-                  <button
-                    key={item}
-                    type="button"
-                    onClick={() => setChatInput(item)}
-                    className="text-left text-sm px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
-                  >
-                    {item}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </Section>
+
       </div>
     </div>
   );
 };
+
+export default ProjectOverview;

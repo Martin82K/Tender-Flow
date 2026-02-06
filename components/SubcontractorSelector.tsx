@@ -259,6 +259,7 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
           <table className="w-full text-sm text-left text-slate-600 dark:text-slate-400 border-separate border-spacing-y-3">
             <thead className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider sticky top-0 z-10">
               <tr>
+                <th className="px-6 py-2 font-medium text-left"></th>
                 <th className="px-6 py-2 w-10">
                   <input
                     type="checkbox"
@@ -278,7 +279,6 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
                 <th className="px-6 py-2 font-medium">Region</th>
                 <th className="px-6 py-2 font-medium">Hodnocení</th>
                 <th className="px-6 py-2 font-medium">Stav</th>
-                <th className="px-6 py-2 font-medium text-right"></th>
               </tr>
             </thead>
             <tbody>
@@ -295,6 +295,24 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
                   >
                     <td className={`
                       px-6 py-4 rounded-l-xl border-y border-l
+                      ${selectedIds.has(contact.id)
+                        ? "bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
+                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"}
+                    `}>
+                      {onEditContact && (
+                        <button
+                          onClick={() => onEditContact(contact)}
+                          className="p-2 rounded-lg text-orange-500 hover:text-orange-600 dark:text-orange-400 dark:hover:text-orange-300 hover:bg-orange-50/60 dark:hover:bg-orange-500/10 transition-colors"
+                          title="Upravit"
+                        >
+                          <span className="material-symbols-outlined text-[20px]">
+                            edit
+                          </span>
+                        </button>
+                      )}
+                    </td>
+                    <td className={`
+                      px-6 py-4 border-y
                       ${selectedIds.has(contact.id)
                         ? "bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
                         : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"}
@@ -433,7 +451,7 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
                       )}
                     </td>
                     <td className={`
-                      px-6 py-4 border-y
+                      px-6 py-4 rounded-r-xl border-y border-r
                       ${selectedIds.has(contact.id)
                         ? "bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
                         : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"}
@@ -450,24 +468,6 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
                         ></span>
                         {status.label}
                       </span>
-                    </td>
-                    <td className={`
-                      px-6 py-4 text-right rounded-r-xl border-y border-r
-                      ${selectedIds.has(contact.id)
-                        ? "bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
-                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"}
-                    `}>
-                      {onEditContact && (
-                        <button
-                          onClick={() => onEditContact(contact)}
-                          className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-primary transition-all opacity-0 group-hover:opacity-100"
-                          title="Upravit"
-                        >
-                          <span className="material-symbols-outlined text-[20px]">
-                            edit
-                          </span>
-                        </button>
-                      )}
                     </td>
                   </tr>
                 );

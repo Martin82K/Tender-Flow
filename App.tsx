@@ -182,6 +182,65 @@ function AppContent() {
   const shouldShowLoader =
     (authLoading && isAppPath) || (isAuthenticated && state.isDataLoading);
 
+  // Stuck loading detection - auto-recovery after timeout
+  const loadingStartTimeRef = useRef<number | null>(null);
+  const STUCK_LOADING_TIMEOUT_MS = 20000; // 20 seconds
+
+  useEffect(() => {
+    if (shouldShowLoader || state.isDataLoading) {
+      // Start tracking loading time
+      if (!loadingStartTimeRef.current) {
+        loadingStartTimeRef.current = Date.now();
+      }
+    } else {
+      // Reset when loading completes
+      loadingStartTimeRef.current = null;
+    }
+  }, [shouldShowLoader, state.isDataLoading]);
+
+  // Check for stuck loading state
+  useEffect(() => {
+    if (!shouldShowLoader && !state.isDataLoading) return;
+    if (!loadingStartTimeRef.current) return;
+
+    const checkStuck = setInterval(() => {
+      if (!loadingStartTimeRef.current) {
+        clearInterval(checkStuck);
+        return;
+      }
+
+      const elapsed = Date.now() - loadingStartTimeRef.current;
+      if (elapsed > STUCK_LOADING_TIMEOUT_MS) {
+        console.warn(`[App] Loading stuck for ${elapsed}ms, attempting recovery...`);
+        clearInterval(checkStuck);
+        loadingStartTimeRef.current = null;
+
+        // Clear potentially corrupted session data
+        try {
+          window.localStorage.removeItem('crm-auth-token');
+          window.localStorage.removeItem('crm-user-cache');
+          window.localStorage.removeItem('session_credentials');
+        } catch { /* ignore */ }
+
+        // Clear desktop credentials if available
+        if (isDesktop && window.electronAPI?.session) {
+          window.electronAPI.session.clearCredentials().catch(() => {});
+        }
+
+        // Redirect to login
+        logout();
+      }
+    }, 2000);
+
+    return () => clearInterval(checkStuck);
+  }, [shouldShowLoader, state.isDataLoading, isDesktop, logout]);
+
+  // Desktop features
+  // const { isDesktop, showWelcome, dismissWelcome, selectFolder } = useDesktop();
+  // Subscription check removed - allowing all users on desktop
+  const isDesktopPlanBlocked = false; 
+
+  /* 
   const desktopAllowedTiers = ["pro", "enterprise", "admin"] as const;
   const isDesktopPlanBlocked =
     isDesktop &&
@@ -201,6 +260,7 @@ function AppContent() {
       navigate("/app/settings?tab=user&subTab=subscription", { replace: true });
     }
   }, [isDesktopPlanBlocked, pathname, search]);
+  */
 
   if (shouldShowLoader) {
     const percent = state.appLoadProgress?.percent;
@@ -243,6 +303,7 @@ function AppContent() {
     );
   }
 
+  /*
   if (isDesktopPlanBlocked) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
@@ -271,6 +332,7 @@ function AppContent() {
       </div>
     );
   }
+  */
 
   // Handle Short Link Redirect
   // This must be checked before other loading states to ensure fast redirect

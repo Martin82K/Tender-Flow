@@ -797,3 +797,284 @@ export function exportContactsToCSV(contacts: Subcontractor[], statuses: StatusC
   link.click();
   document.body.removeChild(link);
 }
+
+/**
+ * Export Overview Dashboard to PDF with modern design
+ */
+export interface DashboardData {
+  totals: {
+    awardedValue: number;
+    sodCount: number;
+    offerCount: number;
+    supplierCount: number;
+    categoryCount: number;
+  };
+  byStatus: {
+    tender: { awardedValue: number; sodCount: number; offerCount: number };
+    realization: { awardedValue: number; sodCount: number; offerCount: number };
+    archived: { awardedValue: number; sodCount: number; offerCount: number };
+  };
+  topSuppliers: {
+    name: string;
+    sodCount: number;
+    offerCount: number;
+    totalAwardedValue: number;
+    successRate: number;
+  }[];
+  yearTrends: {
+    year: number;
+    awardedValue: number;
+    offerCount: number;
+    sodCount: number;
+  }[];
+  filters: {
+    scope: string;
+    project: string;
+    status: string;
+  };
+}
+
+export function exportDashboardToPDF(
+  data: DashboardData,
+  appUrl: string,
+  logoDataUrl?: string,
+): void {
+  const doc = new jsPDF({ orientation: 'portrait', format: 'a4' });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  
+  registerRobotoFont(doc);
+  
+  const successRate = data.totals.offerCount > 0 
+    ? (data.totals.sodCount / data.totals.offerCount) * 100 
+    : 0;
+
+  // Color palette
+  const colors = {
+    primary: [15, 23, 42],
+    secondary: [71, 85, 105],
+    accent: [16, 185, 129],
+    sky: [14, 165, 233],
+    amber: [245, 158, 11],
+    light: [248, 250, 252],
+    border: [226, 232, 240],
+  };
+
+  // Helper to draw rounded rectangle
+  const drawRoundedRect = (x: number, y: number, w: number, h: number, r: number, fillColor?: number[]) => {
+    doc.setDrawColor(colors.border[0], colors.border[1], colors.border[2]);
+    if (fillColor) {
+      doc.setFillColor(fillColor[0], fillColor[1], fillColor[2]);
+    }
+    doc.roundedRect(x, y, w, h, r, r, fillColor ? 'FD' : 'D');
+  };
+
+  // Page 1: Header and KPI Cards
+  let y = 15;
+
+  // Logo or Title
+  doc.setFontSize(24);
+  doc.setFont('Roboto', 'normal');
+  doc.setTextColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+  doc.text('Tender Flow', 14, y);
+  
+  doc.setFontSize(12);
+  doc.setTextColor(colors.secondary[0], colors.secondary[1], colors.secondary[2]);
+  doc.text('Přehledy - Analytický dashboard', 14, y + 8);
+  
+  // Date and filters
+  doc.setFontSize(9);
+  doc.text(`Exportováno: ${formatDate(new Date().toISOString())}`, pageWidth - 14, y, { align: 'right' });
+  doc.text(`Filtry: ${data.filters.scope} | ${data.filters.project} | ${data.filters.status}`, pageWidth - 14, y + 5, { align: 'right' });
+
+  y += 25;
+
+  // KPI Cards Section
+  doc.setFontSize(11);
+  doc.setFont('Roboto', 'normal');
+  doc.setTextColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+  doc.text('Klicove metriky', 14, y);
+  y += 8;
+
+  // KPI Cards Grid (2x2)
+  const cardWidth = (pageWidth - 28 - 8) / 2;
+  const cardHeight = 28;
+  const cardGap = 4;
+
+  const kpiCards = [
+    { label: 'Objem zakazek', value: formatMoneyPDF(data.totals.awardedValue) + ' Kc', color: colors.accent },
+    { label: 'Uspesnost VR', value: successRate.toFixed(1) + '%', color: colors.sky },
+    { label: 'Pocet dodavatelu', value: data.totals.supplierCount.toString(), color: [139, 92, 246] },
+    { label: 'Kategorie s daty', value: data.totals.categoryCount.toString(), color: colors.amber },
+  ];
+
+  kpiCards.forEach((card, index) => {
+    const col = index % 2;
+    const row = Math.floor(index / 2);
+    const x = 14 + col * (cardWidth + cardGap);
+    const cardY = y + row * (cardHeight + cardGap);
+
+    drawRoundedRect(x, cardY, cardWidth, cardHeight, 3, colors.light);
+    
+    doc.setFillColor(card.color[0], card.color[1], card.color[2]);
+    doc.rect(x, cardY, 4, cardHeight, 'F');
+
+    doc.setFontSize(8);
+    doc.setTextColor(colors.secondary[0], colors.secondary[1], colors.secondary[2]);
+    doc.text(card.label.toUpperCase(), x + 8, cardY + 8);
+
+    doc.setFontSize(14);
+    doc.setFont('Roboto', 'normal');
+    doc.setTextColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+    doc.text(card.value, x + 8, cardY + 20);
+  });
+
+  y += 2 * (cardHeight + cardGap) + 10;
+
+  // Status Cards Section
+  doc.setFontSize(11);
+  doc.text('Prehled podle stavu', 14, y);
+  y += 8;
+
+  const statusCards = [
+    { 
+      label: 'Soutez', 
+      awarded: data.byStatus.tender.awardedValue,
+      sod: data.byStatus.tender.sodCount,
+      offers: data.byStatus.tender.offerCount,
+      color: colors.sky 
+    },
+    { 
+      label: 'Realizace', 
+      awarded: data.byStatus.realization.awardedValue,
+      sod: data.byStatus.realization.sodCount,
+      offers: data.byStatus.realization.offerCount,
+      color: colors.accent 
+    },
+    { 
+      label: 'Archiv', 
+      awarded: data.byStatus.archived.awardedValue,
+      sod: data.byStatus.archived.sodCount,
+      offers: data.byStatus.archived.offerCount,
+      color: [100, 116, 139] 
+    },
+  ];
+
+  const statusCardWidth = (pageWidth - 28 - 8) / 3;
+  
+  statusCards.forEach((card, index) => {
+    const x = 14 + index * (statusCardWidth + 4);
+    
+    drawRoundedRect(x, y, statusCardWidth, 35, 3);
+    
+    doc.setFillColor(card.color[0], card.color[1], card.color[2]);
+    doc.roundedRect(x, y, statusCardWidth, 10, 3, 3, 'F');
+    
+    doc.setFontSize(8);
+    doc.setTextColor(255, 255, 255);
+    doc.text(card.label.toUpperCase(), x + 4, y + 7);
+
+    doc.setFontSize(9);
+    doc.setTextColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+    doc.text(`Objem: ${formatMoneyPDF(card.awarded)} Kc`, x + 4, y + 18);
+    doc.text(`SOD: ${card.sod}`, x + 4, y + 25);
+    doc.text(`Nabidky: ${card.offers}`, x + 4, y + 32);
+  });
+
+  y += 45;
+
+  // Top Suppliers Section
+  if (data.topSuppliers.length > 0) {
+    doc.setFontSize(11);
+    doc.setTextColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+    doc.text('Top dodavatele', 14, y);
+    y += 6;
+
+    const supplierData = data.topSuppliers.slice(0, 5).map((s, i) => [
+      (i + 1).toString(),
+      s.name,
+      s.sodCount.toString(),
+      s.offerCount.toString(),
+      s.successRate.toFixed(1) + '%',
+      formatMoneyPDF(s.totalAwardedValue) + ' Kc',
+    ]);
+
+    autoTable(doc, {
+      startY: y,
+      head: [['#', 'Dodavatel', 'SOD', 'Nabidky', 'Uspesnost', 'Objem']],
+      body: supplierData,
+      styles: { fontSize: 9, cellPadding: 3, font: 'Roboto' },
+      headStyles: { 
+        fillColor: colors.secondary, 
+        textColor: 255, 
+        fontStyle: 'normal',
+        fontSize: 8,
+      },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      columnStyles: {
+        0: { cellWidth: 10, halign: 'center' },
+        1: { cellWidth: 60 },
+        2: { cellWidth: 15, halign: 'center' },
+        3: { cellWidth: 20, halign: 'center' },
+        4: { cellWidth: 25, halign: 'center' },
+        5: { cellWidth: 35, halign: 'right' },
+      },
+      margin: { left: 14, right: 14 },
+    });
+
+    y = (doc as any).lastAutoTable.finalY + 10;
+  }
+
+  // Year Trends Section
+  if (data.yearTrends.length > 0 && y < pageHeight - 60) {
+    doc.setFontSize(11);
+    doc.setTextColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+    doc.text('Trendy v case', 14, y);
+    y += 6;
+
+    const trendData = data.yearTrends.map((t) => [
+      t.year.toString(),
+      formatMoneyPDF(t.awardedValue) + ' Kc',
+      t.sodCount.toString(),
+      t.offerCount.toString(),
+    ]);
+
+    autoTable(doc, {
+      startY: y,
+      head: [['Rok', 'Objem zakazek', 'SOD', 'Nabidky']],
+      body: trendData,
+      styles: { fontSize: 9, cellPadding: 3, font: 'Roboto' },
+      headStyles: { 
+        fillColor: colors.secondary, 
+        textColor: 255, 
+        fontStyle: 'normal',
+        fontSize: 8,
+      },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      columnStyles: {
+        0: { cellWidth: 25, halign: 'center' },
+        1: { cellWidth: 50, halign: 'right' },
+        2: { cellWidth: 25, halign: 'center' },
+        3: { cellWidth: 25, halign: 'center' },
+      },
+      margin: { left: 14, right: 14 },
+    });
+  }
+
+  // Footer on all pages
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(128);
+    doc.text(
+      `Tender Flow | ${appUrl} | Strana ${i} z ${pageCount}`,
+      pageWidth / 2,
+      pageHeight - 10,
+      { align: 'center' }
+    );
+  }
+
+  const filename = `prehledy_dashboard_${new Date().toISOString().split('T')[0]}.pdf`;
+  doc.save(filename);
+}
