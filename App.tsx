@@ -182,6 +182,12 @@ function AppContent() {
   const shouldShowLoader =
     (authLoading && isAppPath) || (isAuthenticated && state.isDataLoading);
 
+  // Desktop features
+  // const { isDesktop, showWelcome, dismissWelcome, selectFolder } = useDesktop();
+  // Subscription check removed - allowing all users on desktop
+  const isDesktopPlanBlocked = false; 
+
+  /* 
   const desktopAllowedTiers = ["pro", "enterprise", "admin"] as const;
   const isDesktopPlanBlocked =
     isDesktop &&
@@ -201,6 +207,7 @@ function AppContent() {
       navigate("/app/settings?tab=user&subTab=subscription", { replace: true });
     }
   }, [isDesktopPlanBlocked, pathname, search]);
+  */
 
   if (shouldShowLoader) {
     const percent = state.appLoadProgress?.percent;
@@ -243,6 +250,7 @@ function AppContent() {
     );
   }
 
+  /*
   if (isDesktopPlanBlocked) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
@@ -271,6 +279,7 @@ function AppContent() {
       </div>
     );
   }
+  */
 
   // Handle Short Link Redirect
   // This must be checked before other loading states to ensure fast redirect
