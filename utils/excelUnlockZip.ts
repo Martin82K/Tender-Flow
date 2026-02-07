@@ -2,16 +2,21 @@ import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 
 type ProgressReporter = (percent: number, label: string) => void;
 
+export interface UnlockExcelZipResult {
+  output: Uint8Array;
+  worksheetCount: number;
+}
+
 const stripTag = (xml: string, tagName: string) => {
   const selfClosing = new RegExp(`<${tagName}\\b[^>]*\\/\\s*>`, "gi");
   const paired = new RegExp(`<${tagName}\\b[^>]*>[\\s\\S]*?<\\/${tagName}>`, "gi");
   return xml.replace(selfClosing, "").replace(paired, "");
 };
 
-export const unlockExcelZip = async (
+export const unlockExcelZipWithStats = async (
   input: ArrayBuffer,
   opts?: { onProgress?: ProgressReporter }
-): Promise<Uint8Array> => {
+): Promise<UnlockExcelZipResult> => {
   const onProgress = opts?.onProgress;
   onProgress?.(5, "Rozbaluji Excel (ZIP)...");
 
@@ -63,5 +68,16 @@ export const unlockExcelZip = async (
 
   const out = zipSync(ordered, { level: 6 });
   onProgress?.(95, "Připravuji stažení...");
-  return out;
+  return {
+    output: out,
+    worksheetCount: worksheetPaths.length,
+  };
+};
+
+export const unlockExcelZip = async (
+  input: ArrayBuffer,
+  opts?: { onProgress?: ProgressReporter }
+): Promise<Uint8Array> => {
+  const result = await unlockExcelZipWithStats(input, opts);
+  return result.output;
 };

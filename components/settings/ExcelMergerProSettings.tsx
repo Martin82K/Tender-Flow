@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { ExcelService } from "../../services/excelMergerService";
 import { useUI } from "../../context/UIContext";
+import { trackFeatureUsage } from "../../services/featureUsageService";
 
 // Dynamic desktop detection helper - must be called at runtime, not module load
 const checkIsDesktop = () =>
@@ -170,6 +171,11 @@ export const ExcelMergerProSettings: React.FC = () => {
         `[${new Date().toLocaleTimeString()}] Hotovo.`,
       ]);
       setSuccessInfo({ outputName });
+
+      void trackFeatureUsage("excel_merger", {
+        fileSizeBytes: excelFile.size,
+        selectedSheetsCount: selectedSheets.length,
+      });
     } catch (e: any) {
       console.error("Merge error:", e);
       showAlert({

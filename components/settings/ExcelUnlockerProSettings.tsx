@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { unlockExcelZip } from '@/utils/excelUnlockZip';
+import { unlockExcelZipWithStats } from '@/utils/excelUnlockZip';
 import { useUI } from '../../context/UIContext';
+import { trackFeatureUsage } from '../../services/featureUsageService';
 
 export const ExcelUnlockerProSettings: React.FC = () => {
     const { showAlert } = useUI();
@@ -51,17 +52,23 @@ export const ExcelUnlockerProSettings: React.FC = () => {
             setExcelProgress({ percent: 15, label: 'Načítám soubor…' });
             const arrayBuffer = await excelFile.arrayBuffer();
 
-            const out = await unlockExcelZip(arrayBuffer, {
+            const { output, worksheetCount } = await unlockExcelZipWithStats(arrayBuffer, {
                 onProgress: (percent, label) => setExcelProgress({ percent, label }),
             });
 
-            const blob = new Blob([out as any], {
+            const blob = new Blob([output as any], {
                 type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             });
 
             downloadFromResponse(blob, fallbackOutName);
             setExcelProgress({ percent: 100, label: 'Staženo' });
             setExcelSuccessInfo({ outputName: fallbackOutName });
+
+            void trackFeatureUsage('excel_unlocker', {
+                fileSizeBytes: excelFile.size,
+                unlockedSheetsCount: worksheetCount,
+                minutesSavedEstimate: worksheetCount * 2,
+            });
         } catch (e: any) {
             console.error('Excel unlock error:', e);
             showAlert({ title: 'Nepodařilo se odemknout', message: `${e?.message || 'Neznámá chyba'}`, variant: 'danger' });

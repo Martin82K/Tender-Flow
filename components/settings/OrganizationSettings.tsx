@@ -1,8 +1,28 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { organizationService, type OrganizationJoinRequest, type OrganizationMember, type OrganizationSummary } from "../../services/organizationService";
+import {
+  organizationService,
+  type OrganizationJoinRequest,
+  type OrganizationMember,
+  type OrganizationSummary,
+  type OrganizationUnlockerTimeSavings,
+} from "../../services/organizationService";
 import { useUI } from "../../context/UIContext";
 import { formatOrgRole, getUserLabel, getUserSortKey, isOrgOwnerRole } from "../../utils/organizationUtils";
 import { userManagementService } from "../../services/userManagementService";
+
+const TIME_SAVINGS_DAYS_BACK = 30;
+const MINUTES_PER_UNLOCKED_SHEET = 2;
+const MEMBERS_COLLAPSED_LIMIT = 3;
+
+const formatMinutes = (minutes: number): string => {
+  if (minutes <= 0) return "0 min";
+  if (minutes < 60) return `${minutes} min`;
+
+  const hours = Math.floor(minutes / 60);
+  const restMinutes = minutes % 60;
+  if (restMinutes === 0) return `${hours} h`;
+  return `${hours} h ${restMinutes} min`;
+};
 
 export const OrganizationSettings: React.FC = () => {
   const { showAlert, showConfirm } = useUI();
@@ -17,6 +37,9 @@ export const OrganizationSettings: React.FC = () => {
   const [manualAddEmail, setManualAddEmail] = useState("");
   const [manualAddStatus, setManualAddStatus] = useState<"idle" | "unknown" | "ok">("idle");
   const [notAuthorized, setNotAuthorized] = useState(false);
+  const [timeSavings, setTimeSavings] = useState<OrganizationUnlockerTimeSavings | null>(null);
+  const [isLoadingTimeSavings, setIsLoadingTimeSavings] = useState(false);
+  const [areMembersExpanded, setAreMembersExpanded] = useState(false);
 
   const selectedOrg = useMemo(
     () => organizations.find((org) => org.organization_id === selectedOrgId) || null,
@@ -55,6 +78,13 @@ export const OrganizationSettings: React.FC = () => {
     });
   }, [members, search]);
 
+  const hasSearchQuery = search.trim().length > 0;
+  const canCollapseMembers = !hasSearchQuery && filteredMembers.length > MEMBERS_COLLAPSED_LIMIT;
+  const visibleMembers = canCollapseMembers && !areMembersExpanded
+    ? filteredMembers.slice(0, MEMBERS_COLLAPSED_LIMIT)
+    : filteredMembers;
+  const hiddenMembersCount = filteredMembers.length - visibleMembers.length;
+
   const loadOrganizations = async () => {
     setLoading(true);
     try {
@@ -78,9 +108,24 @@ export const OrganizationSettings: React.FC = () => {
   const loadOrgData = async (orgId: string) => {
     setLoading(true);
     setNotAuthorized(false);
+    setIsLoadingTimeSavings(true);
     try {
       const membersData = await organizationService.getOrganizationMembers(orgId);
       setMembers(membersData);
+
+      try {
+        const timeSavingsData = await organizationService.getOrganizationUnlockerTimeSavings(
+          orgId,
+          TIME_SAVINGS_DAYS_BACK,
+          MINUTES_PER_UNLOCKED_SHEET,
+        );
+        setTimeSavings(timeSavingsData);
+      } catch (error) {
+        console.error("Failed to load unlocker time savings:", error);
+        setTimeSavings(null);
+      } finally {
+        setIsLoadingTimeSavings(false);
+      }
 
       try {
         if (isOrgOwnerRole(organizations.find((o) => o.organization_id === orgId)?.member_role)) {
@@ -105,6 +150,7 @@ export const OrganizationSettings: React.FC = () => {
       }
     } catch (error) {
       console.error("Failed to load org data:", error);
+      setIsLoadingTimeSavings(false);
       showAlert({
         title: "Chyba",
         message: "Nelze načíst členy nebo žádosti.",
@@ -121,6 +167,7 @@ export const OrganizationSettings: React.FC = () => {
 
   useEffect(() => {
     if (selectedOrgId) {
+      setAreMembersExpanded(false);
       loadOrgData(selectedOrgId);
     }
   }, [selectedOrgId]);
@@ -330,6 +377,15 @@ export const OrganizationSettings: React.FC = () => {
     return new Set(eligibleUsers.map((u) => u.email.toLowerCase()));
   }, [eligibleUsers]);
 
+  const totalMinutesSaved = timeSavings?.minutes_saved_total ?? 0;
+  const rangeMinutesSaved = timeSavings?.minutes_saved_range ?? 0;
+  const totalUnlockedSheets = timeSavings?.unlocked_sheets_total ?? 0;
+  const rangeUnlockedSheets = timeSavings?.unlocked_sheets_range ?? 0;
+  const totalUnlockEvents = timeSavings?.unlock_events_total ?? 0;
+  const lastUnlockAt = timeSavings?.last_unlock_at
+    ? new Date(timeSavings.last_unlock_at).toLocaleString("cs-CZ")
+    : "Nikdy";
+
   if (loading && organizations.length === 0) {
     return (
       <div className="flex justify-center p-6">
@@ -370,6 +426,48 @@ export const OrganizationSettings: React.FC = () => {
           placeholder="Vyhledat uživatele podle jména nebo emailu"
           className="flex-1 h-10 rounded-lg border border-slate-200/70 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-slate-700 dark:text-slate-200"
         />
+      </div>
+
+      <div className="mb-6 rounded-xl border border-sky-200/60 dark:border-sky-800/40 bg-sky-50/60 dark:bg-sky-900/10 p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="material-symbols-outlined text-sky-500">schedule</span>
+          <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+            Úspora času z Excel Unlockeru
+          </h3>
+        </div>
+
+        {isLoadingTimeSavings ? (
+          <div className="text-xs text-slate-500">Načítám statistiky úspory času...</div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="rounded-lg border border-slate-200/70 dark:border-slate-700/70 bg-white/80 dark:bg-slate-900/50 p-3">
+                <div className="text-[11px] text-slate-500">Celkem ušetřeno</div>
+                <div className="text-lg font-bold text-slate-900 dark:text-white">{formatMinutes(totalMinutesSaved)}</div>
+              </div>
+              <div className="rounded-lg border border-slate-200/70 dark:border-slate-700/70 bg-white/80 dark:bg-slate-900/50 p-3">
+                <div className="text-[11px] text-slate-500">Posledních {TIME_SAVINGS_DAYS_BACK} dní</div>
+                <div className="text-lg font-bold text-slate-900 dark:text-white">{formatMinutes(rangeMinutesSaved)}</div>
+              </div>
+              <div className="rounded-lg border border-slate-200/70 dark:border-slate-700/70 bg-white/80 dark:bg-slate-900/50 p-3">
+                <div className="text-[11px] text-slate-500">Odemčeno listů celkem</div>
+                <div className="text-lg font-bold text-slate-900 dark:text-white">{totalUnlockedSheets}</div>
+              </div>
+              <div className="rounded-lg border border-slate-200/70 dark:border-slate-700/70 bg-white/80 dark:bg-slate-900/50 p-3">
+                <div className="text-[11px] text-slate-500">Odemčeno listů ({TIME_SAVINGS_DAYS_BACK} dní)</div>
+                <div className="text-lg font-bold text-slate-900 dark:text-white">{rangeUnlockedSheets}</div>
+              </div>
+            </div>
+
+            <div className="mt-3 text-xs text-slate-500">
+              Poslední odemknutí: <span className="text-slate-700 dark:text-slate-300">{lastUnlockAt}</span>
+              {" · "}
+              Počet odemykacích akcí: <span className="text-slate-700 dark:text-slate-300">{totalUnlockEvents}</span>
+              {" · "}
+              Výpočet: {MINUTES_PER_UNLOCKED_SHEET} minuty na 1 odemčený list.
+            </div>
+          </>
+        )}
       </div>
 
       {notAuthorized && (
@@ -427,14 +525,25 @@ export const OrganizationSettings: React.FC = () => {
         </div>
 
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-            Členové organizace
-          </h3>
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+              Členové organizace
+            </h3>
+            {canCollapseMembers && (
+              <button
+                type="button"
+                onClick={() => setAreMembersExpanded((prev) => !prev)}
+                className="text-xs font-semibold px-2.5 py-1 rounded-lg border border-slate-300/70 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100/70 dark:hover:bg-slate-800/60"
+              >
+                {areMembersExpanded ? "Sbalit členy" : `Zobrazit další (${hiddenMembersCount})`}
+              </button>
+            )}
+          </div>
           {filteredMembers.length === 0 ? (
             <div className="text-sm text-slate-500">Žádní členové.</div>
           ) : (
             <div className="space-y-2">
-              {filteredMembers.map((member) => (
+              {visibleMembers.map((member) => (
                 <div key={member.user_id} className="rounded-xl border border-slate-200 dark:border-slate-700 p-3">
                   {member.display_name && (
                     <div className="text-sm font-medium text-slate-900 dark:text-white">

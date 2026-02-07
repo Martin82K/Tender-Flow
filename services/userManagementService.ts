@@ -31,6 +31,32 @@ export interface PermissionDefinition {
     sort_order: number;
 }
 
+const scoreUserRow = (row: UserWithProfile): number => {
+    let score = 0;
+    if (row.subscription_tier_override) score += 4;
+    if (row.org_subscription_tier) score += 2;
+    if (row.display_name) score += 1;
+    return score;
+};
+
+const dedupeUsersById = (rows: UserWithProfile[]): UserWithProfile[] => {
+    const byId = new Map<string, UserWithProfile>();
+
+    for (const row of rows) {
+        const existing = byId.get(row.user_id);
+        if (!existing) {
+            byId.set(row.user_id, row);
+            continue;
+        }
+
+        if (scoreUserRow(row) > scoreUserRow(existing)) {
+            byId.set(row.user_id, row);
+        }
+    }
+
+    return Array.from(byId.values());
+};
+
 // Service
 export const userManagementService = {
     /**
@@ -44,7 +70,7 @@ export const userManagementService = {
             throw new Error(error.message);
         }
 
-        return data || [];
+        return dedupeUsersById(data || []);
     },
 
     /**

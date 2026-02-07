@@ -24,6 +24,42 @@ export type OrganizationJoinRequest = {
   created_at: string;
 };
 
+export type OrganizationUnlockerTimeSavings = {
+  organization_id: string;
+  organization_name: string;
+  unlocked_sheets_total: number;
+  unlocked_sheets_range: number;
+  unlock_events_total: number;
+  unlock_events_range: number;
+  minutes_saved_total: number;
+  minutes_saved_range: number;
+  last_unlock_at: string | null;
+};
+
+const pickEarlierMemberJoin = (
+  current: OrganizationMember,
+  incoming: OrganizationMember,
+): OrganizationMember => {
+  const currentTs = Date.parse(current.joined_at);
+  const incomingTs = Date.parse(incoming.joined_at);
+  if (Number.isNaN(currentTs)) return incoming;
+  if (Number.isNaN(incomingTs)) return current;
+  return incomingTs < currentTs ? incoming : current;
+};
+
+const dedupeOrganizationMembers = (rows: OrganizationMember[]): OrganizationMember[] => {
+  const byUserId = new Map<string, OrganizationMember>();
+  for (const row of rows) {
+    const existing = byUserId.get(row.user_id);
+    if (!existing) {
+      byUserId.set(row.user_id, row);
+      continue;
+    }
+    byUserId.set(row.user_id, pickEarlierMemberJoin(existing, row));
+  }
+  return Array.from(byUserId.values());
+};
+
 export const organizationService = {
   getMyOrganizations: async (): Promise<OrganizationSummary[]> => {
     const { data, error } = await supabase.rpc("get_my_organizations");
@@ -97,7 +133,7 @@ export const organizationService = {
       org_id_input: orgId,
     });
     if (error) throw new Error(error.message);
-    return data || [];
+    return dedupeOrganizationMembers(data || []);
   },
 
   getOrganizationJoinRequests: async (orgId: string): Promise<OrganizationJoinRequest[]> => {
@@ -120,5 +156,22 @@ export const organizationService = {
       request_id_input: requestId,
     });
     if (error) throw new Error(error.message);
+  },
+
+  getOrganizationUnlockerTimeSavings: async (
+    orgId: string,
+    daysBack: number = 30,
+    minutesPerSheet: number = 2,
+  ): Promise<OrganizationUnlockerTimeSavings | null> => {
+    const { data, error } = await supabase.rpc("get_org_unlocker_time_savings", {
+      org_id_input: orgId,
+      days_back: daysBack,
+      minutes_per_sheet: minutesPerSheet,
+    });
+
+    if (error) throw new Error(error.message);
+
+    const row = Array.isArray(data) ? data[0] : data;
+    return row || null;
   },
 };

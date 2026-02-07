@@ -11,6 +11,7 @@ import {
   deleteAllIndexEntries,
   IndexEntry,
 } from "@/services/indexerService";
+import { trackFeatureUsage } from "@/services/featureUsageService";
 import { AlertModal } from "../AlertModal";
 import { ConfirmationModal } from "../ConfirmationModal";
 
@@ -465,6 +466,11 @@ export const ExcelIndexerSettings: React.FC = () => {
       setPhase('phase2-done');
       setSuccessInfo({ outputName, stats: result.stats });
       addLog(`Soubor "${outputName}" byl stažen.`);
+
+      void trackFeatureUsage('excel_indexer', {
+        fileSizeBytes: budgetFile?.size ?? 0,
+        indexEntriesCount: entries.length,
+      });
     } catch (e: any) {
       console.error("Phase 2 error:", e);
       addLog(`CHYBA Fáze 2: ${e.message || "Neznámá chyba"}`);
