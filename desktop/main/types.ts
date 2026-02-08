@@ -17,6 +17,7 @@ export interface ElectronAPI {
     oauth: OAuthAPI;
     mcp: McpAPI;
     shell: ShellAPI;
+    bidComparison: BidComparisonAPI;
 }
 
 export interface ShellAPI {
@@ -123,6 +124,158 @@ export interface McpAPI {
         hasAuthToken: boolean;
         isConfigured: boolean;
     }>;
+}
+
+export type BidComparisonRole = 'ignore' | 'zadani' | 'offer';
+export type BidComparisonJobState = 'queued' | 'running' | 'success' | 'error' | 'cancelled';
+
+export interface BidComparisonSupplierOption {
+    name: string;
+}
+
+export interface BidComparisonDetectionAnalysis {
+    headerRow: number | null;
+    kRows: number;
+    pricedKRows: number;
+    columnMap: {
+        pc?: number;
+        typ?: number;
+        kod?: number;
+        popis?: number;
+        mj?: number;
+        mnozstvi?: number;
+        jcena?: number;
+        celkem?: number;
+    };
+    isValidTemplate: boolean;
+}
+
+export interface BidComparisonDetectedFile {
+    path: string;
+    relativePath: string;
+    fileName: string;
+    sizeBytes: number;
+    mtimeMs: number;
+    suggestedRole: BidComparisonRole;
+    suggestedSupplierName: string | null;
+    suggestedRound: number;
+    analysis: BidComparisonDetectionAnalysis | null;
+    analysisError: string | null;
+}
+
+export interface BidComparisonDetectionResult {
+    tenderFolderPath: string;
+    files: BidComparisonDetectedFile[];
+    warnings: string[];
+}
+
+export interface BidComparisonSelectedFileInput {
+    path: string;
+    role: BidComparisonRole;
+    supplierName?: string | null;
+    round?: number;
+    mtimeMs?: number;
+}
+
+export interface BidComparisonStartInput {
+    projectId?: string;
+    categoryId?: string;
+    tenderFolderPath: string;
+    selectedFiles: BidComparisonSelectedFileInput[];
+    outputBaseName?: string;
+}
+
+export interface BidComparisonStartResult {
+    jobId: string;
+}
+
+export type BidComparisonAutoState = 'inactive' | 'watching' | 'running' | 'waiting_mapping' | 'error';
+export type BidComparisonAutoPendingReason =
+    | 'none'
+    | 'debounce'
+    | 'file_change'
+    | 'fallback'
+    | 'manual_update'
+    | 'pending_rerun'
+    | 'unresolved_mapping';
+
+export interface BidComparisonAutoScope {
+    projectId: string;
+    categoryId: string;
+}
+
+export interface BidComparisonAutoConfig extends BidComparisonAutoScope {
+    tenderFolderPath: string;
+    suppliers: BidComparisonSupplierOption[];
+    selectedFiles: BidComparisonSelectedFileInput[];
+    enabled: boolean;
+    debounceMs?: number;
+    fallbackIntervalMinutes?: number;
+    outputBaseName?: string;
+}
+
+export interface BidComparisonAutoStatus extends BidComparisonAutoScope {
+    tenderFolderPath: string;
+    enabled: boolean;
+    state: BidComparisonAutoState;
+    debounceMs: number;
+    fallbackIntervalMinutes: number;
+    outputBaseName: string;
+    pendingReason: BidComparisonAutoPendingReason;
+    lastRunAt: string | null;
+    lastRunResult: 'success' | 'error' | 'blocked' | null;
+    lastJobId: string | null;
+    lastError: string | null;
+    unresolvedFiles: string[];
+    updatedAt: string;
+}
+
+export interface BidComparisonAutoStartResult {
+    success: boolean;
+    status: BidComparisonAutoStatus;
+}
+
+export interface BidComparisonJobResult {
+    pocetPolozek: number;
+    suppliers: Record<string, {
+        sparovano: number;
+        nesparovano: string[];
+        round: number;
+        variant: number;
+    }>;
+}
+
+export interface BidComparisonJobStatus {
+    id: string;
+    projectId: string | null;
+    categoryId: string | null;
+    tenderFolderPath: string;
+    status: BidComparisonJobState;
+    progressPercent: number;
+    step: string;
+    logs: string[];
+    startedAt: string;
+    finishedAt: string | null;
+    outputPath: string | null;
+    outputLatestPath: string | null;
+    stats: BidComparisonJobResult | null;
+    error: string | null;
+    cancelRequested?: boolean;
+}
+
+export interface BidComparisonAPI {
+    detectInputs: (args: {
+        tenderFolderPath: string;
+        suppliers: BidComparisonSupplierOption[];
+    }) => Promise<BidComparisonDetectionResult>;
+    start: (input: BidComparisonStartInput) => Promise<BidComparisonStartResult>;
+    get: (jobId: string) => Promise<BidComparisonJobStatus | null>;
+    list: (filter?: { projectId?: string; categoryId?: string }) => Promise<BidComparisonJobStatus[]>;
+    cancel: (jobId: string) => Promise<{ success: boolean }>;
+    autoStart: (config: BidComparisonAutoConfig) => Promise<BidComparisonAutoStartResult>;
+    autoStop: (scope: BidComparisonAutoScope) => Promise<{ success: boolean }>;
+    autoStatus: (scope: BidComparisonAutoScope) => Promise<BidComparisonAutoStatus | null>;
+    autoList: () => Promise<BidComparisonAutoStatus[]>;
 }
 
 export interface UpdateStatus {

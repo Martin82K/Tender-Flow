@@ -6,7 +6,21 @@ import * as path from 'path';
 import { FolderWatcherService } from '../services/folderWatcher';
 import { SecureStorageService } from '../services/secureStorage';
 import { getMcpStatus, setMcpAuthToken, setMcpCurrentProjectId } from '../services/mcpServer';
-import type { FolderInfo, FileInfo } from '../types';
+import { getBidComparisonRunner } from '../services/bidComparisonRunner';
+import { getBidComparisonAutoRunner } from '../services/bidComparisonAutoRunner';
+import type {
+    FolderInfo,
+    FileInfo,
+    BidComparisonAutoConfig,
+    BidComparisonAutoScope,
+    BidComparisonAutoStartResult,
+    BidComparisonAutoStatus,
+    BidComparisonDetectionResult,
+    BidComparisonJobStatus,
+    BidComparisonStartInput,
+    BidComparisonStartResult,
+    BidComparisonSupplierOption,
+} from '../types';
 
 // Services (singleton instances)
 let watcherService: FolderWatcherService | null = null;
@@ -151,6 +165,9 @@ function shouldIgnore(filename: string): boolean {
 }
 
 export function registerIpcHandlers(): void {
+    const bidComparisonAutoRunner = getBidComparisonAutoRunner(storageService);
+    void bidComparisonAutoRunner.restorePersistedSessions();
+
     // --- FILE SYSTEM ---
 
     ipcMain.handle('fs:selectFolder', async (): Promise<FolderInfo | null> => {
@@ -374,6 +391,83 @@ export function registerIpcHandlers(): void {
         const { getPythonRunner } = await import('../services/pythonRunner');
         return getPythonRunner().mergeExcel(inputFile, outputFile);
     });
+
+    // --- BID COMPARISON ---
+
+    ipcMain.handle(
+        'bid-comparison:detect-inputs',
+        async (
+            _,
+            args: {
+                tenderFolderPath: string;
+                suppliers?: BidComparisonSupplierOption[];
+            },
+        ): Promise<BidComparisonDetectionResult> => {
+            return getBidComparisonRunner().detectInputs({
+                tenderFolderPath: args.tenderFolderPath,
+                suppliers: Array.isArray(args.suppliers) ? args.suppliers : [],
+            });
+        },
+    );
+
+    ipcMain.handle(
+        'bid-comparison:start',
+        async (_, input: BidComparisonStartInput): Promise<BidComparisonStartResult> => {
+            return getBidComparisonRunner().start(input);
+        },
+    );
+
+    ipcMain.handle(
+        'bid-comparison:get',
+        async (_, jobId: string): Promise<BidComparisonJobStatus | null> => {
+            return getBidComparisonRunner().get(jobId);
+        },
+    );
+
+    ipcMain.handle(
+        'bid-comparison:list',
+        async (
+            _,
+            filter?: { projectId?: string; categoryId?: string },
+        ): Promise<BidComparisonJobStatus[]> => {
+            return getBidComparisonRunner().list(filter);
+        },
+    );
+
+    ipcMain.handle(
+        'bid-comparison:cancel',
+        async (_, jobId: string): Promise<{ success: boolean }> => {
+            return getBidComparisonRunner().cancel(jobId);
+        },
+    );
+
+    ipcMain.handle(
+        'bid-comparison:auto-start',
+        async (_, config: BidComparisonAutoConfig): Promise<BidComparisonAutoStartResult> => {
+            return bidComparisonAutoRunner.autoStart(config);
+        },
+    );
+
+    ipcMain.handle(
+        'bid-comparison:auto-stop',
+        async (_, scope: BidComparisonAutoScope): Promise<{ success: boolean }> => {
+            return bidComparisonAutoRunner.autoStop(scope);
+        },
+    );
+
+    ipcMain.handle(
+        'bid-comparison:auto-status',
+        async (_, scope: BidComparisonAutoScope): Promise<BidComparisonAutoStatus | null> => {
+            return bidComparisonAutoRunner.autoStatus(scope);
+        },
+    );
+
+    ipcMain.handle(
+        'bid-comparison:auto-list',
+        async (): Promise<BidComparisonAutoStatus[]> => {
+            return bidComparisonAutoRunner.autoList();
+        },
+    );
 
     // --- BIOMETRIC AUTH ---
 
