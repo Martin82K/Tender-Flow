@@ -189,6 +189,52 @@ export interface BidComparisonStartResult {
     jobId: string;
 }
 
+export type BidComparisonAutoState = 'inactive' | 'watching' | 'running' | 'waiting_mapping' | 'error';
+export type BidComparisonAutoPendingReason =
+    | 'none'
+    | 'debounce'
+    | 'file_change'
+    | 'fallback'
+    | 'manual_update'
+    | 'pending_rerun'
+    | 'unresolved_mapping';
+
+export interface BidComparisonAutoScope {
+    projectId: string;
+    categoryId: string;
+}
+
+export interface BidComparisonAutoConfig extends BidComparisonAutoScope {
+    tenderFolderPath: string;
+    suppliers: BidComparisonSupplierOption[];
+    selectedFiles: BidComparisonSelectedFileInput[];
+    enabled: boolean;
+    debounceMs?: number;
+    fallbackIntervalMinutes?: number;
+    outputBaseName?: string;
+}
+
+export interface BidComparisonAutoStatus extends BidComparisonAutoScope {
+    tenderFolderPath: string;
+    enabled: boolean;
+    state: BidComparisonAutoState;
+    debounceMs: number;
+    fallbackIntervalMinutes: number;
+    outputBaseName: string;
+    pendingReason: BidComparisonAutoPendingReason;
+    lastRunAt: string | null;
+    lastRunResult: 'success' | 'error' | 'blocked' | null;
+    lastJobId: string | null;
+    lastError: string | null;
+    unresolvedFiles: string[];
+    updatedAt: string;
+}
+
+export interface BidComparisonAutoStartResult {
+    success: boolean;
+    status: BidComparisonAutoStatus;
+}
+
 export interface BidComparisonJobResult {
     pocetPolozek: number;
     suppliers: Record<string, {
@@ -226,6 +272,10 @@ export interface BidComparisonAPI {
     get: (jobId: string) => Promise<BidComparisonJobStatus | null>;
     list: (filter?: { projectId?: string; categoryId?: string }) => Promise<BidComparisonJobStatus[]>;
     cancel: (jobId: string) => Promise<{ success: boolean }>;
+    autoStart: (config: BidComparisonAutoConfig) => Promise<BidComparisonAutoStartResult>;
+    autoStop: (scope: BidComparisonAutoScope) => Promise<{ success: boolean }>;
+    autoStatus: (scope: BidComparisonAutoScope) => Promise<BidComparisonAutoStatus | null>;
+    autoList: () => Promise<BidComparisonAutoStatus[]>;
 }
 
 export interface UpdateStatus {

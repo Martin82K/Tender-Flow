@@ -7,9 +7,14 @@ import { FolderWatcherService } from '../services/folderWatcher';
 import { SecureStorageService } from '../services/secureStorage';
 import { getMcpStatus, setMcpAuthToken, setMcpCurrentProjectId } from '../services/mcpServer';
 import { getBidComparisonRunner } from '../services/bidComparisonRunner';
+import { getBidComparisonAutoRunner } from '../services/bidComparisonAutoRunner';
 import type {
     FolderInfo,
     FileInfo,
+    BidComparisonAutoConfig,
+    BidComparisonAutoScope,
+    BidComparisonAutoStartResult,
+    BidComparisonAutoStatus,
     BidComparisonDetectionResult,
     BidComparisonJobStatus,
     BidComparisonStartInput,
@@ -160,6 +165,9 @@ function shouldIgnore(filename: string): boolean {
 }
 
 export function registerIpcHandlers(): void {
+    const bidComparisonAutoRunner = getBidComparisonAutoRunner(storageService);
+    void bidComparisonAutoRunner.restorePersistedSessions();
+
     // --- FILE SYSTEM ---
 
     ipcMain.handle('fs:selectFolder', async (): Promise<FolderInfo | null> => {
@@ -430,6 +438,34 @@ export function registerIpcHandlers(): void {
         'bid-comparison:cancel',
         async (_, jobId: string): Promise<{ success: boolean }> => {
             return getBidComparisonRunner().cancel(jobId);
+        },
+    );
+
+    ipcMain.handle(
+        'bid-comparison:auto-start',
+        async (_, config: BidComparisonAutoConfig): Promise<BidComparisonAutoStartResult> => {
+            return bidComparisonAutoRunner.autoStart(config);
+        },
+    );
+
+    ipcMain.handle(
+        'bid-comparison:auto-stop',
+        async (_, scope: BidComparisonAutoScope): Promise<{ success: boolean }> => {
+            return bidComparisonAutoRunner.autoStop(scope);
+        },
+    );
+
+    ipcMain.handle(
+        'bid-comparison:auto-status',
+        async (_, scope: BidComparisonAutoScope): Promise<BidComparisonAutoStatus | null> => {
+            return bidComparisonAutoRunner.autoStatus(scope);
+        },
+    );
+
+    ipcMain.handle(
+        'bid-comparison:auto-list',
+        async (): Promise<BidComparisonAutoStatus[]> => {
+            return bidComparisonAutoRunner.autoList();
         },
     );
 

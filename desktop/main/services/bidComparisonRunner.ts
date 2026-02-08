@@ -28,6 +28,12 @@ const normalizeText = (value: string): string =>
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
 
+const shouldIgnoreDirectory = (dirName: string): boolean => {
+  if (IGNORE_DIRS.has(dirName)) return true;
+  const normalized = normalizeText(dirName);
+  return normalized.includes('archiv');
+};
+
 const parseRound = (fileName: string): number => {
   const candidates = [
     /kolo[ _-]*(\d+)/i,
@@ -101,7 +107,7 @@ const collectExcelFiles = async (root: string): Promise<Array<{ absolutePath: st
     for (const entry of entries) {
       const absolutePath = path.join(currentPath, entry.name);
       if (entry.isDirectory()) {
-        if (IGNORE_DIRS.has(entry.name)) continue;
+        if (shouldIgnoreDirectory(entry.name)) continue;
         await walk(absolutePath);
         continue;
       }

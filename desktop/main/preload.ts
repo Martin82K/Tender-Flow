@@ -10,6 +10,10 @@ import type {
     BidComparisonStartInput,
     BidComparisonStartResult,
     BidComparisonJobStatus,
+    BidComparisonAutoConfig,
+    BidComparisonAutoStartResult,
+    BidComparisonAutoScope,
+    BidComparisonAutoStatus,
 } from './types';
 
 console.log('[Preload] Script starting...');
@@ -226,6 +230,18 @@ const electronAPI: ElectronAPI = {
 
         cancel: (jobId: string): Promise<{ success: boolean }> =>
             ipcRenderer.invoke('bid-comparison:cancel', jobId),
+
+        autoStart: (config: BidComparisonAutoConfig): Promise<BidComparisonAutoStartResult> =>
+            ipcRenderer.invoke('bid-comparison:auto-start', config),
+
+        autoStop: (scope: BidComparisonAutoScope): Promise<{ success: boolean }> =>
+            ipcRenderer.invoke('bid-comparison:auto-stop', scope),
+
+        autoStatus: (scope: BidComparisonAutoScope): Promise<BidComparisonAutoStatus | null> =>
+            ipcRenderer.invoke('bid-comparison:auto-status', scope),
+
+        autoList: (): Promise<BidComparisonAutoStatus[]> =>
+            ipcRenderer.invoke('bid-comparison:auto-list'),
     },
 };
 

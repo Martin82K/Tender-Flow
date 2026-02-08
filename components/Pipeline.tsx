@@ -381,7 +381,8 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const resolveDesktopTenderFolderPath = async (
     categoryTitle: string,
   ): Promise<string | null> => {
-    if (!isDocHubEnabled || !docHubRoot) return null;
+    // Pro předvyplnění porovnání stačí mít root cestu; nemusí být aktivní celý DocHub modul.
+    if (!docHubRoot) return null;
 
     const tendersFolder = getTendersFolderName(
       projectDetails.docHubStructureV1 || undefined,
@@ -1629,11 +1630,33 @@ export const Pipeline: React.FC<PipelineProps> = ({
   if (activeCategory) {
     const isDesktopMode =
       typeof window !== "undefined" && window.electronAPI?.platform?.isDesktop;
+    const categoryBids = bids[activeCategory.id] || [];
+    const hasComparableOfferSignal = (bid: Bid): boolean => {
+      const hasPrice =
+        !!(bid.price || "").trim() &&
+        bid.price !== "?" &&
+        bid.price !== "-";
+      const hasPriceHistory = !!(
+        bid.priceHistory && Object.keys(bid.priceHistory).length > 0
+      );
+      const hasOfferStatus =
+        bid.status === "offer" || bid.status === "shortlist" || bid.status === "sod";
+      return hasPrice || hasPriceHistory || hasOfferStatus;
+    };
+
+    const relevantSupplierNames = categoryBids
+      .filter(hasComparableOfferSignal)
+      .map((bid) => bid.companyName?.trim() || "")
+      .filter(Boolean);
+    const fallbackSupplierNames = categoryBids
+      .map((bid) => bid.companyName?.trim() || "")
+      .filter(Boolean);
+
     const bidComparisonSuppliers = Array.from(
       new Set(
-        (bids[activeCategory.id] || [])
-          .map((bid) => bid.companyName?.trim() || "")
-          .filter(Boolean),
+        relevantSupplierNames.length > 0
+          ? relevantSupplierNames
+          : fallbackSupplierNames,
       ),
     ).sort((a, b) => a.localeCompare(b, "cs"));
 

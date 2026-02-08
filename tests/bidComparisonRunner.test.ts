@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import ExcelJS from 'exceljs';
 import * as os from 'os';
 import * as path from 'path';
-import { mkdtemp, rm } from 'fs/promises';
+import { mkdir, mkdtemp, rm } from 'fs/promises';
 import { BidComparisonRunner } from '../desktop/main/services/bidComparisonRunner';
 
 const tempDirs: string[] = [];
@@ -102,5 +102,34 @@ describe('BidComparisonRunner.detectInputs', () => {
     expect(
       result.warnings.some((warning) => warning.includes('PBK Mont')),
     ).toBe(true);
+  });
+
+  it('ignoruje podsložky obsahující archiv v názvu', async () => {
+    const tempDir = await createTempDir();
+    const archiveDir = path.join(tempDir, 'Nabidky_ARCHIV');
+    await mkdir(archiveDir, { recursive: true });
+
+    await writeWorkbook(
+      path.join(tempDir, 'VV_k_vyplneni_zadani.xlsx'),
+      buildRows(''),
+    );
+    await writeWorkbook(
+      path.join(tempDir, 'VV_Drywall.xlsx'),
+      buildRows(120),
+    );
+    await writeWorkbook(
+      path.join(archiveDir, 'VV_PBK_archiv.xlsx'),
+      buildRows(110),
+    );
+
+    const runner = new BidComparisonRunner();
+    const result = await runner.detectInputs({
+      tenderFolderPath: tempDir,
+      suppliers: [{ name: 'Drywall' }, { name: 'PBK' }],
+    });
+
+    const fileNames = result.files.map((file) => file.fileName);
+    expect(fileNames).toContain('VV_Drywall.xlsx');
+    expect(fileNames).not.toContain('VV_PBK_archiv.xlsx');
   });
 });

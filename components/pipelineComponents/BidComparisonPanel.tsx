@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { trackFeatureUsage } from '../../services/featureUsageService';
 import type {
+  BidComparisonAutoConfig,
+  BidComparisonAutoStatus,
   BidComparisonDetectedFile,
   BidComparisonJobStatus,
   BidComparisonRole,
@@ -22,6 +24,7 @@ interface BidComparisonPanelProps {
 }
 
 const terminalStates = new Set(['success', 'error', 'cancelled']);
+type BidComparisonPhase = 'source' | 'mapping' | 'run';
 
 const normalizeSupplierList = (list: string[]): string[] =>
   Array.from(new Set(list.map((value) => value.trim()).filter(Boolean))).sort((a, b) =>
@@ -48,21 +51,48 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
   const [isStarting, setIsStarting] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [isPickingFolder, setIsPickingFolder] = useState(false);
+  const [autoStatus, setAutoStatus] = useState<BidComparisonAutoStatus | null>(null);
+  const [autoError, setAutoError] = useState<string | null>(null);
+  const [isAutoSaving, setIsAutoSaving] = useState(false);
+  const [uiPhase, setUiPhase] = useState<BidComparisonPhase>('source');
 
   const trackedSuccessJobIdRef = useRef<string | null>(null);
   const autoDetectedPathRef = useRef<string | null>(null);
+  const autoSyncTimerRef = useRef<number | null>(null);
+  const folderStorageScopedKey = useMemo(
+    () => `bid-comparison-folder:${projectId}:${categoryId}`,
+    [projectId, categoryId],
+  );
+  const folderStorageProjectKey = useMemo(
+    () => `bid-comparison-folder:${projectId}`,
+    [projectId],
+  );
 
   useEffect(() => {
     if (!isOpen) return;
-    setTenderFolderPath(initialTenderFolderPath || '');
+    const storedPath =
+      typeof window !== 'undefined'
+        ? window.localStorage.getItem(folderStorageScopedKey) ||
+          window.localStorage.getItem(folderStorageProjectKey) ||
+          ''
+        : '';
+    setTenderFolderPath((initialTenderFolderPath || storedPath || '').trim());
     setJobId(null);
     setJob(null);
     setDetectError(null);
     setWarnings([]);
     setFiles([]);
+    setAutoError(null);
+    setAutoStatus(null);
+    setUiPhase('source');
     trackedSuccessJobIdRef.current = null;
     autoDetectedPathRef.current = null;
-  }, [isOpen, initialTenderFolderPath]);
+  }, [
+    folderStorageProjectKey,
+    folderStorageScopedKey,
+    initialTenderFolderPath,
+    isOpen,
+  ]);
 
   const supplierOptions = useMemo(() => {
     const fromProps = normalizeSupplierList(supplierNames);
@@ -78,6 +108,28 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
     typeof window !== 'undefined' &&
     !!window.electronAPI?.platform?.isDesktop &&
     !!window.electronAPI?.bidComparison;
+  const autoEnabled = !!autoStatus?.enabled;
+
+  const buildAutoConfig = useCallback(
+    (enabled: boolean): BidComparisonAutoConfig => ({
+      projectId,
+      categoryId,
+      tenderFolderPath: tenderFolderPath.trim(),
+      suppliers: supplierOptions.map((name) => ({ name })),
+      selectedFiles: files.map((file) => ({
+        path: file.path,
+        role: file.role,
+        supplierName: file.role === 'offer' ? file.supplierName : null,
+        round: file.role === 'offer' ? file.round : undefined,
+        mtimeMs: file.mtimeMs,
+      })),
+      enabled,
+      debounceMs: 10_000,
+      fallbackIntervalMinutes: 15,
+      outputBaseName: 'porovnani_nabidek',
+    }),
+    [categoryId, files, projectId, supplierOptions, tenderFolderPath],
+  );
 
   const runDetection = useCallback(
     async (folderPathParam?: string) => {
@@ -105,14 +157,18 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
 
         setTenderFolderPath(result.tenderFolderPath);
         setWarnings(result.warnings || []);
-        setFiles(
-          result.files.map((file) => ({
-            ...file,
-            role: file.suggestedRole,
-            supplierName: file.suggestedSupplierName,
-            round: Number.isFinite(file.suggestedRound) ? Math.max(0, file.suggestedRound) : 0,
-          })),
-        );
+        const mappedFiles = result.files.map((file) => ({
+          ...file,
+          role: file.suggestedRole,
+          supplierName: file.suggestedSupplierName,
+          round: Number.isFinite(file.suggestedRound) ? Math.max(0, file.suggestedRound) : 0,
+        }));
+        setFiles(mappedFiles);
+        if (mappedFiles.length > 0) {
+          setUiPhase('mapping');
+        } else {
+          setUiPhase('source');
+        }
       } catch (error) {
         setDetectError(error instanceof Error ? error.message : String(error));
       } finally {
@@ -122,17 +178,89 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
     [canUseDesktopApi, supplierOptions, tenderFolderPath],
   );
 
+  const refreshAutoStatus = useCallback(async () => {
+    if (!canUseDesktopApi || !isOpen) return;
+    try {
+      const next = await window.electronAPI.bidComparison.autoStatus({
+        projectId,
+        categoryId,
+      });
+      setAutoStatus(next);
+    } catch (error) {
+      setAutoError(error instanceof Error ? error.message : String(error));
+    }
+  }, [canUseDesktopApi, categoryId, isOpen, projectId]);
+
+  const syncAutoConfig = useCallback(
+    async (enabled: boolean) => {
+      if (!canUseDesktopApi) return;
+      const folder = tenderFolderPath.trim();
+      if (!folder) return;
+      const result = await window.electronAPI.bidComparison.autoStart(buildAutoConfig(enabled));
+      setAutoStatus(result.status);
+    },
+    [buildAutoConfig, canUseDesktopApi, tenderFolderPath],
+  );
+
   useEffect(() => {
     if (!isOpen) return;
-    const pathFromProps = (initialTenderFolderPath || '').trim();
-    if (!pathFromProps) return;
+    const candidatePath = (initialTenderFolderPath || tenderFolderPath || '').trim();
+    if (!candidatePath) return;
     if (files.length > 0) return;
     if (isDetecting) return;
-    if (autoDetectedPathRef.current === pathFromProps) return;
+    if (autoDetectedPathRef.current === candidatePath) return;
 
-    autoDetectedPathRef.current = pathFromProps;
-    void runDetection(pathFromProps);
-  }, [files.length, initialTenderFolderPath, isDetecting, isOpen, runDetection]);
+    autoDetectedPathRef.current = candidatePath;
+    void runDetection(candidatePath);
+  }, [
+    files.length,
+    initialTenderFolderPath,
+    isDetecting,
+    isOpen,
+    runDetection,
+    tenderFolderPath,
+  ]);
+
+  useEffect(() => {
+    if (!isOpen || !canUseDesktopApi) return;
+    let cancelled = false;
+
+    const poll = async () => {
+      try {
+        const next = await window.electronAPI.bidComparison.autoStatus({
+          projectId,
+          categoryId,
+        });
+        if (cancelled) return;
+        setAutoStatus(next);
+      } catch (error) {
+        if (cancelled) return;
+        setAutoError(error instanceof Error ? error.message : String(error));
+      }
+    };
+
+    void poll();
+    const interval = window.setInterval(() => {
+      void poll();
+    }, 2000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [canUseDesktopApi, categoryId, isOpen, projectId]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (typeof window === 'undefined') return;
+    const normalized = tenderFolderPath.trim();
+    if (normalized) {
+      window.localStorage.setItem(folderStorageScopedKey, normalized);
+      window.localStorage.setItem(folderStorageProjectKey, normalized);
+    } else {
+      window.localStorage.removeItem(folderStorageScopedKey);
+    }
+  }, [folderStorageProjectKey, folderStorageScopedKey, isOpen, tenderFolderPath]);
 
   useEffect(() => {
     if (!isOpen || !jobId || !canUseDesktopApi) return;
@@ -167,6 +295,34 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
     };
   }, [canUseDesktopApi, isOpen, jobId]);
 
+  useEffect(() => {
+    if (!isOpen || !autoEnabled || !canUseDesktopApi) return;
+    if (!tenderFolderPath.trim()) return;
+
+    if (autoSyncTimerRef.current) {
+      window.clearTimeout(autoSyncTimerRef.current);
+    }
+
+    autoSyncTimerRef.current = window.setTimeout(() => {
+      void syncAutoConfig(true).catch((error) => {
+        setAutoError(error instanceof Error ? error.message : String(error));
+      });
+    }, 800);
+
+    return () => {
+      if (autoSyncTimerRef.current) {
+        window.clearTimeout(autoSyncTimerRef.current);
+        autoSyncTimerRef.current = null;
+      }
+    };
+  }, [autoEnabled, canUseDesktopApi, files, isOpen, syncAutoConfig, tenderFolderPath]);
+
+  useEffect(() => {
+    if (files.length === 0 && uiPhase !== 'source') {
+      setUiPhase('source');
+    }
+  }, [files.length, uiPhase]);
+
   const roleSummary = useMemo(() => {
     const zadaniCount = files.filter((file) => file.role === 'zadani').length;
     const offerCount = files.filter((file) => file.role === 'offer').length;
@@ -188,6 +344,7 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
 
     setIsStarting(true);
     setDetectError(null);
+    setUiPhase('run');
 
     try {
       const payload = {
@@ -245,9 +402,48 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
     await window.electronAPI?.fs.openInExplorer(tenderFolderPath);
   }, [tenderFolderPath]);
 
+  const toggleAutoMode = useCallback(
+    async (enabled: boolean) => {
+      if (!canUseDesktopApi) return;
+      setAutoError(null);
+      setIsAutoSaving(true);
+
+      try {
+        if (enabled) {
+          if (!tenderFolderPath.trim()) {
+            setAutoError('Pro zapnutí auto režimu zadejte složku VŘ.');
+            return;
+          }
+          await syncAutoConfig(true);
+          return;
+        }
+
+        await window.electronAPI.bidComparison.autoStop({
+          projectId,
+          categoryId,
+        });
+        await refreshAutoStatus();
+      } catch (error) {
+        setAutoError(error instanceof Error ? error.message : String(error));
+      } finally {
+        setIsAutoSaving(false);
+      }
+    },
+    [
+      canUseDesktopApi,
+      categoryId,
+      projectId,
+      refreshAutoStatus,
+      syncAutoConfig,
+      tenderFolderPath,
+    ],
+  );
+
   if (!isOpen) return null;
 
   const jobIsRunning = !!job && !terminalStates.has(job.status);
+  const canOpenMapping = files.length > 0;
+  const canOpenRun = files.length > 0;
 
   return (
     <div className="fixed inset-0 z-[10001] bg-slate-900/50 backdrop-blur-sm p-4 overflow-y-auto">
@@ -316,6 +512,97 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
             </div>
           </div>
 
+          <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-4 space-y-3">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                  Auto-recompare
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Po změně souborů + pojistný běh každých 15 minut
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => void toggleAutoMode(!autoEnabled)}
+                disabled={isAutoSaving}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60 ${
+                  autoEnabled
+                    ? 'bg-emerald-600 text-white hover:bg-emerald-500'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700'
+                }`}
+              >
+                {isAutoSaving ? 'Ukládám...' : autoEnabled ? 'Vypnout auto' : 'Zapnout auto'}
+              </button>
+            </div>
+
+            {autoStatus && (
+              <div className="rounded-lg bg-slate-50 dark:bg-slate-800/40 px-3 py-2 text-xs text-slate-600 dark:text-slate-300 space-y-1">
+                <p>
+                  Stav: <span className="font-semibold">{autoStatus.state}</span>
+                </p>
+                <p>
+                  Poslední běh:{' '}
+                  {autoStatus.lastRunAt
+                    ? new Date(autoStatus.lastRunAt).toLocaleString('cs-CZ')
+                    : 'zatím neproběhl'}
+                </p>
+                {autoStatus.pendingReason !== 'none' && (
+                  <p>Čekání: {autoStatus.pendingReason}</p>
+                )}
+                {autoStatus.unresolvedFiles.length > 0 && (
+                  <p>
+                    Nevyřešené soubory: {autoStatus.unresolvedFiles.slice(0, 3).join(', ')}
+                    {autoStatus.unresolvedFiles.length > 3 ? '…' : ''}
+                  </p>
+                )}
+                {autoStatus.lastError && (
+                  <p className="text-rose-600 dark:text-rose-400">{autoStatus.lastError}</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-2">
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => setUiPhase('source')}
+                className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                  uiPhase === 'source'
+                    ? 'bg-primary text-white'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200'
+                }`}
+              >
+                1. Zdroj
+              </button>
+              <button
+                type="button"
+                onClick={() => canOpenMapping && setUiPhase('mapping')}
+                disabled={!canOpenMapping}
+                className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-40 ${
+                  uiPhase === 'mapping'
+                    ? 'bg-primary text-white'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200'
+                }`}
+              >
+                2. Mapování
+              </button>
+              <button
+                type="button"
+                onClick={() => canOpenRun && setUiPhase('run')}
+                disabled={!canOpenRun}
+                className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-40 ${
+                  uiPhase === 'run'
+                    ? 'bg-primary text-white'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200'
+                }`}
+              >
+                3. Spuštění
+              </button>
+            </div>
+          </div>
+
           {warnings.length > 0 && (
             <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 space-y-1">
               {warnings.map((warning) => (
@@ -330,7 +617,14 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
             </div>
           )}
 
-          <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+          {autoError && (
+            <div className="rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              {autoError}
+            </div>
+          )}
+
+          {uiPhase === 'mapping' && (
+            <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
             <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-sm font-semibold text-slate-700 dark:text-slate-200">
               Mapování souborů
             </div>
@@ -456,9 +750,11 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
                 </table>
               </div>
             )}
-          </div>
+            </div>
+          )}
 
-          <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-4 space-y-3">
+          {uiPhase === 'run' && (
+            <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-4 space-y-3">
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -548,7 +844,8 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
                 </div>
               </div>
             )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
