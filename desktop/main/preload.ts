@@ -1,5 +1,16 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { ElectronAPI, FolderInfo, FileInfo, FolderSnapshot, UpdateStatus } from './types';
+import type {
+    ElectronAPI,
+    FolderInfo,
+    FileInfo,
+    FolderSnapshot,
+    UpdateStatus,
+    BidComparisonSupplierOption,
+    BidComparisonDetectionResult,
+    BidComparisonStartInput,
+    BidComparisonStartResult,
+    BidComparisonJobStatus,
+} from './types';
 
 console.log('[Preload] Script starting...');
 try {
@@ -198,6 +209,23 @@ const electronAPI: ElectronAPI = {
             ipcRenderer.invoke('shell:openTempFile', content, filename),
         convertToDocx: (inputPath: string): Promise<{ success: boolean; outputPath?: string; error?: string }> =>
             ipcRenderer.invoke('shell:convertToDocx', inputPath),
+    },
+
+    bidComparison: {
+        detectInputs: (args: { tenderFolderPath: string; suppliers: BidComparisonSupplierOption[] }): Promise<BidComparisonDetectionResult> =>
+            ipcRenderer.invoke('bid-comparison:detect-inputs', args),
+
+        start: (input: BidComparisonStartInput): Promise<BidComparisonStartResult> =>
+            ipcRenderer.invoke('bid-comparison:start', input),
+
+        get: (jobId: string): Promise<BidComparisonJobStatus | null> =>
+            ipcRenderer.invoke('bid-comparison:get', jobId),
+
+        list: (filter?: { projectId?: string; categoryId?: string }): Promise<BidComparisonJobStatus[]> =>
+            ipcRenderer.invoke('bid-comparison:list', filter),
+
+        cancel: (jobId: string): Promise<{ success: boolean }> =>
+            ipcRenderer.invoke('bid-comparison:cancel', jobId),
     },
 };
 

@@ -6,7 +6,16 @@ import * as path from 'path';
 import { FolderWatcherService } from '../services/folderWatcher';
 import { SecureStorageService } from '../services/secureStorage';
 import { getMcpStatus, setMcpAuthToken, setMcpCurrentProjectId } from '../services/mcpServer';
-import type { FolderInfo, FileInfo } from '../types';
+import { getBidComparisonRunner } from '../services/bidComparisonRunner';
+import type {
+    FolderInfo,
+    FileInfo,
+    BidComparisonDetectionResult,
+    BidComparisonJobStatus,
+    BidComparisonStartInput,
+    BidComparisonStartResult,
+    BidComparisonSupplierOption,
+} from '../types';
 
 // Services (singleton instances)
 let watcherService: FolderWatcherService | null = null;
@@ -374,6 +383,55 @@ export function registerIpcHandlers(): void {
         const { getPythonRunner } = await import('../services/pythonRunner');
         return getPythonRunner().mergeExcel(inputFile, outputFile);
     });
+
+    // --- BID COMPARISON ---
+
+    ipcMain.handle(
+        'bid-comparison:detect-inputs',
+        async (
+            _,
+            args: {
+                tenderFolderPath: string;
+                suppliers?: BidComparisonSupplierOption[];
+            },
+        ): Promise<BidComparisonDetectionResult> => {
+            return getBidComparisonRunner().detectInputs({
+                tenderFolderPath: args.tenderFolderPath,
+                suppliers: Array.isArray(args.suppliers) ? args.suppliers : [],
+            });
+        },
+    );
+
+    ipcMain.handle(
+        'bid-comparison:start',
+        async (_, input: BidComparisonStartInput): Promise<BidComparisonStartResult> => {
+            return getBidComparisonRunner().start(input);
+        },
+    );
+
+    ipcMain.handle(
+        'bid-comparison:get',
+        async (_, jobId: string): Promise<BidComparisonJobStatus | null> => {
+            return getBidComparisonRunner().get(jobId);
+        },
+    );
+
+    ipcMain.handle(
+        'bid-comparison:list',
+        async (
+            _,
+            filter?: { projectId?: string; categoryId?: string },
+        ): Promise<BidComparisonJobStatus[]> => {
+            return getBidComparisonRunner().list(filter);
+        },
+    );
+
+    ipcMain.handle(
+        'bid-comparison:cancel',
+        async (_, jobId: string): Promise<{ success: boolean }> => {
+            return getBidComparisonRunner().cancel(jobId);
+        },
+    );
 
     // --- BIOMETRIC AUTH ---
 

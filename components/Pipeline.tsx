@@ -44,7 +44,9 @@ import { getDemoData, saveDemoData } from "../services/demoData";
 import {
   getDocHubTenderLinks,
   getDocHubTenderLinksDesktop,
+  getTendersFolderName,
   isProbablyUrl,
+  joinDocHubPath,
   resolveDocHubStructureV1,
   slugifyDocHubSegmentStrict,
 } from "../utils/docHub";
@@ -65,6 +67,7 @@ import {
   CreateContactModal,
   SubcontractorSelectorModal,
   PipelineOverview,
+  BidComparisonPanel,
   CategoryFormModal,
   CategoryFormData,
 } from "./pipelineComponents";
@@ -344,6 +347,13 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const exportButtonRef = useRef<HTMLButtonElement>(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+  const [isBidComparisonPanelOpen, setIsBidComparisonPanelOpen] =
+    useState(false);
+  const [bidComparisonTenderPath, setBidComparisonTenderPath] = useState<
+    string | null
+  >(null);
+  const [isResolvingBidComparisonPath, setIsResolvingBidComparisonPath] =
+    useState(false);
 
   // Create Contact State
   const [isCreateContactModalOpen, setIsCreateContactModalOpen] =
@@ -365,6 +375,38 @@ export const Pipeline: React.FC<PipelineProps> = ({
     setConfirmModal((prev) => ({ ...prev, isOpen: false }));
   };
 
+  const sanitizeFolderSegment = (value: string): string =>
+    value.replace(/[<>:"|?*]/g, "").trim();
+
+  const resolveDesktopTenderFolderPath = async (
+    categoryTitle: string,
+  ): Promise<string | null> => {
+    if (!isDocHubEnabled || !docHubRoot) return null;
+
+    const tendersFolder = getTendersFolderName(
+      projectDetails.docHubStructureV1 || undefined,
+    );
+    const cleanedTitle = sanitizeFolderSegment(categoryTitle);
+    if (!cleanedTitle) return null;
+
+    const rawPath = joinDocHubPath(docHubRoot, tendersFolder, cleanedTitle);
+    if (await folderExists(rawPath)) {
+      return rawPath;
+    }
+
+    const strictPath = joinDocHubPath(
+      docHubRoot,
+      tendersFolder,
+      slugifyDocHubSegmentStrict(categoryTitle),
+    );
+
+    if (strictPath !== rawPath && (await folderExists(strictPath))) {
+      return strictPath;
+    }
+
+    return rawPath;
+  };
+
   const handleDeleteBidRequest = (bidId: string) => {
     setConfirmModal({
       isOpen: true,
@@ -376,6 +418,30 @@ export const Pipeline: React.FC<PipelineProps> = ({
         closeConfirmModal();
       },
     });
+  };
+
+  const handleOpenBidComparisonPanel = async () => {
+    if (!activeCategory) return;
+
+    setIsBidComparisonPanelOpen(true);
+    setBidComparisonTenderPath(null);
+
+    const isDesktopMode =
+      typeof window !== "undefined" && window.electronAPI?.platform?.isDesktop;
+    if (!isDesktopMode) return;
+
+    setIsResolvingBidComparisonPath(true);
+    try {
+      const resolvedPath = await resolveDesktopTenderFolderPath(
+        activeCategory.title,
+      );
+      setBidComparisonTenderPath(resolvedPath);
+    } catch (error) {
+      console.error("[BidComparison] Nelze dopočítat cestu složky VŘ:", error);
+      setBidComparisonTenderPath(null);
+    } finally {
+      setIsResolvingBidComparisonPath(false);
+    }
   };
 
   // Track previous values to detect changes
@@ -405,6 +471,12 @@ export const Pipeline: React.FC<PipelineProps> = ({
       setActiveCategory(null);
     }
   }, [projectId, initialOpenCategoryId, projectDetails.categories]);
+
+  useEffect(() => {
+    setIsBidComparisonPanelOpen(false);
+    setBidComparisonTenderPath(null);
+    setIsResolvingBidComparisonPath(false);
+  }, [activeCategory?.id]);
 
   const getBidsForColumn = (categoryId: string, status: BidStatus) => {
     return (bids[categoryId] || []).filter((bid) => bid.status === status);
@@ -1555,6 +1627,16 @@ export const Pipeline: React.FC<PipelineProps> = ({
   };
 
   if (activeCategory) {
+    const isDesktopMode =
+      typeof window !== "undefined" && window.electronAPI?.platform?.isDesktop;
+    const bidComparisonSuppliers = Array.from(
+      new Set(
+        (bids[activeCategory.id] || [])
+          .map((bid) => bid.companyName?.trim() || "")
+          .filter(Boolean),
+      ),
+    ).sort((a, b) => a.localeCompare(b, "cs"));
+
     // --- DETAIL VIEW (PIPELINE) ---
     return (
       <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950">
@@ -1585,12 +1667,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
           {isDocHubEnabled && (
             <button
-              onClick={() => {
-                // For desktop: open tender/category folder directly
-                const isDesktopMode =
-                  typeof window !== "undefined" &&
-                  window.electronAPI?.platform?.isDesktop;
-
+              onClick={async () => {
                 if (canUseDocHubBackend && projectData.id && !isDesktopMode) {
                   openDocHubBackendLink({
                     projectId: projectData.id,
@@ -1601,26 +1678,14 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   return;
                 }
 
-                // Desktop: build path to tender folder from hierarchy
                 if (isDesktopMode) {
-                  const hierarchy = (projectDetails.docHubStructureV1 as any)
-                    ?.extraHierarchy;
-                  const tendersItem = hierarchy?.find(
-                    (item: any) =>
-                      item.key === "tenders" && item.enabled !== false,
+                  const tenderPath = await resolveDesktopTenderFolderPath(
+                    activeCategory.title,
                   );
-                  const tendersFolder =
-                    tendersItem?.name || "03_Vyberova_rizeni";
-                  const cleanTitle = activeCategory.title
-                    .replace(/[<>:"|?*]/g, "")
-                    .trim();
-                  const tenderPath = [
-                    docHubRoot,
-                    tendersFolder,
-                    cleanTitle,
-                  ].join("\\");
-                  console.log("[DocHub] Opening tender folder:", tenderPath);
-                  openOrCopyDocHubPath(tenderPath);
+                  if (tenderPath) {
+                    console.log("[DocHub] Opening tender folder:", tenderPath);
+                    openOrCopyDocHubPath(tenderPath);
+                  }
                 } else {
                   const links = getDocHubTenderLinks(
                     docHubRoot,
@@ -1637,6 +1702,24 @@ export const Pipeline: React.FC<PipelineProps> = ({
                 folder_open
               </span>
               <span>Otevřít složku</span>
+            </button>
+          )}
+
+          {isDesktopMode && (
+            <button
+              onClick={() => void handleOpenBidComparisonPanel()}
+              className="flex items-center gap-2 bg-emerald-100 dark:bg-emerald-900/30 hover:bg-emerald-200 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 px-4 py-2 rounded-lg text-sm font-bold transition-colors disabled:opacity-60"
+              disabled={isResolvingBidComparisonPath}
+              title="Otevřít panel porovnání cenových nabídek"
+            >
+              <span className="material-symbols-outlined text-[20px]">
+                table_chart
+              </span>
+              <span>
+                {isResolvingBidComparisonPath
+                  ? "Načítám složku..."
+                  : "Porovnání nabídek"}
+              </span>
             </button>
           )}
 
@@ -1969,6 +2052,15 @@ export const Pipeline: React.FC<PipelineProps> = ({
             </Column>
           </div>
         </div>
+
+        <BidComparisonPanel
+          isOpen={isBidComparisonPanelOpen}
+          onClose={() => setIsBidComparisonPanelOpen(false)}
+          projectId={projectData.id}
+          categoryId={activeCategory.id}
+          initialTenderFolderPath={bidComparisonTenderPath}
+          supplierNames={bidComparisonSuppliers}
+        />
 
         <SubcontractorSelectorModal
           isOpen={isSubcontractorModalOpen}
