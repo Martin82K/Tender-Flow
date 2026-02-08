@@ -50,6 +50,7 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
   const [isPickingFolder, setIsPickingFolder] = useState(false);
 
   const trackedSuccessJobIdRef = useRef<string | null>(null);
+  const autoDetectedPathRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -60,6 +61,7 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
     setWarnings([]);
     setFiles([]);
     trackedSuccessJobIdRef.current = null;
+    autoDetectedPathRef.current = null;
   }, [isOpen, initialTenderFolderPath]);
 
   const supplierOptions = useMemo(() => {
@@ -122,9 +124,15 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
 
   useEffect(() => {
     if (!isOpen) return;
-    if (!tenderFolderPath.trim()) return;
-    void runDetection(tenderFolderPath);
-  }, [isOpen, runDetection, tenderFolderPath]);
+    const pathFromProps = (initialTenderFolderPath || '').trim();
+    if (!pathFromProps) return;
+    if (files.length > 0) return;
+    if (isDetecting) return;
+    if (autoDetectedPathRef.current === pathFromProps) return;
+
+    autoDetectedPathRef.current = pathFromProps;
+    void runDetection(pathFromProps);
+  }, [files.length, initialTenderFolderPath, isDetecting, isOpen, runDetection]);
 
   useEffect(() => {
     if (!isOpen || !jobId || !canUseDesktopApi) return;
