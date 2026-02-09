@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { getCachedSubscriptionTier } from './authService';
 import { SubscriptionFeature, SubscriptionTier, SubscriptionTierFeatureFlag } from '../types';
 
 export const subscriptionFeaturesService = {
@@ -116,6 +117,7 @@ export const subscriptionFeaturesService = {
 
   /**
    * Get current user's effective subscription tier from the backend.
+   * Falls back to cached tier on error to prevent tier downgrade.
    */
   getUserSubscriptionTier: async (): Promise<string> => {
     try {
@@ -124,8 +126,9 @@ export const subscriptionFeaturesService = {
       console.log('[subscriptionFeaturesService] getUserSubscriptionTier: userId =', userId);
 
       if (!userId) {
-        console.warn('[subscriptionFeaturesService] getUserSubscriptionTier: No user ID, returning free');
-        return 'free';
+        console.warn('[subscriptionFeaturesService] getUserSubscriptionTier: No user ID, checking cache');
+        const cachedTier = getCachedSubscriptionTier();
+        return cachedTier || 'free';
       }
 
       const { data, error } = await supabase.rpc('get_user_subscription_tier', { target_user_id: userId });
@@ -133,6 +136,12 @@ export const subscriptionFeaturesService = {
 
       if (error) {
         console.error('[subscriptionFeaturesService] getUserSubscriptionTier: RPC error =', error);
+        // Use cached tier on error to prevent downgrade
+        const cachedTier = getCachedSubscriptionTier();
+        if (cachedTier) {
+          console.log('[subscriptionFeaturesService] Using cached tier due to RPC error:', cachedTier);
+          return cachedTier;
+        }
         return 'free';
       }
 
@@ -141,8 +150,15 @@ export const subscriptionFeaturesService = {
       return tier;
     } catch (e) {
       console.error('[subscriptionFeaturesService] getUserSubscriptionTier: exception =', e);
+      // Use cached tier on exception to prevent downgrade
+      const cachedTier = getCachedSubscriptionTier();
+      if (cachedTier) {
+        console.log('[subscriptionFeaturesService] Using cached tier due to exception:', cachedTier);
+        return cachedTier;
+      }
       return 'free';
     }
   },
 };
+
 

@@ -20,7 +20,48 @@ const ADMIN_EMAILS = ["martinkalkus82@gmail.com", "kalkus@baustav.cz"];
 
 // Cache keys for localStorage
 const USER_CACHE_KEY = 'crm-user-cache';
-const USER_CACHE_TTL = 1000 * 60 * 15; // 15 minutes
+const USER_CACHE_TTL = 1000 * 60 * 60 * 12; // 12 hours
+
+// Subscription tier cache key - separate from user cache for fallback
+const SUBSCRIPTION_TIER_CACHE_KEY = 'crm-subscription-tier-cache';
+const SUBSCRIPTION_TIER_CACHE_TTL = 1000 * 60 * 60 * 24; // 24 hours (fallback max)
+
+// Cache subscription tier separately for fallback on errors
+const cacheSubscriptionTier = (tier: string): void => {
+    try {
+        if (typeof window === 'undefined') return;
+        window.localStorage?.setItem(SUBSCRIPTION_TIER_CACHE_KEY, JSON.stringify({
+            tier,
+            timestamp: Date.now()
+        }));
+    } catch { /* ignore */ }
+};
+
+// Get cached subscription tier for fallback
+export const getCachedSubscriptionTier = (): string | null => {
+    try {
+        if (typeof window === 'undefined') return null;
+        const raw = window.localStorage?.getItem(SUBSCRIPTION_TIER_CACHE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        // Accept cached tier for up to 24 hours as last-resort fallback
+        if (parsed?.timestamp && Date.now() - parsed.timestamp > SUBSCRIPTION_TIER_CACHE_TTL) {
+            window.localStorage?.removeItem(SUBSCRIPTION_TIER_CACHE_KEY);
+            return null;
+        }
+        return parsed?.tier || null;
+    } catch {
+        return null;
+    }
+};
+
+// Clear subscription tier cache on logout
+const clearSubscriptionTierCache = (): void => {
+    try {
+        if (typeof window === 'undefined') return;
+        window.localStorage?.removeItem(SUBSCRIPTION_TIER_CACHE_KEY);
+    } catch { /* ignore */ }
+};
 
 // Cache user data to localStorage for fast startup
 const cacheUserData = (user: User): void => {
@@ -31,6 +72,10 @@ const cacheUserData = (user: User): void => {
             timestamp: Date.now()
         };
         window.localStorage?.setItem(USER_CACHE_KEY, JSON.stringify(cacheData));
+        // Also cache the subscription tier separately for fallback
+        if (user.subscriptionTier) {
+            cacheSubscriptionTier(user.subscriptionTier);
+        }
     } catch (e) {
         console.warn('[authService] Could not cache user data', e);
     }
@@ -334,6 +379,7 @@ export const authService = {
 
     logout: async (): Promise<void> => {
         clearUserCache(); // Clear cached user data
+        clearSubscriptionTierCache(); // Clear subscription tier cache
         const { error } = await supabase.auth.signOut();
         if (error) throw error;
     },
@@ -378,14 +424,19 @@ export const authService = {
                 return cachedUser;
             }
 
-            // Otherwise return minimal fallback user
+            // Otherwise return minimal fallback user - use cached tier if available
             const isSystemAdmin = session.user.email ? ADMIN_EMAILS.includes(session.user.email) : false;
+            const cachedTier = getCachedSubscriptionTier();
+            const fallbackTier = isSystemAdmin ? 'admin' : (cachedTier || 'free');
+            if (cachedTier && !isSystemAdmin) {
+                console.log('[authService] Using cached subscription tier for fallback:', cachedTier);
+            }
             return {
                 id: session.user.id,
                 name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
                 email: session.user.email || '',
                 role: isSystemAdmin ? 'admin' : 'user',
-                subscriptionTier: isSystemAdmin ? 'admin' : 'free',
+                subscriptionTier: fallbackTier as any,
                 avatarUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(session.user.email || 'U')}&background=random`,
                 preferences: DEFAULT_PREFERENCES
             };
@@ -556,6 +607,11 @@ export const authService = {
         const isSystemAdmin = session.user.email ? ADMIN_EMAILS.includes(session.user.email) : false;
         const finalRole = isSystemAdmin ? 'admin' : (profile?.is_admin ? 'admin' : 'user');
         const finalTier = isSystemAdmin ? 'admin' : subscriptionTier;
+
+        // Cache the subscription tier for fallback purposes
+        if (finalTier && finalTier !== 'free') {
+            cacheSubscriptionTier(finalTier);
+        }
 
         const finalPreferences = settings?.preferences || DEFAULT_PREFERENCES;
 
