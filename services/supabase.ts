@@ -14,11 +14,124 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 /**
+ * Helper to check if a header value is invalid (would cause fetch to throw on Windows Electron)
+ */
+const isInvalidHeaderValue = (value: unknown): boolean => {
+  return value === undefined || value === null;
+};
+
+/**
+ * Helper to check if an Authorization header value is corrupted
+ */
+const isCorruptedAuthValue = (value: string): boolean => {
+  const trimmed = value.trim();
+  return !trimmed || trimmed === 'Bearer' || trimmed === 'Bearer null' || trimmed === 'Bearer undefined';
+};
+
+/**
+ * Global Headers constructor patch to sanitize header values.
+ * On Windows Electron, native Headers constructor throws "Invalid value" error
+ * when a header value is undefined/null. This patch intercepts and sanitizes values
+ * BEFORE they reach the native constructor.
+ */
+const OriginalHeaders = globalThis.Headers;
+class SafeHeaders extends OriginalHeaders {
+  constructor(init?: HeadersInit) {
+    // Sanitize init before passing to native Headers
+    if (init) {
+      if (init instanceof Headers || init instanceof OriginalHeaders) {
+        // Headers instance - create sanitized copy
+        const sanitized: [string, string][] = [];
+        init.forEach((value, key) => {
+          if (!isInvalidHeaderValue(value)) {
+            if (key.toLowerCase() === 'authorization' && isCorruptedAuthValue(value)) {
+              console.warn('[Headers] Skipping corrupted Authorization header');
+              return;
+            }
+            sanitized.push([key, value]);
+          } else {
+            console.warn(`[Headers] Skipping invalid header "${key}": value is ${value}`);
+          }
+        });
+        super(sanitized);
+        return;
+      } else if (Array.isArray(init)) {
+        // Array of [key, value] pairs
+        const sanitized: [string, string][] = [];
+        for (const pair of init) {
+          if (Array.isArray(pair) && pair.length >= 2) {
+            const [key, value] = pair;
+            if (isInvalidHeaderValue(value)) {
+              console.warn(`[Headers] Skipping invalid header "${key}": value is ${value}`);
+              continue;
+            }
+            const strValue = String(value);
+            if (key.toLowerCase() === 'authorization' && isCorruptedAuthValue(strValue)) {
+              console.warn('[Headers] Skipping corrupted Authorization header');
+              continue;
+            }
+            sanitized.push([String(key), strValue]);
+          }
+        }
+        super(sanitized);
+        return;
+      } else if (typeof init === 'object') {
+        // Plain object - filter out invalid values
+        const sanitized: Record<string, string> = {};
+        for (const [key, value] of Object.entries(init as Record<string, unknown>)) {
+          if (isInvalidHeaderValue(value)) {
+            console.warn(`[Headers] Skipping invalid header "${key}": value is ${value}`);
+            continue;
+          }
+          const strValue = String(value);
+          if (key.toLowerCase() === 'authorization' && isCorruptedAuthValue(strValue)) {
+            console.warn('[Headers] Skipping corrupted Authorization header');
+            continue;
+          }
+          sanitized[key] = strValue;
+        }
+        super(sanitized);
+        return;
+      }
+    }
+    super(init);
+  }
+
+  // Also override set/append to prevent invalid values
+  set(name: string, value: string): void {
+    if (isInvalidHeaderValue(value)) {
+      console.warn(`[Headers.set] Skipping invalid header "${name}": value is ${value}`);
+      return;
+    }
+    if (name.toLowerCase() === 'authorization' && isCorruptedAuthValue(value)) {
+      console.warn('[Headers.set] Skipping corrupted Authorization header');
+      return;
+    }
+    super.set(name, value);
+  }
+
+  append(name: string, value: string): void {
+    if (isInvalidHeaderValue(value)) {
+      console.warn(`[Headers.append] Skipping invalid header "${name}": value is ${value}`);
+      return;
+    }
+    if (name.toLowerCase() === 'authorization' && isCorruptedAuthValue(value)) {
+      console.warn('[Headers.append] Skipping corrupted Authorization header');
+      return;
+    }
+    super.append(name, value);
+  }
+}
+
+// Replace global Headers constructor
+globalThis.Headers = SafeHeaders as typeof Headers;
+
+/**
  * Global XMLHttpRequest interceptor to sanitize headers.
  * This catches any XHR requests that might bypass our safeFetch wrapper.
  */
 const originalXHRSetRequestHeader = XMLHttpRequest.prototype.setRequestHeader;
-XMLHttpRequest.prototype.setRequestHeader = function(name: string, value: string) {
+XMLHttpRequest.prototype.setRequestHeader = function (name: string, value: string) {
   // Validate header value before setting
   if (value === undefined || value === null) {
     console.warn(`[XHR] Skipping invalid header "${name}": value is ${value}`);
@@ -48,11 +161,9 @@ let _authErrorResetTimer: ReturnType<typeof setTimeout> | null = null;
 
 /**
  * Check if an Authorization header value is corrupted/invalid
+ * (reuses isCorruptedAuthValue defined above for headers patch)
  */
-const isCorruptedAuthHeader = (value: string): boolean => {
-  const trimmed = value.trim();
-  return !trimmed || trimmed === 'Bearer' || trimmed === 'Bearer null' || trimmed === 'Bearer undefined';
-};
+const isCorruptedAuthHeader = isCorruptedAuthValue;
 
 const getStorageValue = (storage: Storage, key: string): string | null => {
   try {
