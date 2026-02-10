@@ -154,7 +154,7 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
                   }
                   className="flex-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700/50 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-violet-500/50 focus:outline-none"
                 />
-                {(isConnectedStatus && rootLink === state.rootLink) || (!isLocalProvider && !isMcpProvider) ? (
+                {(isConnectedStatus && rootLink === state.rootLink) || !isConnectedStatus ? (
                   <button
                     type="button"
                     onClick={() => {
@@ -176,7 +176,9 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
                       ? "Ověřuji..."
                       : isConnectedStatus && rootLink === state.rootLink
                         ? <span className="flex items-center gap-2"><span className="material-symbols-outlined text-[18px]">folder_open</span>Otevřít složku</span>
-                        : "Použít tuto složku"
+                        : isLocalProvider || isMcpProvider
+                          ? "Připojit složku"
+                          : "Použít tuto složku"
                     }
                   </button>
                 ) : null}
@@ -245,7 +247,7 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
                   actions.disconnect();
                 }
               } else {
-                if (isLocalProvider) actions.saveSetup();
+                if (isLocalProvider) actions.resolveRoot();
                 else if (isMcpProvider) actions.connectMcp();
                 else actions.connect();
               }

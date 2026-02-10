@@ -284,15 +284,19 @@ export const useDocHubIntegration = (
             }
         };
 
+        // Always enable when user explicitly saves setup (they are connecting)
+        const shouldBeConnected = !!(rootLink || project.docHubRootId);
         onUpdate({
-            docHubEnabled: enabled,
+            docHubEnabled: true,
             docHubRootLink: rootLink,
             docHubRootName: rootName || null,
             docHubProvider: provider,
             docHubMode: mode,
-            docHubStatus: enabled && (rootLink || project.docHubRootId) ? "connected" : "disconnected",
+            docHubStatus: shouldBeConnected ? "connected" : "disconnected",
             docHubStructureVersion: project.docHubStructureVersion ?? 1,
-            docHubSettings: newSettings
+            docHubSettings: newSettings,
+            // Set rootId for local providers (needed for proper connection tracking)
+            ...(provider === 'onedrive' && rootLink ? { docHubRootId: `local:${rootLink}` } : {}),
         });
         setIsEditingSetup(false);
     }, [enabled, rootLink, rootName, provider, mode, project.docHubRootId, project.docHubStructureVersion, project.docHubSettings, onUpdate]);
