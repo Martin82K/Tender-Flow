@@ -22,8 +22,8 @@ export const useProjectsQuery = () => {
 
             if (user?.role === "demo") {
                 const demoData = getDemoData();
-                return (demoData && demoData.projects && demoData.projects.length > 0) 
-                    ? demoData.projects 
+                return (demoData && demoData.projects && demoData.projects.length > 0)
+                    ? demoData.projects
                     : [DEMO_PROJECT];
             }
 

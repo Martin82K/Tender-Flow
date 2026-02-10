@@ -112,6 +112,10 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
     const [newProjectStatus, setNewProjectStatus] = useState<ProjectStatus>('tender');
     const [isCreating, setIsCreating] = useState(false);
 
+    // Edit State
+    const [editingProject, setEditingProject] = useState<{ id: string; name: string; location: string; status: ProjectStatus } | null>(null);
+    const [isSavingEdit, setIsSavingEdit] = useState(false);
+
     // Sharing State
     const [sharingProjectId, setSharingProjectId] = useState<string | null>(null);
     const [shareEmail, setShareEmail] = useState('');
@@ -161,6 +165,53 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
     // Permission translation helper
     const getPermissionLabel = (permission: string) => {
         return permission === 'edit' ? 'Úpravy' : 'Pouze čtení';
+    };
+
+    // Edit handlers
+    const openEditModal = (project: Project) => {
+        setEditingProject({
+            id: project.id,
+            name: project.name,
+            location: project.location,
+            status: project.status,
+        });
+    };
+
+    const closeEditModal = () => {
+        setEditingProject(null);
+        setIsSavingEdit(false);
+    };
+
+    const handleSaveEdit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingProject || !editingProject.name || !editingProject.location) return;
+
+        setIsSavingEdit(true);
+        try {
+            await projectService.updateProject(editingProject.id, {
+                name: editingProject.name,
+                location: editingProject.location,
+                status: editingProject.status,
+            });
+            queryClient.invalidateQueries({ queryKey: PROJECT_KEYS.list() });
+            setAlertModal({
+                isOpen: true,
+                title: 'Uloženo',
+                message: 'Projekt byl úspěšně upraven.',
+                variant: 'success'
+            });
+            closeEditModal();
+        } catch (error) {
+            console.error('Error updating project:', error);
+            setAlertModal({
+                isOpen: true,
+                title: 'Chyba',
+                message: 'Chyba při ukládání úprav.',
+                variant: 'error'
+            });
+        } finally {
+            setIsSavingEdit(false);
+        }
     };
 
     // Drag & Drop State
@@ -524,6 +575,17 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                 </div>
 
                                 <div className="flex items-center gap-2">
+                                    {/* Edit Button - Only Owner */}
+                                    {(!project.ownerId || project.ownerId === user?.id) && (
+                                        <button
+                                            onClick={() => openEditModal(project)}
+                                            className="p-2 text-slate-500 hover:text-amber-400 hover:bg-amber-500/10 rounded-lg transition-colors"
+                                            title="Upravit projekt"
+                                        >
+                                            <span className="material-symbols-outlined text-[20px]">edit</span>
+                                        </button>
+                                    )}
+
                                     {/* Share Button - Only Owner */}
                                     {(!project.ownerId || project.ownerId === user?.id) && (
                                         <button
@@ -573,6 +635,72 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                     />
                 )}
             </div>
+
+            {/* Edit Modal */}
+            {editingProject && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-gradient-to-br dark:from-slate-800 dark:to-slate-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 dark:border-slate-700/50">
+                        <div className="p-4 border-b border-slate-200 dark:border-slate-700/50 flex justify-between items-center">
+                            <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <span className="material-symbols-outlined text-amber-400">edit</span>
+                                Upravit projekt
+                            </h3>
+                            <button onClick={closeEditModal} className="text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSaveEdit} className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-xs text-slate-400 mb-1">Název projektu</label>
+                                <input
+                                    type="text"
+                                    value={editingProject.name}
+                                    onChange={(e) => setEditingProject({ ...editingProject, name: e.target.value })}
+                                    className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs text-slate-400 mb-1">Lokace</label>
+                                <input
+                                    type="text"
+                                    value={editingProject.location}
+                                    onChange={(e) => setEditingProject({ ...editingProject, location: e.target.value })}
+                                    className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs text-slate-400 mb-1">Typ / Fáze</label>
+                                <select
+                                    value={editingProject.status}
+                                    onChange={(e) => setEditingProject({ ...editingProject, status: e.target.value as ProjectStatus })}
+                                    className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
+                                >
+                                    <option value="tender">Soutěž (Příprava)</option>
+                                    <option value="realization">Realizace (Výstavba)</option>
+                                </select>
+                            </div>
+                            <div className="flex justify-end gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={closeEditModal}
+                                    className="px-4 py-2.5 rounded-xl text-sm font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+                                >
+                                    Zrušit
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isSavingEdit || !editingProject.name || !editingProject.location}
+                                    className="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                >
+                                    {isSavingEdit && <span className="material-symbols-outlined animate-spin text-[18px]">sync</span>}
+                                    Uložit
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
 
             {/* Sharing Modal */}
             {sharingProjectId && (
