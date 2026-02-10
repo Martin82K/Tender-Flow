@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { PROJECT_KEYS } from '../hooks/queries/useProjectsQuery';
 import { Project, ProjectStatus } from '../types';
 import { Header } from './Header';
 import { projectService } from '../services/projectService';
@@ -95,6 +97,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
     onArchiveProject
 }) => {
     const { user } = useAuth();
+    const queryClient = useQueryClient();
     const { currentPlan, isLoading: isFeaturesLoading } = useFeatures();
     const ownedActiveProjectsCount = projects.filter((project) => {
         if (project.status === 'archived') return false;
@@ -320,6 +323,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
             setShares(fetchedShares);
             setShareEmail('');
             setSharePermission('edit');
+            queryClient.invalidateQueries({ queryKey: PROJECT_KEYS.list() });
             setAlertModal({
                 isOpen: true,
                 title: 'Sdílení',
@@ -357,6 +361,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
         try {
             await projectService.removeShare(sharingProjectId, userId);
             setShares(shares.filter(s => s.user_id !== userId));
+            queryClient.invalidateQueries({ queryKey: PROJECT_KEYS.list() });
         } catch (error) {
             console.error('Error removing share:', error);
             setAlertModal({
@@ -376,6 +381,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
             setShares(shares.map(s =>
                 s.user_id === userId ? { ...s, permission: newPermission } : s
             ));
+            queryClient.invalidateQueries({ queryKey: PROJECT_KEYS.list() });
         } catch (error) {
             console.error('Error updating permission:', error);
             setAlertModal({
