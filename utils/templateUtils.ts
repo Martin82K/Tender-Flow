@@ -42,8 +42,8 @@ export const getPreviewData = (project?: ProjectDetails, category?: DemandCatego
         // Safe mapping for project status
 
         const cat = category || (project.categories && project.categories.length > 0 ? project.categories[0] : null);
-        const realizationDate = cat && cat.realizationStart && cat.realizationEnd
-            ? `${new Date(cat.realizationStart).toLocaleDateString('cs-CZ')} - ${new Date(cat.realizationEnd).toLocaleDateString('cs-CZ')}`
+        const realizationDate = cat && (cat.realizationStart || cat.realizationEnd)
+            ? `${cat.realizationStart ? new Date(cat.realizationStart).toLocaleDateString('cs-CZ') : '?'} - ${cat.realizationEnd ? new Date(cat.realizationEnd).toLocaleDateString('cs-CZ') : '?'}`
             : 'Dle harmonogramu';
 
         const bidDeadline = cat && cat.deadline
