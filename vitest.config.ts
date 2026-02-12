@@ -5,6 +5,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, '.'),
+      '@app': path.resolve(__dirname, 'app'),
+      '@features': path.resolve(__dirname, 'features'),
+      '@shared': path.resolve(__dirname, 'shared'),
+      '@infra': path.resolve(__dirname, 'infra'),
       'win-hello': path.resolve(__dirname, 'tests/mocks/win-hello.ts'),
     },
   },

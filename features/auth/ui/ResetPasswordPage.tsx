@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { PublicLayout } from "../public/PublicLayout";
-import { PublicHeader } from "../public/PublicHeader";
+import { PublicLayout } from "@/features/public/ui/PublicLayout";
+import { PublicHeader } from "@/features/public/ui/PublicHeader";
 import { AuthCard } from "./AuthCard";
-import { Link, useLocation } from "../routing/router";
-import { authService } from "../../services/authService";
+import { Link, useLocation } from "@/shared/routing/router";
+import { authService } from "@/services/authService";
 
 export const ResetPasswordPage: React.FC = () => {
     const { search } = useLocation();

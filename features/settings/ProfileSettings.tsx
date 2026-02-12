@@ -12,7 +12,7 @@ import {
 import { useUI } from "../../context/UIContext";
 import { useAuth } from "../../context/AuthContext";
 import { BiometricSettings } from "./BiometricSettings";
-import { useElectronUpdater } from "../UpdateNotification";
+import { useElectronUpdater } from "@/components/UpdateNotification";
 import { organizationService } from "../../services/organizationService";
 import { formatOrgRequestStatus } from "../../utils/organizationUtils";
 

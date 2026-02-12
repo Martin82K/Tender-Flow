@@ -5,8 +5,8 @@ import { useAuth } from "../../context/AuthContext";
 import { CONTACT_KEYS } from "../queries/useContactsQuery";
 import { getDemoData, saveDemoData } from "../../services/demoData";
 import { mergeContacts } from "../../services/contactsImportService";
-import { useLocation } from "../../components/routing/router";
-import { parseAppRoute } from "../../components/routing/routeUtils";
+import { useLocation } from "../../shared/routing/router";
+import { parseAppRoute } from "../../shared/routing/routeUtils";
 import { renameFolder } from '../../services/fileSystemService';
 import { ProjectDetails } from '../../types';
 

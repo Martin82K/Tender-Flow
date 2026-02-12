@@ -1,5 +1,5 @@
 import React from 'react';
-import { PublicLayout } from '../public/PublicLayout';
+import { PublicLayout } from '@/features/public/ui/PublicLayout';
 
 interface AuthLayoutProps {
     children: React.ReactNode;

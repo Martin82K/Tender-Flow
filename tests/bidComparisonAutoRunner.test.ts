@@ -6,7 +6,7 @@ import type {
   BidComparisonAutoConfig,
   BidComparisonDetectedFile,
   BidComparisonJobStatus,
-} from '../desktop/main/types';
+} from '../shared/types/desktop';
 
 class InMemoryStorage {
   private map = new Map<string, string>();

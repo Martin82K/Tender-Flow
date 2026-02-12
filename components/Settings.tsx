@@ -1,25 +1,25 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Header } from "./Header";
 import { StatusConfig, Subcontractor } from "../types";
-import { navigate, useLocation } from "./routing/router";
+import { navigate, useLocation } from "@/shared/routing/router";
 import {
   exportContactsToXLSX,
   exportContactsToCSV,
 } from "../services/exportService";
 
 // Sub-components
-import { AdminSettings } from "./settings/AdminSettings";
-import { AISettings } from "./settings/AISettings";
-import { ProfileSettings } from "./settings/ProfileSettings";
+import { AdminSettings } from "@/features/settings/AdminSettings";
+import { AISettings } from "@/features/settings/AISettings";
+import { ProfileSettings } from "@/features/settings/ProfileSettings";
 import { ContactsImportWizard } from "./ContactsImportWizard";
-import { ExcelUnlockerProSettings } from "./settings/ExcelUnlockerProSettings";
-import { ExcelMergerProSettings } from "./settings/ExcelMergerProSettings";
-import { UrlShortener } from "./tools/UrlShortener";
-import { ExcelIndexerSettings } from "./settings/ExcelIndexerSettings";
-import { McpDiagnostics } from "./settings/McpDiagnostics";
-import { AIApiTest } from "./settings/AIApiTest";
-import { SubscriptionSettings } from "./settings/SubscriptionSettings";
-import { OrganizationSettings } from "./settings/OrganizationSettings";
+import { ExcelUnlockerProSettings } from "@/features/settings/ExcelUnlockerProSettings";
+import { ExcelMergerProSettings } from "@/features/settings/ExcelMergerProSettings";
+import { UrlShortener } from "@/features/tools/UrlShortener";
+import { ExcelIndexerSettings } from "@/features/settings/ExcelIndexerSettings";
+import { McpDiagnostics } from "@/features/settings/McpDiagnostics";
+import { AIApiTest } from "@/features/settings/AIApiTest";
+import { SubscriptionSettings } from "@/features/settings/SubscriptionSettings";
+import { OrganizationSettings } from "@/features/settings/OrganizationSettings";
 
 import { useFeatures } from "../context/FeatureContext";
 import { FEATURES } from "../config/features";

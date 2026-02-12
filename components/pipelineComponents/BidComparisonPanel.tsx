@@ -6,7 +6,7 @@ import type {
   BidComparisonDetectedFile,
   BidComparisonJobStatus,
   BidComparisonRole,
-} from '../../desktop/main/types';
+} from '../../shared/types/desktop';
 
 interface EditableDetectedFile extends BidComparisonDetectedFile {
   role: BidComparisonRole;

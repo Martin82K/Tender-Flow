@@ -32,17 +32,17 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { PublicLayout } from "./public/PublicLayout";
-import { PublicHeader } from "./public/PublicHeader";
-import { Link, useLocation, navigate } from "./routing/router";
+import { PublicLayout } from "@/features/public/ui/PublicLayout";
+import { PublicHeader } from "@/features/public/ui/PublicHeader";
+import { Link, useLocation, navigate } from "@/shared/routing/router";
 import { useAuth } from "../context/AuthContext";
 import { APP_VERSION } from "../config/version";
-import { ScrollReveal } from "./ui/ScrollReveal";
-import { GradientText } from "./ui/GradientText";
-import { FloatingElements } from "./ui/FloatingElements";
-import { PulseBadge } from "./ui/PulseBadge";
-import { Timeline, HorizontalTimeline, BentoGrid } from "./ui/Timeline";
-import { TimeSavingsVisualizer } from "./ui/TimeSavingsVisualizer";
+import { ScrollReveal } from "@/shared/ui/ScrollReveal";
+import { GradientText } from "@/shared/ui/GradientText";
+import { FloatingElements } from "@/shared/ui/FloatingElements";
+import { PulseBadge } from "@/shared/ui/PulseBadge";
+import { Timeline, HorizontalTimeline, BentoGrid } from "@/shared/ui/Timeline";
+import { TimeSavingsVisualizer } from "@/shared/ui/TimeSavingsVisualizer";
 import { PRICING_CONFIG } from "../services/billingService";
 
 const Stat: React.FC<{ label: string; value: string }> = ({ label, value }) => (

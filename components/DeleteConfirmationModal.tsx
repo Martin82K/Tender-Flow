@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Modal } from './ui/Modal';
-import { Button } from './ui/Button';
+import { Modal } from '@/shared/ui/Modal';
+import { Button } from '@/shared/ui/Button';
 
 interface DeleteConfirmationModalProps {
     isOpen: boolean;

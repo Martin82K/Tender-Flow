@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import { useAuth } from "../../context/AuthContext";
-import { PublicLayout } from "../public/PublicLayout";
-import { PublicHeader } from "../public/PublicHeader";
+import { useAuth } from "@/context/AuthContext";
+import { PublicLayout } from "@/features/public/ui/PublicLayout";
+import { PublicHeader } from "@/features/public/ui/PublicHeader";
 import { AuthCard } from "./AuthCard";
-import { Link, navigate, useLocation } from "../routing/router";
-import { isDesktop, platformAdapter } from "../../services/platformAdapter";
+import { Link, navigate, useLocation } from "@/shared/routing/router";
+import { isDesktop, platformAdapter } from "@/services/platformAdapter";
 import { Fingerprint } from "lucide-react";
 
 const getNext = (search: string) => {

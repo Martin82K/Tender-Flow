@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { platformAdapter, isDesktop } from "../../services/platformAdapter";
 import { ArrowRight } from "lucide-react";
-import { Modal } from "../ui/Modal";
-import { Button } from "../ui/Button";
+import { Modal } from "@/shared/ui/Modal";
+import { Button } from "@/shared/ui/Button";
 import appIcon from "../../assets/app_icon_v6_clean.png";
 import { desktopWelcomeConfig } from "../../config/desktopWelcome";
 

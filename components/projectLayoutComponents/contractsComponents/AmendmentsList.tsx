@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { ContractWithDetails, ContractAmendment } from "../../../types";
 import { contractService } from "../../../services/contractService";
 import { contractExtractionService } from "../../../services/contractExtractionService";
-import { Modal } from "../../ui/Modal";
+import { Modal } from "@/shared/ui/Modal";
 
 interface AmendmentsListProps {
   contracts: ContractWithDetails[];

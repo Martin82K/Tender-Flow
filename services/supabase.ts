@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { navigate } from '../components/routing/router';
+import { navigate } from '../shared/routing/router';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;

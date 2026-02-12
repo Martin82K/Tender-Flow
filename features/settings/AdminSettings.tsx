@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { UserManagement } from "../UserManagement";
-import { SubscriptionFeaturesManagement } from "../SubscriptionFeaturesManagement";
-import { EmailWhitelistManagement } from "../EmailWhitelistManagement";
+import { UserManagement } from "@/components/UserManagement";
+import { SubscriptionFeaturesManagement } from "@/components/SubscriptionFeaturesManagement";
+import { EmailWhitelistManagement } from "@/components/EmailWhitelistManagement";
 import { AIApiTest } from "./AIApiTest";
 import { EmailTestPanel } from "./EmailTestPanel";
 import { authService } from "../../services/authService";

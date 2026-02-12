@@ -6,7 +6,7 @@ import logo from "../assets/logo.png";
 import { SIDEBAR_NAVIGATION, BOTTOM_NAVIGATION } from "../config/navigation";
 import { FEATURES, type FeatureKey } from "../config/features";
 import { useFeatures } from "../context/FeatureContext";
-import { useLocation } from "./routing/router";
+import { useLocation } from "@/shared/routing/router";
 
 import { APP_VERSION } from "../config/version";
 

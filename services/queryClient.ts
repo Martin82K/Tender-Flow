@@ -1,6 +1,6 @@
 import { QueryClient } from "@tanstack/react-query";
 import { clearStoredSessionData } from "./supabase";
-import { navigate } from "../components/routing/router";
+import { navigate } from "../shared/routing/router";
 
 /**
  * Check if an error is likely an auth/session error

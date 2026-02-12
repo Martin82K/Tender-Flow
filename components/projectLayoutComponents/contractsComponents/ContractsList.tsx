@@ -9,8 +9,8 @@ import { contractService } from "../../../services/contractService";
 import { ContractForm } from "./ContractForm";
 import { ExtractionValidation } from "./ExtractionValidation";
 import { contractExtractionService } from "../../../services/contractExtractionService";
-import { Modal } from "../../ui/Modal";
-import { StarRating } from "../../ui/StarRating";
+import { Modal } from "@/shared/ui/Modal";
+import { StarRating } from "@/shared/ui/StarRating";
 
 interface ContractsListProps {
   projectId: string;

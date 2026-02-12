@@ -1,8 +1,8 @@
 import path from 'path';
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-export default defineConfig(({ command }) => {
+export default defineConfig(() => {
   const isElectronBuild = process.env.ELECTRON_BUILD === 'true';
   return {
     base: isElectronBuild ? './' : '/',
@@ -31,14 +31,17 @@ export default defineConfig(({ command }) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
+        '@app': path.resolve(__dirname, 'app'),
+        '@features': path.resolve(__dirname, 'features'),
+        '@shared': path.resolve(__dirname, 'shared'),
+        '@infra': path.resolve(__dirname, 'infra'),
       }
     },
     build: {
-      chunkSizeWarningLimit: 750, // Increase from default 500kB
+      chunkSizeWarningLimit: 750,
       rollupOptions: {
         output: {
           manualChunks: {
-            // Split large vendor libraries into separate chunks
             'vendor-react': ['react', 'react-dom'],
             'vendor-supabase': ['@supabase/supabase-js'],
             'vendor-pdf': ['jspdf', 'jspdf-autotable'],

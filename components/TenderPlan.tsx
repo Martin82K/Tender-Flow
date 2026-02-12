@@ -3,8 +3,8 @@ import { TenderPlanItem, DemandCategory } from '../types';
 import { supabase } from '../services/supabase';
 import { ConfirmationModal } from './ConfirmationModal';
 import { AlertModal } from './AlertModal';
-import { Modal } from './ui/Modal';
-import { Button } from './ui/Button';
+import { Modal } from '@/shared/ui/Modal';
+import { Button } from '@/shared/ui/Button';
 import { exportTenderPlanToXLSX, downloadTenderImportTemplate, importTenderPlanFromXLSX } from '../services/exportService';
 
 interface TenderPlanProps {

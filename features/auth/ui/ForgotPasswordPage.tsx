@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import { PublicLayout } from "../public/PublicLayout";
-import { PublicHeader } from "../public/PublicHeader";
+import { PublicLayout } from "@/features/public/ui/PublicLayout";
+import { PublicHeader } from "@/features/public/ui/PublicHeader";
 import { AuthCard } from "./AuthCard";
-import { Link } from "../routing/router";
-import { authService } from "../../services/authService";
+import { Link } from "@/shared/routing/router";
+import { authService } from "@/services/authService";
 
 export const ForgotPasswordPage: React.FC = () => {
   const [email, setEmail] = useState("");

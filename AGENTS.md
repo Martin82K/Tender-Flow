@@ -82,11 +82,13 @@
 
 ## Imports and Module Boundaries
 - Preferred order: external packages -> local modules -> type-only imports.
-- Use `@/` aliases when clarity improves; otherwise use simple relative imports.
-- Avoid circular dependencies, especially across `components/`, `hooks/`, `context/`, and `services/`.
+- Prefer canonical aliases: `@app/*`, `@features/*`, `@shared/*`, `@infra/*` (fallback `@/*`).
+- Avoid deep relative imports (`../../../` and deeper) in `app/`, `features/`, `shared/`.
+- Avoid circular dependencies, especially across `features/`, `shared/`, `hooks/`, `context/`, and `services/`.
 - Do not import server-only modules into web UI code.
 - Keep desktop-specific logic in `desktop/` or guarded runtime branches.
 - Only use `window.electronAPI` in desktop-safe code paths.
+- Web layers (`app/`, `features/`, `shared/`) must not import from `server/`, `desktop/main/`, `server_py/`, or `mcp-bridge-server/`.
 
 ## React and Component Conventions
 - Components/files: PascalCase (for example `ProjectLayout.tsx`).
@@ -96,7 +98,12 @@
 - Keep props explicitly typed; no implicit `any`.
 - Use controlled inputs (`value` + `onChange`) for form fields.
 - Clean up subscriptions/effects in `useEffect` teardown.
-- Reuse existing UI primitives in `components/ui/` before creating new ones.
+- Reuse existing UI primitives in `shared/ui/` before creating new ones.
+
+## Refactor Guardrails
+- Legacy roots (`components/`, `hooks/`, `services/`, `context/`, `utils/`) jsou ve freeze režimu.
+- Před merge musí projít: `npm run check:boundaries` a `npm run check:legacy-structure`.
+- Pokud je nutné přidat soubor do freeze roots, musí být explicitně aktualizován `config/legacy-freeze.json`.
 
 ## Types, Data, and Services
 - Keep domain model truth in `types.ts` and update dependent layers together.

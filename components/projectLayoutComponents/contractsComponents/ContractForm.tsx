@@ -6,7 +6,7 @@ import {
   Subcontractor,
 } from "../../../types";
 import { useAuth } from "../../../context/AuthContext";
-import { StarRating } from "../../ui/StarRating";
+import { StarRating } from "@/shared/ui/StarRating";
 
 interface ContractFormProps {
   projectId: string;

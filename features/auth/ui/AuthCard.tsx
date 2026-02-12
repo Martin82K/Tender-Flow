@@ -1,6 +1,6 @@
 import React from "react";
-import logo from "../../assets/logo.png";
-import { APP_VERSION } from "../../config/version";
+import logo from "@/assets/logo.png";
+import { APP_VERSION } from "@/config/version";
 
 interface RegistrationStatus {
   isOpen: boolean;

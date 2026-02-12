@@ -5,7 +5,7 @@ import {
   fillDescriptions,
   IndexMap,
 } from "@/utils/indexMatcher";
-import { AlertModal } from "../AlertModal";
+import { AlertModal } from "@/components/AlertModal";
 
 const INDEX_STORAGE_KEY = "indexMatcherIndexData";
 

@@ -1,8 +1,8 @@
 import React, { Suspense, useEffect } from 'react';
 import { Sidebar } from '../Sidebar';
 import { ConfirmationModal } from '../ConfirmationModal';
-import { navigate } from '../routing/router';
-import { buildAppUrl } from '../routing/routeUtils';
+import { navigate } from '@/shared/routing/router';
+import { buildAppUrl } from '@/shared/routing/routeUtils';
 import { Project, View, User } from '../../types';
 
 interface MainLayoutProps {

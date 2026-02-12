@@ -21,7 +21,7 @@ import {
   setRememberMePreference,
   supabase,
 } from "../services/supabase";
-import { navigate } from "../components/routing/router";
+import { navigate } from "../shared/routing/router";
 
 interface AuthContextType {
   user: User | null;

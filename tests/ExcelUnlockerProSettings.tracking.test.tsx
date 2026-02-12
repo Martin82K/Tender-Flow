@@ -1,7 +1,7 @@
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { ExcelUnlockerProSettings } from '../components/settings/ExcelUnlockerProSettings';
+import { ExcelUnlockerProSettings } from '../features/settings/ExcelUnlockerProSettings';
 
 const uiMocks = vi.hoisted(() => ({
   showAlert: vi.fn(),

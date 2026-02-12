@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { useAuth } from "../../context/AuthContext";
-import { PublicLayout } from "../public/PublicLayout";
-import { PublicHeader } from "../public/PublicHeader";
+import { useAuth } from "@/context/AuthContext";
+import { PublicLayout } from "@/features/public/ui/PublicLayout";
+import { PublicHeader } from "@/features/public/ui/PublicHeader";
 import { AuthCard } from "./AuthCard";
-import { Link, navigate } from "../routing/router";
-import { authService } from "../../services/authService";
+import { Link, navigate } from "@/shared/routing/router";
+import { authService } from "@/services/authService";
 
 export const RegisterPage: React.FC = () => {
   const { register, loginAsDemo } = useAuth();

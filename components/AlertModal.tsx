@@ -1,6 +1,6 @@
 import React from 'react';
-import { Modal } from './ui/Modal';
-import { Button } from './ui/Button';
+import { Modal } from '@/shared/ui/Modal';
+import { Button } from '@/shared/ui/Button';
 
 export interface AlertModalProps {
     isOpen: boolean;

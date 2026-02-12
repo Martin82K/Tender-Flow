@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import logo from "../../assets/logo.png";
-import { Link, useLocation, navigate } from "../routing/router";
-import { useAuth } from "../../context/AuthContext";
+import logo from "@/assets/logo.png";
+import { Link, useLocation, navigate } from "@/shared/routing/router";
+import { useAuth } from "@/context/AuthContext";
 
 const navItems = [
   { id: "top", label: "Home" },

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Subcontractor, StatusConfig } from "../types";
-import { StarRating } from "./ui/StarRating";
+import { StarRating } from "@/shared/ui/StarRating";
 
 interface SubcontractorSelectorProps {
   contacts: Subcontractor[];

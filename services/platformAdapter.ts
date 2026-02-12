@@ -3,7 +3,7 @@
  * Use this to conditionally access platform-specific features
  */
 
-import type { ElectronAPI, FolderInfo, FileInfo, FolderSnapshot } from '../desktop/main/types';
+import type { ElectronAPI, FolderInfo, FileInfo, FolderSnapshot } from '../shared/types/desktop';
 
 // Extend Window interface for TypeScript
 declare global {

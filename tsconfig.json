@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "baseUrl": ".",
     "target": "ES2022",
     "experimentalDecorators": true,
     "useDefineForClassFields": false,
@@ -19,6 +20,18 @@
     "allowJs": true,
     "jsx": "react-jsx",
     "paths": {
+      "@app/*": [
+        "./app/*"
+      ],
+      "@features/*": [
+        "./features/*"
+      ],
+      "@shared/*": [
+        "./shared/*"
+      ],
+      "@infra/*": [
+        "./infra/*"
+      ],
       "@/*": [
         "./*"
       ]
