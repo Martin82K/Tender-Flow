@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { ProjectDetails, DocumentLink } from "../../../types";
-import { isProbablyUrl } from "../../../utils/docHub";
+import { isProbablyUrl, isSafePublicHttpUrlForExternalShortener } from "../../../utils/docHub";
 import { shortenUrl } from "../../../services/urlShortenerService";
 import { useAuth } from "../../../context/AuthContext";
 
@@ -63,7 +63,10 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
     let finalUrl = newLink.url.trim();
 
     // Auto-shorten if enabled in settings
-    if (user?.preferences?.autoShortenProjectDocs && isProbablyUrl(finalUrl)) {
+    if (
+      user?.preferences?.autoShortenProjectDocs &&
+      isSafePublicHttpUrlForExternalShortener(finalUrl)
+    ) {
       setIsShortening(true);
       try {
         const result = await shortenUrl(finalUrl);

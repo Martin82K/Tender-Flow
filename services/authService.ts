@@ -1,6 +1,7 @@
 import { getStoredAuthSessionRaw, supabase } from './supabase';
 import { invokePublicFunction } from './functionsClient';
 import { SubscriptionTier, User } from '../types';
+import { isValidTierId } from '../config/subscriptionTiers';
 
 const DEFAULT_PREFERENCES = {
     theme: 'system',
@@ -26,19 +27,27 @@ const USER_CACHE_TTL = 1000 * 60 * 60 * 12; // 12 hours
 const SUBSCRIPTION_TIER_CACHE_KEY = 'crm-subscription-tier-cache';
 const SUBSCRIPTION_TIER_CACHE_TTL = 1000 * 60 * 60 * 24; // 24 hours (fallback max)
 
+const normalizeSubscriptionTier = (tier: unknown): SubscriptionTier | null => {
+    if (typeof tier !== 'string') return null;
+    const normalized = tier.trim().toLowerCase();
+    return isValidTierId(normalized) ? normalized : null;
+};
+
 // Cache subscription tier separately for fallback on errors
 const cacheSubscriptionTier = (tier: string): void => {
     try {
+        const normalizedTier = normalizeSubscriptionTier(tier);
+        if (!normalizedTier) return;
         if (typeof window === 'undefined') return;
         window.localStorage?.setItem(SUBSCRIPTION_TIER_CACHE_KEY, JSON.stringify({
-            tier,
+            tier: normalizedTier,
             timestamp: Date.now()
         }));
     } catch { /* ignore */ }
 };
 
 // Get cached subscription tier for fallback
-export const getCachedSubscriptionTier = (): string | null => {
+export const getCachedSubscriptionTier = (): SubscriptionTier | null => {
     try {
         if (typeof window === 'undefined') return null;
         const raw = window.localStorage?.getItem(SUBSCRIPTION_TIER_CACHE_KEY);
@@ -49,7 +58,12 @@ export const getCachedSubscriptionTier = (): string | null => {
             window.localStorage?.removeItem(SUBSCRIPTION_TIER_CACHE_KEY);
             return null;
         }
-        return parsed?.tier || null;
+        const normalizedTier = normalizeSubscriptionTier(parsed?.tier);
+        if (!normalizedTier) {
+            window.localStorage?.removeItem(SUBSCRIPTION_TIER_CACHE_KEY);
+            return null;
+        }
+        return normalizedTier;
     } catch {
         return null;
     }
@@ -143,7 +157,7 @@ export const authService = {
         // Prefer the session returned by sign-in (avoids extra auth roundtrip that can hang).
         if (data.session) {
             try {
-                const user = await withTimeout(authService.getUserFromSession(data.session), 5000, 'User hydrate');
+                const user = await withTimeout(authService.getUserFromSession(data.session, { skipUserCache: true }), 5000, 'User hydrate');
                 if (user) return user;
             } catch (e) {
                 console.warn('[authService] login: hydration slow/failed, using fallback user', e);
@@ -185,7 +199,7 @@ export const authService = {
 
         // Prefer session returned by sign-up (when email confirmation is disabled).
         if (data.session) {
-            const user = await authService.getUserFromSession(data.session);
+            const user = await authService.getUserFromSession(data.session, { skipUserCache: true });
             if (user) return user;
         }
 
@@ -385,23 +399,38 @@ export const authService = {
     },
 
     // New function to get user data from an existing session (avoids extra API call)
-    getUserFromSession: async (session: any): Promise<User | null> => {
+    getUserFromSession: async (
+        session: any,
+        options: {
+            skipUserCache?: boolean;
+            onBackgroundRefresh?: (freshUser: User) => void;
+        } = {}
+    ): Promise<User | null> => {
         if (!session?.user) {
             return null;
         }
+
+        const { skipUserCache = false, onBackgroundRefresh } = options;
 
         // Try to get cached user data first for fast startup
         const cachedUser = getCachedUserData();
         const sessionUserId = session.user.id;
 
         // If we have cached data for this user, use it while refreshing in background
-        if (cachedUser && cachedUser.id === sessionUserId) {
+        if (!skipUserCache && cachedUser && cachedUser.id === sessionUserId) {
             console.log('[authService] getUserFromSession: Using cached user data for fast startup');
 
             // Refresh in background (fire and forget)
             authService._buildUserFromSession(session).then(freshUser => {
                 if (freshUser) {
                     cacheUserData(freshUser);
+                    if (onBackgroundRefresh) {
+                        try {
+                            onBackgroundRefresh(freshUser);
+                        } catch (callbackError) {
+                            console.warn('[authService] onBackgroundRefresh callback failed', callbackError);
+                        }
+                    }
                 }
             }).catch(e => {
                 console.warn('[authService] Background refresh failed', e);
@@ -417,6 +446,11 @@ export const authService = {
             }
             return user;
         } catch (e) {
+            if (skipUserCache) {
+                console.error('[authService] Failed to build fresh user from session', e);
+                throw e;
+            }
+
             console.warn('[authService] Failed to build user from session, using fallback', e);
 
             // If we have cached data, use it
@@ -449,8 +483,8 @@ export const authService = {
             return null;
         }
 
-        // Reduced timeout for faster fallback - 3s instead of 10s
-        const queryTimeoutMs = 3000;
+        // Keep startup resilient to slower Windows cold-start networking.
+        const queryTimeoutMs = 5000;
 
         // BATCH 1: Core User Data + Manual Override
         // Prioritize manual override to ensure correct tiering even if Org data fails/lags.
@@ -558,15 +592,15 @@ export const authService = {
         const organizationId = await orgMemberPromise;
 
         // Attempt to get organization subscription tier (dependent on organizationId)
-        let subscriptionTier: SubscriptionTier = 'free';
+        let subscriptionTier: SubscriptionTier = getCachedSubscriptionTier() || 'free';
         let organizationType: 'personal' | 'business' | undefined;
         let organizationName: string | undefined;
 
         // Apply override if present
         if (subscriptionOverride) {
-            const override = String(subscriptionOverride).trim().toLowerCase();
-            if (['free', 'pro', 'enterprise', 'admin'].includes(override)) {
-                subscriptionTier = override as SubscriptionTier;
+            const override = normalizeSubscriptionTier(subscriptionOverride);
+            if (override) {
+                subscriptionTier = override;
             }
         }
 
@@ -593,9 +627,9 @@ export const authService = {
 
                     // Only apply org tier if no user-specific override
                     if (!subscriptionOverride && org.subscription_tier) {
-                        const tier = String(org.subscription_tier).trim().toLowerCase();
-                        if (['free', 'pro', 'enterprise', 'admin'].includes(tier)) {
-                            subscriptionTier = tier as SubscriptionTier;
+                        const tier = normalizeSubscriptionTier(org.subscription_tier);
+                        if (tier) {
+                            subscriptionTier = tier;
                         }
                     }
                 }
@@ -629,21 +663,27 @@ export const authService = {
         };
     },
 
-    getCurrentUser: async (): Promise<User | null> => {
+    getCurrentUser: async (
+        options: {
+            skipUserCache?: boolean;
+            onBackgroundRefresh?: (freshUser: User) => void;
+        } = {}
+    ): Promise<User | null> => {
         console.log('[authService] getCurrentUser: Starting...');
+        const { skipUserCache = false, onBackgroundRefresh } = options;
 
         // Fast path: build user from cached session in localStorage (no network / no auth locks).
         const cachedSession = getCachedSession();
         if (cachedSession?.user) {
             console.log('[authService] getCurrentUser: Using cached session', cachedSession.user?.id);
-            return authService.getUserFromSession(cachedSession);
+            return authService.getUserFromSession(cachedSession, { skipUserCache, onBackgroundRefresh });
         }
 
         let session = null;
         try {
             // `getSession()` may refresh tokens over network; keep timeout lenient to avoid
             // false negatives during cold starts / slow connections.
-            const timeoutMs = 3000;
+            const timeoutMs = 5000;
             const { data } = await withTimeout(supabase.auth.getSession(), timeoutMs, 'Auth check') as any;
             session = data?.session || null;
             console.log('[authService] getCurrentUser: Session loaded', session?.user?.id);
@@ -658,12 +698,12 @@ export const authService = {
         }
 
         // Reuse shared helper for building user object
-        return authService._buildUserFromSession(session);
+        return authService.getUserFromSession(session, { skipUserCache, onBackgroundRefresh });
     },
 
     updateUserPreferences: async (preferences: any): Promise<User> => {
         console.log('[authService] updateUserPreferences: Starting with preferences:', preferences);
-        const user = await authService.getCurrentUser();
+        const user = await authService.getCurrentUser({ skipUserCache: true });
         if (!user) {
             console.error('[authService] updateUserPreferences: No user logged in');
             throw new Error('No user logged in');
@@ -690,15 +730,20 @@ export const authService = {
         if (error) {
             console.error('[authService] updateUserPreferences: Failed to save preferences to DB:', error);
             console.error('[authService] updateUserPreferences: Error details:', JSON.stringify(error, null, 2));
-        } else {
-            console.log('[authService] updateUserPreferences: Preferences saved successfully');
-            console.log('[authService] updateUserPreferences: Upsert result:', data);
+            throw error;
         }
 
-        return {
+        console.log('[authService] updateUserPreferences: Preferences saved successfully');
+        console.log('[authService] updateUserPreferences: Upsert result:', data);
+
+        const updatedUser = {
             ...user,
             preferences: newPreferences
         };
+
+        cacheUserData(updatedUser);
+
+        return updatedUser;
     }
     ,
 

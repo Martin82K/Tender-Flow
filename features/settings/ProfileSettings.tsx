@@ -330,12 +330,23 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
   const themeColors = [
     "#607AFB", // Default Blue
     "#3B82F6", // Vivid Blue
+    "#06B6D4", // Cyan
+    "#14B8A6", // Teal
     "#10B981", // Emerald
+    "#84CC16", // Lime
     "#F59E0B", // Amber
+    "#F97316", // Orange
     "#EF4444", // Red
+    "#F43F5E", // Rose
     "#8B5CF6", // Violet
+    "#A855F7", // Purple
+    "#D946EF", // Fuchsia
     "#EC4899", // Pink
     "#6366F1", // Indigo
+    "#0EA5E9", // Sky
+    "#1D4ED8", // Deep Blue
+    "#0F766E", // Deep Teal
+    "#7C3AED", // Deep Violet
   ];
 
   return (

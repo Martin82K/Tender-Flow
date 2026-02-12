@@ -1,11 +1,18 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DocsLinkSection } from '../components/projectLayoutComponents/documents/DocsLinkSection';
 import type { ProjectDetails } from '../types';
 
+const mockUseAuth = vi.fn();
+const mockShortenUrl = vi.fn();
+
 vi.mock('../context/AuthContext', () => ({
-    useAuth: () => ({ user: null }),
+    useAuth: () => mockUseAuth(),
+}));
+
+vi.mock('../services/urlShortenerService', () => ({
+    shortenUrl: (...args: any[]) => mockShortenUrl(...args),
 }));
 
 const mockProject = {
@@ -14,6 +21,17 @@ const mockProject = {
 } as unknown as ProjectDetails;
 
 describe('DocsLinkSection', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        mockUseAuth.mockReturnValue({ user: null });
+        mockShortenUrl.mockResolvedValue({
+            success: true,
+            shortUrl: 'https://tinyurl.com/test',
+            originalUrl: 'https://example.com/very-long-url',
+            provider: 'tinyurl',
+        });
+    });
+
     const defaultProps = {
         project: mockProject,
         hasDocsLink: true,
@@ -89,5 +107,86 @@ describe('DocsLinkSection', () => {
         render(<DocsLinkSection {...defaultProps} isDocHubConnected={true} docHubPdLink="https://dochub.com/pd" />);
         expect(screen.getByText('DocHub /pd_folder')).toBeInTheDocument();
         expect(screen.getByText('Otevřít')).toBeInTheDocument();
+    });
+
+    it('auto-shortens when preference is enabled and URL is public', async () => {
+        mockUseAuth.mockReturnValue({
+            user: {
+                preferences: { autoShortenProjectDocs: true },
+            },
+        });
+        mockShortenUrl.mockResolvedValueOnce({
+            success: true,
+            shortUrl: 'https://tinyurl.com/public',
+            originalUrl: 'https://example.com/very-long-url',
+            provider: 'tinyurl',
+        });
+
+        Object.defineProperty(global, 'crypto', {
+            value: { randomUUID: () => 'link-public' },
+            writable: true,
+        });
+
+        render(<DocsLinkSection {...defaultProps} />);
+
+        fireEvent.click(screen.getByText('Přidat odkaz'));
+        fireEvent.change(screen.getByPlaceholderText('Název (např. PD Hlavní budova)'), {
+            target: { value: 'Veřejný odkaz' },
+        });
+        fireEvent.change(screen.getByPlaceholderText('URL nebo cesta (např. https://... nebo C:\\Projekty\\...)'), {
+            target: { value: 'https://example.com/very-long-url' },
+        });
+        fireEvent.click(screen.getByText('Přidat'));
+
+        await waitFor(() => {
+            expect(mockShortenUrl).toHaveBeenCalledWith('https://example.com/very-long-url');
+        });
+        expect(defaultProps.onUpdate).toHaveBeenCalledWith({
+            documentLinks: [
+                expect.objectContaining({
+                    id: 'link-public',
+                    label: 'Veřejný odkaz',
+                    url: 'https://tinyurl.com/public',
+                }),
+            ],
+        });
+    });
+
+    it('does not auto-shorten local/internal URL even when preference is enabled', async () => {
+        mockUseAuth.mockReturnValue({
+            user: {
+                preferences: { autoShortenProjectDocs: true },
+            },
+        });
+
+        Object.defineProperty(global, 'crypto', {
+            value: { randomUUID: () => 'link-local' },
+            writable: true,
+        });
+
+        render(<DocsLinkSection {...defaultProps} />);
+
+        fireEvent.click(screen.getByText('Přidat odkaz'));
+        fireEvent.change(screen.getByPlaceholderText('Název (např. PD Hlavní budova)'), {
+            target: { value: 'Lokální odkaz' },
+        });
+        fireEvent.change(screen.getByPlaceholderText('URL nebo cesta (např. https://... nebo C:\\Projekty\\...)'), {
+            target: { value: 'http://localhost:3000/private-docs' },
+        });
+        fireEvent.click(screen.getByText('Přidat'));
+
+        await waitFor(() => {
+            expect(defaultProps.onUpdate).toHaveBeenCalled();
+        });
+        expect(mockShortenUrl).not.toHaveBeenCalled();
+        expect(defaultProps.onUpdate).toHaveBeenCalledWith({
+            documentLinks: [
+                expect.objectContaining({
+                    id: 'link-local',
+                    label: 'Lokální odkaz',
+                    url: 'http://localhost:3000/private-docs',
+                }),
+            ],
+        });
     });
 });

@@ -16,8 +16,6 @@ import { ExcelUnlockerProSettings } from "@/features/settings/ExcelUnlockerProSe
 import { ExcelMergerProSettings } from "@/features/settings/ExcelMergerProSettings";
 import { UrlShortener } from "@/features/tools/UrlShortener";
 import { ExcelIndexerSettings } from "@/features/settings/ExcelIndexerSettings";
-import { McpDiagnostics } from "@/features/settings/McpDiagnostics";
-import { AIApiTest } from "@/features/settings/AIApiTest";
 import { SubscriptionSettings } from "@/features/settings/SubscriptionSettings";
 import { OrganizationSettings } from "@/features/settings/OrganizationSettings";
 
@@ -381,8 +379,6 @@ export const Settings: React.FC<SettingsProps> = ({
               {activeAdminSubTab === "ai" && (
                 <>
                   <AISettings isAdmin={isAdmin} />
-                  <AIApiTest />
-                  <McpDiagnostics isAdmin={isAdmin} />
                 </>
               )}
             </main>

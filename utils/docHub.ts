@@ -86,6 +86,62 @@ const stripTrailingSeparators = (value: string) => value.replace(/[\\/]+$/, "");
 export const isProbablyUrl = (value: string): boolean =>
   /^https?:\/\//i.test(value.trim());
 
+const isIpv4Host = (host: string): boolean => {
+  if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) return false;
+  const parts = host.split(".").map(Number);
+  return parts.length === 4 && parts.every((part) => Number.isInteger(part) && part >= 0 && part <= 255);
+};
+
+const isPrivateOrLocalIpv4 = (host: string): boolean => {
+  if (!isIpv4Host(host)) return false;
+  const [a, b] = host.split(".").map(Number);
+
+  if (a === 10) return true; // RFC1918
+  if (a === 127) return true; // loopback
+  if (a === 169 && b === 254) return true; // link-local
+  if (a === 172 && b >= 16 && b <= 31) return true; // RFC1918
+  if (a === 192 && b === 168) return true; // RFC1918
+  if (a === 100 && b >= 64 && b <= 127) return true; // CGNAT
+  if (a === 198 && (b === 18 || b === 19)) return true; // benchmarking
+
+  return false;
+};
+
+const isPrivateOrLocalIpv6 = (host: string): boolean => {
+  const normalized = host.trim().toLowerCase().replace(/^\[|\]$/g, "");
+  if (!normalized.includes(":")) return false;
+  if (normalized === "::1") return true; // loopback
+  if (normalized.startsWith("fe80:")) return true; // link-local
+  if (normalized.startsWith("fc") || normalized.startsWith("fd")) return true; // unique local
+  return false;
+};
+
+export const isSafePublicHttpUrlForExternalShortener = (value: string): boolean => {
+  const trimmed = value.trim();
+  if (!isProbablyUrl(trimmed)) return false;
+
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    return false;
+  }
+
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    return false;
+  }
+
+  const host = parsed.hostname.toLowerCase();
+  if (!host) return false;
+  if (host === "localhost" || host.endsWith(".local")) return false;
+  if (!host.includes(".") && !isIpv4Host(host) && !host.includes(":")) return false;
+
+  if (isPrivateOrLocalIpv4(host)) return false;
+  if (isPrivateOrLocalIpv6(host)) return false;
+
+  return true;
+};
+
 export const resolveDocHubStructureV1 = (
   overrides?: Partial<DocHubStructureV1> | null
 ): DocHubStructureV1 => ({
@@ -240,4 +296,3 @@ export const getTendersFolderName = (
   const tendersItem = hierarchy.find(item => item.key === 'tenders' && item.enabled !== false);
   return tendersItem?.name || "03_Vyberova_rizeni";
 };
-

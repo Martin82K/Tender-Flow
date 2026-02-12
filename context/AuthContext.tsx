@@ -3,6 +3,7 @@ import React, {
   useContext,
   useState,
   useEffect,
+  useCallback,
   ReactNode,
   useRef,
 } from "react";
@@ -52,6 +53,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const authEventRef = useRef(false);
   const lastHydratedTokenRef = useRef<string | null>(null);
   const biometricLoginAttemptedRef = useRef(false);
+  const preferencesUpdateQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const applyBackgroundUserRefresh = useCallback((freshUser: User) => {
+    setUser((prev) => {
+      if (!prev || prev.id !== freshUser.id) return prev;
+      return freshUser;
+    });
+  }, []);
 
   // Check biometric availability and validate stored credentials on mount
   useEffect(() => {
@@ -200,7 +208,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           email: credentials.email,
         });
 
-        const currentUser = await authService.getUserFromSession(data.session);
+        const currentUser = await authService.getUserFromSession(data.session, {
+          onBackgroundRefresh: applyBackgroundUserRefresh,
+        });
         if (currentUser) {
           setUser(currentUser);
           setHasSavedCredentials(true);
@@ -252,7 +262,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           }
           // Use session directly from callback - no extra API call needed!
           try {
-            const currentUser = await authService.getUserFromSession(session);
+            const currentUser = await authService.getUserFromSession(session, {
+              onBackgroundRefresh: applyBackgroundUserRefresh,
+            });
             if (currentUser) {
               setUser(currentUser);
               setIsLoading(false);
@@ -350,7 +362,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
                       email: creds.email,
                     });
 
-                    const user = await authService.getUserFromSession(data.session);
+                    const user = await authService.getUserFromSession(data.session, {
+                      onBackgroundRefresh: applyBackgroundUserRefresh,
+                    });
                     if (user) {
                       setUser(user);
                       setIsLoading(false);
@@ -382,7 +396,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           }
         }
 
-        const currentUser = await authService.getCurrentUser();
+        const currentUser = await authService.getCurrentUser({
+          onBackgroundRefresh: applyBackgroundUserRefresh,
+        });
         console.log("AuthContext: User loaded", currentUser?.email);
         if (!authEventRef.current || currentUser) {
           setUser(currentUser);
@@ -524,7 +540,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       });
 
       // Build user from session
-      const currentUser = await authService.getUserFromSession(data.session);
+      const currentUser = await authService.getUserFromSession(data.session, {
+        onBackgroundRefresh: applyBackgroundUserRefresh,
+      });
       if (currentUser) {
         setUser(currentUser);
         console.log("[AuthContext] Biometric login successful:", currentUser.email);
@@ -552,9 +570,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   const updatePreferences = async (preferences: any) => {
+    const queuedUpdate = preferencesUpdateQueueRef.current
+      .catch(() => undefined)
+      .then(async () => {
+        const updatedUser = await authService.updateUserPreferences(preferences);
+        setUser(updatedUser);
+      });
+
+    preferencesUpdateQueueRef.current = queuedUpdate;
+
     try {
-      const updatedUser = await authService.updateUserPreferences(preferences);
-      setUser(updatedUser);
+      await queuedUpdate;
     } catch (error) {
       console.error("Failed to update preferences", error);
     }

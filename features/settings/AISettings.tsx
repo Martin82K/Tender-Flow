@@ -56,39 +56,6 @@ Odpověz POUZE jako JSON pole:
 
 Piš profesionálně ale srozumitelně. Report by měl být užitečný pro rychlé rozhodování vedení!`;
 
-const DEFAULT_PROMPT_OVERVIEW = `Jsi zkušený stavební analytik a projektový manažer. Na základě níže uvedených dat z výběrových řízení vytvoř detailní manažerské hodnocení projektu.
-
-### Kontext:
-Údaje představují výsledky výběrových řízení na jednotlivé části stavby (subdodávky, materiály, služby). Data obsahují:
-- Názvy položek nebo zakázek a jejich finanční hodnoty
-- Nabídnuté ceny a rozdíly vůči rozpočtu
-- Počty nabídek a úspěšnost výběrových řízení
-- Stav uzavření smluv (SOD)
-
-### Úkol:
-Vygeneruj komplexní slovní hodnocení projektu z pohledu:
-
-**1. FINANČNÍ ANALÝZA**
-Srovnej nabídkové ceny s rozpočtem, identifikuj úspory nebo překročení, uveď míru konkurence a efektivitu výběrových řízení.
-
-**2. SMLUVNÍ A PROCESNÍ STAV**
-Zhodnoť postup uzavírání smluv, počet dokončených vs. otevřených poptávek, identifikuj případná rizika v procesu.
-
-**3. DODAVATELSKÁ SITUACE**
-Popiš celkovou situaci s dodavateli - počet nabídek na poptávku, konkurenceschopnost trhu, případné problémy s nedostatkem nabídek.
-
-**4. CELKOVÉ ŘÍZENÍ PROJEKTU**
-Shrň, jak výběrová řízení ovlivnila celkové řízení stavby, ekonomiku projektu a další fáze.
-
-### Formát výstupu:
-- Piš **profesionálně, věcně a přehledně**
-- Používej **tučné nadpisy** pro sekce (pomocí **)
-- Používej odrážky pro přehlednost
-- Formulace typu: "Z finančního hlediska lze konstatovat...", "Analýza ukázala..."
-- Na konci přidej **SHRNUTÍ A DOPORUČENÍ** pro další postup
-- Délka: 300-500 slov
-- Výstup bude zobrazen v UI, proto používej markdown formátování`;
-
 interface AISettingsProps {
   isAdmin: boolean;
 }
@@ -99,25 +66,6 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
     const stored = localStorage.getItem("aiEnabled");
     return stored !== "false"; // Default to true
   });
-
-  const [promptContacts, setPromptContacts] = useState(
-    () => localStorage.getItem("aiPromptContacts") || "",
-  );
-  const [promptOverview, setPromptOverview] = useState(
-    () => localStorage.getItem("aiPromptOverview") || DEFAULT_PROMPT_OVERVIEW,
-  );
-
-  const [promptsSaved, setPromptsSaved] = useState(false);
-
-  // Initialize localStorage with defaults if empty
-  useEffect(() => {
-    if (!localStorage.getItem("aiPromptContacts")) {
-      localStorage.setItem("aiPromptContacts", "");
-    }
-    if (!localStorage.getItem("aiPromptOverview")) {
-      localStorage.setItem("aiPromptOverview", DEFAULT_PROMPT_OVERVIEW);
-    }
-  }, []);
 
   // Save AI setting to localStorage when it changes
   useEffect(() => {
@@ -189,13 +137,6 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
       if (updates.openrouter_api_key) setIsOpenRouterKeySet(true);
       if (updates.mistral_api_key) setIsMistralKeySet(true);
     }
-  };
-
-  const savePrompts = () => {
-    localStorage.setItem("aiPromptContacts", promptContacts);
-    localStorage.setItem("aiPromptOverview", promptOverview);
-    setPromptsSaved(true);
-    setTimeout(() => setPromptsSaved(false), 3000);
   };
 
   // AI Models State
@@ -854,73 +795,6 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
             </div>
           </div>
 
-          <div className="space-y-6 pt-4 border-t border-slate-200 dark:border-slate-700">
-            <h3 className="text-md font-bold text-slate-900 dark:text-white pb-2 flex items-center justify-between">
-              Prompt Engineering
-              <button
-                onClick={() => setPromptOverview(DEFAULT_PROMPT_OVERVIEW)}
-                className="text-xs font-bold text-violet-400 hover:text-violet-300 border border-violet-400/30 px-2 py-1 rounded-lg bg-violet-400/5"
-              >
-                Obnovit výchozí
-              </button>
-            </h3>
-
-            {/* Overview Prompt */}
-            <div className="space-y-2">
-              <div className="flex justify-between items-end">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Prompt pro Project Overview
-                </label>
-                <button
-                  onClick={() => setPromptOverview(DEFAULT_PROMPT_OVERVIEW)}
-                  className="text-xs text-indigo-400 hover:text-indigo-300 hover:underline"
-                >
-                  Obnovit výchozí
-                </button>
-              </div>
-              <textarea
-                value={promptOverview}
-                onChange={(e) => setPromptOverview(e.target.value)}
-                rows={15}
-                className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 p-3 text-xs font-mono text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent leading-relaxed"
-              />
-            </div>
-
-            {/* Contacts Prompt (reserved) */}
-            <div className="space-y-2 opacity-50 pointer-events-none filter grayscale">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Prompt pro Contacts Assistant (Připravujeme)
-              </label>
-              <textarea
-                value={promptContacts}
-                onChange={(e) => setPromptContacts(e.target.value)}
-                rows={3}
-                placeholder="Zde bude možné upravit prompt pro AI asistenta v kontaktech..."
-                className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 p-3 text-xs font-mono text-slate-600 dark:text-slate-300"
-                disabled
-              />
-            </div>
-
-            <div className="flex items-center justify-end gap-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-              {promptsSaved && (
-                <span className="text-emerald-500 text-sm font-medium flex items-center gap-1 animate-fadeIn">
-                  <span className="material-symbols-outlined text-[18px]">
-                    check_circle
-                  </span>
-                  Prompty uloženy
-                </span>
-              )}
-              <button
-                onClick={savePrompts}
-                className="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-bold shadow-lg transition-all flex items-center gap-2"
-              >
-                <span className="material-symbols-outlined text-[18px]">
-                  save
-                </span>
-                Uložit prompty
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </section>
