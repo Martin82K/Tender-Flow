@@ -1,5 +1,8 @@
 import { DemandCategory, ProjectDetails, Bid } from '../types';
 
+const stripCrLf = (value: string): string => value.replace(/[\r\n]+/g, ' ').trim();
+const sanitizeEmailRecipient = (value: string): string => value.replace(/[\r\n]+/g, '').trim();
+
 /**
  * Generate email inquiry from template
  */
@@ -42,10 +45,12 @@ export function createMailtoLink(
   subject: string,
   body: string
 ): string {
-  const encodedSubject = encodeURIComponent(subject);
+  const safeEmail = sanitizeEmailRecipient(email);
+  const safeSubject = stripCrLf(subject);
+  const encodedSubject = encodeURIComponent(safeSubject);
   const encodedBody = encodeURIComponent(body);
 
-  return `mailto:${email}?subject=${encodedSubject}&body=${encodedBody}`;
+  return `mailto:${safeEmail}?subject=${encodedSubject}&body=${encodedBody}`;
 }
 
 
@@ -79,11 +84,13 @@ export function generateEmlContent(
   subject: string,
   htmlBody: string
 ): string {
+  const safeTo = sanitizeEmailRecipient(to);
+  const safeSubject = stripCrLf(subject);
   const boundary = "boundary_string_123456789";
 
   const emlContent = [
-    `To: ${to}`,
-    `Subject: =?utf-8?B?${btoa(unescape(encodeURIComponent(subject)))}?=`,
+    `To: ${safeTo}`,
+    `Subject: =?utf-8?B?${btoa(unescape(encodeURIComponent(safeSubject)))}?=`,
     "X-Unsent: 1",
     "MIME-Version: 1.0",
     `Content-Type: multipart/alternative; boundary="${boundary}"`,

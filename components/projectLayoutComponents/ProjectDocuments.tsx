@@ -138,11 +138,14 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
   const [isUploadingTemplate, setIsUploadingTemplate] = useState(false);
   const [showTemplateManager, setShowTemplateManager] = useState(false);
   const [templateName, setTemplateName] = useState<string | null>(null);
+  const [materialTemplateName, setMaterialTemplateName] = useState<string | null>(
+    null
+  );
   const [losersTemplateName, setLosersTemplateName] = useState<string | null>(
     null
   );
   const [templateManagerTarget, setTemplateManagerTarget] = useState<
-    { kind: "inquiry" } | { kind: "losers" } | null
+    { kind: "inquiry" } | { kind: "materialInquiry" } | { kind: "losers" } | null
   >(null);
   const [templateManagerInitialId, setTemplateManagerInitialId] = useState<
     string | null
@@ -155,7 +158,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
   };
 
   const openTemplateManager = (opts: {
-    target: { kind: "inquiry" } | { kind: "losers" } | null;
+    target: { kind: "inquiry" } | { kind: "materialInquiry" } | { kind: "losers" } | null;
     initialLink?: string | null;
   }) => {
     setTemplateManagerTarget(opts.target);
@@ -195,6 +198,17 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
       setTemplateName(null);
     }
   }, [project.inquiryLetterLink]);
+
+  useEffect(() => {
+    if (project.materialInquiryTemplateLink?.startsWith("template:")) {
+      const templateId = project.materialInquiryTemplateLink.split(":")[1];
+      getTemplateById(templateId).then((template) => {
+        setMaterialTemplateName(template?.name || "Neznámá šablona");
+      });
+    } else {
+      setMaterialTemplateName(null);
+    }
+  }, [project.materialInquiryTemplateLink]);
 
   useEffect(() => {
     if (project.losersEmailTemplateLink?.startsWith("template:")) {
@@ -412,6 +426,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
               <TemplatesSection
                 project={project}
                 templateName={templateName}
+                materialTemplateName={materialTemplateName}
                 losersTemplateName={losersTemplateName}
                 openTemplateManager={openTemplateManager}
               />
@@ -502,6 +517,10 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
                     if (templateManagerTarget.kind === "inquiry") {
                       onUpdate({
                         inquiryLetterLink: `template:${template.id}`,
+                      });
+                    } else if (templateManagerTarget.kind === "materialInquiry") {
+                      onUpdate({
+                        materialInquiryTemplateLink: `template:${template.id}`,
                       });
                     } else if (templateManagerTarget.kind === "losers") {
                       onUpdate({

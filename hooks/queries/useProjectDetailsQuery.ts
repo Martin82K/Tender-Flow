@@ -127,6 +127,7 @@ const fetchProjectDetails = async (projectId: string): Promise<ProjectDetails> =
         documentationLink: project.documentation_link,
         documentLinks: project.document_links || [],
         inquiryLetterLink: project.inquiry_letter_link,
+        materialInquiryTemplateLink: project.material_inquiry_template_link,
         losersEmailTemplateLink: project.losers_email_template_link,
         priceListLink: project.price_list_link,
         docHubEnabled: project.dochub_enabled ?? false,

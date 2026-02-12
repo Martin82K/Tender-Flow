@@ -166,6 +166,7 @@ export const useUpdateProjectDetailsMutation = () => {
             if (updates.documentationLink !== undefined) projectUpdates.documentation_link = updates.documentationLink;
             if (updates.documentLinks !== undefined) projectUpdates.document_links = updates.documentLinks;
             if (updates.inquiryLetterLink !== undefined) projectUpdates.inquiry_letter_link = updates.inquiryLetterLink;
+            if (updates.materialInquiryTemplateLink !== undefined) projectUpdates.material_inquiry_template_link = updates.materialInquiryTemplateLink;
             if (updates.losersEmailTemplateLink !== undefined) projectUpdates.losers_email_template_link = updates.losersEmailTemplateLink;
             if (updates.priceListLink !== undefined) projectUpdates.price_list_link = updates.priceListLink;
             if (updates.docHubEnabled !== undefined) projectUpdates.dochub_enabled = updates.docHubEnabled;
@@ -191,13 +192,24 @@ export const useUpdateProjectDetailsMutation = () => {
                 if (error) {
                     if (
                         error.code === "PGRST204" &&
-                        typeof error.message === "string" &&
-                        error.message.includes("losers_email_template_link")
+                        typeof error.message === "string"
                     ) {
-                        const { losers_email_template_link, ...rest } = projectUpdates;
-                        if (Object.keys(rest).length > 0) {
-                            const { error: retryError } = await supabase.from("projects").update(rest).eq("id", id);
-                            if (retryError) console.error("Error updating project (retry):", retryError);
+                        const compatibilityFields = ["losers_email_template_link", "material_inquiry_template_link"] as const;
+                        const fieldsToStrip = compatibilityFields.filter((field) => error.message.includes(field));
+
+                        if (fieldsToStrip.length > 0) {
+                            const rest = { ...projectUpdates };
+                            fieldsToStrip.forEach((field) => {
+                                delete rest[field];
+                            });
+
+                            if (Object.keys(rest).length > 0) {
+                                const { error: retryError } = await supabase.from("projects").update(rest).eq("id", id);
+                                if (retryError) console.error("Error updating project (retry):", retryError);
+                            }
+                        } else {
+                            console.error("Error updating project:", error);
+                            throw error;
                         }
                     } else {
                         console.error("Error updating project:", error);

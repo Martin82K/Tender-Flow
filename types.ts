@@ -191,6 +191,7 @@ export interface ProjectDetails {
   documentationLink?: string; // Link to shared project documentation (legacy, kept for compatibility)
   documentLinks?: DocumentLink[]; // Multiple document links with labels
   inquiryLetterLink?: string; // Link to inquiry letter template
+  materialInquiryTemplateLink?: string; // Link to material inquiry email template
   losersEmailTemplateLink?: string; // Link to email template for non-selected participants
   priceListLink?: string; // Link to price lists (Ceníky)
   docHubEnabled?: boolean; // DocHub module enabled for this project

@@ -4,13 +4,15 @@ import { ProjectDetails } from '../../../types';
 interface TemplatesSectionProps {
     project: ProjectDetails;
     templateName: string | null;
+    materialTemplateName: string | null;
     losersTemplateName: string | null;
-    openTemplateManager: (opts: { target: { kind: 'inquiry' } | { kind: 'losers' }; initialLink: string }) => void;
+    openTemplateManager: (opts: { target: { kind: 'inquiry' } | { kind: 'materialInquiry' } | { kind: 'losers' }; initialLink: string }) => void;
 }
 
 export const TemplatesSection: React.FC<TemplatesSectionProps> = ({
     project,
     templateName,
+    materialTemplateName,
     losersTemplateName,
     openTemplateManager
 }) => {
@@ -18,7 +20,7 @@ export const TemplatesSection: React.FC<TemplatesSectionProps> = ({
         <div className="rounded-xl border bg-white dark:bg-slate-950/30 border-slate-200 dark:border-slate-700/40 overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800">
                 <h3 className="font-semibold text-slate-900 dark:text-white">Šablony</h3>
-                <p className="text-xs text-slate-500 mt-1">Nastavení pro generování poptávky a email nevybraným.</p>
+                <p className="text-xs text-slate-500 mt-1">Nastavení pro generování poptávky, materiálové poptávky a email nevybraným.</p>
             </div>
 
             <div className="overflow-x-auto">
@@ -64,6 +66,43 @@ export const TemplatesSection: React.FC<TemplatesSectionProps> = ({
                                 >
                                     <span className="material-symbols-outlined text-[18px]">{project.inquiryLetterLink ? 'edit' : 'add_circle'}</span>
                                     {project.inquiryLetterLink ? 'Změnit' : 'Vybrat'}
+                                </button>
+                            </td>
+                        </tr>
+
+                        <tr className="hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors">
+                            <td className="px-5 py-4">
+                                <div className="flex items-start gap-3">
+                                    <span className="material-symbols-outlined text-slate-400 mt-0.5">inventory_2</span>
+                                    <div>
+                                        <div className="font-medium text-slate-900 dark:text-white">Šablona materiálové poptávky</div>
+                                        <div className="text-xs text-slate-500">Použije se pro akci „Materiálová poptávka“.</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td className="px-5 py-4">
+                                {project.materialInquiryTemplateLink ? (
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <span className="material-symbols-outlined text-emerald-400 text-[18px]">
+                                            {project.materialInquiryTemplateLink.startsWith('template:') ? 'wysiwyg' : 'link'}
+                                        </span>
+                                        <span className="text-slate-900 dark:text-white font-medium truncate">
+                                            {project.materialInquiryTemplateLink.startsWith('template:')
+                                                ? (materialTemplateName || 'Načítání...')
+                                                : (project.materialInquiryTemplateLink.startsWith('http') ? 'Externí odkaz / Soubor' : project.materialInquiryTemplateLink)}
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <span className="text-slate-500">Nenastaveno</span>
+                                )}
+                            </td>
+                            <td className="px-5 py-4 text-right whitespace-nowrap">
+                                <button
+                                    onClick={() => openTemplateManager({ target: { kind: 'materialInquiry' }, initialLink: project.materialInquiryTemplateLink || '' })}
+                                    className="px-3 py-1.5 text-sm font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50/60 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-500/15 transition-colors inline-flex items-center gap-2"
+                                >
+                                    <span className="material-symbols-outlined text-[18px]">{project.materialInquiryTemplateLink ? 'edit' : 'add_circle'}</span>
+                                    {project.materialInquiryTemplateLink ? 'Změnit' : 'Vybrat'}
                                 </button>
                             </td>
                         </tr>

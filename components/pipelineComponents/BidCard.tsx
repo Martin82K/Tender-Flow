@@ -14,6 +14,7 @@ export interface BidCardProps {
   onEdit: (bid: Bid) => void;
   onDelete?: (bidId: string) => void;
   onGenerateInquiry?: (bid: Bid) => void;
+  onGenerateMaterialInquiry?: (bid: Bid) => void;
   onOpenDocHubFolder?: (bid: Bid) => void;
 }
 
@@ -24,6 +25,7 @@ export const BidCard: React.FC<BidCardProps> = ({
   onEdit,
   onDelete,
   onGenerateInquiry,
+  onGenerateMaterialInquiry,
   onOpenDocHubFolder,
 }) => {
   return (
@@ -144,17 +146,33 @@ export const BidCard: React.FC<BidCardProps> = ({
 
       {/* Generate Inquiry Button */}
       {bid.status === "contacted" && onGenerateInquiry && bid.email && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onGenerateInquiry(bid);
-          }}
-          className="mt-3 w-full flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white px-3 py-2 rounded-lg text-xs font-bold transition-all shadow-lg"
-          title="Generovat email s poptávkou"
-        >
-          <span className="material-symbols-outlined text-[16px]">mail</span>
-          Generovat poptávku
-        </button>
+        <div className="mt-3 flex flex-col gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onGenerateInquiry(bid);
+            }}
+            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white px-3 py-2 rounded-lg text-xs font-bold transition-all shadow-lg"
+            title="Generovat email s poptávkou"
+          >
+            <span className="material-symbols-outlined text-[16px]">mail</span>
+            Generovat poptávku
+          </button>
+
+          {onGenerateMaterialInquiry && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onGenerateMaterialInquiry(bid);
+              }}
+              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white px-3 py-2 rounded-lg text-xs font-bold transition-all shadow-lg"
+              title="Generovat email s materiálovou poptávkou"
+            >
+              <span className="material-symbols-outlined text-[16px]">inventory_2</span>
+              Materiálová poptávka
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

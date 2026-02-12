@@ -92,6 +92,21 @@ interface PipelineProps {
 }
 
 type PipelineViewMode = "grid" | "table";
+export type InquiryGenerationKind = "inquiry" | "materialInquiry";
+
+export const getTemplateLinksForInquiryKind = (
+  project: ProjectDetails,
+  kind: InquiryGenerationKind,
+): string[] => {
+  const candidates =
+    kind === "materialInquiry"
+      ? [project.materialInquiryTemplateLink, project.inquiryLetterLink]
+      : [project.inquiryLetterLink];
+
+  return candidates.filter(
+    (link): link is string => !!link && link.startsWith("template:"),
+  );
+};
 
 export const Pipeline: React.FC<PipelineProps> = ({
   projectId,
@@ -1216,7 +1231,10 @@ export const Pipeline: React.FC<PipelineProps> = ({
     setIsCreateContactModalOpen(true);
   };
 
-  const handleGenerateInquiry = async (bid: Bid) => {
+  const generateInquiryFromTemplateKind = async (
+    bid: Bid,
+    kind: InquiryGenerationKind,
+  ) => {
     if (!activeCategory) return;
 
     // Determine mode: Desktop always uses EML for better formatting
@@ -1224,21 +1242,17 @@ export const Pipeline: React.FC<PipelineProps> = ({
     const userPreferredMode = user?.preferences?.emailClientMode || "mailto";
     const mode = isDesktopApp ? "eml" : userPreferredMode;
 
-    let subject = "";
-    let body = "";
-    let htmlBody = ""; // used for EML mode
-
-    const templateLink = projectDetails.inquiryLetterLink || "";
-
-    // Determine which template to use
     let template: Template | undefined;
+    const templateLinks = getTemplateLinksForInquiryKind(projectDetails, kind);
 
-    if (templateLink.startsWith("template:")) {
-      // A) Project has a specific template configured
+    for (const templateLink of templateLinks) {
       const templateId = templateLink.split(":")[1];
+      if (!templateId) continue;
       template = await getTemplateById(templateId);
-    } else {
-      // B) No project-specific template, try to load default template
+      if (template) break;
+    }
+
+    if (!template) {
       template = await getDefaultTemplate();
     }
 
@@ -1252,55 +1266,52 @@ export const Pipeline: React.FC<PipelineProps> = ({
       return;
     }
 
-    // Use template system
-    subject = processTemplate(template.subject, projectDetails, activeCategory);
+    const subject = processTemplate(
+      template.subject,
+      projectDetails,
+      activeCategory,
+    );
+    let body = "";
+    let htmlBody = "";
 
     if (mode === "eml") {
-      // EML Mode: Process as HTML, convert newlines to <br> if needed
       const rawBody = processTemplate(
         template.content,
         projectDetails,
         activeCategory,
         "html",
       );
-      // Let's assume standard templates are plain-text formatted.
       htmlBody = rawBody.replace(/\n/g, "<br>");
-
-      // Wrap in basic HTML structure
       htmlBody = `<!DOCTYPE html><html><body style="font-family: Arial, sans-serif; color: #333;">${htmlBody}</body></html>`;
     } else {
-      // Mailto Mode: Plain text
-      let processedBody = processTemplate(
+      const processedBody = processTemplate(
         template.content,
         projectDetails,
         activeCategory,
         "text",
       );
-
-      // Cleanup HTML tags if any (legacy safety)
       body = processedBody
         .replace(/<br\s*\/?>/gi, "\n")
         .replace(/<[^>]+>/g, "")
         .replace(/&nbsp;/g, " ");
     }
 
-    // Execute based on mode
     if (mode === "eml") {
-      // Desktop: Open EML directly without download dialog
       if (platformAdapter.isDesktop) {
         const emlContent = generateEmlContent(
           bid.email || "",
           subject,
           htmlBody,
         );
-        const filename = `Poptavka_${Date.now()}.eml`;
+        const filename =
+          kind === "materialInquiry"
+            ? `Materialova_poptavka_${Date.now()}.eml`
+            : `Poptavka_${Date.now()}.eml`;
         console.log("[Pipeline] Opening EML on desktop:", filename);
         platformAdapter.shell.openTempFile(emlContent, filename);
       } else {
-        // Web: Download EML file
         downloadEmlFile(bid.email || "", subject, htmlBody);
       }
-      // Optimistic update status
       updateBidsInternal((prev) => {
         const categoryBids = [...(prev[activeCategory.id] || [])];
         const index = categoryBids.findIndex((b) => b.id === bid.id);
@@ -1310,25 +1321,32 @@ export const Pipeline: React.FC<PipelineProps> = ({
         }
         return prev;
       });
-    } else {
-      // Mailto - open in default email client
-      const mailtoLink = createMailtoLink(bid.email || "", subject, body);
-      console.log("[Pipeline] Sending inquiry via mailto:", mailtoLink);
-      platformAdapter.shell.openExternal(mailtoLink);
-
-      // Optimistic update status
-      setTimeout(() => {
-        updateBidsInternal((prev) => {
-          const categoryBids = [...(prev[activeCategory.id] || [])];
-          const index = categoryBids.findIndex((b) => b.id === bid.id);
-          if (index > -1) {
-            categoryBids[index] = { ...categoryBids[index], status: "sent" };
-            return { ...prev, [activeCategory.id]: categoryBids };
-          }
-          return prev;
-        });
-      }, 100);
+      return;
     }
+
+    const mailtoLink = createMailtoLink(bid.email || "", subject, body);
+    console.log("[Pipeline] Sending inquiry via mailto:", mailtoLink);
+    platformAdapter.shell.openExternal(mailtoLink);
+
+    setTimeout(() => {
+      updateBidsInternal((prev) => {
+        const categoryBids = [...(prev[activeCategory.id] || [])];
+        const index = categoryBids.findIndex((b) => b.id === bid.id);
+        if (index > -1) {
+          categoryBids[index] = { ...categoryBids[index], status: "sent" };
+          return { ...prev, [activeCategory.id]: categoryBids };
+        }
+        return prev;
+      });
+    }, 100);
+  };
+
+  const handleGenerateInquiry = async (bid: Bid) => {
+    await generateInquiryFromTemplateKind(bid, "inquiry");
+  };
+
+  const handleGenerateMaterialInquiry = async (bid: Bid) => {
+    await generateInquiryFromTemplateKind(bid, "materialInquiry");
   };
 
   const handleOpenSupplierDocHub = (bid: Bid) => {
@@ -1910,6 +1928,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   onEdit={setEditingBid}
                   onDelete={handleDeleteBidRequest}
                   onGenerateInquiry={handleGenerateInquiry}
+                  onGenerateMaterialInquiry={handleGenerateMaterialInquiry}
                   onOpenDocHubFolder={
                     isDocHubEnabled ? handleOpenSupplierDocHub : undefined
                   }
