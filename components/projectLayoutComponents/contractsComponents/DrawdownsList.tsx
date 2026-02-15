@@ -27,6 +27,13 @@ const getCurrentPeriod = (): string => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 };
+const parseAmountInput = (value: string): number => {
+  const normalized = value.replace(/\s+/g, "").replace(",", ".");
+  const parsed = Number.parseFloat(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+const toAmountInput = (value: number): string =>
+  Math.max(0, Math.round(value)).toString();
 
 export const DrawdownsList: React.FC<DrawdownsListProps> = ({
   contracts,
@@ -49,31 +56,81 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
     approvedAmount: "",
     note: "",
   });
+  const [percentageValue, setPercentageValue] = useState("");
 
   const selectedContract = contracts.find((c) => c.id === selectedContractId);
   const drawdowns = selectedContract?.drawdowns || [];
   const totalApproved = drawdowns.reduce((s, d) => s + d.approvedAmount, 0);
+  const approvedWithoutSelected = Math.max(
+    0,
+    totalApproved - (selectedDrawdown?.approvedAmount || 0),
+  );
+  const formRemaining = selectedContract
+    ? Math.max(0, selectedContract.currentTotal - approvedWithoutSelected)
+    : 0;
   const remaining = selectedContract
     ? selectedContract.currentTotal - totalApproved
     : 0;
 
-  const resetForm = () =>
+  const resetForm = () => {
     setFormData({
       period: getCurrentPeriod(),
       claimedAmount: "",
       approvedAmount: "",
       note: "",
     });
+    setPercentageValue("");
+  };
+
+  const setAmountField = (
+    field: "claimedAmount" | "approvedAmount",
+    value: number,
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: toAmountInput(value),
+    }));
+  };
+
+  const fillRemaining = (field?: "claimedAmount" | "approvedAmount") => {
+    if (!selectedContract) return;
+    if (field) {
+      setAmountField(field, formRemaining);
+      return;
+    }
+
+    const value = toAmountInput(formRemaining);
+    setFormData((prev) => ({
+      ...prev,
+      claimedAmount: value,
+      approvedAmount: value,
+    }));
+  };
+
+  const applyPercentageToField = (field: "claimedAmount" | "approvedAmount") => {
+    if (!selectedContract) return;
+    const percent = parseAmountInput(percentageValue);
+    if (percent <= 0) return;
+    const amount = (selectedContract.currentTotal * percent) / 100;
+    setAmountField(field, amount);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedContractId) return;
+    const claimedAmount = Math.max(0, parseAmountInput(formData.claimedAmount));
+    const approvedAmount = Math.max(
+      0,
+      parseAmountInput(formData.approvedAmount),
+    );
+
     try {
       setSubmitting(true);
       if (selectedDrawdown) {
         await contractService.updateDrawdown(selectedDrawdown.id, {
-          claimedAmount: parseFloat(formData.claimedAmount) || 0,
-          approvedAmount: parseFloat(formData.approvedAmount) || 0,
+          period: formData.period,
+          claimedAmount,
+          approvedAmount,
           note: formData.note || undefined,
         });
         onDrawdownUpdated();
@@ -81,8 +138,8 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
         await contractService.createDrawdown({
           contractId: selectedContractId,
           period: formData.period,
-          claimedAmount: parseFloat(formData.claimedAmount) || 0,
-          approvedAmount: parseFloat(formData.approvedAmount) || 0,
+          claimedAmount,
+          approvedAmount,
           note: formData.note || undefined,
         });
         onDrawdownCreated();
@@ -114,6 +171,7 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
 
   const handleEdit = (d: ContractDrawdown) => {
     setSelectedDrawdown(d);
+    setPercentageValue("");
     setFormData({
       period: d.period,
       claimedAmount: d.claimedAmount.toString(),
@@ -128,6 +186,7 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
       setExtracting(true);
       const result =
         await contractExtractionService.extractDrawdownFromDocument(file);
+      setSelectedDrawdown(null);
       setFormData({
         period: result.fields.period?.toString() || getCurrentPeriod(),
         claimedAmount: result.fields.claimedAmount?.toString() || "",
@@ -273,7 +332,7 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y">
-              {drawdowns
+              {[...drawdowns]
                 .sort((a, b) => b.period.localeCompare(a.period))
                 .map((d) => (
                   <tr key={d.id} className="hover:bg-slate-50">
@@ -337,7 +396,6 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
                 setFormData((p) => ({ ...p, period: e.target.value }))
               }
               className={inputCls}
-              disabled={!!selectedDrawdown}
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -352,6 +410,13 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
                 className={inputCls}
                 placeholder="0"
               />
+              <button
+                type="button"
+                onClick={() => fillRemaining("claimedAmount")}
+                className="mt-2 text-xs px-2 py-1 rounded-md border hover:bg-slate-50"
+              >
+                Dočerpat
+              </button>
             </div>
             <div>
               <label className="block text-sm mb-1">Schválená částka</label>
@@ -364,8 +429,76 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
                 className={inputCls}
                 placeholder="0"
               />
+              <button
+                type="button"
+                onClick={() => fillRemaining("approvedAmount")}
+                className="mt-2 text-xs px-2 py-1 rounded-md border hover:bg-slate-50"
+              >
+                Dočerpat
+              </button>
             </div>
           </div>
+          {selectedContract && (
+            <div className="space-y-2 rounded-lg border border-slate-200 dark:border-slate-700 p-3">
+              <p className="text-xs text-slate-500">
+                Hodnota smlouvy:{" "}
+                <span className="font-semibold text-slate-700 dark:text-slate-200">
+                  {formatMoney(selectedContract.currentTotal)}
+                </span>{" "}
+                • Zbývá dočerpat:{" "}
+                <span className="font-semibold text-amber-600">
+                  {formatMoney(formRemaining)}
+                </span>
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => fillRemaining()}
+                  className="text-xs px-2 py-1 rounded-md border hover:bg-slate-50 font-medium"
+                >
+                  Dočerpat obě částky
+                </button>
+              </div>
+              <div className="grid grid-cols-[120px_1fr] gap-2 items-center">
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  value={percentageValue}
+                  onChange={(e) => setPercentageValue(e.target.value)}
+                  className={inputCls}
+                  placeholder="%"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      applyPercentageToField("claimedAmount");
+                      applyPercentageToField("approvedAmount");
+                    }}
+                    className="text-xs px-2 py-1 rounded-md border hover:bg-slate-50"
+                  >
+                    % do obou
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyPercentageToField("claimedAmount")}
+                    className="text-xs px-2 py-1 rounded-md border hover:bg-slate-50"
+                  >
+                    % do požadované
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyPercentageToField("approvedAmount")}
+                    className="text-xs px-2 py-1 rounded-md border hover:bg-slate-50"
+                  >
+                    % do schválené
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           <div>
             <label className="block text-sm mb-1">Poznámka</label>
             <textarea
