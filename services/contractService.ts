@@ -1,7 +1,9 @@
 import { supabase } from './supabase';
+import { invokeAuthedFunction } from './functionsClient';
 import {
   Contract,
   ContractAmendment,
+  ContractMarkdownAccessKind,
   ContractDrawdown,
   ContractMarkdownEntityType,
   ContractMarkdownSourceKind,
@@ -91,11 +93,29 @@ const mapMarkdownVersion = (
   sourceDocumentUrl: row.source_document_url as string | undefined,
   ocrProvider: row.ocr_provider as string | undefined,
   ocrModel: row.ocr_model as string | undefined,
-  contentMd: row.content_md as string,
+  contentMd: (row.content_md as string | null | undefined) || '',
+  encryptionVersion:
+    row.encryption_version === null || row.encryption_version === undefined
+      ? undefined
+      : Number.parseInt(String(row.encryption_version), 10),
+  encryptionKeyId: row.encryption_key_id as string | undefined,
+  contentSha256: row.content_sha256 as string | undefined,
   metadata: (row.metadata as Record<string, unknown> | null) || {},
   createdBy: row.created_by as string | undefined,
   createdAt: row.created_at as string | undefined,
 });
+
+interface MarkdownVersionsResponse {
+  versions: Record<string, unknown>[];
+}
+
+interface MarkdownLatestResponse {
+  version: Record<string, unknown> | null;
+}
+
+interface MarkdownCreateResponse {
+  version: Record<string, unknown>;
+}
 
 export const contractService = {
   // ============== CONTRACTS ==============
@@ -384,21 +404,19 @@ export const contractService = {
     entityId: string;
     limit?: number;
   }): Promise<ContractMarkdownVersion[]> => {
-    const entityColumn =
-      entityType === 'contract' ? 'contract_id' : 'amendment_id';
-    let query = supabase
-      .from('contract_markdown_versions')
-      .select('*')
-      .eq(entityColumn, entityId)
-      .order('version_no', { ascending: false });
+    const response = await invokeAuthedFunction<MarkdownVersionsResponse>(
+      'contract-markdown-secure',
+      {
+        body: {
+          action: 'list',
+          entityType,
+          entityId,
+          ...(limit && limit > 0 ? { limit } : {}),
+        },
+      },
+    );
 
-    if (limit && limit > 0) {
-      query = query.limit(limit);
-    }
-
-    const { data, error } = await query;
-    if (error) throw error;
-    return (data || []).map(mapMarkdownVersion);
+    return (response.versions || []).map((row) => mapMarkdownVersion(row));
   },
 
   getLatestMarkdownVersion: async ({
@@ -408,12 +426,18 @@ export const contractService = {
     entityType: ContractMarkdownEntityType;
     entityId: string;
   }): Promise<ContractMarkdownVersion | null> => {
-    const versions = await contractService.getMarkdownVersions({
-      entityType,
-      entityId,
-      limit: 1,
-    });
-    return versions[0] || null;
+    const response = await invokeAuthedFunction<MarkdownLatestResponse>(
+      'contract-markdown-secure',
+      {
+        body: {
+          action: 'latest',
+          entityType,
+          entityId,
+        },
+      },
+    );
+
+    return response.version ? mapMarkdownVersion(response.version) : null;
   },
 
   createMarkdownVersion: async (input: {
@@ -428,30 +452,49 @@ export const contractService = {
     ocrModel?: string;
     metadata?: Record<string, unknown>;
   }): Promise<ContractMarkdownVersion> => {
-    const { data, error } = await supabase.rpc(
-      'insert_contract_markdown_version',
+    const response = await invokeAuthedFunction<MarkdownCreateResponse>(
+      'contract-markdown-secure',
       {
-        p_entity_type: input.entityType,
-        p_contract_id: input.contractId || null,
-        p_amendment_id: input.amendmentId || null,
-        p_source_kind: input.sourceKind,
-        p_content_md: input.contentMd,
-        p_source_file_name: input.sourceFileName || null,
-        p_source_document_url: input.sourceDocumentUrl || null,
-        p_ocr_provider: input.ocrProvider || null,
-        p_ocr_model: input.ocrModel || null,
-        p_metadata: input.metadata || {},
+        body: {
+          action: 'create',
+          entityType: input.entityType,
+          contractId: input.contractId || null,
+          amendmentId: input.amendmentId || null,
+          sourceKind: input.sourceKind,
+          contentMd: input.contentMd,
+          sourceFileName: input.sourceFileName || null,
+          sourceDocumentUrl: input.sourceDocumentUrl || null,
+          ocrProvider: input.ocrProvider || null,
+          ocrModel: input.ocrModel || null,
+          metadata: input.metadata || {},
+        },
       },
     );
 
-    if (error) throw error;
-
-    const payload = Array.isArray(data) ? data[0] : data;
-    if (!payload) {
+    if (!response.version) {
       throw new Error('Nepodařilo se vytvořit verzi markdownu');
     }
 
-    return mapMarkdownVersion(payload as Record<string, unknown>);
+    return mapMarkdownVersion(response.version);
+  },
+
+  logMarkdownAccess: async ({
+    markdownVersionId,
+    accessKind,
+    accessSource = 'panel',
+  }: {
+    markdownVersionId: string;
+    accessKind: ContractMarkdownAccessKind;
+    accessSource?: string;
+  }): Promise<void> => {
+    await invokeAuthedFunction<{ ok: boolean }>('contract-markdown-secure', {
+      body: {
+        action: 'log_access',
+        markdownVersionId,
+        accessKind,
+        accessSource,
+      },
+    });
   },
 
   // ============== DOCUMENT UPLOAD ==============
@@ -469,10 +512,33 @@ export const contractService = {
 
     if (uploadError) throw uploadError;
 
-    const { data: urlData } = supabase.storage
-      .from('contract-documents')
-      .getPublicUrl(fileName);
+    return `storage://contract-documents/${fileName}`;
+  },
 
-    return urlData.publicUrl;
+  resolveContractDocumentUrl: async (
+    documentRef: string,
+    expiresInSeconds = 900,
+  ): Promise<string> => {
+    if (!documentRef) return '';
+    if (/^https?:\/\//i.test(documentRef)) return documentRef;
+
+    let bucket = 'contract-documents';
+    let objectPath = documentRef;
+
+    const storagePrefixMatch = documentRef.match(/^storage:\/\/([^/]+)\/(.+)$/i);
+    if (storagePrefixMatch) {
+      bucket = storagePrefixMatch[1];
+      objectPath = storagePrefixMatch[2];
+    }
+
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .createSignedUrl(objectPath, expiresInSeconds);
+
+    if (error || !data?.signedUrl) {
+      throw error || new Error('Nepodařilo se vygenerovat signed URL dokumentu');
+    }
+
+    return data.signedUrl;
   },
 };

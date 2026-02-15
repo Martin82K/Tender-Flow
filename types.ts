@@ -314,6 +314,7 @@ export type ContractStatus = 'draft' | 'active' | 'closed' | 'cancelled';
 export type ContractSource = 'manual' | 'from_tender_winner' | 'ai_extracted';
 export type ContractMarkdownEntityType = 'contract' | 'amendment';
 export type ContractMarkdownSourceKind = 'ocr' | 'manual_edit' | 'manual_upload' | 'import';
+export type ContractMarkdownAccessKind = 'view' | 'download' | 'export';
 
 export interface Contract {
   id: string;
@@ -424,6 +425,9 @@ export interface ContractMarkdownVersion {
   ocrProvider?: string;
   ocrModel?: string;
   contentMd: string;
+  encryptionVersion?: number;
+  encryptionKeyId?: string;
+  contentSha256?: string;
   metadata: Record<string, unknown>;
   createdBy?: string;
   createdAt?: string;

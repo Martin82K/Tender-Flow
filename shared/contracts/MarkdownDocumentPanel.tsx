@@ -145,6 +145,13 @@ export const MarkdownDocumentPanel: React.FC<MarkdownDocumentPanelProps> = ({
 
   const handleDownloadMd = () => {
     if (!selectedVersion) return;
+    contractService
+      .logMarkdownAccess({
+        markdownVersionId: selectedVersion.id,
+        accessKind: "download",
+        accessSource: "panel",
+      })
+      .catch(() => undefined);
     exportMarkdownToFile(
       getExportBase(entityLabel, selectedVersion.versionNo),
       selectedVersion.contentMd,
@@ -153,6 +160,13 @@ export const MarkdownDocumentPanel: React.FC<MarkdownDocumentPanelProps> = ({
 
   const handleExportPdf = () => {
     if (!selectedVersion) return;
+    contractService
+      .logMarkdownAccess({
+        markdownVersionId: selectedVersion.id,
+        accessKind: "export",
+        accessSource: "panel",
+      })
+      .catch(() => undefined);
     exportMarkdownToPdf(
       getExportBase(entityLabel, selectedVersion.versionNo),
       selectedVersion.contentMd,
@@ -175,7 +189,18 @@ export const MarkdownDocumentPanel: React.FC<MarkdownDocumentPanelProps> = ({
           <button
             type="button"
             disabled={!selectedVersion}
-            onClick={() => setShowPreviewModal(true)}
+            onClick={() => {
+              if (selectedVersion) {
+                contractService
+                  .logMarkdownAccess({
+                    markdownVersionId: selectedVersion.id,
+                    accessKind: "view",
+                    accessSource: "panel",
+                  })
+                  .catch(() => undefined);
+              }
+              setShowPreviewModal(true);
+            }}
             className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-600 disabled:opacity-50"
           >
             Nahlédnout

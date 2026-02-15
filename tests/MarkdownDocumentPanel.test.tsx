@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const serviceMocks = vi.hoisted(() => ({
   getMarkdownVersions: vi.fn(),
   createMarkdownVersion: vi.fn(),
+  logMarkdownAccess: vi.fn(),
 }));
 
 const exportMocks = vi.hoisted(() => ({
@@ -16,6 +17,7 @@ vi.mock('../services/contractService', () => ({
   contractService: {
     getMarkdownVersions: (...args: any[]) => serviceMocks.getMarkdownVersions(...args),
     createMarkdownVersion: (...args: any[]) => serviceMocks.createMarkdownVersion(...args),
+    logMarkdownAccess: (...args: any[]) => serviceMocks.logMarkdownAccess(...args),
   },
 }));
 
@@ -63,6 +65,8 @@ describe('MarkdownDocumentPanel', () => {
   beforeEach(() => {
     serviceMocks.getMarkdownVersions.mockReset();
     serviceMocks.createMarkdownVersion.mockReset();
+    serviceMocks.logMarkdownAccess.mockReset();
+    serviceMocks.logMarkdownAccess.mockResolvedValue(undefined);
     exportMocks.exportMarkdownToFile.mockReset();
     exportMocks.exportMarkdownToPdf.mockReset();
   });
@@ -117,6 +121,18 @@ describe('MarkdownDocumentPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Stáhnout .md' }));
     fireEvent.click(screen.getByRole('button', { name: 'Export PDF' }));
 
+    expect(serviceMocks.logMarkdownAccess).toHaveBeenCalledWith(
+      expect.objectContaining({
+        markdownVersionId: 'v2',
+        accessKind: 'download',
+      }),
+    );
+    expect(serviceMocks.logMarkdownAccess).toHaveBeenCalledWith(
+      expect.objectContaining({
+        markdownVersionId: 'v2',
+        accessKind: 'export',
+      }),
+    );
     expect(exportMocks.exportMarkdownToFile).toHaveBeenCalledWith(
       expect.any(String),
       '# Druha verze',
