@@ -1,5 +1,13 @@
 import { supabase } from './supabase';
-import { Contract, ContractAmendment, ContractDrawdown, ContractWithDetails } from '../types';
+import {
+  Contract,
+  ContractAmendment,
+  ContractDrawdown,
+  ContractMarkdownEntityType,
+  ContractMarkdownSourceKind,
+  ContractMarkdownVersion,
+  ContractWithDetails,
+} from '../types';
 
 // Helper: Map DB row to Contract type
 const mapContract = (row: Record<string, unknown>): Contract => ({
@@ -64,6 +72,27 @@ const mapDrawdown = (row: Record<string, unknown>): ContractDrawdown => ({
   documentUrl: row.document_url as string | undefined,
   extractionJson: row.extraction_json as Record<string, unknown> | undefined,
   extractionConfidence: row.extraction_confidence as number | undefined,
+  createdBy: row.created_by as string | undefined,
+  createdAt: row.created_at as string | undefined,
+});
+
+const mapMarkdownVersion = (
+  row: Record<string, unknown>,
+): ContractMarkdownVersion => ({
+  id: row.id as string,
+  entityType: row.entity_type as ContractMarkdownEntityType,
+  contractId: row.contract_id as string | undefined,
+  amendmentId: row.amendment_id as string | undefined,
+  projectId: row.project_id as string,
+  vendorId: row.vendor_id as string | undefined,
+  versionNo: Number.parseInt(String(row.version_no), 10) || 0,
+  sourceKind: row.source_kind as ContractMarkdownSourceKind,
+  sourceFileName: row.source_file_name as string | undefined,
+  sourceDocumentUrl: row.source_document_url as string | undefined,
+  ocrProvider: row.ocr_provider as string | undefined,
+  ocrModel: row.ocr_model as string | undefined,
+  contentMd: row.content_md as string,
+  metadata: (row.metadata as Record<string, unknown> | null) || {},
   createdBy: row.created_by as string | undefined,
   createdAt: row.created_at as string | undefined,
 });
@@ -342,6 +371,87 @@ export const contractService = {
   deleteDrawdown: async (id: string): Promise<void> => {
     const { error } = await supabase.from('contract_drawdowns').delete().eq('id', id);
     if (error) throw error;
+  },
+
+  // ============== MARKDOWN VERSIONS ==============
+
+  getMarkdownVersions: async ({
+    entityType,
+    entityId,
+    limit,
+  }: {
+    entityType: ContractMarkdownEntityType;
+    entityId: string;
+    limit?: number;
+  }): Promise<ContractMarkdownVersion[]> => {
+    const entityColumn =
+      entityType === 'contract' ? 'contract_id' : 'amendment_id';
+    let query = supabase
+      .from('contract_markdown_versions')
+      .select('*')
+      .eq(entityColumn, entityId)
+      .order('version_no', { ascending: false });
+
+    if (limit && limit > 0) {
+      query = query.limit(limit);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data || []).map(mapMarkdownVersion);
+  },
+
+  getLatestMarkdownVersion: async ({
+    entityType,
+    entityId,
+  }: {
+    entityType: ContractMarkdownEntityType;
+    entityId: string;
+  }): Promise<ContractMarkdownVersion | null> => {
+    const versions = await contractService.getMarkdownVersions({
+      entityType,
+      entityId,
+      limit: 1,
+    });
+    return versions[0] || null;
+  },
+
+  createMarkdownVersion: async (input: {
+    entityType: ContractMarkdownEntityType;
+    contractId?: string;
+    amendmentId?: string;
+    sourceKind: ContractMarkdownSourceKind;
+    contentMd: string;
+    sourceFileName?: string;
+    sourceDocumentUrl?: string;
+    ocrProvider?: string;
+    ocrModel?: string;
+    metadata?: Record<string, unknown>;
+  }): Promise<ContractMarkdownVersion> => {
+    const { data, error } = await supabase.rpc(
+      'insert_contract_markdown_version',
+      {
+        p_entity_type: input.entityType,
+        p_contract_id: input.contractId || null,
+        p_amendment_id: input.amendmentId || null,
+        p_source_kind: input.sourceKind,
+        p_content_md: input.contentMd,
+        p_source_file_name: input.sourceFileName || null,
+        p_source_document_url: input.sourceDocumentUrl || null,
+        p_ocr_provider: input.ocrProvider || null,
+        p_ocr_model: input.ocrModel || null,
+        p_metadata: input.metadata || {},
+      },
+    );
+
+    if (error) throw error;
+
+    const payload = Array.isArray(data) ? data[0] : data;
+    if (!payload) {
+      throw new Error('Nepodařilo se vytvořit verzi markdownu');
+    }
+
+    return mapMarkdownVersion(payload as Record<string, unknown>);
   },
 
   // ============== DOCUMENT UPLOAD ==============

@@ -312,6 +312,8 @@ export interface ShortUrl {
 
 export type ContractStatus = 'draft' | 'active' | 'closed' | 'cancelled';
 export type ContractSource = 'manual' | 'from_tender_winner' | 'ai_extracted';
+export type ContractMarkdownEntityType = 'contract' | 'amendment';
+export type ContractMarkdownSourceKind = 'ocr' | 'manual_edit' | 'manual_upload' | 'import';
 
 export interface Contract {
   id: string;
@@ -403,4 +405,26 @@ export interface ContractExtractionResult {
   fields: Partial<Contract>;
   confidence: Record<string, number>;
   rawText?: string;
+  ocrProvider?: string;
+  ocrModel?: string;
+  sourceFileName?: string;
+}
+
+export interface ContractMarkdownVersion {
+  id: string;
+  entityType: ContractMarkdownEntityType;
+  contractId?: string;
+  amendmentId?: string;
+  projectId: string;
+  vendorId?: string;
+  versionNo: number;
+  sourceKind: ContractMarkdownSourceKind;
+  sourceFileName?: string;
+  sourceDocumentUrl?: string;
+  ocrProvider?: string;
+  ocrModel?: string;
+  contentMd: string;
+  metadata: Record<string, unknown>;
+  createdBy?: string;
+  createdAt?: string;
 }

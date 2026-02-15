@@ -3,6 +3,7 @@ import { ContractWithDetails, ContractAmendment } from "../../../types";
 import { contractService } from "../../../services/contractService";
 import { contractExtractionService } from "../../../services/contractExtractionService";
 import { Modal } from "@/shared/ui/Modal";
+import { MarkdownDocumentPanel } from "@/shared/contracts/MarkdownDocumentPanel";
 
 interface AmendmentsListProps {
   contracts: ContractWithDetails[];
@@ -22,6 +23,15 @@ const formatMoney = (value: number): string => {
 
 const formatDate = (date?: string): string =>
   date ? new Date(date).toLocaleDateString("cs-CZ") : "-";
+const sortContractsByVendor = (
+  a: ContractWithDetails,
+  b: ContractWithDetails,
+): number =>
+  a.vendorName.localeCompare(b.vendorName, "cs", { sensitivity: "base" }) ||
+  (a.contractNumber || "").localeCompare(b.contractNumber || "", "cs", {
+    sensitivity: "base",
+  }) ||
+  a.title.localeCompare(b.title, "cs", { sensitivity: "base" });
 
 export const AmendmentsList: React.FC<AmendmentsListProps> = ({
   contracts,
@@ -32,11 +42,16 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
 }) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showMarkdownModal, setShowMarkdownModal] = useState(false);
   const [selectedAmendment, setSelectedAmendment] =
     useState<ContractAmendment | null>(null);
   const [extracting, setExtracting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [ocrSeedRawText, setOcrSeedRawText] = useState<string | null>(null);
+  const [ocrSeedFileName, setOcrSeedFileName] = useState<string | null>(null);
+  const [ocrSeedProvider, setOcrSeedProvider] = useState<string | null>(null);
+  const [ocrSeedModel, setOcrSeedModel] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     signedAt: "",
     effectiveFrom: "",
@@ -46,13 +61,21 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
   });
 
   const selectedContract = contracts.find((c) => c.id === selectedContractId);
+  const sortedContracts = [...contracts].sort(sortContractsByVendor);
   const amendments = selectedContract?.amendments || [];
+  const contractsWithAmendments = sortedContracts.filter(
+    (contract) => contract.amendments.length > 0,
+  );
+  const totalAmendments = contractsWithAmendments.reduce(
+    (sum, contract) => sum + contract.amendments.length,
+    0,
+  );
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedContractId) return;
     try {
-      await contractService.createAmendment({
+      const createdAmendment = await contractService.createAmendment({
         contractId: selectedContractId,
         signedAt: formData.signedAt || undefined,
         effectiveFrom: formData.effectiveFrom || undefined,
@@ -60,6 +83,17 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
         deltaDeadline: formData.deltaDeadline || undefined,
         reason: formData.reason || undefined,
       });
+      if (ocrSeedRawText?.trim()) {
+        await contractService.createMarkdownVersion({
+          entityType: "amendment",
+          amendmentId: createdAmendment.id,
+          sourceKind: "ocr",
+          contentMd: ocrSeedRawText,
+          sourceFileName: ocrSeedFileName || undefined,
+          ocrProvider: ocrSeedProvider || undefined,
+          ocrModel: ocrSeedModel || undefined,
+        });
+      }
       setShowCreateModal(false);
       setFormData({
         signedAt: "",
@@ -68,6 +102,10 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
         deltaDeadline: "",
         reason: "",
       });
+      setOcrSeedRawText(null);
+      setOcrSeedFileName(null);
+      setOcrSeedProvider(null);
+      setOcrSeedModel(null);
       onAmendmentCreated();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Chyba");
@@ -100,6 +138,10 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
         deltaDeadline: result.fields.deltaDeadline?.toString() || "",
         reason: result.fields.reason?.toString() || "",
       });
+      setOcrSeedRawText(result.rawText || null);
+      setOcrSeedFileName(result.sourceFileName || file.name);
+      setOcrSeedProvider(result.ocrProvider || null);
+      setOcrSeedModel(result.ocrModel || null);
       setShowCreateModal(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Chyba extrakce");
@@ -113,6 +155,78 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
 
   return (
     <div className="space-y-4">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border">
+        <div className="px-4 py-3 border-b flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold">Přehled dodatků</p>
+            <p className="text-xs text-slate-500">
+              Smlouvy a společnosti, kde už existují dodatky.
+            </p>
+          </div>
+          <div className="text-xs text-slate-500">
+            {contractsWithAmendments.length} smluv • {totalAmendments} dodatků
+          </div>
+        </div>
+
+        {contractsWithAmendments.length === 0 ? (
+          <div className="px-4 py-5 text-sm text-slate-500">
+            Zatím nejsou evidovány žádné dodatky.
+          </div>
+        ) : (
+          <div className="divide-y">
+            {contractsWithAmendments.map((contract) => {
+              const deltaSum = contract.amendments.reduce(
+                (sum, amendment) => sum + amendment.deltaPrice,
+                0,
+              );
+              const latestAmendment = [...contract.amendments].sort((a, b) =>
+                (b.signedAt || "").localeCompare(a.signedAt || ""),
+              )[0];
+
+              return (
+                <button
+                  type="button"
+                  key={contract.id}
+                  onClick={() => onSelectContract(contract.id)}
+                  className={`w-full px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors ${
+                    selectedContractId === contract.id
+                      ? "bg-sky-50/70 dark:bg-sky-900/20"
+                      : ""
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-medium">
+                        {contract.vendorName}
+                        <span className="text-slate-400 mx-2">•</span>
+                        {contract.contractNumber
+                          ? `[${contract.contractNumber}] `
+                          : ""}
+                        {contract.title}
+                      </p>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Poslední dodatek: {formatDate(latestAmendment?.signedAt)}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-sm font-semibold">
+                        {contract.amendments.length}x dodatek
+                      </p>
+                      <p
+                        className={`text-xs ${deltaSum > 0 ? "text-red-500" : deltaSum < 0 ? "text-emerald-600" : "text-slate-500"}`}
+                      >
+                        {deltaSum > 0 ? "+" : ""}
+                        {formatMoney(deltaSum)}
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <label className="text-sm font-medium">Smlouva:</label>
@@ -122,7 +236,7 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
             className={inputCls}
           >
             <option value="">Vyberte...</option>
-            {contracts.map((c) => (
+            {sortedContracts.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.contractNumber ? `[${c.contractNumber}] ` : ""}
                 {c.title} | {c.vendorName}
@@ -157,7 +271,13 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
               </span>
             </label>
             <button
-              onClick={() => setShowCreateModal(true)}
+              onClick={() => {
+                setOcrSeedRawText(null);
+                setOcrSeedFileName(null);
+                setOcrSeedProvider(null);
+                setOcrSeedModel(null);
+                setShowCreateModal(true);
+              }}
               className="px-3 py-2 bg-primary text-white rounded-lg text-sm"
             >
               <span className="material-symbols-outlined text-lg">add</span>{" "}
@@ -179,7 +299,9 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
             post_add
           </span>
           <p className="text-slate-500 mt-4">
-            {!selectedContractId ? "Vyberte smlouvu" : "Žádné dodatky"}
+            {!selectedContractId
+              ? "Vyberte smlouvu"
+              : "Pro vybranou smlouvu nejsou dodatky"}
           </p>
         </div>
       ) : (
@@ -204,11 +326,14 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
             </thead>
             <tbody className="divide-y">
               {amendments.map((a) => (
-                <tr key={a.id} className="hover:bg-slate-50">
-                  <td className="px-4 py-3 text-sm font-medium">
+                <tr
+                  key={a.id}
+                  className="hover:bg-slate-50 dark:hover:bg-slate-700/40"
+                >
+                  <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-slate-100">
                     Dodatek č. {a.amendmentNo}
                   </td>
-                  <td className="px-4 py-3 text-sm">
+                  <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-200">
                     {formatDate(a.signedAt)}
                   </td>
                   <td
@@ -217,19 +342,31 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
                     {a.deltaPrice > 0 ? "+" : ""}
                     {formatMoney(a.deltaPrice)}
                   </td>
-                  <td className="px-4 py-3 text-sm truncate max-w-[200px]">
+                  <td className="px-4 py-3 text-sm truncate max-w-[200px] text-slate-700 dark:text-slate-200">
                     {a.reason || "-"}
                   </td>
                   <td className="px-4 py-3">
-                    <button
-                      onClick={() => {
-                        setSelectedAmendment(a);
-                        setShowDeleteModal(true);
-                      }}
-                      className="p-1 rounded hover:bg-red-50 text-slate-500 hover:text-red-500"
-                    >
-                      <span className="material-symbols-outlined">delete</span>
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => {
+                          setSelectedAmendment(a);
+                          setShowMarkdownModal(true);
+                        }}
+                        className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-300 hover:text-primary"
+                        title="Náhled markdownu"
+                      >
+                        <span className="material-symbols-outlined">visibility</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedAmendment(a);
+                          setShowDeleteModal(true);
+                        }}
+                        className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-500 dark:text-slate-300 hover:text-red-500"
+                      >
+                        <span className="material-symbols-outlined">delete</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -240,7 +377,13 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
 
       <Modal
         isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        onClose={() => {
+          setShowCreateModal(false);
+          setOcrSeedRawText(null);
+          setOcrSeedFileName(null);
+          setOcrSeedProvider(null);
+          setOcrSeedModel(null);
+        }}
         title="Nový dodatek"
         size="md"
       >
@@ -308,7 +451,13 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
           <div className="flex justify-end gap-3 pt-4 border-t">
             <button
               type="button"
-              onClick={() => setShowCreateModal(false)}
+              onClick={() => {
+                setShowCreateModal(false);
+                setOcrSeedRawText(null);
+                setOcrSeedFileName(null);
+                setOcrSeedProvider(null);
+                setOcrSeedModel(null);
+              }}
               className="px-4 py-2 text-sm"
             >
               Zrušit
@@ -347,6 +496,25 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
             {deleting ? "Mažu..." : "Smazat"}
           </button>
         </div>
+      </Modal>
+
+      <Modal
+        isOpen={showMarkdownModal}
+        onClose={() => {
+          setShowMarkdownModal(false);
+          setSelectedAmendment(null);
+        }}
+        title="Náhled markdownu dodatku"
+        size="xl"
+      >
+        {selectedAmendment && (
+          <MarkdownDocumentPanel
+            entityType="amendment"
+            entityId={selectedAmendment.id}
+            entityLabel={`Dodatek_${selectedAmendment.amendmentNo}`}
+            editable={false}
+          />
+        )}
       </Modal>
     </div>
   );

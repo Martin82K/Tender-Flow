@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { marked } from 'marked';
 import { DemandCategory, Bid, ProjectDetails, TenderPlanItem, Subcontractor, StatusConfig } from '../types';
 import type { SupplierOfferRef } from '../utils/overviewAnalytics';
 import { getOfferStatusMeta } from '../utils/offerStatus';
@@ -280,6 +281,145 @@ export function exportToMarkdown(
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+}
+
+export function exportMarkdownToFile(filenameBase: string, contentMd: string): void {
+  const safeBase = filenameBase.trim().replace(/[\\/:*?"<>|]/g, '_') || 'document';
+  const blob = new Blob([contentMd || ''], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${safeBase}.md`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+export function exportMarkdownToPdf(
+  filenameBase: string,
+  contentMd: string,
+  title?: string,
+): void {
+  const safeBase = filenameBase.trim().replace(/[\\/:*?"<>|]/g, '_') || 'document';
+  const doc = new jsPDF({ orientation: 'portrait', format: 'a4' });
+  registerRobotoFont(doc);
+  doc.setFont('Roboto', 'normal');
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const marginX = 14;
+  const maxWidth = pageWidth - marginX * 2;
+  const lineHeight = 5.5;
+  let y = 18;
+
+  const ensureSpace = (needed = 10) => {
+    if (y + needed > pageHeight - 16) {
+      doc.addPage();
+      y = 18;
+    }
+  };
+
+  const writeLines = (
+    text: string,
+    options?: { fontSize?: number; indent?: number; spacingAfter?: number },
+  ) => {
+    if (!text) return;
+    const fontSize = options?.fontSize ?? 11;
+    const indent = options?.indent ?? 0;
+    const spacingAfter = options?.spacingAfter ?? 2;
+    doc.setFontSize(fontSize);
+    const lines = doc.splitTextToSize(text, maxWidth - indent) as string[];
+    ensureSpace(lines.length * lineHeight + spacingAfter + 2);
+    doc.text(lines, marginX + indent, y);
+    y += lines.length * lineHeight + spacingAfter;
+  };
+
+  if (title) {
+    writeLines(title, { fontSize: 16, spacingAfter: 4 });
+  }
+
+  const tokens = marked.lexer(contentMd || '');
+  tokens.forEach((token: any) => {
+    switch (token.type) {
+      case 'heading': {
+        const headingSize = token.depth === 1 ? 16 : token.depth === 2 ? 14 : 12;
+        writeLines(token.text || '', { fontSize: headingSize, spacingAfter: 3 });
+        break;
+      }
+      case 'paragraph':
+      case 'text': {
+        writeLines(token.text || '', { fontSize: 11, spacingAfter: 2 });
+        break;
+      }
+      case 'list': {
+        token.items?.forEach((item: any, index: number) => {
+          const bullet = token.ordered ? `${index + 1}.` : '•';
+          writeLines(`${bullet} ${item.text || ''}`, { fontSize: 11, indent: 2, spacingAfter: 1 });
+        });
+        y += 1;
+        break;
+      }
+      case 'code': {
+        const code = token.text || '';
+        const codeLines = doc.splitTextToSize(code, maxWidth - 6) as string[];
+        const blockHeight = codeLines.length * 4.6 + 6;
+        ensureSpace(blockHeight + 4);
+        doc.setFillColor(248, 250, 252);
+        doc.setDrawColor(226, 232, 240);
+        doc.roundedRect(marginX, y, maxWidth, blockHeight, 2, 2, 'FD');
+        doc.setFontSize(10);
+        doc.text(codeLines, marginX + 3, y + 5);
+        y += blockHeight + 3;
+        break;
+      }
+      case 'table': {
+        ensureSpace(20);
+        autoTable(doc, {
+          startY: y,
+          head: token.header ? [token.header] : [],
+          body: token.rows || [],
+          styles: { fontSize: 9, cellPadding: 2, font: 'Roboto' },
+          headStyles: { fillColor: [71, 85, 105], textColor: 255, fontStyle: 'normal' },
+          margin: { left: marginX, right: marginX },
+          tableWidth: maxWidth,
+        });
+        y = (doc as any).lastAutoTable.finalY + 4;
+        break;
+      }
+      case 'hr': {
+        ensureSpace(8);
+        doc.setDrawColor(203, 213, 225);
+        doc.line(marginX, y, pageWidth - marginX, y);
+        y += 5;
+        break;
+      }
+      case 'space': {
+        y += 2;
+        break;
+      }
+      default: {
+        const fallback = (token.text || token.raw || '').toString().trim();
+        if (fallback) {
+          writeLines(fallback, { fontSize: 11, spacingAfter: 2 });
+        }
+      }
+    }
+  });
+
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i += 1) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(128);
+    doc.text(
+      `Tender Flow | Exportováno: ${formatDate(new Date().toISOString())} | Strana ${i} z ${pageCount}`,
+      marginX,
+      pageHeight - 10,
+    );
+  }
+
+  doc.save(`${safeBase}.pdf`);
 }
 
 /**

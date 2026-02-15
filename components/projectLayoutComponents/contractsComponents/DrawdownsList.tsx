@@ -34,6 +34,15 @@ const parseAmountInput = (value: string): number => {
 };
 const toAmountInput = (value: number): string =>
   Math.max(0, Math.round(value)).toString();
+const sortContractsByVendor = (
+  a: ContractWithDetails,
+  b: ContractWithDetails,
+): number =>
+  a.vendorName.localeCompare(b.vendorName, "cs", { sensitivity: "base" }) ||
+  (a.contractNumber || "").localeCompare(b.contractNumber || "", "cs", {
+    sensitivity: "base",
+  }) ||
+  a.title.localeCompare(b.title, "cs", { sensitivity: "base" });
 
 export const DrawdownsList: React.FC<DrawdownsListProps> = ({
   contracts,
@@ -59,6 +68,7 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
   const [percentageValue, setPercentageValue] = useState("");
 
   const selectedContract = contracts.find((c) => c.id === selectedContractId);
+  const sortedContracts = [...contracts].sort(sortContractsByVendor);
   const drawdowns = selectedContract?.drawdowns || [];
   const totalApproved = drawdowns.reduce((s, d) => s + d.approvedAmount, 0);
   const approvedWithoutSelected = Math.max(
@@ -216,10 +226,10 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
             className={inputCls}
           >
             <option value="">Vyberte...</option>
-            {contracts.map((c) => (
+            {sortedContracts.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.contractNumber ? `[${c.contractNumber}] ` : ""}
-                {c.title} | {c.vendorName}
+                {c.vendorName} | {c.contractNumber ? `[${c.contractNumber}] ` : ""}
+                {c.title}
               </option>
             ))}
           </select>
@@ -335,25 +345,28 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
               {[...drawdowns]
                 .sort((a, b) => b.period.localeCompare(a.period))
                 .map((d) => (
-                  <tr key={d.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-3 text-sm font-medium">
+                  <tr
+                    key={d.id}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-700/40"
+                  >
+                    <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-slate-100">
                       {formatPeriod(d.period)}
                     </td>
-                    <td className="px-4 py-3 text-sm text-right">
+                    <td className="px-4 py-3 text-sm text-right text-slate-700 dark:text-slate-200">
                       {formatMoney(d.claimedAmount)}
                     </td>
                     <td className="px-4 py-3 text-sm text-right font-semibold text-emerald-600">
                       {formatMoney(d.approvedAmount)}
                     </td>
-                    <td className="px-4 py-3 text-sm truncate max-w-[200px]">
+                    <td className="px-4 py-3 text-sm truncate max-w-[200px] text-slate-700 dark:text-slate-200">
                       {d.note || "-"}
                     </td>
                     <td className="px-4 py-3 flex gap-1">
                       <button
                         onClick={() => handleEdit(d)}
-                        className="p-1 rounded hover:bg-slate-100"
+                        className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700"
                       >
-                        <span className="material-symbols-outlined text-slate-500">
+                        <span className="material-symbols-outlined text-slate-500 dark:text-slate-300">
                           edit
                         </span>
                       </button>
@@ -362,9 +375,9 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
                           setSelectedDrawdown(d);
                           setShowDeleteModal(true);
                         }}
-                        className="p-1 rounded hover:bg-red-50"
+                        className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30"
                       >
-                        <span className="material-symbols-outlined text-slate-500 hover:text-red-500">
+                        <span className="material-symbols-outlined text-slate-500 dark:text-slate-300 hover:text-red-500">
                           delete
                         </span>
                       </button>

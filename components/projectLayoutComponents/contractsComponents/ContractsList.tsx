@@ -11,6 +11,7 @@ import { ExtractionValidation } from "./ExtractionValidation";
 import { contractExtractionService } from "../../../services/contractExtractionService";
 import { Modal } from "@/shared/ui/Modal";
 import { StarRating } from "@/shared/ui/StarRating";
+import { MarkdownDocumentPanel } from "@/shared/contracts/MarkdownDocumentPanel";
 
 interface ContractsListProps {
   projectId: string;
@@ -72,9 +73,30 @@ export const ContractsList: React.FC<ContractsListProps> = ({
 
   const handleCreateContract = async (
     data: Omit<Contract, "id" | "createdAt" | "updatedAt">,
+    markdownSeed?: {
+      contentMd?: string;
+      sourceFileName?: string;
+      sourceDocumentUrl?: string;
+      ocrProvider?: string;
+      ocrModel?: string;
+      metadata?: Record<string, unknown>;
+    },
   ) => {
     try {
-      await contractService.createContract(data);
+      const created = await contractService.createContract(data);
+      if (markdownSeed?.contentMd?.trim()) {
+        await contractService.createMarkdownVersion({
+          entityType: "contract",
+          contractId: created.id,
+          sourceKind: "ocr",
+          contentMd: markdownSeed.contentMd,
+          sourceFileName: markdownSeed.sourceFileName,
+          sourceDocumentUrl: markdownSeed.sourceDocumentUrl,
+          ocrProvider: markdownSeed.ocrProvider,
+          ocrModel: markdownSeed.ocrModel,
+          metadata: markdownSeed.metadata,
+        });
+      }
       setShowCreateModal(false);
       setShowExtractionModal(false);
       setExtractedData(null);
@@ -147,6 +169,14 @@ export const ContractsList: React.FC<ContractsListProps> = ({
       basePrice: data.basePrice || 0,
       source: "ai_extracted",
       ...data,
+    }, {
+      contentMd: extractedData?.rawText,
+      sourceFileName: extractedData?.sourceFileName,
+      ocrProvider: extractedData?.ocrProvider,
+      ocrModel: extractedData?.ocrModel,
+      metadata: {
+        confidence: extractedData?.confidence || {},
+      },
     });
   };
 
@@ -383,18 +413,26 @@ export const ContractsList: React.FC<ContractsListProps> = ({
           setSelectedContract(null);
         }}
         title="Upravit smlouvu"
-        size="lg"
+        size="2xl"
       >
         {selectedContract && (
-          <ContractForm
-            projectId={projectId}
-            initialData={selectedContract}
-            onSubmit={handleUpdateContract}
-            onCancel={() => {
-              setShowEditModal(false);
-              setSelectedContract(null);
-            }}
-          />
+          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_430px] gap-6 items-start">
+            <ContractForm
+              projectId={projectId}
+              initialData={selectedContract}
+              onSubmit={handleUpdateContract}
+              onCancel={() => {
+                setShowEditModal(false);
+                setSelectedContract(null);
+              }}
+            />
+            <MarkdownDocumentPanel
+              entityType="contract"
+              entityId={selectedContract.id}
+              entityLabel={selectedContract.title}
+              editable={true}
+            />
+          </div>
         )}
       </Modal>
 
