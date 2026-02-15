@@ -416,22 +416,26 @@ export const ContractsList: React.FC<ContractsListProps> = ({
         size="2xl"
       >
         {selectedContract && (
-          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_430px] gap-6 items-start">
-            <ContractForm
-              projectId={projectId}
-              initialData={selectedContract}
-              onSubmit={handleUpdateContract}
-              onCancel={() => {
-                setShowEditModal(false);
-                setSelectedContract(null);
-              }}
-            />
-            <MarkdownDocumentPanel
-              entityType="contract"
-              entityId={selectedContract.id}
-              entityLabel={selectedContract.title}
-              editable={true}
-            />
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-6 items-start">
+            <div className="min-w-0">
+              <ContractForm
+                projectId={projectId}
+                initialData={selectedContract}
+                onSubmit={handleUpdateContract}
+                onCancel={() => {
+                  setShowEditModal(false);
+                  setSelectedContract(null);
+                }}
+              />
+            </div>
+            <div className="min-w-0">
+              <MarkdownDocumentPanel
+                entityType="contract"
+                entityId={selectedContract.id}
+                entityLabel={selectedContract.title}
+                editable={true}
+              />
+            </div>
           </div>
         )}
       </Modal>
