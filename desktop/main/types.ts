@@ -58,6 +58,7 @@ export interface AppAPI {
     checkForUpdates: () => Promise<boolean>;
     quitAndInstall: () => Promise<void>;
     quit: () => Promise<void>;
+    openUserManual: () => Promise<void>;
     getUserDataPath: () => Promise<string>;
 }
 

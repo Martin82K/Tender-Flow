@@ -695,16 +695,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onClick={(e) => {
                   if (isDesktop) {
                     e.preventDefault();
-                    // Use openFile for local HTML files - it uses shell.openPath() which works with file:// paths
-                    const manualPath = new URL(
-                      "/user-manual/index.html",
-                      window.location.href,
-                    ).pathname;
-                    platformAdapter.fs.openFile(manualPath);
+                    platformAdapter.app.openUserManual().catch((error) => {
+                      console.error("Nepodařilo se otevřít příručku:", error);
+                    });
                   }
                 }}
                 className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
-                title="Otevře uživatelskou příručku v nové záložce"
+                title="Otevře uživatelskou příručku"
               >
                 <span className="material-symbols-outlined shrink-0">
                   menu_book

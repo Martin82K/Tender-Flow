@@ -2,7 +2,7 @@
 
 Tato příručka popisuje práci v aplikaci Tender Flow pro řízení staveb, výběrových řízení a subdodavatelů.
 
-Verze příručky: **1.4** • Datum: **2026‑01‑13** • Aplikace: **v0.9.6 v08**
+Verze příručky: **1.5** • Datum: **2026‑02‑14** • Aplikace: **v1.3.1**
 
 <p class="manualLogoWrap">
   <img class="manualLogo" src="./assets/logo.png" alt="Tender Flow logo" />
@@ -19,6 +19,7 @@ Verze příručky: **1.4** • Datum: **2026‑01‑13** • Aplikace: **v0.9.6 
 - [Detail stavby (záložky)](#detail-stavby-zalozky)
 - [Plán VŘ](#plan-vr)
 - [Výběrová řízení (Pipeline)](#vyberova-rizeni-pipeline)
+- [Smlouvy](#smlouvy)
 - [Harmonogram](#harmonogram)
 - [Dokumenty a šablony](#dokumenty-a-sablony)
 - [Subdodavatelé (Kontakty)](#subdodavatele-kontakty)
@@ -45,6 +46,23 @@ Verze příručky: **1.4** • Datum: **2026‑01‑13** • Aplikace: **v0.9.6 
 ## Novinky (poslední změny)
 
 Verzi aplikace najdete vlevo dole v sidebaru.
+
+### v1.3.1
+
+- **Smlouvy (projektová záložka)**: kompletní modul pro evidenci smluv, dodatků a čerpání v rámci konkrétní stavby.
+- **Zpracování dokumentů ke smlouvám**: možnost předvyplnit data ze souboru (např. PDF) a následně je potvrdit/upravit.
+- **Stabilita oprávnění a předplatného**: vylepšení vyhodnocování dostupných funkcí a konzistence přístupů napříč organizacemi.
+- **Desktop UX**: uživatelská příručka se v desktop verzi otevírá přímo v aplikaci.
+
+### v1.2.3
+
+- **Emailové šablony (Resend)**: aktualizace šablon a konfigurace odesílání.
+- **Reset hesla**: opravy routingu a celého flow obnovy hesla.
+
+### v1.2.1
+
+- **OCR vylepšení**: přesnější rozpoznávání textu.
+- **Build/desktop stabilita**: technické úpravy build procesu Electron aplikace.
 
 ### v0.9.6 v08
 
@@ -199,6 +217,7 @@ Po kliknutí na stavbu v sidebaru se otevře detail se záložkami:
 - **Přehled** – rozpočty, stav, metriky.
 - **Plán VŘ** – plánování výběrových řízení.
 - **Výběrová řízení** – pipeline poptávek a nabídek.
+- **Smlouvy** – evidence smluv, dodatků a čerpání.
 - **Harmonogram** – Gantt navázaný na termíny výběrových řízení.
 - **Dokumenty** – odkazy na dokumentaci a šablony poptávek.
 
@@ -230,6 +249,17 @@ Výběrová řízení jsou organizovaná po **poptávkách** (kategorie prací).
 Na kartě nabídky evidujete cenu, tagy, poznámky a případně generujete poptávkový email.
 
 ![Schéma karty nabídky](./assets/06-bid-card.svg)
+
+## Smlouvy
+
+Záložka **Smlouvy** slouží pro finanční a smluvní řízení konkrétní stavby.
+
+- **Přehled** – souhrn KPI (počty smluv, hodnota, čerpání, retence).
+- **Smlouvy** – seznam smluv, vytváření/editace, vazba na dodavatele, stav a hodnotu.
+- **Dodatky** – změny smluv (cenové i termínové) navázané na vybranou smlouvu.
+- **Čerpání** – evidence průvodek/čerpání a kontrola zůstatku vůči aktuální hodnotě smlouvy.
+
+Tip: při zakládání lze data ze smluvních dokumentů předvyplnit automaticky a před uložením je ručně potvrdit.
 
 ## Harmonogram
 

@@ -25,6 +25,7 @@ import type {
 // Services (singleton instances)
 let watcherService: FolderWatcherService | null = null;
 const storageService = new SecureStorageService();
+const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
 const base64UrlEncode = (input: Buffer | Uint8Array): string => {
     const b64 = Buffer.from(input).toString('base64');
@@ -324,6 +325,32 @@ export function registerIpcHandlers(): void {
 
     ipcMain.handle('app:quit', async (): Promise<void> => {
         app.quit();
+    });
+
+    ipcMain.handle('app:openUserManual', async (event): Promise<void> => {
+        const parentWindow = BrowserWindow.fromWebContents(event.sender) ?? undefined;
+        const manualWindow = new BrowserWindow({
+            width: 1200,
+            height: 860,
+            minWidth: 900,
+            minHeight: 640,
+            parent: parentWindow,
+            autoHideMenuBar: true,
+            title: 'Tender Flow – Uživatelská příručka',
+            webPreferences: {
+                contextIsolation: true,
+                nodeIntegration: false,
+                sandbox: true,
+            },
+        });
+
+        if (isDev) {
+            await manualWindow.loadURL('http://localhost:3000/user-manual/index.html');
+            return;
+        }
+
+        const manualPath = path.join(app.getAppPath(), 'dist', 'user-manual', 'index.html');
+        await manualWindow.loadFile(manualPath);
     });
 
     ipcMain.handle('app:getUserDataPath', async (): Promise<string> => {
