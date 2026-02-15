@@ -28,12 +28,21 @@ const getCurrentPeriod = (): string => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 };
 const parseAmountInput = (value: string): number => {
-  const normalized = value.replace(/\s+/g, "").replace(",", ".");
+  const normalized = value
+    .replace(/\s+/g, "")
+    .replace(/\./g, "")
+    .replace(",", ".")
+    .replace(/[^0-9.-]/g, "");
   const parsed = Number.parseFloat(normalized);
   return Number.isFinite(parsed) ? parsed : 0;
 };
+const formatAmountInput = (value: number): string =>
+  new Intl.NumberFormat("cs-CZ", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(Math.max(0, Math.round(value)));
 const toAmountInput = (value: number): string =>
-  Math.max(0, Math.round(value)).toString();
+  formatAmountInput(value);
 const sortContractsByVendor = (
   a: ContractWithDetails,
   b: ContractWithDetails,
@@ -184,8 +193,8 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
     setPercentageValue("");
     setFormData({
       period: d.period,
-      claimedAmount: d.claimedAmount.toString(),
-      approvedAmount: d.approvedAmount.toString(),
+      claimedAmount: toAmountInput(d.claimedAmount),
+      approvedAmount: toAmountInput(d.approvedAmount),
       note: d.note || "",
     });
     setShowModal(true);
@@ -199,8 +208,16 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
       setSelectedDrawdown(null);
       setFormData({
         period: result.fields.period?.toString() || getCurrentPeriod(),
-        claimedAmount: result.fields.claimedAmount?.toString() || "",
-        approvedAmount: result.fields.approvedAmount?.toString() || "",
+        claimedAmount:
+          result.fields.claimedAmount !== undefined &&
+          result.fields.claimedAmount !== null
+            ? toAmountInput(parseAmountInput(result.fields.claimedAmount.toString()))
+            : "",
+        approvedAmount:
+          result.fields.approvedAmount !== undefined &&
+          result.fields.approvedAmount !== null
+            ? toAmountInput(parseAmountInput(result.fields.approvedAmount.toString()))
+            : "",
         note: result.fields.note?.toString() || "",
       });
       setShowModal(true);
@@ -213,6 +230,12 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
 
   const inputCls =
     "w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm";
+  const helperButtonCls =
+    "text-xs px-2 py-1 rounded-md border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/70 hover:text-slate-900 dark:hover:text-white transition-colors";
+  const panelCls =
+    "rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900";
+  const ghostActionCls =
+    "inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700/70 transition-colors";
 
   return (
     <div className="space-y-4">
@@ -247,7 +270,7 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
                 }}
                 disabled={extracting}
               />
-              <span className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm border hover:bg-slate-50">
+              <span className={ghostActionCls}>
                 {extracting ? (
                   "Analyzuji..."
                 ) : (
@@ -266,9 +289,9 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
                 setSelectedDrawdown(null);
                 setShowModal(true);
               }}
-              className="px-3 py-2 bg-primary text-white rounded-lg text-sm flex items-center gap-1"
+              className="inline-flex items-center gap-2 px-3 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90 transition-colors"
             >
-              <span className="material-symbols-outlined text-lg">add</span>{" "}
+              <span className="material-symbols-outlined text-lg">add</span>
               Nová průvodka
             </button>
           </div>
@@ -276,36 +299,32 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
       </div>
 
       {error && (
-        <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+        <div className="p-3 rounded-lg text-sm bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300 border border-red-200 dark:border-red-800">
           {error}
         </div>
       )}
 
       {/* Summary */}
       {selectedContract && (
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border">
-            <p className="text-xs text-slate-500 uppercase font-semibold">
-              Hodnota smlouvy
+        <div className={`${panelCls} px-4 py-3`}>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
+            <p className="text-slate-500">
+              Hodnota smlouvy:{" "}
+              <span className="font-semibold text-slate-900 dark:text-slate-100">
+                {formatMoney(selectedContract.currentTotal)}
+              </span>
             </p>
-            <p className="text-xl font-bold">
-              {formatMoney(selectedContract.currentTotal)}
+            <p className="text-slate-500">
+              Vyčerpáno:{" "}
+              <span className="font-semibold text-slate-900 dark:text-slate-100">
+                {formatMoney(totalApproved)}
+              </span>
             </p>
-          </div>
-          <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border">
-            <p className="text-xs text-slate-500 uppercase font-semibold">
-              Vyčerpáno
-            </p>
-            <p className="text-xl font-bold text-emerald-600">
-              {formatMoney(totalApproved)}
-            </p>
-          </div>
-          <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border">
-            <p className="text-xs text-slate-500 uppercase font-semibold">
-              Zbývá
-            </p>
-            <p className="text-xl font-bold text-amber-600">
-              {formatMoney(remaining)}
+            <p className="text-slate-500">
+              Zbývá:{" "}
+              <span className="font-semibold text-slate-900 dark:text-slate-100">
+                {formatMoney(remaining)}
+              </span>
             </p>
           </div>
         </div>
@@ -313,7 +332,7 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
 
       {/* List */}
       {!selectedContractId || drawdowns.length === 0 ? (
-        <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-2xl border">
+        <div className={`${panelCls} text-center py-10`}>
           <span className="material-symbols-outlined text-5xl text-slate-300">
             account_balance
           </span>
@@ -322,10 +341,10 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
           </p>
         </div>
       ) : (
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border overflow-hidden">
+        <div className={`${panelCls} overflow-hidden`}>
           <table className="w-full">
             <thead>
-              <tr className="border-b bg-slate-50 dark:bg-slate-900/50">
+              <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80">
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase">
                   Období
                 </th>
@@ -341,13 +360,13 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
-            <tbody className="divide-y">
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
               {[...drawdowns]
                 .sort((a, b) => b.period.localeCompare(a.period))
                 .map((d) => (
                   <tr
                     key={d.id}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-700/40"
+                    className="hover:bg-slate-50 dark:hover:bg-slate-800/70"
                   >
                     <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-slate-100">
                       {formatPeriod(d.period)}
@@ -364,7 +383,7 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
                     <td className="px-4 py-3 flex gap-1">
                       <button
                         onClick={() => handleEdit(d)}
-                        className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700"
+                        className="p-1.5 rounded-md border border-transparent hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                       >
                         <span className="material-symbols-outlined text-slate-500 dark:text-slate-300">
                           edit
@@ -375,7 +394,7 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
                           setSelectedDrawdown(d);
                           setShowDeleteModal(true);
                         }}
-                        className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30"
+                        className="p-1.5 rounded-md border border-transparent hover:border-red-300 dark:hover:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
                       >
                         <span className="material-symbols-outlined text-slate-500 dark:text-slate-300 hover:text-red-500">
                           delete
@@ -420,13 +439,21 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
                 onChange={(e) =>
                   setFormData((p) => ({ ...p, claimedAmount: e.target.value }))
                 }
+                onBlur={() =>
+                  setFormData((p) => ({
+                    ...p,
+                    claimedAmount: p.claimedAmount.trim()
+                      ? toAmountInput(parseAmountInput(p.claimedAmount))
+                      : "",
+                  }))
+                }
                 className={inputCls}
                 placeholder="0"
               />
               <button
                 type="button"
                 onClick={() => fillRemaining("claimedAmount")}
-                className="mt-2 text-xs px-2 py-1 rounded-md border hover:bg-slate-50"
+                className={`mt-2 ${helperButtonCls}`}
               >
                 Dočerpat
               </button>
@@ -439,13 +466,21 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
                 onChange={(e) =>
                   setFormData((p) => ({ ...p, approvedAmount: e.target.value }))
                 }
+                onBlur={() =>
+                  setFormData((p) => ({
+                    ...p,
+                    approvedAmount: p.approvedAmount.trim()
+                      ? toAmountInput(parseAmountInput(p.approvedAmount))
+                      : "",
+                  }))
+                }
                 className={inputCls}
                 placeholder="0"
               />
               <button
                 type="button"
                 onClick={() => fillRemaining("approvedAmount")}
-                className="mt-2 text-xs px-2 py-1 rounded-md border hover:bg-slate-50"
+                className={`mt-2 ${helperButtonCls}`}
               >
                 Dočerpat
               </button>
@@ -467,7 +502,7 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
                 <button
                   type="button"
                   onClick={() => fillRemaining()}
-                  className="text-xs px-2 py-1 rounded-md border hover:bg-slate-50 font-medium"
+                  className={`${helperButtonCls} font-medium`}
                 >
                   Dočerpat obě částky
                 </button>
@@ -490,21 +525,21 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
                       applyPercentageToField("claimedAmount");
                       applyPercentageToField("approvedAmount");
                     }}
-                    className="text-xs px-2 py-1 rounded-md border hover:bg-slate-50"
+                    className={helperButtonCls}
                   >
                     % do obou
                   </button>
                   <button
                     type="button"
                     onClick={() => applyPercentageToField("claimedAmount")}
-                    className="text-xs px-2 py-1 rounded-md border hover:bg-slate-50"
+                    className={helperButtonCls}
                   >
                     % do požadované
                   </button>
                   <button
                     type="button"
                     onClick={() => applyPercentageToField("approvedAmount")}
-                    className="text-xs px-2 py-1 rounded-md border hover:bg-slate-50"
+                    className={helperButtonCls}
                   >
                     % do schválené
                   </button>
@@ -523,7 +558,7 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
               rows={2}
             />
           </div>
-          <div className="flex justify-end gap-3 pt-4 border-t">
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
             <button
               type="button"
               onClick={() => setShowModal(false)}

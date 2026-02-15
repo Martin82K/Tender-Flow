@@ -63,6 +63,10 @@ export const ContractsList: React.FC<ContractsListProps> = ({
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showExtractionModal, setShowExtractionModal] = useState(false);
+  const [extractionMode, setExtractionMode] = useState<"create" | "edit">(
+    "create",
+  );
+  const [markdownPanelRefreshKey, setMarkdownPanelRefreshKey] = useState(0);
   const [selectedContract, setSelectedContract] =
     useState<ContractWithDetails | null>(null);
   const [extractedData, setExtractedData] =
@@ -141,8 +145,12 @@ export const ContractsList: React.FC<ContractsListProps> = ({
     }
   };
 
-  const handleFileUpload = async (file: File) => {
+  const handleFileUpload = async (
+    file: File,
+    mode: "create" | "edit" = "create",
+  ) => {
     try {
+      setExtractionMode(mode);
       setExtracting(true);
       setError(null);
       const result = await contractExtractionService.extractFromDocument(file);
@@ -159,25 +167,62 @@ export const ContractsList: React.FC<ContractsListProps> = ({
     }
   };
 
-  const handleExtractionConfirm = (data: Partial<Contract>) => {
-    handleCreateContract({
-      projectId,
-      vendorName: data.vendorName || "Neznámý dodavatel",
-      title: data.title || "Nová smlouva",
-      status: "draft",
-      currency: data.currency || "CZK",
-      basePrice: data.basePrice || 0,
-      source: "ai_extracted",
-      ...data,
-    }, {
-      contentMd: extractedData?.rawText,
-      sourceFileName: extractedData?.sourceFileName,
-      ocrProvider: extractedData?.ocrProvider,
-      ocrModel: extractedData?.ocrModel,
-      metadata: {
-        confidence: extractedData?.confidence || {},
+  const handleExtractionConfirm = async (data: Partial<Contract>) => {
+    if (extractionMode === "edit" && selectedContract) {
+      try {
+        if (!extractedData?.rawText?.trim()) {
+          setError("OCR text není k dispozici pro uložení markdown verze");
+          return;
+        }
+
+        await contractService.createMarkdownVersion({
+          entityType: "contract",
+          contractId: selectedContract.id,
+          sourceKind: "ocr",
+          contentMd: extractedData.rawText,
+          sourceFileName: extractedData.sourceFileName,
+          ocrProvider: extractedData.ocrProvider,
+          ocrModel: extractedData.ocrModel,
+          metadata: {
+            confidence: extractedData.confidence || {},
+          },
+        });
+        setMarkdownPanelRefreshKey((prev) => prev + 1);
+
+        setShowExtractionModal(false);
+        setExtractedData(null);
+        setExtractionMode("create");
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Nepodařilo se doplnit OCR data do smlouvy",
+        );
+      }
+      return;
+    }
+
+    handleCreateContract(
+      {
+        projectId,
+        vendorName: data.vendorName || "Neznámý dodavatel",
+        title: data.title || "Nová smlouva",
+        status: "draft",
+        currency: data.currency || "CZK",
+        basePrice: data.basePrice || 0,
+        source: "ai_extracted",
+        ...data,
       },
-    });
+      {
+        contentMd: extractedData?.rawText,
+        sourceFileName: extractedData?.sourceFileName,
+        ocrProvider: extractedData?.ocrProvider,
+        ocrModel: extractedData?.ocrModel,
+        metadata: {
+          confidence: extractedData?.confidence || {},
+        },
+      },
+    );
   };
 
   return (
@@ -196,7 +241,7 @@ export const ContractsList: React.FC<ContractsListProps> = ({
               className="hidden"
               onChange={(e) => {
                 const file = e.target.files?.[0];
-                if (file) handleFileUpload(file);
+                if (file) handleFileUpload(file, "create");
                 e.target.value = "";
               }}
               disabled={extracting}
@@ -291,9 +336,9 @@ export const ContractsList: React.FC<ContractsListProps> = ({
                     className="hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer"
                     onClick={() => onSelectContract(contract.id)}
                   >
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 align-top">
                       <div>
-                        <p className="text-sm font-medium text-slate-900 dark:text-white">
+                        <p className="text-sm font-medium text-slate-900 dark:text-white whitespace-normal break-words max-w-[300px]">
                           {contract.title}
                         </p>
                         {contract.contractNumber && (
@@ -303,8 +348,8 @@ export const ContractsList: React.FC<ContractsListProps> = ({
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3">
-                      <p className="text-sm text-slate-600 dark:text-slate-300">
+                    <td className="px-4 py-3 align-top">
+                      <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-normal break-words max-w-[240px]">
                         {contract.vendorName}
                       </p>
                     </td>
@@ -411,6 +456,7 @@ export const ContractsList: React.FC<ContractsListProps> = ({
         onClose={() => {
           setShowEditModal(false);
           setSelectedContract(null);
+          setExtractionMode("create");
         }}
         title="Upravit smlouvu"
         size="2xl"
@@ -419,17 +465,47 @@ export const ContractsList: React.FC<ContractsListProps> = ({
           <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-6 items-start">
             <div className="min-w-0">
               <ContractForm
+                key={selectedContract.id}
                 projectId={projectId}
                 initialData={selectedContract}
                 onSubmit={handleUpdateContract}
                 onCancel={() => {
                   setShowEditModal(false);
                   setSelectedContract(null);
+                  setExtractionMode("create");
                 }}
               />
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 space-y-3">
+              <label className="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700">
+                <input
+                  type="file"
+                  accept=".pdf,.docx,.doc"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleFileUpload(file, "edit");
+                    e.target.value = "";
+                  }}
+                  disabled={extracting}
+                />
+                {extracting ? (
+                  <>
+                    <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></span>
+                    Analyzuji OCR...
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-lg">
+                      upload_file
+                    </span>
+                    Doplnit OCR dokument
+                  </>
+                )}
+              </label>
+
               <MarkdownDocumentPanel
+                key={`${selectedContract.id}-${markdownPanelRefreshKey}`}
                 entityType="contract"
                 entityId={selectedContract.id}
                 entityLabel={selectedContract.title}
@@ -446,9 +522,10 @@ export const ContractsList: React.FC<ContractsListProps> = ({
         onClose={() => {
           setShowExtractionModal(false);
           setExtractedData(null);
+          setExtractionMode("create");
         }}
         title="Ověření extrahovaných dat"
-        size="lg"
+        size="2xl"
         persistent={true}
       >
         {extractedData && (
@@ -460,6 +537,7 @@ export const ContractsList: React.FC<ContractsListProps> = ({
             onCancel={() => {
               setShowExtractionModal(false);
               setExtractedData(null);
+              setExtractionMode("create");
             }}
           />
         )}

@@ -152,11 +152,15 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
 
   const inputCls =
     "w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm";
+  const panelCls =
+    "rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900";
+  const ghostActionCls =
+    "inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700/70 transition-colors";
 
   return (
     <div className="space-y-4">
-      <div className="bg-white dark:bg-slate-800 rounded-2xl border">
-        <div className="px-4 py-3 border-b flex items-center justify-between">
+      <div className={panelCls}>
+        <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
           <div>
             <p className="text-sm font-semibold">Přehled dodatků</p>
             <p className="text-xs text-slate-500">
@@ -173,7 +177,7 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
             Zatím nejsou evidovány žádné dodatky.
           </div>
         ) : (
-          <div className="divide-y">
+          <div className="divide-y divide-slate-200 dark:divide-slate-700">
             {contractsWithAmendments.map((contract) => {
               const deltaSum = contract.amendments.reduce(
                 (sum, amendment) => sum + amendment.deltaPrice,
@@ -188,9 +192,9 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
                   type="button"
                   key={contract.id}
                   onClick={() => onSelectContract(contract.id)}
-                  className={`w-full px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors ${
+                  className={`w-full px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors ${
                     selectedContractId === contract.id
-                      ? "bg-sky-50/70 dark:bg-sky-900/20"
+                      ? "bg-slate-100 dark:bg-slate-800/70"
                       : ""
                   }`}
                 >
@@ -257,7 +261,7 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
                 }}
                 disabled={extracting}
               />
-              <span className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm border hover:bg-slate-50">
+              <span className={ghostActionCls}>
                 {extracting ? (
                   "Analyzuji..."
                 ) : (
@@ -278,9 +282,9 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
                 setOcrSeedModel(null);
                 setShowCreateModal(true);
               }}
-              className="px-3 py-2 bg-primary text-white rounded-lg text-sm"
+              className="inline-flex items-center gap-2 px-3 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90 transition-colors"
             >
-              <span className="material-symbols-outlined text-lg">add</span>{" "}
+              <span className="material-symbols-outlined text-lg">add</span>
               Nový
             </button>
           </div>
@@ -288,13 +292,13 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
       </div>
 
       {error && (
-        <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+        <div className="p-3 rounded-lg text-sm bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300 border border-red-200 dark:border-red-800">
           {error}
         </div>
       )}
 
       {!selectedContractId || amendments.length === 0 ? (
-        <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-2xl border">
+        <div className={`${panelCls} text-center py-10`}>
           <span className="material-symbols-outlined text-5xl text-slate-300">
             post_add
           </span>
@@ -305,10 +309,10 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
           </p>
         </div>
       ) : (
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border overflow-hidden">
+        <div className={`${panelCls} overflow-hidden`}>
           <table className="w-full">
             <thead>
-              <tr className="border-b bg-slate-50 dark:bg-slate-900/50">
+              <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80">
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase">
                   Č.
                 </th>
@@ -324,11 +328,11 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
-            <tbody className="divide-y">
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
               {amendments.map((a) => (
                 <tr
                   key={a.id}
-                  className="hover:bg-slate-50 dark:hover:bg-slate-700/40"
+                  className="hover:bg-slate-50 dark:hover:bg-slate-800/70"
                 >
                   <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-slate-100">
                     Dodatek č. {a.amendmentNo}
@@ -352,7 +356,7 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
                           setSelectedAmendment(a);
                           setShowMarkdownModal(true);
                         }}
-                        className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-300 hover:text-primary"
+                        className="p-1.5 rounded-md border border-transparent hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-300 hover:text-primary transition-colors"
                         title="Náhled markdownu"
                       >
                         <span className="material-symbols-outlined">visibility</span>
@@ -362,7 +366,7 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
                           setSelectedAmendment(a);
                           setShowDeleteModal(true);
                         }}
-                        className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-500 dark:text-slate-300 hover:text-red-500"
+                        className="p-1.5 rounded-md border border-transparent hover:border-red-300 dark:hover:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-500 dark:text-slate-300 hover:text-red-500 transition-colors"
                       >
                         <span className="material-symbols-outlined">delete</span>
                       </button>
@@ -448,7 +452,7 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
               rows={3}
             />
           </div>
-          <div className="flex justify-end gap-3 pt-4 border-t">
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
             <button
               type="button"
               onClick={() => {
