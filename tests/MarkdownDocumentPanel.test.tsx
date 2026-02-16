@@ -38,7 +38,7 @@ const versionsFixture = [
     versionNo: 2,
     sourceKind: 'manual_edit',
     sourceFileName: 'manual.md',
-    contentMd: '# Druha verze',
+    contentMd: '# Druha verze\nVerze je připravena.\nTato verze je finální.',
     metadata: {},
     createdBy: 'u1',
     createdAt: '2026-02-15T10:00:00.000Z',
@@ -54,7 +54,7 @@ const versionsFixture = [
     sourceFileName: 'ocr.pdf',
     ocrProvider: 'mistral-ocr',
     ocrModel: 'mistral-ocr-latest',
-    contentMd: '# Prvni verze',
+    contentMd: '# Prvni verze\nHistorická verze dokumentu.',
     metadata: {},
     createdBy: 'u1',
     createdAt: '2026-02-14T10:00:00.000Z',
@@ -135,11 +135,11 @@ describe('MarkdownDocumentPanel', () => {
     );
     expect(exportMocks.exportMarkdownToFile).toHaveBeenCalledWith(
       expect.any(String),
-      '# Druha verze',
+      expect.stringContaining('# Druha verze'),
     );
     expect(exportMocks.exportMarkdownToPdf).toHaveBeenCalledWith(
       expect.any(String),
-      '# Druha verze',
+      expect.stringContaining('# Druha verze'),
       expect.stringContaining('Smlouva A'),
     );
   });
@@ -176,6 +176,118 @@ describe('MarkdownDocumentPanel', () => {
           contentMd: '# Nova verze',
         }),
       );
+    });
+  });
+
+  it('vyhledavani vykresli jen pri enableSearch', async () => {
+    serviceMocks.getMarkdownVersions.mockResolvedValue(versionsFixture);
+
+    const { rerender } = render(
+      <MarkdownDocumentPanel
+        entityType="contract"
+        entityId="c1"
+        entityLabel="Smlouva A"
+      />,
+    );
+
+    await screen.findByText('Druha verze');
+    expect(screen.queryByPlaceholderText('Vyhledat v dokumentu...')).not.toBeInTheDocument();
+
+    rerender(
+      <MarkdownDocumentPanel
+        entityType="contract"
+        entityId="c1"
+        entityLabel="Smlouva A"
+        enableSearch={true}
+      />,
+    );
+
+    expect(await screen.findByPlaceholderText('Vyhledat v dokumentu...')).toBeInTheDocument();
+  });
+
+  it('query zvyrazni vyskyt a zobrazi pocet nalezu', async () => {
+    serviceMocks.getMarkdownVersions.mockResolvedValue(versionsFixture);
+
+    const { container } = render(
+      <MarkdownDocumentPanel
+        entityType="contract"
+        entityId="c1"
+        entityLabel="Smlouva A"
+        enableSearch={true}
+      />,
+    );
+
+    await screen.findByText('Druha verze');
+
+    fireEvent.change(screen.getByPlaceholderText('Vyhledat v dokumentu...'), {
+      target: { value: 'verze' },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('1/3')).toBeInTheDocument();
+      expect(container.querySelectorAll('mark.md-search-mark').length).toBe(3);
+    });
+  });
+
+  it('sipky prepinaji aktivni nalez cyklicky', async () => {
+    serviceMocks.getMarkdownVersions.mockResolvedValue(versionsFixture);
+
+    render(
+      <MarkdownDocumentPanel
+        entityType="contract"
+        entityId="c1"
+        entityLabel="Smlouva A"
+        enableSearch={true}
+      />,
+    );
+
+    await screen.findByText('Druha verze');
+
+    fireEvent.change(screen.getByPlaceholderText('Vyhledat v dokumentu...'), {
+      target: { value: 'verze' },
+    });
+
+    await screen.findByText('1/3');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Další výskyt' }));
+    expect(screen.getByText('2/3')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Další výskyt' }));
+    expect(screen.getByText('3/3')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Další výskyt' }));
+    expect(screen.getByText('1/3')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Předchozí výskyt' }));
+    expect(screen.getByText('3/3')).toBeInTheDocument();
+  });
+
+  it('vymazani query odstrani highlight', async () => {
+    serviceMocks.getMarkdownVersions.mockResolvedValue(versionsFixture);
+
+    const { container } = render(
+      <MarkdownDocumentPanel
+        entityType="contract"
+        entityId="c1"
+        entityLabel="Smlouva A"
+        enableSearch={true}
+      />,
+    );
+
+    await screen.findByText('Druha verze');
+
+    const searchInput = screen.getByPlaceholderText('Vyhledat v dokumentu...');
+    fireEvent.change(searchInput, { target: { value: 'verze' } });
+
+    await waitFor(() => {
+      expect(container.querySelectorAll('mark.md-search-mark').length).toBeGreaterThan(0);
+    });
+
+    fireEvent.change(searchInput, { target: { value: '' } });
+
+    await waitFor(() => {
+      expect(container.querySelectorAll('mark.md-search-mark').length).toBe(0);
+      expect(screen.getByText('Bez filtru')).toBeInTheDocument();
     });
   });
 });

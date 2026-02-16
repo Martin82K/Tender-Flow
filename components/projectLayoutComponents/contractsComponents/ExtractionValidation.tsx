@@ -215,7 +215,7 @@ const highlightSearchMatches = (
       }
 
       const mark = document.createElement("mark");
-      mark.className = `${SEARCH_MARK_CLASS} rounded px-0.5 bg-amber-300/70 dark:bg-amber-500/40`;
+      mark.className = `${SEARCH_MARK_CLASS} rounded px-1 py-0.5 font-semibold text-slate-950 bg-amber-300 dark:bg-amber-200 dark:text-slate-950 ring-1 ring-amber-500/80 dark:ring-amber-300/80`;
       mark.textContent = matchedText;
       fragment.appendChild(mark);
       matches.push(mark);
@@ -236,11 +236,17 @@ const highlightSearchMatches = (
 
 const focusSearchMatch = (matches: HTMLElement[], index: number) => {
   matches.forEach((match, matchIndex) => {
-    match.style.outline = matchIndex === index ? "2px solid rgb(245 158 11)" : "";
+    const isActive = matchIndex === index;
+    match.style.outline = isActive ? "2px solid rgb(217 119 6)" : "";
+    match.style.boxShadow = isActive
+      ? "0 0 0 1px rgba(255,255,255,0.95), 0 0 0 3px rgba(217,119,6,0.9)"
+      : "";
     match.style.borderRadius = "0.25rem";
   });
   const activeMatch = matches[index];
-  activeMatch?.scrollIntoView({ behavior: "smooth", block: "center" });
+  if (activeMatch && typeof activeMatch.scrollIntoView === "function") {
+    activeMatch.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
 };
 
 export const ExtractionValidation: React.FC<ExtractionValidationProps> = ({

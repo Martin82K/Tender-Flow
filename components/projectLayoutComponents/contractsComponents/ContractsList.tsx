@@ -462,8 +462,8 @@ export const ContractsList: React.FC<ContractsListProps> = ({
         size="2xl"
       >
         {selectedContract && (
-          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-6 items-start">
-            <div className="min-w-0">
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-6 items-stretch lg:h-[72vh] lg:min-h-[620px]">
+            <div className="min-w-0 min-h-0 lg:h-full lg:overflow-y-auto lg:pr-1">
               <ContractForm
                 key={selectedContract.id}
                 projectId={projectId}
@@ -476,7 +476,7 @@ export const ContractsList: React.FC<ContractsListProps> = ({
                 }}
               />
             </div>
-            <div className="min-w-0 space-y-3">
+            <div className="min-w-0 min-h-0 space-y-3 flex flex-col lg:h-full">
               <label className="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700">
                 <input
                   type="file"
@@ -504,13 +504,17 @@ export const ContractsList: React.FC<ContractsListProps> = ({
                 )}
               </label>
 
-              <MarkdownDocumentPanel
-                key={`${selectedContract.id}-${markdownPanelRefreshKey}`}
-                entityType="contract"
-                entityId={selectedContract.id}
-                entityLabel={selectedContract.title}
-                editable={true}
-              />
+              <div className="min-h-0 flex-1">
+                <MarkdownDocumentPanel
+                  key={`${selectedContract.id}-${markdownPanelRefreshKey}`}
+                  entityType="contract"
+                  entityId={selectedContract.id}
+                  entityLabel={selectedContract.title}
+                  editable={true}
+                  fitParent={true}
+                  enableSearch={true}
+                />
+              </div>
             </div>
           </div>
         )}
