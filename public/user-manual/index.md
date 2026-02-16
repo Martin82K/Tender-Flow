@@ -2,7 +2,7 @@
 
 Tato příručka popisuje práci v aplikaci Tender Flow pro řízení staveb, výběrových řízení a subdodavatelů.
 
-Verze příručky: **1.5** • Datum: **2026‑02‑14** • Aplikace: **v1.3.1**
+Verze příručky: **1.6** • Datum: **2026‑02‑16** • Aplikace: **v1.3.2**
 
 <p class="manualLogoWrap">
   <img class="manualLogo" src="./assets/logo.png" alt="Tender Flow logo" />
@@ -23,7 +23,7 @@ Verze příručky: **1.5** • Datum: **2026‑02‑14** • Aplikace: **v1.3.1*
 - [Harmonogram](#harmonogram)
 - [Dokumenty a šablony](#dokumenty-a-sablony)
 - [Subdodavatelé (Kontakty)](#subdodavatele-kontakty)
-- [Správa staveb](#správa-staveb)
+- [Správa staveb](#sprava-staveb)
 - [Přehled staveb (analytika)](#prehled-staveb-analytika)
 - [Nastavení aplikace](#nastaveni-aplikace)
 - [Excel nástroje](#excel-nastroje)
@@ -46,6 +46,12 @@ Verze příručky: **1.5** • Datum: **2026‑02‑14** • Aplikace: **v1.3.1*
 ## Novinky (poslední změny)
 
 Verzi aplikace najdete vlevo dole v sidebaru.
+
+### v1.3.2
+
+- **Uživatelská příručka doplněna**: rozšířené a sjednocené popisy hlavních modulů včetně administrace, AI funkcí a desktop sekce.
+- **Obsah příručky upraven**: opravené interní odkazy a aktualizované metainformace verze/datum.
+- **Release poznámky sjednocené**: doplněna sada release notes pro aktuální patch release.
 
 ### v1.3.1
 
