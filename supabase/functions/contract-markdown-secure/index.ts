@@ -1,6 +1,11 @@
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { createAuthedUserClient, createServiceClient } from "../_shared/supabase.ts";
 import { decryptTextAesGcm, encryptTextAesGcm, sha256Hex } from "../_shared/crypto.ts";
+import {
+  createPublicMarkdownRow,
+  isMarkdownSecurityError,
+  materializeRowContentSecure,
+} from "./markdownSecurity.ts";
 
 type EntityType = "contract" | "amendment";
 type SourceKind = "ocr" | "manual_edit" | "manual_upload" | "import";
@@ -45,11 +50,36 @@ type EncryptionContext = {
   key: string;
 };
 
+type ErrorCode =
+  | "UNAUTHORIZED"
+  | "MISSING_ACTION"
+  | "INVALID_ENTITY_IDENTIFIER"
+  | "ACCESS_DENIED"
+  | "INVALID_CREATE_PAYLOAD"
+  | "MISSING_ENTITY_ID"
+  | "MISSING_EDIT_PERMISSION"
+  | "MARKDOWN_CREATE_FAILED"
+  | "INVALID_ACCESS_LOG_PAYLOAD"
+  | "VERSION_NOT_FOUND"
+  | "VERSION_INVALID_ENTITY_LINK"
+  | "UNSUPPORTED_ACTION"
+  | "INTERNAL_ERROR"
+  | "MD_INTEGRITY_MISMATCH"
+  | "MD_LEGACY_MIGRATION_FAILED"
+  | "MD_CONTENT_UNREADABLE";
+
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "content-type": "application/json" },
   });
+
+const jsonError = (
+  status: number,
+  error: string,
+  code: ErrorCode,
+  requestId: string,
+) => json(status, { error, code, requestId });
 
 const asEntityType = (value: unknown): EntityType | null =>
   value === "contract" || value === "amendment" ? value : null;
@@ -171,53 +201,11 @@ const sanitizeLimit = (value: unknown): number => {
   return Math.min(parsed, 100);
 };
 
-const materializeRowContent = async (
-  service: ReturnType<typeof createServiceClient>,
-  row: MarkdownRow,
-  activeEncryption: EncryptionContext,
-): Promise<MarkdownRow> => {
-  if (row.content_md_ciphertext) {
-    const keyId = row.encryption_key_id || "v1";
-    const key = getKeyForId(keyId);
-    const plaintext = await decryptTextAesGcm(row.content_md_ciphertext, key);
-    return { ...row, content_md: plaintext };
-  }
-
-  if (row.content_md) {
-    const legacyPlaintext = row.content_md;
-    try {
-      const ciphertext = await encryptTextAesGcm(legacyPlaintext, activeEncryption.key);
-      const contentHash = await sha256Hex(legacyPlaintext);
-      await service
-        .from("contract_markdown_versions")
-        .update({
-          content_md_ciphertext: ciphertext,
-          encryption_version: activeEncryption.version,
-          encryption_key_id: activeEncryption.keyId,
-          content_sha256: contentHash,
-          content_md: null,
-        })
-        .eq("id", row.id);
-      return {
-        ...row,
-        content_md: legacyPlaintext,
-        content_md_ciphertext: ciphertext,
-        encryption_version: activeEncryption.version,
-        encryption_key_id: activeEncryption.keyId,
-        content_sha256: contentHash,
-      };
-    } catch (error) {
-      console.error("[contract-markdown-secure] Legacy migration failed", error);
-      return row;
-    }
-  }
-
-  throw new Error(`Markdown row has no readable content: ${row.id}`);
-};
-
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
+
+  const requestId = req.headers.get("x-request-id")?.trim() || crypto.randomUUID();
 
   try {
     const authed = createAuthedUserClient(req);
@@ -225,21 +213,34 @@ Deno.serve(async (req) => {
 
     const { data: authData, error: authError } = await authed.auth.getUser();
     const user = authData?.user;
-    if (authError || !user) return json(401, { error: "Unauthorized" });
+    if (authError || !user) {
+      return jsonError(401, "Unauthorized", "UNAUTHORIZED", requestId);
+    }
 
     const body = await req.json().catch(() => null);
     const action = (body?.action as Action | undefined) || null;
-    if (!action) return json(400, { error: "Missing action" });
+    if (!action) {
+      return jsonError(400, "Missing action", "MISSING_ACTION", requestId);
+    }
 
     const activeEncryption = getActiveEncryptionContext();
 
     if (action === "list" || action === "latest") {
       const entityType = asEntityType(body?.entityType);
       const entityId = typeof body?.entityId === "string" ? body.entityId.trim() : "";
-      if (!entityType || !entityId) return json(400, { error: "Invalid entity identifier" });
+      if (!entityType || !entityId) {
+        return jsonError(
+          400,
+          "Invalid entity identifier",
+          "INVALID_ENTITY_IDENTIFIER",
+          requestId,
+        );
+      }
 
       const context = await resolveEntityContext(authed, entityType, entityId);
-      if (!context) return json(403, { error: "Access denied" });
+      if (!context) {
+        return jsonError(403, "Access denied", "ACCESS_DENIED", requestId);
+      }
 
       const entityColumn = entityType === "contract" ? "contract_id" : "amendment_id";
       const limit = action === "latest" ? 1 : sanitizeLimit(body?.limit);
@@ -253,13 +254,38 @@ Deno.serve(async (req) => {
       if (error) throw error;
       const rows = (data || []) as MarkdownRow[];
       const versions = await Promise.all(
-        rows.map((row) => materializeRowContent(service, row, activeEncryption)),
+        rows.map((row) =>
+          materializeRowContentSecure(row, activeEncryption, {
+            decryptCiphertext: async (ciphertext, keyId) => {
+              const key = getKeyForId(keyId);
+              return decryptTextAesGcm(ciphertext, key);
+            },
+            encryptWithActiveKey: async (plaintext) =>
+              encryptTextAesGcm(plaintext, activeEncryption.key),
+            hashPlaintext: sha256Hex,
+            updateRow: async (rowId, patch) => {
+              const { error: updateError } = await service
+                .from("contract_markdown_versions")
+                .update(patch)
+                .eq("id", rowId);
+              if (updateError) throw updateError;
+            },
+            logEvent: (event, payload) => {
+              console.error("[contract-markdown-secure]", {
+                event,
+                requestId,
+                ...payload,
+              });
+            },
+          }),
+        ),
       );
+      const publicVersions = versions.map((version) => createPublicMarkdownRow(version));
 
       if (action === "latest") {
-        return json(200, { version: versions[0] || null });
+        return json(200, { version: publicVersions[0] || null });
       }
-      return json(200, { versions });
+      return json(200, { versions: publicVersions });
     }
 
     if (action === "create") {
@@ -270,17 +296,33 @@ Deno.serve(async (req) => {
       const amendmentId = typeof body?.amendmentId === "string" ? body.amendmentId.trim() : "";
 
       if (!entityType || !sourceKind || !contentMd.trim()) {
-        return json(400, { error: "Invalid create payload" });
+        return jsonError(
+          400,
+          "Invalid create payload",
+          "INVALID_CREATE_PAYLOAD",
+          requestId,
+        );
       }
 
       const entityId = entityType === "contract" ? contractId : amendmentId;
-      if (!entityId) return json(400, { error: "Missing entity id" });
+      if (!entityId) {
+        return jsonError(400, "Missing entity id", "MISSING_ENTITY_ID", requestId);
+      }
 
       const context = await resolveEntityContext(authed, entityType, entityId);
-      if (!context) return json(403, { error: "Access denied" });
+      if (!context) {
+        return jsonError(403, "Access denied", "ACCESS_DENIED", requestId);
+      }
 
       const hasEditPermission = await canEditProject(service, context.projectId, user.id);
-      if (!hasEditPermission) return json(403, { error: "Missing edit permission" });
+      if (!hasEditPermission) {
+        return jsonError(
+          403,
+          "Missing edit permission",
+          "MISSING_EDIT_PERMISSION",
+          requestId,
+        );
+      }
 
       const ciphertext = await encryptTextAesGcm(contentMd, activeEncryption.key);
       const contentHash = await sha256Hex(contentMd);
@@ -310,17 +352,24 @@ Deno.serve(async (req) => {
 
       if (error) throw error;
       const payload = (Array.isArray(data) ? data[0] : data) as MarkdownRow | null;
-      if (!payload) return json(500, { error: "Failed to store markdown version" });
+      if (!payload) {
+        return jsonError(
+          500,
+          "Failed to store markdown version",
+          "MARKDOWN_CREATE_FAILED",
+          requestId,
+        );
+      }
 
       return json(200, {
-        version: {
+        version: createPublicMarkdownRow({
           ...payload,
           content_md: contentMd,
           content_md_ciphertext: ciphertext,
           encryption_version: activeEncryption.version,
           encryption_key_id: activeEncryption.keyId,
           content_sha256: contentHash,
-        },
+        }),
       });
     }
 
@@ -331,7 +380,14 @@ Deno.serve(async (req) => {
       const accessSource =
         typeof body?.accessSource === "string" ? body.accessSource.trim() : "panel";
 
-      if (!versionId || !accessKind) return json(400, { error: "Invalid access log payload" });
+      if (!versionId || !accessKind) {
+        return jsonError(
+          400,
+          "Invalid access log payload",
+          "INVALID_ACCESS_LOG_PAYLOAD",
+          requestId,
+        );
+      }
 
       const { data: versionRow, error: versionError } = await service
         .from("contract_markdown_versions")
@@ -340,7 +396,9 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       if (versionError) throw versionError;
-      if (!versionRow) return json(404, { error: "Version not found" });
+      if (!versionRow) {
+        return jsonError(404, "Version not found", "VERSION_NOT_FOUND", requestId);
+      }
 
       const versionEntityType = versionRow.entity_type as EntityType;
       const versionEntityId =
@@ -348,10 +406,19 @@ Deno.serve(async (req) => {
           ? (versionRow.contract_id as string | null)
           : (versionRow.amendment_id as string | null);
 
-      if (!versionEntityId) return json(500, { error: "Version has invalid entity link" });
+      if (!versionEntityId) {
+        return jsonError(
+          500,
+          "Version has invalid entity link",
+          "VERSION_INVALID_ENTITY_LINK",
+          requestId,
+        );
+      }
 
       const context = await resolveEntityContext(authed, versionEntityType, versionEntityId);
-      if (!context) return json(403, { error: "Access denied" });
+      if (!context) {
+        return jsonError(403, "Access denied", "ACCESS_DENIED", requestId);
+      }
 
       const { error: auditError } = await service.rpc("insert_contract_markdown_access_audit", {
         p_markdown_version_id: versionId,
@@ -364,10 +431,20 @@ Deno.serve(async (req) => {
       return json(200, { ok: true });
     }
 
-    return json(400, { error: "Unsupported action" });
+    return jsonError(400, "Unsupported action", "UNSUPPORTED_ACTION", requestId);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    console.error("[contract-markdown-secure] Error:", error);
-    return json(500, { error: message });
+    if (isMarkdownSecurityError(error)) {
+      console.error("[contract-markdown-secure]", {
+        event: error.code,
+        requestId,
+      });
+      return jsonError(error.status, error.message, error.code, requestId);
+    }
+
+    console.error("[contract-markdown-secure] Error:", {
+      requestId,
+      message: error instanceof Error ? error.message : "Unknown error",
+    });
+    return jsonError(500, "Internal server error", "INTERNAL_ERROR", requestId);
   }
 });

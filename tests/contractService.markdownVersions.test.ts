@@ -167,6 +167,7 @@ describe('contractService markdown versions', () => {
     );
     expect(created.entityType).toBe('amendment');
     expect(created.versionNo).toBe(1);
+    expect((created as any).content_md_ciphertext).toBeUndefined();
   });
 
   it('logMarkdownAccess vola log_access action', async () => {
