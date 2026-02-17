@@ -8,6 +8,7 @@ import { SecureStorageService } from '../services/secureStorage';
 import { getMcpStatus, setMcpAuthToken, setMcpCurrentProjectId } from '../services/mcpServer';
 import { getBidComparisonRunner } from '../services/bidComparisonRunner';
 import { getBidComparisonAutoRunner } from '../services/bidComparisonAutoRunner';
+import { resolvePortablePath } from '../services/portablePathResolver';
 import type {
     FolderInfo,
     FileInfo,
@@ -17,6 +18,7 @@ import type {
     BidComparisonAutoStatus,
     BidComparisonDetectionResult,
     BidComparisonJobStatus,
+    BidComparisonSelectedFileInput,
     BidComparisonStartInput,
     BidComparisonStartResult,
     BidComparisonSupplierOption,
@@ -168,6 +170,31 @@ function shouldIgnore(filename: string): boolean {
 export function registerIpcHandlers(): void {
     const bidComparisonAutoRunner = getBidComparisonAutoRunner(storageService);
     void bidComparisonAutoRunner.restorePersistedSessions();
+    const remapLogCache = new Set<string>();
+
+    const resolvePortableReadPath = async (targetPath: string): Promise<string> =>
+        resolvePortablePath(targetPath, {
+            mode: 'read',
+            homeDir: app.getPath('home'),
+            onRemap: ({ from, to, mode }) => {
+                const key = `${mode}|${from}|${to}`;
+                if (remapLogCache.has(key)) return;
+                remapLogCache.add(key);
+                console.log(`[PortablePathResolver] ${mode} remap: ${from} -> ${to}`);
+            },
+        });
+
+    const resolvePortableWritePath = async (targetPath: string): Promise<string> =>
+        resolvePortablePath(targetPath, {
+            mode: 'write',
+            homeDir: app.getPath('home'),
+            onRemap: ({ from, to, mode }) => {
+                const key = `${mode}|${from}|${to}`;
+                if (remapLogCache.has(key)) return;
+                remapLogCache.add(key);
+                console.log(`[PortablePathResolver] ${mode} remap: ${from} -> ${to}`);
+            },
+        });
 
     // --- FILE SYSTEM ---
 
@@ -189,6 +216,7 @@ export function registerIpcHandlers(): void {
     });
 
     ipcMain.handle('fs:listFiles', async (_, folderPath: string): Promise<FileInfo[]> => {
+        const resolvedFolderPath = await resolvePortableReadPath(folderPath);
         const files: FileInfo[] = [];
 
         async function scanDirectory(dir: string, relativeTo: string): Promise<void> {
@@ -226,7 +254,7 @@ export function registerIpcHandlers(): void {
             }
         }
 
-        await scanDirectory(folderPath, folderPath);
+        await scanDirectory(resolvedFolderPath, resolvedFolderPath);
         return files;
     });
 
@@ -239,16 +267,19 @@ export function registerIpcHandlers(): void {
     });
 
     ipcMain.handle('fs:openInExplorer', async (_, targetPath: string): Promise<void> => {
-        await shell.openPath(targetPath);
+        const resolvedTargetPath = await resolvePortableReadPath(targetPath);
+        await shell.openPath(resolvedTargetPath);
     });
 
     ipcMain.handle('fs:openFile', async (_, filePath: string): Promise<void> => {
-        await shell.openPath(filePath);
+        const resolvedFilePath = await resolvePortableReadPath(filePath);
+        await shell.openPath(resolvedFilePath);
     });
 
     ipcMain.handle('fs:createFolder', async (_, folderPath: string): Promise<{ success: boolean; error?: string }> => {
         try {
-            await fs.mkdir(folderPath, { recursive: true });
+            const resolvedFolderPath = await resolvePortableWritePath(folderPath);
+            await fs.mkdir(resolvedFolderPath, { recursive: true });
             return { success: true };
         } catch (e) {
             return { success: false, error: e instanceof Error ? e.message : String(e) };
@@ -257,7 +288,8 @@ export function registerIpcHandlers(): void {
 
     ipcMain.handle('fs:deleteFolder', async (_, folderPath: string): Promise<{ success: boolean; error?: string }> => {
         try {
-            await fs.rm(folderPath, { recursive: true, force: true });
+            const resolvedFolderPath = await resolvePortableReadPath(folderPath);
+            await fs.rm(resolvedFolderPath, { recursive: true, force: true });
             return { success: true };
         } catch (e) {
             return { success: false, error: e instanceof Error ? e.message : String(e) };
@@ -266,7 +298,9 @@ export function registerIpcHandlers(): void {
 
     ipcMain.handle('fs:renameFolder', async (_, oldPath: string, newPath: string): Promise<{ success: boolean; error?: string }> => {
         try {
-            await fs.rename(oldPath, newPath);
+            const resolvedOldPath = await resolvePortableReadPath(oldPath);
+            const resolvedNewPath = await resolvePortableWritePath(newPath);
+            await fs.rename(resolvedOldPath, resolvedNewPath);
             return { success: true };
         } catch (e) {
             return { success: false, error: e instanceof Error ? e.message : String(e) };
@@ -275,7 +309,8 @@ export function registerIpcHandlers(): void {
 
     ipcMain.handle('fs:folderExists', async (_, folderPath: string): Promise<boolean> => {
         try {
-            const stat = await fs.stat(folderPath);
+            const resolvedFolderPath = await resolvePortableReadPath(folderPath);
+            const stat = await fs.stat(resolvedFolderPath);
             return stat.isDirectory();
         } catch {
             return false;
@@ -285,12 +320,13 @@ export function registerIpcHandlers(): void {
     // --- WATCHER ---
 
     ipcMain.handle('watcher:start', async (event, folderPath: string): Promise<void> => {
+        const resolvedFolderPath = await resolvePortableReadPath(folderPath);
         if (watcherService) {
             await watcherService.stop();
         }
 
         const win = BrowserWindow.fromWebContents(event.sender);
-        watcherService = new FolderWatcherService(folderPath, (eventType, filePath) => {
+        watcherService = new FolderWatcherService(resolvedFolderPath, (eventType, filePath) => {
             win?.webContents.send('watcher:fileChange', eventType, filePath);
         });
 
@@ -430,8 +466,9 @@ export function registerIpcHandlers(): void {
                 suppliers?: BidComparisonSupplierOption[];
             },
         ): Promise<BidComparisonDetectionResult> => {
+            const resolvedTenderFolderPath = await resolvePortableReadPath(args.tenderFolderPath);
             return getBidComparisonRunner().detectInputs({
-                tenderFolderPath: args.tenderFolderPath,
+                tenderFolderPath: resolvedTenderFolderPath,
                 suppliers: Array.isArray(args.suppliers) ? args.suppliers : [],
             });
         },
@@ -440,7 +477,18 @@ export function registerIpcHandlers(): void {
     ipcMain.handle(
         'bid-comparison:start',
         async (_, input: BidComparisonStartInput): Promise<BidComparisonStartResult> => {
-            return getBidComparisonRunner().start(input);
+            const resolvedTenderFolderPath = await resolvePortableReadPath(input.tenderFolderPath);
+            const resolvedSelectedFiles: BidComparisonSelectedFileInput[] = await Promise.all(
+                (input.selectedFiles || []).map(async (selectedFile) => ({
+                    ...selectedFile,
+                    path: await resolvePortableReadPath(selectedFile.path),
+                })),
+            );
+            return getBidComparisonRunner().start({
+                ...input,
+                tenderFolderPath: resolvedTenderFolderPath,
+                selectedFiles: resolvedSelectedFiles,
+            });
         },
     );
 
@@ -471,7 +519,18 @@ export function registerIpcHandlers(): void {
     ipcMain.handle(
         'bid-comparison:auto-start',
         async (_, config: BidComparisonAutoConfig): Promise<BidComparisonAutoStartResult> => {
-            return bidComparisonAutoRunner.autoStart(config);
+            const resolvedTenderFolderPath = await resolvePortableReadPath(config.tenderFolderPath);
+            const resolvedSelectedFiles: BidComparisonSelectedFileInput[] = await Promise.all(
+                (config.selectedFiles || []).map(async (selectedFile) => ({
+                    ...selectedFile,
+                    path: await resolvePortableReadPath(selectedFile.path),
+                })),
+            );
+            return bidComparisonAutoRunner.autoStart({
+                ...config,
+                tenderFolderPath: resolvedTenderFolderPath,
+                selectedFiles: resolvedSelectedFiles,
+            });
         },
     );
 
