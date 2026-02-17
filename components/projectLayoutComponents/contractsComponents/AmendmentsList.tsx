@@ -8,7 +8,7 @@ import { MarkdownDocumentPanel } from "@/shared/contracts/MarkdownDocumentPanel"
 interface AmendmentsListProps {
   contracts: ContractWithDetails[];
   selectedContractId: string | null;
-  onSelectContract: (id: string) => void;
+  onSelectContract: (id: string | null) => void;
   onAmendmentCreated: () => void;
   onAmendmentDeleted: () => void;
 }
@@ -23,15 +23,26 @@ const formatMoney = (value: number): string => {
 
 const formatDate = (date?: string): string =>
   date ? new Date(date).toLocaleDateString("cs-CZ") : "-";
+const normalizeContractSortKey = (value: string | null | undefined): string =>
+  (value || "").trim().toLocaleLowerCase("cs");
+
 const sortContractsByVendor = (
   a: ContractWithDetails,
   b: ContractWithDetails,
 ): number =>
-  a.vendorName.localeCompare(b.vendorName, "cs", { sensitivity: "base" }) ||
+  normalizeContractSortKey(a.vendorName).localeCompare(
+    normalizeContractSortKey(b.vendorName),
+    "cs",
+    { sensitivity: "base" },
+  ) ||
+  normalizeContractSortKey(a.title).localeCompare(
+    normalizeContractSortKey(b.title),
+    "cs",
+    { sensitivity: "base" },
+  ) ||
   (a.contractNumber || "").localeCompare(b.contractNumber || "", "cs", {
     sensitivity: "base",
-  }) ||
-  a.title.localeCompare(b.title, "cs", { sensitivity: "base" });
+  });
 
 export const AmendmentsList: React.FC<AmendmentsListProps> = ({
   contracts,
@@ -60,9 +71,15 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
     reason: "",
   });
 
-  const selectedContract = contracts.find((c) => c.id === selectedContractId);
+  const selectedContract = contracts.find(
+    (c) => c.id === (selectedContractId || ""),
+  );
   const sortedContracts = [...contracts].sort(sortContractsByVendor);
   const amendments = selectedContract?.amendments || [];
+  const selectedContractAmendmentsDelta = amendments.reduce(
+    (sum, amendment) => sum + amendment.deltaPrice,
+    0,
+  );
   const contractsWithAmendments = sortedContracts.filter(
     (contract) => contract.amendments.length > 0,
   );
@@ -231,25 +248,27 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
         )}
       </div>
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <label className="text-sm font-medium">Smlouva:</label>
+      <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex w-full flex-col gap-2 lg:w-auto lg:min-w-[420px]">
+          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Smlouva
+          </label>
           <select
             value={selectedContractId || ""}
-            onChange={(e) => onSelectContract(e.target.value)}
-            className={inputCls}
+            onChange={(e) => onSelectContract(e.target.value || null)}
+            className={`${inputCls} w-full`}
           >
             <option value="">Vyberte...</option>
             {sortedContracts.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.contractNumber ? `[${c.contractNumber}] ` : ""}
-                {c.title} | {c.vendorName}
+                {c.vendorName} | {c.contractNumber ? `[${c.contractNumber}] ` : ""}
+                {c.title}
               </option>
             ))}
           </select>
         </div>
         {selectedContractId && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 self-start lg:self-auto">
             <label className="cursor-pointer">
               <input
                 type="file"
@@ -282,7 +301,7 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
                 setOcrSeedModel(null);
                 setShowCreateModal(true);
               }}
-              className="inline-flex items-center gap-2 px-3 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90 transition-colors"
+              className="inline-flex items-center gap-2 px-3 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90 transition-colors whitespace-nowrap"
             >
               <span className="material-symbols-outlined text-lg">add</span>
               Nový
@@ -294,6 +313,46 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
       {error && (
         <div className="p-3 rounded-lg text-sm bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300 border border-red-200 dark:border-red-800">
           {error}
+        </div>
+      )}
+
+      {selectedContract && (
+        <div className={`${panelCls} px-4 py-3`}>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
+            <p className="text-slate-500">
+              Dodavatel:{" "}
+              <span className="font-semibold text-slate-900 dark:text-slate-100">
+                {selectedContract.vendorName}
+              </span>
+            </p>
+            <p className="text-slate-500">
+              Hodnota po dodatcích:{" "}
+              <span className="font-semibold text-slate-900 dark:text-slate-100">
+                {formatMoney(selectedContract.currentTotal)}
+              </span>
+            </p>
+            <p className="text-slate-500">
+              Počet dodatků:{" "}
+              <span className="font-semibold text-slate-900 dark:text-slate-100">
+                {amendments.length}
+              </span>
+            </p>
+            <p className="text-slate-500">
+              Změna hodnoty:{" "}
+              <span
+                className={`font-semibold ${
+                  selectedContractAmendmentsDelta > 0
+                    ? "text-red-500"
+                    : selectedContractAmendmentsDelta < 0
+                      ? "text-emerald-500"
+                      : "text-slate-900 dark:text-slate-100"
+                }`}
+              >
+                {selectedContractAmendmentsDelta > 0 ? "+" : ""}
+                {formatMoney(selectedContractAmendmentsDelta)}
+              </span>
+            </p>
+          </div>
         </div>
       )}
 
@@ -310,72 +369,84 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
         </div>
       ) : (
         <div className={`${panelCls} overflow-hidden`}>
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80">
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">
-                  Č.
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">
-                  Datum
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase">
-                  Změna
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">
-                  Důvod
-                </th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-              {amendments.map((a) => (
-                <tr
-                  key={a.id}
-                  className="hover:bg-slate-50 dark:hover:bg-slate-800/70"
-                >
-                  <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-slate-100">
-                    Dodatek č. {a.amendmentNo}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-200">
-                    {formatDate(a.signedAt)}
-                  </td>
-                  <td
-                    className={`px-4 py-3 text-right text-sm font-semibold ${a.deltaPrice > 0 ? "text-red-500" : a.deltaPrice < 0 ? "text-emerald-500" : ""}`}
-                  >
-                    {a.deltaPrice > 0 ? "+" : ""}
-                    {formatMoney(a.deltaPrice)}
-                  </td>
-                  <td className="px-4 py-3 text-sm truncate max-w-[200px] text-slate-700 dark:text-slate-200">
-                    {a.reason || "-"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => {
-                          setSelectedAmendment(a);
-                          setShowMarkdownModal(true);
-                        }}
-                        className="p-1.5 rounded-md border border-transparent hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-300 hover:text-primary transition-colors"
-                        title="Náhled markdownu"
-                      >
-                        <span className="material-symbols-outlined">visibility</span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          setSelectedAmendment(a);
-                          setShowDeleteModal(true);
-                        }}
-                        className="p-1.5 rounded-md border border-transparent hover:border-red-300 dark:hover:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-500 dark:text-slate-300 hover:text-red-500 transition-colors"
-                      >
-                        <span className="material-symbols-outlined">delete</span>
-                      </button>
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px]">
+              <thead>
+                <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                    Č.
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                    Datum
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                    Změna
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                    Důvod
+                  </th>
+                  <th className="px-4 py-3"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                {amendments.map((a) => (
+                  <tr
+                    key={a.id}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-700/50"
+                  >
+                    <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-white">
+                      Dodatek č. {a.amendmentNo}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">
+                      {formatDate(a.signedAt)}
+                    </td>
+                    <td
+                      className={`px-4 py-3 text-right text-sm font-semibold ${
+                        a.deltaPrice > 0
+                          ? "text-red-500"
+                          : a.deltaPrice < 0
+                            ? "text-emerald-500"
+                            : "text-slate-700 dark:text-slate-300"
+                      }`}
+                    >
+                      {a.deltaPrice > 0 ? "+" : ""}
+                      {formatMoney(a.deltaPrice)}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300 max-w-[320px] truncate">
+                      {a.reason || "-"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => {
+                            setSelectedAmendment(a);
+                            setShowMarkdownModal(true);
+                          }}
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
+                          title="Náhled markdownu"
+                        >
+                          <span className="material-symbols-outlined text-lg">
+                            visibility
+                          </span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedAmendment(a);
+                            setShowDeleteModal(true);
+                          }}
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-red-500 hover:bg-red-50 dark:text-slate-300 dark:hover:bg-red-900/20"
+                        >
+                          <span className="material-symbols-outlined text-lg">
+                            delete
+                          </span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

@@ -7,7 +7,7 @@ import { Modal } from "@/shared/ui/Modal";
 interface DrawdownsListProps {
   contracts: ContractWithDetails[];
   selectedContractId: string | null;
-  onSelectContract: (id: string) => void;
+  onSelectContract: (id: string | null) => void;
   onDrawdownCreated: () => void;
   onDrawdownUpdated: () => void;
   onDrawdownDeleted: () => void;
@@ -43,15 +43,26 @@ const formatAmountInput = (value: number): string =>
   }).format(Math.max(0, Math.round(value)));
 const toAmountInput = (value: number): string =>
   formatAmountInput(value);
+const normalizeContractSortKey = (value: string | null | undefined): string =>
+  (value || "").trim().toLocaleLowerCase("cs");
+
 const sortContractsByVendor = (
   a: ContractWithDetails,
   b: ContractWithDetails,
 ): number =>
-  a.vendorName.localeCompare(b.vendorName, "cs", { sensitivity: "base" }) ||
+  normalizeContractSortKey(a.vendorName).localeCompare(
+    normalizeContractSortKey(b.vendorName),
+    "cs",
+    { sensitivity: "base" },
+  ) ||
+  normalizeContractSortKey(a.title).localeCompare(
+    normalizeContractSortKey(b.title),
+    "cs",
+    { sensitivity: "base" },
+  ) ||
   (a.contractNumber || "").localeCompare(b.contractNumber || "", "cs", {
     sensitivity: "base",
-  }) ||
-  a.title.localeCompare(b.title, "cs", { sensitivity: "base" });
+  });
 
 export const DrawdownsList: React.FC<DrawdownsListProps> = ({
   contracts,
@@ -76,7 +87,9 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
   });
   const [percentageValue, setPercentageValue] = useState("");
 
-  const selectedContract = contracts.find((c) => c.id === selectedContractId);
+  const selectedContract = contracts.find(
+    (c) => c.id === (selectedContractId || ""),
+  );
   const sortedContracts = [...contracts].sort(sortContractsByVendor);
   const drawdowns = selectedContract?.drawdowns || [];
   const totalApproved = drawdowns.reduce((s, d) => s + d.approvedAmount, 0);
@@ -90,6 +103,10 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
   const remaining = selectedContract
     ? selectedContract.currentTotal - totalApproved
     : 0;
+  const utilizationPercent =
+    selectedContract && selectedContract.currentTotal > 0
+      ? Math.min(100, Math.max(0, (totalApproved / selectedContract.currentTotal) * 100))
+      : 0;
 
   const resetForm = () => {
     setFormData({
@@ -240,13 +257,15 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <label className="text-sm font-medium">Smlouva:</label>
+      <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex w-full flex-col gap-2 lg:w-auto lg:min-w-[420px]">
+          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Smlouva
+          </label>
           <select
             value={selectedContractId || ""}
-            onChange={(e) => onSelectContract(e.target.value)}
-            className={inputCls}
+            onChange={(e) => onSelectContract(e.target.value || null)}
+            className={`${inputCls} w-full`}
           >
             <option value="">Vyberte...</option>
             {sortedContracts.map((c) => (
@@ -258,7 +277,7 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
           </select>
         </div>
         {selectedContractId && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 self-start lg:self-auto">
             <label className="cursor-pointer">
               <input
                 type="file"
@@ -289,7 +308,7 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
                 setSelectedDrawdown(null);
                 setShowModal(true);
               }}
-              className="inline-flex items-center gap-2 px-3 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90 transition-colors"
+              className="inline-flex items-center gap-2 px-3 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90 transition-colors whitespace-nowrap"
             >
               <span className="material-symbols-outlined text-lg">add</span>
               Nová průvodka
@@ -309,6 +328,12 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
         <div className={`${panelCls} px-4 py-3`}>
           <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
             <p className="text-slate-500">
+              Dodavatel:{" "}
+              <span className="font-semibold text-slate-900 dark:text-slate-100">
+                {selectedContract.vendorName}
+              </span>
+            </p>
+            <p className="text-slate-500">
               Hodnota smlouvy:{" "}
               <span className="font-semibold text-slate-900 dark:text-slate-100">
                 {formatMoney(selectedContract.currentTotal)}
@@ -327,6 +352,18 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
               </span>
             </p>
           </div>
+          <div className="mt-3">
+            <div className="mb-1 flex items-center justify-between text-xs text-slate-500">
+              <span>Průběh čerpání</span>
+              <span>{utilizationPercent.toFixed(1)} %</span>
+            </div>
+            <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-700">
+              <div
+                className="h-2 rounded-full bg-gradient-to-r from-primary to-emerald-500 transition-all"
+                style={{ width: `${utilizationPercent}%` }}
+              />
+            </div>
+          </div>
         </div>
       )}
 
@@ -342,69 +379,73 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
         </div>
       ) : (
         <div className={`${panelCls} overflow-hidden`}>
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80">
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">
-                  Období
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase">
-                  Požadováno
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase">
-                  Schváleno
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">
-                  Poznámka
-                </th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-              {[...drawdowns]
-                .sort((a, b) => b.period.localeCompare(a.period))
-                .map((d) => (
-                  <tr
-                    key={d.id}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-800/70"
-                  >
-                    <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-slate-100">
-                      {formatPeriod(d.period)}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right text-slate-700 dark:text-slate-200">
-                      {formatMoney(d.claimedAmount)}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-emerald-600">
-                      {formatMoney(d.approvedAmount)}
-                    </td>
-                    <td className="px-4 py-3 text-sm truncate max-w-[200px] text-slate-700 dark:text-slate-200">
-                      {d.note || "-"}
-                    </td>
-                    <td className="px-4 py-3 flex gap-1">
-                      <button
-                        onClick={() => handleEdit(d)}
-                        className="p-1.5 rounded-md border border-transparent hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                      >
-                        <span className="material-symbols-outlined text-slate-500 dark:text-slate-300">
-                          edit
-                        </span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          setSelectedDrawdown(d);
-                          setShowDeleteModal(true);
-                        }}
-                        className="p-1.5 rounded-md border border-transparent hover:border-red-300 dark:hover:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
-                      >
-                        <span className="material-symbols-outlined text-slate-500 dark:text-slate-300 hover:text-red-500">
-                          delete
-                        </span>
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px]">
+              <thead>
+                <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                    Období
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                    Požadováno
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                    Schváleno
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                    Poznámka
+                  </th>
+                  <th className="px-4 py-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                {[...drawdowns]
+                  .sort((a, b) => b.period.localeCompare(a.period))
+                  .map((d) => (
+                    <tr
+                      key={d.id}
+                      className="hover:bg-slate-50 dark:hover:bg-slate-700/50"
+                    >
+                      <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-white">
+                        {formatPeriod(d.period)}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-right text-slate-600 dark:text-slate-300">
+                        {formatMoney(d.claimedAmount)}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-right font-semibold text-emerald-600">
+                        {formatMoney(d.approvedAmount)}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300 max-w-[320px] truncate">
+                        {d.note || "-"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => handleEdit(d)}
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
+                          >
+                            <span className="material-symbols-outlined text-lg">
+                              edit
+                            </span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedDrawdown(d);
+                              setShowDeleteModal(true);
+                            }}
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-red-500 hover:bg-red-50 dark:text-slate-300 dark:hover:bg-red-900/20"
+                          >
+                            <span className="material-symbols-outlined text-lg">
+                              delete
+                            </span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

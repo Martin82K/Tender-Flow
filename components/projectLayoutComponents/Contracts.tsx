@@ -13,6 +13,34 @@ export interface ContractsProps {
 
 type ContractsSubTab = 'overview' | 'contracts' | 'amendments' | 'drawdowns';
 
+const normalizeContractSortKey = (value: string | null | undefined): string =>
+  (value || "").trim().toLocaleLowerCase("cs");
+
+const sortContractsByVendor = (
+  a: ContractWithDetails,
+  b: ContractWithDetails,
+): number =>
+  normalizeContractSortKey(a.vendorName).localeCompare(
+    normalizeContractSortKey(b.vendorName),
+    "cs",
+    { sensitivity: "base" },
+  ) ||
+  normalizeContractSortKey(a.title).localeCompare(
+    normalizeContractSortKey(b.title),
+    "cs",
+    { sensitivity: "base" },
+  ) ||
+  (a.contractNumber || "").localeCompare(b.contractNumber || "", "cs", {
+    sensitivity: "base",
+  });
+
+const getPreferredContractSelection = (
+  data: ContractWithDetails[],
+): string | null => {
+  if (data.length === 0) return null;
+  return [...data].sort(sortContractsByVendor)[0]?.id || null;
+};
+
 export const Contracts: React.FC<ContractsProps> = ({ projectId, projectDetails }) => {
   const [activeSubTab, setActiveSubTab] = useState<ContractsSubTab>('overview');
   const [contracts, setContracts] = useState<ContractWithDetails[]>([]);
@@ -28,11 +56,12 @@ export const Contracts: React.FC<ContractsProps> = ({ projectId, projectDetails 
         setError(null);
         const data = await contractService.getContractsByProject(projectId);
         setContracts(data);
-
-        // Auto-select first contract if none selected
-        if (data.length > 0 && !selectedContractId) {
-          setSelectedContractId(data[0].id);
-        }
+        setSelectedContractId((currentId) => {
+          if (currentId && data.some((contract) => contract.id === currentId)) {
+            return currentId;
+          }
+          return getPreferredContractSelection(data);
+        });
       } catch (err) {
         console.error('Error loading contracts:', err);
         setError(err instanceof Error ? err.message : 'Nepodařilo se načíst smlouvy');
@@ -48,12 +77,16 @@ export const Contracts: React.FC<ContractsProps> = ({ projectId, projectDetails 
     try {
       const data = await contractService.getContractsByProject(projectId);
       setContracts(data);
+      setSelectedContractId((currentId) => {
+        if (currentId && data.some((contract) => contract.id === currentId)) {
+          return currentId;
+        }
+        return getPreferredContractSelection(data);
+      });
     } catch (err) {
       console.error('Error refreshing contracts:', err);
     }
   };
-
-  const selectedContract = contracts.find(c => c.id === selectedContractId);
 
   const subTabs = [
     { id: 'overview' as const, label: 'Přehled', icon: 'analytics' },
