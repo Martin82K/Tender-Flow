@@ -7,6 +7,7 @@
 import React, { useState } from "react";
 import { Subcontractor, StatusConfig } from "../../types";
 import { DEFAULT_STATUSES } from "../../config/constants";
+import { validateSubcontractorCompanyName } from "../../shared/dochub/subcontractorNameRules";
 
 export interface CreateContactModalProps {
     initialName: string;
@@ -44,6 +45,9 @@ export const CreateContactModal: React.FC<CreateContactModalProps> = ({
     const [specializations, setSpecializations] = useState<string[]>(
         initialData?.specialization || []
     );
+    const companyValidation = validateSubcontractorCompanyName(form.company || "");
+    const companyError = form.company && !companyValidation.isValid ? companyValidation.reason : null;
+    const isSubmitDisabled = !form.company.trim() || !companyValidation.isValid;
 
     const handleAddSpec = (spec: string) => {
         const trimmed = spec.trim();
@@ -59,6 +63,7 @@ export const CreateContactModal: React.FC<CreateContactModalProps> = ({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        if (!companyValidation.isValid) return;
         const finalSpecs = specializations.length > 0 ? specializations : ["Ostatní"];
 
         const contactToSave: Subcontractor = {
@@ -110,6 +115,9 @@ export const CreateContactModal: React.FC<CreateContactModalProps> = ({
                                 onChange={(e) => setForm({ ...form, company: e.target.value })}
                                 className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
                             />
+                            {companyError && (
+                                <p className="mt-1 text-xs text-red-500">{companyError}</p>
+                            )}
                         </div>
                         <div>
                             <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">
@@ -255,7 +263,8 @@ export const CreateContactModal: React.FC<CreateContactModalProps> = ({
                         </button>
                         <button
                             type="submit"
-                            className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white rounded-xl text-sm font-bold shadow-lg transition-all"
+                            disabled={isSubmitDisabled}
+                            className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white rounded-xl text-sm font-bold shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {initialData ? "Uložit změny" : "Vytvořit"}
                         </button>

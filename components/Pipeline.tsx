@@ -61,6 +61,7 @@ import platformAdapter from "../services/platformAdapter";
 import { DEFAULT_STATUSES } from "../config/constants";
 import { contractService } from "../services/contractService";
 import { collectFallbackSuppliers } from "../shared/dochub/fallbackSelection";
+import { validateSubcontractorCompanyName } from "../shared/dochub/subcontractorNameRules";
 import {
   Column,
   BidCard,
@@ -1742,6 +1743,18 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const handleSaveNewContact = async (newContact: Subcontractor) => {
     // Persist to Supabase or Demo Storage FIRST
     try {
+      const companyValidation = validateSubcontractorCompanyName(
+        newContact.company,
+      );
+      if (!companyValidation.isValid) {
+        showAlert({
+          title: "Neplatny nazev dodavatele",
+          message: companyValidation.reason || "Upravte nazev firmy a zkuste to znovu.",
+          variant: "danger",
+        });
+        return;
+      }
+
       if (user?.role === "demo") {
         const demoData = getDemoData();
         if (demoData) {
@@ -1780,6 +1793,18 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const handleUpdateContact = async (updatedContact: Subcontractor) => {
     // Persist to Supabase or Demo Storage FIRST
     try {
+      const companyValidation = validateSubcontractorCompanyName(
+        updatedContact.company,
+      );
+      if (!companyValidation.isValid) {
+        showAlert({
+          title: "Neplatny nazev dodavatele",
+          message: companyValidation.reason || "Upravte nazev firmy a zkuste to znovu.",
+          variant: "danger",
+        });
+        return;
+      }
+
       if (user?.role === "demo") {
         const demoData = getDemoData();
         if (demoData) {

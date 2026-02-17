@@ -22,6 +22,7 @@ import {
 } from './mcpBridgeClient';
 import { invokeAuthedFunction } from './functionsClient';
 import type { DocHubStructureV1, DocHubHierarchyItem } from '../utils/docHub';
+import { validateSubcontractorCompanyName } from '../shared/dochub/subcontractorNameRules';
 
 export interface FileSystemStatus {
     available: boolean;
@@ -34,6 +35,28 @@ export interface FolderOperationResult {
     path?: string;
     error?: string;
 }
+
+const getFolderTargetSegment = (pathOrName: string): string => {
+    const normalized = pathOrName.trim().replace(/[\\/]+$/, "");
+    if (!normalized) return "";
+    const segments = normalized.split(/[\\/]/).filter(Boolean);
+    return segments[segments.length - 1] || "";
+};
+
+const getFolderSegmentValidationError = (pathOrName: string): string | null => {
+    const segment = getFolderTargetSegment(pathOrName);
+    if (!segment) {
+        return "Cilovy nazev slozky je prazdny.";
+    }
+
+    const validation = validateSubcontractorCompanyName(segment);
+    if (!validation.isValid) {
+        const reason = (validation.reason || "").replace(/Nazev firmy/g, "Nazev slozky");
+        return `Neplatny nazev slozky "${segment}". ${reason}`.trim();
+    }
+
+    return null;
+};
 
 /**
  * Check if file system operations are available
@@ -107,6 +130,10 @@ export async function folderExists(folderPath: string): Promise<boolean> {
  */
 export async function createFolder(pathOrName: string, options?: { provider?: string, projectId?: string, parentId?: string }): Promise<FolderOperationResult> {
     const { provider, projectId, parentId } = options || {};
+    const segmentError = getFolderSegmentValidationError(pathOrName);
+    if (segmentError) {
+        return { success: false, error: segmentError };
+    }
 
     if (provider === 'gdrive' || provider === 'onedrive_cloud') {
         if (!projectId) return { success: false, error: 'Missing projectId for cloud create' };
@@ -217,6 +244,11 @@ export async function deleteFolder(rootPath: string, folderPath: string, options
  */
 export async function renameFolder(oldPath: string, newPath: string, options?: { provider?: string, projectId?: string, folderId?: string, newName?: string }): Promise<FolderOperationResult> {
     const { provider, projectId, folderId, newName } = options || {};
+    const targetName = newName || getFolderTargetSegment(newPath);
+    const segmentError = getFolderSegmentValidationError(targetName);
+    if (segmentError) {
+        return { success: false, error: segmentError };
+    }
 
     if ((provider === 'gdrive' || provider === 'onedrive_cloud') && folderId && projectId && newName) {
         try {
@@ -339,6 +371,14 @@ export async function ensureStructure(
                         }
                         return; // Stop processing this abstract node
                     }
+                }
+
+                const nameValidation = validateSubcontractorCompanyName(finalName);
+                if (!nameValidation.isValid) {
+                    const reason = (nameValidation.reason || "").replace(/Nazev firmy/g, "Nazev slozky");
+                    const message = `Neplatny nazev slozky "${finalName}". ${reason}`.trim();
+                    logs.push(`âś— Chyba: ${message}`);
+                    throw new Error(message);
                 }
 
                 const finalPath = joinPath(parentPath, finalName);

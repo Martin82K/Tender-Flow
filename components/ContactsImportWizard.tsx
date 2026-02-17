@@ -1,5 +1,6 @@
 import React from "react";
 import type { StatusConfig, Subcontractor } from "../types";
+import { useUI } from "../context/UIContext";
 import {
   analyzeContactsImport,
   buildCorrectedWorkbook,
@@ -35,18 +36,20 @@ const STEP_LABELS: Array<{ key: WizardStep; label: string }> = [
 ];
 
 export interface ContactsImportWizardProps {
-  contacts: Subcontractor[];
-  statuses: StatusConfig[];
+  contacts?: Subcontractor[];
+  existingContacts?: Subcontractor[];
+  statuses?: StatusConfig[];
   defaultStatusId?: string;
-  onImportContacts: (contacts: Subcontractor[], onProgress?: (percent: number) => void) => Promise<void>;
+  onImportContacts?: (contacts: Subcontractor[], onProgress?: (percent: number) => void) => Promise<void>;
+  onImport?: (contacts: Subcontractor[], onProgress?: (percent: number) => void) => Promise<void>;
 }
 
-export const ContactsImportWizard: React.FC<ContactsImportWizardProps> = ({
-  contacts,
-  statuses,
-  defaultStatusId = "available",
-  onImportContacts,
-}) => {
+export const ContactsImportWizard: React.FC<ContactsImportWizardProps> = (props) => {
+  const contacts = props.contacts ?? props.existingContacts ?? [];
+  const statuses = props.statuses ?? [];
+  const defaultStatusId = props.defaultStatusId ?? "available";
+  const onImportContacts = props.onImportContacts ?? props.onImport;
+  const { showConfirm } = useUI();
   const fields = React.useMemo(() => getTenderFlowImportFields(), []);
   const [step, setStep] = React.useState<WizardStep>("source");
 
@@ -66,6 +69,7 @@ export const ContactsImportWizard: React.FC<ContactsImportWizardProps> = ({
   const [importError, setImportError] = React.useState<string | null>(null);
 
   const [outcomeFilter, setOutcomeFilter] = React.useState<RowOutcome | "all">("all");
+  const [nameFixMode, setNameFixMode] = React.useState<"off" | "apply">("off");
 
   const resetAll = () => {
     setLoadError(null);
@@ -77,6 +81,7 @@ export const ContactsImportWizard: React.FC<ContactsImportWizardProps> = ({
     setMapping(null);
     setAnalysis(null);
     setOutcomeFilter("all");
+    setNameFixMode("off");
     setStep("source");
   };
 
@@ -98,6 +103,7 @@ export const ContactsImportWizard: React.FC<ContactsImportWizardProps> = ({
     setLoadError(null);
     setIsLoading(true);
     setImportError(null);
+    setNameFixMode("off");
     try {
       const parsed = await parseContactsImportSource(source);
       const suggested = suggestFieldMapping(parsed.headers);
@@ -108,6 +114,7 @@ export const ContactsImportWizard: React.FC<ContactsImportWizardProps> = ({
           defaultStatusId,
           statuses,
           existingContacts: contacts,
+          nameFixMode: "off",
         })
       );
       setStep("mapping");
@@ -119,16 +126,17 @@ export const ContactsImportWizard: React.FC<ContactsImportWizardProps> = ({
   };
 
   const recalcAnalysis = React.useCallback(
-    (nextMapping: FieldMapping) => {
+    (nextMapping: FieldMapping, nextNameFixMode: "off" | "apply" = nameFixMode) => {
       if (!table) return;
       const next = analyzeContactsImport(table, nextMapping, {
         defaultStatusId,
         statuses,
         existingContacts: contacts,
+        nameFixMode: nextNameFixMode,
       });
       setAnalysis(next);
     },
-    [contacts, defaultStatusId, statuses, table]
+    [contacts, defaultStatusId, nameFixMode, statuses, table]
   );
 
   const updateMapping = (key: TFFieldKey, header: string | null) => {
@@ -151,8 +159,42 @@ export const ContactsImportWizard: React.FC<ContactsImportWizardProps> = ({
     setStep("preview");
   };
 
+  const applySuggestedNameFixes = async () => {
+    if (!analysis || !mapping) return;
+    const rowsToFix = analysis.rows.filter(
+      (row) => row.companyNameInvalid && row.suggestedCompanyName,
+    );
+    if (rowsToFix.length === 0) return;
+
+    const preview = rowsToFix
+      .slice(0, 3)
+      .map((row) => `- ${row.mapped.company} -> ${row.suggestedCompanyName}`)
+      .join("\n");
+    const extra = rowsToFix.length > 3 ? `\n... a dalsich ${rowsToFix.length - 3} radku.` : "";
+
+    const confirmed = await showConfirm({
+      title: "Aplikovat navrhy oprav nazvu?",
+      message:
+        `Pocet radku s neplatnym nazvem: ${rowsToFix.length}\n\n` +
+        `${preview}${extra}\n\n` +
+        "Nazvy budou upraveny pro bezpecne ulozeni do slozek.",
+      variant: "info",
+      confirmLabel: "Aplikovat opravy",
+      cancelLabel: "Zrusit",
+    });
+
+    if (!confirmed) return;
+
+    setNameFixMode("apply");
+    recalcAnalysis(mapping, "apply");
+  };
+
   const confirmImport = async () => {
     if (!analysis) return;
+    if (!onImportContacts) {
+      setImportError("Import neni dostupny. Chybi callback onImport/onImportContacts.");
+      return;
+    }
     setIsImporting(true);
     setImportError(null);
     setImportProgress(0);
@@ -186,6 +228,9 @@ export const ContactsImportWizard: React.FC<ContactsImportWizardProps> = ({
 
   const canContinueFromMapping = !!table && !!mapping && !!analysis;
   const canImport = !!analysis && analysis.aggregatedContacts.length > 0 && !isImporting;
+  const invalidNameRowsCount = analysis
+    ? analysis.rows.filter((row) => row.companyNameInvalid && row.suggestedCompanyName).length
+    : 0;
 
   return (
     <div className="space-y-6">
@@ -400,6 +445,11 @@ export const ContactsImportWizard: React.FC<ContactsImportWizardProps> = ({
                 <span className="px-2 py-1 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40">
                   Neimport.: {analysis.counts.notImported}
                 </span>
+                {invalidNameRowsCount > 0 && (
+                  <span className="px-2 py-1 rounded-full border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300">
+                    Neplatne nazvy: {invalidNameRowsCount}
+                  </span>
+                )}
               </div>
               <button
                 type="button"
@@ -441,6 +491,15 @@ export const ContactsImportWizard: React.FC<ContactsImportWizardProps> = ({
                 >
                   Stáhnout upravený Excel
                 </button>
+                {nameFixMode === "off" && invalidNameRowsCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={applySuggestedNameFixes}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
+                  >
+                    Aplikovat navrzene opravy nazvu
+                  </button>
+                )}
               </div>
             </div>
 
@@ -597,4 +656,5 @@ export const ContactsImportWizard: React.FC<ContactsImportWizardProps> = ({
     </div>
   );
 };
+
 

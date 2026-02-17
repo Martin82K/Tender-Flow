@@ -5,6 +5,7 @@ import { Subcontractor, StatusConfig } from '@/types';
 import { findCompanyRegions } from '@/services/geminiService';
 import { SubcontractorSelector } from '@/components/SubcontractorSelector';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
+import { validateSubcontractorCompanyName } from '@/shared/dochub/subcontractorNameRules';
 
 interface ContactsProps {
     statuses: StatusConfig[];
@@ -149,6 +150,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
         e.preventDefault();
 
         if (!formData.company || !formData.specialization || formData.specialization.length === 0) return;
+        if (!companyValidation.isValid) return;
 
         const baseContact: Omit<Subcontractor, 'id'> = {
             company: formData.company!,
@@ -241,6 +243,9 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
 
     // Get unique specializations for datalist (re-calculate here for the form, or export from selector? simpler to recalc)
     const allSpecializations = Array.from(new Set(contacts.flatMap(c => c.specialization))).sort();
+    const companyValidation = validateSubcontractorCompanyName(formData.company || '');
+    const companyError = formData.company && !companyValidation.isValid ? companyValidation.reason : null;
+    const isSaveDisabled = !formData.company || !formData.specialization || formData.specialization.length === 0 || !companyValidation.isValid;
 
     return (
         <div className="flex flex-col h-full bg-background-light dark:bg-background-dark overflow-y-auto">
@@ -322,6 +327,9 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                                             className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
                                             placeholder="Název firmy"
                                         />
+                                        {companyError && (
+                                            <p className="mt-1 text-xs text-red-500">{companyError}</p>
+                                        )}
                                     </div>
 
                                     {/* Specialization */}
@@ -550,7 +558,8 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                                     </button>
                                     <button
                                         type="submit"
-                                        className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-sm font-bold shadow-sm transition-colors"
+                                        disabled={isSaveDisabled}
+                                        className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-sm font-bold shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {editingContact ? 'Uložit změny' : 'Vytvořit kontakt'}
                                     </button>

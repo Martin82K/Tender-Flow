@@ -1,6 +1,10 @@
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import type { ContactPerson, StatusConfig, Subcontractor } from "../types";
+import {
+  sanitizeSubcontractorCompanyName,
+  validateSubcontractorCompanyName,
+} from "../shared/dochub/subcontractorNameRules";
 
 export type ContactsImportSource =
   | { kind: "file"; file: File }
@@ -29,6 +33,7 @@ export interface AnalyzeOptions {
   defaultStatusId: string;
   statuses: StatusConfig[];
   existingContacts: Subcontractor[];
+  nameFixMode: "off" | "apply";
 }
 
 export type RowOutcome = "imported" | "imported_with_warning" | "not_imported";
@@ -50,6 +55,8 @@ export interface AnalyzedRow {
   outcome: RowOutcome;
   warnings: string[];
   errors: string[];
+  suggestedCompanyName?: string;
+  companyNameInvalid?: boolean;
 }
 
 export interface AnalyzeResult {
@@ -325,6 +332,7 @@ export const analyzeContactsImport = (
   mapping: FieldMapping,
   options: AnalyzeOptions
 ): AnalyzeResult => {
+  const nameFixMode = options.nameFixMode || "off";
   const existingCompanyByKey = new Map(
     options.existingContacts
       .map((c) => [normalizeText(c.company || ""), c] as const)
@@ -352,7 +360,6 @@ export const analyzeContactsImport = (
 
     const companyRaw = getMapped("company");
     const emailRaw = getMapped("contactEmail");
-    const company = companyRaw;
     const contactEmail = normalizeEmail(emailRaw);
 
     const mapped = {
@@ -390,6 +397,28 @@ export const analyzeContactsImport = (
 
     if (hasCompany && normalizeText(mapped.company) !== normalizeText(companyRaw)) {
       // derived/normalized override happened; keep warning already
+    }
+
+    let suggestedCompanyName: string | undefined;
+    let companyNameInvalid = false;
+    if (!isEmptyValue(mapped.company)) {
+      const companyValidation = validateSubcontractorCompanyName(mapped.company);
+      if (!companyValidation.isValid) {
+        companyNameInvalid = true;
+        const sanitizeResult = sanitizeSubcontractorCompanyName(mapped.company);
+        suggestedCompanyName = sanitizeResult.sanitized;
+
+        if (nameFixMode === "apply") {
+          mapped.company = sanitizeResult.sanitized;
+          warnings.push(
+            `Nazev firmy byl upraven na "${sanitizeResult.sanitized}".`,
+          );
+        } else {
+          errors.push(
+            `Neplatny nazev firmy. ${companyValidation.reason || "Nazev nelze pouzit pro slozky."} Navrh opravy: "${sanitizeResult.sanitized}".`,
+          );
+        }
+      }
     }
 
     if (isEmptyValue(mapped.contactName) && isEmptyValue(mapped.contactPhone) && isEmptyValue(mapped.contactEmail)) {
@@ -486,6 +515,8 @@ export const analyzeContactsImport = (
       outcome,
       warnings,
       errors,
+      suggestedCompanyName,
+      companyNameInvalid,
     };
   });
 

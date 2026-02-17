@@ -9,6 +9,19 @@ import { useLocation } from "../../shared/routing/router";
 import { parseAppRoute } from "../../shared/routing/routeUtils";
 import { renameFolder } from '../../services/fileSystemService';
 import { ProjectDetails } from '../../types';
+import { validateSubcontractorCompanyName } from "../../shared/dochub/subcontractorNameRules";
+
+const getInvalidCompanyNameMessage = (companyName: string, reason?: string): string => {
+    const base = `Neplatny nazev firmy "${companyName}".`;
+    return reason ? `${base} ${reason}` : base;
+};
+
+export const assertValidSubcontractorCompanyNameOrThrow = (companyName: string): void => {
+    const validation = validateSubcontractorCompanyName(companyName);
+    if (!validation.isValid) {
+        throw new Error(getInvalidCompanyNameMessage(companyName, validation.reason));
+    }
+};
 
 export const useAddContactMutation = () => {
     const queryClient = useQueryClient();
@@ -16,6 +29,8 @@ export const useAddContactMutation = () => {
 
     return useMutation({
         mutationFn: async (newContact: Subcontractor) => {
+            assertValidSubcontractorCompanyNameOrThrow(newContact.company);
+
             if (user?.role === "demo") {
                 const demoData = getDemoData();
                 if (demoData) {
@@ -65,6 +80,10 @@ export const useUpdateContactMutation = () => {
 
     return useMutation({
         mutationFn: async ({ id, updates }: { id: string, updates: Partial<Subcontractor> }) => {
+            if (updates.company !== undefined) {
+                assertValidSubcontractorCompanyNameOrThrow(updates.company);
+            }
+
             if (user?.role === "demo") {
                 const demoData = getDemoData();
                 if (demoData) {
@@ -205,6 +224,12 @@ export const useBulkUpdateContactsMutation = () => {
 
     return useMutation({
         mutationFn: async (updates: { id: string, data: Partial<Subcontractor> }[]) => {
+            updates.forEach(({ data }) => {
+                if (data.company !== undefined) {
+                    assertValidSubcontractorCompanyNameOrThrow(data.company);
+                }
+            });
+
             if (user?.role === "demo") {
                 const demoData = getDemoData();
                 if (demoData) {
@@ -249,6 +274,10 @@ export const useImportContactsMutation = () => {
 
     return useMutation({
         mutationFn: async ({ newContacts, onProgress }: { newContacts: Subcontractor[], onProgress?: (p: number) => void }) => {
+            newContacts.forEach((contact) => {
+                assertValidSubcontractorCompanyNameOrThrow(contact.company);
+            });
+
             // Wait, import logic is complex: merge -> insert/update.
             // Ideally should reuse useAppData logic or extract it.
             // But since I'm rewriting useAppData, I need to implement it here or call a service.
@@ -256,6 +285,8 @@ export const useImportContactsMutation = () => {
 
             const currentContacts = queryClient.getQueryData<Subcontractor[]>(CONTACT_KEYS.list()) || [];
             const { mergedContacts, added, updated } = mergeContacts(currentContacts, newContacts);
+            added.forEach((contact) => assertValidSubcontractorCompanyNameOrThrow(contact.company));
+            updated.forEach((contact) => assertValidSubcontractorCompanyNameOrThrow(contact.company));
 
             if (user?.role === "demo") {
                 const demoData = getDemoData();
