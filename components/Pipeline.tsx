@@ -96,6 +96,14 @@ interface PipelineProps {
 
 type PipelineViewMode = "grid" | "table";
 export type InquiryGenerationKind = "inquiry" | "materialInquiry";
+const rawDocHubFallbackFlag =
+  import.meta.env.VITE_DOCHUB_FALLBACK_ENABLED?.trim().toLowerCase();
+const DOCHUB_FALLBACK_ENABLED =
+  rawDocHubFallbackFlag === undefined ||
+  (rawDocHubFallbackFlag !== "false" &&
+    rawDocHubFallbackFlag !== "0" &&
+    rawDocHubFallbackFlag !== "off" &&
+    rawDocHubFallbackFlag !== "no");
 
 export const getTemplateLinksForInquiryKind = (
   project: ProjectDetails,
@@ -333,18 +341,35 @@ export const Pipeline: React.FC<PipelineProps> = ({
     });
   };
 
+  const getSafeFallbackProjectId = () => {
+    const routeProjectId = projectId?.trim();
+    const detailsProjectId = projectData.id?.trim();
+    if (!routeProjectId || !detailsProjectId) return null;
+    if (routeProjectId !== detailsProjectId) return null;
+    return routeProjectId;
+  };
+
   const isDocHubFallbackEnabled = () =>
+    DOCHUB_FALLBACK_ENABLED &&
     isDocHubEnabled &&
     docHubRoot.length > 0 &&
     user?.role !== "demo" &&
-    !!projectData.docHubProvider;
-
-  const getFallbackProjectId = () => projectData.id || projectId;
+    !!projectData.docHubProvider &&
+    !!getSafeFallbackProjectId();
 
   const runDocHubFallbackForProject = async (reason: string) => {
     if (!isDocHubFallbackEnabled()) return;
 
-    const fallbackProjectId = getFallbackProjectId();
+    const fallbackProjectId = getSafeFallbackProjectId();
+    if (!fallbackProjectId) {
+      console.warn("[DocHub fallback] Skipped due to project mismatch", {
+        reason,
+        routeProjectId: projectId,
+        detailsProjectId: projectData.id,
+      });
+      return;
+    }
+
     const inFlightKey = `project:${fallbackProjectId}`;
     if (fallbackInFlightRef.current.has(inFlightKey)) return;
     fallbackInFlightRef.current.add(inFlightKey);
@@ -387,7 +412,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
     } catch (error) {
       console.error("[DocHub fallback] Project fallback failed", {
         reason,
-        projectId: getFallbackProjectId(),
+        projectId: fallbackProjectId,
         error,
       });
     } finally {
@@ -401,7 +426,17 @@ export const Pipeline: React.FC<PipelineProps> = ({
   ) => {
     if (!isDocHubFallbackEnabled()) return;
 
-    const fallbackProjectId = getFallbackProjectId();
+    const fallbackProjectId = getSafeFallbackProjectId();
+    if (!fallbackProjectId) {
+      console.warn("[DocHub fallback] Category fallback skipped due to project mismatch", {
+        reason,
+        routeProjectId: projectId,
+        detailsProjectId: projectData.id,
+        categoryId,
+      });
+      return;
+    }
+
     const inFlightKey = `category:${fallbackProjectId}:${categoryId}`;
     if (fallbackInFlightRef.current.has(inFlightKey)) return;
     fallbackInFlightRef.current.add(inFlightKey);
@@ -476,7 +511,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
     } catch (error) {
       console.error("[DocHub fallback] Category fallback failed", {
         reason,
-        projectId: getFallbackProjectId(),
+        projectId: fallbackProjectId,
         categoryId,
         error,
       });
