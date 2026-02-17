@@ -8,6 +8,9 @@
       name="description"
       content="Uživatelská příručka pro aplikaci Tender Flow – stavby, výběrová řízení, subdodavatelé, dokumenty a nastavení."
     />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
       :root {
         --bg: #0b1220;
@@ -17,12 +20,13 @@
         --muted: rgba(255, 255, 255, 0.66);
         --border: rgba(255, 255, 255, 0.12);
         --accent: #2dd4bf;
+        --accent-warm: #f59e0b;
         --shadow: 0 10px 34px rgba(0, 0, 0, 0.38);
         --radius: 18px;
         --max: 1120px;
         --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
           "Liberation Mono", "Courier New", monospace;
-        --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
+        --sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
           Helvetica, Arial;
       }
 
@@ -53,9 +57,11 @@
       a {
         color: var(--accent);
         text-decoration: none;
+        transition: all 0.2s ease;
       }
       a:hover {
         text-decoration: underline;
+        color: #5eead4;
       }
 
       .app {
@@ -82,24 +88,25 @@
         display: flex;
         gap: 12px;
         align-items: center;
-        padding: 12px 12px;
+        padding: 16px 16px;
         border: 1px solid var(--border);
         border-radius: var(--radius);
         background: rgba(0, 0, 0, 0.18);
         box-shadow: var(--shadow);
       }
       .brand .logo-img {
-        width: 36px;
-        height: 36px;
-        border-radius: 10px;
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
         object-fit: contain;
-        padding: 5px;
+        padding: 6px;
         background: rgba(255, 255, 255, 0.045);
         border: 1px solid rgba(255, 255, 255, 0.10);
       }
       .brand h1 {
-        font-size: 14px;
+        font-size: 15px;
         margin: 0;
+        font-weight: 700;
         letter-spacing: 0.2px;
       }
       .brand p {
@@ -119,15 +126,26 @@
         border-radius: 14px;
         background: rgba(0, 0, 0, 0.18);
         padding: 10px 10px;
+        transition: all 0.2s ease;
+      }
+      .section:hover {
+        border-color: rgba(45, 212, 191, 0.3);
+        background: rgba(0, 0, 0, 0.22);
       }
       .sectionTitle {
         display: block;
         padding: 10px 10px;
         border-radius: 12px;
-        font-weight: 800;
+        font-weight: 700;
+        font-size: 13px;
         color: var(--text);
         background: rgba(255, 255, 255, 0.04);
         border: 1px solid rgba(255, 255, 255, 0.08);
+        transition: all 0.2s ease;
+      }
+      .section:hover .sectionTitle {
+        background: rgba(45, 212, 191, 0.1);
+        border-color: rgba(45, 212, 191, 0.2);
       }
       .sub {
         margin-top: 8px;
@@ -142,6 +160,8 @@
         border-radius: 12px;
         color: var(--muted);
         border: 1px solid transparent;
+        font-size: 12px;
+        transition: all 0.2s ease;
       }
       .sub a:hover {
         background: rgba(255, 255, 255, 0.05);
@@ -151,7 +171,7 @@
       }
 
       .content {
-        padding: 24px;
+        padding: 32px 40px;
       }
       .wrap {
         max-width: var(--max);
@@ -163,39 +183,69 @@
         border: 1px solid var(--border);
         background: rgba(0, 0, 0, 0.16);
         box-shadow: var(--shadow);
-        padding: 26px 26px;
+        padding: 32px 36px;
       }
 
       h1 {
-        font-size: 34px;
+        font-size: 38px;
         margin: 0 0 10px 0;
+        font-weight: 800;
+        background: linear-gradient(135deg, #fff 0%, rgba(45, 212, 191, 0.8) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
       }
       h2 {
-        font-size: 22px;
-        margin: 28px 0 10px 0;
+        font-size: 24px;
+        margin: 36px 0 14px 0;
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.95);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: 10px;
       }
       h3 {
-        font-size: 16px;
-        margin: 18px 0 8px 0;
+        font-size: 17px;
+        margin: 22px 0 10px 0;
+        font-weight: 600;
         color: rgba(255, 255, 255, 0.88);
+      }
+      h4 {
+        font-size: 15px;
+        margin: 16px 0 8px 0;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.82);
       }
       p,
       li {
-        line-height: 1.6;
+        line-height: 1.7;
         color: rgba(255, 255, 255, 0.84);
+        font-size: 15px;
+      }
+      li {
+        margin-bottom: 6px;
       }
       code {
         font-family: var(--mono);
-        font-size: 0.92em;
-        padding: 0.16em 0.36em;
+        font-size: 0.9em;
+        padding: 0.2em 0.44em;
         border-radius: 8px;
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(45, 212, 191, 0.15);
+        border: 1px solid rgba(45, 212, 191, 0.25);
+        color: #5eead4;
+      }
+      pre {
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        padding: 16px;
+        overflow-x: auto;
       }
       pre code {
         display: block;
-        padding: 14px 14px;
-        overflow: auto;
+        padding: 0;
+        background: none;
+        border: none;
+        color: rgba(255, 255, 255, 0.9);
       }
       img {
         max-width: 100%;
@@ -203,33 +253,79 @@
         border-radius: 16px;
         border: 1px solid rgba(255, 255, 255, 0.12);
         background: rgba(255, 255, 255, 0.04);
+        margin: 12px 0;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
       }
 
       .manualLogoWrap {
-        margin: 16px 0 10px 0;
+        margin: 24px 0 20px 0;
         display: flex;
         justify-content: center;
       }
       .manualLogo {
-        width: min(220px, 55vw);
+        width: min(280px, 60vw);
         height: auto;
-        border-radius: 18px;
+        border-radius: 20px;
         border: 1px solid rgba(255, 255, 255, 0.10);
         background: rgba(255, 255, 255, 0.02);
-        padding: 10px 12px;
-        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.30);
+        padding: 16px 20px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.40);
       }
       hr {
         border: none;
         border-top: 1px solid rgba(255, 255, 255, 0.12);
-        margin: 22px 0;
+        margin: 28px 0;
       }
 
       .generated {
-        margin-top: 10px;
-        color: rgba(255, 255, 255, 0.55);
+        margin-top: 24px;
+        color: rgba(255, 255, 255, 0.45);
         font-size: 12px;
         text-align: center;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 16px 0;
+        font-size: 14px;
+      }
+      th, td {
+        padding: 12px 16px;
+        text-align: left;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      th {
+        background: rgba(45, 212, 191, 0.1);
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.9);
+      }
+      tr:hover td {
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .version-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(45, 212, 191, 0.15);
+        border: 1px solid rgba(45, 212, 191, 0.3);
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 13px;
+        color: #5eead4;
+        margin-right: 8px;
+      }
+
+      .tip-box {
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%);
+        border: 1px solid rgba(245, 158, 11, 0.25);
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin: 16px 0;
+      }
+      .tip-box strong {
+        color: var(--accent-warm);
       }
 
       @media (max-width: 980px) {
@@ -239,6 +335,12 @@
         .sidebar {
           position: relative;
           height: auto;
+        }
+        .content {
+          padding: 20px;
+        }
+        article {
+          padding: 20px;
         }
       }
     </style>
@@ -259,32 +361,31 @@
             <p>Uživatelská příručka</p>
           </div>
         </div>
-        <nav class="nav" aria-label="Obsah příručky"><div class="section"><a class="sectionTitle" href="#obsah">Obsah</a></div>
-<div class="section"><a class="sectionTitle" href="#novinky-posledni-zmeny">Novinky (poslední změny)</a><div class="sub"><a href="#v1-3-2">v1.3.2</a><a href="#v1-3-1">v1.3.1</a><a href="#v1-2-3">v1.2.3</a><a href="#v1-2-1">v1.2.1</a><a href="#v0-9-6-v08">v0.9.6 v08</a><a href="#v0-9-5">v0.9.5</a><a href="#v0-9-4-260104">v0.9.4-260104</a><a href="#v0-9-4-260102">v0.9.4-260102</a><a href="#v0-9-3-260101">v0.9.3-260101</a><a href="#v0-9-2">v0.9.2</a><a href="#v0-9-1">v0.9.1</a><a href="#v0-9-0">v0.9.0</a><a href="#v0-8-0">v0.8.0</a></div></div>
+        <nav class="nav" aria-label="Obsah příručky"><div class="section"><a class="sectionTitle" href="#obsah">📋 Obsah</a></div>
+<div class="section"><a class="sectionTitle" href="#novinky-posledni-zmeny">🎉 Novinky (poslední změny)</a><div class="sub"><a href="#v1-3-1">v1.3.1</a><a href="#v1-2-3">v1.2.3</a><a href="#v1-2-1">v1.2.1</a><a href="#v0-9-6-v08">v0.9.6 v08</a><a href="#v0-9-5">v0.9.5</a><a href="#v0-9-4-260104">v0.9.4-260104</a><a href="#v0-9-4-260102">v0.9.4-260102</a><a href="#v0-9-3-260101">v0.9.3-260101</a><a href="#v0-9-2">v0.9.2</a><a href="#v0-9-1">v0.9.1</a><a href="#v0-9-0">v0.9.0</a><a href="#v0-8-0">v0.8.0</a></div></div>
 <div class="section"><a class="sectionTitle" href="#ucel-a-role">Účel a role</a></div>
 <div class="section"><a class="sectionTitle" href="#prihlaseni-a-ucet">Přihlášení a účet</a></div>
 <div class="section"><a class="sectionTitle" href="#organizace-a-predplatne">Organizace a předplatné</a></div>
 <div class="section"><a class="sectionTitle" href="#navigace-v-aplikaci">Navigace v aplikaci</a></div>
-<div class="section"><a class="sectionTitle" href="#dashboard">Dashboard</a></div>
-<div class="section"><a class="sectionTitle" href="#detail-stavby-zalozky">Detail stavby (záložky)</a></div>
-<div class="section"><a class="sectionTitle" href="#plan-vr">Plán VŘ</a></div>
-<div class="section"><a class="sectionTitle" href="#vyberova-rizeni-pipeline">Výběrová řízení (Pipeline)</a><div class="sub"><a href="#stavy-nabidky-sloupce">Stavy nabídky (sloupce)</a><a href="#karta-nabidky">Karta nabídky</a></div></div>
-<div class="section"><a class="sectionTitle" href="#smlouvy">Smlouvy</a></div>
-<div class="section"><a class="sectionTitle" href="#harmonogram">Harmonogram</a></div>
-<div class="section"><a class="sectionTitle" href="#dokumenty-a-sablony">Dokumenty a šablony</a><div class="sub"><a href="#dochub-mcp-bridge-lokalni-disk">DocHub: MCP Bridge (lokální disk)</a></div></div>
-<div class="section"><a class="sectionTitle" href="#subdodavatele-kontakty">Subdodavatelé (Kontakty)</a></div>
-<div class="section"><a class="sectionTitle" href="#sprava-staveb">Správa staveb</a></div>
-<div class="section"><a class="sectionTitle" href="#prehled-staveb-analytika">Přehled staveb (analytika)</a></div>
-<div class="section"><a class="sectionTitle" href="#nastaveni-aplikace">Nastavení aplikace</a></div>
-<div class="section"><a class="sectionTitle" href="#excel-nastroje">Excel nástroje</a><div class="sub"><a href="#excel-unlocker-pro">Excel Unlocker PRO</a><a href="#excel-merger-pro">Excel Merger PRO</a><a href="#excel-indexer">Excel Indexer</a><a href="#index-matcher">Index Matcher</a></div></div>
-<div class="section"><a class="sectionTitle" href="#url-zkracovac">URL Zkracovač</a><div class="sub"><a href="#funkce-2">Funkce</a><a href="#jak-vytvorit-zkraceny-odkaz">Jak vytvořit zkrácený odkaz</a><a href="#sprava-odkazu">Správa odkazů</a></div></div>
-<div class="section"><a class="sectionTitle" href="#tender-flow-desktop">Tender Flow Desktop</a><div class="sub"><a href="#vyhody-desktop-verze">Výhody desktop verze</a><a href="#instalace">Instalace</a><a href="#spusteni">Spuštění</a><a href="#auto-update">Auto-update</a><a href="#biometricke-prihlaseni">Biometrické přihlášení</a><a href="#nativni-souborove-operace">Nativní souborové operace</a><a href="#excel-nastroje-2">Excel nástroje</a><a href="#ukonceni-aplikace">Ukončení aplikace</a></div></div>
-<div class="section"><a class="sectionTitle" href="#administrace-systemu">Administrace systému</a></div>
-<div class="section"><a class="sectionTitle" href="#registrace-a-whitelist">Registrace a whitelist</a></div>
-<div class="section"><a class="sectionTitle" href="#seznam-povolenych-emailu-whitelist">Seznam povolených emailů (Whitelist)</a></div>
-<div class="section"><a class="sectionTitle" href="#sprava-uzivatelu-a-roli">Správa uživatelů a rolí</a></div>
-<div class="section"><a class="sectionTitle" href="#import-a-synchronizace-kontaktu">Import a synchronizace kontaktů</a></div>
-<div class="section"><a class="sectionTitle" href="#ai-funkce">AI funkce</a><div class="sub"><a href="#zakladni-ai-funkce">Základní AI funkce</a><a href="#sprava-ai-klicu-admin">Správa AI klíčů (Admin)</a><a href="#ai-testovani-admin">AI testování (Admin)</a><a href="#mcp-diagnostika-desktop-admin">MCP diagnostika (Desktop, Admin)</a></div></div>
+<div class="section"><a class="sectionTitle" href="#dashboard">Dashboard</a><div class="sub"><a href="#co-dashboard-zobrazuje">🎯 Co dashboard zobrazuje:</a></div></div>
+<div class="section"><a class="sectionTitle" href="#plan-vr">📅 Plán VŘ</a></div>
+<div class="section"><a class="sectionTitle" href="#vyberova-rizeni-pipeline">📋 Výběrová řízení (Pipeline)</a><div class="sub"><a href="#stavy-nabidky-sloupce">Stavy nabídky (sloupce)</a><a href="#karta-nabidky">Karta nabídky</a></div></div>
+<div class="section"><a class="sectionTitle" href="#smlouvy">📜 Smlouvy</a></div>
+<div class="section"><a class="sectionTitle" href="#harmonogram">📆 Harmonogram</a></div>
+<div class="section"><a class="sectionTitle" href="#dokumenty-a-sablony">📁 Dokumenty a šablony</a><div class="sub"><a href="#dochub-mcp-bridge-lokalni-disk">DocHub: MCP Bridge (lokální disk)</a></div></div>
+<div class="section"><a class="sectionTitle" href="#subdodavatele-kontakty">👥 Subdodavatelé (Kontakty)</a></div>
+<div class="section"><a class="sectionTitle" href="#sprava-staveb">🏠 Správa staveb</a></div>
+<div class="section"><a class="sectionTitle" href="#prehled-staveb-analytika">📈 Přehled staveb (analytika)</a></div>
+<div class="section"><a class="sectionTitle" href="#nastaveni-aplikace">⚙️ Nastavení aplikace</a></div>
+<div class="section"><a class="sectionTitle" href="#excel-nastroje">📊 Excel nástroje</a><div class="sub"><a href="#excel-unlocker-pro">🔓 Excel Unlocker PRO</a><a href="#excel-merger-pro">🔀 Excel Merger PRO</a><a href="#excel-indexer">📊 Excel Indexer</a><a href="#index-matcher">🔍 Index Matcher</a></div></div>
+<div class="section"><a class="sectionTitle" href="#url-zkracovac">🔗 URL Zkracovač</a><div class="sub"><a href="#funkce-2">Funkce</a><a href="#jak-vytvorit-zkraceny-odkaz">Jak vytvořit zkrácený odkaz</a><a href="#sprava-odkazu">Správa odkazů</a></div></div>
+<div class="section"><a class="sectionTitle" href="#tender-flow-desktop">💻 Tender Flow Desktop</a><div class="sub"><a href="#vyhody-desktop-verze">Výhody desktop verze</a><a href="#instalace">Instalace</a><a href="#spusteni">Spuštění</a><a href="#auto-update">Auto-update</a><a href="#biometricke-prihlaseni">Biometrické přihlášení</a><a href="#nativni-souborove-operace">Nativní souborové operace</a><a href="#excel-nastroje-2">Excel nástroje</a><a href="#ukonceni-aplikace">Ukončení aplikace</a></div></div>
+<div class="section"><a class="sectionTitle" href="#administrace-systemu">🛡️ Administrace systému</a></div>
+<div class="section"><a class="sectionTitle" href="#registrace-a-whitelist">📝 Registrace a whitelist</a></div>
+<div class="section"><a class="sectionTitle" href="#seznam-povolenych-emailu-whitelist">📧 Seznam povolených emailů (Whitelist)</a></div>
+<div class="section"><a class="sectionTitle" href="#sprava-uzivatelu-a-roli">👤 Správa uživatelů a rolí</a></div>
+<div class="section"><a class="sectionTitle" href="#import-a-synchronizace-kontaktu">🔄 Import a synchronizace kontaktů</a></div>
+<div class="section"><a class="sectionTitle" href="#ai-funkce">🤖 AI funkce</a><div class="sub"><a href="#zakladni-ai-funkce">Základní AI funkce</a><a href="#sprava-ai-klicu-admin">Správa AI klíčů (Admin)</a><a href="#ai-testovani-admin">AI testování (Admin)</a><a href="#mcp-diagnostika-desktop-admin">MCP diagnostika (Desktop, Admin)</a></div></div>
 <div class="section"><a class="sectionTitle" href="#caste-otazky">Časté otázky</a><div class="sub"><a href="#neotevre-se-emailovy-klient">Neotevře se emailový klient</a><a href="#nektere-volby-nevidim">Některé volby nevidím</a><a href="#excel-merger-pro-pise-funkce-neni-dostupna">Excel Merger PRO píše „Funkce není dostupná“</a><a href="#kde-si-mohu-stahnout-desktop-aplikaci">Kde si mohu stáhnout desktop aplikaci?</a></div></div>
 <div class="section"><a class="sectionTitle" href="#informace-o-autorstvi-a-pravech-k-aplikaci">Informace o autorství a právech k aplikaci</a></div></nav>
       </aside>
@@ -292,50 +393,45 @@
         <div class="wrap">
           <article class="markdown"><h1 id="tender-flow-uzivatelska-prirucka">Tender Flow – Uživatelská příručka</h1>
 <p>Tato příručka popisuje práci v aplikaci Tender Flow pro řízení staveb, výběrových řízení a subdodavatelů.</p>
-<p>Verze příručky: <strong>1.6</strong> • Datum: <strong>2026‑02‑16</strong> • Aplikace: <strong>v1.3.2</strong></p>
+<p>Verze příručky: <strong>1.7</strong> • Datum: <strong>2026‑02‑17</strong> • Aplikace: <strong>v1.3.2</strong></p>
 <p class="manualLogoWrap">
   <img class="manualLogo" src="./assets/logo.png" alt="Tender Flow logo" />
 </p>
 
-<h2 id="obsah">Obsah</h2>
+<hr>
+<h2 id="obsah">📋 Obsah</h2>
 <ul>
-<li><a href="#novinky-posledni-zmeny">Novinky (poslední změny)</a></li>
-<li><a href="#ucel-a-role">Účel a role</a></li>
-<li><a href="#prihlaseni-a-ucet">Přihlášení a účet</a></li>
-<li><a href="#organizace-a-predplatne">Organizace a předplatné</a></li>
-<li><a href="#navigace-v-aplikaci">Navigace v aplikaci</a></li>
-<li><a href="#dashboard">Dashboard</a></li>
-<li><a href="#detail-stavby-zalozky">Detail stavby (záložky)</a></li>
-<li><a href="#plan-vr">Plán VŘ</a></li>
-<li><a href="#vyberova-rizeni-pipeline">Výběrová řízení (Pipeline)</a></li>
-<li><a href="#smlouvy">Smlouvy</a></li>
-<li><a href="#harmonogram">Harmonogram</a></li>
-<li><a href="#dokumenty-a-sablony">Dokumenty a šablony</a></li>
-<li><a href="#subdodavatele-kontakty">Subdodavatelé (Kontakty)</a></li>
-<li><a href="#sprava-staveb">Správa staveb</a></li>
-<li><a href="#prehled-staveb-analytika">Přehled staveb (analytika)</a></li>
-<li><a href="#nastaveni-aplikace">Nastavení aplikace</a></li>
-<li><a href="#excel-nastroje">Excel nástroje</a><ul>
-<li><a href="#excel-unlocker-pro">Excel Unlocker PRO</a></li>
-<li><a href="#excel-merger-pro">Excel Merger PRO</a></li>
-<li><a href="#excel-indexer">Excel Indexer</a></li>
-<li><a href="#index-matcher">Index Matcher</a></li>
-</ul>
-</li>
-<li><a href="#url-zkracovac">URL Zkracovač</a></li>
-<li><a href="#tender-flow-desktop">Tender Flow Desktop</a></li>
-<li><a href="#administrace-systemu">Administrace systému</a></li>
-<li><a href="#registrace-a-whitelist">Registrace a whitelist</a></li>
-<li><a href="#seznam-povolenych-emailu-whitelist">Seznam povolených emailů</a></li>
-<li><a href="#sprava-uzivatelu-a-roli">Správa uživatelů a rolí</a></li>
-<li><a href="#import-a-synchronizace-kontaktu">Import a synchronizace kontaktů</a></li>
-<li><a href="#ai-funkce">AI funkce</a></li>
-<li><a href="#caste-otazky">Časté otázky</a></li>
+<li><a href="#novinky-posledni-zmeny">🎉 Novinky</a></li>
+<li><a href="#ucel-a-role">🎯 Účel a role</a></li>
+<li><a href="#prihlaseni-a-ucet">🔐 Přihlášení a účet</a></li>
+<li><a href="#organizace-a-predplatne">🏢 Organizace a předplatné</a></li>
+<li><a href="#navigace-v-aplikaci">🧭 Navigace v aplikaci</a></li>
+<li><a href="#dashboard">📊 Dashboard</a></li>
+<li><a href="#detail-stavby-zalozky">🏗️ Detail stavby (záložky)</a></li>
+<li><a href="#plan-vr">📅 Plán VŘ</a></li>
+<li><a href="#vyberova-rizeni-pipeline">📋 Výběrová řízení (Pipeline)</a></li>
+<li><a href="#smlouvy">📜 Smlouvy</a></li>
+<li><a href="#harmonogram">📆 Harmonogram</a></li>
+<li><a href="#dokumenty-a-sablony">📁 Dokumenty a šablony</a></li>
+<li><a href="#subdodavatele-kontakty">👥 Subdodavatelé (Kontakty)</a></li>
+<li><a href="#sprava-staveb">🏠 Správa staveb</a></li>
+<li><a href="#prehled-staveb-analytika">📈 Přehled staveb (analytika)</a></li>
+<li><a href="#nastaveni-aplikace">⚙️ Nastavení aplikace</a></li>
+<li><a href="#excel-nastroje">📊 Excel nástroje</a></li>
+<li><a href="#url-zkracovac">🔗 URL Zkracovač</a></li>
+<li><a href="#tender-flow-desktop">💻 Tender Flow Desktop</a></li>
+<li><a href="#administrace-systemu">🛡️ Administrace systému</a></li>
+<li><a href="#registrace-a-whitelist">📝 Registrace a whitelist</a></li>
+<li><a href="#seznam-povolenych-emailu-whitelist">📧 Seznam povolených emailů</a></li>
+<li><a href="#sprava-uzivatelu-a-roli">👤 Správa uživatelů a rolí</a></li>
+<li><a href="#import-a-synchronizace-kontaktu">🔄 Import a synchronizace kontaktů</a></li>
+<li><a href="#ai-funkce">🤖 AI funkce</a></li>
+<li><a href="#caste-otazky">❓ Časté otázky</a></li>
 </ul>
 <hr>
-<h2 id="novinky-posledni-zmeny">Novinky (poslední změny)</h2>
+<h2 id="novinky-posledni-zmeny">🎉 Novinky (poslední změny)</h2>
+<p><span class="version-badge">📱 v1.3.2</span> <span class="version-badge">📖 Verze příručky 1.7</span></p>
 <p>Verzi aplikace najdete vlevo dole v sidebaru.</p>
-<h3 id="v1-3-2">v1.3.2</h3>
 <ul>
 <li><strong>Uživatelská příručka doplněna</strong>: rozšířené a sjednocené popisy hlavních modulů včetně administrace, AI funkcí a desktop sekce.</li>
 <li><strong>Obsah příručky upraven</strong>: opravené interní odkazy a aktualizované metainformace verze/datum.</li>
@@ -477,7 +573,10 @@
 <li>Klikněte na <strong>Přihlásit</strong>.</li>
 <li>Odhlášení najdete dole v levém panelu (ikonka <code>logout</code>).</li>
 </ol>
-<p><img src="./assets/01-login.svg" alt="Schéma přihlášení"></p>
+<p><img src="./assets/01-login.svg" alt="Přihlášení do aplikace Tender Flow"></p>
+<blockquote>
+<p>💡 <strong>Tip:</strong> Uložte si přihlášení pro rychlejší přístup příště.</p>
+</blockquote>
 <h2 id="organizace-a-predplatne">Organizace a předplatné</h2>
 <p>Tender Flow funguje jako multi-tenant aplikace: každý uživatel patří do <strong>organizace</strong> (tenant) a data jsou mezi organizacemi oddělená.</p>
 <ul>
@@ -493,33 +592,47 @@
 <h2 id="navigace-v-aplikaci">Navigace v aplikaci</h2>
 <p>V levém panelu (sidebar) přepínáte hlavní části aplikace a vybíráte konkrétní stavbu.</p>
 <ul>
-<li><strong>Dashboard</strong> – přehled vybrané stavby a export.</li>
-<li><strong>Stavby</strong> – seznam staveb (projekty).</li>
-<li><strong>Subdodavatelé</strong> – databáze kontaktů.</li>
-<li><strong>Nástroje</strong> – skupina doplňků (např. Správa staveb, Přehled staveb, Import kontaktů, Excel nástroje; dle předplatného).</li>
-<li><strong>Nastavení</strong> – profil, vzhled, statusy kontaktů, administrace (dle oprávnění).</li>
+<li><strong>📊 Dashboard</strong> – přehled vybrané stavby a export.</li>
+<li><strong>🏗️ Stavby</strong> – seznam staveb (projekty).</li>
+<li><strong>👥 Subdodavatelé</strong> – databáze kontaktů.</li>
+<li><strong>🔧 Nástroje</strong> – skupina doplňků (např. Správa staveb, Přehled staveb, Import kontaktů, Excel nástroje; dle předplatného).</li>
+<li><strong>⚙️ Nastavení</strong> – profil, vzhled, statusy kontaktů, administrace (dle oprávnění).</li>
 </ul>
-<p><img src="./assets/02-navigation.svg" alt="Schéma navigace"></p>
+<p><img src="./assets/02-navigation.svg" alt="Navigace v aplikaci"></p>
 <h2 id="dashboard">Dashboard</h2>
 <p>Dashboard zobrazuje přehled jedné vybrané stavby. V hlavičce můžete přepnout stavbu a vyexportovat XLSX.</p>
-<p><img src="./assets/03-dashboard.svg" alt="Schéma dashboardu"></p>
-<h2 id="detail-stavby-zalozky">Detail stavby (záložky)</h2>
+<p><img src="./assets/03-dashboard.svg" alt="Dashboard aplikace Tender Flow"></p>
+<h3 id="co-dashboard-zobrazuje">🎯 Co dashboard zobrazuje:</h3>
+<ul>
+<li>Přehled poptávek a jejich stav</li>
+<li>Klíčové metriky stavby</li>
+<li>Rychlý přístup k nejčastějším akcím</li>
+<li>Možnost exportu dat do Excelu</li>
+</ul>
 <p>Po kliknutí na stavbu v sidebaru se otevře detail se záložkami:</p>
 <ul>
-<li><strong>Přehled</strong> – rozpočty, stav, metriky.</li>
-<li><strong>Plán VŘ</strong> – plánování výběrových řízení.</li>
-<li><strong>Výběrová řízení</strong> – pipeline poptávek a nabídek.</li>
-<li><strong>Smlouvy</strong> – evidence smluv, dodatků a čerpání.</li>
-<li><strong>Harmonogram</strong> – Gantt navázaný na termíny výběrových řízení.</li>
-<li><strong>Dokumenty</strong> – odkazy na dokumentaci a šablony poptávek.</li>
+<li><strong>📊 Přehled</strong> – rozpočty, stav, metriky.</li>
+<li><strong>📅 Plán VŘ</strong> – plánování výběrových řízení.</li>
+<li><strong>📋 Výběrová řízení</strong> – pipeline poptávek a nabídek.</li>
+<li><strong>📜 Smlouvy</strong> – evidence smluv, dodatků a čerpání.</li>
+<li><strong>📆 Harmonogram</strong> – Gantt navázaný na termíny výběrových řízení.</li>
+<li><strong>📁 Dokumenty</strong> – odkazy na dokumentaci a šablony poptávek.</li>
 </ul>
-<p><img src="./assets/04-project-tabs.svg" alt="Schéma záložek stavby"></p>
-<h2 id="plan-vr">Plán VŘ</h2>
+<p><img src="./assets/04-project-tabs.svg" alt="Záložky detailu stavby"></p>
+<h2 id="plan-vr">📅 Plán VŘ</h2>
 <p>Plán VŘ slouží k naplánování VŘ v čase a (dle potřeby) k jejich převodu do poptávek.</p>
-<p><img src="./assets/11-tender-plan.svg" alt="Schéma Plánu VŘ"></p>
-<h2 id="vyberova-rizeni-pipeline">Výběrová řízení (Pipeline)</h2>
+<p><img src="./assets/11-tender-plan.svg" alt="Plán VŘ"></p>
+<blockquote>
+<p>🖼️ <strong>Ukázka:</strong> Plán výběrových řízení</p>
+</blockquote>
+<p><img src="../screenshots/pl%C3%A1n%20V%C5%98.png" alt="Screenshot: Plán VŘ"></p>
+<h2 id="vyberova-rizeni-pipeline">📋 Výběrová řízení (Pipeline)</h2>
 <p>Výběrová řízení jsou organizovaná po <strong>poptávkách</strong> (kategorie prací). Nabídky subdodavatelů přesouváte mezi sloupci (drag &amp; drop).</p>
-<p><img src="./assets/05-pipeline-board.svg" alt="Schéma pipeline"></p>
+<p><img src="./assets/05-pipeline-board.svg" alt="Výběrová řízení – Kanban board"></p>
+<blockquote>
+<p>🖼️ <strong>Ukázka:</strong> Kanban board výběrových řízení</p>
+</blockquote>
+<p><img src="../screenshots/vyberove-rizeni.png" alt="Screenshot: Výběrová řízení"></p>
 <h3 id="stavy-nabidky-sloupce">Stavy nabídky (sloupce)</h3>
 <ul>
 <li><strong>Oslovení</strong> – připraven k oslovení (může se zobrazit „Generovat poptávku“).</li>
@@ -531,17 +644,20 @@
 </ul>
 <h3 id="karta-nabidky">Karta nabídky</h3>
 <p>Na kartě nabídky evidujete cenu, tagy, poznámky a případně generujete poptávkový email.</p>
-<p><img src="./assets/06-bid-card.svg" alt="Schéma karty nabídky"></p>
-<h2 id="smlouvy">Smlouvy</h2>
+<p><img src="./assets/06-bid-card.svg" alt="Karta nabídky v Tender Flow"></p>
+<hr>
+<h2 id="smlouvy">📜 Smlouvy</h2>
 <p>Záložka <strong>Smlouvy</strong> slouží pro finanční a smluvní řízení konkrétní stavby.</p>
 <ul>
-<li><strong>Přehled</strong> – souhrn KPI (počty smluv, hodnota, čerpání, retence).</li>
-<li><strong>Smlouvy</strong> – seznam smluv, vytváření/editace, vazba na dodavatele, stav a hodnotu.</li>
-<li><strong>Dodatky</strong> – změny smluv (cenové i termínové) navázané na vybranou smlouvu.</li>
-<li><strong>Čerpání</strong> – evidence průvodek/čerpání a kontrola zůstatku vůči aktuální hodnotě smlouvy.</li>
+<li><strong>📊 Přehled</strong> – souhrn KPI (počty smluv, hodnota, čerpání, retence).</li>
+<li><strong>📄 Smlouvy</strong> – seznam smluv, vytváření/editace, vazba na dodavatele, stav a hodnotu.</li>
+<li><strong>✏️ Dodatky</strong> – změny smluv (cenové i termínové) navázané na vybranou smlouvu.</li>
+<li><strong>💰 Čerpání</strong> – evidence průvodek/čerpání a kontrola zůstatku vůči aktuální hodnotě smlouvy.</li>
 </ul>
-<p>Tip: při zakládání lze data ze smluvních dokumentů předvyplnit automaticky a před uložením je ručně potvrdit.</p>
-<h2 id="harmonogram">Harmonogram</h2>
+<blockquote>
+<p>💡 <strong>Tip:</strong> Při zakládání lze data ze smluvních dokumentů předvyplnit automaticky a před uložením je ručně potvrdit.</p>
+</blockquote>
+<h2 id="harmonogram">📆 Harmonogram</h2>
 <p>Harmonogram je Ganttův přehled termínů, který se automaticky naplňuje z dat v projektu.</p>
 <ul>
 <li><strong>Jak se plní</strong>: doplňte termíny v <strong>Plán VŘ</strong> (od–do) nebo termín v detailu <strong>Výběrových řízení</strong> (deadline).</li>
@@ -549,14 +665,15 @@
 <li><strong>Editace</strong>: tlačítko <strong>Editace</strong> umožní upravit termíny přímo v harmonogramu.</li>
 <li><strong>Export</strong>: menu <strong>Export</strong> nabízí <code>XLSX</code>, <code>PDF</code> a <code>XLSX s grafem</code>.</li>
 </ul>
-<p><img src="../screenshots/harmonogram.png" alt="Ukázka harmonogramu"></p>
-<h2 id="dokumenty-a-sablony">Dokumenty a šablony</h2>
+<p><img src="../screenshots/harmonogram.png" alt="Screenshot: Harmonogram"></p>
+<hr>
+<h2 id="dokumenty-a-sablony">📁 Dokumenty a šablony</h2>
 <p>V záložce <strong>Dokumenty</strong> najdete podzáložky:</p>
 <ul>
-<li><strong>PD</strong> – odkaz na projektovou dokumentaci (Drive/SharePoint apod.).</li>
-<li><strong>Šablony</strong> – šablona poptávky a šablona „email nevybraným“ (lze použít interní editor šablon, nebo externí odkaz/soubor).</li>
-<li><strong>DocHub</strong> – napojení na strukturu složek projektu (pokud je povoleno).</li>
-<li><strong>Ceníky</strong> – odkaz na projektové ceníky + rychlý odkaz na složku <code>Ceníky</code> v DocHubu (pokud je připojen).</li>
+<li><strong>📂 PD</strong> – odkaz na projektovou dokumentaci (Drive/SharePoint apod.).</li>
+<li><strong>📝 Šablony</strong> – šablona poptávky a šablona „email nevybraným&quot; (lze použít interní editor šablon, nebo externí odkaz/soubor).</li>
+<li><strong>📦 DocHub</strong> – napojení na strukturu složek projektu (pokud je povoleno).</li>
+<li><strong>💵 Ceníky</strong> – odkaz na projektové ceníky + rychlý odkaz na složku <code>Ceníky</code> v DocHubu (pokud je připojen).</li>
 </ul>
 <p>V praxi zde typicky nastavíte:</p>
 <ul>
@@ -564,7 +681,7 @@
 <li>šablony emailů (poptávka / nevybraní),</li>
 <li>ceníky a související složky.</li>
 </ul>
-<p><img src="./assets/10-documents-templates.svg" alt="Schéma dokumentů a šablon"></p>
+<p><img src="./assets/10-documents-templates.svg" alt="Dokumenty a šablony"></p>
 <h3 id="dochub-mcp-bridge-lokalni-disk">DocHub: MCP Bridge (lokální disk)</h3>
 <p>MCP Bridge je malý lokální server, který umožní vytvářet složky DocHubu přímo na disku uživatele.</p>
 <p><strong>Distribuce MCP Bridge:</strong></p>
@@ -586,53 +703,65 @@
 <li>Zadejte absolutní cestu ke kořenové složce projektu.</li>
 <li>Klikněte <strong>Připojit</strong> a poté <strong>Synchronizovat</strong>.</li>
 </ol>
-<h2 id="subdodavatele-kontakty">Subdodavatelé (Kontakty)</h2>
+<h2 id="subdodavatele-kontakty">👥 Subdodavatelé (Kontakty)</h2>
 <p>Databáze kontaktů pro přidávání do poptávek. Podporuje filtry, výběr více řádků a hromadné akce (např. doplnění regionu pomocí AI – pokud je povoleno).</p>
 <ul>
-<li><strong>Více kontaktů na firmu</strong>: u jedné firmy můžete evidovat více kontaktních osob (jméno, pozice, telefon, email).</li>
-<li><strong>Více specializací</strong>: specializace jsou seznam (používá se pro filtrování i výběr do poptávek).</li>
+<li><strong>👤 Více kontaktů na firmu</strong>: u jedné firmy můžete evidovat více kontaktních osob (jméno, pozice, telefon, email).</li>
+<li><strong>🏷️ Více specializací</strong>: specializace jsou seznam (používá se pro filtrování i výběr do poptávek).</li>
 </ul>
-<p><img src="./assets/07-contacts.svg" alt="Schéma kontaktů"></p>
-<h2 id="sprava-staveb">Správa staveb</h2>
+<p><img src="./assets/07-contacts.svg" alt="Subdodavatelé a kontakty"></p>
+<blockquote>
+<p>🖼️ <strong>Ukázka:</strong> Databáze subdodavatelů</p>
+</blockquote>
+<p><img src="../screenshots/slozkomat.png" alt="Screenshot: Složkomat - kontakty"></p>
+<hr>
+<h2 id="sprava-staveb">🏠 Správa staveb</h2>
 <p>Slouží pro vytváření staveb, změny statusu, archivaci a sdílení (dle oprávnění).</p>
-<p><img src="./assets/08-project-management.svg" alt="Schéma správy staveb"></p>
-<p>Sdílení podporuje dvě úrovně oprávnění: <strong>Úpravy</strong> a <strong>Pouze čtení</strong>.</p>
-<p><img src="./assets/16-project-sharing-permissions.svg" alt="Schéma sdílení: oprávnění Úpravy vs Pouze čtení"></p>
-<h2 id="prehled-staveb-analytika">Přehled staveb (analytika)</h2>
+<p><img src="./assets/08-project-management.svg" alt="Správa staveb"></p>
+<p>Sdílení podporuje dvě úrovně oprávnění: <strong>✏️ Úpravy</strong> a <strong>👁️ Pouze čtení</strong>.</p>
+<p><img src="./assets/16-project-sharing-permissions.svg" alt="Sdílení: oprávnění"></p>
+<h2 id="prehled-staveb-analytika">📈 Přehled staveb (analytika)</h2>
 <p>Manažerské souhrny napříč stavbami: metriky, grafy a volitelně AI analýza.</p>
-<p><img src="./assets/12-project-overview-ai.svg" alt="Schéma přehledu staveb a AI"></p>
-<h2 id="nastaveni-aplikace">Nastavení aplikace</h2>
+<p><img src="./assets/12-project-overview-ai.svg" alt="Přehled staveb a AI"></p>
+<blockquote>
+<p>🖼️ <strong>Ukázka:</strong> Přehled poptávek</p>
+</blockquote>
+<p><img src="../screenshots/prehled-poptavek.png" alt="Screenshot: Přehled poptávek"></p>
+<hr>
+<h2 id="nastaveni-aplikace">⚙️ Nastavení aplikace</h2>
 <ul>
-<li><strong>Profil</strong> – zobrazované jméno, vzhled (tmavý režim, primární barva, pozadí) a správa statusů kontaktů.</li>
-<li><strong>Import kontaktů</strong> – synchronizace z URL / ruční upload (může být v sekci <strong>Nástroje</strong> dle předplatného).</li>
-<li><strong>Excel Unlocker PRO</strong> – odemknutí <code>.xlsx</code> lokálně v prohlížeči (soubor se nikam neodesílá; dle předplatného).</li>
-<li><strong>Excel Merger PRO</strong> – slučování Excel listů; v desktop verzi nativní, ve web verzi externí aplikace (dle předplatného).</li>
-<li><strong>Excel Indexer</strong> – dvou-fázová indexace a zpracování rozpočtů s automatickým doplněním popisů.</li>
-<li><strong>Index Matcher</strong> – rychlé doplnění popisů podle indexu (zjednodušená verze Indexer).</li>
-<li><strong>URL Zkracovač</strong> – vytváření zkrácených odkazů s vlastními aliasy (dle předplatného).</li>
-<li><strong>Administrace systému (Admin)</strong> – registrace, whitelist, uživatelé, předplatné, AI, MCP diagnostika.</li>
+<li><strong>👤 Profil</strong> – zobrazované jméno, vzhled (tmavý režim, primární barva, pozadí) a správa statusů kontaktů.</li>
+<li><strong>📥 Import kontaktů</strong> – synchronizace z URL / ruční upload (může být v sekci <strong>Nástroje</strong> dle předplatného).</li>
+<li><strong>🔓 Excel Unlocker PRO</strong> – odemknutí <code>.xlsx</code> lokálně v prohlížeči (soubor se nikam neodesílá; dle předplatného).</li>
+<li><strong>🔀 Excel Merger PRO</strong> – slučování Excel listů; v desktop verzi nativní, ve web verzi externí aplikace (dle předplatného).</li>
+<li><strong>📊 Excel Indexer</strong> – dvou-fázová indexace a zpracování rozpočtů s automatickým doplněním popisů.</li>
+<li><strong>🔍 Index Matcher</strong> – rychlé doplnění popisů podle indexu (zjednodušená verze Indexer).</li>
+<li><strong>🔗 URL Zkracovač</strong> – vytváření zkrácených odkazů s vlastními aliasy (dle předplatného).</li>
+<li><strong>🛡️ Administrace systému (Admin)</strong> – registrace, whitelist, uživatelé, předplatné, AI, MCP diagnostika.</li>
 </ul>
-<p><img src="./assets/09-settings.svg" alt="Schéma nastavení"></p>
-<h2 id="excel-nastroje">Excel nástroje</h2>
+<p><img src="./assets/09-settings.svg" alt="Nastavení aplikace"></p>
+<h2 id="excel-nastroje">📊 Excel nástroje</h2>
 <p>Tender Flow nabízí sadu nástrojů pro práci s Excel soubory.</p>
-<h3 id="excel-unlocker-pro">Excel Unlocker PRO</h3>
+<h3 id="excel-unlocker-pro">🔓 Excel Unlocker PRO</h3>
 <p>Nástroj pro odemknutí ochrany <code>.xlsx</code> souborů. Funguje lokálně v prohlížeči – soubor se nikam neodesílá.</p>
-<p><strong>Použití</strong>:</p>
+<p><strong>Použití:</strong></p>
 <ol>
 <li>Otevřete <strong>Nastavení → Excel Unlocker PRO</strong></li>
 <li>Klikněte &quot;Vybrat soubor&quot; a nahrajte chráněný Excel</li>
 <li>Klikněte &quot;Odemknout&quot;</li>
 <li>Stáhněte odemčený soubor</li>
 </ol>
-<p><strong>Umístění</strong>: Nastavení → Excel Unlocker PRO (dle předplatného)</p>
-<h3 id="excel-merger-pro">Excel Merger PRO</h3>
+<p><strong>Umístění:</strong> Nastavení → Excel Unlocker PRO (dle předplatného)</p>
+<hr>
+<h3 id="excel-merger-pro">🔀 Excel Merger PRO</h3>
 <p>Nástroj pro slučování více listů z různých Excel souborů do jednoho souboru.</p>
 <ul>
-<li><strong>Desktop verze</strong>: Nativní zpracování pomocí lokálních Python skriptů</li>
-<li><strong>Web verze</strong>: Externí aplikace v iframe (vyžaduje konfiguraci adminem)</li>
+<li><strong>💻 Desktop verze</strong>: Nativní zpracování pomocí lokálních Python skriptů</li>
+<li><strong>🌐 Web verze</strong>: Externí aplikace v iframe (vyžaduje konfiguraci adminem)</li>
 </ul>
-<p><strong>Umístění</strong>: Nastavení → Excel Merger PRO (dle předplatného)</p>
-<h3 id="excel-indexer">Excel Indexer</h3>
+<p><strong>Umístění:</strong> Nastavení → Excel Merger PRO (dle předplatného)</p>
+<hr>
+<h3 id="excel-indexer">📊 Excel Indexer</h3>
 <p>Excel Indexer je pokročilý nástroj pro automatické indexování a zpracování velkých Excel rozpočtů. Nástroj pracuje ve <strong>dvou fázích</strong>.</p>
 <h4 id="faze-1-vlozeni-sloupce-oddily">Fáze 1: Vložení sloupce Oddíly</h4>
 <p>V první fázi nástroj:</p>
@@ -642,12 +771,12 @@
 <li>Vloží nový sloupec B s názvem &quot;Oddíly&quot;</li>
 <li>Vyplní tento sloupec názvem oddílu pro všechny řádky do další značky</li>
 </ol>
-<p><strong>Nastavení sloupců</strong>:</p>
+<p><strong>Nastavení sloupců:</strong></p>
 <ul>
 <li><strong>Marker Column</strong> (F): Sloupec kde se hledají značky &quot;D&quot;</li>
 <li><strong>Section Column</strong> (G): Sloupec odkud se čte název oddílu</li>
 </ul>
-<p><strong>Výstup fáze 1</strong>:</p>
+<p><strong>Výstup fáze 1:</strong></p>
 <ul>
 <li>Soubor s vloženým sloupcem &quot;Oddíly&quot;</li>
 <li>Posun ostatních sloupců doprava o 1</li>
@@ -660,14 +789,14 @@
 <li>Páruje kódy s indexem položek (nahrán z Excelu)</li>
 <li>Doplňuje popisy do sloupce C (po posunu, původně B)</li>
 </ol>
-<p><strong>Nastavení sloupců</strong>:</p>
+<p><strong>Nastavení sloupců:</strong></p>
 <ul>
 <li><strong>Code Column</strong> (G): Sloupec s kódy položek (po vložení Oddílů)</li>
 <li><strong>Desc Column</strong> (C): Sloupec kam se doplní popisy (po vložení Oddílů)</li>
 </ul>
-<p><strong>Volitelné funkce</strong>:</p>
+<p><strong>Volitelné funkce:</strong></p>
 <ul>
-<li><strong>Rekapitulace</strong>: Vytvoření rekapitulačního listu s přehledy</li>
+<li><strong>📋 Rekapitulace</strong>: Vytvoření rekapitulačního listu s přehledy</li>
 </ul>
 <h4 id="jak-pouzit-excel-indexer">Jak použít Excel Indexer</h4>
 <ol>
@@ -701,14 +830,15 @@
 </ul>
 </li>
 </ol>
-<p><strong>Umístění</strong>: Nastavení → Excel Indexer</p>
-<h3 id="index-matcher">Index Matcher</h3>
+<p><strong>Umístění:</strong> Nastavení → Excel Indexer</p>
+<hr>
+<h3 id="index-matcher">🔍 Index Matcher</h3>
 <p>Index Matcher je zjednodušená verze Excel Indexer pro rychlé doplnění popisů podle indexu.</p>
 <h4 id="funkce">Funkce</h4>
 <ul>
-<li><strong>Import indexu</strong>: Načtení slovníku kód→popis z Excel souboru</li>
-<li><strong>Uložení indexu</strong>: Index se ukládá lokálně pro opakované použití</li>
-<li><strong>Automatické párování</strong>: Doplnění popisů do sloupce B podle kódů ve sloupci F</li>
+<li><strong>📥 Import indexu</strong>: Načtení slovníku kód→popis z Excel souboru</li>
+<li><strong>💾 Uložení indexu</strong>: Index se ukládá lokálně pro opakované použití</li>
+<li><strong>⚡ Automatické párování</strong>: Doplnění popisů do sloupce B podle kódů ve sloupci F</li>
 </ul>
 <h4 id="jak-pouzit">Jak použít</h4>
 <ol>
@@ -728,17 +858,19 @@
 </ul>
 </li>
 </ol>
-<p><strong>Tip</strong>: Pro komplexnější zpracování s oddíly a rekapitulací použijte Excel Indexer.</p>
-<p><strong>Umístění</strong>: Nastavení → Index Matcher (pokud je dostupný dle předplatného)</p>
-<h2 id="url-zkracovac">URL Zkracovač</h2>
+<blockquote>
+<p>💡 <strong>Tip:</strong> Pro komplexnější zpracování s oddíly a rekapitulací použijte Excel Indexer.</p>
+</blockquote>
+<p><strong>Umístění:</strong> Nastavení → Index Matcher (pokud je dostupný dle předplatného)</p>
+<h2 id="url-zkracovac">🔗 URL Zkracovač</h2>
 <p>Nástroj pro vytváření zkrácených odkazů s vlastními aliasy. Zkrácené odkazy mají formát <code>tenderflow.cz/s/váš-alias</code>.</p>
 <h3 id="funkce-2">Funkce</h3>
 <ul>
-<li><strong>Vlastní aliasy</strong>: Vytvořte snadno zapamatovatelné zkratky</li>
-<li><strong>Statistiky</strong>: Sledování počtu kliknutí</li>
-<li><strong>Správa odkazů</strong>: Přehled všech vašich zkrácených odkazů</li>
-<li><strong>Kopírování</strong>: Rychlé zkopírování odkazu do schránky</li>
-<li><strong>Mazání</strong>: Odstranění nepotřebných odkazů</li>
+<li><strong>🏷️ Vlastní aliasy</strong>: Vytvořte snadno zapamatovatelné zkratky</li>
+<li><strong>📈 Statistiky</strong>: Sledování počtu kliknutí</li>
+<li><strong>📋 Správa odkazů</strong>: Přehled všech vašich zkrácených odkazů</li>
+<li><strong>📋 Kopírování</strong>: Rychlé zkopírování odkazu do schránky</li>
+<li><strong>🗑️ Mazání</strong>: Odstranění nepotřebných odkazů</li>
 </ul>
 <h3 id="jak-vytvorit-zkraceny-odkaz">Jak vytvořit zkrácený odkaz</h3>
 <ol>
@@ -748,7 +880,7 @@
 <li>Klikněte <strong>Zkrátit</strong></li>
 <li>Zkrácený odkaz se objeví v seznamu a můžete jej zkopírovat</li>
 </ol>
-<p><strong>Příklad</strong>:</p>
+<p><strong>Příklad:</strong></p>
 <ul>
 <li><strong>Původní URL</strong>: <code>https://drive.google.com/drive/folders/1aB2cD3eF4gH5iJ6kL7mN8oP9qR0sT</code></li>
 <li><strong>Alias</strong>: <code>projekt-abc</code></li>
@@ -757,26 +889,26 @@
 <h3 id="sprava-odkazu">Správa odkazů</h3>
 <p>V seznamu zkrácených odkazů vidíte:</p>
 <ul>
-<li><strong>Alias</strong>: Vaše zkratka</li>
-<li><strong>Cílová URL</strong>: Původní dlouhý odkaz</li>
-<li><strong>Kliknutí</strong>: Počet použití odkazu</li>
-<li><strong>Vytvořeno</strong>: Datum vytvoření</li>
+<li><strong>🏷️ Alias</strong>: Vaše zkratka</li>
+<li><strong>🎯 Cílová URL</strong>: Původní dlouhý odkaz</li>
+<li><strong>👁️ Kliknutí</strong>: Počet použití odkazu</li>
+<li><strong>📅 Vytvořeno</strong>: Datum vytvoření</li>
 </ul>
-<p><strong>Akce</strong>:</p>
+<p><strong>Akce:</strong></p>
 <ul>
 <li>📋 <strong>Kopírovat</strong>: Zkopíruje zkrácený odkaz do schránky</li>
 <li>🗑️ <strong>Smazat</strong>: Odstraní zkrácený odkaz</li>
 </ul>
-<p><strong>Umístění</strong>: Nastavení → URL Zkracovač (dle předplatného)</p>
-<h2 id="tender-flow-desktop">Tender Flow Desktop</h2>
+<p><strong>Umístění:</strong> Nastavení → URL Zkracovač (dle předplatného)</p>
+<h2 id="tender-flow-desktop">💻 Tender Flow Desktop</h2>
 <p>Tender Flow Desktop je nativní desktopová aplikace postavená na Electronu. Nabízí rozšířené funkce oproti webové verzi.</p>
 <h3 id="vyhody-desktop-verze">Výhody desktop verze</h3>
 <table>
 <thead>
 <tr>
 <th>Funkce</th>
-<th>Desktop</th>
-<th>Web</th>
+<th>💻 Desktop</th>
+<th>🌐 Web</th>
 </tr>
 </thead>
 <tbody><tr>
@@ -849,7 +981,7 @@
 <li><strong>macOS</strong>: Touch ID (na zařízeních s Touch Bar nebo Touch ID)</li>
 <li><strong>Windows</strong>: Windows Hello (otisk prstu, obličej)</li>
 </ul>
-<p><strong>Aktivace</strong>:</p>
+<p><strong>Aktivace:</strong></p>
 <ol>
 <li>Přihlaste se poprvé emailem a heslem</li>
 <li>Zaškrtněte &quot;Uložit přihlášení pro Touch ID&quot;</li>
@@ -858,18 +990,18 @@
 <h3 id="nativni-souborove-operace">Nativní souborové operace</h3>
 <p>Desktop verze nepotřebuje MCP Bridge pro práci se soubory:</p>
 <ul>
-<li><strong>DocHub</strong>: Přímý přístup k lokálním složkám</li>
-<li><strong>Vytváření složek</strong>: Okamžité bez externího serveru</li>
-<li><strong>Otevírání složek</strong>: Nativní průzkumník souborů</li>
+<li><strong>📂 DocHub</strong>: Přímý přístup k lokálním složkám</li>
+<li><strong>➕ Vytváření složek</strong>: Okamžité bez externího serveru</li>
+<li><strong>📁 Otevírání složek</strong>: Nativní průzkumník souborů</li>
 </ul>
 <h3 id="excel-nastroje-2">Excel nástroje</h3>
 <p>Desktop verze používá lokální Python skripty:</p>
 <ul>
-<li><strong>Rychlejší zpracování</strong>: Bez HTTP požadavků</li>
-<li><strong>Větší soubory</strong>: Bez omezení velikosti uploadu</li>
-<li><strong>Offline použití</strong>: Funguje bez internetového připojení</li>
+<li><strong>⚡ Rychlejší zpracování</strong>: Bez HTTP požadavků</li>
+<li><strong>📦 Větší soubory</strong>: Bez omezení velikosti uploadu</li>
+<li><strong>🌐 Offline použití</strong>: Funguje bez internetového připojení</li>
 </ul>
-<p><strong>Prerekvizity</strong>:</p>
+<p><strong>Prerekvizity:</strong></p>
 <ul>
 <li>Python 3.x</li>
 <li><code>openpyxl</code> knihovna: <code>pip install openpyxl</code></li>
@@ -891,37 +1023,39 @@
 </ul>
 </li>
 </ol>
-<p><strong>Umístění ke stažení</strong>: Kontaktujte administrátora pro přístup k desktop verzi</p>
-<h2 id="administrace-systemu">Administrace systému</h2>
+<p><strong>Umístění ke stažení:</strong> Kontaktujte administrátora pro přístup k desktop verzi</p>
+<h2 id="administrace-systemu">🛡️ Administrace systému</h2>
 <p>Administrace je dostupná jen vybraným účtům. V aplikaci rozlišujeme:</p>
 <ul>
-<li><strong>Admin</strong> – správa registrací, whitelistů, uživatelů, předplatného a AI nastavení.</li>
+<li><strong>🛡️ Admin</strong> – správa registrací, whitelistů, uživatelů, předplatného a AI nastavení.</li>
 </ul>
-<p>Tip: pokud v Nastavení nevidíte sekce „Administrace systému“, nemáte potřebná oprávnění.</p>
-<h2 id="registrace-a-whitelist">Registrace a whitelist</h2>
+<blockquote>
+<p>💡 <strong>Tip:</strong> Pokud v Nastavení nevidíte sekce „Administrace systému&quot;, nemáte potřebná oprávnění.</p>
+</blockquote>
+<h2 id="registrace-a-whitelist">📝 Registrace a whitelist</h2>
 <p>V sekci <strong>Nastavení registrací</strong> (Admin) určíte, kdo se může do Tender Flow registrovat:</p>
 <ul>
-<li><strong>Povolit registrace všem</strong> – pokud je zapnuto, registrace nejsou omezené doménami.</li>
-<li><strong>Whitelist domén</strong> – registrace povolené jen pro vybrané domény (např. <code>@firma.cz</code>).</li>
-<li><strong>Vyžadovat whitelist emailů</strong> – registrace pouze pro emaily explicitně uvedené v seznamu.</li>
+<li><strong>🌐 Povolit registrace všem</strong> – pokud je zapnuto, registrace nejsou omezené doménami.</li>
+<li><strong>📧 Whitelist domén</strong> – registrace povolené jen pro vybrané domény (např. <code>@firma.cz</code>).</li>
+<li><strong>📋 Vyžadovat whitelist emailů</strong> – registrace pouze pro emaily explicitně uvedené v seznamu.</li>
 </ul>
-<p><img src="./assets/13-registration-settings.svg" alt="Schéma nastavení registrací"></p>
-<h2 id="seznam-povolenych-emailu-whitelist">Seznam povolených emailů (Whitelist)</h2>
-<p>Pokud je zapnuté „Vyžadovat whitelist emailů“, mohou se registrovat pouze emaily uvedené v tomto seznamu.</p>
+<p><img src="./assets/13-registration-settings.svg" alt="Nastavení registrací"></p>
+<h2 id="seznam-povolenych-emailu-whitelist">📧 Seznam povolených emailů (Whitelist)</h2>
+<p>Pokud je zapnuté „Vyžadovat whitelist emailů&quot;, mohou se registrovat pouze emaily uvedené v tomto seznamu.</p>
 <ol>
 <li>Otevřete <strong>Nastavení → Administrace systému</strong>.</li>
-<li>V sekci „Seznam povolených emailů“ přidejte email, jméno a poznámku.</li>
+<li>V sekci „Seznam povolených emailů&quot; přidejte email, jméno a poznámku.</li>
 <li>U záznamu lze přepínat aktivní/neaktivní stav.</li>
 </ol>
-<p><img src="./assets/14-email-whitelist.svg" alt="Schéma whitelistu emailů"></p>
-<h2 id="sprava-uzivatelu-a-roli">Správa uživatelů a rolí</h2>
+<p><img src="./assets/14-email-whitelist.svg" alt="Whitelist emailů"></p>
+<h2 id="sprava-uzivatelu-a-roli">👤 Správa uživatelů a rolí</h2>
 <p>Sekce Správa uživatelů je určená pro <strong>Admina</strong>. Umožňuje:</p>
 <ul>
-<li>spravovat role uživatelů (přiřazení role),</li>
-<li>definovat oprávnění rolí (permissions).</li>
+<li><strong>👥 Spravovat role uživatelů</strong> (přiřazení role),</li>
+<li><strong>✏️ Definovat oprávnění rolí</strong> (permissions).</li>
 </ul>
-<p><img src="./assets/15-user-management-roles.svg" alt="Schéma správy uživatelů a rolí"></p>
-<h2 id="import-a-synchronizace-kontaktu">Import a synchronizace kontaktů</h2>
+<p><img src="./assets/15-user-management-roles.svg" alt="Správa uživatelů a rolí"></p>
+<h2 id="import-a-synchronizace-kontaktu">🔄 Import a synchronizace kontaktů</h2>
 <p>Kontakty lze nahrát jednorázově z CSV nebo synchronizovat z URL (např. export z Google Sheets).</p>
 <p>Očekávaný formát (typicky): <code>Firma, Jméno, Specializace, Telefon, Email, IČO, Region</code></p>
 <p>Poznámky k importu:</p>
@@ -930,16 +1064,16 @@
 <li>Import doplní specializace (sloučí do seznamu) a kontaktní osoby (bez duplicit podle jména/emailu/telefonu).</li>
 <li>Primární kontakt (první v seznamu) se používá pro kompatibilitu i pro akce, které potřebují email.</li>
 </ul>
-<h2 id="ai-funkce">AI funkce</h2>
+<h2 id="ai-funkce">🤖 AI funkce</h2>
 <p>Aplikace Tender Flow nabízí pokročilé funkce umělé inteligence pro automatizaci a analýzu.</p>
 <h3 id="zakladni-ai-funkce">Základní AI funkce</h3>
 <ul>
-<li><strong>Doplnění regionů u kontaktů</strong>: Hromadné doplnění regionů na základě adresy pomocí AI</li>
-<li><strong>AI analýza v přehledech</strong>: Automatická analýza projekty s grafy a reporty (dle nastavení)</li>
+<li><strong>🗺️ Doplnění regionů u kontaktů</strong>: Hromadné doplnění regionů na základě adresy pomocí AI</li>
+<li><strong>📊 AI analýza v přehledech</strong>: Automatická analýza projekty s grafy a reporty (dle nastavení)</li>
 </ul>
 <h3 id="sprava-ai-klicu-admin">Správa AI klíčů (Admin)</h3>
 <p>Administrátoři mohou nastavit systémové AI klíče, které se použijí pro všechny uživatele organizace.</p>
-<p><strong>Umístění</strong>: Nastavení → Administrace systému → AI Nastavení</p>
+<p><strong>Umístění:</strong> Nastavení → Administrace systému → AI Nastavení</p>
 <h4 id="ulozeni-api-klicu">Uložení API klíčů</h4>
 <p>Klíče se ukládají bezpečně v databázi (tabulka <code>app_secrets</code>):</p>
 <ol>
@@ -959,7 +1093,7 @@
 </li>
 </ol>
 <blockquote>
-<p><strong>DŮLEŽITÉ</strong>: API klíče vidí a upravuje pouze Admin. Běžní uživatelé je nevidí, ale mohou použít AI funkce.</p>
+<p>⚠️ <strong>DŮLEŽITÉ</strong>: API klíče vidí a upravuje pouze Admin. Běžní uživatelé je nevidí, ale mohou použít AI funkce.</p>
 </blockquote>
 <h4 id="prizpusobeni-ai-promptu">Přizpůsobení AI promptů</h4>
 <p>Admin může upravit systémové prompty pro ovlivnění chování AI:</p>

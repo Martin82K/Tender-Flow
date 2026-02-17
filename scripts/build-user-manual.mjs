@@ -76,7 +76,7 @@ const main = async () => {
     })
     .join("\n");
 
-  const html = `<!doctype html>
+const html = `<!doctype html>
 <html lang="cs">
   <head>
     <meta charset="UTF-8" />
@@ -86,6 +86,9 @@ const main = async () => {
       name="description"
       content="Uživatelská příručka pro aplikaci Tender Flow – stavby, výběrová řízení, subdodavatelé, dokumenty a nastavení."
     />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
       :root {
         --bg: #0b1220;
@@ -95,12 +98,13 @@ const main = async () => {
         --muted: rgba(255, 255, 255, 0.66);
         --border: rgba(255, 255, 255, 0.12);
         --accent: #2dd4bf;
+        --accent-warm: #f59e0b;
         --shadow: 0 10px 34px rgba(0, 0, 0, 0.38);
         --radius: 18px;
         --max: 1120px;
         --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
           "Liberation Mono", "Courier New", monospace;
-        --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
+        --sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
           Helvetica, Arial;
       }
 
@@ -131,9 +135,11 @@ const main = async () => {
       a {
         color: var(--accent);
         text-decoration: none;
+        transition: all 0.2s ease;
       }
       a:hover {
         text-decoration: underline;
+        color: #5eead4;
       }
 
       .app {
@@ -160,24 +166,25 @@ const main = async () => {
         display: flex;
         gap: 12px;
         align-items: center;
-        padding: 12px 12px;
+        padding: 16px 16px;
         border: 1px solid var(--border);
         border-radius: var(--radius);
         background: rgba(0, 0, 0, 0.18);
         box-shadow: var(--shadow);
       }
       .brand .logo-img {
-        width: 36px;
-        height: 36px;
-        border-radius: 10px;
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
         object-fit: contain;
-        padding: 5px;
+        padding: 6px;
         background: rgba(255, 255, 255, 0.045);
         border: 1px solid rgba(255, 255, 255, 0.10);
       }
       .brand h1 {
-        font-size: 14px;
+        font-size: 15px;
         margin: 0;
+        font-weight: 700;
         letter-spacing: 0.2px;
       }
       .brand p {
@@ -197,15 +204,26 @@ const main = async () => {
         border-radius: 14px;
         background: rgba(0, 0, 0, 0.18);
         padding: 10px 10px;
+        transition: all 0.2s ease;
+      }
+      .section:hover {
+        border-color: rgba(45, 212, 191, 0.3);
+        background: rgba(0, 0, 0, 0.22);
       }
       .sectionTitle {
         display: block;
         padding: 10px 10px;
         border-radius: 12px;
-        font-weight: 800;
+        font-weight: 700;
+        font-size: 13px;
         color: var(--text);
         background: rgba(255, 255, 255, 0.04);
         border: 1px solid rgba(255, 255, 255, 0.08);
+        transition: all 0.2s ease;
+      }
+      .section:hover .sectionTitle {
+        background: rgba(45, 212, 191, 0.1);
+        border-color: rgba(45, 212, 191, 0.2);
       }
       .sub {
         margin-top: 8px;
@@ -220,6 +238,8 @@ const main = async () => {
         border-radius: 12px;
         color: var(--muted);
         border: 1px solid transparent;
+        font-size: 12px;
+        transition: all 0.2s ease;
       }
       .sub a:hover {
         background: rgba(255, 255, 255, 0.05);
@@ -229,7 +249,7 @@ const main = async () => {
       }
 
       .content {
-        padding: 24px;
+        padding: 32px 40px;
       }
       .wrap {
         max-width: var(--max);
@@ -241,39 +261,69 @@ const main = async () => {
         border: 1px solid var(--border);
         background: rgba(0, 0, 0, 0.16);
         box-shadow: var(--shadow);
-        padding: 26px 26px;
+        padding: 32px 36px;
       }
 
       h1 {
-        font-size: 34px;
+        font-size: 38px;
         margin: 0 0 10px 0;
+        font-weight: 800;
+        background: linear-gradient(135deg, #fff 0%, rgba(45, 212, 191, 0.8) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
       }
       h2 {
-        font-size: 22px;
-        margin: 28px 0 10px 0;
+        font-size: 24px;
+        margin: 36px 0 14px 0;
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.95);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: 10px;
       }
       h3 {
-        font-size: 16px;
-        margin: 18px 0 8px 0;
+        font-size: 17px;
+        margin: 22px 0 10px 0;
+        font-weight: 600;
         color: rgba(255, 255, 255, 0.88);
+      }
+      h4 {
+        font-size: 15px;
+        margin: 16px 0 8px 0;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.82);
       }
       p,
       li {
-        line-height: 1.6;
+        line-height: 1.7;
         color: rgba(255, 255, 255, 0.84);
+        font-size: 15px;
+      }
+      li {
+        margin-bottom: 6px;
       }
       code {
         font-family: var(--mono);
-        font-size: 0.92em;
-        padding: 0.16em 0.36em;
+        font-size: 0.9em;
+        padding: 0.2em 0.44em;
         border-radius: 8px;
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(45, 212, 191, 0.15);
+        border: 1px solid rgba(45, 212, 191, 0.25);
+        color: #5eead4;
+      }
+      pre {
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        padding: 16px;
+        overflow-x: auto;
       }
       pre code {
         display: block;
-        padding: 14px 14px;
-        overflow: auto;
+        padding: 0;
+        background: none;
+        border: none;
+        color: rgba(255, 255, 255, 0.9);
       }
       img {
         max-width: 100%;
@@ -281,33 +331,79 @@ const main = async () => {
         border-radius: 16px;
         border: 1px solid rgba(255, 255, 255, 0.12);
         background: rgba(255, 255, 255, 0.04);
+        margin: 12px 0;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
       }
 
       .manualLogoWrap {
-        margin: 16px 0 10px 0;
+        margin: 24px 0 20px 0;
         display: flex;
         justify-content: center;
       }
       .manualLogo {
-        width: min(220px, 55vw);
+        width: min(280px, 60vw);
         height: auto;
-        border-radius: 18px;
+        border-radius: 20px;
         border: 1px solid rgba(255, 255, 255, 0.10);
         background: rgba(255, 255, 255, 0.02);
-        padding: 10px 12px;
-        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.30);
+        padding: 16px 20px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.40);
       }
       hr {
         border: none;
         border-top: 1px solid rgba(255, 255, 255, 0.12);
-        margin: 22px 0;
+        margin: 28px 0;
       }
 
       .generated {
-        margin-top: 10px;
-        color: rgba(255, 255, 255, 0.55);
+        margin-top: 24px;
+        color: rgba(255, 255, 255, 0.45);
         font-size: 12px;
         text-align: center;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 16px 0;
+        font-size: 14px;
+      }
+      th, td {
+        padding: 12px 16px;
+        text-align: left;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      th {
+        background: rgba(45, 212, 191, 0.1);
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.9);
+      }
+      tr:hover td {
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .version-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(45, 212, 191, 0.15);
+        border: 1px solid rgba(45, 212, 191, 0.3);
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 13px;
+        color: #5eead4;
+        margin-right: 8px;
+      }
+
+      .tip-box {
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%);
+        border: 1px solid rgba(245, 158, 11, 0.25);
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin: 16px 0;
+      }
+      .tip-box strong {
+        color: var(--accent-warm);
       }
 
       @media (max-width: 980px) {
@@ -317,6 +413,12 @@ const main = async () => {
         .sidebar {
           position: relative;
           height: auto;
+        }
+        .content {
+          padding: 20px;
+        }
+        article {
+          padding: 20px;
         }
       }
     </style>

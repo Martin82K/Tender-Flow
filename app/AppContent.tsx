@@ -1,6 +1,6 @@
 import React, { Suspense, useEffect, useState } from "react";
 import { MainLayout } from "@/components/layouts/MainLayout";
-import { DesktopWelcome, UpdateBanner } from "@/components/desktop";
+import { UpdateBanner } from "@/components/desktop";
 import { RequireFeature } from "@/shared/routing/RequireFeature";
 import { ShortUrlRedirect } from "@/shared/routing/ShortUrlRedirect";
 import { useLocation, navigate } from "@/shared/routing/router";
@@ -40,7 +40,7 @@ export const AppContent: React.FC = () => {
   } = useAuth();
   const { showUiModal, uiModal, closeUiModal } = useUI();
   const { pathname, search } = useLocation();
-  const { isDesktop, showWelcome, dismissWelcome, selectFolder } = useDesktop();
+  const { isDesktop } = useDesktop();
 
   const { state, actions } = useAppData(showUiModal);
 
@@ -124,9 +124,6 @@ export const AppContent: React.FC = () => {
         pathname={pathname}
         search={search}
         isDesktop={isDesktop}
-        showWelcome={showWelcome}
-        dismissWelcome={dismissWelcome}
-        selectFolder={selectFolder}
       />
     );
   }
@@ -304,10 +301,6 @@ export const AppContent: React.FC = () => {
       onHideBackgroundWarning={() => actions.setBackgroundWarning(null)}
     >
       <Suspense fallback={<AppLazyFallback />}>{renderCurrentView()}</Suspense>
-
-      {isDesktop && showWelcome && (
-        <DesktopWelcome onClose={dismissWelcome} onSelectFolder={selectFolder} />
-      )}
 
       {isDesktop && <UpdateBanner />}
     </MainLayout>

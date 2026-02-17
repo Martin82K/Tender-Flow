@@ -2,52 +2,50 @@
 
 Tato příručka popisuje práci v aplikaci Tender Flow pro řízení staveb, výběrových řízení a subdodavatelů.
 
-Verze příručky: **1.6** • Datum: **2026‑02‑16** • Aplikace: **v1.3.2**
+Verze příručky: **1.7** • Datum: **2026‑02‑17** • Aplikace: **v1.3.2**
 
 <p class="manualLogoWrap">
   <img class="manualLogo" src="./assets/logo.png" alt="Tender Flow logo" />
 </p>
 
-## Obsah
+---
 
-- [Novinky (poslední změny)](#novinky-posledni-zmeny)
-- [Účel a role](#ucel-a-role)
-- [Přihlášení a účet](#prihlaseni-a-ucet)
-- [Organizace a předplatné](#organizace-a-predplatne)
-- [Navigace v aplikaci](#navigace-v-aplikaci)
-- [Dashboard](#dashboard)
-- [Detail stavby (záložky)](#detail-stavby-zalozky)
-- [Plán VŘ](#plan-vr)
-- [Výběrová řízení (Pipeline)](#vyberova-rizeni-pipeline)
-- [Smlouvy](#smlouvy)
-- [Harmonogram](#harmonogram)
-- [Dokumenty a šablony](#dokumenty-a-sablony)
-- [Subdodavatelé (Kontakty)](#subdodavatele-kontakty)
-- [Správa staveb](#sprava-staveb)
-- [Přehled staveb (analytika)](#prehled-staveb-analytika)
-- [Nastavení aplikace](#nastaveni-aplikace)
-- [Excel nástroje](#excel-nastroje)
-  - [Excel Unlocker PRO](#excel-unlocker-pro)
-  - [Excel Merger PRO](#excel-merger-pro)
-  - [Excel Indexer](#excel-indexer)
-  - [Index Matcher](#index-matcher)
-- [URL Zkracovač](#url-zkracovac)
-- [Tender Flow Desktop](#tender-flow-desktop)
-- [Administrace systému](#administrace-systemu)
-- [Registrace a whitelist](#registrace-a-whitelist)
-- [Seznam povolených emailů](#seznam-povolenych-emailu-whitelist)
-- [Správa uživatelů a rolí](#sprava-uzivatelu-a-roli)
-- [Import a synchronizace kontaktů](#import-a-synchronizace-kontaktu)
-- [AI funkce](#ai-funkce)
-- [Časté otázky](#caste-otazky)
+## 📋 Obsah
+
+- [🎉 Novinky](#novinky-posledni-zmeny)
+- [🎯 Účel a role](#ucel-a-role)
+- [🔐 Přihlášení a účet](#prihlaseni-a-ucet)
+- [🏢 Organizace a předplatné](#organizace-a-predplatne)
+- [🧭 Navigace v aplikaci](#navigace-v-aplikaci)
+- [📊 Dashboard](#dashboard)
+- [🏗️ Detail stavby (záložky)](#detail-stavby-zalozky)
+- [📅 Plán VŘ](#plan-vr)
+- [📋 Výběrová řízení (Pipeline)](#vyberova-rizeni-pipeline)
+- [📜 Smlouvy](#smlouvy)
+- [📆 Harmonogram](#harmonogram)
+- [📁 Dokumenty a šablony](#dokumenty-a-sablony)
+- [👥 Subdodavatelé (Kontakty)](#subdodavatele-kontakty)
+- [🏠 Správa staveb](#sprava-staveb)
+- [📈 Přehled staveb (analytika)](#prehled-staveb-analytika)
+- [⚙️ Nastavení aplikace](#nastaveni-aplikace)
+- [📊 Excel nástroje](#excel-nastroje)
+- [🔗 URL Zkracovač](#url-zkracovac)
+- [💻 Tender Flow Desktop](#tender-flow-desktop)
+- [🛡️ Administrace systému](#administrace-systemu)
+- [📝 Registrace a whitelist](#registrace-a-whitelist)
+- [📧 Seznam povolených emailů](#seznam-povolenych-emailu-whitelist)
+- [👤 Správa uživatelů a rolí](#sprava-uzivatelu-a-roli)
+- [🔄 Import a synchronizace kontaktů](#import-a-synchronizace-kontaktu)
+- [🤖 AI funkce](#ai-funkce)
+- [❓ Časté otázky](#caste-otazky)
 
 ---
 
-## Novinky (poslední změny)
+## 🎉 Novinky (poslední změny)
+
+<span class="version-badge">📱 v1.3.2</span> <span class="version-badge">📖 Verze příručky 1.7</span>
 
 Verzi aplikace najdete vlevo dole v sidebaru.
-
-### v1.3.2
 
 - **Uživatelská příručka doplněna**: rozšířené a sjednocené popisy hlavních modulů včetně administrace, AI funkcí a desktop sekce.
 - **Obsah příručky upraven**: opravené interní odkazy a aktualizované metainformace verze/datum.
@@ -182,7 +180,9 @@ Pozn.: odeslání emailu probíhá přes váš výchozí emailový klient (funkc
 2. Klikněte na **Přihlásit**.
 3. Odhlášení najdete dole v levém panelu (ikonka `logout`).
 
-![Schéma přihlášení](./assets/01-login.svg)
+![Přihlášení do aplikace Tender Flow](./assets/01-login.svg)
+
+> 💡 **Tip:** Uložte si přihlášení pro rychlejší přístup příště.
 
 ## Organizace a předplatné
 
@@ -202,44 +202,56 @@ Tip: pokud některou část aplikace nevidíte (např. Import kontaktů, Přehle
 
 V levém panelu (sidebar) přepínáte hlavní části aplikace a vybíráte konkrétní stavbu.
 
-- **Dashboard** – přehled vybrané stavby a export.
-- **Stavby** – seznam staveb (projekty).
-- **Subdodavatelé** – databáze kontaktů.
-- **Nástroje** – skupina doplňků (např. Správa staveb, Přehled staveb, Import kontaktů, Excel nástroje; dle předplatného).
-- **Nastavení** – profil, vzhled, statusy kontaktů, administrace (dle oprávnění).
+- **📊 Dashboard** – přehled vybrané stavby a export.
+- **🏗️ Stavby** – seznam staveb (projekty).
+- **👥 Subdodavatelé** – databáze kontaktů.
+- **🔧 Nástroje** – skupina doplňků (např. Správa staveb, Přehled staveb, Import kontaktů, Excel nástroje; dle předplatného).
+- **⚙️ Nastavení** – profil, vzhled, statusy kontaktů, administrace (dle oprávnění).
 
-![Schéma navigace](./assets/02-navigation.svg)
+![Navigace v aplikaci](./assets/02-navigation.svg)
 
 ## Dashboard
 
 Dashboard zobrazuje přehled jedné vybrané stavby. V hlavičce můžete přepnout stavbu a vyexportovat XLSX.
 
-![Schéma dashboardu](./assets/03-dashboard.svg)
+![Dashboard aplikace Tender Flow](./assets/03-dashboard.svg)
 
-## Detail stavby (záložky)
+### 🎯 Co dashboard zobrazuje:
+- Přehled poptávek a jejich stav
+- Klíčové metriky stavby
+- Rychlý přístup k nejčastějším akcím
+- Možnost exportu dat do Excelu
 
 Po kliknutí na stavbu v sidebaru se otevře detail se záložkami:
 
-- **Přehled** – rozpočty, stav, metriky.
-- **Plán VŘ** – plánování výběrových řízení.
-- **Výběrová řízení** – pipeline poptávek a nabídek.
-- **Smlouvy** – evidence smluv, dodatků a čerpání.
-- **Harmonogram** – Gantt navázaný na termíny výběrových řízení.
-- **Dokumenty** – odkazy na dokumentaci a šablony poptávek.
+- **📊 Přehled** – rozpočty, stav, metriky.
+- **📅 Plán VŘ** – plánování výběrových řízení.
+- **📋 Výběrová řízení** – pipeline poptávek a nabídek.
+- **📜 Smlouvy** – evidence smluv, dodatků a čerpání.
+- **📆 Harmonogram** – Gantt navázaný na termíny výběrových řízení.
+- **📁 Dokumenty** – odkazy na dokumentaci a šablony poptávek.
 
-![Schéma záložek stavby](./assets/04-project-tabs.svg)
+![Záložky detailu stavby](./assets/04-project-tabs.svg)
 
-## Plán VŘ
+## 📅 Plán VŘ
 
 Plán VŘ slouží k naplánování VŘ v čase a (dle potřeby) k jejich převodu do poptávek.
 
-![Schéma Plánu VŘ](./assets/11-tender-plan.svg)
+![Plán VŘ](./assets/11-tender-plan.svg)
 
-## Výběrová řízení (Pipeline)
+> 🖼️ **Ukázka:** Plán výběrových řízení
+
+![Screenshot: Plán VŘ](../screenshots/pl%C3%A1n%20V%C5%98.png)
+
+## 📋 Výběrová řízení (Pipeline)
 
 Výběrová řízení jsou organizovaná po **poptávkách** (kategorie prací). Nabídky subdodavatelů přesouváte mezi sloupci (drag & drop).
 
-![Schéma pipeline](./assets/05-pipeline-board.svg)
+![Výběrová řízení – Kanban board](./assets/05-pipeline-board.svg)
+
+> 🖼️ **Ukázka:** Kanban board výběrových řízení
+
+![Screenshot: Výběrová řízení](../screenshots/vyberove-rizeni.png)
 
 ### Stavy nabídky (sloupce)
 
@@ -254,20 +266,22 @@ Výběrová řízení jsou organizovaná po **poptávkách** (kategorie prací).
 
 Na kartě nabídky evidujete cenu, tagy, poznámky a případně generujete poptávkový email.
 
-![Schéma karty nabídky](./assets/06-bid-card.svg)
+![Karta nabídky v Tender Flow](./assets/06-bid-card.svg)
 
-## Smlouvy
+---
+
+## 📜 Smlouvy
 
 Záložka **Smlouvy** slouží pro finanční a smluvní řízení konkrétní stavby.
 
-- **Přehled** – souhrn KPI (počty smluv, hodnota, čerpání, retence).
-- **Smlouvy** – seznam smluv, vytváření/editace, vazba na dodavatele, stav a hodnotu.
-- **Dodatky** – změny smluv (cenové i termínové) navázané na vybranou smlouvu.
-- **Čerpání** – evidence průvodek/čerpání a kontrola zůstatku vůči aktuální hodnotě smlouvy.
+- **📊 Přehled** – souhrn KPI (počty smluv, hodnota, čerpání, retence).
+- **📄 Smlouvy** – seznam smluv, vytváření/editace, vazba na dodavatele, stav a hodnotu.
+- **✏️ Dodatky** – změny smluv (cenové i termínové) navázané na vybranou smlouvu.
+- **💰 Čerpání** – evidence průvodek/čerpání a kontrola zůstatku vůči aktuální hodnotě smlouvy.
 
-Tip: při zakládání lze data ze smluvních dokumentů předvyplnit automaticky a před uložením je ručně potvrdit.
+> 💡 **Tip:** Při zakládání lze data ze smluvních dokumentů předvyplnit automaticky a před uložením je ručně potvrdit.
 
-## Harmonogram
+## 📆 Harmonogram
 
 Harmonogram je Ganttův přehled termínů, který se automaticky naplňuje z dat v projektu.
 
@@ -276,16 +290,18 @@ Harmonogram je Ganttův přehled termínů, který se automaticky naplňuje z da
 - **Editace**: tlačítko **Editace** umožní upravit termíny přímo v harmonogramu.
 - **Export**: menu **Export** nabízí `XLSX`, `PDF` a `XLSX s grafem`.
 
-![Ukázka harmonogramu](../screenshots/harmonogram.png)
+![Screenshot: Harmonogram](../screenshots/harmonogram.png)
 
-## Dokumenty a šablony
+---
+
+## 📁 Dokumenty a šablony
 
 V záložce **Dokumenty** najdete podzáložky:
 
-- **PD** – odkaz na projektovou dokumentaci (Drive/SharePoint apod.).
-- **Šablony** – šablona poptávky a šablona „email nevybraným“ (lze použít interní editor šablon, nebo externí odkaz/soubor).
-- **DocHub** – napojení na strukturu složek projektu (pokud je povoleno).
-- **Ceníky** – odkaz na projektové ceníky + rychlý odkaz na složku `Ceníky` v DocHubu (pokud je připojen).
+- **📂 PD** – odkaz na projektovou dokumentaci (Drive/SharePoint apod.).
+- **📝 Šablony** – šablona poptávky a šablona „email nevybraným" (lze použít interní editor šablon, nebo externí odkaz/soubor).
+- **📦 DocHub** – napojení na strukturu složek projektu (pokud je povoleno).
+- **💵 Ceníky** – odkaz na projektové ceníky + rychlý odkaz na složku `Ceníky` v DocHubu (pokud je připojen).
 
 V praxi zde typicky nastavíte:
 
@@ -293,7 +309,7 @@ V praxi zde typicky nastavíte:
 - šablony emailů (poptávka / nevybraní),
 - ceníky a související složky.
 
-![Schéma dokumentů a šablon](./assets/10-documents-templates.svg)
+![Dokumenty a šablony](./assets/10-documents-templates.svg)
 
 ### DocHub: MCP Bridge (lokální disk)
 
@@ -315,70 +331,86 @@ MCP Bridge je malý lokální server, který umožní vytvářet složky DocHubu
 3. Zadejte absolutní cestu ke kořenové složce projektu.
 4. Klikněte **Připojit** a poté **Synchronizovat**.
 
-## Subdodavatelé (Kontakty)
+## 👥 Subdodavatelé (Kontakty)
 
 Databáze kontaktů pro přidávání do poptávek. Podporuje filtry, výběr více řádků a hromadné akce (např. doplnění regionu pomocí AI – pokud je povoleno).
 
-- **Více kontaktů na firmu**: u jedné firmy můžete evidovat více kontaktních osob (jméno, pozice, telefon, email).
-- **Více specializací**: specializace jsou seznam (používá se pro filtrování i výběr do poptávek).
+- **👤 Více kontaktů na firmu**: u jedné firmy můžete evidovat více kontaktních osob (jméno, pozice, telefon, email).
+- **🏷️ Více specializací**: specializace jsou seznam (používá se pro filtrování i výběr do poptávek).
 
-![Schéma kontaktů](./assets/07-contacts.svg)
+![Subdodavatelé a kontakty](./assets/07-contacts.svg)
 
-## Správa staveb
+> 🖼️ **Ukázka:** Databáze subdodavatelů
+
+![Screenshot: Složkomat - kontakty](../screenshots/slozkomat.png)
+
+---
+
+## 🏠 Správa staveb
 
 Slouží pro vytváření staveb, změny statusu, archivaci a sdílení (dle oprávnění).
 
-![Schéma správy staveb](./assets/08-project-management.svg)
+![Správa staveb](./assets/08-project-management.svg)
 
-Sdílení podporuje dvě úrovně oprávnění: **Úpravy** a **Pouze čtení**.
+Sdílení podporuje dvě úrovně oprávnění: **✏️ Úpravy** a **👁️ Pouze čtení**.
 
-![Schéma sdílení: oprávnění Úpravy vs Pouze čtení](./assets/16-project-sharing-permissions.svg)
+![Sdílení: oprávnění](./assets/16-project-sharing-permissions.svg)
 
-## Přehled staveb (analytika)
+## 📈 Přehled staveb (analytika)
 
 Manažerské souhrny napříč stavbami: metriky, grafy a volitelně AI analýza.
 
-![Schéma přehledu staveb a AI](./assets/12-project-overview-ai.svg)
+![Přehled staveb a AI](./assets/12-project-overview-ai.svg)
 
-## Nastavení aplikace
+> 🖼️ **Ukázka:** Přehled poptávek
 
-- **Profil** – zobrazované jméno, vzhled (tmavý režim, primární barva, pozadí) a správa statusů kontaktů.
-- **Import kontaktů** – synchronizace z URL / ruční upload (může být v sekci **Nástroje** dle předplatného).
-- **Excel Unlocker PRO** – odemknutí `.xlsx` lokálně v prohlížeči (soubor se nikam neodesílá; dle předplatného).
-- **Excel Merger PRO** – slučování Excel listů; v desktop verzi nativní, ve web verzi externí aplikace (dle předplatného).
-- **Excel Indexer** – dvou-fázová indexace a zpracování rozpočtů s automatickým doplněním popisů.
-- **Index Matcher** – rychlé doplnění popisů podle indexu (zjednodušená verze Indexer).
-- **URL Zkracovač** – vytváření zkrácených odkazů s vlastními aliasy (dle předplatného).
-- **Administrace systému (Admin)** – registrace, whitelist, uživatelé, předplatné, AI, MCP diagnostika.
+![Screenshot: Přehled poptávek](../screenshots/prehled-poptavek.png)
 
-![Schéma nastavení](./assets/09-settings.svg)
+---
 
-## Excel nástroje
+## ⚙️ Nastavení aplikace
+
+- **👤 Profil** – zobrazované jméno, vzhled (tmavý režim, primární barva, pozadí) a správa statusů kontaktů.
+- **📥 Import kontaktů** – synchronizace z URL / ruční upload (může být v sekci **Nástroje** dle předplatného).
+- **🔓 Excel Unlocker PRO** – odemknutí `.xlsx` lokálně v prohlížeči (soubor se nikam neodesílá; dle předplatného).
+- **🔀 Excel Merger PRO** – slučování Excel listů; v desktop verzi nativní, ve web verzi externí aplikace (dle předplatného).
+- **📊 Excel Indexer** – dvou-fázová indexace a zpracování rozpočtů s automatickým doplněním popisů.
+- **🔍 Index Matcher** – rychlé doplnění popisů podle indexu (zjednodušená verze Indexer).
+- **🔗 URL Zkracovač** – vytváření zkrácených odkazů s vlastními aliasy (dle předplatného).
+- **🛡️ Administrace systému (Admin)** – registrace, whitelist, uživatelé, předplatné, AI, MCP diagnostika.
+
+![Nastavení aplikace](./assets/09-settings.svg)
+
+## 📊 Excel nástroje
 
 Tender Flow nabízí sadu nástrojů pro práci s Excel soubory.
 
-### Excel Unlocker PRO
+### 🔓 Excel Unlocker PRO
 
 Nástroj pro odemknutí ochrany `.xlsx` souborů. Funguje lokálně v prohlížeči – soubor se nikam neodesílá.
 
-**Použití**:
+**Použití:**
 1. Otevřete **Nastavení → Excel Unlocker PRO**
 2. Klikněte "Vybrat soubor" a nahrajte chráněný Excel
 3. Klikněte "Odemknout"
 4. Stáhněte odemčený soubor
 
-**Umístění**: Nastavení → Excel Unlocker PRO (dle předplatného)
+**Umístění:** Nastavení → Excel Unlocker PRO (dle předplatného)
 
-### Excel Merger PRO
+---
+
+### 🔀 Excel Merger PRO
 
 Nástroj pro slučování více listů z různých Excel souborů do jednoho souboru.
 
-- **Desktop verze**: Nativní zpracování pomocí lokálních Python skriptů
-- **Web verze**: Externí aplikace v iframe (vyžaduje konfiguraci adminem)
+- **💻 Desktop verze**: Nativní zpracování pomocí lokálních Python skriptů
+- **🌐 Web verze**: Externí aplikace v iframe (vyžaduje konfiguraci adminem)
 
-**Umístění**: Nastavení → Excel Merger PRO (dle předplatného)
+**Umístění:** Nastavení → Excel Merger PRO (dle předplatného)
 
-### Excel Indexer
+---
+
+### 📊 Excel Indexer
 
 Excel Indexer je pokročilý nástroj pro automatické indexování a zpracování velkých Excel rozpočtů. Nástroj pracuje ve **dvou fázích**.
 
@@ -390,11 +422,11 @@ V první fázi nástroj:
 3. Vloží nový sloupec B s názvem "Oddíly"
 4. Vyplní tento sloupec názvem oddílu pro všechny řádky do další značky
 
-**Nastavení sloupců**:
+**Nastavení sloupců:**
 - **Marker Column** (F): Sloupec kde se hledají značky "D"
 - **Section Column** (G): Sloupec odkud se čte název oddílu
 
-**Výstup fáze 1**:
+**Výstup fáze 1:**
 - Soubor s vloženým sloupcem "Oddíly"
 - Posun ostatních sloupců doprava o 1
 
@@ -406,12 +438,12 @@ Ve druhé fázi nástroj:
 3. Páruje kódy s indexem položek (nahrán z Excelu)
 4. Doplňuje popisy do sloupce C (po posunu, původně B)
 
-**Nastavení sloupců**:
+**Nastavení sloupců:**
 - **Code Column** (G): Sloupec s kódy položek (po vložení Oddílů)
 - **Desc Column** (C): Sloupec kam se doplní popisy (po vložení Oddílů)
 
-**Volitelné funkce**:
-- **Rekapitulace**: Vytvoření rekapitulačního listu s přehledy
+**Volitelné funkce:**
+- **📋 Rekapitulace**: Vytvoření rekapitulačního listu s přehledy
 
 #### Jak použít Excel Indexer
 
@@ -436,17 +468,19 @@ Ve druhé fázi nástroj:
    - Klikněte "Zpracovat Fázi 2"
    - Stáhněte finální soubor
 
-**Umístění**: Nastavení → Excel Indexer
+**Umístění:** Nastavení → Excel Indexer
 
-### Index Matcher
+---
+
+### 🔍 Index Matcher
 
 Index Matcher je zjednodušená verze Excel Indexer pro rychlé doplnění popisů podle indexu.
 
 #### Funkce
 
-- **Import indexu**: Načtení slovníku kód→popis z Excel souboru
-- **Uložení indexu**: Index se ukládá lokálně pro opakované použití
-- **Automatické párování**: Doplnění popisů do sloupce B podle kódů ve sloupci F
+- **📥 Import indexu**: Načtení slovníku kód→popis z Excel souboru
+- **💾 Uložení indexu**: Index se ukládá lokálně pro opakované použití
+- **⚡ Automatické párování**: Doplnění popisů do sloupce B podle kódů ve sloupci F
 
 #### Jak použít
 
@@ -461,21 +495,21 @@ Index Matcher je zjednodušená verze Excel Indexer pro rychlé doplnění popis
    - Klikněte "Zpracovat rozpočet"
    - Stáhněte soubor s doplněnými popisy
 
-**Tip**: Pro komplexnější zpracování s oddíly a rekapitulací použijte Excel Indexer.
+> 💡 **Tip:** Pro komplexnější zpracování s oddíly a rekapitulací použijte Excel Indexer.
 
-**Umístění**: Nastavení → Index Matcher (pokud je dostupný dle předplatného)
+**Umístění:** Nastavení → Index Matcher (pokud je dostupný dle předplatného)
 
-## URL Zkracovač
+## 🔗 URL Zkracovač
 
 Nástroj pro vytváření zkrácených odkazů s vlastními aliasy. Zkrácené odkazy mají formát `tenderflow.cz/s/váš-alias`.
 
 ### Funkce
 
-- **Vlastní aliasy**: Vytvořte snadno zapamatovatelné zkratky
-- **Statistiky**: Sledování počtu kliknutí
-- **Správa odkazů**: Přehled všech vašich zkrácených odkazů
-- **Kopírování**: Rychlé zkopírování odkazu do schránky
-- **Mazání**: Odstranění nepotřebných odkazů
+- **🏷️ Vlastní aliasy**: Vytvořte snadno zapamatovatelné zkratky
+- **📈 Statistiky**: Sledování počtu kliknutí
+- **📋 Správa odkazů**: Přehled všech vašich zkrácených odkazů
+- **📋 Kopírování**: Rychlé zkopírování odkazu do schránky
+- **🗑️ Mazání**: Odstranění nepotřebných odkazů
 
 ### Jak vytvořit zkrácený odkaz
 
@@ -485,7 +519,7 @@ Nástroj pro vytváření zkrácených odkazů s vlastními aliasy. Zkrácené o
 4. Klikněte **Zkrátit**
 5. Zkrácený odkaz se objeví v seznamu a můžete jej zkopírovat
 
-**Příklad**:
+**Příklad:**
 - **Původní URL**: `https://drive.google.com/drive/folders/1aB2cD3eF4gH5iJ6kL7mN8oP9qR0sT`
 - **Alias**: `projekt-abc`
 - **Zkrácený odkaz**: `tenderflow.cz/s/projekt-abc`
@@ -493,25 +527,25 @@ Nástroj pro vytváření zkrácených odkazů s vlastními aliasy. Zkrácené o
 ### Správa odkazů
 
 V seznamu zkrácených odkazů vidíte:
-- **Alias**: Vaše zkratka
-- **Cílová URL**: Původní dlouhý odkaz
-- **Kliknutí**: Počet použití odkazu
-- **Vytvořeno**: Datum vytvoření
+- **🏷️ Alias**: Vaše zkratka
+- **🎯 Cílová URL**: Původní dlouhý odkaz
+- **👁️ Kliknutí**: Počet použití odkazu
+- **📅 Vytvořeno**: Datum vytvoření
 
-**Akce**:
+**Akce:**
 - 📋 **Kopírovat**: Zkopíruje zkrácený odkaz do schránky
 - 🗑️ **Smazat**: Odstraní zkrácený odkaz
 
-**Umístění**: Nastavení → URL Zkracovač (dle předplatného)
+**Umístění:** Nastavení → URL Zkracovač (dle předplatného)
 
-## Tender Flow Desktop
+## 💻 Tender Flow Desktop
 
 Tender Flow Desktop je nativní desktopová aplikace postavená na Electronu. Nabízí rozšířené funkce oproti webové verzi.
 
 ### Výhody desktop verze
 
-| Funkce | Desktop | Web |
-|--------|---------|-----|
+| Funkce | 💻 Desktop | 🌐 Web |
+|--------|------------|--------|
 | Přístup k souborům | Nativní (bez MCP Bridge) | MCP Bridge |
 | Excel nástroje | Lokální Python | HTTP API |
 | Úložiště tokenů | OS Keychain (bezpečnější) | localStorage |
@@ -553,7 +587,7 @@ Desktop aplikace podporuje biometrické přihlášení:
 - **macOS**: Touch ID (na zařízeních s Touch Bar nebo Touch ID)
 - **Windows**: Windows Hello (otisk prstu, obličej)
 
-**Aktivace**:
+**Aktivace:**
 1. Přihlaste se poprvé emailem a heslem
 2. Zaškrtněte "Uložit přihlášení pro Touch ID"
 3. Při příštím spuštění můžete použít biometriku
@@ -561,18 +595,18 @@ Desktop aplikace podporuje biometrické přihlášení:
 ### Nativní souborové operace
 
 Desktop verze nepotřebuje MCP Bridge pro práci se soubory:
-- **DocHub**: Přímý přístup k lokálním složkám
-- **Vytváření složek**: Okamžité bez externího serveru
-- **Otevírání složek**: Nativní průzkumník souborů
+- **📂 DocHub**: Přímý přístup k lokálním složkám
+- **➕ Vytváření složek**: Okamžité bez externího serveru
+- **📁 Otevírání složek**: Nativní průzkumník souborů
 
 ### Excel nástroje
 
 Desktop verze používá lokální Python skripty:
-- **Rychlejší zpracování**: Bez HTTP požadavků
-- **Větší soubory**: Bez omezení velikosti uploadu
-- **Offline použití**: Funguje bez internetového připojení
+- **⚡ Rychlejší zpracování**: Bez HTTP požadavků
+- **📦 Větší soubory**: Bez omezení velikosti uploadu
+- **🌐 Offline použití**: Funguje bez internetového připojení
 
-**Prerekvizity**:
+**Prerekvizity:**
 - Python 3.x
 - `openpyxl` knihovna: `pip install openpyxl`
 
@@ -589,46 +623,46 @@ Při kliknutí na "Odhlásit" v desktop verzi máte dvě možnosti:
    - Kompletní odhlášení
    - Při příštím spuštění budete muset zadat email a heslo
 
-**Umístění ke stažení**: Kontaktujte administrátora pro přístup k desktop verzi
+**Umístění ke stažení:** Kontaktujte administrátora pro přístup k desktop verzi
 
-## Administrace systému
+## 🛡️ Administrace systému
 
 Administrace je dostupná jen vybraným účtům. V aplikaci rozlišujeme:
 
-- **Admin** – správa registrací, whitelistů, uživatelů, předplatného a AI nastavení.
+- **🛡️ Admin** – správa registrací, whitelistů, uživatelů, předplatného a AI nastavení.
 
-Tip: pokud v Nastavení nevidíte sekce „Administrace systému“, nemáte potřebná oprávnění.
+> 💡 **Tip:** Pokud v Nastavení nevidíte sekce „Administrace systému", nemáte potřebná oprávnění.
 
-## Registrace a whitelist
+## 📝 Registrace a whitelist
 
 V sekci **Nastavení registrací** (Admin) určíte, kdo se může do Tender Flow registrovat:
 
-- **Povolit registrace všem** – pokud je zapnuto, registrace nejsou omezené doménami.
-- **Whitelist domén** – registrace povolené jen pro vybrané domény (např. `@firma.cz`).
-- **Vyžadovat whitelist emailů** – registrace pouze pro emaily explicitně uvedené v seznamu.
+- **🌐 Povolit registrace všem** – pokud je zapnuto, registrace nejsou omezené doménami.
+- **📧 Whitelist domén** – registrace povolené jen pro vybrané domény (např. `@firma.cz`).
+- **📋 Vyžadovat whitelist emailů** – registrace pouze pro emaily explicitně uvedené v seznamu.
 
-![Schéma nastavení registrací](./assets/13-registration-settings.svg)
+![Nastavení registrací](./assets/13-registration-settings.svg)
 
-## Seznam povolených emailů (Whitelist)
+## 📧 Seznam povolených emailů (Whitelist)
 
-Pokud je zapnuté „Vyžadovat whitelist emailů“, mohou se registrovat pouze emaily uvedené v tomto seznamu.
+Pokud je zapnuté „Vyžadovat whitelist emailů", mohou se registrovat pouze emaily uvedené v tomto seznamu.
 
 1. Otevřete **Nastavení → Administrace systému**.
-2. V sekci „Seznam povolených emailů“ přidejte email, jméno a poznámku.
+2. V sekci „Seznam povolených emailů" přidejte email, jméno a poznámku.
 3. U záznamu lze přepínat aktivní/neaktivní stav.
 
-![Schéma whitelistu emailů](./assets/14-email-whitelist.svg)
+![Whitelist emailů](./assets/14-email-whitelist.svg)
 
-## Správa uživatelů a rolí
+## 👤 Správa uživatelů a rolí
 
 Sekce Správa uživatelů je určená pro **Admina**. Umožňuje:
 
-- spravovat role uživatelů (přiřazení role),
-- definovat oprávnění rolí (permissions).
+- **👥 Spravovat role uživatelů** (přiřazení role),
+- **✏️ Definovat oprávnění rolí** (permissions).
 
-![Schéma správy uživatelů a rolí](./assets/15-user-management-roles.svg)
+![Správa uživatelů a rolí](./assets/15-user-management-roles.svg)
 
-## Import a synchronizace kontaktů
+## 🔄 Import a synchronizace kontaktů
 
 Kontakty lze nahrát jednorázově z CSV nebo synchronizovat z URL (např. export z Google Sheets).
 
@@ -640,20 +674,20 @@ Poznámky k importu:
 - Import doplní specializace (sloučí do seznamu) a kontaktní osoby (bez duplicit podle jména/emailu/telefonu).
 - Primární kontakt (první v seznamu) se používá pro kompatibilitu i pro akce, které potřebují email.
 
-## AI funkce
+## 🤖 AI funkce
 
 Aplikace Tender Flow nabízí pokročilé funkce umělé inteligence pro automatizaci a analýzu.
 
 ### Základní AI funkce
 
-- **Doplnění regionů u kontaktů**: Hromadné doplnění regionů na základě adresy pomocí AI
-- **AI analýza v přehledech**: Automatická analýza projekty s grafy a reporty (dle nastavení)
+- **🗺️ Doplnění regionů u kontaktů**: Hromadné doplnění regionů na základě adresy pomocí AI
+- **📊 AI analýza v přehledech**: Automatická analýza projekty s grafy a reporty (dle nastavení)
 
 ### Správa AI klíčů (Admin)
 
 Administrátoři mohou nastavit systémové AI klíče, které se použijí pro všechny uživatele organizace.
 
-**Umístění**: Nastavení → Administrace systému → AI Nastavení
+**Umístění:** Nastavení → Administrace systému → AI Nastavení
 
 #### Uložení API klíčů
 
@@ -669,7 +703,7 @@ Klíče se ukládají bezpečně v databázi (tabulka `app_secrets`):
    - Po uložení se zobrazí maskovaně (••••)
    - Klíč se použije pro AI analýzy
 
-> **DŮLEŽITÉ**: API klíče vidí a upravuje pouze Admin. Běžní uživatelé je nevidí, ale mohou použít AI funkce.
+> ⚠️ **DŮLEŽITÉ**: API klíče vidí a upravuje pouze Admin. Běžní uživatelé je nevidí, ale mohou použít AI funkce.
 
 #### Přizpůsobení AI promptů
 
