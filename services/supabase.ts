@@ -1,6 +1,52 @@
 import { createClient } from '@supabase/supabase-js';
 import { navigate } from '../shared/routing/router';
 
+// ========================================================================
+// HEADERS SAFETY PATCH
+// Prevents "TypeError: Failed to execute 'set' on 'Headers': Invalid value"
+// which occurs when Supabase internal code (fetchWithAuth) passes
+// undefined/null header values. Common on Chromium-based Electron apps.
+// Must run before createClient() so Supabase captures the patched Headers.
+// ========================================================================
+(() => {
+  if (typeof globalThis.Headers === 'undefined') return;
+
+  const OriginalHeaders = globalThis.Headers;
+
+  // Patch .set() to gracefully skip undefined/null values
+  const origSet = OriginalHeaders.prototype.set;
+  OriginalHeaders.prototype.set = function(name: string, value: string) {
+    if (value === undefined || value === null) return;
+    return origSet.call(this, name, String(value));
+  };
+
+  // Patch .append() similarly
+  const origAppend = OriginalHeaders.prototype.append;
+  OriginalHeaders.prototype.append = function(name: string, value: string) {
+    if (value === undefined || value === null) return;
+    return origAppend.call(this, name, String(value));
+  };
+
+  // Replace constructor with sanitizing version to handle
+  // new Headers({ key: undefined }) which throws in Chromium
+  // @ts-ignore - extending native Headers with broader init type
+  globalThis.Headers = class SafeHeaders extends OriginalHeaders {
+    constructor(init?: HeadersInit | Record<string, unknown>) {
+      if (init && typeof init === 'object' && !(init instanceof OriginalHeaders) && !Array.isArray(init)) {
+        const sanitized: Record<string, string> = {};
+        for (const [key, value] of Object.entries(init)) {
+          if (value !== undefined && value !== null) {
+            sanitized[key] = String(value);
+          }
+        }
+        super(sanitized);
+      } else {
+        super(init as HeadersInit);
+      }
+    }
+  } as typeof Headers;
+})();
+
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
@@ -225,6 +271,8 @@ export const clearStoredSessionData = (): void => {
   removeStorageValue(window.localStorage, USER_CACHE_KEY);
   removeStorageValue(window.localStorage, SESSION_CREDENTIALS_KEY);
   removeStorageValue(window.sessionStorage, SESSION_CREDENTIALS_KEY);
+  removeStorageValue(window.localStorage, 'demo_session');
+  removeStorageValue(window.localStorage, 'demo_data');
 };
 
 const supabaseAuthStorage = {
@@ -353,6 +401,7 @@ const safeFetch: typeof fetch = async (input, init) => {
         _authErrorCount = 0;
 
         // Clear the stored session to break the infinite retry loop
+        // Also clear demo session flag to prevent false demo detection
         try {
           clearStoredSessionData();
         } catch { /* ignore */ }
