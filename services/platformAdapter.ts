@@ -206,6 +206,12 @@ export const appAdapter = {
         if (isDesktop && window.electronAPI) {
             return window.electronAPI.app.quit();
         }
+    },
+
+    async openUserManual(): Promise<void> {
+        if (isDesktop && window.electronAPI) {
+            return window.electronAPI.app.openUserManual();
+        }
     }
 };
 

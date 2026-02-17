@@ -42,6 +42,7 @@ import { processTemplate } from "../utils/templateUtils";
 import { useAuth } from "../context/AuthContext";
 import { getDemoData, saveDemoData } from "../services/demoData";
 import {
+  buildHierarchyTree,
   getDocHubTenderLinks,
   getDocHubTenderLinksDesktop,
   getTendersFolderName,
@@ -59,6 +60,7 @@ import { mcpOpenPath } from "../services/mcpBridgeClient";
 import platformAdapter from "../services/platformAdapter";
 import { DEFAULT_STATUSES } from "../config/constants";
 import { contractService } from "../services/contractService";
+import { collectFallbackSuppliers } from "../shared/dochub/fallbackSelection";
 import {
   Column,
   BidCard,
@@ -287,6 +289,11 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const isInternalBidsChange = useRef(false);
   // Store pending bids to notify parent after render
   const pendingBidsNotification = useRef<Record<string, Bid[]> | null>(null);
+  const projectFallbackRunRef = useRef<{ projectId: string | null; done: boolean }>({
+    projectId: null,
+    done: false,
+  });
+  const fallbackInFlightRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     setLocalContacts(externalContacts);
@@ -323,6 +330,158 @@ export const Pipeline: React.FC<PipelineProps> = ({
       pendingBidsNotification.current = newBids;
       return newBids;
     });
+  };
+
+  const isDocHubFallbackEnabled = () =>
+    isDocHubEnabled &&
+    docHubRoot.length > 0 &&
+    user?.role !== "demo" &&
+    !!projectData.docHubProvider;
+
+  const getFallbackProjectId = () => projectData.id || projectId;
+
+  const runDocHubFallbackForProject = async (reason: string) => {
+    if (!isDocHubFallbackEnabled()) return;
+
+    const fallbackProjectId = getFallbackProjectId();
+    const inFlightKey = `project:${fallbackProjectId}`;
+    if (fallbackInFlightRef.current.has(inFlightKey)) return;
+    fallbackInFlightRef.current.add(inFlightKey);
+
+    try {
+      const { categoriesForEnsure, suppliersByCategory } = collectFallbackSuppliers({
+        categories: projectDetails.categories,
+        bidsByCategory: bids,
+      });
+
+      if (categoriesForEnsure.length === 0) return;
+
+      const provider = projectData.docHubProvider;
+      if (provider === "onedrive" || provider === "mcp") {
+        const hierarchyTree = buildHierarchyTree(docHubStructure.extraHierarchy || []);
+        const result = await ensureStructure({
+          rootPath: docHubRoot,
+          structure: docHubStructure,
+          categories: categoriesForEnsure,
+          suppliers: suppliersByCategory,
+          hierarchy: hierarchyTree,
+        });
+
+        if (!result.success) {
+          console.error("[DocHub fallback] Project ensureStructure failed", {
+            reason,
+            provider,
+            projectId: fallbackProjectId,
+            error: result.error,
+          });
+        }
+        return;
+      }
+
+      if (provider === "gdrive" || provider === "onedrive_cloud") {
+        await invokeAuthedFunction("dochub-autocreate", {
+          body: { projectId: fallbackProjectId },
+        });
+      }
+    } catch (error) {
+      console.error("[DocHub fallback] Project fallback failed", {
+        reason,
+        projectId: getFallbackProjectId(),
+        error,
+      });
+    } finally {
+      fallbackInFlightRef.current.delete(inFlightKey);
+    }
+  };
+
+  const runDocHubFallbackForCategory = async (
+    categoryId: string,
+    reason: string,
+  ) => {
+    if (!isDocHubFallbackEnabled()) return;
+
+    const fallbackProjectId = getFallbackProjectId();
+    const inFlightKey = `category:${fallbackProjectId}:${categoryId}`;
+    if (fallbackInFlightRef.current.has(inFlightKey)) return;
+    fallbackInFlightRef.current.add(inFlightKey);
+
+    try {
+      const { categoriesForEnsure, suppliersByCategory } = collectFallbackSuppliers({
+        categories: projectDetails.categories,
+        bidsByCategory: bids,
+        categoryIds: [categoryId],
+      });
+
+      if (categoriesForEnsure.length === 0) return;
+
+      const provider = projectData.docHubProvider;
+      if (provider === "onedrive" || provider === "mcp") {
+        const hierarchyTree = buildHierarchyTree(docHubStructure.extraHierarchy || []);
+        const result = await ensureStructure({
+          rootPath: docHubRoot,
+          structure: docHubStructure,
+          categories: categoriesForEnsure,
+          suppliers: suppliersByCategory,
+          hierarchy: hierarchyTree,
+        });
+
+        if (!result.success) {
+          console.error("[DocHub fallback] Category ensureStructure failed", {
+            reason,
+            provider,
+            projectId: fallbackProjectId,
+            categoryId,
+            error: result.error,
+          });
+        }
+        return;
+      }
+
+      if (provider === "gdrive" || provider === "onedrive_cloud") {
+        const category = categoriesForEnsure[0];
+        const suppliers = suppliersByCategory[categoryId] || [];
+        if (!category || suppliers.length === 0) return;
+
+        const reconciliationResults = await Promise.allSettled(
+          suppliers.map((supplier) =>
+            invokeAuthedFunction("dochub-get-link", {
+              body: {
+                projectId: fallbackProjectId,
+                kind: "supplier",
+                categoryId: category.id,
+                categoryTitle: category.title,
+                supplierId: supplier.id,
+                supplierName: supplier.name,
+              },
+            }),
+          ),
+        );
+
+        const failedCount = reconciliationResults.filter(
+          (result) => result.status === "rejected",
+        ).length;
+
+        if (failedCount > 0) {
+          console.error("[DocHub fallback] Supplier reconciliation partial failure", {
+            reason,
+            provider,
+            projectId: fallbackProjectId,
+            categoryId,
+            failedCount,
+            total: reconciliationResults.length,
+          });
+        }
+      }
+    } catch (error) {
+      console.error("[DocHub fallback] Category fallback failed", {
+        reason,
+        projectId: getFallbackProjectId(),
+        categoryId,
+        error,
+      });
+    } finally {
+      fallbackInFlightRef.current.delete(inFlightKey);
+    }
   };
 
   // Subcontractor Selection State
@@ -494,6 +653,19 @@ export const Pipeline: React.FC<PipelineProps> = ({
     setIsResolvingBidComparisonPath(false);
   }, [activeCategory?.id]);
 
+  useEffect(() => {
+    if (projectFallbackRunRef.current.projectId !== projectId) {
+      projectFallbackRunRef.current.projectId = projectId;
+      projectFallbackRunRef.current.done = false;
+    }
+
+    if (projectFallbackRunRef.current.done) return;
+    if (!isDocHubFallbackEnabled()) return;
+
+    projectFallbackRunRef.current.done = true;
+    void runDocHubFallbackForProject("pipeline-open");
+  }, [projectId, isDocHubEnabled, docHubRoot, user?.role, projectData.docHubProvider]);
+
   const getBidsForColumn = (categoryId: string, status: BidStatus) => {
     return (bids[categoryId] || []).filter((bid) => bid.status === status);
   };
@@ -560,6 +732,8 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
         if (error) {
           console.error("Error updating bid status:", error);
+        } else if (targetStatus === "sent") {
+          void runDocHubFallbackForCategory(activeCategory.id, "move-to-sent");
         }
       } catch (err) {
         console.error("Unexpected error updating bid:", err);
@@ -755,7 +929,6 @@ export const Pipeline: React.FC<PipelineProps> = ({
               const structure = resolveDocHubStructureV1(
                 projectData.docHubStructureV1 || undefined,
               );
-              const { buildHierarchyTree } = await import("../utils/docHub"); // Import helper if not top-level
               const hierarchyTree = buildHierarchyTree(
                 structure.extraHierarchy || [],
               );
@@ -1321,6 +1494,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
         }
         return prev;
       });
+      void runDocHubFallbackForCategory(activeCategory.id, "inquiry-sent");
       return;
     }
 
@@ -1338,6 +1512,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
         }
         return prev;
       });
+      void runDocHubFallbackForCategory(activeCategory.id, "inquiry-sent");
     }, 100);
   };
 

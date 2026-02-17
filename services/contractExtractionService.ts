@@ -8,6 +8,13 @@ interface AIProxyResponse {
   raw?: unknown;
 }
 
+interface ExtractedDocumentText {
+  text: string;
+  ocrProvider: string;
+  ocrModel: string;
+  sourceFileName: string;
+}
+
 const CONTRACT_EXTRACTION_PROMPT = `Analyzuj následující text smlouvy o dílo a extrahuj strukturovaná data.
 
 VÝSTUP MUSÍ BÝT VALIDNÍ JSON v tomto formátu:
@@ -153,7 +160,10 @@ async function getAIModels() {
 /**
  * Extract text from Document (PDF, DOCX) using Mistral OCR via AI Proxy
  */
-async function extractTextFromDocument(file: File, onProgress?: (status: string) => void): Promise<string> {
+async function extractTextFromDocument(
+  file: File,
+  onProgress?: (status: string) => void,
+): Promise<ExtractedDocumentText> {
   const { ocrModel, ocrProvider } = await getAIModels();
   
   const fileExt = file.name.split('.').pop()?.toLowerCase();
@@ -269,7 +279,12 @@ async function extractTextFromDocument(file: File, onProgress?: (status: string)
       }
     }
 
-    return combinedText;
+    return {
+      text: combinedText,
+      ocrProvider: provider,
+      ocrModel,
+      sourceFileName: uploadFile.name,
+    };
 
   } finally {
     // 4. Cleanup
@@ -541,14 +556,21 @@ export const contractExtractionService = {
     }
 
     // This calls extractTextFromDocument which now uses configured OCR model
-    const text = await extractTextFromDocument(file, onProgress);
+    const extracted = await extractTextFromDocument(file, onProgress);
+    const text = extracted.text;
 
     if (text.trim().length < 100) {
       throw new Error('OCR nevrátilo dostatek textu.');
     }
 
     onProgress?.('Extrahuji strukturovaná data...');
-    return contractExtractionService.extractFromText(text);
+    const result = await contractExtractionService.extractFromText(text);
+    return {
+      ...result,
+      ocrProvider: extracted.ocrProvider,
+      ocrModel: extracted.ocrModel,
+      sourceFileName: extracted.sourceFileName,
+    };
   },
 
   /**
@@ -589,19 +611,29 @@ export const contractExtractionService = {
     fields: Record<string, unknown>;
     confidence: Record<string, number>;
     rawText?: string;
+    ocrProvider?: string;
+    ocrModel?: string;
+    sourceFileName?: string;
   }> => {
     const fileExt = file.name.split('.').pop()?.toLowerCase();
     if (!['pdf', 'docx', 'doc'].includes(fileExt || '')) {
       throw new Error('Soubor musí být ve formátu PDF nebo DOCX');
     }
 
-    const text = await extractTextFromDocument(file);
+    const extracted = await extractTextFromDocument(file);
+    const text = extracted.text;
 
     if (text.trim().length < 50) {
       throw new Error('Dokument neobsahuje dostatek textu.');
     }
 
-    return contractExtractionService.extractAmendmentFromText(text);
+    const result = await contractExtractionService.extractAmendmentFromText(text);
+    return {
+      ...result,
+      ocrProvider: extracted.ocrProvider,
+      ocrModel: extracted.ocrModel,
+      sourceFileName: extracted.sourceFileName,
+    };
   },
 
   /**
@@ -642,19 +674,29 @@ export const contractExtractionService = {
     fields: Record<string, unknown>;
     confidence: Record<string, number>;
     rawText?: string;
+    ocrProvider?: string;
+    ocrModel?: string;
+    sourceFileName?: string;
   }> => {
     const fileExt = file.name.split('.').pop()?.toLowerCase();
     if (!['pdf', 'docx', 'doc'].includes(fileExt || '')) {
       throw new Error('Soubor musí být ve formátu PDF nebo DOCX');
     }
 
-    const text = await extractTextFromDocument(file);
+    const extracted = await extractTextFromDocument(file);
+    const text = extracted.text;
 
     if (text.trim().length < 50) {
       throw new Error('Dokument neobsahuje dostatek textu.');
     }
 
-    return contractExtractionService.extractDrawdownFromText(text);
+    const result = await contractExtractionService.extractDrawdownFromText(text);
+    return {
+      ...result,
+      ocrProvider: extracted.ocrProvider,
+      ocrModel: extracted.ocrModel,
+      sourceFileName: extracted.sourceFileName,
+    };
   },
 
   /**

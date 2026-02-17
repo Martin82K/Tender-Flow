@@ -537,15 +537,13 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
                     {/* Sidebar Navigation */}
                     <aside className="w-full md:w-64 flex-shrink-0">
                         <nav className="flex flex-col gap-2">
-                            <div className="px-4 py-2">
-                                <button
-                                    onClick={() => setIsAdding(true)}
-                                    className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white rounded-xl text-sm font-bold shadow-lg transition-all flex items-center justify-center gap-2"
-                                >
-                                    <span className="material-symbols-outlined text-[18px]">add</span>
-                                    Nové VŘ
-                                </button>
-                            </div>
+                            <button
+                                onClick={() => setIsAdding(true)}
+                                className="w-full px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white rounded-xl text-sm font-bold shadow-lg transition-all flex items-center justify-start gap-3 text-left my-2"
+                            >
+                                <span className="material-symbols-outlined text-[20px]">add</span>
+                                Nové VŘ
+                            </button>
 
                             <button
                                 onClick={() => setViewMode('all')}

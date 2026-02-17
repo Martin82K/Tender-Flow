@@ -39,6 +39,7 @@ export const useDocHubIntegration = (
     project: ProjectDetails,
     onUpdate: (updates: Partial<ProjectDetails>) => void
 ) => {
+    const docHubStructureKey = JSON.stringify((project.docHubStructureV1 as any) || null);
     // Basic Settings
     const [enabled, setEnabled] = useState(!!project.docHubEnabled);
     const [rootLink, setRootLink] = useState(project.docHubRootLink || '');
@@ -158,7 +159,16 @@ export const useDocHubIntegration = (
 
         setExtraTopLevelDraft(Array.isArray(rawTop) ? rawTop.map(String).filter(s => s.trim()) : []);
         setExtraSupplierDraft(Array.isArray(rawSupplier) ? rawSupplier.map(String).filter(s => s.trim()) : []);
-    }, [project]);
+    }, [
+        project.docHubEnabled,
+        project.docHubRootLink,
+        project.docHubRootName,
+        project.docHubProvider,
+        project.docHubMode,
+        project.docHubStatus,
+        project.docHubAutoCreateEnabled,
+        docHubStructureKey,
+    ]);
 
     // Derived State
     const isAuthed = enabled && status === "connected";
@@ -811,24 +821,6 @@ export const useDocHubIntegration = (
                     });
                 }
 
-                // Save to history
-                try {
-                    await supabase.from('dochub_autocreate_runs').insert({
-                        project_id: project.id,
-                        status: result.success ? 'success' : 'error',
-                        step: 'Tender Flow Desktop Sync',
-                        progress_percent: 100,
-                        total_actions: result.createdCount,
-                        completed_actions: result.createdCount,
-                        logs: result.logs,
-                        error: result.error || null,
-                        started_at: new Date(Date.now() - 5000).toISOString(),
-                        finished_at: new Date().toISOString()
-                    });
-                } catch (historyError) {
-                    console.warn('Failed to save run to history:', historyError);
-                }
-
                 return;
             }
 
@@ -886,24 +878,6 @@ export const useDocHubIntegration = (
                     console.error('[DocHub] Failed to save history:', historyError);
                 }
                 */
-                // Save MCP run to history
-                try {
-                    await supabase.from('dochub_autocreate_runs').insert({
-                        project_id: project.id,
-                        status: 'success',
-                        step: 'MCP Bridge Sync',
-                        progress_percent: 100,
-                        total_actions: mcpResult.createdCount,
-                        completed_actions: mcpResult.createdCount,
-                        logs: mcpResult.logs,
-                        error: null,
-                        started_at: new Date(Date.now() - 5000).toISOString(), // approximate start
-                        finished_at: new Date().toISOString()
-                    });
-                } catch (historyError) {
-                    console.warn('Failed to save MCP run to history:', historyError);
-                }
-
                 setAutoCreateEnabled(true);
                 onUpdate({
                     docHubAutoCreateEnabled: true,

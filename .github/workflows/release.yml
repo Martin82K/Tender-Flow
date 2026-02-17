@@ -7,9 +7,8 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to build (e.g., 1.1.8)'
-        required: true
-        default: '1.1.8'
+        description: 'Optional: version to release (must match package.json)'
+        required: false
 
 permissions:
   contents: write # Required for creating releases
@@ -17,6 +16,8 @@ permissions:
 jobs:
   build-windows:
     runs-on: windows-latest
+    outputs:
+      app_version: ${{ steps.meta.outputs.app_version }}
 
     steps:
       - name: Checkout code
@@ -34,13 +35,105 @@ jobs:
       - name: Install desktop dependencies (win-hello)
         run: npm run desktop:install
 
+      - name: Resolve app version
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_VERSION="$(node -p "require('./package.json').version")"
+          echo "app_version=${APP_VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Validate release context
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_VERSION="${{ steps.meta.outputs.app_version }}"
+          EVENT_NAME="${{ github.event_name }}"
+          INPUT_VERSION="${{ github.event.inputs.version }}"
+
+          if [ "$EVENT_NAME" = "push" ]; then
+            TAG_VERSION="${GITHUB_REF#refs/tags/v}"
+            if [ "$TAG_VERSION" != "$APP_VERSION" ]; then
+              echo "::error::Tag version (${TAG_VERSION}) must match package.json version (${APP_VERSION})."
+              exit 1
+            fi
+          fi
+
+          if [ "$EVENT_NAME" = "workflow_dispatch" ] && [ -n "$INPUT_VERSION" ] && [ "$INPUT_VERSION" != "$APP_VERSION" ]; then
+            echo "::error::workflow_dispatch input version (${INPUT_VERSION}) must match package.json version (${APP_VERSION})."
+            exit 1
+          fi
+
+          echo "Using app version: $APP_VERSION"
+
+      - name: Validate required desktop auth secrets
+        shell: bash
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+          missing=0
+
+          for key in VITE_SUPABASE_URL VITE_SUPABASE_ANON_KEY; do
+            if [ -z "${!key:-}" ]; then
+              echo "::error::Missing required secret: ${key}"
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+          case "$VITE_SUPABASE_URL" in
+            https://*) ;;
+            *)
+              echo "::error::VITE_SUPABASE_URL must start with https://"
+              exit 1
+              ;;
+          esac
+
       - name: Build application
-        run: npm run build && npm run desktop:compile && npx electron-builder --win --publish never
+        run: npm run desktop:build -- --win --publish never
         env:
           ELECTRON_BUILD: 'true'
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Validate updater artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_VERSION="${{ steps.meta.outputs.app_version }}"
+
+          if [ ! -f dist-electron/latest.yml ]; then
+            echo "::error::Missing dist-electron/latest.yml"
+            exit 1
+          fi
+
+          if ! grep -Eq "^version: ${APP_VERSION}$" dist-electron/latest.yml; then
+            echo "::error::latest.yml version does not match package.json version (${APP_VERSION})."
+            echo "----- latest.yml -----"
+            cat dist-electron/latest.yml
+            echo "----------------------"
+            exit 1
+          fi
+
+          shopt -s nullglob
+          exe_files=(dist-electron/*.exe)
+          blockmap_files=(dist-electron/*.exe.blockmap)
+
+          if [ "${#exe_files[@]}" -eq 0 ]; then
+            echo "::error::Missing Windows installer (.exe) in dist-electron/"
+            exit 1
+          fi
+
+          if [ "${#blockmap_files[@]}" -eq 0 ]; then
+            echo "::error::Missing Windows blockmap (.exe.blockmap) in dist-electron/"
+            exit 1
+          fi
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -50,6 +143,7 @@ jobs:
             dist-electron/*.exe
             dist-electron/*.exe.blockmap
             dist-electron/latest.yml
+          if-no-files-found: error
           retention-days: 5
 
   release:
@@ -66,19 +160,35 @@ jobs:
           name: windows-build
           path: ./release-files
 
-      - name: Get version
+      - name: Resolve release version
         id: get_version
+        shell: bash
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-          else
-            echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          set -euo pipefail
+          APP_VERSION="${{ needs.build-windows.outputs.app_version }}"
+          EVENT_NAME="${{ github.event_name }}"
+          INPUT_VERSION="${{ github.event.inputs.version }}"
+
+          if [ "$EVENT_NAME" = "push" ]; then
+            TAG_VERSION="${GITHUB_REF#refs/tags/v}"
+            if [ "$TAG_VERSION" != "$APP_VERSION" ]; then
+              echo "::error::Tag version (${TAG_VERSION}) must match built app version (${APP_VERSION})."
+              exit 1
+            fi
           fi
+
+          if [ "$EVENT_NAME" = "workflow_dispatch" ] && [ -n "$INPUT_VERSION" ] && [ "$INPUT_VERSION" != "$APP_VERSION" ]; then
+            echo "::error::workflow_dispatch input version (${INPUT_VERSION}) must match built app version (${APP_VERSION})."
+            exit 1
+          fi
+
+          echo "VERSION=${APP_VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Upload to existing Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ steps.get_version.outputs.VERSION }}
           files: ./release-files/*
+          overwrite_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

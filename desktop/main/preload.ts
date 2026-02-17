@@ -101,6 +101,9 @@ const electronAPI: ElectronAPI = {
         quit: (): Promise<void> =>
             ipcRenderer.invoke('app:quit'),
 
+        openUserManual: (): Promise<void> =>
+            ipcRenderer.invoke('app:openUserManual'),
+
         getUserDataPath: (): Promise<string> =>
             ipcRenderer.invoke('app:getUserDataPath'),
     },
