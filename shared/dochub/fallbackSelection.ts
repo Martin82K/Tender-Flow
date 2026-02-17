@@ -1,7 +1,11 @@
 import type { Bid, BidStatus, DemandCategory } from "@/types";
 
 export const DOC_HUB_FALLBACK_STATUSES: BidStatus[] = [
+  "contacted",
   "sent",
+  "offer",
+  "shortlist",
+  "sod",
 ];
 
 export type FallbackCategory = Pick<DemandCategory, "id" | "title">;

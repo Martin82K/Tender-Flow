@@ -70,7 +70,6 @@ const baseBid: Bid = {
 
 const createProjectDetails = (
   provider: "mcp" | "onedrive" | "gdrive" | "onedrive_cloud",
-  bidStatus: Bid["status"] = "contacted",
 ): ProjectDetails => ({
   id: "project-1",
   title: "Projekt A",
@@ -78,7 +77,7 @@ const createProjectDetails = (
   finishDate: "2026-12-31",
   siteManager: "Vedouci",
   categories: [baseCategory],
-  bids: { "cat-1": [{ ...baseBid, status: bidStatus }] },
+  bids: { "cat-1": [baseBid] },
   docHubEnabled: true,
   docHubRootLink: "/tmp/dochub",
   docHubProvider: provider,
@@ -97,15 +96,14 @@ const getDropZoneByColumnTitle = (title: string) => {
 
 const renderPipeline = (
   provider: "mcp" | "onedrive" | "gdrive" | "onedrive_cloud",
-  bidStatus: Bid["status"] = "contacted",
 ) => {
-  const projectDetails = createProjectDetails(provider, bidStatus);
+  const projectDetails = createProjectDetails(provider);
 
   return render(
     <Pipeline
       projectId="project-1"
       projectDetails={projectDetails}
-      bids={{ "cat-1": [{ ...baseBid, status: bidStatus }] }}
+      bids={{ "cat-1": [baseBid] }}
       contacts={[]}
       initialOpenCategoryId="cat-1"
     />,
@@ -118,7 +116,7 @@ describe("Pipeline DocHub fallback", () => {
   });
 
   it("runs project-wide fallback once on pipeline open (cloud provider)", async () => {
-    const { rerender } = renderPipeline("gdrive", "sent");
+    const { rerender } = renderPipeline("gdrive");
 
     await waitFor(() => {
       expect(invokeAuthedFunction).toHaveBeenCalledWith("dochub-autocreate", {
@@ -129,8 +127,8 @@ describe("Pipeline DocHub fallback", () => {
     rerender(
       <Pipeline
         projectId="project-1"
-        projectDetails={createProjectDetails("gdrive", "sent")}
-        bids={{ "cat-1": [{ ...baseBid, status: "sent" }] }}
+        projectDetails={createProjectDetails("gdrive")}
+        bids={{ "cat-1": [baseBid] }}
         contacts={[]}
         initialOpenCategoryId="cat-1"
       />,
@@ -148,7 +146,9 @@ describe("Pipeline DocHub fallback", () => {
     renderPipeline("mcp");
     await screen.findByText("Odesláno");
 
-    expect(ensureStructure).toHaveBeenCalledTimes(0);
+    await waitFor(() => {
+      expect(ensureStructure).toHaveBeenCalledTimes(1);
+    });
 
     fireEvent.drop(getDropZoneByColumnTitle("Odesláno"), {
       dataTransfer: { getData: () => "bid-1" },
@@ -166,14 +166,16 @@ describe("Pipeline DocHub fallback", () => {
     renderPipeline("mcp");
     await screen.findByText("Zamítnuto / Odstoupili");
 
-    expect(ensureStructure).toHaveBeenCalledTimes(0);
+    await waitFor(() => {
+      expect(ensureStructure).toHaveBeenCalledTimes(1);
+    });
 
     fireEvent.drop(getDropZoneByColumnTitle("Zamítnuto / Odstoupili"), {
       dataTransfer: { getData: () => "bid-1" },
     });
 
     await waitFor(() => {
-      expect(ensureStructure).toHaveBeenCalledTimes(0);
+      expect(ensureStructure).toHaveBeenCalledTimes(1);
     });
 
     expect(screen.queryByText("DocHub chyba")).not.toBeInTheDocument();
