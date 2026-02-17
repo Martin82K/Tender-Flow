@@ -36,11 +36,12 @@ const bid = (overrides: Partial<Bid>): Bid =>
   }) as Bid;
 
 describe("collectFallbackSuppliers", () => {
-  it("includes only fallback statuses and always excludes rejected", () => {
+  it("includes only sent status and always excludes rejected", () => {
     const bidsByCategory = {
       "cat-1": [
         bid({ id: "b1", subcontractorId: "s1", companyName: "A", status: "contacted" }),
         bid({ id: "b2", subcontractorId: "s2", companyName: "B", status: "sent" }),
+        bid({ id: "b4", subcontractorId: "s4", companyName: "D", status: "offer" }),
         bid({ id: "b3", subcontractorId: "s3", companyName: "C", status: "rejected" }),
       ],
     };
@@ -51,10 +52,7 @@ describe("collectFallbackSuppliers", () => {
     });
 
     expect(result.categoriesForEnsure.map((c) => c.id)).toEqual(["cat-1", "cat-2"]);
-    expect(result.suppliersByCategory["cat-1"]).toEqual([
-      { id: "s1", name: "A" },
-      { id: "s2", name: "B" },
-    ]);
+    expect(result.suppliersByCategory["cat-1"]).toEqual([{ id: "s2", name: "B" }]);
     expect(result.suppliersByCategory["cat-1"].some((s) => s.id === "s3")).toBe(false);
   });
 
@@ -62,7 +60,7 @@ describe("collectFallbackSuppliers", () => {
     const bidsByCategory = {
       "cat-1": [
         bid({ id: "b1", subcontractorId: "s1", companyName: "A", status: "sent" }),
-        bid({ id: "b2", subcontractorId: "s1", companyName: "A Updated", status: "offer" }),
+        bid({ id: "b2", subcontractorId: "s1", companyName: "A Updated", status: "sent" }),
       ],
     };
 
@@ -78,8 +76,8 @@ describe("collectFallbackSuppliers", () => {
     const bidsByCategory = {
       "cat-1": [
         bid({ id: "b1", subcontractorId: "", companyName: "A", status: "sent" }),
-        bid({ id: "b2", subcontractorId: "s2", companyName: "", status: "offer" }),
-        bid({ id: "b3", subcontractorId: "s3", companyName: "C", status: "shortlist" }),
+        bid({ id: "b2", subcontractorId: "s2", companyName: "", status: "sent" }),
+        bid({ id: "b3", subcontractorId: "s3", companyName: "C", status: "sent" }),
       ],
     };
 

@@ -40,8 +40,9 @@ export function useDesktop(): UseDesktopReturn {
         const init = async () => {
             const version = await platformAdapter.app.getVersion();
 
-            // Show welcome only on first app launch this session (not after logout)
-            const shouldShowWelcome = !hasShownWelcomeThisSession;
+            // Welcome modal is intentionally disabled.
+            // Keep state/API shape unchanged to avoid touching callers.
+            const shouldShowWelcome = false;
 
             setState(prev => ({
                 ...prev,
