@@ -6,7 +6,7 @@ export const LegalTerms: React.FC = () => {
     <LegalPageLayout
       title="Podmínky užívání služby Tender Flow"
       lead="Níže uvedené podmínky upravují užívání služby Tender Flow a souvisejících služeb."
-      updatedAt="4. února 2026"
+      updatedAt="19. února 2026"
     >
       <section>
         <h2 className="text-white text-lg font-semibold">1. Provozovatel</h2>
@@ -85,7 +85,10 @@ export const LegalTerms: React.FC = () => {
         <p className="mt-2">
           Služba, její obsah a software jsou chráněny právními předpisy o
           duševním vlastnictví. Uživatel získává nevýhradní licenci k užívání
-          Služby v rozsahu nezbytném pro její využití.
+          Služby v rozsahu nezbytném pro její využití v rámci sjednaného
+          tarifu. Bez předchozího písemného souhlasu Provozovatele není
+          dovoleno Službu ani její části kopírovat, upravovat, distribuovat,
+          zpřístupňovat třetím osobám ani používat k tvorbě odvozených řešení.
         </p>
       </section>
 
@@ -115,7 +118,9 @@ export const LegalTerms: React.FC = () => {
         </h2>
         <p className="mt-2">
           Zpracování osobních údajů se řídí samostatným dokumentem „Zásady
-          ochrany osobních údajů“.
+          ochrany osobních údajů“. Provozovatel neprovádí obsahovou kontrolu
+          uživatelských dat; pro zajištění bezpečnosti, stability a funkčnosti
+          Služby zpracovává pouze nezbytné technické provozní a incident logy.
         </p>
       </section>
 

@@ -37,6 +37,7 @@ Verze příručky: **1.7** • Datum: **2026‑02‑17** • Aplikace: **v1.3.2*
 - [👤 Správa uživatelů a rolí](#sprava-uzivatelu-a-roli)
 - [🔄 Import a synchronizace kontaktů](#import-a-synchronizace-kontaktu)
 - [🤖 AI funkce](#ai-funkce)
+- [⚖️ Licence, práva a ochrana dat](#licence-prava-a-ochrana-dat)
 - [❓ Časté otázky](#caste-otazky)
 
 ---
@@ -754,11 +755,9 @@ Desktop verzi Tender Flow si můžete stáhnout po kontaktování administrátor
 
 ---
 
-## Informace o autorství a právech k aplikaci
+## Licence, práva a ochrana dat
 
-Aplikace Tender Flow byla navržena a vyvinuta jejím autorem a vlastníkem jako komplexní softwarové řešení pro podporu práce s veřejnými zakázkami.
-
-Veškerá autorská práva, majetková práva a práva k dalšímu vývoji, úpravám, rozšiřování, distribuci a monetizaci aplikace Tender Flow jsou plně vyhrazena jejímu vlastníkovi.
+Aplikace Tender Flow je chráněna autorským právem a souvisejícími předpisy. Uživatel získává nevýhradní licenci k používání aplikace pouze v rozsahu potřebném pro její řádné užívání v rámci sjednaného tarifu.
 
 Bez předchozího výslovného písemného souhlasu vlastníka není dovoleno aplikaci ani její části:
 
@@ -767,7 +766,11 @@ Bez předchozího výslovného písemného souhlasu vlastníka není dovoleno ap
 - poskytovat jako součást jiných produktů nebo služeb,
 - využívat ke komerčním účelům nad rámec udělené licence.
 
-Vlastník aplikace si vyhrazuje právo na průběžné změny, úpravy funkcionality, další vývoj a změny obchodního modelu, a to bez povinnosti předchozího upozornění uživatelů.
+Veškerá autorská, majetková a další práva k dalšímu vývoji, úpravám, rozšiřování, distribuci a monetizaci aplikace Tender Flow jsou vyhrazena vlastníkovi.
+
+Provozovatel neprovádí obsahovou kontrolu uživatelských dat ani jejich zpřístupňování třetím osobám bez právního důvodu. Pro zajištění stability, bezpečnosti a funkčnosti aplikace se zpracovávají pouze nezbytné technické provozní a incident logy určené k diagnostice a řešení chyb.
+
+Podrobnosti ke zpracování osobních údajů jsou uvedeny v dokumentu „Zásady ochrany osobních údajů“.
 
 **Autor a vlastník:** Martin Kalkuš (martinkalkus82@gmail.com), provozovatel služby `tenderflow.cz`.
 

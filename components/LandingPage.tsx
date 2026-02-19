@@ -872,6 +872,13 @@ export const LandingPage: React.FC = () => {
           <div className="mt-2 text-white/40 hover:text-white/50 transition-colors duration-300">
             Cloud řešení pro správu výběrových řízení ve stavebnictví
           </div>
+          <p className="mt-3 mx-auto max-w-3xl text-xs text-white/40 leading-relaxed">
+            Neprovádíme obsahovou kontrolu uživatelských dat. Pro zajištění
+            stability, bezpečnosti a funkčnosti aplikace zpracováváme pouze
+            nezbytné technické provozní a incident logy, které slouží výhradně
+            k diagnostice chyb a ochraně služby podle GDPR. Podrobnosti najdete
+            v sekci Ochrana osobních údajů.
+          </p>
         </footer>
       </main>
 

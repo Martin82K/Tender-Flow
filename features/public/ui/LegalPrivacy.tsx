@@ -31,8 +31,11 @@ export const LegalPrivacy: React.FC = () => {
         <h2 className="text-white text-lg font-semibold">3. Účely</h2>
         <p className="mt-2">
           Údaje zpracováváme za účelem poskytování Služby, zákaznické podpory,
-          zajištění bezpečnosti, vedení účetnictví a splnění zákonných
-          povinností.
+          zajištění bezpečnosti, diagnostiky incidentů a zvyšování stability a
+          funkčnosti aplikace, vedení účetnictví a splnění zákonných
+          povinností. V rámci těchto účelů můžeme zpracovávat nezbytné provozní
+          a incident logy. Neprovádíme obsahovou kontrolu uživatelských dat a
+          neslouží nám k profilování uživatelů.
         </p>
       </section>
 
@@ -72,7 +75,10 @@ export const LegalPrivacy: React.FC = () => {
         <p className="mt-2">
           Údaje uchováváme po dobu trvání smluvního vztahu a dále po dobu
           nezbytnou k ochraně našich právních nároků a splnění zákonných
-          povinností.
+          povinností. Provozní a incident logy uchováváme po přiměřenou dobu
+          nutnou pro bezpečnostní analýzu, řešení incidentů a audit provozu,
+          přičemž omezujeme rozsah záznamů na technické informace nezbytné pro
+          řešení ohrožení funkčnosti služby.
         </p>
       </section>
 
