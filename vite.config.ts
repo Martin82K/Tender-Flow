@@ -55,7 +55,6 @@ export default defineConfig(() => {
     envPrefix: ['VITE_', 'TINY_URL_'],
     test: {
       include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
-      exclude: ['**/mcp-bridge-server/**'],
     },
   };
 });

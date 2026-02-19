@@ -11,7 +11,7 @@ export interface DesktopConnectionState {
 
 /**
  * Hook for managing desktop-specific connection state
- * Provides unified status for file system access (desktop native or MCP)
+ * Provides unified status for file system access (desktop native)
  */
 export function useDesktopConnection() {
     const [state, setState] = useState<DesktopConnectionState>({

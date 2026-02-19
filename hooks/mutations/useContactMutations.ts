@@ -167,8 +167,8 @@ export const useUpdateContactMutation = () => {
                                 if (isUsed) {
                                     const category = project.categories?.find(c => c.id === catId);
                                     if (category && rootPath) {
-                                        // Desktop/MCP only for now
-                                        if (provider === 'onedrive' || provider === 'mcp') {
+                                        // Tender Flow Desktop only for now
+                                        if (provider === 'onedrive') {
                                             const oldPath = `${rootPath}${sep}${tendersName}${sep}${category.title.trim()}${sep}${oldName.trim()}`;
                                             const newPath = `${rootPath}${sep}${tendersName}${sep}${category.title.trim()}${sep}${newName.trim()}`;
 

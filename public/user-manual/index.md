@@ -77,12 +77,11 @@ Verzi aplikace najdete vlevo dole v sidebaru.
 - **URL Zkracovač**: Nový nástroj pro vytváření zkrácených odkazů s vlastními aliasy (tenderflow.cz/s/alias).
 - **Desktop aplikace**: Nativní Electron aplikace pro Windows a macOS s rozšířenými funkcemi (Touch ID, nativní souborový systém, lokální Excel nástroje).
 - **Mailto IPC Bridge**: Spolehlivější otevírání emailových klientů v desktop verzi pomocí IPC komunikace.
-- **MCP diagnostika**: Nástroj pro sledování stavu MCP Bridge serveru (pouze desktop, admin).
 
 ### v0.9.5
 
 - **AI prompty**: Možnost přizpůsobení systémových AI promptů pro grafy a reporty (admin).
-- **DocHub integrace**: Vylepšená integrace s MCP Bridge pro automatické vytváření složek projektů.
+- **DocHub integrace**: Vylepšená práce s lokálními složkami v Tender Flow Desktop.
 - **Stabilita**: Různá vylepšení stability a opravy chyb.
 
 ### v0.9.4-260104
@@ -311,24 +310,14 @@ V praxi zde typicky nastavíte:
 
 ![Dokumenty a šablony](./assets/10-documents-templates.svg)
 
-### DocHub: MCP Bridge (lokální disk)
+### DocHub: Tender Flow Desktop (lokální disk)
 
-MCP Bridge je malý lokální server, který umožní vytvářet složky DocHubu přímo na disku uživatele.
-
-**Distribuce MCP Bridge:**
-- **Windows**: předat `tender-flow-mcp-bridge-win-x64.exe` (doporučené umístění např. `C:\Programy\TenderFlow\`).
-- **macOS**: předat `tender-flow-mcp-bridge-macos-arm64` (Apple Silicon) nebo `tender-flow-mcp-bridge-macos-x64` (Intel).
-- Alternativně lze použít skripty `mcp-bridge-server/start-bridge.bat` (Windows) a `run-bridge.command` (macOS) ze zdrojového balíčku.
-
-**Spuštění a kontrola:**
-1. Spusťte MCP Bridge (dvojklikem / terminál).
-2. Nechte terminál otevřený.
-3. Ověřte stav: `http://localhost:3847/health` (musí vrátit `{"status":"ok"}`).
+Pro lokální práci se složkami použijte provider **Tender Flow Desktop**.
 
 **Nastavení v aplikaci:**
 1. Projekt → **Dokumenty** → **DocHub**.
-2. Provider: **MCP Bridge**.
-3. Zadejte absolutní cestu ke kořenové složce projektu.
+2. Provider: **Tender Flow Desktop**.
+3. Vyberte nebo zadejte cestu ke kořenové složce projektu.
 4. Klikněte **Připojit** a poté **Synchronizovat**.
 
 ## 👥 Subdodavatelé (Kontakty)
@@ -377,7 +366,7 @@ Manažerské souhrny napříč stavbami: metriky, grafy a volitelně AI analýza
 - **📊 Excel Indexer** – dvou-fázová indexace a zpracování rozpočtů s automatickým doplněním popisů.
 - **🔍 Index Matcher** – rychlé doplnění popisů podle indexu (zjednodušená verze Indexer).
 - **🔗 URL Zkracovač** – vytváření zkrácených odkazů s vlastními aliasy (dle předplatného).
-- **🛡️ Administrace systému (Admin)** – registrace, whitelist, uživatelé, předplatné, AI, MCP diagnostika.
+- **🛡️ Administrace systému (Admin)** – registrace, whitelist, uživatelé, předplatné, AI.
 
 ![Nastavení aplikace](./assets/09-settings.svg)
 
@@ -546,7 +535,7 @@ Tender Flow Desktop je nativní desktopová aplikace postavená na Electronu. Na
 
 | Funkce | 💻 Desktop | 🌐 Web |
 |--------|------------|--------|
-| Přístup k souborům | Nativní (bez MCP Bridge) | MCP Bridge |
+| Přístup k souborům | Nativní | Omezené |
 | Excel nástroje | Lokální Python | HTTP API |
 | Úložiště tokenů | OS Keychain (bezpečnější) | localStorage |
 | Auto-update | ✅ | ❌ |
@@ -594,7 +583,7 @@ Desktop aplikace podporuje biometrické přihlášení:
 
 ### Nativní souborové operace
 
-Desktop verze nepotřebuje MCP Bridge pro práci se soubory:
+Desktop verze nabízí přímou práci se soubory:
 - **📂 DocHub**: Přímý přístup k lokálním složkám
 - **➕ Vytváření složek**: Okamžité bez externího serveru
 - **📁 Otevírání složek**: Nativní průzkumník souborů
@@ -744,18 +733,6 @@ Nástroj pro ověření funkčnosti AI klíčů a testování AI odpovědí.
 
 **Tip**: Pokud nezadáte vlastní klíč, použije se systémový klíč uložený v AI Nastavení.
 
-### MCP diagnostika (Desktop, Admin)
-
-Pouze v desktop verzi: sledování stavu MCP Bridge serveru.
-
-**Zobrazuje**:
-- Stav konfigurace (Připraveno/Chybí token)
-- Token přihlášeného uživatele (Nastaven/Nenastaven)
-- Aktuální projekt ID
-- Port MCP serveru
-- SSE URL
-
-**Umístění**: Nastavení → Administrace systému → MCP diagnostika (pouze desktop)
 
 ## Časté otázky
 

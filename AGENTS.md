@@ -14,7 +14,7 @@
 - Global/domain types: `types.ts` and feature-local type files.
 - Tests: `tests/` with shared setup in `tests/setup.ts`.
 - Desktop code: `desktop/main/` (compiled output in `desktop/dist/`, packaging output in `dist-electron/`).
-- Server-side helpers: `server/`, `server.js`, `server_py/`, `mcp-bridge-server/`.
+- Server-side helpers: `server/`, `server.js`, `server_py/`.
 
 ## Build, Dev, and Ops Commands
 - Install deps: `npm install`
@@ -23,7 +23,6 @@
 - Preview production build: `npm run preview`
 - Start node server: `npm run start`
 - Build docs/user manual assets: `npm run build:user-manual`
-- MCP bridge install/start: `npm run mcp:install` then `npm run mcp`
 - Desktop TS compile: `npm run desktop:compile`
 - Desktop dev run: `npm run desktop:dev`
 - Desktop package build: `npm run desktop:build`
@@ -88,7 +87,7 @@
 - Do not import server-only modules into web UI code.
 - Keep desktop-specific logic in `desktop/` or guarded runtime branches.
 - Only use `window.electronAPI` in desktop-safe code paths.
-- Web layers (`app/`, `features/`, `shared/`) must not import from `server/`, `desktop/main/`, `server_py/`, or `mcp-bridge-server/`.
+- Web layers (`app/`, `features/`, `shared/`) must not import from `server/`, `desktop/main/`, or `server_py/`.
 
 ## React and Component Conventions
 - Components/files: PascalCase (for example `ProjectLayout.tsx`).
@@ -147,7 +146,7 @@
 ## Commit and PR Conventions
 - Commit messages: short, lowercase, imperative (for example `fix contacts import`).
 - Keep PR scope focused; describe user impact and risk clearly.
-- Call out desktop, migrations, or MCP bridge impacts explicitly.
+- Call out desktop and migrations impacts explicitly.
 
 ## Agent-Specific Repo Rules
 - Cursor rules check: no rules found in `.cursor/rules/`.

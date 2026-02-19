@@ -127,9 +127,9 @@ export const usePipelineSubcontractorSelection = ({
 
             if (isDocHubEnabled) {
               const provider = projectDataDocHubProvider;
-              if (provider === "onedrive" || provider === "mcp") {
-                const mcpSuppliers: Record<string, Array<{ id: string; name: string }>> = {};
-                mcpSuppliers[activeCategory.id] = newBids.map((bid) => ({
+              if (provider === "onedrive") {
+                const localSuppliers: Record<string, Array<{ id: string; name: string }>> = {};
+                localSuppliers[activeCategory.id] = newBids.map((bid) => ({
                   id: bid.subcontractorId,
                   name: bid.companyName,
                 }));
@@ -147,7 +147,7 @@ export const usePipelineSubcontractorSelection = ({
                   categories: [
                     { id: activeCategory.id, title: activeCategory.title },
                   ],
-                  suppliers: mcpSuppliers,
+                  suppliers: localSuppliers,
                   hierarchy: hierarchyTree,
                 }).then((res) => {
                   if (!res.success) {

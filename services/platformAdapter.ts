@@ -40,7 +40,7 @@ export const platform = window.electronAPI?.platform ?? {
 /**
  * File System Adapter
  * On desktop: uses native fs through Electron IPC
- * On web: falls back to MCP bridge or returns null
+ * On web: returns unavailable fallback values
  */
 export const fileSystemAdapter = {
     /**
@@ -50,8 +50,8 @@ export const fileSystemAdapter = {
         if (isDesktop && window.electronAPI) {
             return window.electronAPI.fs.selectFolder();
         }
-        // Web: not supported - use MCP bridge connection UI
-        console.warn('Folder selection not available on web. Use MCP bridge.');
+        // Web: not supported
+        console.warn('Folder selection not available on web.');
         return null;
     },
 
@@ -62,8 +62,8 @@ export const fileSystemAdapter = {
         if (isDesktop && window.electronAPI) {
             return window.electronAPI.fs.listFiles(folderPath);
         }
-        // Web: would need MCP bridge
-        console.warn('File listing not available on web without MCP.');
+        // Web: not supported
+        console.warn('File listing not available on web.');
         return [];
     },
 

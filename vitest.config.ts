@@ -14,7 +14,6 @@ export default defineConfig({
   },
   test: {
     include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
-    exclude: ['**/mcp-bridge-server/**'],
     globals: true,
     environment: 'jsdom',
     setupFiles: ['tests/setup.ts'],

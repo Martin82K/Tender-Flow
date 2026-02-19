@@ -10,7 +10,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Frontend: React 19 + TypeScript, Vite, Tailwind CSS
 - Backend: Supabase (PostgreSQL), Vercel (hosting)
 - Desktop: Electron 40
-- Additional: MCP Bridge Server for local filesystem access
 
 ## Development Commands
 
@@ -36,14 +35,6 @@ npm run desktop:build:win  # Build for Windows
 npm test                 # Run tests in watch mode
 npm run test:run         # Run tests once
 npm run test:coverage    # Run tests with coverage
-```
-
-### MCP Bridge Server
-The MCP Bridge Server enables local filesystem access for DocHub features in the desktop app.
-
-```bash
-npm run mcp:install      # Install MCP bridge dependencies
-npm run mcp              # Start MCP bridge server
 ```
 
 ### Version Management
@@ -140,7 +131,6 @@ Project
 - `inquiryService.ts` - Tender inquiry email generation
 - `templateService.ts` - Email template management
 - `subscriptionFeaturesService.ts` - Feature flag checks
-- `mcpBridgeClient.ts` - Communication with MCP bridge server
 - `fileSystemService.ts` - Desktop filesystem operations
 - `excelMergerService.ts` - Excel merge tool integration
 - `urlShortenerService.ts` - URL shortening (TinyURL)
@@ -192,7 +182,6 @@ Project
 - Auto-updates via electron-updater (GitHub releases)
 - Local filesystem access for DocHub
 - Project folder selection and file organization
-- MCP Bridge Server integration for advanced filesystem ops
 
 **Build Output:**
 - `desktop/dist/` - Compiled TypeScript (main process)
@@ -207,13 +196,12 @@ Project
 - Projects can enable DocHub with a root folder link
 - Auto-create feature generates standardized folder structure
 - Structure versioning (currently v1) for future migrations
-- Providers: gdrive, onedrive, local, mcp
+- Providers: gdrive, onedrive, local
 - Reconciliation: Syncs existing folders with expected structure
 
 **Related Files:**
 - `useDocHubIntegration.ts` - Main DocHub hook
 - `components/projectLayoutComponents/documents/` - DocHub UI components
-- `mcpBridgeClient.ts` - MCP filesystem bridge client
 
 ### Feature Flags & Subscriptions
 

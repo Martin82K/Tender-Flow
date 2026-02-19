@@ -6,7 +6,6 @@ export { ExcelIndexerSettings } from "../ExcelIndexerSettings";
 export { ExcelMergerProSettings } from "../ExcelMergerProSettings";
 export { ExcelUnlockerProSettings } from "../ExcelUnlockerProSettings";
 export { IndexMatcherSettings } from "../IndexMatcherSettings";
-export { McpDiagnostics } from "../McpDiagnostics";
 export { OrganizationSettings } from "../OrganizationSettings";
 export { ProfileSettings } from "../ProfileSettings";
 export { SubscriptionSettings } from "../SubscriptionSettings";

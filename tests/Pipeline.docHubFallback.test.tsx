@@ -69,7 +69,7 @@ const baseBid: Bid = {
 };
 
 const createProjectDetails = (
-  provider: "mcp" | "onedrive" | "gdrive" | "onedrive_cloud",
+  provider: "onedrive" | "gdrive" | "onedrive_cloud",
 ): ProjectDetails => ({
   id: "project-1",
   title: "Projekt A",
@@ -95,7 +95,7 @@ const getDropZoneByColumnTitle = (title: string) => {
 };
 
 const renderPipeline = (
-  provider: "mcp" | "onedrive" | "gdrive" | "onedrive_cloud",
+  provider: "onedrive" | "gdrive" | "onedrive_cloud",
 ) => {
   const projectDetails = createProjectDetails(provider);
 
@@ -143,7 +143,7 @@ describe("Pipeline DocHub fallback", () => {
   });
 
   it("runs category fallback when bid is moved to sent", async () => {
-    renderPipeline("mcp");
+    renderPipeline("onedrive");
     await screen.findByText("Odesláno");
 
     await waitFor(() => {
@@ -163,7 +163,7 @@ describe("Pipeline DocHub fallback", () => {
   });
 
   it("does not run category fallback when bid is moved to rejected", async () => {
-    renderPipeline("mcp");
+    renderPipeline("onedrive");
     await screen.findByText("Zamítnuto / Odstoupili");
 
     await waitFor(() => {

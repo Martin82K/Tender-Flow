@@ -3,7 +3,6 @@ import { ProjectDetails } from '../types';
 import { dbAdapter } from '../services/dbAdapter';
 import { invokeAuthedFunction } from '../services/functionsClient';
 import { resolveDocHubStructureV1, getDocHubProjectLinks, DEFAULT_DOCHUB_HIERARCHY, DocHubHierarchyItem, buildHierarchyTree, type DocHubStructureV1 } from '../utils/docHub';
-import { isMcpBridgeRunning, mcpEnsureStructure, mcpFolderExists, mcpPickFolder } from '../services/mcpBridgeClient';
 import { isDesktop, fileSystemAdapter, oauthAdapter } from '../services/platformAdapter';
 import { folderExists } from '../services/fileSystemService';
 
@@ -44,7 +43,7 @@ export const useDocHubIntegration = (
     const [enabled, setEnabled] = useState(!!project.docHubEnabled);
     const [rootLink, setRootLink] = useState(project.docHubRootLink || '');
     const [rootName, setRootName] = useState(project.docHubRootName || '');
-    const [provider, setProvider] = useState<"gdrive" | "onedrive" | "local" | "mcp" | null>(project.docHubProvider ?? null);
+    const [provider, setProvider] = useState<"gdrive" | "onedrive" | "local" | null>(project.docHubProvider ?? null);
     const [mode, setMode] = useState<"user" | "org" | null>(project.docHubMode ?? "user");
     const [status, setStatus] = useState<"disconnected" | "connected" | "error">(project.docHubStatus || "disconnected");
     const [isEditingSetup, setIsEditingSetup] = useState(false);
@@ -61,7 +60,6 @@ export const useDocHubIntegration = (
     const [backendStep, setBackendStep] = useState<string | null>(null);
     const [backendCounts, setBackendCounts] = useState<{ done: number; total: number | null } | null>(null);
     const [backendStatus, setBackendStatus] = useState<'running' | 'success' | 'error' | null>(null);
-    const [mcpBridgeStatus, setMcpBridgeStatus] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
     const [autoCreateRunId, setAutoCreateRunId] = useState<string | null>(null);
     const [autoCreateResult, setAutoCreateResult] = useState<{
         createdCount: number | null;
@@ -173,8 +171,7 @@ export const useDocHubIntegration = (
     // Derived State
     const isAuthed = enabled && status === "connected";
     const isLocalProvider = provider === "onedrive";
-    const isMcpProvider = provider === "mcp";
-    const isConnected = isAuthed && (isLocalProvider || isMcpProvider ? rootLink.trim() !== '' : !!project.docHubRootId && rootLink.trim() !== '');
+    const isConnected = isAuthed && (isLocalProvider ? rootLink.trim() !== '' : !!project.docHubRootId && rootLink.trim() !== '');
     const effectiveStructure = isEditingStructure ? structureDraft : resolveDocHubStructureV1((project.docHubStructureV1 as any) || undefined);
 
     // Cleanup timers
@@ -185,34 +182,14 @@ export const useDocHubIntegration = (
         };
     }, []);
 
-    // Poll MCP Bridge status when MCP provider is active
-    useEffect(() => {
-        if (!isMcpProvider) {
-            setMcpBridgeStatus('unknown');
-            return;
-        }
-
-        const checkStatus = async () => {
-            const running = await isMcpBridgeRunning();
-            setMcpBridgeStatus(running ? 'connected' : 'disconnected');
-        };
-
-        // Initial check
-        checkStatus();
-
-        // Poll every 5 seconds
-        const interval = window.setInterval(checkStatus, 5000);
-        return () => window.clearInterval(interval);
-    }, [isMcpProvider]);
-
-    // Load Links (skip for local/MCP providers - they don't use cloud APIs)
+    // Load Links (skip for local providers - they don't use cloud APIs)
     useEffect(() => {
         if (!isConnected || !project.id) {
             setDocHubBaseLinks(null);
             return;
         }
-        // Skip cloud API calls for local and MCP providers
-        if (isLocalProvider || isMcpProvider) {
+        // Skip cloud API calls for local providers
+        if (isLocalProvider) {
             setDocHubBaseLinks(null);
             return;
         }
@@ -237,7 +214,7 @@ export const useDocHubIntegration = (
             }
         })();
         return () => { cancelled = true; };
-    }, [isConnected, project.id, project.docHubStructureV1, isLocalProvider, isMcpProvider]);
+    }, [isConnected, project.id, project.docHubStructureV1, isLocalProvider]);
 
     const fallbackLinks = isConnected ? getDocHubProjectLinks(rootLink, effectiveStructure) : null;
     const links = isConnected ? {
@@ -470,8 +447,8 @@ export const useDocHubIntegration = (
         setResolveProgress(10); // Fake start
         setIsConnecting(true); // Reuse connecting state
 
-        // Handle Local Providers (Desktop/MCP) without backend call
-        if (provider === 'onedrive' || provider === 'mcp') {
+        // Handle local provider (Tender Flow Desktop) without backend call
+        if (provider === 'onedrive') {
             try {
                 const path = rootLink.trim();
                 const exists = await folderExists(path);
@@ -498,7 +475,7 @@ export const useDocHubIntegration = (
                     docHubRootName: folderName,
                     docHubRootLink: path,
                     docHubRootWebUrl: null,
-                    docHubRootId: provider === 'mcp' ? `mcp:${path}` : `local:${path}`,
+                    docHubRootId: `local:${path}`,
                     docHubDriveId: null,
                     docHubSiteId: null,
                 });
@@ -621,101 +598,6 @@ export const useDocHubIntegration = (
         }
     }, [provider, showMessage, onUpdate]);
 
-    const pickMcpFolder = useCallback(async () => {
-        if (provider !== 'mcp') return;
-        setIsConnecting(true);
-        try {
-            // Check running first
-            const isRunning = await isMcpBridgeRunning();
-            if (!isRunning) {
-                showMessage("MCP neběží", "Spusťte prosím mcp-bridge-server.", "danger");
-                return;
-            }
-
-            const result = await mcpPickFolder();
-            if (result.error) {
-                throw new Error(result.error);
-            }
-            if (result.cancelled) {
-                return; // User cancelled
-            }
-            if (result.path) {
-                setRootLink(result.path);
-                // Try to guess name
-                const name = result.path.split(/[\\/]/).pop();
-                if (name) setRootName(name);
-            }
-        } catch (e: any) {
-            showMessage("Chyba výběru", e.message || "Selhalo otevření dialogu", "danger");
-        } finally {
-            setIsConnecting(false);
-        }
-    }, [provider, showMessage]);
-
-    const connectMcp = useCallback(async () => {
-        console.log('[DocHub] connectMcp called', { provider, rootLink });
-        if (provider !== "mcp") {
-            showMessage("DocHub", "Vyberte 'MCP (Lokální disk)' jako provider.", "info");
-            return;
-        }
-
-
-        // Sanitize path (remove surrounding quotes from "Copy as path")
-        const cleanPath = rootLink.trim().replace(/^"|"$/g, '');
-
-        if (!cleanPath) {
-            showMessage("DocHub", "Zadejte platnou cestu.", "info");
-            return;
-        }
-
-        setIsConnecting(true);
-        try {
-            // Check if MCP Bridge is running
-            const isRunning = await isMcpBridgeRunning();
-            if (!isRunning) {
-                showMessage(
-                    "MCP Server neběží",
-                    "Spusťte MCP Bridge Server příkazem:\ncd mcp-bridge-server && npm start",
-                    "danger"
-                );
-                return;
-            }
-
-            // Check if folder exists (or can be created)
-            const folderCheck = await mcpFolderExists(cleanPath);
-            const folderName = cleanPath.split('/').pop() || cleanPath.split('\\').pop() || 'Projekt';
-
-            // Update input to clean path if it was quoted
-            if (cleanPath !== rootLink) {
-                setRootLink(cleanPath);
-            }
-
-            setRootName(folderName);
-            setStatus("connected");
-            onUpdate({
-                docHubEnabled: true,
-                docHubProvider: "mcp",
-                docHubStatus: "connected",
-                docHubRootName: folderName,
-                docHubRootLink: cleanPath,
-                docHubRootWebUrl: null,
-                docHubRootId: `mcp:${cleanPath}`,
-                docHubDriveId: null,
-                docHubSiteId: null,
-            });
-
-            if (folderCheck.exists) {
-                showMessage("Hotovo", `Připojeno ke složce "${folderName}". Složka existuje.`, "success");
-            } else {
-                showMessage("Hotovo", `Připojeno. Složka "${folderName}" bude vytvořena při synchronizaci.`, "success");
-            }
-        } catch (e: any) {
-            showMessage("Chyba připojení", e.message || "Nelze se připojit k MCP serveru", "danger");
-        } finally {
-            setIsConnecting(false);
-        }
-    }, [provider, rootLink, showMessage, onUpdate]);
-
     const runAutoCreate = useCallback(async () => {
         if (!project.id) { showMessage("DocHub", "Chybí ID projektu.", "danger"); return; }
         if (status !== 'connected' && !project.docHubRootId && !rootLink) { showMessage("DocHub", "Nejdřív připojte DocHub.", "info"); return; }
@@ -822,69 +704,6 @@ export const useDocHubIntegration = (
                 return;
             }
 
-            // MCP Provider - handle locally without edge functions
-            if (provider === "mcp") {
-                const isRunning = await isMcpBridgeRunning();
-                if (!isRunning) {
-                    throw new Error("MCP Server neběží. Spusťte: cd mcp-bridge-server && npm start");
-                }
-
-                setAutoCreateLogs(prev => [...prev, "Vytvářím složky přes MCP Bridge…"]);
-
-                // Prepare categories and suppliers data
-                const categories = project.categories?.map(c => ({ id: c.id, title: c.title })) || [];
-                const suppliers: Record<string, Array<{ id: string; name: string }>> = {};
-
-                if (project.bids) {
-                    for (const [categoryId, bids] of Object.entries(project.bids)) {
-                        suppliers[categoryId] = bids.map(b => ({ id: b.subcontractorId, name: b.companyName }));
-                    }
-                }
-
-                console.log('[DocHub] hierarchyDraft:', JSON.stringify(hierarchyDraft, null, 2));
-                const hierarchyTree = buildHierarchyTree(hierarchyDraft);
-                console.log('[DocHub] hierarchyTree (sent to MCP):', JSON.stringify(hierarchyTree, null, 2));
-
-                const mcpResult = await mcpEnsureStructure({
-                    rootPath: rootLink.trim(),
-                    structure: (project.docHubStructureV1 as any) || {},
-                    categories,
-                    suppliers,
-                    hierarchy: hierarchyTree
-                });
-
-                setAutoCreateLogs(mcpResult.logs);
-                setAutoCreateProgress(100);
-                setAutoCreateResult({
-                    createdCount: mcpResult.createdCount,
-                    runId: null,
-                    logs: mcpResult.logs,
-                    finishedAt: new Date().toISOString()
-                });
-                setIsResultModalOpen(true);
-                setBackendStatus('success');
-
-                /* History saving temporarily disabled due to RLS policies (403 error)
-                const { error: historyError } = await dbAdapter.from('dochub_autocreate_runs').insert({
-                    project_id: project.id,
-                    status: mcpResult.success ? 'success' : 'error',
-                    logs: mcpResult.logs,
-                    counts: { created: mcpResult.createdCount, reused: mcpResult.reusedCount }
-                });
-
-                if (historyError) {
-                    console.error('[DocHub] Failed to save history:', historyError);
-                }
-                */
-                setAutoCreateEnabled(true);
-                onUpdate({
-                    docHubAutoCreateEnabled: true,
-                    docHubAutoCreateLastRunAt: new Date().toISOString(),
-                    docHubAutoCreateLastError: null
-                });
-                return;
-            }
-
             // Cloud providers (gdrive) - use edge functions
             if (!project.docHubRootId) {
                 const urlToResolve = rootLink?.trim().replace(/^"|"$/g, '');
@@ -969,7 +788,7 @@ export const useDocHubIntegration = (
             autoCreateEnabled, isAutoCreating, autoCreateProgress, autoCreateLogs, backendStep, backendCounts, backendStatus, autoCreateResult, isResultModalOpen,
             structureDraft, extraTopLevelDraft, extraSupplierDraft, hierarchyDraft, isEditingStructure,
             history, isLoadingHistory, modalRequest,
-            newFolderName, resolveProgress, links, isConnected, isLocalProvider, isMcpProvider, mcpBridgeStatus
+            newFolderName, resolveProgress, links, isConnected, isLocalProvider
         },
         setters: {
             setEnabled, setRootLink, setRootName, setProvider, setMode, setStatus, setIsEditingSetup,
@@ -1001,10 +820,7 @@ export const useDocHubIntegration = (
             saveStructure: handleSaveStructure,
             createGoogleRoot,
             resolveRoot,
-            pickLocalFolder,
-
-            connectMcp,
-            pickMcpFolder
+            pickLocalFolder
         }
     };
 };

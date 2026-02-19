@@ -372,7 +372,7 @@
 <div class="section"><a class="sectionTitle" href="#vyberova-rizeni-pipeline">📋 Výběrová řízení (Pipeline)</a><div class="sub"><a href="#stavy-nabidky-sloupce">Stavy nabídky (sloupce)</a><a href="#karta-nabidky">Karta nabídky</a></div></div>
 <div class="section"><a class="sectionTitle" href="#smlouvy">📜 Smlouvy</a></div>
 <div class="section"><a class="sectionTitle" href="#harmonogram">📆 Harmonogram</a></div>
-<div class="section"><a class="sectionTitle" href="#dokumenty-a-sablony">📁 Dokumenty a šablony</a><div class="sub"><a href="#dochub-mcp-bridge-lokalni-disk">DocHub: MCP Bridge (lokální disk)</a></div></div>
+<div class="section"><a class="sectionTitle" href="#dokumenty-a-sablony">📁 Dokumenty a šablony</a><div class="sub"><a href="#dochub-tender-flow-desktop-lokalni-disk">DocHub: Tender Flow Desktop (lokální disk)</a></div></div>
 <div class="section"><a class="sectionTitle" href="#subdodavatele-kontakty">👥 Subdodavatelé (Kontakty)</a></div>
 <div class="section"><a class="sectionTitle" href="#sprava-staveb">🏠 Správa staveb</a></div>
 <div class="section"><a class="sectionTitle" href="#prehled-staveb-analytika">📈 Přehled staveb (analytika)</a></div>
@@ -385,7 +385,7 @@
 <div class="section"><a class="sectionTitle" href="#seznam-povolenych-emailu-whitelist">📧 Seznam povolených emailů (Whitelist)</a></div>
 <div class="section"><a class="sectionTitle" href="#sprava-uzivatelu-a-roli">👤 Správa uživatelů a rolí</a></div>
 <div class="section"><a class="sectionTitle" href="#import-a-synchronizace-kontaktu">🔄 Import a synchronizace kontaktů</a></div>
-<div class="section"><a class="sectionTitle" href="#ai-funkce">🤖 AI funkce</a><div class="sub"><a href="#zakladni-ai-funkce">Základní AI funkce</a><a href="#sprava-ai-klicu-admin">Správa AI klíčů (Admin)</a><a href="#ai-testovani-admin">AI testování (Admin)</a><a href="#mcp-diagnostika-desktop-admin">MCP diagnostika (Desktop, Admin)</a></div></div>
+<div class="section"><a class="sectionTitle" href="#ai-funkce">🤖 AI funkce</a><div class="sub"><a href="#zakladni-ai-funkce">Základní AI funkce</a><a href="#sprava-ai-klicu-admin">Správa AI klíčů (Admin)</a><a href="#ai-testovani-admin">AI testování (Admin)</a></div></div>
 <div class="section"><a class="sectionTitle" href="#caste-otazky">Časté otázky</a><div class="sub"><a href="#neotevre-se-emailovy-klient">Neotevře se emailový klient</a><a href="#nektere-volby-nevidim">Některé volby nevidím</a><a href="#excel-merger-pro-pise-funkce-neni-dostupna">Excel Merger PRO píše „Funkce není dostupná“</a><a href="#kde-si-mohu-stahnout-desktop-aplikaci">Kde si mohu stáhnout desktop aplikaci?</a></div></div>
 <div class="section"><a class="sectionTitle" href="#informace-o-autorstvi-a-pravech-k-aplikaci">Informace o autorství a právech k aplikaci</a></div></nav>
       </aside>
@@ -463,12 +463,11 @@
 <li><strong>URL Zkracovač</strong>: Nový nástroj pro vytváření zkrácených odkazů s vlastními aliasy (tenderflow.cz/s/alias).</li>
 <li><strong>Desktop aplikace</strong>: Nativní Electron aplikace pro Windows a macOS s rozšířenými funkcemi (Touch ID, nativní souborový systém, lokální Excel nástroje).</li>
 <li><strong>Mailto IPC Bridge</strong>: Spolehlivější otevírání emailových klientů v desktop verzi pomocí IPC komunikace.</li>
-<li><strong>MCP diagnostika</strong>: Nástroj pro sledování stavu MCP Bridge serveru (pouze desktop, admin).</li>
 </ul>
 <h3 id="v0-9-5">v0.9.5</h3>
 <ul>
 <li><strong>AI prompty</strong>: Možnost přizpůsobení systémových AI promptů pro grafy a reporty (admin).</li>
-<li><strong>DocHub integrace</strong>: Vylepšená integrace s MCP Bridge pro automatické vytváření složek projektů.</li>
+<li><strong>DocHub integrace</strong>: Vylepšená práce s lokálními složkami v Tender Flow Desktop.</li>
 <li><strong>Stabilita</strong>: Různá vylepšení stability a opravy chyb.</li>
 </ul>
 <h3 id="v0-9-4-260104">v0.9.4-260104</h3>
@@ -682,25 +681,13 @@
 <li>ceníky a související složky.</li>
 </ul>
 <p><img src="./assets/10-documents-templates.svg" alt="Dokumenty a šablony"></p>
-<h3 id="dochub-mcp-bridge-lokalni-disk">DocHub: MCP Bridge (lokální disk)</h3>
-<p>MCP Bridge je malý lokální server, který umožní vytvářet složky DocHubu přímo na disku uživatele.</p>
-<p><strong>Distribuce MCP Bridge:</strong></p>
-<ul>
-<li><strong>Windows</strong>: předat <code>tender-flow-mcp-bridge-win-x64.exe</code> (doporučené umístění např. <code>C:\Programy\TenderFlow\</code>).</li>
-<li><strong>macOS</strong>: předat <code>tender-flow-mcp-bridge-macos-arm64</code> (Apple Silicon) nebo <code>tender-flow-mcp-bridge-macos-x64</code> (Intel).</li>
-<li>Alternativně lze použít skripty <code>mcp-bridge-server/start-bridge.bat</code> (Windows) a <code>run-bridge.command</code> (macOS) ze zdrojového balíčku.</li>
-</ul>
-<p><strong>Spuštění a kontrola:</strong></p>
-<ol>
-<li>Spusťte MCP Bridge (dvojklikem / terminál).</li>
-<li>Nechte terminál otevřený.</li>
-<li>Ověřte stav: <code>http://localhost:3847/health</code> (musí vrátit <code>{&quot;status&quot;:&quot;ok&quot;}</code>).</li>
-</ol>
+<h3 id="dochub-tender-flow-desktop-lokalni-disk">DocHub: Tender Flow Desktop (lokální disk)</h3>
+<p>Pro lokální práci se složkami použijte provider <strong>Tender Flow Desktop</strong>.</p>
 <p><strong>Nastavení v aplikaci:</strong></p>
 <ol>
 <li>Projekt → <strong>Dokumenty</strong> → <strong>DocHub</strong>.</li>
-<li>Provider: <strong>MCP Bridge</strong>.</li>
-<li>Zadejte absolutní cestu ke kořenové složce projektu.</li>
+<li>Provider: <strong>Tender Flow Desktop</strong>.</li>
+<li>Vyberte nebo zadejte cestu ke kořenové složce projektu.</li>
 <li>Klikněte <strong>Připojit</strong> a poté <strong>Synchronizovat</strong>.</li>
 </ol>
 <h2 id="subdodavatele-kontakty">👥 Subdodavatelé (Kontakty)</h2>
@@ -737,7 +724,7 @@
 <li><strong>📊 Excel Indexer</strong> – dvou-fázová indexace a zpracování rozpočtů s automatickým doplněním popisů.</li>
 <li><strong>🔍 Index Matcher</strong> – rychlé doplnění popisů podle indexu (zjednodušená verze Indexer).</li>
 <li><strong>🔗 URL Zkracovač</strong> – vytváření zkrácených odkazů s vlastními aliasy (dle předplatného).</li>
-<li><strong>🛡️ Administrace systému (Admin)</strong> – registrace, whitelist, uživatelé, předplatné, AI, MCP diagnostika.</li>
+<li><strong>🛡️ Administrace systému (Admin)</strong> – registrace, whitelist, uživatelé, předplatné, AI.</li>
 </ul>
 <p><img src="./assets/09-settings.svg" alt="Nastavení aplikace"></p>
 <h2 id="excel-nastroje">📊 Excel nástroje</h2>
@@ -913,8 +900,8 @@
 </thead>
 <tbody><tr>
 <td>Přístup k souborům</td>
-<td>Nativní (bez MCP Bridge)</td>
-<td>MCP Bridge</td>
+<td>Nativní</td>
+<td>Omezené</td>
 </tr>
 <tr>
 <td>Excel nástroje</td>
@@ -988,7 +975,7 @@
 <li>Při příštím spuštění můžete použít biometriku</li>
 </ol>
 <h3 id="nativni-souborove-operace">Nativní souborové operace</h3>
-<p>Desktop verze nepotřebuje MCP Bridge pro práci se soubory:</p>
+<p>Desktop verze nabízí přímou práci se soubory:</p>
 <ul>
 <li><strong>📂 DocHub</strong>: Přímý přístup k lokálním složkám</li>
 <li><strong>➕ Vytváření složek</strong>: Okamžité bez externího serveru</li>
@@ -1133,17 +1120,6 @@
 <li>AI odpoví pomocí nastaveného klíče</li>
 </ol>
 <p><strong>Tip</strong>: Pokud nezadáte vlastní klíč, použije se systémový klíč uložený v AI Nastavení.</p>
-<h3 id="mcp-diagnostika-desktop-admin">MCP diagnostika (Desktop, Admin)</h3>
-<p>Pouze v desktop verzi: sledování stavu MCP Bridge serveru.</p>
-<p><strong>Zobrazuje</strong>:</p>
-<ul>
-<li>Stav konfigurace (Připraveno/Chybí token)</li>
-<li>Token přihlášeného uživatele (Nastaven/Nenastaven)</li>
-<li>Aktuální projekt ID</li>
-<li>Port MCP serveru</li>
-<li>SSE URL</li>
-</ul>
-<p><strong>Umístění</strong>: Nastavení → Administrace systému → MCP diagnostika (pouze desktop)</p>
 <h2 id="caste-otazky">Časté otázky</h2>
 <h3 id="neotevre-se-emailovy-klient">Neotevře se emailový klient</h3>
 <p>Zkontrolujte výchozí emailový klient v systému. Funkce „Generovat poptávku“ používá <code>mailto:</code>.</p>

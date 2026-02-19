@@ -72,7 +72,7 @@ export const usePipelineDocHubFallback = ({
       if (categoriesForEnsure.length === 0) return;
 
       const provider = projectData.docHubProvider;
-      if (provider === "onedrive" || provider === "mcp") {
+      if (provider === "onedrive") {
         const hierarchyTree = buildHierarchyTree(docHubStructure.extraHierarchy || []);
         const result = await ensureStructure({
           rootPath: docHubRoot,
@@ -143,7 +143,7 @@ export const usePipelineDocHubFallback = ({
       if (categoriesForEnsure.length === 0) return;
 
       const provider = projectData.docHubProvider;
-      if (provider === "onedrive" || provider === "mcp") {
+      if (provider === "onedrive") {
         const hierarchyTree = buildHierarchyTree(docHubStructure.extraHierarchy || []);
         const result = await ensureStructure({
           rootPath: docHubRoot,

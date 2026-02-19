@@ -237,7 +237,7 @@ export const usePipelineBidActions = ({
       if (
         bidToDelete &&
         isDocHubEnabled &&
-        projectDataDocHubProviderLegacy === "mcp" &&
+        projectDataDocHubProviderLegacy === "onedrive" &&
         docHubRoot
       ) {
         const structure = resolveDocHubStructureV1(
@@ -250,10 +250,10 @@ export const usePipelineBidActions = ({
         );
         const supplierFolder = links.supplierBase(bidToDelete.companyName);
 
-        deleteFolder(docHubRoot, supplierFolder, { provider: "mcp" }).catch(
+        deleteFolder(docHubRoot, supplierFolder, { provider: "onedrive" }).catch(
           (folderDeleteError) => {
             console.error(
-              "MCP Auto-delete supplier folder failed:",
+              "Local auto-delete supplier folder failed:",
               folderDeleteError,
             );
           },

@@ -3,36 +3,42 @@
  * 
  * Unified service that automatically switches between:
  * - Desktop: Native Electron fs (via platformAdapter)
- * - Web: MCP Bridge Server (existing implementation)
+ * - Web: not available for direct local filesystem access
  * 
  * This allows the same API to work on both platforms.
  */
 
 import { isDesktop, fileSystemAdapter, watcherAdapter } from './platformAdapter';
-import {
-    isMcpBridgeRunning,
-    mcpCreateFolder,
-    mcpDeleteFolder,
-    mcpEnsureStructure,
-    mcpFolderExists,
-    mcpOpenPath,
-    mcpPickFolder,
-    type McpEnsureStructureRequest,
-    type McpEnsureStructureResponse,
-} from './mcpBridgeClient';
 import { invokeAuthedFunction } from './functionsClient';
 import type { DocHubStructureV1, DocHubHierarchyItem } from '../utils/docHub';
 import { validateSubcontractorCompanyName } from '../shared/dochub/subcontractorNameRules';
 
 export interface FileSystemStatus {
     available: boolean;
-    mode: 'desktop' | 'mcp' | 'none';
+    mode: 'desktop' | 'none';
     version?: string;
 }
 
 export interface FolderOperationResult {
     success: boolean;
     path?: string;
+    error?: string;
+}
+
+export interface EnsureStructureRequest {
+    rootPath: string;
+    structure?: DocHubStructureV1;
+    categories?: Array<{ id: string; title: string }>;
+    suppliers?: Record<string, Array<{ id: string; name: string }>>;
+    hierarchy?: DocHubHierarchyItem[];
+}
+
+export interface EnsureStructureResponse {
+    success: boolean;
+    rootPath: string;
+    createdCount: number;
+    reusedCount: number;
+    logs: string[];
     error?: string;
 }
 
@@ -71,15 +77,6 @@ export async function checkFileSystemStatus(): Promise<FileSystemStatus> {
         };
     }
 
-    // Check MCP Bridge for web
-    const mcpRunning = await isMcpBridgeRunning();
-    if (mcpRunning) {
-        return {
-            available: true,
-            mode: 'mcp',
-        };
-    }
-
     return {
         available: false,
         mode: 'none',
@@ -98,8 +95,7 @@ export async function pickFolder(): Promise<{ path?: string; cancelled?: boolean
         return { path: result.path };
     }
 
-    // Web: use MCP
-    return mcpPickFolder();
+    return { cancelled: true, error: 'Výběr složky je dostupný pouze v desktop aplikaci.' };
 }
 
 /**
@@ -116,13 +112,7 @@ export async function folderExists(folderPath: string): Promise<boolean> {
         }
     }
 
-    // Web: use MCP
-    try {
-        const result = await mcpFolderExists(folderPath);
-        return result.exists;
-    } catch {
-        return false;
-    }
+    return false;
 }
 
 /**
@@ -153,7 +143,7 @@ export async function createFolder(pathOrName: string, options?: { provider?: st
         }
     }
 
-    // Desktop / Local / MCP
+    // Desktop / Local
     // pathOrName is full path here
     if (isDesktop && (!provider || provider === 'onedrive')) {
         try {
@@ -171,20 +161,10 @@ export async function createFolder(pathOrName: string, options?: { provider?: st
         }
     }
 
-    // Web: use MCP
-    try {
-        const result = await mcpCreateFolder(pathOrName);
-        return {
-            success: result.success,
-            path: result.path,
-            error: result.error,
-        };
-    } catch (e) {
-        return {
-            success: false,
-            error: e instanceof Error ? e.message : String(e),
-        };
-    }
+    return {
+        success: false,
+        error: 'Vytváření lokálních složek je dostupné pouze v desktop aplikaci.',
+    };
 }
 
 /**
@@ -224,19 +204,10 @@ export async function deleteFolder(rootPath: string, folderPath: string, options
         }
     }
 
-    // Web: use MCP
-    try {
-        const result = await mcpDeleteFolder(rootPath, folderPath);
-        return {
-            success: result.success,
-            error: result.error,
-        };
-    } catch (e) {
-        return {
-            success: false,
-            error: e instanceof Error ? e.message : String(e),
-        };
-    }
+    return {
+        success: false,
+        error: 'Mazání lokálních složek je dostupné pouze v desktop aplikaci.',
+    };
 }
 
 /**
@@ -282,17 +253,15 @@ export async function renameFolder(oldPath: string, newPath: string, options?: {
         }
     }
 
-    // MCP does not currently support rename directly, would need to implement in bridge
-    // For now, return not supported or fallback
-    return { success: false, error: "Rename not supported on MCP yet." };
+    return { success: false, error: "Přejmenování složek je dostupné pouze v desktop aplikaci." };
 }
 
 /**
  * Ensure DocHub folder structure exists
  */
 export async function ensureStructure(
-    request: McpEnsureStructureRequest
-): Promise<McpEnsureStructureResponse> {
+    request: EnsureStructureRequest
+): Promise<EnsureStructureResponse> {
     if (isDesktop) {
         // Desktop: Create folders directly using native fs
         const logs: string[] = [];
@@ -426,8 +395,14 @@ export async function ensureStructure(
         }
     }
 
-    // Web: use MCP
-    return mcpEnsureStructure(request);
+    return {
+        success: false,
+        rootPath: request.rootPath,
+        createdCount: 0,
+        reusedCount: 0,
+        logs: [],
+        error: 'Synchronizace lokální struktury je dostupná pouze v desktop aplikaci.',
+    };
 }
 
 /**
@@ -452,8 +427,7 @@ export async function openPath(path: string): Promise<{ success: boolean; error?
         }
     }
 
-    // Web: use MCP
-    return mcpOpenPath(path);
+    return { success: false, error: 'Otevření lokální cesty je dostupné pouze v desktop aplikaci.' };
 }
 
 /**
@@ -472,8 +446,7 @@ export async function openInExplorer(folderPath: string): Promise<{ success: boo
         }
     }
 
-    // Web: use MCP openPath
-    return mcpOpenPath(folderPath);
+    return { success: false, error: 'Otevření složky je dostupné pouze v desktop aplikaci.' };
 }
 
 /**
@@ -511,6 +484,5 @@ export async function stopWatching(): Promise<void> {
 }
 
 // Export type for external use
-export type { McpEnsureStructureRequest };
-
+export type { EnsureStructureRequest };
 

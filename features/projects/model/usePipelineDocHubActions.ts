@@ -1,6 +1,5 @@
 import { invokeAuthedFunction } from "@/services/functionsClient";
 import { folderExists } from "@/services/fileSystemService";
-import { mcpOpenPath } from "@/services/mcpBridgeClient";
 import platformAdapter from "@/services/platformAdapter";
 import {
   getDocHubTenderLinks,
@@ -40,7 +39,6 @@ export const usePipelineDocHubActions = ({
 }: UsePipelineDocHubActionsInput) => {
   const canUseDocHubBackend =
     !!projectDetails.docHubProvider &&
-    projectDetails.docHubProvider !== "mcp" &&
     projectDetails.docHubProvider !== "onedrive" &&
     !!projectDetails.docHubRootId &&
     projectDetails.docHubStatus === "connected";
@@ -76,10 +74,6 @@ export const usePipelineDocHubActions = ({
           return;
         }
 
-        console.log("[DocHub] Not on desktop, trying MCP open for path:", path);
-        const result = await mcpOpenPath(path);
-        console.log("[DocHub] MCP result:", result);
-        if (result.success) return;
       } catch (error) {
         console.warn("[DocHub] Open failed, falling back to copy", error);
       }
@@ -104,11 +98,10 @@ export const usePipelineDocHubActions = ({
 
   const openDocHubBackendLink = async (payload: any) => {
     if (
-      projectData.docHubProvider === "mcp" ||
       projectData.docHubProvider === "onedrive"
     ) {
       console.warn(
-        "[DocHub] Blocked backend call for MCP/Tender Flow Desktop provider",
+        "[DocHub] Blocked backend call for Tender Flow Desktop provider",
       );
       return;
     }
@@ -146,11 +139,9 @@ export const usePipelineDocHubActions = ({
       return;
     }
 
-    const isMcpOrLocal =
-      projectData.docHubProvider === "mcp" ||
-      projectData.docHubProvider === "onedrive";
+    const isLocalProvider = projectData.docHubProvider === "onedrive";
 
-    if (canUseDocHubBackend && projectData.id && !isMcpOrLocal) {
+    if (canUseDocHubBackend && projectData.id && !isLocalProvider) {
       void openDocHubBackendLink({
         projectId: projectData.id,
         kind: "supplier",

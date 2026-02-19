@@ -31,7 +31,6 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
     resolveProgress,
     isEditingSetup,
     isLocalProvider,
-    isMcpProvider,
   } = state;
 
   // Derived state for local UI logic
@@ -49,7 +48,7 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
           <div className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
             1) Provider
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={() => setters.setProvider("gdrive")}
@@ -80,28 +79,10 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
                 Lokální složka
               </div>
             </button>
-
-            <button
-              type="button"
-              onClick={() => setters.setProvider("mcp")}
-              className={`p-3 rounded-xl border text-left transition-all ${provider === "mcp"
-                ? "bg-cyan-500/15 border-cyan-500/40"
-                : "bg-slate-100 dark:bg-slate-800/40 border-slate-300 dark:border-slate-700/50 hover:border-slate-400 dark:hover:border-slate-600/60"
-                }`}
-            >
-              <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                MCP Bridge
-              </div>
-              <div className="text-xs text-slate-600 dark:text-slate-400">
-                Lokální server
-              </div>
-            </button>
           </div>
           <div className="text-[11px] text-slate-500 flex justify-between items-center">
             <span>
-              {isMcpProvider
-                ? "MCP Bridge Server umožňuje automatické vytváření složek na vašem disku."
-                : "Google: OAuth + Picker. Tender Flow Desktop: vyberte složku z disku."}
+              Google: OAuth + Picker. Tender Flow Desktop: vyberte složku z disku.
             </span>
             {isConnectedStatus && (
               <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
@@ -146,11 +127,9 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
                   value={rootLink}
                   onChange={(e) => setters.setRootLink(e.target.value)}
                   placeholder={
-                    isMcpProvider
-                      ? "Cesta ke složce (např. /Users/jmeno/Documents/Projekty)"
-                      : isLocalProvider
-                        ? "Cesta ke složce (např. C:\\Projekty\\Stavba)"
-                        : "Vložte URL složky z Google Drive (https://drive.google.com/...)"
+                    isLocalProvider
+                      ? "Cesta ke složce (např. C:\\Projekty\\Stavba)"
+                      : "Vložte URL složky z Google Drive (https://drive.google.com/...)"
                   }
                   className="flex-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700/50 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-violet-500/50 focus:outline-none"
                 />
@@ -176,7 +155,7 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
                       ? "Ověřuji..."
                       : isConnectedStatus && rootLink === state.rootLink
                         ? <span className="flex items-center gap-2"><span className="material-symbols-outlined text-[18px]">folder_open</span>Otevřít složku</span>
-                        : isLocalProvider || isMcpProvider
+                        : isLocalProvider
                           ? "Připojit složku"
                           : "Použít tuto složku"
                     }
@@ -214,25 +193,10 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
               </div>
             )}
             <div className="text-[11px] text-slate-500">
-              {isMcpProvider
-                ? "Zadejte absolutní cestu ke složce. MCP Bridge server musí běžet."
-                : isLocalProvider
-                  ? "Zadejte cestu ke složce nebo použijte tlačítko výše."
-                  : "Google: doporučeno vybrat přes Picker. Tender Flow Desktop: vyberte lokální složku."}
+              {isLocalProvider
+                ? "Zadejte cestu ke složce nebo použijte tlačítko výše."
+                : "Google: doporučeno vybrat přes Picker. Tender Flow Desktop: vyberte lokální složku."}
             </div>
-
-            {/* Success Feedback for MCP */}
-            {isConnectedStatus && isMcpProvider && (
-              <div className="mt-3 p-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg flex items-start gap-3">
-                <span className="material-symbols-outlined text-emerald-600 dark:text-emerald-400 text-xl">check_circle</span>
-                <div>
-                  <div className="text-sm font-bold text-emerald-700 dark:text-emerald-400">Úspěšně připojeno</div>
-                  <div className="text-xs text-emerald-600/80 dark:text-emerald-500 mt-1">
-                    Složka je ověřena. Nyní můžete v přehledu dokumentů kliknout na <b>Synchronizovat</b> pro vytvoření struktury.
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -248,18 +212,17 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
                 }
               } else {
                 if (isLocalProvider) actions.resolveRoot();
-                else if (isMcpProvider) actions.connectMcp();
                 else actions.connect();
               }
             }}
             disabled={
               isConnecting ||
               (!isConnectedStatus &&
-                (!provider || (!isLocalProvider && !isMcpProvider && !mode)))
+                (!provider || (!isLocalProvider && !mode)))
             }
             className={`px-4 py-2 rounded-lg text-sm font-bold border transition-colors ${isConnecting ||
               (!isConnectedStatus &&
-                (!provider || (!isLocalProvider && !isMcpProvider && !mode)))
+                (!provider || (!isLocalProvider && !mode)))
               ? "bg-slate-200 dark:bg-slate-800/60 text-slate-500 border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
               : isConnectedStatus
                 ? "bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-red-600 dark:text-red-300 border-slate-300 dark:border-slate-700/50"
@@ -270,9 +233,7 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
                 ? "Odpojí Složkomat účet pro tuto stavbu"
                 : isLocalProvider
                   ? "Uloží nastavení lokální složky"
-                  : isMcpProvider
-                    ? "Připojí se k MCP Bridge serveru"
-                    : "Spustí OAuth autorizaci"
+                  : "Spustí OAuth autorizaci"
             }
           >
             {isConnecting
@@ -281,10 +242,8 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
                 ? "Odpojit"
                 : isLocalProvider
                   ? "Připojit složku"
-                  : isMcpProvider
-                    ? "Připojit MCP"
-                    : `Připojit přes ${provider === "gdrive" ? "Google" : "Microsoft"
-                    }`}
+                  : `Připojit přes ${provider === "gdrive" ? "Google" : "Microsoft"
+                  }`}
           </button>
         </div>
         {isConnectedStatus || isEditingSetup ? (

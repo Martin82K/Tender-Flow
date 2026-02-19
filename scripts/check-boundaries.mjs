@@ -4,7 +4,7 @@ import path from "path";
 const root = process.cwd();
 const scanRoots = ["app", "features", "shared", "components", "hooks", "context", "services", "utils", "infra"];
 const allowedExt = new Set([".ts", ".tsx", ".js", ".mjs"]);
-const forbiddenRoots = ["server", "desktop/main", "server_py", "mcp-bridge-server"];
+const forbiddenRoots = ["server", "desktop/main", "server_py"];
 const allowlistPath = path.join(root, "config", "architecture-boundary-allowlist.json");
 
 const findings = [];
@@ -154,11 +154,9 @@ for (const fileAbs of allFiles) {
       spec.startsWith("server/") ||
       spec.startsWith("desktop/main/") ||
       spec.startsWith("server_py/") ||
-      spec.startsWith("mcp-bridge-server/") ||
       spec.startsWith("@/server") ||
       spec.startsWith("@/desktop/main") ||
       spec.startsWith("@/server_py") ||
-      spec.startsWith("@/mcp-bridge-server") ||
       spec.startsWith("@app/server") ||
       spec.startsWith("@features/server") ||
       spec.startsWith("@shared/server")

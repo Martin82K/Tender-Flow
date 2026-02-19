@@ -1,5 +1,5 @@
 import React from 'react';
-import { HardDrive, Cloud, Wifi, WifiOff, FolderSync } from 'lucide-react';
+import { HardDrive, Wifi, WifiOff, FolderSync } from 'lucide-react';
 import { useDesktopConnection } from '../../hooks/useDesktopConnection';
 
 interface FileSystemIndicatorProps {
@@ -10,7 +10,6 @@ interface FileSystemIndicatorProps {
 /**
  * Visual indicator showing how file system operations are connected
  * - Desktop mode: Native file access (green)
- * - MCP mode: Bridge server connected (blue)
  * - None: No file system access (gray)
  */
 export function FileSystemIndicator({ showLabel = true, className = '' }: FileSystemIndicatorProps) {
@@ -25,14 +24,6 @@ export function FileSystemIndicator({ showLabel = true, className = '' }: FileSy
                     bgColor: 'bg-green-500/20',
                     label: 'Desktop',
                     tooltip: 'Přímý přístup k souborům',
-                };
-            case 'mcp':
-                return {
-                    icon: Cloud,
-                    color: 'text-blue-400',
-                    bgColor: 'bg-blue-500/20',
-                    label: 'MCP Bridge',
-                    tooltip: 'Připojeno přes MCP server',
                 };
             default:
                 return {
@@ -92,10 +83,10 @@ export function ConnectionStatusBadge({ compact = false }: ConnectionStatusBadge
     }
 
     return (
-        <span className={`inline-flex items-center gap-1 text-xs ${fsStatus.mode === 'desktop' ? 'text-green-400' : 'text-blue-400'
+        <span className={`inline-flex items-center gap-1 text-xs ${fsStatus.mode === 'desktop' ? 'text-green-400' : 'text-slate-500'
             }`}>
             <Wifi className="w-3 h-3" />
-            {!compact && (fsStatus.mode === 'desktop' ? 'Desktop' : 'MCP')}
+            {!compact && (fsStatus.mode === 'desktop' ? 'Desktop' : 'Offline')}
         </span>
     );
 }
