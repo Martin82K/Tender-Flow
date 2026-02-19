@@ -1,6 +1,5 @@
 import { autoUpdater, UpdateInfo, ProgressInfo } from 'electron-updater';
 import { BrowserWindow, ipcMain, app } from 'electron';
-import * as path from 'path';
 
 export interface UpdateStatus {
     status: 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error';
@@ -11,7 +10,7 @@ export interface UpdateStatus {
 
 /**
  * Auto-updater service for managing application updates
- * Uses electron-updater with GitHub Releases as backend
+ * Uses electron-updater with generic provider backend
  * Automatically checks for updates every 6 hours
  */
 export class AutoUpdaterService {
@@ -19,11 +18,21 @@ export class AutoUpdaterService {
     private updateStatus: UpdateStatus = { status: 'not-available' };
     private checkInterval: NodeJS.Timeout | null = null;
     private updateCheckIntervalHours: number = 6;
+    private authToken: string | null = null;
+    private feedBaseUrl: string;
 
     constructor() {
+        this.feedBaseUrl = this.resolveInitialFeedBaseUrl();
+
         // Configure auto-updater
         autoUpdater.autoDownload = false; // We'll control when to download
         autoUpdater.autoInstallOnAppQuit = true;
+        autoUpdater.setFeedURL({
+            provider: 'generic',
+            url: this.feedBaseUrl,
+        });
+        this.applyRequestHeaders();
+        console.log('[AutoUpdater] Generic feed configured:', this.feedBaseUrl);
 
         // For development, allow unsigned updates
         if (process.env.NODE_ENV === 'development' || !app.isPackaged) {
@@ -39,6 +48,26 @@ export class AutoUpdaterService {
      */
     setMainWindow(window: BrowserWindow): void {
         this.mainWindow = window;
+    }
+
+    setAuthToken(token: string | null): void {
+        this.authToken = token && token.trim() ? token.trim() : null;
+        this.applyRequestHeaders();
+    }
+
+    setFeedBaseUrl(url: string): void {
+        const normalized = this.normalizeFeedBaseUrl(url);
+        if (!normalized) {
+            console.warn('[AutoUpdater] Ignoring empty feed base URL update');
+            return;
+        }
+        this.feedBaseUrl = normalized;
+        autoUpdater.setFeedURL({
+            provider: 'generic',
+            url: this.feedBaseUrl,
+        });
+        this.applyRequestHeaders();
+        console.log('[AutoUpdater] Feed URL updated');
     }
 
     /**
@@ -103,6 +132,7 @@ export class AutoUpdaterService {
                 return false;
             }
 
+            this.applyRequestHeaders();
             console.log('[AutoUpdater] Checking for updates...');
             const result = await autoUpdater.checkForUpdates();
 
@@ -131,6 +161,7 @@ export class AutoUpdaterService {
      */
     async downloadUpdate(): Promise<void> {
         try {
+            this.applyRequestHeaders();
             console.log('[AutoUpdater] Starting update download...');
             await autoUpdater.downloadUpdate();
         } catch (error) {
@@ -215,12 +246,47 @@ export class AutoUpdaterService {
         ipcMain.handle('updater:getStatus', () => {
             return this.updateStatus;
         });
+
+        ipcMain.handle('updater:setAuthToken', (_event, token: string | null) => {
+            this.setAuthToken(token);
+        });
+
+        ipcMain.handle('updater:setFeedBaseUrl', (_event, url: string) => {
+            this.setFeedBaseUrl(url);
+        });
     }
 
     private sendStatusToRenderer(): void {
         if (this.mainWindow && !this.mainWindow.isDestroyed()) {
             this.mainWindow.webContents.send('updater:statusChanged', this.updateStatus);
         }
+    }
+
+    private applyRequestHeaders(): void {
+        const headers: Record<string, string> = {};
+        if (this.authToken) {
+            headers.Authorization = `Bearer ${this.authToken}`;
+        }
+        autoUpdater.requestHeaders = headers;
+    }
+
+    private resolveInitialFeedBaseUrl(): string {
+        const configuredUrl =
+            process.env.UPDATE_BASE_URL ||
+            process.env.UPDATER_BASE_URL ||
+            'https://www.tenderflow.cz/api/updates/win';
+        const normalized = this.normalizeFeedBaseUrl(configuredUrl);
+        if (!normalized) {
+            return 'https://www.tenderflow.cz/api/updates/win';
+        }
+        return normalized;
+    }
+
+    private normalizeFeedBaseUrl(url: string | null | undefined): string | null {
+        if (!url) return null;
+        const trimmed = String(url).trim();
+        if (!trimmed) return null;
+        return trimmed.replace(/\/+$/, '');
     }
 }
 
@@ -235,4 +301,3 @@ export function getAutoUpdaterService(): AutoUpdaterService {
 }
 
 export default AutoUpdaterService;
-

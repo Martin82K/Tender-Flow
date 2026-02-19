@@ -325,6 +325,18 @@ export const updaterAdapter = {
         return { status: 'not-available' };
     },
 
+    async setAuthToken(token: string | null): Promise<void> {
+        if (isDesktop && window.electronAPI?.updater?.setAuthToken) {
+            return window.electronAPI.updater.setAuthToken(token);
+        }
+    },
+
+    async setFeedBaseUrl(url: string): Promise<void> {
+        if (isDesktop && window.electronAPI?.updater?.setFeedBaseUrl) {
+            return window.electronAPI.updater.setFeedBaseUrl(url);
+        }
+    },
+
     onStatusChange(callback: (status: UpdateStatusInfo) => void): (() => void) | undefined {
         if (isDesktop && window.electronAPI) {
             return window.electronAPI.updater.onStatusChange((status) => {

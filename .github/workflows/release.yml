@@ -1,25 +1,36 @@
-name: Build and Release
+name: Build and Upload Updates
 
 on:
   push:
     tags:
-      - 'v*' # Trigger on version tags like v1.0.0
+      - "v*"
   workflow_dispatch:
     inputs:
       version:
-        description: 'Optional: version to release (must match package.json)'
+        description: "Optional: version to release (must match package.json)"
         required: false
 
 permissions:
-  contents: write # Required for creating/updating releases
+  contents: read
 
 jobs:
   release:
-    runs-on: ubuntu-latest
-    
+    runs-on: windows-latest
+    env:
+      BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Resolve release version
         id: get_version
@@ -46,13 +57,69 @@ jobs:
           echo "VERSION=${APP_VERSION}" >> "$GITHUB_OUTPUT"
           echo "Using release version: $APP_VERSION"
 
-      - name: Create or update release (without assets)
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ steps.get_version.outputs.VERSION }}
-          generate_release_notes: true
-          append_body: true
-          body: |
-            Assets are uploaded manually for this release.
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${BLOB_READ_WRITE_TOKEN}" ]; then
+            echo "::error::Missing secret BLOB_READ_WRITE_TOKEN"
+            exit 1
+          fi
+
+      - name: Build Windows release artifacts
+        run: npm run desktop:build:win
+
+      - name: Validate required artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
+          INSTALLER_PATH="dist-electron/Tender-Flow-Setup-${VERSION}.exe"
+          BLOCKMAP_PATH="${INSTALLER_PATH}.blockmap"
+          LATEST_PATH="dist-electron/latest.yml"
+
+          [ -f "$INSTALLER_PATH" ] || { echo "::error::Missing $INSTALLER_PATH"; exit 1; }
+          [ -f "$BLOCKMAP_PATH" ] || { echo "::error::Missing $BLOCKMAP_PATH"; exit 1; }
+          [ -f "$LATEST_PATH" ] || { echo "::error::Missing $LATEST_PATH"; exit 1; }
+
+      - name: Upload artifacts to Vercel Blob
+        shell: bash
+        run: |
+          node --input-type=module <<'EOF'
+          import fs from "fs/promises";
+          import { put } from "@vercel/blob";
+
+          const version = "${{ steps.get_version.outputs.VERSION }}";
+          const installerName = `Tender-Flow-Setup-${version}.exe`;
+          const latestYmlPath = "dist-electron/latest.yml";
+          const installerPath = `dist-electron/${installerName}`;
+          const blockmapPath = `dist-electron/${installerName}.blockmap`;
+
+          const [latestYml, installer, blockmap] = await Promise.all([
+            fs.readFile(latestYmlPath),
+            fs.readFile(installerPath),
+            fs.readFile(blockmapPath),
+          ]);
+
+          const versionPrefix = `releases/win/${version}`;
+          await put(`${versionPrefix}/latest.yml`, latestYml, {
+            access: "private",
+            allowOverwrite: true,
+            token: process.env.BLOB_READ_WRITE_TOKEN,
+          });
+          await put(`${versionPrefix}/${installerName}`, installer, {
+            access: "private",
+            allowOverwrite: true,
+            token: process.env.BLOB_READ_WRITE_TOKEN,
+          });
+          await put(`${versionPrefix}/${installerName}.blockmap`, blockmap, {
+            access: "private",
+            allowOverwrite: true,
+            token: process.env.BLOB_READ_WRITE_TOKEN,
+          });
+          await put("releases/win/latest.yml", latestYml, {
+            access: "private",
+            allowOverwrite: true,
+            token: process.env.BLOB_READ_WRITE_TOKEN,
+          });
+          EOF

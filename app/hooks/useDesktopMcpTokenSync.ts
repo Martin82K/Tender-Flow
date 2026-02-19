@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { authSessionStore } from "@infra/auth/authSessionStore";
-import { isDesktop, mcpAdapter } from "@/services/platformAdapter";
+import { isDesktop, mcpAdapter, updaterAdapter } from "@/services/platformAdapter";
 
 export const useDesktopMcpTokenSync = (): void => {
   useEffect(() => {
@@ -11,7 +11,10 @@ export const useDesktopMcpTokenSync = (): void => {
 
     const pushToken = async (token: string | null) => {
       if (!isMounted) return;
-      await mcpAdapter.setAuthToken(token);
+      await Promise.all([
+        mcpAdapter.setAuthToken(token),
+        updaterAdapter.setAuthToken(token),
+      ]);
     };
 
     authSessionStore.start();

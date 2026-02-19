@@ -106,6 +106,8 @@ export interface IpcContractMap {
   };
   "bid-comparison:auto-list": { args: []; result: BidComparisonAutoStatus[] };
   "updater:getStatus": { args: []; result: UpdateStatus };
+  "updater:setAuthToken": { args: [token: string | null]; result: void };
+  "updater:setFeedBaseUrl": { args: [url: string]; result: void };
 }
 
 export type IpcChannel = keyof IpcContractMap;

@@ -1,294 +1,70 @@
-# Releasing Guide - Tender Flow Desktop
+# Releasing Guide - Tender Flow Desktop (Vercel Blob)
 
-Tento dokument popisuje, jak vytvořit nový release desktopové aplikace Tender Flow.
+Tento dokument popisuje release proces desktop aplikace s privátním update streamem přes Vercel Blob.
 
 ## Přehled
 
-Aplikace používá **GitHub Releases** pro distribuci a **electron-updater** pro automatické aktualizace. Když publikujete nový release na GitHubu, všechny nainstalované aplikace budou automaticky notifikovány o dostupné aktualizaci.
+Auto-update používá:
 
-## Před Vydáním Release
+- `electron-updater` (`generic` provider)
+- update metadata endpoint `GET /api/updates/win/latest.yml`
+- stream endpoint `GET /api/updates/win/file?path=...`
+- privátní soubory v Vercel Blob pod `releases/win/...`
+- autorizaci přes `Authorization: Bearer <Supabase access token>`
 
-### 1. Kontrola Změn
+## Proměnné prostředí
 
-- ✅ Ujistěte se, že všechny změny jsou committnuté
-- ✅ Otestujte aplikaci lokálně (`npm run desktop:dev`)
-- ✅ Zkontrolujte, že všechny testy prochází (`npm test`)
+### Vercel projekt
 
-### 2. Bump Verze
+- `SUPABASE_JWT_SECRET`
+- `BLOB_READ_WRITE_TOKEN`
 
-Použijte jeden z těchto příkazů podle typu změn:
+### Desktop build/runtime
+
+- `UPDATE_BASE_URL` (např. `https://<domena>/api/updates/win`)
+
+### GitHub Actions
+
+- `BLOB_READ_WRITE_TOKEN`
+
+## Release flow
+
+1. Bump verze:
 
 ```bash
-# Pro bug fixy (1.0.0 → 1.0.1)
 npm run version:patch
-
-# Pro nové funkce (1.0.0 → 1.1.0)
-npm run version:minor
-
-# Pro breaking changes (1.0.0 → 2.0.0)
-npm run version:major
 ```
 
-Tyto příkazy automaticky:
-
-- Aktualizují `package.json`
-- Synchronizují `config/version.ts`
-
-### 3. Commit Změn Verze
+2. Commit + tag:
 
 ```bash
-git add package.json config/version.ts
+git add package.json package-lock.json config/version.ts
 git commit -m "chore: bump version to X.Y.Z"
-git push origin main
-```
-
-### 4. Vytvoření Git Tagu
-
-```bash
-# Nahraďte X.Y.Z vaší novou verzí
 git tag -a vX.Y.Z -m "Release vX.Y.Z"
-git push origin vX.Y.Z
+git push origin main --tags
 ```
 
-## Build Aplikace
+3. Workflow `.github/workflows/release.yml`:
 
-### Windows
+- buildne Windows artefakty
+- uploadne je do Blob:
+  - `releases/win/<version>/latest.yml`
+  - `releases/win/<version>/Tender-Flow-Setup-<version>.exe`
+  - `releases/win/<version>/Tender-Flow-Setup-<version>.exe.blockmap`
+  - `releases/win/latest.yml`
 
-```bash
-npm run desktop:build:win
-```
+## Ověření
 
-Toto vytvoří:
+1. Bez tokenu:
 
-- `dist-electron/Tender Flow Setup X.Y.Z.exe` - Instalátor pro Windows
-- `dist-electron/latest.yml` - Metadata pro auto-updater
+- `GET /api/updates/win/latest.yml` => `401`
 
-### macOS (pokud budete buildovat v budoucnu)
+2. S valid tokenem:
 
-```bash
-npm run desktop:build:mac
-```
+- `GET /api/updates/win/latest.yml` => `200`
+- `GET /api/updates/win/file?path=releases/win/<version>/Tender-Flow-Setup-<version>.exe` => `200`
 
-### Výstupní Soubory
+3. Desktop:
 
-Po buildu najdete distribučnísoubory ve složce `dist-electron/`:
-
-```
-dist-electron/
-├── Tender Flow Setup 1.0.0.exe  (Hlavní instalátor)
-├── Tender Flow Setup 1.0.0.exe.blockmap
-└── latest.yml  (Auto-updater metadata - DŮLEŽITÉ!)
-```
-
-## Vytvoření GitHub Release
-
-### Ruční Způsob
-
-1. **Přejděte na GitHub Releases**
-
-   ```
-   https://github.com/Martin82K/Tender-Flow/releases/new
-   ```
-
-2. **Vyplňte Informace**
-   - **Tag**: Vyberte tag, který jste vytvořili (např. `v1.0.0`)
-   - **Release title**: `Tender Flow v1.0.0`
-   - **Description**: Popište změny v této verzi
-
-3. **Uploadujte Soubory**
-
-   **DŮLEŽITÉ**: Musíte uploadovat tyto soubory z `dist-electron/`:
-
-   **Windows:**
-   - ✅ `Tender Flow Setup X.Y.Z.exe`
-   - ✅ `Tender Flow Setup X.Y.Z.exe.blockmap`
-   - ✅ `latest.yml`
-
-   **macOS:**
-   - ✅ `Tender Flow-X.Y.Z-mac.zip` (x64)
-   - ✅ `Tender Flow-X.Y.Z-arm64-mac.zip` (ARM64)
-   - ✅ `latest-mac.yml`
-
-   ⚠️ **Bez `latest.yml` / `latest-mac.yml` auto-updater nebude fungovat!**
-
-4. **Publikujte Release**
-   - Klikněte na "Publish release"
-
-### Automatický Způsob (GitHub Actions - Budoucnost)
-
-V budoucnu můžete použít GitHub Actions workflow pro automatický build a publish:
-
-```bash
-# Jen vytvoříte a pushnete tag
-git tag -a v1.0.0 -m "Release v1.0.0"
-git push origin v1.0.0
-
-# GitHub Actions automaticky:
-# 1. Buildne aplikaci
-# 2. Vytvoří release
-# 3. Uploadne soubory
-```
-
-## Po Publikování Release
-
-### Ověření Auto-Updateru
-
-1. **Nainstalujte předchozí verzi** aplikace (pokud máte)
-2. **Spusťte aplikaci**
-3. **Vyčkejte několik sekund** - aplikace automaticky zkontroluje updates
-4. **Měla by se objevit notifikace** o nové verzi
-5. **Klikněte na "Stáhnout aktualizaci"**
-6. **Po stažení klikněte na "Nainstalovat a restartovat"**
-
-### Monitoring
-
-Aplikace kontroluje aktualizace:
-
-- ✅ Při startu (po 5 sekundách)
-- ✅ Automaticky každých 6 hodin
-
-Logy najdete v konzoli aplikace (Ctrl+Shift+I v dev módu).
-
-## Release Notes - Best Practices
-
-Při psaní release notes doporučujeme strukturu:
-
-```markdown
-## 🎉 Co je nového
-
-- Nová funkce X
-- Vylepšení Y
-
-## 🐛 Opravy
-
-- Opraven bug A
-- Opraven crash B
-
-## 🔧 Technické změny
-
-- Aktualizace závislostí
-- Performance vylepšení
-
-## 📦 Instalace
-
-Stáhněte si instalátor níže a spusťte ho. Existující instalace budou automaticky aktualizovány.
-```
-
-## Troubleshooting
-
-### Auto-updater nenajde update
-
-**Příčiny:**
-
-- ❌ Nepřítomný `latest.yml` (Windows) nebo `latest-mac.yml` (macOS) v release
-- ❌ Špatný tag (musí být ve formátu `vX.Y.Z`)
-- ❌ Release není publikovaný (je draft)
-
-**Řešení:**
-
-1. Zkontrolujte, že `latest.yml` a/nebo `latest-mac.yml` jsou nahrané
-2. Zkontrolujte tag formát
-3. Publikujte release (ne draft)
-
-### Build selhává
-
-**Příčiny:**
-
-- ❌ Node modules nejsou aktuální
-- ❌ Chybějící závislosti
-- ❌ Nekompatibilní verze Node.js
-
-**Řešení:**
-
-```bash
-# Vyčistit a reinstalovat
-rm -rf node_modules dist dist-electron
-npm install
-npm run desktop:build:win
-```
-
-### Code Signing (Volitelné)
-
-Pro produkční použití doporučujeme podepsat aplikaci:
-
-1. **Získejte Code Signing Certificate**
-   - Pro Windows: OV/EV certifikát (~$100-500/rok)
-   - Pro macOS: Apple Developer účet ($99/rok)
-
-2. **Konfigurujte electron-builder**
-   - Přidejte certifikát do build procesu
-   - Aplikace nebude zobrazovat "Unknown publisher" varování
-
-## GitHub Token Setup
-
-Pro publikování releases potřebujete GitHub Personal Access Token:
-
-1. Jděte na: https://github.com/settings/tokens
-2. "Generate new token" → "Generate new token (classic)"
-3. Scope: Zaškrtněte `repo` (celý)
-4. Zkopírujte token a uložte si ho
-
-Token použijte jako environment variable:
-
-```bash
-# Windows PowerShell
-$env:GH_TOKEN="your_token_here"
-
-# Windows CMD
-set GH_TOKEN=your_token_here
-```
-
-## Checklist pro Release
-
-```markdown
-- [ ] Všechny změny committnuté
-- [ ] Verze bumpnutá (`npm run version:patch/minor/major`)
-- [ ] Changelog/Release notes připravené
-- [ ] Git tag vytvořen a pushnutý
-- [ ] Build úspěšný (`npm run desktop:build:win` / `npm run desktop:build:mac`)
-- [ ] Windows: `Tender Flow Setup X.Y.Z.exe` + `latest.yml` uploadnuté
-- [ ] macOS: ZIP soubory + `latest-mac.yml` uploadnuté
-- [ ] Release publikován (ne draft)
-- [ ] Auto-updater otestován na starší verzi
-```
-
-## Automatizace (Volitelné)
-
-Pro zjednodušení procesu můžete vytvořit PowerShell script:
-
-```powershell
-# scripts/release.ps1
-param([string]$version)
-
-Write-Host "Creating release $version..."
-
-# Build
-npm run desktop:build:win
-
-# Create tag
-git tag -a "v$version" -m "Release v$version"
-git push origin "v$version"
-
-Write-Host "Build complete! Create GitHub release manually and upload files from dist-electron/"
-```
-
-Použití:
-
-```bash
-.\scripts\release.ps1 -version 1.0.1
-```
-
-## Podporované Platformy
-
-Aktuálně:
-
-- ✅ Windows (x64)
-
-V budoucnu:
-
-- 🔄 macOS (Intel + Apple Silicon)
-- 🔄 Linux (AppImage, deb)
-
-## Kontakt
-
-Pokud máte problémy s release procesem, kontaktujte vývojový tým.
+- přihlášený uživatel
+- Nastavení -> Aktualizace -> `Zkontrolovat` -> `Stáhnout` -> `Restartovat`

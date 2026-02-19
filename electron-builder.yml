@@ -26,10 +26,8 @@ asarUnpack:
 
 # Auto-update publish configuration
 publish:
-  provider: github
-  owner: Martin82K
-  repo: Tender-Flow
-  releaseType: release
+  provider: generic
+  url: "${env.UPDATE_BASE_URL}"
 
 mac:
   category: public.app-category.business
