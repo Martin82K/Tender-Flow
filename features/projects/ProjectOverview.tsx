@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Header } from "@/components/Header";
+import React, { useRef } from "react";
+import { Header } from "@/shared/ui/Header";
 import {
   CartesianGrid,
   Legend,
@@ -10,15 +10,10 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { useContactsQuery } from "@/hooks/queries/useContactsQuery";
-import { useOverviewTenantDataQuery } from "@/hooks/queries/useOverviewTenantDataQuery";
-import { buildOverviewAnalytics, formatMoney, type OverviewAnalytics } from "@/utils/overviewAnalytics";
+import { formatMoney } from "@/utils/overviewAnalytics";
 import { getOfferStatusMeta } from "@/utils/offerStatus";
 import { exportSupplierAnalysisToPDF } from "@/services/exportService";
-import { filterSuppliers } from "@/utils/supplierFilters";
-import { useAuth } from "@/context/AuthContext";
-import { isUserAdmin } from "@/utils/helpers";
-import type { Project, ProjectDetails, Subcontractor } from "@/types";
+import type { Project, ProjectDetails } from "@/types";
 import html2canvas from "html2canvas";
 import {
   Wallet,
@@ -29,266 +24,65 @@ import {
   Filter,
   Printer,
   FileText,
-  ChevronDown,
-  ChevronUp,
   Search,
   RotateCcw,
 } from "lucide-react";
-import { KPICard } from "@/components/overview/KPICard";
-import { StatusCard } from "@/components/overview/StatusCard";
-import { SupplierBarChart } from "@/components/overview/SupplierBarChart";
-import { SupplierTable } from "@/components/overview/SupplierTable";
-import { StatusDistributionChart } from "@/components/overview/StatusDistributionChart";
-import { BudgetDeviationGauge } from "@/components/overview/BudgetDeviationGauge";
+import { KPICard } from "@/shared/ui/overview/KPICard";
+import { StatusCard } from "@/shared/ui/overview/StatusCard";
+import { SupplierBarChart } from "@/shared/ui/overview/SupplierBarChart";
+import { SupplierTable } from "@/shared/ui/overview/SupplierTable";
+import { StatusDistributionChart } from "@/shared/ui/overview/StatusDistributionChart";
+import { BudgetDeviationGauge } from "@/shared/ui/overview/BudgetDeviationGauge";
+import { OverviewSection } from "@/features/projects/ui/OverviewSection";
+import {
+  formatOfferDate,
+} from "@/features/projects/model/projectOverviewModel";
+import { useProjectOverviewController } from "@/features/projects/model/useProjectOverviewController";
 
 interface ProjectOverviewProps {
   projects: Project[];
   projectDetails: Record<string, ProjectDetails | undefined>;
 }
 
-const SECTION_DEFAULTS = {
-  suppliers: true,
-  trends: true,
-};
-
-const resolveContact = (
-  supplier: OverviewAnalytics["suppliers"][number],
-  contacts: Subcontractor[],
-) => {
-  if (!contacts.length) return null;
-  if (supplier.subcontractorId) {
-    const byId = contacts.find((c) => c.id === supplier.subcontractorId);
-    if (byId) return byId;
-  }
-  const normalized = supplier.name.toLowerCase();
-  return contacts.find((c) => c.company?.toLowerCase() === normalized) || null;
-};
-
-const Section: React.FC<{
-  id: keyof typeof SECTION_DEFAULTS;
-  title: string;
-  subtitle?: string;
-  isOpen: boolean;
-  onToggle: (id: keyof typeof SECTION_DEFAULTS) => void;
-  children: React.ReactNode;
-  rightSlot?: React.ReactNode;
-}> = ({ id, title, subtitle, isOpen, onToggle, children, rightSlot }) => {
-  return (
-    <div className="rounded-2xl border border-slate-200/70 dark:border-slate-700/70 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-      <div className="flex items-start justify-between gap-4 px-5 py-4 bg-slate-50/80 dark:bg-slate-800/50 border-b border-slate-200/70 dark:border-slate-700/70">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{title}</h2>
-          {subtitle ? (
-            <p className="text-sm text-slate-500 dark:text-slate-400">{subtitle}</p>
-          ) : null}
-        </div>
-        <div className="flex items-center gap-2">
-          {rightSlot}
-          <button
-            type="button"
-            onClick={() => onToggle(id)}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
-          >
-            {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            {isOpen ? "Skrýt" : "Zobrazit"}
-          </button>
-        </div>
-      </div>
-      {isOpen ? <div className="p-5">{children}</div> : null}
-    </div>
-  );
-};
-
 export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
   projects,
   projectDetails,
 }) => {
-  const { user } = useAuth();
-  const { data: contacts = [] } = useContactsQuery();
-  const { data: tenantData, isLoading: tenantLoading, error: tenantError } = useOverviewTenantDataQuery();
-  const [selectedProjectId, setSelectedProjectId] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<"all" | "tender" | "realization" | "archived">("all");
-  const [scope, setScope] = useState<"tenant" | "project">("tenant");
-  const [sections, setSections] = useState(SECTION_DEFAULTS);
-  const [showAllSuppliers, setShowAllSuppliers] = useState(false);
-  const [supplierQuery, setSupplierQuery] = useState("");
-  const [supplierSpecialization, setSupplierSpecialization] = useState("");
-
-  const tenantProjects = tenantData?.projects ?? [];
-  const tenantProjectDetails = tenantData?.projectDetails ?? {};
-  const availableProjects = tenantProjects.length > 0 ? tenantProjects : projects;
-  const availableProjectDetails =
-    tenantProjects.length > 0 ? tenantProjectDetails : projectDetails;
-  const isAdmin = isUserAdmin(user?.email);
-  const showDebugBanner = useMemo(() => {
-    if (!isAdmin) return false;
-    if (typeof window === "undefined") return false;
-    const params = new URLSearchParams(window.location.search);
-    return params.get("debugOverview") === "1";
-  }, [isAdmin]);
-
-  useEffect(() => {
-    if (scope !== "project") return;
-    if (selectedProjectId === "all") return;
-    if (availableProjects.length === 0) return;
-    const exists = availableProjects.some((project) => project.id === selectedProjectId);
-    if (!exists) {
-      setSelectedProjectId("all");
-    }
-  }, [availableProjects, scope, selectedProjectId]);
-
-  const filteredProjectDetails = useMemo(() => {
-    if (scope === "tenant") return availableProjectDetails;
-    if (selectedProjectId === "all") return availableProjectDetails;
-    return { [selectedProjectId]: availableProjectDetails[selectedProjectId] };
-  }, [availableProjectDetails, selectedProjectId, scope]);
-
-  const analytics = useMemo(
-    () => buildOverviewAnalytics(availableProjects, filteredProjectDetails, statusFilter),
-    [availableProjects, filteredProjectDetails, statusFilter],
-  );
-
-  const supplierRows = useMemo(() => {
-    const suppliers = [...analytics.suppliers].sort((a, b) => {
-      if (b.sodCount !== a.sodCount) return b.sodCount - a.sodCount;
-      return b.offerCount - a.offerCount;
-    });
-
-    return suppliers.map((supplier) => {
-      const contact = resolveContact(supplier, contacts);
-      return {
-        ...supplier,
-        rating: contact?.vendorRatingAverage,
-        ratingCount: contact?.vendorRatingCount || 0,
-        contact,
-      };
-    });
-  }, [analytics.suppliers, contacts]);
-
-  const specializationOptions = useMemo(() => {
-    const set = new Set<string>();
-    contacts.forEach((contact) => {
-      (contact.specialization || []).forEach((item) => {
-        if (item) set.add(item);
-      });
-    });
-    return Array.from(set).sort((a, b) => a.localeCompare(b, "cs-CZ"));
-  }, [contacts]);
-
-  const filteredSuppliers = useMemo(
-    () => filterSuppliers(supplierRows, { query: supplierQuery, specialization: supplierSpecialization }),
-    [supplierRows, supplierQuery, supplierSpecialization],
-  );
-
-  const selectedSupplier = useMemo(() => {
-    const normalizedQuery = supplierQuery.trim().toLowerCase();
-    if (!normalizedQuery) return null;
-    const exactMatches = filteredSuppliers.filter(
-      (supplier) => supplier.name.toLowerCase() === normalizedQuery,
-    );
-    if (exactMatches.length !== 1) return null;
-    return exactMatches[0];
-  }, [filteredSuppliers, supplierQuery]);
-
-  const selectedSupplierOffers = useMemo(() => {
-    if (!selectedSupplier) return [];
-    return [...selectedSupplier.offers].sort((a, b) => {
-      if (!a.date && !b.date) return 0;
-      if (!a.date) return 1;
-      if (!b.date) return -1;
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
-    });
-  }, [selectedSupplier]);
-
-  const selectedSupplierSummary = useMemo(() => {
-    if (!selectedSupplier) {
-      return {
-        totalAwardedValue: 0,
-        totalSodRealizationValue: 0,
-        offerCount: 0,
-        shortlistCount: 0,
-        sodCount: 0,
-        rejectedCount: 0,
-        successRate: 0,
-        avgDiffSodPercent: null as number | null,
-        avgDiffPlanPercent: null as number | null,
-      };
-    }
-
-    let totalAwardedValue = 0;
-    let totalSodRealizationValue = 0;
-    let offerCount = 0;
-    let shortlistCount = 0;
-    let sodCount = 0;
-    let rejectedCount = 0;
-    const sodDiffs: number[] = [];
-    const planDiffs: number[] = [];
-
-    selectedSupplier.offers.forEach((offer) => {
-      totalAwardedValue += offer.priceValue;
-      offerCount += 1;
-
-      if (offer.status === "shortlist") shortlistCount += 1;
-      if (offer.status === "sod") {
-        sodCount += 1;
-        if (offer.projectStatus === "realization") {
-          totalSodRealizationValue += offer.priceValue;
-        }
-      }
-      if (offer.status === "rejected") rejectedCount += 1;
-
-      if (offer.sodBudget && offer.sodBudget > 0) {
-        sodDiffs.push(((offer.priceValue - offer.sodBudget) / offer.sodBudget) * 100);
-      }
-      if (offer.planBudget && offer.planBudget > 0) {
-        planDiffs.push(((offer.priceValue - offer.planBudget) / offer.planBudget) * 100);
-      }
-    });
-
-    const avgDiffSodPercent =
-      sodDiffs.length > 0 ? sodDiffs.reduce((sum, value) => sum + value, 0) / sodDiffs.length : null;
-    const avgDiffPlanPercent =
-      planDiffs.length > 0 ? planDiffs.reduce((sum, value) => sum + value, 0) / planDiffs.length : null;
-
-    return {
-      totalAwardedValue,
-      totalSodRealizationValue,
-      offerCount,
-      shortlistCount,
-      sodCount,
-      rejectedCount,
-      successRate: offerCount > 0 ? (sodCount / offerCount) * 100 : 0,
-      avgDiffSodPercent,
-      avgDiffPlanPercent,
-    };
-  }, [selectedSupplier]);
-
-  const selectedSupplierMonthlySeries = useMemo(() => {
-    if (!selectedSupplier) return { data: [], years: [] as number[] };
-    const yearMap = new Map<number, number[]>();
-
-    selectedSupplier.offers.forEach((offer) => {
-      if (!offer.date) return;
-      const parsed = new Date(offer.date);
-      if (Number.isNaN(parsed.getTime())) return;
-      const year = parsed.getFullYear();
-      const monthIndex = parsed.getMonth();
-      const values = yearMap.get(year) || Array.from({ length: 12 }, () => 0);
-      values[monthIndex] += offer.priceValue;
-      yearMap.set(year, values);
-    });
-
-    const years = Array.from(yearMap.keys()).sort((a, b) => a - b);
-    const data = Array.from({ length: 12 }, (_, index) => {
-      const row: Record<string, number | string> = { month: (index + 1).toString() };
-      years.forEach((year) => {
-        row[year.toString()] = yearMap.get(year)?.[index] || 0;
-      });
-      return row;
-    });
-
-    return { data, years };
-  }, [selectedSupplier]);
+  const {
+    tenantLoading,
+    tenantError,
+    tenantProjects,
+    tenantProjectDetails,
+    availableProjects,
+    showDebugBanner,
+    selectedProjectId,
+    setSelectedProjectId,
+    statusFilter,
+    setStatusFilter,
+    scope,
+    setScope,
+    sections,
+    toggleSection,
+    showAllSuppliers,
+    setShowAllSuppliers,
+    supplierQuery,
+    setSupplierQuery,
+    supplierSpecialization,
+    setSupplierSpecialization,
+    specializationOptions,
+    supplierRows,
+    filteredSuppliers,
+    selectedSupplier,
+    selectedSupplierOffers,
+    selectedSupplierSummary,
+    selectedSupplierMonthlySeries,
+    topSuppliers,
+    trendYears,
+    analytics,
+    statusCounts,
+    avgBudgetDeviation,
+    resetSupplierFilters,
+  } = useProjectOverviewController({ projects, projectDetails });
 
   const formatMillions = (value: number) =>
     `${(value / 1_000_000).toFixed(1).replace(".", ",")} mil.`;
@@ -346,77 +140,6 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
       Math.abs(value),
     )}.`;
   };
-
-  const formatOfferDate = (value?: string) => {
-    if (!value) return "";
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) return "";
-    return parsed.toLocaleDateString("cs-CZ");
-  };
-
-  const topSuppliers = showAllSuppliers ? filteredSuppliers : filteredSuppliers.slice(0, 6);
-  const trendYears = analytics.yearTrends.map((trend) => trend.year);
-  const selectedProjectLabel =
-    selectedProjectId === "all"
-      ? "Všechny stavby"
-      : availableProjects.find((project) => project.id === selectedProjectId)?.name || "Vybraný projekt";
-  const selectedStatusLabel =
-    statusFilter === "all"
-      ? "Všechny stavy"
-      : statusFilter === "tender"
-        ? "Soutěž"
-        : statusFilter === "realization"
-          ? "Realizace"
-          : "Archiv";
-  const toggleSection = (id: keyof typeof SECTION_DEFAULTS) => {
-    setSections((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const successRate = analytics.totals.offerCount > 0
-    ? (analytics.totals.sodCount / analytics.totals.offerCount) * 100
-    : 0;
-
-  // Calculate status distribution from all offers
-  const statusCounts = useMemo(() => {
-    const counts = {
-      sod: 0,
-      shortlist: 0,
-      offer: 0,
-      rejected: 0,
-      contacted: 0,
-      sent: 0,
-    };
-    
-    analytics.suppliers.forEach(supplier => {
-      supplier.offers.forEach(offer => {
-        if (offer.status === 'sod') counts.sod++;
-        else if (offer.status === 'shortlist') counts.shortlist++;
-        else if (offer.status === 'offer') counts.offer++;
-        else if (offer.status === 'rejected') counts.rejected++;
-        else if (offer.status === 'contacted') counts.contacted++;
-        else if (offer.status === 'sent') counts.sent++;
-      });
-    });
-    
-    return counts;
-  }, [analytics.suppliers]);
-
-  // Calculate average budget deviation
-  const avgBudgetDeviation = useMemo(() => {
-    const deviations: number[] = [];
-    
-    analytics.suppliers.forEach(supplier => {
-      supplier.offers.forEach(offer => {
-        if (offer.sodBudget && offer.sodBudget > 0 && offer.priceValue > 0) {
-          const deviation = ((offer.priceValue - offer.sodBudget) / offer.sodBudget) * 100;
-          deviations.push(deviation);
-        }
-      });
-    });
-    
-    if (deviations.length === 0) return null;
-    return deviations.reduce((sum, val) => sum + val, 0) / deviations.length;
-  }, [analytics.suppliers]);
 
   return (
     <div className="flex flex-col h-full overflow-y-auto bg-slate-50 dark:bg-slate-950">
@@ -550,7 +273,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
         </div>
 
         {/* Suppliers Section */}
-        <Section
+        <OverviewSection
           id="suppliers"
           title="Analýza dodavatelů"
           subtitle="Hodnocení, četnost SOD, nabídky a úspěšnost"
@@ -621,10 +344,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
             <div className="flex items-end">
               <button
                 type="button"
-                onClick={() => {
-                  setSupplierQuery("");
-                  setSupplierSpecialization("");
-                }}
+                onClick={resetSupplierFilters}
                 className="h-10 px-4 rounded-lg text-sm font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition flex items-center gap-2"
               >
                 <RotateCcw className="w-4 h-4" />
@@ -899,10 +619,10 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
               </div>
             )}
           </div>
-        </Section>
+        </OverviewSection>
 
         {/* Trends Section */}
-        <Section
+        <OverviewSection
           id="trends"
           title="Trendy v čase"
           subtitle="Objemy zakázek a aktivita v jednotlivých letech"
@@ -937,7 +657,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
               Pro trendové grafy nejsou zatím dostupná data s datem ocenění.
             </div>
           )}
-        </Section>
+        </OverviewSection>
 
 
       </div>

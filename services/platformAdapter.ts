@@ -3,7 +3,20 @@
  * Use this to conditionally access platform-specific features
  */
 
-import type { ElectronAPI, FolderInfo, FileInfo, FolderSnapshot } from '../shared/types/desktop';
+import type {
+    ElectronAPI,
+    FolderInfo,
+    FileInfo,
+    FolderSnapshot,
+    BidComparisonDetectionResult,
+    BidComparisonStartInput,
+    BidComparisonStartResult,
+    BidComparisonJobStatus,
+    BidComparisonAutoConfig,
+    BidComparisonAutoScope,
+    BidComparisonAutoStartResult,
+    BidComparisonAutoStatus,
+} from '../shared/types/desktop';
 
 // Extend Window interface for TypeScript
 declare global {
@@ -252,6 +265,29 @@ export interface UpdateStatusInfo {
     error?: string;
 }
 
+export interface McpStatusInfo {
+    port: number | null;
+    sseUrl: string | null;
+    currentProjectId: string | null;
+    hasAuthToken: boolean;
+    isConfigured: boolean;
+}
+
+export interface OAuthGoogleLoginArgs {
+    clientId: string;
+    clientSecret?: string;
+    scopes: string[];
+}
+
+export interface OAuthGoogleLoginResult {
+    accessToken: string;
+    refreshToken?: string | null;
+    expiresIn: number;
+    scope?: string | null;
+    tokenType: string;
+    idToken?: string | null;
+}
+
 /**
  * Updater Adapter
  * Auto-update functionality on desktop
@@ -301,6 +337,110 @@ export const updaterAdapter = {
             });
         }
         return undefined;
+    },
+};
+
+/**
+ * MCP Adapter
+ * MCP runtime status and auth context synchronization
+ */
+export const mcpAdapter = {
+    async setCurrentProject(projectId: string | null): Promise<void> {
+        if (isDesktop && window.electronAPI?.mcp?.setCurrentProject) {
+            return window.electronAPI.mcp.setCurrentProject(projectId);
+        }
+    },
+
+    async setAuthToken(token: string | null): Promise<void> {
+        if (isDesktop && window.electronAPI?.mcp?.setAuthToken) {
+            return window.electronAPI.mcp.setAuthToken(token);
+        }
+    },
+
+    async getStatus(): Promise<McpStatusInfo | null> {
+        if (isDesktop && window.electronAPI?.mcp?.getStatus) {
+            return window.electronAPI.mcp.getStatus();
+        }
+        return null;
+    },
+};
+
+/**
+ * OAuth Adapter
+ * Desktop OAuth flow exposed via preload bridge
+ */
+export const oauthAdapter = {
+    isAvailable(): boolean {
+        return !!(isDesktop && window.electronAPI?.oauth?.googleLogin);
+    },
+
+    async googleLogin(args: OAuthGoogleLoginArgs): Promise<OAuthGoogleLoginResult> {
+        if (isDesktop && window.electronAPI?.oauth?.googleLogin) {
+            return window.electronAPI.oauth.googleLogin(args);
+        }
+        throw new Error('Desktop OAuth není dostupný.');
+    },
+};
+
+/**
+ * Bid Comparison Adapter
+ * Desktop-only async bid comparison jobs
+ */
+export const bidComparisonAdapter = {
+    isAvailable(): boolean {
+        return !!(isDesktop && window.electronAPI?.bidComparison);
+    },
+
+    async detectInputs(args: {
+        tenderFolderPath: string;
+        suppliers: Array<{ name: string }>;
+    }): Promise<BidComparisonDetectionResult> {
+        if (isDesktop && window.electronAPI?.bidComparison) {
+            return window.electronAPI.bidComparison.detectInputs(args);
+        }
+        throw new Error('Porovnání nabídek je dostupné pouze v desktop aplikaci.');
+    },
+
+    async start(input: BidComparisonStartInput): Promise<BidComparisonStartResult> {
+        if (isDesktop && window.electronAPI?.bidComparison) {
+            return window.electronAPI.bidComparison.start(input);
+        }
+        throw new Error('Porovnání nabídek je dostupné pouze v desktop aplikaci.');
+    },
+
+    async get(jobId: string): Promise<BidComparisonJobStatus | null> {
+        if (isDesktop && window.electronAPI?.bidComparison) {
+            return window.electronAPI.bidComparison.get(jobId);
+        }
+        return null;
+    },
+
+    async cancel(jobId: string): Promise<{ success: boolean }> {
+        if (isDesktop && window.electronAPI?.bidComparison) {
+            return window.electronAPI.bidComparison.cancel(jobId);
+        }
+        return { success: false };
+    },
+
+    async autoStart(config: BidComparisonAutoConfig): Promise<BidComparisonAutoStartResult> {
+        if (isDesktop && window.electronAPI?.bidComparison) {
+            return window.electronAPI.bidComparison.autoStart(config);
+        }
+        throw new Error('Porovnání nabídek je dostupné pouze v desktop aplikaci.');
+    },
+
+    async autoStop(scope: BidComparisonAutoScope): Promise<{ success: boolean }> {
+        if (isDesktop && window.electronAPI?.bidComparison) {
+            return window.electronAPI.bidComparison.autoStop(scope);
+        }
+        return { success: false };
+    },
+
+    async autoStatus(scope: BidComparisonAutoScope): Promise<BidComparisonAutoStatus | null> {
+        if (isDesktop && window.electronAPI?.bidComparison) {
+            return window.electronAPI.bidComparison.autoStatus(scope);
+        }
+        return null;
     },
 };
 
@@ -482,6 +622,9 @@ export const platformAdapter = {
     app: appAdapter,
     dialog: dialogAdapter,
     updater: updaterAdapter,
+    mcp: mcpAdapter,
+    oauth: oauthAdapter,
+    bidComparison: bidComparisonAdapter,
     biometric: biometricAdapter,
     session: sessionAdapter,
     shell: shellAdapter,

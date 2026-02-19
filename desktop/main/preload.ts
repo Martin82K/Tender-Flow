@@ -15,6 +15,7 @@ import type {
     BidComparisonAutoScope,
     BidComparisonAutoStatus,
 } from './types';
+import type { IpcChannel, IpcContractMap } from './ipc/contracts';
 
 console.log('[Preload] Script starting...');
 try {
@@ -27,6 +28,13 @@ try {
  * Preload script - exposes safe APIs to the renderer process
  * All IPC communication goes through this bridge
  */
+const invokeTyped = <C extends IpcChannel>(
+    channel: C,
+    ...args: IpcContractMap[C]['args']
+): Promise<IpcContractMap[C]['result']> => {
+    return ipcRenderer.invoke(channel, ...(args as unknown as any[]));
+};
+
 const electronAPI: ElectronAPI = {
     // Platform detection
     platform: {
@@ -39,46 +47,46 @@ const electronAPI: ElectronAPI = {
     // File system operations
     fs: {
         selectFolder: (): Promise<FolderInfo | null> =>
-            ipcRenderer.invoke('fs:selectFolder'),
+            invokeTyped('fs:selectFolder'),
 
         listFiles: (folderPath: string): Promise<FileInfo[]> =>
-            ipcRenderer.invoke('fs:listFiles', folderPath),
+            invokeTyped('fs:listFiles', folderPath),
 
         readFile: (filePath: string): Promise<Buffer> =>
-            ipcRenderer.invoke('fs:readFile', filePath),
+            invokeTyped('fs:readFile', filePath),
 
         writeFile: (filePath: string, data: Buffer | string): Promise<void> =>
-            ipcRenderer.invoke('fs:writeFile', filePath, data),
+            invokeTyped('fs:writeFile', filePath, data),
 
         openInExplorer: (path: string): Promise<void> =>
-            ipcRenderer.invoke('fs:openInExplorer', path),
+            invokeTyped('fs:openInExplorer', path),
 
         openFile: (filePath: string): Promise<void> =>
-            ipcRenderer.invoke('fs:openFile', filePath),
+            invokeTyped('fs:openFile', filePath),
 
         createFolder: (folderPath: string): Promise<{ success: boolean; error?: string }> =>
-            ipcRenderer.invoke('fs:createFolder', folderPath),
+            invokeTyped('fs:createFolder', folderPath),
 
         deleteFolder: (folderPath: string): Promise<{ success: boolean; error?: string }> =>
-            ipcRenderer.invoke('fs:deleteFolder', folderPath),
+            invokeTyped('fs:deleteFolder', folderPath),
 
         renameFolder: (oldPath: string, newPath: string): Promise<{ success: boolean; error?: string }> =>
-            ipcRenderer.invoke('fs:renameFolder', oldPath, newPath),
+            invokeTyped('fs:renameFolder', oldPath, newPath),
 
         folderExists: (folderPath: string): Promise<boolean> =>
-            ipcRenderer.invoke('fs:folderExists', folderPath),
+            invokeTyped('fs:folderExists', folderPath),
     },
 
     // Folder watcher
     watcher: {
         start: (folderPath: string): Promise<void> =>
-            ipcRenderer.invoke('watcher:start', folderPath),
+            invokeTyped('watcher:start', folderPath),
 
         stop: (): Promise<void> =>
-            ipcRenderer.invoke('watcher:stop'),
+            invokeTyped('watcher:stop'),
 
         getSnapshot: (): Promise<FolderSnapshot | null> =>
-            ipcRenderer.invoke('watcher:getSnapshot'),
+            invokeTyped('watcher:getSnapshot'),
 
         onFileChange: (callback: (event: string, path: string) => void) => {
             const handler = (_: unknown, event: string, path: string) => callback(event, path);
@@ -141,7 +149,7 @@ const electronAPI: ElectronAPI = {
             ipcRenderer.invoke('updater:quitAndInstall'),
 
         getStatus: (): Promise<UpdateStatus> =>
-            ipcRenderer.invoke('updater:getStatus'),
+            invokeTyped('updater:getStatus'),
 
         onStatusChange: (callback: (status: UpdateStatus) => void) => {
             const handler = (_: unknown, status: UpdateStatus) => callback(status);
@@ -162,25 +170,25 @@ const electronAPI: ElectronAPI = {
     // Session credential management
     session: {
         saveCredentials: (credentials: { refreshToken: string; email: string }): Promise<void> =>
-            ipcRenderer.invoke('session:saveCredentials', credentials),
+            invokeTyped('session:saveCredentials', credentials),
 
         getCredentials: (): Promise<{ refreshToken: string; email: string } | null> =>
-            ipcRenderer.invoke('session:getCredentials'),
+            invokeTyped('session:getCredentials'),
 
         clearCredentials: (): Promise<void> =>
-            ipcRenderer.invoke('session:clearCredentials'),
+            invokeTyped('session:clearCredentials'),
 
         setBiometricEnabled: (enabled: boolean): Promise<void> =>
-            ipcRenderer.invoke('session:setBiometricEnabled', enabled),
+            invokeTyped('session:setBiometricEnabled', enabled),
 
         isBiometricEnabled: (): Promise<boolean> =>
-            ipcRenderer.invoke('session:isBiometricEnabled'),
+            invokeTyped('session:isBiometricEnabled'),
     },
 
     // Network proxy for CORS bypass
     net: {
         request: (url: string, options?: RequestInit): Promise<any> =>
-            ipcRenderer.invoke('net:request', url, options),
+            invokeTyped('net:request', url, options),
     },
 
     oauth: {
@@ -190,15 +198,15 @@ const electronAPI: ElectronAPI = {
                 hasSecret: !!args.clientSecret,
                 scopes: args.scopes
             });
-            return ipcRenderer.invoke('oauth:googleLogin', args);
+            return invokeTyped('oauth:googleLogin', args);
         },
     },
 
     mcp: {
         setCurrentProject: (projectId: string | null): Promise<void> =>
-            ipcRenderer.invoke('mcp:setCurrentProject', projectId),
+            invokeTyped('mcp:setCurrentProject', projectId),
         setAuthToken: (token: string | null): Promise<void> =>
-            ipcRenderer.invoke('mcp:setAuthToken', token),
+            invokeTyped('mcp:setAuthToken', token),
         getStatus: (): Promise<{
             port: number | null;
             sseUrl: string | null;
@@ -206,7 +214,7 @@ const electronAPI: ElectronAPI = {
             hasAuthToken: boolean;
             isConfigured: boolean;
         }> =>
-            ipcRenderer.invoke('mcp:getStatus'),
+            invokeTyped('mcp:getStatus'),
     },
 
     shell: {
@@ -220,31 +228,31 @@ const electronAPI: ElectronAPI = {
 
     bidComparison: {
         detectInputs: (args: { tenderFolderPath: string; suppliers: BidComparisonSupplierOption[] }): Promise<BidComparisonDetectionResult> =>
-            ipcRenderer.invoke('bid-comparison:detect-inputs', args),
+            invokeTyped('bid-comparison:detect-inputs', args),
 
         start: (input: BidComparisonStartInput): Promise<BidComparisonStartResult> =>
-            ipcRenderer.invoke('bid-comparison:start', input),
+            invokeTyped('bid-comparison:start', input),
 
         get: (jobId: string): Promise<BidComparisonJobStatus | null> =>
-            ipcRenderer.invoke('bid-comparison:get', jobId),
+            invokeTyped('bid-comparison:get', jobId),
 
         list: (filter?: { projectId?: string; categoryId?: string }): Promise<BidComparisonJobStatus[]> =>
-            ipcRenderer.invoke('bid-comparison:list', filter),
+            invokeTyped('bid-comparison:list', filter),
 
         cancel: (jobId: string): Promise<{ success: boolean }> =>
-            ipcRenderer.invoke('bid-comparison:cancel', jobId),
+            invokeTyped('bid-comparison:cancel', jobId),
 
         autoStart: (config: BidComparisonAutoConfig): Promise<BidComparisonAutoStartResult> =>
-            ipcRenderer.invoke('bid-comparison:auto-start', config),
+            invokeTyped('bid-comparison:auto-start', config),
 
         autoStop: (scope: BidComparisonAutoScope): Promise<{ success: boolean }> =>
-            ipcRenderer.invoke('bid-comparison:auto-stop', scope),
+            invokeTyped('bid-comparison:auto-stop', scope),
 
         autoStatus: (scope: BidComparisonAutoScope): Promise<BidComparisonAutoStatus | null> =>
-            ipcRenderer.invoke('bid-comparison:auto-status', scope),
+            invokeTyped('bid-comparison:auto-status', scope),
 
         autoList: (): Promise<BidComparisonAutoStatus[]> =>
-            ipcRenderer.invoke('bid-comparison:auto-list'),
+            invokeTyped('bid-comparison:auto-list'),
     },
 };
 

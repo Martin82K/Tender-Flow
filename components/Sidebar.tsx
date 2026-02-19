@@ -7,6 +7,7 @@ import { SIDEBAR_NAVIGATION, BOTTOM_NAVIGATION } from "../config/navigation";
 import { FEATURES, type FeatureKey } from "../config/features";
 import { useFeatures } from "../context/FeatureContext";
 import { useLocation } from "@/shared/routing/router";
+import { userProfileService } from "../services/userProfileService";
 
 import { APP_VERSION } from "../config/version";
 
@@ -239,17 +240,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }
 
     try {
-      const { supabase } = await import("../services/supabase");
-      const { data, error } = await supabase
-        .from("user_profiles")
-        .select("display_name")
-        .eq("user_id", user.id)
-        .single();
-
-      if (data?.display_name) {
-        setDisplayName(data.display_name);
+      const nextDisplayName = await userProfileService.getDisplayName(user.id);
+      if (nextDisplayName) {
+        setDisplayName(nextDisplayName);
       }
-    } catch (error) {
+    } catch {
       // Silently fail - display name is optional
     }
   };

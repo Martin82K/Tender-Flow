@@ -12,9 +12,10 @@ import {
 import { useUI } from "../../context/UIContext";
 import { useAuth } from "../../context/AuthContext";
 import { BiometricSettings } from "./BiometricSettings";
-import { useElectronUpdater } from "@/components/UpdateNotification";
+import { useElectronUpdater } from "@/hooks/useElectronUpdater";
 import { organizationService } from "../../services/organizationService";
 import { formatOrgRequestStatus } from "../../utils/organizationUtils";
+import { userProfileService } from "../../services/userProfileService";
 
 interface ProfileSettingsProps {
   theme: "light" | "dark" | "system";
@@ -108,22 +109,8 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
 
   const loadDisplayName = async () => {
     try {
-      const { supabase } = await import("../../services/supabase");
-      const { data, error } = await supabase
-        .from("user_profiles")
-        .select("display_name")
-        .eq("user_id", user.id)
-        .single();
-
-      if (error && error.code !== "PGRST116") {
-        // PGRST116 = not found
-        console.error("Error loading display name:", error);
-        return;
-      }
-
-      if (data) {
-        setDisplayName(data.display_name || "");
-      }
+      const value = await userProfileService.getDisplayName(user.id);
+      setDisplayName(value || "");
     } catch (error) {
       console.error("Error loading display name:", error);
     }
@@ -141,23 +128,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
 
     setIsSavingDisplayName(true);
     try {
-      const { supabase } = await import("../../services/supabase");
-
-      const { error } = await supabase.from("user_profiles").upsert(
-        {
-          user_id: user.id,
-          display_name: displayName || null,
-          updated_at: new Date().toISOString(),
-        },
-        {
-          onConflict: "user_id",
-        }
-      );
-
-      if (error) {
-        console.error("Upsert error:", error);
-        throw error;
-      }
+      await userProfileService.saveDisplayName(user.id, displayName || null);
 
       showAlert({
         title: "Hotovo",

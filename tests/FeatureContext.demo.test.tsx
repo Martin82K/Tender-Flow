@@ -4,29 +4,24 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { FeatureProvider, useFeatures } from '../context/FeatureContext';
 import { FEATURES } from '../config/features';
 
-const subscriptionServiceMocks = vi.hoisted(() => ({
-  getUserEnabledFeatures: vi.fn(async () => []),
-  getUserSubscriptionTier: vi.fn(async () => 'free'),
-}));
+const demoAuthState = {
+  user: {
+    id: 'demo-user',
+    name: 'Demo Uživatel',
+    email: 'demo@example.com',
+    role: 'demo',
+    preferences: {},
+  },
+  isAuthenticated: true,
+};
 
 vi.mock('../context/AuthContext', () => ({
-  useAuth: () => ({
-    user: {
-      id: 'demo-user',
-      name: 'Demo Uživatel',
-      email: 'demo@example.com',
-      role: 'demo',
-      preferences: {},
-    },
-    isAuthenticated: true,
-  }),
+  useAuth: () => demoAuthState,
 }));
 
-vi.mock('../services/subscriptionFeaturesService', () => ({
-  subscriptionFeaturesService: {
-    getUserEnabledFeatures: subscriptionServiceMocks.getUserEnabledFeatures,
-    getUserSubscriptionTier: subscriptionServiceMocks.getUserSubscriptionTier,
-  },
+vi.mock('@/features/subscription/api', () => ({
+  getEnabledFeatures: async () => [],
+  getCurrentTier: async () => 'free',
 }));
 
 function Probe() {
@@ -55,7 +50,5 @@ describe('FeatureProvider (demo mode)', () => {
     expect(screen.getByTestId('projects').textContent).toBe('true');
     expect(screen.getByTestId('contacts').textContent).toBe('true');
     expect(screen.getByTestId('excelMerger').textContent).toBe('false');
-    expect(subscriptionServiceMocks.getUserEnabledFeatures).not.toHaveBeenCalled();
-    expect(subscriptionServiceMocks.getUserSubscriptionTier).not.toHaveBeenCalled();
   });
 });

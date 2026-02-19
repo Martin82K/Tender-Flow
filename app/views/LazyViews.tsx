@@ -1,41 +1,23 @@
 import React from "react";
 import { DashboardSkeleton, ProjectLayoutSkeleton } from "@/shared/ui/SkeletonLoader";
+import { getFeatureModuleManifest } from "@app/featureRegistry";
 
-export const ProjectManager = React.lazy(() =>
-  import("@/features/projects/ProjectManager").then((m) => ({
-    default: m.ProjectManager,
-  })),
-);
+const lazyFromManifest = (view: Parameters<typeof getFeatureModuleManifest>[0]) =>
+  React.lazy(() => getFeatureModuleManifest(view).mount());
 
-export const Dashboard = React.lazy(() =>
-  import("@/features/projects/Dashboard").then((m) => ({ default: m.Dashboard })),
-);
+export const ProjectManager = lazyFromManifest("project-management");
 
-export const ProjectLayout = React.lazy(() =>
-  import("@/features/projects/ProjectLayout").then((m) => ({
-    default: m.ProjectLayout,
-  })),
-);
+export const Dashboard = lazyFromManifest("dashboard");
 
-export const Contacts = React.lazy(() =>
-  import("@/features/contacts/Contacts").then((m) => ({ default: m.Contacts })),
-);
+export const ProjectLayout = lazyFromManifest("project");
 
-export const Settings = React.lazy(() =>
-  import("@/components/Settings").then((m) => ({ default: m.Settings })),
-);
+export const Contacts = lazyFromManifest("contacts");
 
-export const ProjectOverview = React.lazy(() =>
-  import("@/features/projects/ProjectOverview").then((m) => ({
-    default: m.ProjectOverview,
-  })),
-);
+export const Settings = lazyFromManifest("settings");
 
-export const UrlShortener = React.lazy(() =>
-  import("@/features/tools/UrlShortener").then((m) => ({
-    default: m.UrlShortener,
-  })),
-);
+export const ProjectOverview = lazyFromManifest("project-overview");
+
+export const UrlShortener = lazyFromManifest("url-shortener");
 
 export const AppLazyFallback: React.FC = () => {
   return (

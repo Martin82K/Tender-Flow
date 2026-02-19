@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { unlockExcelZip } from "@/utils/excelUnlockZip";
 import { IndexMatcherSettings } from "./IndexMatcherSettings";
-import { AlertModal } from "../../components/AlertModal";
+import { AlertModal } from "@/shared/ui/AlertModal";
 
 interface ToolsSettingsProps {
   // No props needed currently as this is self-contained or uses local storage

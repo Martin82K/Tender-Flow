@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { TenderPlanItem, DemandCategory } from '../types';
-import { supabase } from '../services/supabase';
+import React from 'react';
+import type { DemandCategory } from '../types';
 import { ConfirmationModal } from './ConfirmationModal';
 import { AlertModal } from './AlertModal';
-import { Modal } from '@/shared/ui/Modal';
-import { Button } from '@/shared/ui/Button';
-import { exportTenderPlanToXLSX, downloadTenderImportTemplate, importTenderPlanFromXLSX } from '../services/exportService';
+import {
+    buildConflictPromptMessage,
+    getTenderPlanStatusBadgeClasses,
+} from '@/features/projects/model/tenderPlanModel';
+import { useTenderPlanController } from '@/features/projects/model/useTenderPlanController';
+import { exportTenderPlanToXLSX, downloadTenderImportTemplate } from '../services/exportService';
 
 interface TenderPlanProps {
     projectId: string;
@@ -14,510 +16,44 @@ interface TenderPlanProps {
 }
 
 export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, onCreateCategory }) => {
-    const [items, setItems] = useState<TenderPlanItem[]>([]);
-    const [isAdding, setIsAdding] = useState(false);
-    const [editingId, setEditingId] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const fileInputRef = React.useRef<HTMLInputElement>(null);
-
-    // Form state
-    const [formName, setFormName] = useState('');
-    const [formDateFrom, setFormDateFrom] = useState('');
-    const [formDateTo, setFormDateTo] = useState('');
-
-    // Confirmation Modal State
-    const [confirmModal, setConfirmModal] = useState<{
-        isOpen: boolean;
-        title: string;
-        message: string;
-        onConfirm: () => void;
-    }>({ isOpen: false, title: '', message: '', onConfirm: () => { } });
-
-    const closeConfirmModal = () => {
-        setConfirmModal(prev => ({ ...prev, isOpen: false }));
-    };
-
-    // Alert Modal State
-    const [alertModal, setAlertModal] = useState<{
-        isOpen: boolean;
-        title: string;
-        message: string;
-        variant: 'success' | 'error' | 'info';
-    }>({ isOpen: false, title: '', message: '', variant: 'info' });
-
-    const closeAlertModal = () => setAlertModal(prev => ({ ...prev, isOpen: false }));
-
-    // Import Conflict State
-    interface ImportConflict {
-        existingItem: TenderPlanItem;
-        importItem: { name: string; dateFrom: string; dateTo: string };
-        importKey: string;
-    }
-    const [importConflicts, setImportConflicts] = useState<ImportConflict[]>([]);
-    const [importStats, setImportStats] = useState<{ imported: number; updated: number; skipped: number }>({ imported: 0, updated: 0, skipped: 0 });
-
-    // View State
-    const [viewMode, setViewMode] = useState<'all' | 'active' | 'closed' | 'tools'>('all');
-
-    const resolveConflict = async (action: 'overwrite' | 'skip') => {
-        const conflict = importConflicts[0];
-        if (!conflict) return;
-
-        const nextStats = { ...importStats };
-
-        if (action === 'overwrite') {
-            const { error } = await supabase
-                .from('tender_plans')
-                .update({
-                    date_from: conflict.importItem.dateFrom || null,
-                    date_to: conflict.importItem.dateTo || null
-                })
-                .eq('id', conflict.existingItem.id);
-
-            if (!error) {
-                nextStats.updated++;
-                // Update local state
-                setItems(prev => prev.map(item =>
-                    item.id === conflict.existingItem.id
-                        ? { ...item, dateFrom: conflict.importItem.dateFrom, dateTo: conflict.importItem.dateTo }
-                        : item
-                ));
-            } else {
-                console.error("Error updating tender plan during conflict resolution:", error);
-                nextStats.skipped++;
-            }
-        } else {
-            nextStats.skipped++;
-        }
-
-        setImportStats(nextStats);
-        const remaining = importConflicts.slice(1);
-        setImportConflicts(remaining);
-
-        if (remaining.length === 0) {
-            setAlertModal({
-                isOpen: true,
-                title: 'Import dokončen',
-                message: `Nově přidáno: ${nextStats.imported}\nAktualizováno: ${nextStats.updated}\nPřeskočeno: ${nextStats.skipped}`,
-                variant: 'success'
-            });
-            // Optional: trigger full reload here if needed
-        }
-    };
-
-    // Load from Supabase
-    useEffect(() => {
-        const loadItems = async () => {
-            setIsLoading(true);
-            try {
-                const { data, error } = await supabase
-                    .from('tender_plans')
-                    .select('*')
-                    .eq('project_id', projectId)
-                    .order('created_at', { ascending: true });
-
-                if (error) {
-                    console.error('Error loading tender plans:', error);
-                    setItems([]);
-                } else {
-                    // Map DB columns to frontend model
-                    const mapped = (data || []).map(row => ({
-                        id: row.id,
-                        name: row.name,
-                        dateFrom: row.date_from || '',
-                        dateTo: row.date_to || '',
-                        categoryId: row.category_id || undefined
-                    }));
-                    setItems(mapped);
-                }
-            } catch (err) {
-                console.error('Unexpected error loading tender plans:', err);
-                setItems([]);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        loadItems();
-    }, [projectId]);
-
-    // Find linked category by name
-    const findLinkedCategory = (item: TenderPlanItem): DemandCategory | undefined => {
-        return categories.find(c => c.title.toLowerCase() === item.name.toLowerCase());
-    };
-
-    // Get status based on linked category
-    const getStatus = (item: TenderPlanItem): { label: string; color: string } => {
-        const category = findLinkedCategory(item);
-        if (!category) {
-            return { label: 'Čeká na vytvoření', color: 'slate' };
-        }
-
-        switch (category.status) {
-            case 'open':
-                return { label: 'Probíhá', color: 'blue' };
-            case 'sod':
-                return { label: 'Zasmluvněno', color: 'emerald' };
-            case 'closed':
-                return { label: 'Ukončeno', color: 'slate' };
-            default:
-                return { label: 'Aktivní', color: 'amber' };
-        }
-    };
-
-    const handleAdd = async () => {
-        if (!formName.trim()) return;
-
-        const newItem: TenderPlanItem = {
-            id: `tp_${Date.now()}`,
-            name: formName.trim(),
-            dateFrom: formDateFrom,
-            dateTo: formDateTo,
-        };
-
-        // Optimistic update
-        setItems(prev => [...prev, newItem]);
-        resetForm();
-
-        // Persist to Supabase
-        try {
-            const { error } = await supabase.from('tender_plans').insert({
-                id: newItem.id,
-                project_id: projectId,
-                name: newItem.name,
-                date_from: newItem.dateFrom || null,
-                date_to: newItem.dateTo || null
-            });
-
-            if (error) {
-                console.error('Error inserting tender plan:', error);
-                // Revert on error
-                setItems(prev => prev.filter(i => i.id !== newItem.id));
-            }
-        } catch (err) {
-            console.error('Unexpected error inserting tender plan:', err);
-            setItems(prev => prev.filter(i => i.id !== newItem.id));
-        }
-    };
-
-    const handleEdit = (item: TenderPlanItem) => {
-        setEditingId(item.id);
-        setFormName(item.name);
-        setFormDateFrom(item.dateFrom);
-        setFormDateTo(item.dateTo);
-    };
-
-    const handleUpdate = async () => {
-        if (!editingId || !formName.trim()) return;
-
-        const updatedData = {
-            name: formName.trim(),
-            dateFrom: formDateFrom,
-            dateTo: formDateTo
-        };
-
-        // Optimistic update
-        setItems(prev => prev.map(item =>
-            item.id === editingId
-                ? { ...item, ...updatedData }
-                : item
-        ));
-        const previousItems = items;
-        resetForm();
-
-        // Persist to Supabase
-        try {
-            const { error } = await supabase
-                .from('tender_plans')
-                .update({
-                    name: updatedData.name,
-                    date_from: updatedData.dateFrom || null,
-                    date_to: updatedData.dateTo || null
-                })
-                .eq('id', editingId);
-
-            if (error) {
-                console.error('Error updating tender plan:', error);
-                setItems(previousItems);
-            }
-        } catch (err) {
-            console.error('Unexpected error updating tender plan:', err);
-            setItems(previousItems);
-        }
-    };
-
-    const handleDelete = async (id: string) => {
-        setConfirmModal({
-            isOpen: true,
-            title: 'Smazat plán',
-            message: 'Opravdu smazat tento plán? Tato akce je nevratná.',
-            onConfirm: () => executeDelete(id)
-        });
-    };
-
-    const executeDelete = async (id: string) => {
-        closeConfirmModal();
-
-        const previousItems = items;
-        // Optimistic update
-        setItems(prev => prev.filter(item => item.id !== id));
-
-        // Persist to Supabase
-        try {
-            const { error } = await supabase
-                .from('tender_plans')
-                .delete()
-                .eq('id', id);
-
-            if (error) {
-                console.error('Error deleting tender plan:', error);
-                setItems(previousItems);
-            }
-        } catch (err) {
-            console.error('Unexpected error deleting tender plan:', err);
-            setItems(previousItems);
-        }
-    };
-
-    const handleCreateCategory = (item: TenderPlanItem) => {
-        onCreateCategory(item.name, item.dateFrom, item.dateTo);
-    };
-
-    const resetForm = () => {
-        setFormName('');
-        setFormDateFrom('');
-        setFormDateTo('');
-        setIsAdding(false);
-        setEditingId(null);
-    };
-
-    const handleSyncExisting = async () => {
-        setIsLoading(true);
-        try {
-            // Iterate over current project categories
-            let createdCount = 0;
-            let linkedCount = 0;
-
-            for (const cat of categories) {
-                // Check if exists in current items (client-side check first for speed)
-                const existingItem = items.find(i =>
-                    i.name.toLowerCase() === cat.title.toLowerCase() ||
-                    (i.categoryId && i.categoryId === cat.id)
-                );
-
-                if (!existingItem) {
-                    // Create new plan item
-                    const { error } = await supabase.from('tender_plans').insert({
-                        id: `tp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-                        project_id: projectId,
-                        name: cat.title,
-                        date_from: cat.realizationStart || null,
-                        date_to: cat.realizationEnd || null,
-                        category_id: cat.id
-                    });
-                    if (!error) createdCount++;
-                } else if (!existingItem.categoryId) {
-                    // Link existing
-                    const { error } = await supabase
-                        .from('tender_plans')
-                        .update({ category_id: cat.id })
-                        .eq('id', existingItem.id);
-                    if (!error) linkedCount++;
-                }
-            }
-
-            if (createdCount > 0 || linkedCount > 0) {
-                // Reload items
-                const { data, error } = await supabase
-                    .from('tender_plans')
-                    .select('*')
-                    .eq('project_id', projectId)
-                    .order('created_at', { ascending: true });
-
-                if (!error && data) {
-                    const mapped = data.map(row => ({
-                        id: row.id,
-                        name: row.name,
-                        dateFrom: row.date_from || '',
-                        dateTo: row.date_to || '',
-                        categoryId: row.category_id || undefined
-                    }));
-                    setItems(mapped);
-                    setAlertModal({
-                        isOpen: true,
-                        title: 'Synchronizace dokončena',
-                        message: `Vytvořeno ${createdCount}, Propojeno ${linkedCount} položek.`,
-                        variant: 'success'
-                    });
-                }
-            } else {
-                setAlertModal({
-                    isOpen: true,
-                    title: 'Synchronizace',
-                    message: 'Vše je již synchronizováno.',
-                    variant: 'info'
-                });
-            }
-
-        } catch (err) {
-            console.error("Error during manual sync:", err);
-            setAlertModal({
-                isOpen: true,
-                title: 'Chyba',
-                message: 'Chyba při synchronizaci.',
-                variant: 'error'
-            });
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleImportClick = () => {
-        fileInputRef.current?.click();
-    };
-
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        setIsLoading(true);
-        // Reset stats
-        const currentStats = { imported: 0, updated: 0, skipped: 0 };
-        setImportStats(currentStats);
-        setImportConflicts([]);
-
-        try {
-            const parsedItems = await importTenderPlanFromXLSX(file);
-
-            if (parsedItems.length === 0) {
-                setAlertModal({
-                    isOpen: true,
-                    title: 'Chyba importu',
-                    message: 'Nepodařilo se načíst žádná data. Zkontrolujte formát souboru.',
-                    variant: 'error'
-                });
-                setIsLoading(false);
-                return;
-            }
-
-            const normalizeName = (value: string) => value.trim().toLowerCase();
-
-            // Refresh existing items first
-            let existingItems = items;
-            try {
-                const { data, error } = await supabase
-                    .from('tender_plans')
-                    .select('*')
-                    .eq('project_id', projectId)
-                    .order('created_at', { ascending: true });
-                if (!error && data) {
-                    existingItems = data.map(row => ({
-                        id: row.id,
-                        name: row.name,
-                        dateFrom: row.date_from || '',
-                        dateTo: row.date_to || '',
-                        categoryId: row.category_id || undefined
-                    }));
-                    setItems(existingItems); // Update local state
-                }
-            } catch (err) {
-                console.warn("Unable to refresh existing tender plans before import:", err);
-            }
-
-            const existingByName = new Map<string, TenderPlanItem[]>();
-            existingItems.forEach(item => {
-                const key = normalizeName(item.name);
-                if (!key) return;
-                const list = existingByName.get(key) ?? [];
-                list.push(item);
-                existingByName.set(key, list);
-            });
-
-            const seenImportNames = new Set<string>();
-            const conflictsFound: ImportConflict[] = [];
-
-            // Process items
-            for (const item of parsedItems) {
-                if (!item.name) { currentStats.skipped++; continue; }
-                const importName = item.name.trim();
-                if (!importName) { currentStats.skipped++; continue; }
-
-                const importKey = normalizeName(importName);
-                if (seenImportNames.has(importKey)) { currentStats.skipped++; continue; }
-                seenImportNames.add(importKey);
-
-                const existingMatch = existingByName.get(importKey)?.[0];
-                const nextFrom = (item.dateFrom || '').trim();
-                const nextTo = (item.dateTo || '').trim();
-
-                if (existingMatch) {
-                    const currentFrom = (existingMatch.dateFrom || '').trim();
-                    const currentTo = (existingMatch.dateTo || '').trim();
-                    const datesDiffer = currentFrom !== nextFrom || currentTo !== nextTo;
-
-                    if (datesDiffer) {
-                        // Conflict detected - add to queue
-                        conflictsFound.push({
-                            existingItem: existingMatch,
-                            importItem: { name: importName, dateFrom: nextFrom, dateTo: nextTo },
-                            importKey
-                        });
-                    } else {
-                        currentStats.skipped++; // Exists and same dates
-                    }
-                } else {
-                    // New item - insert immediately
-                    const newItemId = `tp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-                    const { error } = await supabase.from('tender_plans').insert({
-                        id: newItemId,
-                        project_id: projectId,
-                        name: importName,
-                        date_from: nextFrom || null,
-                        date_to: nextTo || null
-                    });
-
-                    if (!error) {
-                        currentStats.imported++;
-                        // Add to local state immediately so subsequent lookups (if any) or display is correct
-                        const newItem = {
-                            id: newItemId,
-                            name: importName,
-                            dateFrom: nextFrom,
-                            dateTo: nextTo
-                        };
-                        setItems(prev => [...prev, newItem]);
-                    } else {
-                        console.error("Error inserting tender plan during import:", error);
-                        currentStats.skipped++;
-                    }
-                }
-            }
-
-            setImportStats(currentStats);
-            setImportConflicts(conflictsFound);
-
-            if (conflictsFound.length === 0) {
-                setAlertModal({
-                    isOpen: true,
-                    title: 'Import dokončen',
-                    message: `Nově přidáno: ${currentStats.imported}\nAktualizováno: ${currentStats.updated}\nPřeskočeno: ${currentStats.skipped}`,
-                    variant: 'success'
-                });
-            }
-
-        } catch (err) {
-            console.error('Error importing file:', err);
-            setAlertModal({
-                isOpen: true,
-                title: 'Chyba',
-                message: 'Chyba při importu souboru.',
-                variant: 'error'
-            });
-        } finally {
-            setIsLoading(false);
-            if (fileInputRef.current) fileInputRef.current.value = '';
-        }
-    };
+    const {
+        items,
+        isAdding,
+        setIsAdding,
+        editingId,
+        isLoading,
+        fileInputRef,
+        formName,
+        setFormName,
+        formDateFrom,
+        setFormDateFrom,
+        formDateTo,
+        setFormDateTo,
+        confirmModal,
+        closeConfirmModal,
+        alertModal,
+        closeAlertModal,
+        importConflicts,
+        viewMode,
+        setViewMode,
+        resolveConflict,
+        findLinkedCategory,
+        getStatus,
+        handleAdd,
+        handleEdit,
+        handleUpdate,
+        handleDelete,
+        handleCreateCategory,
+        resetForm,
+        handleSyncExisting,
+        handleImportClick,
+        handleFileChange,
+        visibleItems,
+    } = useTenderPlanController({
+        projectId,
+        categories,
+        onCreateCategory,
+    });
 
     return (
         <div className="p-6 lg:p-10 flex flex-col gap-6 overflow-y-auto h-full bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen">
@@ -765,18 +301,7 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
                                             </tr>
                                         )}
 
-                                        {/* Sort items alphabetically by name */}
-                                        {[...items]
-                                            .filter(item => {
-                                                if (viewMode === 'all' || viewMode === 'tools') return true;
-                                                const status = getStatus(item);
-                                                if (viewMode === 'closed') return status.label === 'Ukončeno' || status.label === 'Zasmluvněno';
-
-                                                // Active mode - everything not closed and not just placeholders
-                                                return status.label !== 'Ukončeno' && status.label !== 'Zasmluvněno';
-                                            })
-                                            .sort((a, b) => a.name.localeCompare(b.name, 'cs'))
-                                            .map(item => {
+                                        {visibleItems.map(item => {
                                                 const status = getStatus(item);
                                                 const hasCategory = !!findLinkedCategory(item);
                                                 const isEditing = editingId === item.id;
@@ -863,7 +388,7 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
                                                             )}
                                                         </td>
                                                         <td className="px-6 py-4">
-                                                            <span className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-lg bg-${status.color}-500/20 text-${status.color}-400 border border-${status.color}-500/30`}>
+                                                            <span className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-lg border ${getTenderPlanStatusBadgeClasses(status.color)}`}>
                                                                 {status.label}
                                                             </span>
                                                         </td>
@@ -910,12 +435,7 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
                 <ConfirmationModal
                     isOpen={importConflicts.length > 0}
                     title="Konflikt importu"
-                    message={importConflicts[0] ? (
-                        `Položka "${importConflicts[0].existingItem.name}" už v plánu existuje, ale liší se termíny.\n\n` +
-                        `Aktuální: ${importConflicts[0].existingItem.dateFrom || '—'} – ${importConflicts[0].existingItem.dateTo || '—'}\n` +
-                        `Import: ${importConflicts[0].importItem.dateFrom || '—'} – ${importConflicts[0].importItem.dateTo || '—'}\n\n` +
-                        `Chcete termíny aktualizovat?\n(Zbývá vyřešit: ${importConflicts.length})`
-                    ) : ''}
+                    message={buildConflictPromptMessage(importConflicts[0], importConflicts.length)}
                     onConfirm={() => resolveConflict('overwrite')}
                     onCancel={() => resolveConflict('skip')}
                     confirmLabel="Aktualizovat"

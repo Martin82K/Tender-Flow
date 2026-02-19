@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "../../services/supabase";
+import { dbAdapter } from "../../services/dbAdapter";
 import { Project, ProjectDetails, DemandCategory } from "../../types";
 import { useAuth } from "../../context/AuthContext";
 import { PROJECT_KEYS } from "../queries/useProjectsQuery";
@@ -42,7 +42,7 @@ export const useAddProjectMutation = () => {
                 return newProject;
             }
 
-            const { error } = await supabase.from("projects").insert({
+            const { error } = await dbAdapter.from("projects").insert({
                 id: newProject.id,
                 name: newProject.name,
                 location: newProject.location,
@@ -83,7 +83,7 @@ export const useDeleteProjectMutation = () => {
                 return id;
             }
 
-            const { error } = await supabase.from("projects").delete().eq("id", id);
+            const { error } = await dbAdapter.from("projects").delete().eq("id", id);
             if (error) throw error;
             return id;
         },
@@ -118,7 +118,7 @@ export const useArchiveProjectMutation = () => {
                 return;
             }
 
-            const { error } = await supabase.from("projects").update({ status: newStatus }).eq("id", id);
+            const { error } = await dbAdapter.from("projects").update({ status: newStatus }).eq("id", id);
             if (error) throw error;
         },
         onMutate: async ({ id, newStatus }) => {
@@ -188,7 +188,7 @@ export const useUpdateProjectDetailsMutation = () => {
             if (updates.docHubAutoCreateLastError !== undefined) projectUpdates.dochub_autocreate_last_error = updates.docHubAutoCreateLastError;
 
             if (Object.keys(projectUpdates).length > 0) {
-                const { error } = await supabase.from("projects").update(projectUpdates).eq("id", id);
+                const { error } = await dbAdapter.from("projects").update(projectUpdates).eq("id", id);
 
                 if (error) {
                     if (
@@ -205,7 +205,7 @@ export const useUpdateProjectDetailsMutation = () => {
                             });
 
                             if (Object.keys(rest).length > 0) {
-                                const { error: retryError } = await supabase.from("projects").update(rest).eq("id", id);
+                                const { error: retryError } = await dbAdapter.from("projects").update(rest).eq("id", id);
                                 if (retryError) console.error("Error updating project (retry):", retryError);
                             }
                         } else {
@@ -221,7 +221,7 @@ export const useUpdateProjectDetailsMutation = () => {
 
             // Update contract
             if (updates.contract) {
-                await supabase.from("project_contracts").upsert({
+                await dbAdapter.from("project_contracts").upsert({
                     project_id: id,
                     maturity_days: updates.contract.maturity,
                     warranty_months: updates.contract.warranty,
@@ -233,15 +233,15 @@ export const useUpdateProjectDetailsMutation = () => {
 
             // Update financials
             if (updates.investorFinancials) {
-                await supabase.from("project_investor_financials").upsert({
+                await dbAdapter.from("project_investor_financials").upsert({
                     project_id: id,
                     sod_price: updates.investorFinancials.sodPrice,
                 });
 
                 if (updates.investorFinancials.amendments) {
-                    await supabase.from("project_amendments").delete().eq("project_id", id);
+                    await dbAdapter.from("project_amendments").delete().eq("project_id", id);
                     if (updates.investorFinancials.amendments.length > 0) {
-                        await supabase.from("project_amendments").insert(
+                        await dbAdapter.from("project_amendments").insert(
                             updates.investorFinancials.amendments.map((a) => ({
                                 id: a.id,
                                 project_id: id,
@@ -280,7 +280,7 @@ export const useAddCategoryMutation = () => {
                 // update demo data
                 return;
             }
-            const { error } = await supabase.from("demand_categories").insert({
+            const { error } = await dbAdapter.from("demand_categories").insert({
                 id: category.id,
                 project_id: projectId,
                 title: category.title,
@@ -359,7 +359,7 @@ export const useEditCategoryMutation = () => {
                 return;
             }
 
-            const { error } = await supabase.from("demand_categories").update({
+            const { error } = await dbAdapter.from("demand_categories").update({
                 title: category.title,
                 budget_display: category.budget,
                 sod_budget: category.sodBudget,
@@ -410,7 +410,7 @@ export const useDeleteCategoryMutation = () => {
                 return;
             }
 
-            const { error } = await supabase.from("demand_categories").delete().eq("id", categoryId).eq("project_id", projectId);
+            const { error } = await dbAdapter.from("demand_categories").delete().eq("id", categoryId).eq("project_id", projectId);
             if (error) throw error;
 
             // Sync DocHub (Archive)

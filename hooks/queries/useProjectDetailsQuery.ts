@@ -1,5 +1,5 @@
 import { useQuery, useQueries, UseQueryOptions } from "@tanstack/react-query";
-import { supabase } from "../../services/supabase";
+import { dbAdapter } from "../../services/dbAdapter";
 import { withRetry, withTimeout } from "../../utils/helpers";
 import { Project, ProjectDetails, DemandCategory, Bid } from "../../types";
 import { isDemoSession, DEMO_PROJECT_DETAILS, DEMO_PROJECT } from "../../services/demoData";
@@ -35,11 +35,11 @@ const fetchProjectDetails = async (projectId: string): Promise<ProjectDetails> =
         financialsRes,
         amendmentsRes,
     ] = await Promise.all([
-        withRetry<any>(async () => await supabase.from("projects").select("*").eq("id", projectId).single()),
-        withRetry<any>(async () => await supabase.from("demand_categories").select("*").eq("project_id", projectId)),
-        withRetry<any>(async () => await supabase.from("project_contracts").select("*").eq("project_id", projectId).maybeSingle()),
-        withRetry<any>(async () => await supabase.from("project_investor_financials").select("*").eq("project_id", projectId).maybeSingle()),
-        withRetry<any>(async () => await supabase.from("project_amendments").select("*").eq("project_id", projectId)),
+        withRetry<any>(async () => await dbAdapter.from("projects").select("*").eq("id", projectId).single()),
+        withRetry<any>(async () => await dbAdapter.from("demand_categories").select("*").eq("project_id", projectId)),
+        withRetry<any>(async () => await dbAdapter.from("project_contracts").select("*").eq("project_id", projectId).maybeSingle()),
+        withRetry<any>(async () => await dbAdapter.from("project_investor_financials").select("*").eq("project_id", projectId).maybeSingle()),
+        withRetry<any>(async () => await dbAdapter.from("project_amendments").select("*").eq("project_id", projectId)),
     ]);
 
     if (projectRes.error) throw projectRes.error;
@@ -76,7 +76,7 @@ const fetchProjectDetails = async (projectId: string): Promise<ProjectDetails> =
 
     if (categoryIds.length > 0) {
         const bidsRes = await withRetry<any>(async () =>
-            await supabase.from("bids").select("*").in("demand_category_id", categoryIds)
+            await dbAdapter.from("bids").select("*").in("demand_category_id", categoryIds)
         );
 
         if (bidsRes.error) throw bidsRes.error;

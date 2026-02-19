@@ -24,11 +24,21 @@ interface ResolvePortablePathOptions {
 
 const ONEDRIVE_SEGMENT_RE = /^OneDrive(?:\s-\s.+)?$/i;
 
+type PathOps = Pick<typeof path, 'normalize' | 'join' | 'basename'>;
+
 const trimWrappingQuotes = (value: string): string => value.trim().replace(/^"(.*)"$/, '$1');
 
-const normalizeKey = (value: string): string => {
-  const normalized = path.normalize(value).replace(/[\\/]+$/, '');
-  return process.platform === 'win32' ? normalized.toLowerCase() : normalized;
+const isWindowsStylePath = (value: string): boolean =>
+  /^[a-zA-Z]:[\\/]/.test(value) || value.includes('\\');
+
+const pickPathOps = (values: Array<string | undefined>): PathOps => {
+  const hasWindowsPath = values.some((value) => !!value && isWindowsStylePath(value));
+  return hasWindowsPath ? path.win32 : path.posix;
+};
+
+const normalizeKey = (value: string, pathOps: PathOps): string => {
+  const normalized = pathOps.normalize(value).replace(/[\\/]+$/, '');
+  return pathOps === path.win32 ? normalized.toLowerCase() : normalized;
 };
 
 const splitPathSegments = (targetPath: string): string[] =>
@@ -69,6 +79,7 @@ const collectCandidateBases = async (
   homeDir: string | undefined,
   env: NodeJS.ProcessEnv,
   deps: ResolverDeps,
+  pathOps: PathOps,
 ): Promise<string[]> => {
   const rawCandidates: string[] = [];
 
@@ -82,21 +93,21 @@ const collectCandidateBases = async (
   pushEnvPath(env.OneDriveConsumer);
 
   if (homeDir) {
-    rawCandidates.push(path.join(homeDir, anchorSegment));
-    rawCandidates.push(path.join(homeDir, 'OneDrive'));
+    rawCandidates.push(pathOps.join(homeDir, anchorSegment));
+    rawCandidates.push(pathOps.join(homeDir, 'OneDrive'));
 
     const homeDirs = await deps.listHomeDirectories(homeDir);
     homeDirs
       .filter((entry) => ONEDRIVE_SEGMENT_RE.test(entry))
-      .forEach((entry) => rawCandidates.push(path.join(homeDir, entry)));
+      .forEach((entry) => rawCandidates.push(pathOps.join(homeDir, entry)));
   }
 
   const seen = new Set<string>();
   const deduped: string[] = [];
   for (const candidate of rawCandidates) {
     if (!candidate) continue;
-    const normalized = path.normalize(candidate);
-    const key = normalizeKey(normalized);
+    const normalized = pathOps.normalize(candidate);
+    const key = normalizeKey(normalized, pathOps);
     if (seen.has(key)) continue;
     seen.add(key);
     deduped.push(normalized);
@@ -105,8 +116,8 @@ const collectCandidateBases = async (
   return deduped;
 };
 
-const scoreBaseCandidate = (candidateBase: string, anchorSegment: string): number => {
-  const baseName = path.basename(candidateBase).toLowerCase();
+const scoreBaseCandidate = (candidateBase: string, anchorSegment: string, pathOps: PathOps): number => {
+  const baseName = pathOps.basename(candidateBase).toLowerCase();
   const anchor = anchorSegment.toLowerCase();
   if (baseName === anchor) return 100;
   if (baseName.startsWith('onedrive -') && anchor.startsWith('onedrive -')) return 80;
@@ -115,16 +126,17 @@ const scoreBaseCandidate = (candidateBase: string, anchorSegment: string): numbe
   return 0;
 };
 
-const buildJoinedCandidate = (basePath: string, suffixSegments: string[]): string =>
-  suffixSegments.length > 0 ? path.join(basePath, ...suffixSegments) : basePath;
+const buildJoinedCandidate = (basePath: string, suffixSegments: string[], pathOps: PathOps): string =>
+  suffixSegments.length > 0 ? pathOps.join(basePath, ...suffixSegments) : basePath;
 
 const resolveUsingExistingTarget = async (
   candidateBases: string[],
   suffixSegments: string[],
   deps: ResolverDeps,
+  pathOps: PathOps,
 ): Promise<string | null> => {
   for (const base of candidateBases) {
-    const candidateTarget = buildJoinedCandidate(base, suffixSegments);
+    const candidateTarget = buildJoinedCandidate(base, suffixSegments, pathOps);
     if (await deps.pathExists(candidateTarget)) {
       return candidateTarget;
     }
@@ -137,14 +149,15 @@ const resolveUsingExistingBase = async (
   suffixSegments: string[],
   anchorSegment: string,
   deps: ResolverDeps,
+  pathOps: PathOps,
 ): Promise<string | null> => {
   const sorted = [...candidateBases].sort(
-    (a, b) => scoreBaseCandidate(b, anchorSegment) - scoreBaseCandidate(a, anchorSegment),
+    (a, b) => scoreBaseCandidate(b, anchorSegment, pathOps) - scoreBaseCandidate(a, anchorSegment, pathOps),
   );
 
   for (const base of sorted) {
     if (await deps.directoryExists(base)) {
-      return buildJoinedCandidate(base, suffixSegments);
+      return buildJoinedCandidate(base, suffixSegments, pathOps);
     }
   }
   return null;
@@ -159,6 +172,7 @@ export const resolvePortablePath = async (
 
   const deps = options.deps || defaultDeps;
   const mode = options.mode;
+  const pathOps = pickPathOps([fromPath, options.homeDir, options.env?.OneDrive, options.env?.OneDriveCommercial, options.env?.OneDriveConsumer]);
 
   if (await deps.pathExists(fromPath)) {
     return fromPath;
@@ -179,18 +193,19 @@ export const resolvePortablePath = async (
     options.homeDir,
     env,
     deps,
+    pathOps,
   );
 
   if (candidateBases.length === 0) {
     return fromPath;
   }
 
-  let resolvedPath = await resolveUsingExistingTarget(candidateBases, suffixSegments, deps);
+  let resolvedPath = await resolveUsingExistingTarget(candidateBases, suffixSegments, deps, pathOps);
   if (!resolvedPath && mode === 'write') {
-    resolvedPath = await resolveUsingExistingBase(candidateBases, suffixSegments, anchorSegment, deps);
+    resolvedPath = await resolveUsingExistingBase(candidateBases, suffixSegments, anchorSegment, deps, pathOps);
   }
 
-  if (!resolvedPath || normalizeKey(resolvedPath) === normalizeKey(fromPath)) {
+  if (!resolvedPath || normalizeKey(resolvedPath, pathOps) === normalizeKey(fromPath, pathOps)) {
     return fromPath;
   }
 
@@ -203,4 +218,3 @@ export const resolvePortablePath = async (
 
   return resolvedPath;
 };
-

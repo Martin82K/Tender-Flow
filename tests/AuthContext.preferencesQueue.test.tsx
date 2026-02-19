@@ -15,7 +15,7 @@ vi.mock("../services/authService", () => ({
   authService: {
     login: vi.fn(),
     register: vi.fn(),
-    logout: vi.fn(),
+    logout: vi.fn().mockResolvedValue(undefined),
     updateUserPreferences: mockState.updateUserPreferences,
     getCurrentUser: mockState.getCurrentUser,
     getUserFromSession: mockState.getUserFromSession,

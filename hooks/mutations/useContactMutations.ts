@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "../../services/supabase";
+import { dbAdapter } from "../../services/dbAdapter";
 import { Subcontractor } from "../../types";
 import { useAuth } from "../../context/AuthContext";
 import { CONTACT_KEYS } from "../queries/useContactsQuery";
@@ -40,7 +40,7 @@ export const useAddContactMutation = () => {
                 return newContact;
             }
 
-            const { error } = await supabase.from("subcontractors").insert({
+            const { error } = await dbAdapter.from("subcontractors").insert({
                 id: newContact.id,
                 company_name: newContact.company,
                 contact_person_name: newContact.name,
@@ -104,7 +104,7 @@ export const useUpdateContactMutation = () => {
             if (updates.status !== undefined) dbUpdates.status_id = updates.status;
             if (updates.contacts !== undefined) dbUpdates.contacts = updates.contacts;
 
-            const { error } = await supabase.from("subcontractors").update(dbUpdates).eq("id", id);
+            const { error } = await dbAdapter.from("subcontractors").update(dbUpdates).eq("id", id);
             if (error) throw error;
         },
         onMutate: async ({ id, updates }) => {
@@ -201,7 +201,7 @@ export const useDeleteContactsMutation = () => {
                 return;
             }
 
-            const { error } = await supabase.from("subcontractors").delete().in("id", ids);
+            const { error } = await dbAdapter.from("subcontractors").delete().in("id", ids);
             if (error) throw error;
         },
         onMutate: async (ids) => {
@@ -248,7 +248,7 @@ export const useBulkUpdateContactsMutation = () => {
                 if (data.status !== undefined) dbUpdates.status_id = data.status;
                 // add other fields if bulk update supports them (usually just status/category)
 
-                const { error } = await supabase.from("subcontractors").update(dbUpdates).eq("id", id);
+                const { error } = await dbAdapter.from("subcontractors").update(dbUpdates).eq("id", id);
                 if (error) throw error;
             }));
         },
@@ -333,14 +333,14 @@ export const useImportContactsMutation = () => {
             }));
 
             if (toInsert.length > 0) {
-                const { error } = await supabase.from("subcontractors").insert(toInsert);
+                const { error } = await dbAdapter.from("subcontractors").insert(toInsert);
                 if (error) throw error;
             }
 
             // Updates - do one by one or upsert if full record?
             // Merge logic usually retains IDs.
             await Promise.all(updated.map(async c => {
-                const { error } = await supabase.from("subcontractors").update({
+                const { error } = await dbAdapter.from("subcontractors").update({
                     company_name: c.company,
                     contacts: c.contacts,
                     // ... others

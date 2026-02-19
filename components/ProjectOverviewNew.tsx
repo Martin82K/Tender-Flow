@@ -1,43 +1,13 @@
-import React, { useState, useEffect } from "react";
-import {
-  ProjectDetails,
-  ContractDetails,
-  InvestorFinancials,
-  DemandCategory,
-  Bid,
-} from "../types";
+import React from "react";
+import type { ProjectDetails } from "../types";
 import { useAuth } from "../context/AuthContext";
-
-// --- Helper Functions ---
-const parseMoney = (valueStr: string): number => {
-  if (!valueStr || valueStr === "-" || valueStr === "?") return 0;
-  const hasM = /M/i.test(valueStr);
-  const hasK = /K/i.test(valueStr) && !/Kč/i.test(valueStr);
-  const cleanStr = valueStr
-    .replace(/\s/g, "")
-    .replace(/[^0-9,.-]/g, "")
-    .replace(",", ".");
-  let val = parseFloat(cleanStr);
-  if (hasM) val *= 1000000;
-  else if (hasK) val *= 1000;
-  return isNaN(val) ? 0 : val;
-};
-
-const formatMoney = (val: number): string => {
-  return new Intl.NumberFormat("cs-CZ", {
-    style: "currency",
-    currency: "CZK",
-    maximumFractionDigits: 0,
-  }).format(val);
-};
-
-const formatMoneyFull = (val: number): string => {
-  return new Intl.NumberFormat("cs-CZ", {
-    style: "currency",
-    currency: "CZK",
-    maximumFractionDigits: 0,
-  }).format(val);
-};
+import {
+  formatMoney,
+  formatMoneyFull,
+  getWinningBidTotal,
+  getWinningBids,
+} from "@/features/projects/model/projectOverviewNewModel";
+import { useProjectOverviewNewController } from "@/features/projects/model/useProjectOverviewNewController";
 
 interface ProjectOverviewProps {
   project: ProjectDetails;
@@ -55,212 +25,58 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
   onNavigateToPipeline,
 }) => {
   const { user } = useAuth();
-  const contract = project.contract;
-  const investor = project.investorFinancials || {
-    sodPrice: 0,
-    amendments: [],
-  };
-  const plannedCost = project.plannedCost || 0;
-
-  // Edit States
-  const [editingInfo, setEditingInfo] = useState(false);
-  const [editingContract, setEditingContract] = useState(false);
-  const [editingInvestor, setEditingInvestor] = useState(false);
-  const [editingInternal, setEditingInternal] = useState(false);
-
-  // Filter State for Demand Table
-  const [demandFilter, setDemandFilter] = useState<
-    "all" | "open" | "closed" | "sod"
-  >("all");
-
-  // Column Visibility State
-  const defaultColumns = {
-    sod: true,
-    plan: true,
-    pn_vr: true,
-    sod_vr: false,
-    nabidky: false,
-    smlouvy: false,
-  };
-
-  const [visibleColumns, setVisibleColumns] = useState(defaultColumns);
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  // Load from localStorage on mount
-  useEffect(() => {
-    if (!user) return; // Wait for user
-
-    const storageKey = `projectOverviewColumns_v1_${user.id || "guest"}`;
-    const saved = localStorage.getItem(storageKey);
-    if (saved) {
-      try {
-        setVisibleColumns({ ...defaultColumns, ...JSON.parse(saved) });
-      } catch (e) {
-        console.error("Failed to parse column settings", e);
-      }
-    }
-    setIsLoaded(true);
-  }, [user?.id]);
-
-  // Save to localStorage on change
-  useEffect(() => {
-    if (isLoaded && user) {
-      const storageKey = `projectOverviewColumns_v1_${user.id || "guest"}`;
-      localStorage.setItem(storageKey, JSON.stringify(visibleColumns));
-    }
-  }, [visibleColumns, isLoaded, user?.id]);
-
-  // Form States
-  const [infoForm, setInfoForm] = useState({
-    investor: "",
-    technicalSupervisor: "",
-    location: "",
-    finishDate: "",
-    siteManager: "",
-    constructionManager: "",
-    constructionTechnician: "",
+  const {
+    contract,
+    investor,
+    plannedCost,
+    editingInfo,
+    setEditingInfo,
+    editingContract,
+    setEditingContract,
+    editingInvestor,
+    setEditingInvestor,
+    editingInternal,
+    setEditingInternal,
+    demandFilter,
+    setDemandFilter,
+    visibleColumns,
+    toggleColumn,
+    infoForm,
+    setInfoForm,
+    contractForm,
+    setContractForm,
+    investorForm,
+    setInvestorForm,
+    internalForm,
+    setInternalForm,
+    totalBudget,
+    totalContractedCost,
+    completedTasks,
+    plannedBalance,
+    progress,
+    handleSaveInfo,
+    handleSaveContract,
+    handleSaveInvestor,
+    handleSaveInternal,
+    addAmendment,
+    updateAmendment,
+    removeAmendment,
+    filteredCategories,
+    sodCount,
+    openCount,
+    closedCount,
+    allCount,
+    totalSodBudget,
+    totalPlanBudget,
+    totalWinningBidCost,
+    totalSodDiff,
+    totalPlanDiff,
+  } = useProjectOverviewNewController({
+    project,
+    onUpdate,
+    userId: user?.id,
+    searchQuery,
   });
-
-  const [contractForm, setContractForm] = useState<ContractDetails>({
-    maturity: 30,
-    warranty: 0,
-    retention: "",
-    siteFacilities: 0,
-    insurance: 0,
-  });
-
-  const [investorForm, setInvestorForm] = useState<InvestorFinancials>({
-    sodPrice: 0,
-    amendments: [],
-  });
-
-  const [internalForm, setInternalForm] = useState({
-    plannedCost: 0,
-  });
-
-  // Initialize forms when project changes or edit starts
-  useEffect(() => {
-    setInfoForm({
-      investor: project.investor || "",
-      technicalSupervisor: project.technicalSupervisor || "",
-      location: project.location || "",
-      finishDate: project.finishDate || "",
-      siteManager: project.siteManager || "",
-      constructionManager: project.constructionManager || "",
-      constructionTechnician: project.constructionTechnician || "",
-    });
-    if (project.contract) {
-      setContractForm(project.contract);
-    }
-    if (project.investorFinancials) {
-      setInvestorForm(project.investorFinancials);
-    } else {
-      setInvestorForm({ sodPrice: 0, amendments: [] });
-    }
-    setInternalForm({
-      plannedCost: project.plannedCost || 0,
-    });
-  }, [project, editingInfo, editingContract, editingInvestor, editingInternal]);
-
-  const handleSaveInfo = () => {
-    onUpdate({
-      investor: infoForm.investor,
-      technicalSupervisor: infoForm.technicalSupervisor,
-      location: infoForm.location,
-      finishDate: infoForm.finishDate,
-      siteManager: infoForm.siteManager,
-      constructionManager: infoForm.constructionManager,
-      constructionTechnician: infoForm.constructionTechnician,
-    });
-    setEditingInfo(false);
-  };
-
-  const handleSaveContract = () => {
-    onUpdate({
-      contract: contractForm,
-    });
-    setEditingContract(false);
-  };
-
-  const handleSaveInvestor = () => {
-    onUpdate({
-      investorFinancials: investorForm,
-    });
-    setEditingInvestor(false);
-  };
-
-  const handleSaveInternal = () => {
-    onUpdate({
-      plannedCost: internalForm.plannedCost,
-    });
-    setEditingInternal(false);
-  };
-
-  // Calculate stats
-
-  // 1. Calculate Total Revenue (Budget) from Investor Contract
-  const investorSod = investor.sodPrice || 0;
-  const investorAmendmentsTotal = investor.amendments.reduce(
-    (sum, a) => sum + (a.price || 0),
-    0,
-  );
-  const totalBudget = investorSod + investorAmendmentsTotal;
-
-  // 2. Calculate Total Cost (Contracted Subcontractors) - Sum of ALL winning bid prices (Cena VŘ)
-  let totalContractedCost = 0;
-  let completedTasks = 0;
-
-  project.categories.forEach((cat) => {
-    const catBids = project.bids?.[cat.id] || [];
-    // Get ALL winning bids (status === 'sod'), not just the first one
-    const winningBids = catBids.filter((b) => b.status === "sod");
-    if (winningBids.length > 0) {
-      // Sum all winning bid prices for this category
-      totalContractedCost += winningBids.reduce(
-        (sum, bid) => sum + parseMoney(bid.price || "0"),
-        0,
-      );
-      completedTasks++;
-    }
-  });
-
-  const balance = totalBudget - totalContractedCost;
-  const plannedBalance =
-    plannedCost > 0 ? plannedCost - totalContractedCost : 0;
-  const progress =
-    project.categories.length > 0
-      ? (completedTasks / project.categories.length) * 100
-      : 0;
-
-  // Handlers for Investor Form
-  const addAmendment = () => {
-    setInvestorForm((prev) => ({
-      ...prev,
-      amendments: [
-        ...prev.amendments,
-        {
-          id: `a${Date.now()}`,
-          label: `Dodatek č.${prev.amendments.length + 1}`,
-          price: 0,
-        },
-      ],
-    }));
-  };
-
-  const updateAmendment = (
-    index: number,
-    field: "label" | "price",
-    value: string | number,
-  ) => {
-    const newAmendments = [...investorForm.amendments];
-    newAmendments[index] = { ...newAmendments[index], [field]: value };
-    setInvestorForm({ ...investorForm, amendments: newAmendments });
-  };
-
-  const removeAmendment = (index: number) => {
-    const newAmendments = investorForm.amendments.filter((_, i) => i !== index);
-    setInvestorForm({ ...investorForm, amendments: newAmendments });
-  };
 
   const renderCompactDetails = () => (
     <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 mb-6 shadow-sm">
@@ -1335,64 +1151,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
       )}
 
       {/* Demand Categories Overview Table */}
-      {project.categories.length > 0 &&
-        (() => {
-          // Helper function to check if a category has signed contracts
-          const hasContracts = (cat: (typeof project.categories)[0]) => {
-            const catBids = project.bids?.[cat.id] || [];
-            // Match table logic: Must be a winning bid (status='sod') AND have contracted flag (truthy)
-            return catBids.some((b) => b.status === "sod" && b.contracted);
-          };
-
-          // Filter categories based on selected filter AND search query
-          const filteredCategories = project.categories.filter((cat) => {
-            // First apply status filter
-            let matchesFilter = true;
-            if (demandFilter === "all") matchesFilter = true;
-            else if (demandFilter === "open")
-              matchesFilter = cat.status === "open" && !hasContracts(cat);
-            else if (demandFilter === "closed")
-              matchesFilter = cat.status === "closed" && !hasContracts(cat);
-            else if (demandFilter === "sod") matchesFilter = hasContracts(cat);
-
-            if (!matchesFilter) return false;
-
-            // Then apply search query filter
-            if (!searchQuery || searchQuery.trim() === "") return true;
-
-            const query = searchQuery.toLowerCase();
-            const catBids = project.bids?.[cat.id] || [];
-            const winningBids = catBids.filter((b) => b.status === "sod");
-            const winnersNames = winningBids
-              .map((w) => w.companyName)
-              .join(" ")
-              .toLowerCase();
-
-            // Search in: category title, description, winner names
-            return (
-              cat.title.toLowerCase().includes(query) ||
-              cat.description?.toLowerCase().includes(query) ||
-              winnersNames.includes(query)
-            );
-          });
-
-          // Count for each filter - "sod" counts categories with actual contracts
-          const sodCount = project.categories.reduce((acc, cat) => {
-            const catBids = project.bids?.[cat.id] || [];
-            return (
-              acc +
-              catBids.filter((b) => b.status === "sod" && b.contracted).length
-            );
-          }, 0);
-          const openCount = project.categories.filter(
-            (c) => c.status === "open" && !hasContracts(c),
-          ).length;
-          const closedCount = project.categories.filter(
-            (c) => c.status === "closed" && !hasContracts(c),
-          ).length;
-          const allCount = project.categories.length;
-
-          return (
+      {project.categories.length > 0 && (
             <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-3xl mt-8 shadow-sm">
               <div className="px-8 py-6 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between flex-wrap gap-4">
                 <div className="flex items-center gap-3">
@@ -1487,15 +1246,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                                   col.id as keyof typeof visibleColumns
                                 ]
                               }
-                              onChange={() =>
-                                setVisibleColumns((prev) => ({
-                                  ...prev,
-                                  [col.id]:
-                                    !prev[
-                                      col.id as keyof typeof visibleColumns
-                                    ],
-                                }))
-                              }
+                              onChange={() => toggleColumn(col.id as keyof typeof visibleColumns)}
                               className="rounded text-primary focus:ring-primary"
                             />
                             <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -1566,13 +1317,8 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                       .sort((a, b) => a.title.localeCompare(b.title, "cs"))
                       .map((cat) => {
                         const catBids = project.bids?.[cat.id] || [];
-                        const winningBids = catBids.filter(
-                          (b) => b.status === "sod",
-                        );
-                        const subPrice = winningBids.reduce(
-                          (sum, bid) => sum + parseMoney(bid.price || "0"),
-                          0,
-                        );
+                        const winningBids = getWinningBids(project, cat.id);
+                        const subPrice = getWinningBidTotal(project, cat.id);
                         const diffPlan = cat.planBudget - subPrice; // Plan - VŘ (PN-VŘ)
                         const diffSod = (cat.sodBudget || 0) - subPrice; // SOD - VŘ
 
@@ -1782,100 +1528,38 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
 
                       {visibleColumns.sod && (
                         <td className="py-6 px-6 text-right text-xs text-slate-400">
-                          {formatMoney(
-                            project.categories.reduce(
-                              (acc, c) => acc + (c.sodBudget || 0),
-                              0,
-                            ),
-                          )}
+                          {formatMoney(totalSodBudget)}
                         </td>
                       )}
                       {visibleColumns.plan && (
                         <td className="py-6 px-6 text-right text-xs text-slate-600 dark:text-slate-300">
-                          {formatMoney(
-                            project.categories.reduce(
-                              (acc, c) => acc + (c.planBudget || 0),
-                              0,
-                            ),
-                          )}
+                          {formatMoney(totalPlanBudget)}
                         </td>
                       )}
 
                       <td className="py-6 px-6 text-right text-sm">
-                        {formatMoney(
-                          project.categories.reduce((sum, cat) => {
-                            const catBids = project.bids?.[cat.id] || [];
-                            const winningBids = catBids.filter(
-                              (b) => b.status === "sod",
-                            );
-                            return (
-                              sum +
-                              winningBids.reduce(
-                                (s, b) => s + parseMoney(b.price || "0"),
-                                0,
-                              )
-                            );
-                          }, 0),
-                        )}
+                        {formatMoney(totalWinningBidCost)}
                       </td>
 
                       {visibleColumns.sod_vr && (
                         <td className="py-6 px-6 text-right">
-                          {(() => {
-                            const totalSodDiff = project.categories.reduce(
-                              (sum, cat) => {
-                                const catBids = project.bids?.[cat.id] || [];
-                                const winningBids = catBids.filter(
-                                  (b) => b.status === "sod",
-                                );
-                                if (winningBids.length === 0) return sum + 0;
-                                const subPrice = winningBids.reduce(
-                                  (s, b) => s + parseMoney(b.price || "0"),
-                                  0,
-                                );
-                                return sum + ((cat.sodBudget || 0) - subPrice);
-                              },
-                              0,
-                            );
-                            return (
-                              <span
-                                className={`text-sm ${totalSodDiff >= 0 ? "text-emerald-500" : "text-rose-500"}`}
-                              >
-                                {totalSodDiff >= 0 ? "+" : ""}
-                                {formatMoney(totalSodDiff)}
-                              </span>
-                            );
-                          })()}
+                          <span
+                            className={`text-sm ${totalSodDiff >= 0 ? "text-emerald-500" : "text-rose-500"}`}
+                          >
+                            {totalSodDiff >= 0 ? "+" : ""}
+                            {formatMoney(totalSodDiff)}
+                          </span>
                         </td>
                       )}
 
                       {visibleColumns.pn_vr && (
                         <td className="py-6 px-6 text-right">
-                          {(() => {
-                            const total = project.categories.reduce(
-                              (sum, cat) => {
-                                const catBids = project.bids?.[cat.id] || [];
-                                const winningBids = catBids.filter(
-                                  (b) => b.status === "sod",
-                                );
-                                if (winningBids.length === 0) return sum + 0;
-                                const subPrice = winningBids.reduce(
-                                  (s, b) => s + parseMoney(b.price || "0"),
-                                  0,
-                                );
-                                return sum + (cat.planBudget - subPrice);
-                              },
-                              0,
-                            );
-                            return (
-                              <span
-                                className={`text-sm ${total >= 0 ? "text-emerald-500" : "text-rose-500"}`}
-                              >
-                                {total >= 0 ? "+" : ""}
-                                {formatMoney(total)}
-                              </span>
-                            );
-                          })()}
+                          <span
+                            className={`text-sm ${totalPlanDiff >= 0 ? "text-emerald-500" : "text-rose-500"}`}
+                          >
+                            {totalPlanDiff >= 0 ? "+" : ""}
+                            {formatMoney(totalPlanDiff)}
+                          </span>
                         </td>
                       )}
 
@@ -1889,8 +1573,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                 </table>
               </div>
             </div>
-          );
-        })()}
+      )}
     </div>
   );
 };

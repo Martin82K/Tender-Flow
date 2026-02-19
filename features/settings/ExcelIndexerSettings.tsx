@@ -12,8 +12,8 @@ import {
   IndexEntry,
 } from "@/services/indexerService";
 import { trackFeatureUsage } from "@/services/featureUsageService";
-import { AlertModal } from "@/components/AlertModal";
-import { ConfirmationModal } from "@/components/ConfirmationModal";
+import { AlertModal } from "@/shared/ui/AlertModal";
+import { ConfirmationModal } from "@/shared/ui/ConfirmationModal";
 
 const SETTINGS_KEY = "excelIndexerSettings";
 

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "../../services/supabase";
+import { dbAdapter } from "../../services/dbAdapter";
 import { isDemoSession } from "../../services/demoData";
 import type { Project, ProjectDetails } from "../../types";
 
@@ -31,7 +31,7 @@ export const useOverviewTenantDataQuery = () => {
     queryKey: OVERVIEW_TENANT_DATA_KEY,
     enabled: !isDemoSession(),
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_overview_tenant_data");
+      const { data, error } = await dbAdapter.rpc("get_overview_tenant_data");
       if (error) throw error;
       return normalizeOverviewTenantData(data);
     },

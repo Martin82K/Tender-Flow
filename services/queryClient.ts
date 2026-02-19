@@ -1,6 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
-import { clearStoredSessionData } from "./supabase";
-import { navigate } from "../shared/routing/router";
+import { authSessionService } from "./authSessionService";
 
 /**
  * Check if an error is likely an auth/session error
@@ -42,14 +41,10 @@ const handleQueryError = (error: unknown) => {
             console.error('[QueryClient] Too many auth errors, clearing session...');
             authErrorCount = 0;
 
-            try {
-                clearStoredSessionData();
-            } catch { /* ignore */ }
-
-            // Redirect to login after a short delay
-            setTimeout(() => {
-                navigate('/login', { replace: true });
-            }, 500);
+            void authSessionService.invalidateAuthState({
+                navigateToLogin: true,
+                reason: "auth_fetch_errors",
+            });
         }
     }
 };

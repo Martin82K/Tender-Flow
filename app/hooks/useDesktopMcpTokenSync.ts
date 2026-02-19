@@ -1,30 +1,30 @@
 import { useEffect } from "react";
-import { supabase } from "@/services/supabase";
+import { authSessionStore } from "@infra/auth/authSessionStore";
+import { isDesktop, mcpAdapter } from "@/services/platformAdapter";
 
 export const useDesktopMcpTokenSync = (): void => {
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const api = window.electronAPI;
-    if (!api?.platform?.isDesktop || !api?.mcp?.setAuthToken) return;
+    if (!isDesktop) return;
 
     let isMounted = true;
 
     const pushToken = async (token: string | null) => {
       if (!isMounted) return;
-      await api.mcp.setAuthToken(token);
+      await mcpAdapter.setAuthToken(token);
     };
 
-    supabase.auth.getSession().then(({ data }) => {
-      void pushToken(data.session?.access_token ?? null);
+    authSessionStore.start();
+
+    const unsubscribe = authSessionStore.subscribe((snapshot) => {
+      void pushToken(snapshot.accessToken);
     });
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      void pushToken(session?.access_token ?? null);
-    });
+    void authSessionStore.syncSession();
 
     return () => {
       isMounted = false;
-      authListener?.subscription.unsubscribe();
+      unsubscribe();
     };
   }, []);
 };

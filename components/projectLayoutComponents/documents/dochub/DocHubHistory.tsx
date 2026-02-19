@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { ProjectDetails } from '../../../../types';
-import { supabase } from '../../../../services/supabase';
+import { dbAdapter } from '@/services/dbAdapter';
 import { AlertModal } from '../../../AlertModal';
 import { ConfirmationModal } from '../../../ConfirmationModal';
 
@@ -65,7 +65,7 @@ export const DocHubHistory: React.FC<DocHubHistoryProps> = ({ project, onSelectR
         setIsLoading(true);
         try {
             const since = new Date(Date.now() - Math.max(1, filter.days) * 24 * 60 * 60 * 1000).toISOString();
-            let query = supabase
+            let query = dbAdapter
                 .from("dochub_autocreate_runs")
                 .select("id,status,step,progress_percent,total_actions,completed_actions,logs,error,started_at,finished_at")
                 .eq("project_id", project.id)
@@ -167,7 +167,7 @@ export const DocHubHistory: React.FC<DocHubHistoryProps> = ({ project, onSelectR
                                         onConfirm: async () => {
                                             closeConfirmModal();
                                             const cutoff = new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString();
-                                            const { error } = await supabase
+                                            const { error } = await dbAdapter
                                                 .from('dochub_autocreate_runs')
                                                 .delete()
                                                 .eq('project_id', project.id)

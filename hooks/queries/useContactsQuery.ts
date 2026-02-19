@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "../../services/supabase";
+import { dbAdapter } from "../../services/dbAdapter";
 import { withRetry, withTimeout } from "../../utils/helpers";
 import { Subcontractor } from "../../types";
 import { useAuth } from "../../context/AuthContext";
@@ -27,7 +27,7 @@ export const useContactsQuery = () => {
             const subcontractorsRes = await withRetry(
                 () =>
                     withTimeout(
-                        Promise.resolve(supabase.from("subcontractors").select("*").order("company_name")),
+                        Promise.resolve(dbAdapter.from("subcontractors").select("*").order("company_name")),
                         15000,
                         "Načtení dodavatelů vypršelo"
                     ),
@@ -111,7 +111,7 @@ export const useContactsQuery = () => {
                 const projectsRes = await withRetry(
                     () =>
                         withTimeout(
-                            Promise.resolve(supabase.from("projects").select("id")),
+                            Promise.resolve(dbAdapter.from("projects").select("id")),
                             15000,
                             "Načtení projektů vypršelo"
                         ),
@@ -126,7 +126,7 @@ export const useContactsQuery = () => {
                             () =>
                                 withTimeout(
                                     Promise.resolve(
-                                        supabase
+                                        dbAdapter
                                             .from("contracts")
                                             .select("id, vendor_id, vendor_name, vendor_rating")
                                             .in("project_id", chunk)

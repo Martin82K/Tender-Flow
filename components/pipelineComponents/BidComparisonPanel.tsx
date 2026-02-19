@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { trackFeatureUsage } from '../../services/featureUsageService';
+import platformAdapter from '../../services/platformAdapter';
 import type {
   BidComparisonAutoConfig,
   BidComparisonAutoStatus,
@@ -104,10 +105,7 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
     return normalizeSupplierList([...fromProps, ...fromFiles]);
   }, [files, supplierNames]);
 
-  const canUseDesktopApi =
-    typeof window !== 'undefined' &&
-    !!window.electronAPI?.platform?.isDesktop &&
-    !!window.electronAPI?.bidComparison;
+  const canUseDesktopApi = platformAdapter.bidComparison.isAvailable();
   const autoEnabled = !!autoStatus?.enabled;
 
   const buildAutoConfig = useCallback(
@@ -148,7 +146,7 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
       setDetectError(null);
 
       try {
-        const result = await window.electronAPI.bidComparison.detectInputs({
+        const result = await platformAdapter.bidComparison.detectInputs({
           tenderFolderPath: folderPath,
           suppliers: supplierOptions.length
             ? supplierOptions.map((name) => ({ name }))
@@ -179,9 +177,9 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
   );
 
   const refreshAutoStatus = useCallback(async () => {
-    if (!canUseDesktopApi || !isOpen) return;
+      if (!canUseDesktopApi || !isOpen) return;
     try {
-      const next = await window.electronAPI.bidComparison.autoStatus({
+      const next = await platformAdapter.bidComparison.autoStatus({
         projectId,
         categoryId,
       });
@@ -196,7 +194,7 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
       if (!canUseDesktopApi) return;
       const folder = tenderFolderPath.trim();
       if (!folder) return;
-      const result = await window.electronAPI.bidComparison.autoStart(buildAutoConfig(enabled));
+      const result = await platformAdapter.bidComparison.autoStart(buildAutoConfig(enabled));
       setAutoStatus(result.status);
     },
     [buildAutoConfig, canUseDesktopApi, tenderFolderPath],
@@ -227,7 +225,7 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
 
     const poll = async () => {
       try {
-        const next = await window.electronAPI.bidComparison.autoStatus({
+        const next = await platformAdapter.bidComparison.autoStatus({
           projectId,
           categoryId,
         });
@@ -268,7 +266,7 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
     let cancelled = false;
     const poll = async () => {
       try {
-        const next = await window.electronAPI.bidComparison.get(jobId);
+        const next = await platformAdapter.bidComparison.get(jobId);
         if (cancelled || !next) return;
         setJob(next);
 
@@ -361,9 +359,9 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
         })),
       };
 
-      const result = await window.electronAPI.bidComparison.start(payload);
+      const result = await platformAdapter.bidComparison.start(payload);
       setJobId(result.jobId);
-      const initial = await window.electronAPI.bidComparison.get(result.jobId);
+      const initial = await platformAdapter.bidComparison.get(result.jobId);
       setJob(initial);
     } catch (error) {
       setDetectError(error instanceof Error ? error.message : String(error));
@@ -374,14 +372,14 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
 
   const cancelJob = useCallback(async () => {
     if (!canUseDesktopApi || !jobId) return;
-    await window.electronAPI.bidComparison.cancel(jobId);
+    await platformAdapter.bidComparison.cancel(jobId);
   }, [canUseDesktopApi, jobId]);
 
   const pickFolder = useCallback(async () => {
     if (!canUseDesktopApi) return;
     setIsPickingFolder(true);
     try {
-      const selected = await window.electronAPI.fs.selectFolder();
+      const selected = await platformAdapter.fs.selectFolder();
       if (!selected?.path) return;
       setTenderFolderPath(selected.path);
       await runDetection(selected.path);
@@ -394,12 +392,12 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
     if (!job?.outputLatestPath && !job?.outputPath) return;
     const target = job.outputLatestPath || job.outputPath;
     if (!target) return;
-    await window.electronAPI?.fs.openFile(target);
+    await platformAdapter.fs.openFile(target);
   }, [job?.outputLatestPath, job?.outputPath]);
 
   const openTenderFolder = useCallback(async () => {
     if (!tenderFolderPath.trim()) return;
-    await window.electronAPI?.fs.openInExplorer(tenderFolderPath);
+    await platformAdapter.fs.openInExplorer(tenderFolderPath);
   }, [tenderFolderPath]);
 
   const toggleAutoMode = useCallback(
@@ -418,7 +416,7 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
           return;
         }
 
-        await window.electronAPI.bidComparison.autoStop({
+        await platformAdapter.bidComparison.autoStop({
           projectId,
           categoryId,
         });

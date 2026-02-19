@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Header } from "@/components/Header";
-import { Pipeline } from "@/components/Pipeline";
-import { TenderPlan } from "@/components/TenderPlan";
-import { ProjectSchedule } from "@/components/ProjectSchedule";
+import { Header } from "@/shared/ui/Header";
+import { Pipeline } from "@/shared/ui/projects/Pipeline";
+import { TenderPlan } from "@/shared/ui/projects/TenderPlan";
+import { ProjectSchedule } from "@/shared/ui/projects/ProjectSchedule";
 import {
   ProjectTab,
   ProjectDetails,
@@ -11,8 +11,9 @@ import {
   Subcontractor,
   StatusConfig,
 } from "@/types";
-import { ProjectOverviewNew } from "@/components/ProjectOverviewNew";
-import { ProjectDocuments, Contracts } from "@/components/projectLayoutComponents";
+import { ProjectOverviewNew } from "@/shared/ui/projects/ProjectOverviewNew";
+import { ProjectDocuments } from "@/shared/ui/projects/ProjectDocuments";
+import { Contracts } from "@/shared/ui/projects/Contracts";
 import { useFeatures } from "@/context/FeatureContext";
 import { FEATURES } from "@/config/features";
 // --- Main Layout Component ---
@@ -180,26 +181,6 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
                 deadline: dateTo || "", // VŘ dateTo → deadline (termín nabídky)
               };
               onAddCategory(newCategory);
-
-              // Sync: Link the tender_plan to this new category
-              try {
-                const { supabase } = await import("@/services/supabase");
-                // Find the tender_plan by name and update its category_id
-                const { error } = await supabase
-                  .from("tender_plans")
-                  .update({ category_id: newCategory.id })
-                  .eq("project_id", projectId)
-                  .eq("name", name);
-
-                if (error) {
-                  console.error(
-                    "Error linking tender_plan to category:",
-                    error,
-                  );
-                }
-              } catch (err) {
-                console.error("Error syncing tender_plan:", err);
-              }
             }}
           />
         )}

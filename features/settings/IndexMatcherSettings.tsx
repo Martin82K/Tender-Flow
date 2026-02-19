@@ -5,7 +5,7 @@ import {
   fillDescriptions,
   IndexMap,
 } from "@/utils/indexMatcher";
-import { AlertModal } from "@/components/AlertModal";
+import { AlertModal } from "@/shared/ui/AlertModal";
 
 const INDEX_STORAGE_KEY = "indexMatcherIndexData";
 
@@ -531,4 +531,3 @@ export const IndexMatcherSettings: React.FC = () => {
 };
 
 export default IndexMatcherSettings;
-

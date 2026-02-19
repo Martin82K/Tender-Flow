@@ -84,7 +84,6 @@ export const AppContent: React.FC = () => {
   useStuckLoadingRecovery({
     shouldShowLoader,
     isDataLoading: state.isDataLoading,
-    isDesktop,
     logout,
   });
 

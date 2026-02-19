@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { PROJECT_KEYS } from '@/hooks/queries/useProjectsQuery';
 import { Project, ProjectStatus } from '@/types';
-import { Header } from '@/components/Header';
+import { Header } from '@/shared/ui/Header';
 import { projectService } from '@/services/projectService';
 import { useAuth } from '@/context/AuthContext';
-import { DeleteConfirmationModal } from '@/components/DeleteConfirmationModal';
-import { AlertModal } from '@/components/AlertModal';
-import { ConfirmationModal } from '@/components/ConfirmationModal';
+import { DeleteConfirmationModal } from '@/shared/ui/DeleteConfirmationModal';
+import { AlertModal } from '@/shared/ui/AlertModal';
+import { ConfirmationModal } from '@/shared/ui/ConfirmationModal';
 import { useFeatures } from '@/context/FeatureContext';
 
 interface ProjectManagerProps {

@@ -1,7 +1,18 @@
 import React, { useEffect, useState } from "react";
 import { SubscriptionInfo, SubscriptionTier } from "../../types";
-import { userSubscriptionService } from "../../services/userSubscriptionService";
-import { billingService, PRICING_CONFIG } from "../../services/billingService";
+import {
+  cancelPlan,
+  createBillingPortalSession,
+  createCheckoutSession,
+  formatBillingPrice,
+  formatSubscriptionExpirationDate,
+  getSubscriptionState,
+  isBillingConfigured,
+  PRICING_CONFIG,
+  reactivatePlan,
+  requestPlanChange,
+  syncSubscription,
+} from "@/features/subscription/api";
 import {
   getTierLabel,
   getTierBadgeClass,
@@ -50,7 +61,7 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
 
         // Force sync with Stripe
         try {
-          await billingService.syncSubscription();
+          await syncSubscription();
         } catch (e) {
           console.error("Sync failed", e);
         }
@@ -71,7 +82,7 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
   const loadSubscription = async () => {
     setLoading(true);
     try {
-      const status = await userSubscriptionService.getSubscriptionStatus();
+      const status = await getSubscriptionState();
       setSubscription(status);
     } catch (error) {
       console.error("Failed to load subscription:", error);
@@ -84,7 +95,7 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
     setActionLoading(true);
     setMessage(null);
     try {
-      const result = await userSubscriptionService.cancelSubscription();
+      const result = await cancelPlan();
       if (result.success) {
         setMessage({
           type: "success",
@@ -114,7 +125,7 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
     setActionLoading(true);
     setMessage(null);
     try {
-      const result = await userSubscriptionService.reactivateSubscription();
+      const result = await reactivatePlan();
       if (result.success) {
         setMessage({
           type: "success",
@@ -146,7 +157,7 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
     setMessage(null);
     try {
       // First check if billing is configured
-      if (billingService.isBillingConfigured()) {
+      if (isBillingConfigured()) {
         // Determine if we should use Checkout (new sub) or Portal (update sub)
         const hasActiveSubscription =
           subscription &&
@@ -157,24 +168,23 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
         if (hasActiveSubscription) {
           // Update existing subscription via Billing Portal
           // This handles proration correctly
-          const result = await billingService.createBillingPortalSession({
-            returnUrl:
-              window.location.origin +
+          const result = await createBillingPortalSession(
+            window.location.origin +
               "/app/settings?tab=user&subTab=subscription",
-          });
+          );
           if (result.success && result.portalUrl) {
             window.location.href = result.portalUrl;
             return;
           }
         } else {
           // Create new subscription via Checkout
-          const result = await billingService.createCheckoutSession({
+          const result = await createCheckoutSession({
             tier: tier as "pro" | "enterprise",
-            billingPeriod, // Pass selected billing period
-            successUrl:
+            billingPeriod,
+            successPath:
               window.location.origin +
               "/app/settings?tab=user&subTab=subscription&success=true",
-            cancelUrl:
+            cancelPath:
               window.location.origin +
               "/app/settings?tab=user&subTab=subscription",
           });
@@ -187,7 +197,7 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
 
       // Fallback: request upgrade via RPC (admin approval flow)
       // Only if billing is NOT configured or failed
-      const result = await userSubscriptionService.requestTierUpgrade(tier);
+      const result = await requestPlanChange(tier);
       if (result.success) {
         setMessage({
           type: "success",
@@ -258,13 +268,13 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
             <Clock className="w-3.5 h-3.5" />
             Aktualizovat
           </button>
-          {billingService.isBillingConfigured() && (
+          {isBillingConfigured() && (
             <button
               onClick={async () => {
                 setActionLoading(true);
                 setMessage(null);
                 try {
-                  const result = await billingService.syncSubscription();
+                  const result = await syncSubscription();
                   if (result.success) {
                     setMessage({
                       type: "success",
@@ -336,7 +346,7 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
                 {isCancelled && !isExpired && (
                   <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-amber-500/10 text-amber-500 uppercase tracking-wider border border-amber-500/20">
                     {subscription.expiresAt
-                      ? `Končí ${userSubscriptionService.formatExpirationDate(subscription.expiresAt)}`
+                      ? `Končí ${formatSubscriptionExpirationDate(subscription.expiresAt)}`
                       : "Zrušeno"}
                   </span>
                 )}
@@ -376,7 +386,7 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
                         <span>
                           Další fakturace{" "}
                           <strong>
-                            {userSubscriptionService.formatExpirationDate(
+                            {formatSubscriptionExpirationDate(
                               subscription.expiresAt,
                             )}
                           </strong>
@@ -408,7 +418,7 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
                         if (subscription.cancelAtPeriodEnd) {
                           // Currently cancelled (will expire at period end) -> Reactivate
                           const result =
-                            await userSubscriptionService.reactivateSubscription();
+                            await reactivatePlan();
                           if (result.success) {
                             setMessage({
                               type: "success",
@@ -429,7 +439,7 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
                           // Currently active -> Cancel (Turn off auto-renewal)
                           // We can skipp the confirm dialog for toggle interaction or keep it simple
                           const result =
-                            await userSubscriptionService.cancelSubscription();
+                            await cancelPlan();
                           if (result.success) {
                             setMessage({
                               type: "success",
@@ -494,16 +504,14 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
 
             {/* Quick Actions (only billing portal remaining) */}
             <div className="flex flex-wrap items-center gap-2 self-end sm:self-auto">
-              {billingService.isBillingConfigured() &&
+              {isBillingConfigured() &&
                 subscription.billingCustomerId && (
                   <button
                     onClick={async () => {
-                      const result =
-                        await billingService.createBillingPortalSession({
-                          returnUrl:
-                            window.location.origin +
-                            "/app/settings?tab=user&subTab=subscription",
-                        });
+                      const result = await createBillingPortalSession(
+                        window.location.origin +
+                          "/app/settings?tab=user&subTab=subscription",
+                      );
                       if (result.success && result.portalUrl) {
                         window.location.href = result.portalUrl;
                       }
@@ -523,7 +531,7 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
           !isCancelled &&
           subscription.tier !== "free" &&
           subscription.tier !== "admin" &&
-          billingService.isBillingConfigured() && (
+          isBillingConfigured() && (
             <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-2xl p-5 relative overflow-hidden flex flex-col justify-between">
               <div className="relative z-10">
                 <h4 className="text-sm font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
@@ -538,12 +546,10 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
                 onClick={async () => {
                   setActionLoading(true);
                   try {
-                    const result =
-                      await billingService.createBillingPortalSession({
-                        returnUrl:
-                          window.location.origin +
-                          "/app/settings?tab=user&subTab=subscription",
-                      });
+                    const result = await createBillingPortalSession(
+                      window.location.origin +
+                        "/app/settings?tab=user&subTab=subscription",
+                    );
                     if (result.success && result.portalUrl) {
                       window.location.href = result.portalUrl;
                     }
@@ -638,12 +644,10 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
                   onClick={async () => {
                     setActionLoading(true);
                     try {
-                      const result =
-                        await billingService.createBillingPortalSession({
-                          returnUrl:
-                            window.location.origin +
-                            "/app/settings?tab=user&subTab=subscription",
-                        });
+                      const result = await createBillingPortalSession(
+                        window.location.origin +
+                          "/app/settings?tab=user&subTab=subscription",
+                      );
                       if (result.success && result.portalUrl) {
                         window.location.href = result.portalUrl;
                       }
@@ -683,17 +687,17 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
               <div className="mb-5">
                 {billingPeriod === "yearly" && (
                   <p className="text-sm font-medium text-slate-400 line-through mb-0.5">
-                    {billingService.formatPrice(
+                    {formatBillingPrice(
                       PRICING_CONFIG.starter.monthlyPrice,
                     )}
                   </p>
                 )}
                 <p className="text-3xl font-black text-slate-900 dark:text-white">
                   {billingPeriod === "monthly"
-                    ? billingService.formatPrice(
+                    ? formatBillingPrice(
                         PRICING_CONFIG.starter.monthlyPrice,
                       )
-                    : billingService.formatPrice(
+                    : formatBillingPrice(
                         Math.round(PRICING_CONFIG.starter.yearlyPrice / 12),
                       )}
                   <span className="text-xs font-medium text-slate-400 ml-1">
@@ -771,17 +775,17 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
               <div className="mb-5">
                 {billingPeriod === "yearly" && (
                   <p className="text-sm font-medium text-slate-400 line-through mb-0.5">
-                    {billingService.formatPrice(
+                    {formatBillingPrice(
                       PRICING_CONFIG.pro.monthlyPrice,
                     )}
                   </p>
                 )}
                 <p className="text-3xl font-black text-slate-900 dark:text-white">
                   {billingPeriod === "monthly"
-                    ? billingService.formatPrice(
+                    ? formatBillingPrice(
                         PRICING_CONFIG.pro.monthlyPrice,
                       )
-                    : billingService.formatPrice(
+                    : formatBillingPrice(
                         Math.round(PRICING_CONFIG.pro.yearlyPrice / 12),
                       )}
                   <span className="text-xs font-medium text-slate-400 ml-1">

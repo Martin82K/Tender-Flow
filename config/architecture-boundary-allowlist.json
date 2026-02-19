@@ -1,0 +1,68 @@
+{
+  "allowedFindings": [
+    {
+      "type": "deep-relative-import",
+      "file": "components/projectLayoutComponents/contractsComponents/AmendmentsList.tsx"
+    },
+    {
+      "type": "deep-relative-import",
+      "file": "components/projectLayoutComponents/contractsComponents/ContractForm.tsx"
+    },
+    {
+      "type": "deep-relative-import",
+      "file": "components/projectLayoutComponents/contractsComponents/ContractsList.tsx"
+    },
+    {
+      "type": "deep-relative-import",
+      "file": "components/projectLayoutComponents/contractsComponents/ContractsOverview.tsx"
+    },
+    {
+      "type": "deep-relative-import",
+      "file": "components/projectLayoutComponents/contractsComponents/DrawdownsList.tsx"
+    },
+    {
+      "type": "deep-relative-import",
+      "file": "components/projectLayoutComponents/contractsComponents/ExtractionValidation.tsx"
+    },
+    {
+      "type": "deep-relative-import",
+      "file": "components/projectLayoutComponents/documents/AutoCreateModal.tsx"
+    },
+    {
+      "type": "deep-relative-import",
+      "file": "components/projectLayoutComponents/documents/dochub/DocHubAutoCreateStatus.tsx"
+    },
+    {
+      "type": "deep-relative-import",
+      "file": "components/projectLayoutComponents/documents/dochub/DocHubHistory.tsx"
+    },
+    {
+      "type": "deep-relative-import",
+      "file": "components/projectLayoutComponents/documents/dochub/DocHubLinks.tsx"
+    },
+    {
+      "type": "deep-relative-import",
+      "file": "components/projectLayoutComponents/documents/dochub/DocHubSetupWizard.tsx"
+    },
+    {
+      "type": "deep-relative-import",
+      "file": "components/projectLayoutComponents/documents/dochub/DocHubStatusCard.tsx"
+    },
+    {
+      "type": "deep-relative-import",
+      "file": "components/projectLayoutComponents/documents/dochub/DocHubStructureEditor.tsx"
+    },
+    {
+      "type": "deep-relative-import",
+      "file": "components/projectLayoutComponents/documents/DocsLinkSection.tsx"
+    },
+    {
+      "type": "deep-relative-import",
+      "file": "components/projectLayoutComponents/documents/PriceListsSection.tsx"
+    },
+    {
+      "type": "deep-relative-import",
+      "file": "components/projectLayoutComponents/documents/TemplatesSection.tsx"
+    }
+  ]
+}

@@ -17,12 +17,10 @@ import {
 } from "../services/demoData";
 import { isDesktop, platformAdapter } from "../services/platformAdapter";
 import {
-  clearStoredSessionData,
-  getStoredAuthSessionRaw,
-  setRememberMePreference,
-  supabase,
-} from "../services/supabase";
+  authSessionService,
+} from "../services/authSessionService";
 import { navigate } from "../shared/routing/router";
+import { authSessionStore } from "@infra/auth/authSessionStore";
 
 interface AuthContextType {
   user: User | null;
@@ -30,7 +28,7 @@ interface AuthContextType {
   loginWithBiometric: () => Promise<boolean>;
   register: (name: string, email: string, password: string) => Promise<void>;
   updatePreferences: (preferences: any) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   loginAsDemo: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -60,6 +58,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       return freshUser;
     });
   }, []);
+  const isInvalidRefreshError = (error: unknown): boolean => {
+    const message = String((error as any)?.message || "").toLowerCase();
+    const status = Number((error as any)?.status || (error as any)?.code || 0);
+    return (
+      status === 400 ||
+      message.includes("invalid refresh token") ||
+      message.includes("refresh token not found")
+    );
+  };
 
   // Check biometric availability and validate stored credentials on mount
   useEffect(() => {
@@ -117,7 +124,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     };
 
     try {
-      const raw = getStoredAuthSessionRaw();
+      const raw = authSessionService.getStoredAuthSessionRaw();
       if (raw) {
         const parsed = JSON.parse(raw);
         // Validate the session object has the expected shape
@@ -132,14 +139,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
         if (isInvalidToken(accessToken) || isInvalidToken(refreshToken)) {
           console.warn('[AuthContext] Corrupted session token detected, clearing session');
-          clearStoredSessionData();
+          authSessionService.clearStoredSessionData();
         }
       }
     } catch (e) {
       // If we can't parse the session, it's corrupted - clear it
       console.warn('[AuthContext] Could not parse stored session, clearing:', e);
       try {
-        clearStoredSessionData();
+        authSessionService.clearStoredSessionData();
       } catch { /* ignore */ }
     }
 
@@ -159,58 +166,61 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       }
     }
 
-    // Priority 2: Try biometric auto-login on desktop (if enabled and no active session)
-    const tryBiometricAutoLogin = async (): Promise<"success" | "cancelled" | "skipped" | "failed"> => {
+    // Priority 2: Desktop restore flow (single refresh attempt; no fallback retries)
+    const tryDesktopSessionRestore = async (): Promise<"success" | "cancelled" | "skipped" | "failed"> => {
       if (!isDesktop || biometricLoginAttemptedRef.current) return "skipped";
 
-      try {
-        const [biometricEnabled, credentials] = await Promise.all([
-          platformAdapter.session.isBiometricEnabled(),
-          platformAdapter.session.getCredentials(),
-        ]);
+      const [biometricEnabled, credentials] = await Promise.all([
+        platformAdapter.session.isBiometricEnabled(),
+        platformAdapter.session.getCredentials(),
+      ]);
 
-        if (!biometricEnabled || !credentials) {
-          console.log("[AuthContext] Auto-login: No biometric or credentials");
-          return "skipped";
-        }
+      if (!credentials) {
+        console.log("[AuthContext] Auto-login: No stored credentials");
+        return "skipped";
+      }
 
-        // Validate refresh token format before using it
-        if (typeof credentials.refreshToken !== 'string' || credentials.refreshToken.length < 10) {
-          console.warn("[AuthContext] Auto-login: Invalid refresh token format, clearing");
-          await platformAdapter.session.clearCredentials();
-          setHasSavedCredentials(false);
-          return "failed";
-        }
+      if (typeof credentials.refreshToken !== "string" || credentials.refreshToken.length < 10) {
+        console.warn("[AuthContext] Auto-login: Invalid refresh token format");
+        await authSessionService.invalidateAuthState({
+          navigateToLogin: false,
+          reason: "invalid_refresh_token",
+        });
+        setHasSavedCredentials(false);
+        return "failed";
+      }
 
+      if (biometricEnabled) {
+        setCanUseBiometric(true);
+        setHasSavedCredentials(true);
         console.log("[AuthContext] Auto-login: Prompting for biometric...");
-        biometricLoginAttemptedRef.current = true;
-
         const success = await platformAdapter.biometric.prompt("Odemknout Tender Flow");
         if (!success) {
           console.log("[AuthContext] Auto-login: Biometric cancelled");
-          biometricLoginAttemptedRef.current = false;
-          setHasSavedCredentials(true);
-          setCanUseBiometric(true);
           return "cancelled";
         }
+      }
 
-        // Refresh session with stored token - this creates a completely fresh session
+      biometricLoginAttemptedRef.current = true;
+
+      try {
         console.log("[AuthContext] Auto-login: Refreshing session with stored token...");
-        const { data, error } = await supabase.auth.refreshSession({
-          refresh_token: credentials.refreshToken,
-        });
+        const { data, error } = await authSessionService.refreshSession(credentials.refreshToken);
 
         if (error || !data.session) {
           console.error("[AuthContext] Auto-login: Session refresh failed", error);
-          await platformAdapter.session.clearCredentials();
-          setHasSavedCredentials(false);
-          biometricLoginAttemptedRef.current = false;
+          if (isInvalidRefreshError(error)) {
+            await authSessionService.invalidateAuthState({
+              navigateToLogin: false,
+              reason: "invalid_refresh_token",
+            });
+          } else {
+            await platformAdapter.session.clearCredentials();
+            setHasSavedCredentials(false);
+          }
           return "failed";
         }
 
-        console.log("[AuthContext] Auto-login: Session refreshed successfully");
-
-        // Update stored credentials with new refresh token
         await platformAdapter.session.saveCredentials({
           refreshToken: data.session.refresh_token,
           email: credentials.email,
@@ -219,35 +229,35 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         const currentUser = await authService.getUserFromSession(data.session, {
           onBackgroundRefresh: applyBackgroundUserRefresh,
         });
-        if (currentUser) {
-          setUser(currentUser);
-          setHasSavedCredentials(true);
-          setCanUseBiometric(true);
-          setIsLoading(false);
-          console.log("[AuthContext] Auto-login: Success!", currentUser.email);
-          biometricLoginAttemptedRef.current = false;
-          return "success";
+
+        if (!currentUser) {
+          return "failed";
         }
 
-        biometricLoginAttemptedRef.current = false;
-        return "failed";
-      } catch (e) {
-        console.error("[AuthContext] Auto-login error:", e);
-        // Clear potentially corrupted credentials
-        try {
-          await platformAdapter.session.clearCredentials();
+        setUser(currentUser);
+        setHasSavedCredentials(true);
+        setCanUseBiometric(biometricEnabled);
+        console.log("[AuthContext] Auto-login: Success!", currentUser.email);
+        return "success";
+      } catch (error) {
+        console.error("[AuthContext] Auto-login error:", error);
+        if (isInvalidRefreshError(error)) {
+          await authSessionService.invalidateAuthState({
+            navigateToLogin: false,
+            reason: "invalid_refresh_token",
+          });
           setHasSavedCredentials(false);
-          clearStoredSessionData();
-        } catch { /* ignore */ }
-        biometricLoginAttemptedRef.current = false;
+        }
         return "failed";
+      } finally {
+        biometricLoginAttemptedRef.current = false;
       }
     };
 
     // Listen for auth changes first (so INITIAL_SESSION can hydrate even if getCurrentUser hangs)
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    authSessionStore.start();
+
+    const unsubscribeAuthEvents = authSessionStore.subscribe(async ({ event, session }) => {
       console.log(
         "[AuthContext] Auth State Change:",
         event,
@@ -257,7 +267,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       if (
         event === "SIGNED_IN" ||
         event === "INITIAL_SESSION" ||
-        event === "TOKEN_REFRESHED"
+        event === "TOKEN_REFRESHED" ||
+        event === "SESSION_SYNC"
       ) {
         if (session) {
           const token = (session as any)?.access_token || null;
@@ -290,7 +301,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
               setIsLoading(false);
             }
           }
-        } else if (event === "INITIAL_SESSION") {
+        } else if (event === "INITIAL_SESSION" || event === "SESSION_SYNC") {
           // No session on initial load - not authenticated
           setIsLoading(false);
         }
@@ -300,6 +311,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         setIsLoading(false);
       }
     });
+    void authSessionStore.syncSession();
 
     // Best-effort active session load, but never block UI indefinitely.
     const initTimeoutMs = 8000;
@@ -317,91 +329,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
     (async () => {
       try {
-        // First try biometric auto-login on desktop
-        const biometricStatus = await tryBiometricAutoLogin();
-        if (biometricStatus === "success") {
+        const desktopRestoreStatus = await tryDesktopSessionRestore();
+        if (desktopRestoreStatus === "success") {
           window.clearTimeout(timer);
-          return; // Already logged in via biometric
+          return;
         }
 
-        // Desktop: Try to restore session from secure storage with Biometrics
-        if (isDesktop && platformAdapter.session) {
-          console.log("[AuthContext] Checking desktop secure storage...");
-          const creds = await platformAdapter.session.getCredentials();
-
-          if (creds?.refreshToken) {
-            // Validate refresh token is a proper string before using it
-            if (typeof creds.refreshToken !== 'string' || creds.refreshToken.length < 10) {
-              console.warn("[AuthContext] Invalid refresh token format, clearing credentials");
-              await platformAdapter.session.clearCredentials();
-              setHasSavedCredentials(false);
-            } else {
-              console.log("[AuthContext] Found stored credentials, checking biometric status...");
-              let biometricEnabled = false;
-              try {
-                biometricEnabled = await platformAdapter.session.isBiometricEnabled();
-                console.log("[AuthContext] Biometric enabled status:", biometricEnabled);
-              } catch (e) {
-                console.error("[AuthContext] Failed to check biometric status:", e);
-              }
-
-
-              let authenticated = true;
-              if (biometricEnabled && biometricStatus !== "cancelled") {
-                console.log("[AuthContext] Biometric enabled, prompting...");
-                authenticated = await platformAdapter.biometric.prompt("Přihlášení do Tender Flow");
-              } else {
-                console.log("[AuthContext] Biometric disabled or already cancelled, skipping prompt");
-              }
-
-              if (authenticated) {
-                console.log("[AuthContext] Restoring session from refresh token...");
-                try {
-                  const { data, error } = await supabase.auth.refreshSession({
-                    refresh_token: creds.refreshToken,
-                  });
-
-                  if (!error && data.session) {
-                    console.log("[AuthContext] Session restored successfully");
-
-                    // Update stored credentials with new refresh token
-                    await platformAdapter.session.saveCredentials({
-                      refreshToken: data.session.refresh_token,
-                      email: creds.email,
-                    });
-
-                    const user = await authService.getUserFromSession(data.session, {
-                      onBackgroundRefresh: applyBackgroundUserRefresh,
-                    });
-                    if (user) {
-                      setUser(user);
-                      setIsLoading(false);
-                      window.clearTimeout(timer);
-                      finish();
-                      return;
-                    }
-                  } else {
-                    console.warn("[AuthContext] Failed to restore session:", error);
-                    // Clear invalid credentials to prevent retry loops
-                    await platformAdapter.session.clearCredentials();
-                    setHasSavedCredentials(false);
-                    // Also clear localStorage session data
-                    try {
-                      clearStoredSessionData();
-                    } catch { /* ignore */ }
-                  }
-                } catch (sessionError) {
-                  console.error("[AuthContext] Session restore threw error:", sessionError);
-                  // Clear corrupted credentials
-                  await platformAdapter.session.clearCredentials();
-                  setHasSavedCredentials(false);
-                  try {
-                    clearStoredSessionData();
-                  } catch { /* ignore */ }
-                }
-              }
-            }
-          }
+        if (desktopRestoreStatus === "cancelled") {
+          setUser(null);
+          return;
         }
 
         const currentUser = await authService.getCurrentUser({
@@ -421,14 +357,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     })();
 
     return () => {
-      // Cleanup
-      subscription.unsubscribe();
+      unsubscribeAuthEvents();
     };
   }, []);
 
   const login = async (email: string, password: string, rememberMe: boolean = true) => {
     try {
-      setRememberMePreference(rememberMe);
+      authSessionService.setRememberMePreference(rememberMe);
 
       const timeoutMs = 10000;
       const user = await Promise.race([
@@ -457,7 +392,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
       // Save session for biometric unlock (desktop only) - only if rememberMe is enabled
       if (isDesktop && rememberMe) {
-        const { data } = await supabase.auth.getSession();
+        const { data } = await authSessionService.getSession();
         if (data?.session?.refresh_token) {
           try {
             await platformAdapter.session.saveCredentials({
@@ -528,14 +463,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
       // Use refresh token to get new session
       console.log("[AuthContext] Biometric success, refreshing session...");
-      const { data, error } = await supabase.auth.refreshSession({
-        refresh_token: credentials.refreshToken,
-      });
+      const { data, error } = await authSessionService.refreshSession(
+        credentials.refreshToken,
+      );
 
       if (error || !data.session) {
         console.error("[AuthContext] Failed to refresh session:", error);
-        // Clear invalid credentials
-        await platformAdapter.session.clearCredentials();
+        if (isInvalidRefreshError(error)) {
+          await authSessionService.invalidateAuthState({
+            navigateToLogin: false,
+            reason: "invalid_refresh_token",
+          });
+        } else {
+          await platformAdapter.session.clearCredentials();
+        }
         setHasSavedCredentials(false);
         biometricLoginAttemptedRef.current = false;
         return false;
@@ -562,6 +503,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       return false;
     } catch (error) {
       console.error("[AuthContext] Biometric login error:", error);
+      if (isInvalidRefreshError(error)) {
+        await authSessionService.invalidateAuthState({
+          navigateToLogin: false,
+          reason: "invalid_refresh_token",
+        });
+      }
       biometricLoginAttemptedRef.current = false;
       return false;
     }
@@ -601,16 +548,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       } else {
         await authService.logout();
       }
-      // Clear stored session credentials (desktop)
-      if (isDesktop) {
-        await platformAdapter.session.clearCredentials();
-      }
     } catch (error) {
       console.error("Logout failed:", error);
     } finally {
-      // Always clear local session even if server request fails
+      await authSessionService.invalidateAuthState({
+        navigateToLogin: false,
+        reason: "manual_logout",
+      });
       setUser(null);
-      // Navigate to login page - use navigate for SPA routing (works better with Electron)
       if (isDesktop) {
         navigate("/login", { replace: true });
       } else {

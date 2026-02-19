@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js';
-import { navigate } from '../shared/routing/router';
 
 // ========================================================================
 // HEADERS SAFETY PATCH
@@ -204,12 +203,41 @@ let _authErrorCount = 0;
 const MAX_AUTH_ERRORS = 5;
 const AUTH_ERROR_RESET_MS = 30_000;
 let _authErrorResetTimer: ReturnType<typeof setTimeout> | null = null;
+let _refreshAuthErrorCount = 0;
+const MAX_REFRESH_AUTH_ERRORS = 2;
+let _refreshAuthErrorResetTimer: ReturnType<typeof setTimeout> | null = null;
 
 /**
  * Check if an Authorization header value is corrupted/invalid
  * (reuses isCorruptedAuthValue defined above for headers patch)
  */
 const isCorruptedAuthHeader = isCorruptedAuthValue;
+
+const getRequestUrl = (input: RequestInfo | URL): string => {
+  if (typeof input === 'string') return input;
+  if (input instanceof URL) return input.toString();
+  return input.url;
+};
+
+const isRefreshTokenRequest = (url: string): boolean => {
+  return url.includes('/auth/v1/token') && url.includes('grant_type=refresh_token');
+};
+
+const isRefreshTokenFailure = (url: string, status: number): boolean => {
+  return isRefreshTokenRequest(url) && (status === 400 || status === 401);
+};
+
+const triggerAuthRecovery = async (): Promise<void> => {
+  try {
+    const { authSessionService } = await import('./authSessionService');
+    await authSessionService.invalidateAuthState({
+      navigateToLogin: true,
+      reason: 'auth_fetch_errors',
+    });
+  } catch (error) {
+    console.error('[Supabase] Failed to trigger centralized auth recovery:', error);
+  }
+};
 
 const getStorageValue = (storage: Storage, key: string): string | null => {
   try {
@@ -367,6 +395,26 @@ const safeFetch: typeof fetch = async (input, init) => {
 
   try {
     const response = await fetch(input, init);
+    const requestUrl = getRequestUrl(input);
+
+    if (isRefreshTokenFailure(requestUrl, response.status)) {
+      _refreshAuthErrorCount++;
+      console.warn(
+        `[Supabase] Refresh token failure detected (${_refreshAuthErrorCount}/${MAX_REFRESH_AUTH_ERRORS}): status ${response.status}`,
+      );
+
+      if (_refreshAuthErrorResetTimer) clearTimeout(_refreshAuthErrorResetTimer);
+      _refreshAuthErrorResetTimer = setTimeout(() => {
+        _refreshAuthErrorCount = 0;
+      }, AUTH_ERROR_RESET_MS);
+
+      if (_refreshAuthErrorCount >= MAX_REFRESH_AUTH_ERRORS) {
+        _refreshAuthErrorCount = 0;
+        await triggerAuthRecovery();
+      }
+    } else if (_refreshAuthErrorCount > 0) {
+      _refreshAuthErrorCount = 0;
+    }
 
     // Reset error counter on success
     if (_authErrorCount > 0) {
@@ -396,20 +444,10 @@ const safeFetch: typeof fetch = async (input, init) => {
       if (_authErrorCount >= MAX_AUTH_ERRORS) {
         console.error(
           `[Supabase] ${MAX_AUTH_ERRORS} consecutive auth errors detected. ` +
-          `Session may be corrupted. Clearing session data.`
+          `Session may be corrupted. Triggering centralized auth recovery.`
         );
         _authErrorCount = 0;
-
-        // Clear the stored session to break the infinite retry loop
-        // Also clear demo session flag to prevent false demo detection
-        try {
-          clearStoredSessionData();
-        } catch { /* ignore */ }
-
-        // Redirect to login after a short delay to let current operations settle
-        setTimeout(() => {
-          navigate('/login', { replace: true });
-        }, 500);
+        await triggerAuthRecovery();
       }
     }
 

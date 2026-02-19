@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { supabase } from "../../services/supabase";
+import { dbAdapter } from "../../services/dbAdapter";
 
 // Default AI Prompts
 const DEFAULT_PROMPT_ACHIEVEMENTS = `Jsi kreativní analytik stavebních projektů. Vygeneruj 4-5 UNIKÁTNÍCH achievement-style insights ve stylu herních úspěchů. Buď kreativní - každé volání má být jiné!
@@ -83,7 +83,7 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
   // Load secret status (not values)
   useEffect(() => {
     const checkSecrets = async () => {
-      const { data, error } = await supabase
+      const { data, error } = await dbAdapter
         .from("app_secrets")
         .select("google_api_key, openrouter_api_key, mistral_api_key")
         .eq("id", "default")
@@ -118,7 +118,7 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
       return;
     }
 
-    const { error } = await supabase
+    const { error } = await dbAdapter
       .from("app_secrets")
       .upsert(updates, { onConflict: "id" });
 
@@ -165,7 +165,7 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
   // Load models
   useEffect(() => {
     const loadModels = async () => {
-      const { data } = await supabase
+      const { data } = await dbAdapter
         .from("app_settings")
         .select(
           "ai_ocr_model, ai_extraction_model, ai_ocr_provider, ai_extraction_provider",
@@ -266,7 +266,7 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
   }, [mistralKey]);
 
   const saveModels = async () => {
-    const { error } = await supabase
+    const { error } = await dbAdapter
       .from("app_settings")
       .update({
         ai_ocr_model: ocrModel,
@@ -278,7 +278,7 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
 
     if (error) {
       console.error("Error saving models:", error);
-      await supabase.from("app_settings").upsert({
+      await dbAdapter.from("app_settings").upsert({
         id: "default",
         ai_ocr_model: ocrModel,
         ai_extraction_model: extractionModel,

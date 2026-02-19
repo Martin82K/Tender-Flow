@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ProjectDetails } from '../types';
-import { supabase } from '../services/supabase';
+import { dbAdapter } from '../services/dbAdapter';
 import { invokeAuthedFunction } from '../services/functionsClient';
 import { resolveDocHubStructureV1, getDocHubProjectLinks, DEFAULT_DOCHUB_HIERARCHY, DocHubHierarchyItem, buildHierarchyTree, type DocHubStructureV1 } from '../utils/docHub';
 import { isMcpBridgeRunning, mcpEnsureStructure, mcpFolderExists, mcpPickFolder } from '../services/mcpBridgeClient';
-import { isDesktop, fileSystemAdapter } from '../services/platformAdapter';
+import { isDesktop, fileSystemAdapter, oauthAdapter } from '../services/platformAdapter';
 import { folderExists } from '../services/fileSystemService';
 
 export interface DocHubModalRequest {
@@ -355,13 +355,11 @@ export const useDocHubIntegration = (
                     throw new Error("Chybí VITE_GOOGLE_OAUTH_CLIENT_ID_DESKTOP v .env.");
                 }
 
-                // @ts-ignore - electronAPI is injected via preload
-                const oauth = window.electronAPI?.oauth;
-                if (!oauth?.googleLogin) {
+                if (!oauthAdapter.isAvailable()) {
                     throw new Error("Desktop OAuth není dostupný.");
                 }
 
-                const token = await oauth.googleLogin({
+                const token = await oauthAdapter.googleLogin({
                     clientId,
                     scopes: [
                         "https://www.googleapis.com/auth/drive.file",
@@ -422,7 +420,7 @@ export const useDocHubIntegration = (
         if (!project.id) return;
         setIsLoadingHistory(true);
         try {
-            const { data, error } = await supabase
+            const { data, error } = await dbAdapter
                 .from("dochub_autocreate_runs")
                 .select("*")
                 .eq("project_id", project.id)
@@ -737,7 +735,7 @@ export const useDocHubIntegration = (
         if (autoCreatePollRef.current) window.clearInterval(autoCreatePollRef.current);
         autoCreatePollRef.current = window.setInterval(async () => {
             try {
-                const { data } = await supabase.from("dochub_autocreate_runs").select("*").eq("id", runId).maybeSingle();
+                const { data } = await dbAdapter.from("dochub_autocreate_runs").select("*").eq("id", runId).maybeSingle();
                 if (data) {
                     if (data.progress_percent) setAutoCreateProgress(p => Math.max(p, data.progress_percent));
                     if (data.status) setBackendStatus(data.status);
@@ -867,7 +865,7 @@ export const useDocHubIntegration = (
                 setBackendStatus('success');
 
                 /* History saving temporarily disabled due to RLS policies (403 error)
-                const { error: historyError } = await supabase.from('dochub_autocreate_runs').insert({
+                const { error: historyError } = await dbAdapter.from('dochub_autocreate_runs').insert({
                     project_id: project.id,
                     status: mcpResult.success ? 'success' : 'error',
                     logs: mcpResult.logs,

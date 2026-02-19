@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { FeatureKey, PLANS } from '../config/features';
 import { useAuth } from './AuthContext';
-import { subscriptionFeaturesService } from '../services/subscriptionFeaturesService';
+import { getCurrentTier, getEnabledFeatures } from '@/features/subscription/api';
 
 // Periodic refresh interval for subscription tier validation
 const SUBSCRIPTION_REFRESH_INTERVAL = 1000 * 60 * 30; // 30 minutes
@@ -46,8 +46,8 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       // Fetch enabled features from backend RPC (cannot be bypassed)
       const [features, tier] = await Promise.all([
-        subscriptionFeaturesService.getUserEnabledFeatures(),
-        subscriptionFeaturesService.getUserSubscriptionTier(),
+        getEnabledFeatures(),
+        getCurrentTier(),
       ]);
 
       // Map feature keys to FeatureKey type

@@ -1,32 +1,22 @@
 import React, { useEffect, useState } from "react";
-
-type McpStatus = {
-  port: number | null;
-  sseUrl: string | null;
-  currentProjectId: string | null;
-  hasAuthToken: boolean;
-  isConfigured: boolean;
-};
+import { isDesktop, mcpAdapter, type McpStatusInfo } from "@/services/platformAdapter";
 
 interface McpDiagnosticsProps {
   isAdmin: boolean;
 }
 
 export const McpDiagnostics: React.FC<McpDiagnosticsProps> = ({ isAdmin }) => {
-  const [status, setStatus] = useState<McpStatus | null>(null);
+  const [status, setStatus] = useState<McpStatusInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const loadStatus = async () => {
     try {
       setError(null);
-      if (typeof window === "undefined") return;
-      // @ts-ignore - electronAPI is injected via preload
-      const api = window.electronAPI;
-      if (!api?.platform?.isDesktop || !api?.mcp?.getStatus) {
+      if (!isDesktop) {
         setStatus(null);
         return;
       }
-      const data = await api.mcp.getStatus();
+      const data = await mcpAdapter.getStatus();
       setStatus(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));

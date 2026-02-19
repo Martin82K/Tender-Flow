@@ -32,3 +32,9 @@ jobs:
 
       - name: Check legacy structure freeze
         run: npm run check:legacy-structure
+
+      - name: Smoke build (web)
+        run: npm run build
+
+      - name: Smoke compile (desktop)
+        run: npm run desktop:compile

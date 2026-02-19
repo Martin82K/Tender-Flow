@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "../../services/supabase";
+import { dbAdapter } from "../../services/dbAdapter";
 import { withRetry, withTimeout } from "../../utils/helpers";
 import { Project } from "../../types";
 import { useAuth } from "../../context/AuthContext";
@@ -33,7 +33,7 @@ export const useProjectsQuery = () => {
                     () =>
                         withTimeout(
                             Promise.resolve(
-                                supabase.from("projects").select("*").order("created_at", { ascending: false })
+                                dbAdapter.from("projects").select("*").order("created_at", { ascending: false })
                             ),
                             12000,
                             "Načtení projektů vypršelo"
@@ -43,7 +43,7 @@ export const useProjectsQuery = () => {
                 withRetry(
                     () =>
                         withTimeout(
-                            Promise.resolve(supabase.rpc("get_projects_metadata")),
+                            Promise.resolve(dbAdapter.rpc("get_projects_metadata")),
                             12000,
                             "Načtení oprávnění vypršelo"
                         ),

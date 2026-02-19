@@ -4,6 +4,7 @@ import { ConfirmationModal } from '../ConfirmationModal';
 import { navigate } from '@/shared/routing/router';
 import { buildAppUrl } from '@/shared/routing/routeUtils';
 import { Project, View, User } from '../../types';
+import platformAdapter from '../../services/platformAdapter';
 
 interface MainLayoutProps {
     children: React.ReactNode;
@@ -56,11 +57,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     onHideBackgroundWarning
 }) => {
     useEffect(() => {
-        if (typeof window === 'undefined') return;
-        // @ts-ignore - electronAPI is injected via preload
-        const api = window.electronAPI;
-        if (!api?.platform?.isDesktop || !api?.mcp?.setCurrentProject) return;
-        api.mcp.setCurrentProject(selectedProjectId || null);
+        if (!platformAdapter.isDesktop) return;
+        void platformAdapter.mcp.setCurrentProject(selectedProjectId || null);
     }, [selectedProjectId]);
 
     const handleViewChange = (view: View, opts?: any) => {

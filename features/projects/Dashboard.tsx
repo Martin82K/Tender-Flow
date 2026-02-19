@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Header } from "@/components/Header";
+import { Header } from "@/shared/ui/Header";
 import { Button } from "@/shared/ui/Button";
 import { Project, ProjectDetails } from "@/types";
-import { ProjectOverviewNew } from "@/components/ProjectOverviewNew";
+import { ProjectOverviewNew } from "@/shared/ui/projects/ProjectOverviewNew";
 import { Select } from "@/shared/ui/Select";
 import { DashboardSkeleton } from "@/shared/ui/SkeletonLoader";
 import * as XLSX from "xlsx";

@@ -16,11 +16,41 @@ Tento dokument zavádí přehledné boundary vrstvy bez „big-bang“ přesunu 
 - `infra` má izolovat přístupy na externí systémy (HTTP, storage, platform API).
 - Web vrstvy (`app/`, `features/`, `shared/`) nesmí importovat `server/`, `desktop/main/`, `server_py/`, `mcp-bridge-server/`.
 - V novém kódu nepoužívat deep relativní importy (`../../../` a hlubší); použít aliasy.
+- `features/*` nesmí importovat `components/*` (legacy UI).
+- UI vrstvy (`app/`, `features/`, `components/`, `hooks/`, `context/`, `shared/`) nesmí importovat `services/supabase` napřímo.
+- Renderer vrstva nesmí používat `window.electronAPI` napřímo mimo `services/platformAdapter.ts`.
+
+## Feature lifecycle kontrakt
+- Registrace feature je deklarativní přes manifest:
+  - `id`
+  - `routes`
+  - `navItems`
+  - `requiredCapabilities`
+  - `mount()`
+  - `unmountSafeChecks()`
+- Manifesty jsou centralizované v `app/featureRegistry/*`.
+- Lazy loading view běží přes registry-driven mapu (`app/views/LazyViews.tsx`).
+
+## Add/Remove Feature Safely
+- Přidání feature:
+  1. Vytvořit `features/<feature>/ui`, `features/<feature>/model`, `features/<feature>/api`, `features/<feature>/index.ts`.
+  2. Přidat manifest do registry.
+  3. Přidat capability/route guard.
+- Odebrání feature:
+  1. Odebrat manifest.
+  2. Odstranit feature modul.
+  3. CI musí projít bez runtime referencí (compile-time fail na zbylé importy).
+
+## Auth/session source of truth
+- `infra/auth/authSessionStore.ts` je jediný zdroj auth eventů (`onAuthStateChange`).
+- UI/desktop synchronizace tokenu se napojuje přes store subscriber, ne přes vlastní listenery.
 
 ## Závazné guardrails
 - `npm run check:boundaries`: statická kontrola import boundaries.
 - `npm run check:legacy-structure`: kontrola freeze legacy roots.
 - CI workflow `.github/workflows/quality.yml` je závazný gate pro PR.
+- Přechodový architektonický dluh je veden v `config/architecture-boundary-allowlist.json`.
+- Každá odstraněná violation musí odstranit odpovídající záznam z allowlistu.
 
 ## Legacy freeze
 - Legacy roots: `components/`, `hooks/`, `services/`, `context/`, `utils/`.

@@ -8,60 +8,36 @@ import {
   Subcontractor,
   ProjectDetails,
   StatusConfig,
-  DemandDocument,
 } from "../types";
 import { SubcontractorSelector } from "./SubcontractorSelector";
 import { ConfirmationModal } from "./ConfirmationModal";
 import { AlertModal } from "./AlertModal";
-import { supabase } from "../services/supabase";
-import { invokeAuthedFunction } from "../services/functionsClient";
-import { uploadDocument, formatFileSize } from "../services/documentService";
-import {
-  generateInquiryEmail,
-  generateInquiryEmailHtml,
-  createMailtoLink,
-  downloadEmlFile,
-  generateEmlContent,
-} from "../services/inquiryService";
-import {
-  exportToXLSX,
-  exportToMarkdown,
-  exportToPDF,
-} from "../services/exportService";
+import { formatFileSize } from "../services/documentService";
 import {
   formatMoney,
   formatInputNumber,
-  parseFormattedNumber,
 } from "../utils/formatters";
-import {
-  getTemplateById,
-  getDefaultTemplate,
-} from "../services/templateService";
-import { Template } from "../types";
-import { processTemplate } from "../utils/templateUtils";
 import { useAuth } from "../context/AuthContext";
-import { getDemoData, saveDemoData } from "../services/demoData";
 import {
-  buildHierarchyTree,
-  getDocHubTenderLinks,
-  getDocHubTenderLinksDesktop,
-  getTendersFolderName,
-  isProbablyUrl,
-  joinDocHubPath,
   resolveDocHubStructureV1,
-  slugifyDocHubSegmentStrict,
 } from "../utils/docHub";
-import {
-  ensureStructure,
-  deleteFolder,
-  folderExists,
-} from "../services/fileSystemService";
-import { mcpOpenPath } from "../services/mcpBridgeClient";
 import platformAdapter from "../services/platformAdapter";
 import { DEFAULT_STATUSES } from "../config/constants";
 import { contractService } from "../services/contractService";
-import { collectFallbackSuppliers } from "../shared/dochub/fallbackSelection";
-import { validateSubcontractorCompanyName } from "../shared/dochub/subcontractorNameRules";
+import {
+  buildBidComparisonSuppliers,
+  getTemplateLinksForInquiryKindModel,
+  type PipelineInquiryGenerationKind,
+} from "@/features/projects/model/pipelineModel";
+import { usePipelineBidsState } from "@/features/projects/model/usePipelineBidsState";
+import { usePipelineCategoryNavigation } from "@/features/projects/model/usePipelineCategoryNavigation";
+import { usePipelineDocHubFallback } from "@/features/projects/model/usePipelineDocHubFallback";
+import { usePipelineCategoryForms } from "@/features/projects/model/usePipelineCategoryForms";
+import { usePipelineContactsController } from "@/features/projects/model/usePipelineContactsController";
+import { usePipelineSubcontractorSelection } from "@/features/projects/model/usePipelineSubcontractorSelection";
+import { usePipelineBidActions } from "@/features/projects/model/usePipelineBidActions";
+import { usePipelineCommunicationActions } from "@/features/projects/model/usePipelineCommunicationActions";
+import { usePipelineDocHubActions } from "@/features/projects/model/usePipelineDocHubActions";
 import {
   Column,
   BidCard,
@@ -72,7 +48,6 @@ import {
   PipelineOverview,
   BidComparisonPanel,
   CategoryFormModal,
-  CategoryFormData,
 } from "./pipelineComponents";
 
 // --- Components ---
@@ -95,7 +70,7 @@ interface PipelineProps {
 }
 
 type PipelineViewMode = "grid" | "table";
-export type InquiryGenerationKind = "inquiry" | "materialInquiry";
+export type InquiryGenerationKind = PipelineInquiryGenerationKind;
 const rawDocHubFallbackFlag =
   import.meta.env.VITE_DOCHUB_FALLBACK_ENABLED?.trim().toLowerCase();
 const DOCHUB_FALLBACK_ENABLED =
@@ -109,14 +84,7 @@ export const getTemplateLinksForInquiryKind = (
   project: ProjectDetails,
   kind: InquiryGenerationKind,
 ): string[] => {
-  const candidates =
-    kind === "materialInquiry"
-      ? [project.materialInquiryTemplateLink, project.inquiryLetterLink]
-      : [project.inquiryLetterLink];
-
-  return candidates.filter(
-    (link): link is string => !!link && link.startsWith("template:"),
-  );
+  return getTemplateLinksForInquiryKindModel(project, kind);
 };
 
 export const Pipeline: React.FC<PipelineProps> = ({
@@ -146,12 +114,6 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const docHubStructure = resolveDocHubStructureV1(
     projectDetails.docHubStructureV1 || undefined,
   );
-  const canUseDocHubBackend =
-    !!projectDetails.docHubProvider &&
-    projectDetails.docHubProvider !== "mcp" &&
-    projectDetails.docHubProvider !== "onedrive" &&
-    !!projectDetails.docHubRootId &&
-    projectDetails.docHubStatus === "connected";
 
   const [alertModal, setAlertModal] = useState<{
     isOpen: boolean;
@@ -187,94 +149,6 @@ export const Pipeline: React.FC<PipelineProps> = ({
     />
   );
 
-  const openOrCopyDocHubPath = async (path: string) => {
-    console.log("[DocHub] openOrCopyDocHubPath called with path:", path);
-    if (!path) {
-      console.warn("[DocHub] Empty path, returning");
-      return;
-    }
-    if (isProbablyUrl(path)) {
-      console.log("[DocHub] Path is URL, opening in browser");
-      window.open(path, "_blank", "noopener,noreferrer");
-      return;
-    }
-
-    // Try native Electron folder opening first (for Tender Flow Desktop / onedrive provider)
-    console.log(
-      "[DocHub] Attempting to open local path. isDocHubEnabled:",
-      isDocHubEnabled,
-    );
-    if (isDocHubEnabled && !isProbablyUrl(path)) {
-      try {
-        // Dynamic import to avoid issues on web
-        const { fileSystemAdapter, isDesktop } =
-          await import("../services/platformAdapter");
-        console.log("[DocHub] isDesktop:", isDesktop);
-        if (isDesktop) {
-          console.log(
-            "[DocHub] Calling fileSystemAdapter.openInExplorer with path:",
-            path,
-          );
-          await fileSystemAdapter.openInExplorer(path);
-          console.log("[DocHub] openInExplorer completed successfully");
-          return; // Opened successfully - Desktop doesn't need MCP fallback
-        }
-
-        // Only try MCP if NOT on desktop (web browser with MCP bridge)
-        console.log("[DocHub] Not on desktop, trying MCP open for path:", path);
-        const result = await mcpOpenPath(path);
-        console.log("[DocHub] MCP result:", result);
-        if (result.success) return; // Opened successfully
-      } catch (e) {
-        console.warn("[DocHub] Open failed, falling back to copy", e);
-      }
-    }
-
-    try {
-      await navigator.clipboard.writeText(path);
-      showAlert({
-        title: "Zkopírováno",
-        message: path,
-        variant: "success",
-      });
-    } catch {
-      showAlert({
-        title: "Kopírování selhalo",
-        message: "Automatické kopírování selhalo. Zkopírujte cestu ručně:",
-        variant: "info",
-        copyableText: path,
-      });
-    }
-  };
-
-  const openDocHubBackendLink = async (payload: any) => {
-    // Safety guard: Never allow backend calls for MCP/Tender Flow Desktop
-    if (
-      projectData.docHubProvider === "mcp" ||
-      projectData.docHubProvider === "onedrive"
-    ) {
-      console.warn(
-        "[DocHub] Blocked backend call for MCP/Tender Flow Desktop provider",
-      );
-      return;
-    }
-
-    try {
-      const data = await invokeAuthedFunction<any>("dochub-get-link", {
-        body: payload,
-      });
-      const webUrl = (data as any)?.webUrl as string | undefined;
-      if (!webUrl) throw new Error("Backend nevrátil webUrl");
-      window.open(webUrl, "_blank", "noopener,noreferrer");
-    } catch (e) {
-      const message = e instanceof Error ? e.message : "Neznámá chyba";
-      showAlert({ title: "DocHub chyba", message, variant: "danger" });
-    }
-  };
-
-  const [activeCategory, setActiveCategory] = useState<DemandCategory | null>(
-    null,
-  );
   const [demandFilter, setDemandFilter] = useState<
     "all" | "open" | "closed" | "sod"
   >("all");
@@ -283,295 +157,153 @@ export const Pipeline: React.FC<PipelineProps> = ({
     const stored = localStorage.getItem(PIPELINE_VIEW_MODE_STORAGE_KEY);
     return stored === "table" || stored === "grid" ? stored : "grid";
   });
-  const [bids, setBids] = useState<Record<string, Bid[]>>(initialBids);
+  const { bids, updateBidsInternal } = usePipelineBidsState({
+    initialBids,
+    onBidsChange,
+  });
   // const [contacts, setContacts] = useState<Subcontractor[]>(ALL_CONTACTS); // Use prop directly or state if we modify it locally?
   // The component modifies contacts (adding new ones). So we might need state, but initialized from prop.
-  // However, App.tsx manages contacts. Ideally we should call a handler to add contact in App.tsx.
-  // For now, let's keep local state initialized from prop to minimize refactor,
-  // BUT we need to sync back or just rely on the fact that we insert to Supabase and App.tsx might reload?
-  // App.tsx doesn't auto-reload contacts on change in child.
-  // Let's use a local state initialized from prop for now.
-  const [localContacts, setLocalContacts] =
-    useState<Subcontractor[]>(externalContacts);
-
-  // Track whether the bids change is internal (user action) vs from props
-  const isInternalBidsChange = useRef(false);
-  // Store pending bids to notify parent after render
-  const pendingBidsNotification = useRef<Record<string, Bid[]> | null>(null);
-  const projectFallbackRunRef = useRef<{ projectId: string | null; done: boolean }>({
-    projectId: null,
-    done: false,
-  });
-  const fallbackInFlightRef = useRef<Set<string>>(new Set());
-
-  useEffect(() => {
-    setLocalContacts(externalContacts);
-  }, [externalContacts]);
-
-  useEffect(() => {
-    // Only update from props if not an internal change
-    if (!isInternalBidsChange.current) {
-      setBids(initialBids);
-    }
-    isInternalBidsChange.current = false;
-  }, [initialBids]);
-
   useEffect(() => {
     localStorage.setItem(PIPELINE_VIEW_MODE_STORAGE_KEY, viewMode);
   }, [viewMode]);
 
-  // Notify parent after render when we have pending changes
-  useEffect(() => {
-    if (pendingBidsNotification.current !== null && onBidsChange) {
-      onBidsChange(pendingBidsNotification.current);
-      pendingBidsNotification.current = null;
-    }
+  const {
+    activeCategory,
+    setActiveCategory,
+    isBidComparisonPanelOpen,
+    setIsBidComparisonPanelOpen,
+    bidComparisonTenderPath,
+    isResolvingBidComparisonPath,
+    resolveDesktopTenderFolderPath,
+    handleOpenBidComparisonPanel,
+  } = usePipelineCategoryNavigation({
+    projectId,
+    initialOpenCategoryId,
+    categories: projectDetails.categories,
+    docHubRoot,
+    docHubStructureV1: projectDetails.docHubStructureV1 || undefined,
   });
 
-  // Helper to update bids and mark as internal change
-  const updateBidsInternal = (
-    updater: (prev: Record<string, Bid[]>) => Record<string, Bid[]>,
-  ) => {
-    isInternalBidsChange.current = true;
-    setBids((prev) => {
-      const newBids = updater(prev);
-      // Store for notification after render (not during render)
-      pendingBidsNotification.current = newBids;
-      return newBids;
-    });
-  };
+  const { runDocHubFallbackForCategory } = usePipelineDocHubFallback({
+    projectId,
+    projectData,
+    projectDetails,
+    bids,
+    docHubRoot,
+    isDocHubEnabled,
+    docHubStructure,
+    userRole: user?.role,
+    fallbackEnabledFlag: DOCHUB_FALLBACK_ENABLED,
+  });
 
-  const getSafeFallbackProjectId = () => {
-    const routeProjectId = projectId?.trim();
-    const detailsProjectId = projectData.id?.trim();
-    if (!routeProjectId || !detailsProjectId) return null;
-    if (routeProjectId !== detailsProjectId) return null;
-    return routeProjectId;
-  };
+  const {
+    isSubcontractorModalOpen,
+    setIsSubcontractorModalOpen,
+    isSubcontractorModalMaximized,
+    setIsSubcontractorModalMaximized,
+    selectedSubcontractorIds,
+    setSelectedSubcontractorIds,
+    handleAddSubcontractors,
+  } = usePipelineSubcontractorSelection({
+    activeCategory,
+    bids,
+    updateBidsInternal,
+    userRole: user?.role,
+    projectDataId: projectData.id,
+    projectDataDocHubProvider: projectData.docHubProvider || undefined,
+    projectDataDocHubStructureV1: projectData.docHubStructureV1 || undefined,
+    isDocHubEnabled,
+    docHubRoot,
+    showAlert,
+  });
 
-  const isDocHubFallbackEnabled = () =>
-    DOCHUB_FALLBACK_ENABLED &&
-    isDocHubEnabled &&
-    docHubRoot.length > 0 &&
-    user?.role !== "demo" &&
-    !!projectData.docHubProvider &&
-    !!getSafeFallbackProjectId();
-
-  const runDocHubFallbackForProject = async (reason: string) => {
-    if (!isDocHubFallbackEnabled()) return;
-
-    const fallbackProjectId = getSafeFallbackProjectId();
-    if (!fallbackProjectId) {
-      console.warn("[DocHub fallback] Skipped due to project mismatch", {
-        reason,
-        routeProjectId: projectId,
-        detailsProjectId: projectData.id,
-      });
-      return;
-    }
-
-    const inFlightKey = `project:${fallbackProjectId}`;
-    if (fallbackInFlightRef.current.has(inFlightKey)) return;
-    fallbackInFlightRef.current.add(inFlightKey);
-
-    try {
-      const { categoriesForEnsure, suppliersByCategory } = collectFallbackSuppliers({
-        categories: projectDetails.categories,
-        bidsByCategory: bids,
-      });
-
-      if (categoriesForEnsure.length === 0) return;
-
-      const provider = projectData.docHubProvider;
-      if (provider === "onedrive" || provider === "mcp") {
-        const hierarchyTree = buildHierarchyTree(docHubStructure.extraHierarchy || []);
-        const result = await ensureStructure({
-          rootPath: docHubRoot,
-          structure: docHubStructure,
-          categories: categoriesForEnsure,
-          suppliers: suppliersByCategory,
-          hierarchy: hierarchyTree,
-        });
-
-        if (!result.success) {
-          console.error("[DocHub fallback] Project ensureStructure failed", {
-            reason,
-            provider,
-            projectId: fallbackProjectId,
-            error: result.error,
-          });
-        }
-        return;
-      }
-
-      if (provider === "gdrive" || provider === "onedrive_cloud") {
-        await invokeAuthedFunction("dochub-autocreate", {
-          body: { projectId: fallbackProjectId },
-        });
-      }
-    } catch (error) {
-      console.error("[DocHub fallback] Project fallback failed", {
-        reason,
-        projectId: fallbackProjectId,
-        error,
-      });
-    } finally {
-      fallbackInFlightRef.current.delete(inFlightKey);
-    }
-  };
-
-  const runDocHubFallbackForCategory = async (
-    categoryId: string,
-    reason: string,
-  ) => {
-    if (!isDocHubFallbackEnabled()) return;
-
-    const fallbackProjectId = getSafeFallbackProjectId();
-    if (!fallbackProjectId) {
-      console.warn("[DocHub fallback] Category fallback skipped due to project mismatch", {
-        reason,
-        routeProjectId: projectId,
-        detailsProjectId: projectData.id,
-        categoryId,
-      });
-      return;
-    }
-
-    const inFlightKey = `category:${fallbackProjectId}:${categoryId}`;
-    if (fallbackInFlightRef.current.has(inFlightKey)) return;
-    fallbackInFlightRef.current.add(inFlightKey);
-
-    try {
-      const { categoriesForEnsure, suppliersByCategory } = collectFallbackSuppliers({
-        categories: projectDetails.categories,
-        bidsByCategory: bids,
-        categoryIds: [categoryId],
-      });
-
-      if (categoriesForEnsure.length === 0) return;
-
-      const provider = projectData.docHubProvider;
-      if (provider === "onedrive" || provider === "mcp") {
-        const hierarchyTree = buildHierarchyTree(docHubStructure.extraHierarchy || []);
-        const result = await ensureStructure({
-          rootPath: docHubRoot,
-          structure: docHubStructure,
-          categories: categoriesForEnsure,
-          suppliers: suppliersByCategory,
-          hierarchy: hierarchyTree,
-        });
-
-        if (!result.success) {
-          console.error("[DocHub fallback] Category ensureStructure failed", {
-            reason,
-            provider,
-            projectId: fallbackProjectId,
-            categoryId,
-            error: result.error,
-          });
-        }
-        return;
-      }
-
-      if (provider === "gdrive" || provider === "onedrive_cloud") {
-        const category = categoriesForEnsure[0];
-        const suppliers = suppliersByCategory[categoryId] || [];
-        if (!category || suppliers.length === 0) return;
-
-        const reconciliationResults = await Promise.allSettled(
-          suppliers.map((supplier) =>
-            invokeAuthedFunction("dochub-get-link", {
-              body: {
-                projectId: fallbackProjectId,
-                kind: "supplier",
-                categoryId: category.id,
-                categoryTitle: category.title,
-                supplierId: supplier.id,
-                supplierName: supplier.name,
-              },
-            }),
-          ),
-        );
-
-        const failedCount = reconciliationResults.filter(
-          (result) => result.status === "rejected",
-        ).length;
-
-        if (failedCount > 0) {
-          console.error("[DocHub fallback] Supplier reconciliation partial failure", {
-            reason,
-            provider,
-            projectId: fallbackProjectId,
-            categoryId,
-            failedCount,
-            total: reconciliationResults.length,
-          });
-        }
-      }
-    } catch (error) {
-      console.error("[DocHub fallback] Category fallback failed", {
-        reason,
-        projectId: fallbackProjectId,
-        categoryId,
-        error,
-      });
-    } finally {
-      fallbackInFlightRef.current.delete(inFlightKey);
-    }
-  };
-
-  // Subcontractor Selection State
-  const [isSubcontractorModalOpen, setIsSubcontractorModalOpen] =
-    useState(false);
-  const [selectedSubcontractorIds, setSelectedSubcontractorIds] = useState<
-    Set<string>
-  >(new Set());
+  const {
+    localContacts,
+    isCreateContactModalOpen,
+    newContactName,
+    editingContact,
+    setEditingContact,
+    handleCreateContactRequest,
+    closeContactModal,
+    handleSaveNewContact,
+    handleUpdateContact,
+  } = usePipelineContactsController({
+    externalContacts,
+    userRole: user?.role,
+    projectDataId: projectData.id,
+    showAlert,
+    onContactSaved: (contact) => {
+      setSelectedSubcontractorIds((prev) => new Set(prev).add(contact.id));
+    },
+  });
 
   // Edit Bid State
   const [editingBid, setEditingBid] = useState<Bid | null>(null);
-
-  // Create New Category State
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<DemandCategory | null>(
-    null,
-  );
-  // Linked tender plan dates for syncing (loaded when editing category)
-  const [linkedTenderPlanDates, setLinkedTenderPlanDates] = useState<{
-    dateFrom: string;
-    dateTo: string;
-  } | null>(null);
-  const [newCategoryForm, setNewCategoryForm] = useState({
-    title: "",
-    sodBudget: "",
-    planBudget: "",
-    description: "",
-    deadline: "",
-    realizationStart: "",
-    realizationEnd: "",
+  const {
+    handleDrop,
+    handleToggleContracted,
+    handleSaveBid,
+    handleDeleteBid,
+  } = usePipelineBidActions({
+    activeCategory,
+    bids,
+    updateBidsInternal,
+    userRole: user?.role,
+    projectDataId: projectData.id,
+    projectDataDocHubProviderLegacy: projectData.dochub_provider || undefined,
+    projectDataDocHubStructureV1: projectData.docHubStructureV1 || undefined,
+    isDocHubEnabled,
+    docHubRoot,
+    runDocHubFallbackForCategory,
+    onCloseEditBid: () => setEditingBid(null),
   });
-  const [isSubcontractorModalMaximized, setIsSubcontractorModalMaximized] =
-    useState(false);
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [uploadingFiles, setUploadingFiles] = useState(false);
+
+  const {
+    isAddModalOpen,
+    setIsAddModalOpen,
+    isEditModalOpen,
+    editingCategory,
+    linkedTenderPlanDates,
+    handleCreateCategoryFromModal,
+    handleEditCategoryFromModal,
+    handleEditCategoryClick,
+    handleToggleCategoryComplete,
+    closeEditCategoryModal,
+  } = usePipelineCategoryForms({
+    projectId,
+    onAddCategory,
+    onEditCategory,
+    showAlert,
+  });
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const exportButtonRef = useRef<HTMLButtonElement>(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
-  const [isBidComparisonPanelOpen, setIsBidComparisonPanelOpen] =
-    useState(false);
-  const [bidComparisonTenderPath, setBidComparisonTenderPath] = useState<
-    string | null
-  >(null);
-  const [isResolvingBidComparisonPath, setIsResolvingBidComparisonPath] =
-    useState(false);
-
-  // Create Contact State
-  const [isCreateContactModalOpen, setIsCreateContactModalOpen] =
-    useState(false);
-  const [newContactName, setNewContactName] = useState("");
-  const [editingContact, setEditingContact] = useState<Subcontractor | null>(
-    null,
-  );
+  const {
+    handleGenerateInquiry,
+    handleGenerateMaterialInquiry,
+    handleExport,
+    handleEmailLosers,
+  } = usePipelineCommunicationActions({
+    activeCategory,
+    bids,
+    projectDetails,
+    emailClientMode: user?.preferences?.emailClientMode,
+    updateBidsInternal,
+    setIsExportMenuOpen,
+    showAlert,
+    runDocHubFallbackForCategory,
+  });
+  const { handleOpenSupplierDocHub, handleOpenTenderDocHub } =
+    usePipelineDocHubActions({
+      activeCategory,
+      projectData,
+      projectDetails,
+      docHubRoot,
+      docHubStructure,
+      isDocHubEnabled,
+      showAlert,
+      resolveDesktopTenderFolderPath,
+    });
 
   // Confirmation Modal State
   const [confirmModal, setConfirmModal] = useState<{
@@ -583,39 +315,6 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
   const closeConfirmModal = () => {
     setConfirmModal((prev) => ({ ...prev, isOpen: false }));
-  };
-
-  const sanitizeFolderSegment = (value: string): string =>
-    value.replace(/[<>:"|?*]/g, "").trim();
-
-  const resolveDesktopTenderFolderPath = async (
-    categoryTitle: string,
-  ): Promise<string | null> => {
-    // Pro předvyplnění porovnání stačí mít root cestu; nemusí být aktivní celý DocHub modul.
-    if (!docHubRoot) return null;
-
-    const tendersFolder = getTendersFolderName(
-      projectDetails.docHubStructureV1 || undefined,
-    );
-    const cleanedTitle = sanitizeFolderSegment(categoryTitle);
-    if (!cleanedTitle) return null;
-
-    const rawPath = joinDocHubPath(docHubRoot, tendersFolder, cleanedTitle);
-    if (await folderExists(rawPath)) {
-      return rawPath;
-    }
-
-    const strictPath = joinDocHubPath(
-      docHubRoot,
-      tendersFolder,
-      slugifyDocHubSegmentStrict(categoryTitle),
-    );
-
-    if (strictPath !== rawPath && (await folderExists(strictPath))) {
-      return strictPath;
-    }
-
-    return rawPath;
   };
 
   const handleDeleteBidRequest = (bidId: string) => {
@@ -631,77 +330,6 @@ export const Pipeline: React.FC<PipelineProps> = ({
     });
   };
 
-  const handleOpenBidComparisonPanel = async () => {
-    if (!activeCategory) return;
-
-    setIsBidComparisonPanelOpen(true);
-    setBidComparisonTenderPath(null);
-
-    const isDesktopMode =
-      typeof window !== "undefined" && window.electronAPI?.platform?.isDesktop;
-    if (!isDesktopMode) return;
-
-    setIsResolvingBidComparisonPath(true);
-    try {
-      const resolvedPath = await resolveDesktopTenderFolderPath(
-        activeCategory.title,
-      );
-      setBidComparisonTenderPath(resolvedPath);
-    } catch (error) {
-      console.error("[BidComparison] Nelze dopočítat cestu složky VŘ:", error);
-      setBidComparisonTenderPath(null);
-    } finally {
-      setIsResolvingBidComparisonPath(false);
-    }
-  };
-
-  // Track previous values to detect changes
-  const prevProjectIdRef = useRef<string | null>(null);
-  const prevCategoryIdRef = useRef<string | null | undefined>(undefined);
-
-  // Sync active category with initialOpenCategoryId (from URL)
-  useEffect(() => {
-    const projectActuallyChanged =
-      prevProjectIdRef.current !== null &&
-      prevProjectIdRef.current !== projectId;
-    const categoryIdChanged =
-      prevCategoryIdRef.current !== initialOpenCategoryId;
-
-    prevProjectIdRef.current = projectId;
-    prevCategoryIdRef.current = initialOpenCategoryId;
-
-    if (initialOpenCategoryId) {
-      const categoryToOpen = projectDetails.categories.find(
-        (c) => c.id === initialOpenCategoryId,
-      );
-      if (categoryToOpen) {
-        setActiveCategory(categoryToOpen);
-      }
-    } else if (projectActuallyChanged || categoryIdChanged) {
-      // Clear category when project changes OR when URL categoryId is cleared (back button)
-      setActiveCategory(null);
-    }
-  }, [projectId, initialOpenCategoryId, projectDetails.categories]);
-
-  useEffect(() => {
-    setIsBidComparisonPanelOpen(false);
-    setBidComparisonTenderPath(null);
-    setIsResolvingBidComparisonPath(false);
-  }, [activeCategory?.id]);
-
-  useEffect(() => {
-    if (projectFallbackRunRef.current.projectId !== projectId) {
-      projectFallbackRunRef.current.projectId = projectId;
-      projectFallbackRunRef.current.done = false;
-    }
-
-    if (projectFallbackRunRef.current.done) return;
-    if (!isDocHubFallbackEnabled()) return;
-
-    projectFallbackRunRef.current.done = true;
-    void runDocHubFallbackForProject("pipeline-open");
-  }, [projectId, isDocHubEnabled, docHubRoot, user?.role, projectData.docHubProvider]);
-
   const getBidsForColumn = (categoryId: string, status: BidStatus) => {
     return (bids[categoryId] || []).filter((bid) => bid.status === status);
   };
@@ -709,124 +337,6 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const handleDragStart = (e: React.DragEvent, bidId: string) => {
     e.dataTransfer.setData("bidId", bidId);
     e.dataTransfer.effectAllowed = "move";
-  };
-
-  const handleDrop = async (e: React.DragEvent, targetStatus: BidStatus) => {
-    e.preventDefault();
-    const bidId = e.dataTransfer.getData("bidId");
-
-    if (activeCategory && bidId) {
-      // Optimistic update
-      updateBidsInternal((prev) => {
-        const categoryBids = [...(prev[activeCategory.id] || [])];
-        const bidIndex = categoryBids.findIndex((b) => b.id === bidId);
-
-        if (bidIndex > -1 && categoryBids[bidIndex].status !== targetStatus) {
-          categoryBids[bidIndex] = {
-            ...categoryBids[bidIndex],
-            status: targetStatus,
-          };
-          return { ...prev, [activeCategory.id]: categoryBids };
-        }
-        return prev;
-      });
-
-      // Persist to Supabase or Demo Storage
-      try {
-        if (user?.role === "demo") {
-          const demoData = getDemoData();
-          if (demoData && demoData.projectDetails[projectData.id]) {
-            const projectBids =
-              demoData.projectDetails[projectData.id].bids || {};
-            // Find which category this bid belongs to
-            let categoryId = "";
-            for (const [catId, catBids] of Object.entries(projectBids)) {
-              if ((catBids as Bid[]).some((b) => b.id === bidId)) {
-                categoryId = catId;
-                break;
-              }
-            }
-
-            if (categoryId) {
-              const categoryBids = projectBids[categoryId] || [];
-              const index = categoryBids.findIndex((b: Bid) => b.id === bidId);
-              if (index > -1) {
-                categoryBids[index].status = targetStatus;
-                projectBids[categoryId] = categoryBids;
-                demoData.projectDetails[projectData.id].bids = projectBids;
-                saveDemoData(demoData);
-              }
-            }
-          }
-          return;
-        }
-
-        const { error } = await supabase
-          .from("bids")
-          .update({ status: targetStatus })
-          .eq("id", bidId);
-
-        if (error) {
-          console.error("Error updating bid status:", error);
-        } else if (targetStatus === "sent") {
-          void runDocHubFallbackForCategory(activeCategory.id, "move-to-sent");
-        }
-      } catch (err) {
-        console.error("Unexpected error updating bid:", err);
-      }
-    }
-  };
-
-  // Toggle contracted status for a bid (marks as signed contract)
-  const handleToggleContracted = async (bid: Bid) => {
-    if (!activeCategory) return;
-
-    const newContracted = !bid.contracted;
-
-    // Optimistic update
-    updateBidsInternal((prev) => {
-      const categoryBids = [...(prev[activeCategory.id] || [])];
-      const index = categoryBids.findIndex((b) => b.id === bid.id);
-      if (index > -1) {
-        categoryBids[index] = {
-          ...categoryBids[index],
-          contracted: newContracted,
-        };
-        return { ...prev, [activeCategory.id]: categoryBids };
-      }
-      return prev;
-    });
-
-    // Persist to Supabase or Demo Storage
-    try {
-      if (user?.role === "demo") {
-        const demoData = getDemoData();
-        if (demoData && demoData.projectDetails[projectData.id]) {
-          const projectBids =
-            demoData.projectDetails[projectData.id].bids || {};
-          const categoryBids = projectBids[activeCategory.id] || [];
-          const index = categoryBids.findIndex((b: Bid) => b.id === bid.id);
-          if (index > -1) {
-            categoryBids[index].contracted = newContracted;
-            projectBids[activeCategory.id] = categoryBids;
-            demoData.projectDetails[projectData.id].bids = projectBids;
-            saveDemoData(demoData);
-          }
-        }
-        return;
-      }
-
-      const { error } = await supabase
-        .from("bids")
-        .update({ contracted: newContracted })
-        .eq("id", bid.id);
-
-      if (error) {
-        console.error("Error updating bid contracted status:", error);
-      }
-    } catch (err) {
-      console.error("Unexpected error updating bid:", err);
-    }
   };
 
   // Create contract from a contracted bid
@@ -853,443 +363,6 @@ export const Pipeline: React.FC<PipelineProps> = ({
     }
   };
 
-  const handleAddSubcontractors = async () => {
-    if (!activeCategory) return;
-
-    const newBids: Bid[] = [];
-    selectedSubcontractorIds.forEach((id) => {
-      const contact = localContacts.find((c) => c.id === id);
-      if (contact) {
-        // Check if already exists
-        const existing = (bids[activeCategory.id] || []).find(
-          (b) => b.subcontractorId === contact.id,
-        );
-        if (!existing) {
-          const primaryContact = contact.contacts[0];
-          newBids.push({
-            id: `bid_${Date.now()}_${contact.id}`,
-            subcontractorId: contact.id,
-            companyName: contact.company,
-            contactPerson: primaryContact?.name || "-",
-            email: primaryContact?.email || "-",
-            phone: primaryContact?.phone || "-",
-            price: "?",
-            status: "contacted",
-            tags: [],
-          });
-        }
-      }
-    });
-
-    if (newBids.length > 0) {
-      // Optimistic update
-      updateBidsInternal((prev) => ({
-        ...prev,
-        [activeCategory.id]: [...(prev[activeCategory.id] || []), ...newBids],
-      }));
-
-      // Persist to Supabase or Demo Storage
-      try {
-        if (user?.role === "demo") {
-          const demoData = getDemoData();
-          if (demoData && demoData.projectDetails[projectData.id]) {
-            const projectBids =
-              demoData.projectDetails[projectData.id].bids || {};
-            projectBids[activeCategory.id] = [
-              ...(projectBids[activeCategory.id] || []),
-              ...newBids,
-            ];
-            demoData.projectDetails[projectData.id].bids = projectBids;
-            saveDemoData(demoData);
-          }
-          return;
-        }
-
-        const bidsToInsert = newBids.map((bid) => ({
-          id: bid.id,
-          demand_category_id: activeCategory.id,
-          subcontractor_id: bid.subcontractorId,
-          company_name: bid.companyName,
-          contact_person: bid.contactPerson,
-          email: bid.email,
-          phone: bid.phone,
-          price: null, // Numeric price, null for new bids
-          price_display: bid.price, // String display like "?" or "1.5M Kč"
-          notes: bid.notes || null,
-          status: bid.status,
-          tags: bid.tags || [],
-        }));
-
-        console.log(
-          "🔵 Attempting to insert bids:",
-          JSON.stringify(bidsToInsert, null, 2),
-        );
-
-        const { data, error } = await supabase
-          .from("bids")
-          .insert(bidsToInsert)
-          .select();
-
-        if (error) {
-          console.error("🔴 Error inserting bids:", {
-            message: error.message,
-            code: error.code,
-            details: error.details,
-            hint: error.hint,
-            fullError: JSON.stringify(error, null, 2),
-          });
-
-          showAlert({
-            title: "Chyba při ukládání",
-            message: `Chyba při ukládání nabídek: ${error.message}\n\nKód: ${error.code}\nDetail: ${error.details || "N/A"}\nHint: ${error.hint || "N/A"}`,
-            variant: "danger",
-          });
-        } else {
-          console.log("🟢 Successfully inserted bids:", data);
-
-          // AUTO-CREATE: Unified (Desktop, MCP, Cloud)
-          if (isDocHubEnabled) {
-            const provider = projectData.docHubProvider;
-
-            // Desktop & MCP: Use fileSystemService (which delegates to Electron or MCP)
-            if (provider === "onedrive" || provider === "mcp") {
-              const mcpSuppliers: Record<
-                string,
-                Array<{ id: string; name: string }>
-              > = {};
-              mcpSuppliers[activeCategory.id] = newBids.map((b) => ({
-                id: b.subcontractorId,
-                name: b.companyName,
-              }));
-
-              const structure = resolveDocHubStructureV1(
-                projectData.docHubStructureV1 || undefined,
-              );
-              const hierarchyTree = buildHierarchyTree(
-                structure.extraHierarchy || [],
-              );
-
-              // For MCP, docHubRoot is the path. For Desktop (onedrive), it is also the path.
-              ensureStructure({
-                rootPath: docHubRoot,
-                structure,
-                categories: [
-                  { id: activeCategory.id, title: activeCategory.title },
-                ],
-                suppliers: mcpSuppliers,
-                hierarchy: hierarchyTree,
-              }).then((res) => {
-                if (res.success) {
-                  // toast.success("Složky vytvořeny.");
-                } else {
-                  console.error("Auto-create folders failed:", res.error);
-                  showAlert({
-                    title: "Chyba vytvoření složek",
-                    message: res.error || "Neznámá chyba",
-                    variant: "danger",
-                  });
-                }
-              });
-            } else if (provider === "gdrive" || provider === "onedrive_cloud") {
-              // Cloud: Trigger backend
-              invokeAuthedFunction("dochub-autocreate", {
-                body: { projectId: projectData.id },
-              }).catch((e) =>
-                console.error("Cloud auto-create trigger failed:", e),
-              );
-            }
-          }
-        }
-      } catch (err) {
-        console.error("🔴 Unexpected error inserting bids:", err);
-
-        showAlert({
-          title: "Chyba",
-          message: `Neočekávaná chyba: ${err}`,
-          variant: "danger",
-        });
-      }
-    }
-
-    setIsSubcontractorModalOpen(false);
-    setSelectedSubcontractorIds(new Set());
-  };
-
-  const handleCreateCategory = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!onAddCategory) return;
-
-    const sod = parseFloat(newCategoryForm.sodBudget) || 0;
-    const categoryId = `cat_${Date.now()}`;
-
-    // Upload documents if any
-    let uploadedDocuments: DemandDocument[] = [];
-    if (selectedFiles.length > 0) {
-      setUploadingFiles(true);
-      try {
-        uploadedDocuments = await Promise.all(
-          selectedFiles.map((file) => uploadDocument(file, categoryId)),
-        );
-      } catch (error) {
-        console.error("Error uploading documents:", error);
-        console.error("Error uploading documents:", error);
-        showAlert({
-          title: "Chyba",
-          message: "Chyba při nahrávání dokumentů. Zkuste to prosím znovu.",
-          variant: "danger",
-        });
-        setUploadingFiles(false);
-        setUploadingFiles(false);
-        return;
-      }
-      setUploadingFiles(false);
-    }
-
-    const newCat: DemandCategory = {
-      id: categoryId,
-      title: newCategoryForm.title,
-      budget:
-        "~" +
-        new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 0 }).format(
-          sod,
-        ) +
-        " Kč", // Legacy
-      sodBudget: sod,
-      planBudget: parseFloat(newCategoryForm.planBudget) || 0,
-      description: newCategoryForm.description,
-      status: "open",
-      subcontractorCount: 0,
-      documents: uploadedDocuments.length > 0 ? uploadedDocuments : undefined,
-      deadline: newCategoryForm.deadline || undefined,
-      realizationStart: newCategoryForm.realizationStart || undefined,
-      realizationEnd: newCategoryForm.realizationEnd || undefined,
-    };
-
-    onAddCategory(newCat);
-    setNewCategoryForm({
-      title: "",
-      sodBudget: "",
-      planBudget: "",
-      description: "",
-      deadline: "",
-      realizationStart: "",
-      realizationEnd: "",
-    });
-    setSelectedFiles([]);
-    setIsAddModalOpen(false);
-  };
-
-  const handleEditCategory = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!onEditCategory || !editingCategory) return;
-
-    const sod = parseFloat(newCategoryForm.sodBudget) || 0;
-
-    // Upload documents if any new files selected
-    let uploadedDocuments: DemandDocument[] = editingCategory.documents || [];
-    if (selectedFiles.length > 0) {
-      setUploadingFiles(true);
-      try {
-        const newDocs = await Promise.all(
-          selectedFiles.map((file) => uploadDocument(file, editingCategory.id)),
-        );
-        uploadedDocuments = [...uploadedDocuments, ...newDocs];
-      } catch (error) {
-        console.error("Error uploading documents:", error);
-        showAlert({
-          title: "Chyba",
-          message: "Chyba při nahrávání dokumentů. Zkuste to prosím znovu.",
-          variant: "danger",
-        });
-        setUploadingFiles(false);
-        return;
-      }
-      setUploadingFiles(false);
-    }
-
-    const updatedCat: DemandCategory = {
-      ...editingCategory,
-      title: newCategoryForm.title,
-      budget:
-        "~" +
-        new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 0 }).format(
-          sod,
-        ) +
-        " Kč",
-      sodBudget: sod,
-      planBudget: parseFloat(newCategoryForm.planBudget) || 0,
-      description: newCategoryForm.description,
-      documents: uploadedDocuments.length > 0 ? uploadedDocuments : undefined,
-      deadline: newCategoryForm.deadline || undefined,
-      realizationStart: newCategoryForm.realizationStart || undefined,
-      realizationEnd: newCategoryForm.realizationEnd || undefined,
-    };
-
-    onEditCategory(updatedCat);
-    setNewCategoryForm({
-      title: "",
-      sodBudget: "",
-      planBudget: "",
-      description: "",
-      deadline: "",
-      realizationStart: "",
-      realizationEnd: "",
-    });
-    setSelectedFiles([]);
-    setEditingCategory(null);
-    setIsEditModalOpen(false);
-  };
-
-  // Wrapper for CategoryFormModal - Create mode
-  const handleCreateCategoryFromModal = async (
-    formData: CategoryFormData,
-    files: File[],
-  ) => {
-    if (!onAddCategory) return;
-
-    const sod = parseFloat(formData.sodBudget) || 0;
-    const categoryId = `cat_${Date.now()}`;
-
-    // Upload documents if any
-    let uploadedDocuments: DemandDocument[] = [];
-    if (files.length > 0) {
-      try {
-        uploadedDocuments = await Promise.all(
-          files.map((file) => uploadDocument(file, categoryId)),
-        );
-      } catch (error) {
-        console.error("Error uploading documents:", error);
-        showAlert({
-          title: "Chyba",
-          message: "Chyba při nahrávání dokumentů. Zkuste to prosím znovu.",
-          variant: "danger",
-        });
-        return;
-      }
-    }
-
-    const newCat: DemandCategory = {
-      id: categoryId,
-      title: formData.title,
-      budget:
-        "~" +
-        new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 0 }).format(
-          sod,
-        ) +
-        " Kč",
-      sodBudget: sod,
-      planBudget: parseFloat(formData.planBudget) || 0,
-      description: formData.description,
-      status: "open",
-      subcontractorCount: 0,
-      documents: uploadedDocuments.length > 0 ? uploadedDocuments : undefined,
-      deadline: formData.deadline || undefined,
-      realizationStart: formData.realizationStart || undefined,
-      realizationEnd: formData.realizationEnd || undefined,
-    };
-
-    onAddCategory(newCat);
-    setIsAddModalOpen(false);
-  };
-
-  // Wrapper for CategoryFormModal - Edit mode
-  const handleEditCategoryFromModal = async (
-    formData: CategoryFormData,
-    files: File[],
-  ) => {
-    if (!onEditCategory || !editingCategory) return;
-
-    const sod = parseFloat(formData.sodBudget) || 0;
-
-    // Upload documents if any new files selected
-    let uploadedDocuments: DemandDocument[] = editingCategory.documents || [];
-    if (files.length > 0) {
-      try {
-        const newDocs = await Promise.all(
-          files.map((file) => uploadDocument(file, editingCategory.id)),
-        );
-        uploadedDocuments = [...uploadedDocuments, ...newDocs];
-      } catch (error) {
-        console.error("Error uploading documents:", error);
-        showAlert({
-          title: "Chyba",
-          message: "Chyba při nahrávání dokumentů. Zkuste to prosím znovu.",
-          variant: "danger",
-        });
-        return;
-      }
-    }
-
-    const updatedCat: DemandCategory = {
-      ...editingCategory,
-      title: formData.title,
-      budget:
-        "~" +
-        new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 0 }).format(
-          sod,
-        ) +
-        " Kč",
-      sodBudget: sod,
-      planBudget: parseFloat(formData.planBudget) || 0,
-      description: formData.description,
-      documents: uploadedDocuments.length > 0 ? uploadedDocuments : undefined,
-      deadline: formData.deadline || undefined,
-      realizationStart: formData.realizationStart || undefined,
-      realizationEnd: formData.realizationEnd || undefined,
-    };
-
-    onEditCategory(updatedCat);
-    setEditingCategory(null);
-    setIsEditModalOpen(false);
-  };
-
-  const handleEditCategoryClick = async (category: DemandCategory) => {
-    setEditingCategory(category);
-    setNewCategoryForm({
-      title: category.title,
-      sodBudget: category.sodBudget.toString(),
-      planBudget: category.planBudget.toString(),
-      description: category.description,
-      deadline: category.deadline || "",
-      realizationStart: category.realizationStart || "",
-      realizationEnd: category.realizationEnd || "",
-    });
-    setSelectedFiles([]);
-    setLinkedTenderPlanDates(null); // Reset before loading
-    setIsEditModalOpen(true);
-
-    // Load linked tender plan dates from database
-    try {
-      const { data, error } = await supabase
-        .from("tender_plans")
-        .select("date_from, date_to")
-        .eq("project_id", projectId)
-        .or(`category_id.eq.${category.id},name.ilike.${category.title}`)
-        .limit(1)
-        .single();
-
-      if (!error && data) {
-        setLinkedTenderPlanDates({
-          dateFrom: data.date_from || "",
-          dateTo: data.date_to || "",
-        });
-      }
-    } catch (err) {
-      // Silently ignore - linked plan may not exist
-      console.debug("No linked tender plan found for category:", category.id);
-    }
-  };
-
-  const handleToggleCategoryComplete = (category: DemandCategory) => {
-    // Toggle between 'open' and 'closed' status
-    const newStatus = category.status === "closed" ? "open" : "closed";
-    const updatedCategory: DemandCategory = {
-      ...category,
-      status: newStatus,
-    };
-    onEditCategory?.(updatedCategory);
-  };
-
   const handleDeleteCategory = (categoryId: string) => {
     if (!onDeleteCategory) return;
 
@@ -1304,614 +377,11 @@ export const Pipeline: React.FC<PipelineProps> = ({
     });
   };
 
-  const handleSaveBid = async (updatedBid: Bid) => {
-    if (!activeCategory) return;
-
-    // Optimistic update
-    updateBidsInternal((prev) => {
-      const categoryBids = [...(prev[activeCategory.id] || [])];
-      const index = categoryBids.findIndex((b) => b.id === updatedBid.id);
-      if (index > -1) {
-        categoryBids[index] = updatedBid;
-        return { ...prev, [activeCategory.id]: categoryBids };
-      }
-      return prev;
-    });
-    setEditingBid(null);
-
-    // Parse numeric price from display string
-    const numericPrice = updatedBid.price
-      ? parseFormattedNumber(updatedBid.price.replace(/[^\d\s,.-]/g, ""))
-      : null;
-
-    // Persist to Supabase or Demo Storage
-    try {
-      if (user?.role === "demo") {
-        const demoData = getDemoData();
-        if (demoData && demoData.projectDetails[projectData.id]) {
-          const projectBids =
-            demoData.projectDetails[projectData.id].bids || {};
-          const categoryBids = projectBids[activeCategory.id] || [];
-          const index = categoryBids.findIndex(
-            (b: Bid) => b.id === updatedBid.id,
-          );
-          if (index > -1) {
-            categoryBids[index] = updatedBid;
-            projectBids[activeCategory.id] = categoryBids;
-            demoData.projectDetails[projectData.id].bids = projectBids;
-            saveDemoData(demoData);
-          }
-        }
-        return;
-      }
-
-      const { error } = await supabase
-        .from("bids")
-        .update({
-          contact_person: updatedBid.contactPerson,
-          email: updatedBid.email,
-          phone: updatedBid.phone,
-          price: numericPrice && numericPrice > 0 ? numericPrice : null,
-          price_display: updatedBid.price,
-          price_history: updatedBid.priceHistory || null,
-          notes: updatedBid.notes,
-          status: updatedBid.status,
-          update_date: updatedBid.updateDate || null,
-          selection_round: updatedBid.selectionRound || null,
-        })
-        .eq("id", updatedBid.id);
-
-      if (error) {
-        console.error("Error updating bid:", error);
-      }
-    } catch (err) {
-      console.error("Unexpected error updating bid:", err);
-    }
-  };
-
-  const handleDeleteBid = async (bidId: string) => {
-    if (!activeCategory) return;
-
-    // Find bid before deletion for MCP cleanup
-    const bidToDelete = (bids[activeCategory.id] || []).find(
-      (b) => b.id === bidId,
-    );
-
-    // Optimistic update
-    updateBidsInternal((prev) => {
-      const categoryBids = (prev[activeCategory.id] || []).filter(
-        (b) => b.id !== bidId,
-      );
-      return { ...prev, [activeCategory.id]: categoryBids };
-    });
-
-    // Delete from Supabase or Demo Storage
-    try {
-      if (user?.role === "demo") {
-        const demoData = getDemoData();
-        if (demoData && demoData.projectDetails[projectData.id]) {
-          const projectBids =
-            demoData.projectDetails[projectData.id].bids || {};
-          projectBids[activeCategory.id] = (
-            projectBids[activeCategory.id] || []
-          ).filter((b: Bid) => b.id !== bidId);
-          demoData.projectDetails[projectData.id].bids = projectBids;
-          saveDemoData(demoData);
-        }
-        return;
-      }
-
-      const { error } = await supabase.from("bids").delete().eq("id", bidId);
-
-      if (error) {
-        console.error("Error deleting bid:", error);
-      } else {
-        // AUTO-DELETE: MCP
-        if (
-          bidToDelete &&
-          isDocHubEnabled &&
-          projectData.dochub_provider === "mcp" &&
-          docHubRoot
-        ) {
-          const structure = resolveDocHubStructureV1(
-            projectData.docHubStructureV1 || undefined,
-          );
-          const links = getDocHubTenderLinks(
-            docHubRoot,
-            activeCategory.title,
-            structure,
-          );
-          const supplierFolder = links.supplierBase(bidToDelete.companyName);
-
-          deleteFolder(docHubRoot, supplierFolder, { provider: "mcp" }).catch(
-            (err) => {
-              console.error("MCP Auto-delete supplier folder failed:", err);
-            },
-          );
-        }
-      }
-    } catch (err) {
-      console.error("Unexpected error deleting bid:", err);
-    }
-  };
-
-  const handleCreateContactRequest = (name: string) => {
-    setNewContactName(name);
-    setIsCreateContactModalOpen(true);
-  };
-
-  const generateInquiryFromTemplateKind = async (
-    bid: Bid,
-    kind: InquiryGenerationKind,
-  ) => {
-    if (!activeCategory) return;
-
-    // Determine mode: Desktop always uses EML for better formatting
-    const isDesktopApp = platformAdapter.isDesktop;
-    const userPreferredMode = user?.preferences?.emailClientMode || "mailto";
-    const mode = isDesktopApp ? "eml" : userPreferredMode;
-
-    let template: Template | undefined;
-    const templateLinks = getTemplateLinksForInquiryKind(projectDetails, kind);
-
-    for (const templateLink of templateLinks) {
-      const templateId = templateLink.split(":")[1];
-      if (!templateId) continue;
-      template = await getTemplateById(templateId);
-      if (template) break;
-    }
-
-    if (!template) {
-      template = await getDefaultTemplate();
-    }
-
-    if (!template) {
-      showAlert({
-        title: "Chyba šablony",
-        message:
-          "Nepodařilo se načíst šablonu emailu. Prosím zkontrolujte nastavení šablon.",
-        variant: "danger",
-      });
-      return;
-    }
-
-    const subject = processTemplate(
-      template.subject,
-      projectDetails,
-      activeCategory,
-    );
-    let body = "";
-    let htmlBody = "";
-
-    if (mode === "eml") {
-      const rawBody = processTemplate(
-        template.content,
-        projectDetails,
-        activeCategory,
-        "html",
-      );
-      htmlBody = rawBody.replace(/\n/g, "<br>");
-      htmlBody = `<!DOCTYPE html><html><body style="font-family: Arial, sans-serif; color: #333;">${htmlBody}</body></html>`;
-    } else {
-      const processedBody = processTemplate(
-        template.content,
-        projectDetails,
-        activeCategory,
-        "text",
-      );
-      body = processedBody
-        .replace(/<br\s*\/?>/gi, "\n")
-        .replace(/<[^>]+>/g, "")
-        .replace(/&nbsp;/g, " ");
-    }
-
-    if (mode === "eml") {
-      if (platformAdapter.isDesktop) {
-        const emlContent = generateEmlContent(
-          bid.email || "",
-          subject,
-          htmlBody,
-        );
-        const filename =
-          kind === "materialInquiry"
-            ? `Materialova_poptavka_${Date.now()}.eml`
-            : `Poptavka_${Date.now()}.eml`;
-        console.log("[Pipeline] Opening EML on desktop:", filename);
-        platformAdapter.shell.openTempFile(emlContent, filename);
-      } else {
-        downloadEmlFile(bid.email || "", subject, htmlBody);
-      }
-      updateBidsInternal((prev) => {
-        const categoryBids = [...(prev[activeCategory.id] || [])];
-        const index = categoryBids.findIndex((b) => b.id === bid.id);
-        if (index > -1) {
-          categoryBids[index] = { ...categoryBids[index], status: "sent" };
-          return { ...prev, [activeCategory.id]: categoryBids };
-        }
-        return prev;
-      });
-      void runDocHubFallbackForCategory(activeCategory.id, "inquiry-sent");
-      return;
-    }
-
-    const mailtoLink = createMailtoLink(bid.email || "", subject, body);
-    console.log("[Pipeline] Sending inquiry via mailto:", mailtoLink);
-    platformAdapter.shell.openExternal(mailtoLink);
-
-    setTimeout(() => {
-      updateBidsInternal((prev) => {
-        const categoryBids = [...(prev[activeCategory.id] || [])];
-        const index = categoryBids.findIndex((b) => b.id === bid.id);
-        if (index > -1) {
-          categoryBids[index] = { ...categoryBids[index], status: "sent" };
-          return { ...prev, [activeCategory.id]: categoryBids };
-        }
-        return prev;
-      });
-      void runDocHubFallbackForCategory(activeCategory.id, "inquiry-sent");
-    }, 100);
-  };
-
-  const handleGenerateInquiry = async (bid: Bid) => {
-    await generateInquiryFromTemplateKind(bid, "inquiry");
-  };
-
-  const handleGenerateMaterialInquiry = async (bid: Bid) => {
-    await generateInquiryFromTemplateKind(bid, "materialInquiry");
-  };
-
-  const handleOpenSupplierDocHub = (bid: Bid) => {
-    console.log("[DocHub] handleOpenSupplierDocHub called", {
-      bid: bid.companyName,
-      isDocHubEnabled,
-      docHubRoot,
-      activeCategory: activeCategory?.title,
-      docHubProvider: projectData.docHubProvider,
-      docHubStructure,
-    });
-
-    if (!isDocHubEnabled || !activeCategory) {
-      console.warn(
-        "[DocHub] Early exit: isDocHubEnabled=",
-        isDocHubEnabled,
-        "activeCategory=",
-        activeCategory,
-      );
-      return;
-    }
-
-    // Explicitly force local handling for MCP/Tender Flow Desktop to avoid backend calls
-    const isMcpOrLocal =
-      projectData.docHubProvider === "mcp" ||
-      projectData.docHubProvider === "onedrive";
-
-    if (canUseDocHubBackend && projectData.id && !isMcpOrLocal) {
-      openDocHubBackendLink({
-        projectId: projectData.id,
-        kind: "supplier",
-        categoryId: activeCategory.id,
-        categoryTitle: activeCategory.title,
-        supplierId: bid.subcontractorId,
-        supplierName: bid.companyName,
-      });
-      return;
-    }
-
-    // For desktop: use desktop-specific function that preserves diacritics
-    // For web/MCP: use original function with slugified names
-    const isDesktopMode =
-      typeof window !== "undefined" && window.electronAPI?.platform?.isDesktop;
-    console.log("[DocHub] isDesktopMode:", isDesktopMode);
-
-    if (isDesktopMode) {
-      // Desktop: Check for both standard (Raw) and strict (Underscored) folder names
-      const handleDesktopPath = async () => {
-        // 1. Try standard path (preserves spaces/diacritics if any)
-        const supplierPath = getDocHubTenderLinksDesktop(
-          docHubRoot,
-          activeCategory.title,
-          bid.companyName,
-          projectDetails.docHubStructureV1,
-        );
-
-        if (await folderExists(supplierPath)) {
-          console.log("[DocHub] Found aligned folder:", supplierPath);
-          openOrCopyDocHubPath(supplierPath);
-          return;
-        }
-
-        // 2. Try strict slugified path (Cloud style: spaces -> underscores)
-        const strictName = slugifyDocHubSegmentStrict(bid.companyName);
-        const strictPath = getDocHubTenderLinksDesktop(
-          docHubRoot,
-          activeCategory.title,
-          strictName,
-          projectDetails.docHubStructureV1,
-        );
-
-        if (await folderExists(strictPath)) {
-          console.log(
-            "[DocHub] Found strict (underscored) folder:",
-            strictPath,
-          );
-          openOrCopyDocHubPath(strictPath);
-          return;
-        }
-
-        // Fallback to standard if neither found explicitly (let Explorer handle error or opening parent)
-        console.log(
-          "[DocHub] Folder not found, attempting standard:",
-          supplierPath,
-        );
-        openOrCopyDocHubPath(supplierPath);
-      };
-
-      handleDesktopPath();
-    } else {
-      const links = getDocHubTenderLinks(
-        docHubRoot,
-        activeCategory.title,
-        docHubStructure,
-      );
-      openOrCopyDocHubPath(links.supplierBase(bid.companyName));
-    }
-  };
-
-  const handleExport = (format: "xlsx" | "markdown" | "pdf") => {
-    if (!activeCategory) return;
-
-    const categoryBids = bids[activeCategory.id] || [];
-
-    try {
-      switch (format) {
-        case "xlsx":
-          exportToXLSX(activeCategory, categoryBids, projectDetails);
-          break;
-        case "markdown":
-          exportToMarkdown(activeCategory, categoryBids, projectDetails);
-          break;
-        case "pdf":
-          exportToPDF(activeCategory, categoryBids, projectDetails);
-          break;
-      }
-      setIsExportMenuOpen(false);
-    } catch (error) {
-      console.error("Export error:", error);
-      showAlert({
-        title: "Chyba exportu",
-        message: "Chyba při exportu. Zkuste to prosím znovu.",
-        variant: "danger",
-      });
-    }
-  };
-
-  // Handle sending email to losers (non-winners with at least one price)
-  const htmlToPlainText = (html: string) =>
-    html
-      .replace(/<br\s*\/?>/gi, "\n")
-      .replace(/<\/p>/gi, "\n\n")
-      .replace(/<p[^>]*>/gi, "")
-      .replace(/<li[^>]*>/gi, "• ")
-      .replace(/<\/li>/gi, "\n")
-      .replace(/<\/ul>/gi, "\n")
-      .replace(/<\/ol>/gi, "\n")
-      .replace(/<[^>]+>/g, "")
-      .replace(/&nbsp;/g, " ")
-      .replace(/&amp;/g, "&")
-      .replace(/&lt;/g, "<")
-      .replace(/&gt;/g, ">")
-      .replace(/\n{3,}/g, "\n\n")
-      .trim();
-
-  const handleEmailLosers = async () => {
-    if (!activeCategory) return;
-
-    const categoryBids = bids[activeCategory.id] || [];
-
-    // Filter bids: not in "sod" status AND has at least one price (in price or priceHistory)
-    const loserBids = categoryBids.filter((bid) => {
-      // Exclude winners (SOD status)
-      if (bid.status === "sod") return false;
-
-      // Must have at least one valid price
-      const hasMainPrice = bid.price && bid.price !== "?" && bid.price !== "-";
-      const hasPriceHistory =
-        bid.priceHistory && Object.keys(bid.priceHistory).length > 0;
-
-      return hasMainPrice || hasPriceHistory;
-    });
-
-    if (loserBids.length === 0) {
-      showAlert({
-        title: "Info",
-        message: "Nejsou žádní nevybráni účastníci s cenou.",
-        variant: "info",
-      });
-      return;
-    }
-
-    // Get emails
-    const emails = loserBids.filter((bid) => bid.email).map((bid) => bid.email);
-
-    if (emails.length === 0) {
-      showAlert({
-        title: "Info",
-        message: "Žádný z nevybraných účastníků nemá uvedený email.",
-        variant: "info",
-      });
-      return;
-    }
-
-    let subject = `${projectDetails.title} - ${activeCategory.title} - Výsledek výběrového řízení`;
-    let body =
-      `Vážený obchodní partnere,\n\n` +
-      `děkujeme za Vaši nabídku v rámci výběrového řízení na zakázku "${projectDetails.title}" - ${activeCategory.title}.\n\n` +
-      `Po pečlivém zvážení všech nabídek jsme se rozhodli pokračovat s jiným dodavatelem.\n\n` +
-      `Věříme, že budeme mít možnost spolupracovat na dalších projektech v budoucnosti.\n\n` +
-      `S pozdravem`;
-
-    const templateLink = projectDetails.losersEmailTemplateLink || "";
-    if (templateLink.startsWith("template:")) {
-      const templateId = templateLink.split(":")[1];
-      const template = await getTemplateById(templateId);
-      if (template) {
-        subject = processTemplate(
-          template.subject,
-          projectDetails,
-          activeCategory,
-        );
-        const processed = processTemplate(
-          template.content,
-          projectDetails,
-          activeCategory,
-        );
-        body = htmlToPlainText(processed);
-      }
-    }
-
-    // Open mailto with BCC to all losers
-    window.location.href = `mailto:?bcc=${emails.join(
-      ",",
-    )}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  };
-
-  const handleSaveNewContact = async (newContact: Subcontractor) => {
-    // Persist to Supabase or Demo Storage FIRST
-    try {
-      const companyValidation = validateSubcontractorCompanyName(
-        newContact.company,
-      );
-      if (!companyValidation.isValid) {
-        showAlert({
-          title: "Neplatny nazev dodavatele",
-          message: companyValidation.reason || "Upravte nazev firmy a zkuste to znovu.",
-          variant: "danger",
-        });
-        return;
-      }
-
-      if (user?.role === "demo") {
-        const demoData = getDemoData();
-        if (demoData) {
-          demoData.contacts = [...demoData.contacts, newContact];
-          saveDemoData(demoData);
-        }
-      } else {
-        const { error } = await supabase.from("subcontractors").insert({
-          id: newContact.id,
-          company_name: newContact.company,
-          contact_person_name: newContact.name,
-          email: newContact.email,
-          phone: newContact.phone,
-          specialization: newContact.specialization,
-          ico: newContact.ico,
-          region: newContact.region,
-          status_id: newContact.status,
-        });
-
-        if (error) {
-          console.error("Error saving contact to Supabase:", error);
-          throw error; // Re-throw to prevent modal close
-        }
-      }
-
-      // Only update UI and close modal if save was successful
-      setLocalContacts((prev) => [...prev, newContact]);
-      setSelectedSubcontractorIds((prev) => new Set(prev).add(newContact.id));
-      setIsCreateContactModalOpen(false);
-    } catch (err) {
-      console.error("Unexpected error saving contact:", err);
-      // Modal stays open so user can retry
-    }
-  };
-
-  const handleUpdateContact = async (updatedContact: Subcontractor) => {
-    // Persist to Supabase or Demo Storage FIRST
-    try {
-      const companyValidation = validateSubcontractorCompanyName(
-        updatedContact.company,
-      );
-      if (!companyValidation.isValid) {
-        showAlert({
-          title: "Neplatny nazev dodavatele",
-          message: companyValidation.reason || "Upravte nazev firmy a zkuste to znovu.",
-          variant: "danger",
-        });
-        return;
-      }
-
-      if (user?.role === "demo") {
-        const demoData = getDemoData();
-        if (demoData) {
-          demoData.contacts = demoData.contacts.map((c: Subcontractor) =>
-            c.id === updatedContact.id ? updatedContact : c,
-          );
-          saveDemoData(demoData);
-        }
-      } else {
-        const { error } = await supabase
-          .from("subcontractors")
-          .update({
-            company_name: updatedContact.company,
-            contact_person_name: updatedContact.name,
-            email: updatedContact.email,
-            phone: updatedContact.phone,
-            specialization: updatedContact.specialization,
-            ico: updatedContact.ico,
-            region: updatedContact.region,
-            status_id: updatedContact.status,
-          })
-          .eq("id", updatedContact.id);
-
-        if (error) {
-          console.error("Error updating contact in Supabase:", error);
-          throw error; // Re-throw to prevent modal close
-        }
-      }
-
-      // Only update UI and close modal if update was successful
-      setLocalContacts((prev) =>
-        prev.map((c) => (c.id === updatedContact.id ? updatedContact : c)),
-      );
-      setEditingContact(null);
-    } catch (err) {
-      console.error("Unexpected error updating contact:", err);
-      // Modal stays open so user can retry
-    }
-  };
-
   if (activeCategory) {
     const isDesktopMode =
-      typeof window !== "undefined" && window.electronAPI?.platform?.isDesktop;
+      platformAdapter.isDesktop;
     const categoryBids = bids[activeCategory.id] || [];
-    const hasComparableOfferSignal = (bid: Bid): boolean => {
-      const hasPrice =
-        !!(bid.price || "").trim() &&
-        bid.price !== "?" &&
-        bid.price !== "-";
-      const hasPriceHistory = !!(
-        bid.priceHistory && Object.keys(bid.priceHistory).length > 0
-      );
-      const hasOfferStatus =
-        bid.status === "offer" || bid.status === "shortlist" || bid.status === "sod";
-      return hasPrice || hasPriceHistory || hasOfferStatus;
-    };
-
-    const relevantSupplierNames = categoryBids
-      .filter(hasComparableOfferSignal)
-      .map((bid) => bid.companyName?.trim() || "")
-      .filter(Boolean);
-    const fallbackSupplierNames = categoryBids
-      .map((bid) => bid.companyName?.trim() || "")
-      .filter(Boolean);
-
-    const bidComparisonSuppliers = Array.from(
-      new Set(
-        relevantSupplierNames.length > 0
-          ? relevantSupplierNames
-          : fallbackSupplierNames,
-      ),
-    ).sort((a, b) => a.localeCompare(b, "cs"));
+    const bidComparisonSuppliers = buildBidComparisonSuppliers(categoryBids);
 
     // --- DETAIL VIEW (PIPELINE) ---
     return (
@@ -1943,34 +413,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
           {isDocHubEnabled && (
             <button
-              onClick={async () => {
-                if (canUseDocHubBackend && projectData.id && !isDesktopMode) {
-                  openDocHubBackendLink({
-                    projectId: projectData.id,
-                    kind: "tender",
-                    categoryId: activeCategory.id,
-                    categoryTitle: activeCategory.title,
-                  });
-                  return;
-                }
-
-                if (isDesktopMode) {
-                  const tenderPath = await resolveDesktopTenderFolderPath(
-                    activeCategory.title,
-                  );
-                  if (tenderPath) {
-                    console.log("[DocHub] Opening tender folder:", tenderPath);
-                    openOrCopyDocHubPath(tenderPath);
-                  }
-                } else {
-                  const links = getDocHubTenderLinks(
-                    docHubRoot,
-                    activeCategory.title,
-                    docHubStructure,
-                  );
-                  openOrCopyDocHubPath(links.tenderBase);
-                }
-              }}
+              onClick={() => void handleOpenTenderDocHub()}
               className="flex items-center gap-2 bg-violet-100 dark:bg-violet-900/30 hover:bg-violet-200 dark:hover:bg-violet-900/50 text-violet-700 dark:text-violet-300 px-4 py-2 rounded-lg text-sm font-bold transition-colors"
               title={`Otevřít složku: ${activeCategory.title}`}
             >
@@ -2350,7 +793,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
             setIsSubcontractorModalMaximized(!isSubcontractorModalMaximized)
           }
           onClose={() => setIsSubcontractorModalOpen(false)}
-          onConfirm={handleAddSubcontractors}
+          onConfirm={() => handleAddSubcontractors(localContacts)}
           onAddContact={handleCreateContactRequest}
           onEditContact={setEditingContact}
         />
@@ -2362,10 +805,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
               new Set(localContacts.flatMap((c) => c.specialization)),
             ).sort()}
             statuses={externalStatuses}
-            onClose={() => {
-              setIsCreateContactModalOpen(false);
-              setEditingContact(null);
-            }}
+            onClose={closeContactModal}
             onSave={editingContact ? handleUpdateContact : handleSaveNewContact}
           />
         )}
@@ -2430,11 +870,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
         initialData={editingCategory || undefined}
         existingDocuments={editingCategory?.documents}
         linkedTenderPlanDates={linkedTenderPlanDates}
-        onClose={() => {
-          setIsEditModalOpen(false);
-          setEditingCategory(null);
-          setLinkedTenderPlanDates(null);
-        }}
+        onClose={closeEditCategoryModal}
         onSubmit={handleEditCategoryFromModal}
       />
       {/* Confirmation Modal */}

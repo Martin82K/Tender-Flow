@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Header } from '@/components/Header';
+import { Header } from '@/shared/ui/Header';
 import { StarRating } from '@/shared/ui/StarRating';
 import { Subcontractor, StatusConfig } from '@/types';
 import { findCompanyRegions } from '@/services/geminiService';
-import { SubcontractorSelector } from '@/components/SubcontractorSelector';
-import { ConfirmationModal } from '@/components/ConfirmationModal';
+import { SubcontractorSelector } from '@/shared/ui/SubcontractorSelector';
+import { ConfirmationModal } from '@/shared/ui/ConfirmationModal';
 import { validateSubcontractorCompanyName } from '@/shared/dochub/subcontractorNameRules';
 
 interface ContactsProps {

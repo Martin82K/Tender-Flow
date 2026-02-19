@@ -1,11 +1,10 @@
 import { useEffect, useRef } from "react";
-import { clearStoredSessionData } from "@/services/supabase";
+import { clearAuthSessionForRecovery } from "@infra/auth/stuckLoadingRecovery";
 
 interface UseStuckLoadingRecoveryParams {
   shouldShowLoader: boolean;
   isDataLoading: boolean;
-  isDesktop: boolean;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 const STUCK_LOADING_TIMEOUT_MS = 20000;
@@ -13,7 +12,6 @@ const STUCK_LOADING_TIMEOUT_MS = 20000;
 export const useStuckLoadingRecovery = ({
   shouldShowLoader,
   isDataLoading,
-  isDesktop,
   logout,
 }: UseStuckLoadingRecoveryParams): void => {
   const loadingStartTimeRef = useRef<number | null>(null);
@@ -48,19 +46,11 @@ export const useStuckLoadingRecovery = ({
       clearInterval(checkStuck);
       loadingStartTimeRef.current = null;
 
-      try {
-        clearStoredSessionData();
-      } catch {
-        // ignore session cleanup errors
-      }
+      void clearAuthSessionForRecovery();
 
-      if (isDesktop && window.electronAPI?.session) {
-        window.electronAPI.session.clearCredentials().catch(() => {});
-      }
-
-      logout();
+      void logout();
     }, 2000);
 
     return () => clearInterval(checkStuck);
-  }, [shouldShowLoader, isDataLoading, isDesktop, logout]);
+  }, [shouldShowLoader, isDataLoading, logout]);
 };
