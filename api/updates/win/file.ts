@@ -102,5 +102,5 @@ export default async function handler(req: any, res: any): Promise<void> {
   res.setHeader("ETag", blobResult.blob.etag);
   res.setHeader("Vary", "Authorization");
 
-  Readable.fromWeb(blobResult.stream as unknown as ReadableStream).pipe(res);
+  Readable.fromWeb(blobResult.stream as any).pipe(res);
 }
