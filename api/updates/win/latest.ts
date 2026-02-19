@@ -3,7 +3,7 @@ import {
   getBearerToken,
   rewriteLatestYamlForUpdateProxy,
   verifySupabaseAccessToken,
-} from "./_lib";
+} from "./lib";
 
 const LATEST_PATH = "releases/win/latest.yml";
 export const config = { runtime: "nodejs" };

@@ -4,7 +4,7 @@ import {
   getBearerToken,
   isAllowedUpdateBlobPath,
   verifySupabaseAccessToken,
-} from "./_lib";
+} from "./lib";
 
 const readPathFromQuery = (queryValue: string | string[] | undefined): string | null => {
   if (!queryValue) return null;
