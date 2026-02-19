@@ -24,7 +24,6 @@ begin
   perform cron.schedule(
     'purge_app_incident_events_60d',
     '17 3 * * *',
-    $$select public.purge_old_app_incident_events(60);$$
+    'select public.purge_old_app_incident_events(60);'
   );
 end $$;
-
