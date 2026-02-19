@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useMemo } from "react";
 import { AuthLayout } from "@/components/layouts/AuthLayout";
 import { LandingPage } from "@/components/LandingPage";
 import { ForgotPasswordPage } from "@/features/auth/ui/ForgotPasswordPage";
@@ -20,19 +20,24 @@ export const AuthGate: React.FC<AuthGateProps> = ({
   search,
   isDesktop,
 }) => {
-  if (pathname === "/") {
-    if (isDesktop) {
-      navigate("/login", { replace: true });
-      return null;
+  const redirectTo = useMemo(() => {
+    if (pathname === "/" && isDesktop) {
+      return "/login";
     }
-    return <LandingPage />;
-  }
-
-  if (!AUTH_ROUTES.includes(pathname)) {
-    const nextUrl = encodeURIComponent(pathname + search);
-    navigate(`/login?next=${nextUrl}`, { replace: true });
+    if (!AUTH_ROUTES.includes(pathname)) {
+      const nextUrl = encodeURIComponent(pathname + search);
+      return `/login?next=${nextUrl}`;
+    }
     return null;
-  }
+  }, [pathname, search, isDesktop]);
+
+  useEffect(() => {
+    if (!redirectTo) return;
+    navigate(redirectTo, { replace: true });
+  }, [redirectTo]);
+
+  if (redirectTo) return null;
+  if (pathname === "/") return <LandingPage />;
 
   return (
     <AuthLayout>

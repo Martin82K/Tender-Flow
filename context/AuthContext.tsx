@@ -112,6 +112,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
   useEffect(() => {
     console.log("AuthContext: Initializing...");
+    let hasValidStoredSession = false;
 
     // Priority 0: Validate stored session before Supabase tries to use it.
     // A corrupted session can cause "Invalid value" header errors in fetch requests.
@@ -140,6 +141,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         if (isInvalidToken(accessToken) || isInvalidToken(refreshToken)) {
           console.warn('[AuthContext] Corrupted session token detected, clearing session');
           authSessionService.clearStoredSessionData();
+        } else {
+          hasValidStoredSession = true;
         }
       }
     } catch (e) {
@@ -167,7 +170,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     }
 
     // Priority 2: Desktop restore flow (single refresh attempt; no fallback retries)
-    const tryDesktopSessionRestore = async (): Promise<"success" | "cancelled" | "skipped" | "failed"> => {
+    const tryDesktopSessionRestore = async (): Promise<"success" | "cancelled" | "skipped" | "failed" | "hard_failed"> => {
       if (!isDesktop || biometricLoginAttemptedRef.current) return "skipped";
 
       const [biometricEnabled, credentials] = await Promise.all([
@@ -187,7 +190,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           reason: "invalid_refresh_token",
         });
         setHasSavedCredentials(false);
-        return "failed";
+        return "hard_failed";
       }
 
       if (biometricEnabled) {
@@ -214,6 +217,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
               navigateToLogin: false,
               reason: "invalid_refresh_token",
             });
+            setHasSavedCredentials(false);
+            return "hard_failed";
           } else {
             await platformAdapter.session.clearCredentials();
             setHasSavedCredentials(false);
@@ -247,6 +252,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
             reason: "invalid_refresh_token",
           });
           setHasSavedCredentials(false);
+          return "hard_failed";
         }
         return "failed";
       } finally {
@@ -307,6 +313,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         }
       } else if (event === "SIGNED_OUT") {
         console.warn("[AuthContext] Received SIGNED_OUT event from Supabase");
+        void authSessionService.invalidateAuthState({
+          navigateToLogin: false,
+          reason: "invalid_refresh_token",
+        });
         setUser(null);
         setIsLoading(false);
       }
@@ -329,9 +339,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
     (async () => {
       try {
-        const desktopRestoreStatus = await tryDesktopSessionRestore();
+        const desktopRestoreStatus = hasValidStoredSession
+          ? "skipped"
+          : await tryDesktopSessionRestore();
         if (desktopRestoreStatus === "success") {
           window.clearTimeout(timer);
+          return;
+        }
+
+        if (desktopRestoreStatus === "hard_failed") {
+          setUser(null);
           return;
         }
 

@@ -188,6 +188,10 @@ describe("AuthContext auth recovery", () => {
     });
 
     expect(mockState.refreshSession).not.toHaveBeenCalled();
-    expect(mockState.invalidateAuthState).not.toHaveBeenCalled();
+    expect(mockState.invalidateAuthState).toHaveBeenCalledTimes(1);
+    expect(mockState.invalidateAuthState).toHaveBeenCalledWith({
+      navigateToLogin: false,
+      reason: "invalid_refresh_token",
+    });
   });
 });
