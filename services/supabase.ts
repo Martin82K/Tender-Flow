@@ -239,6 +239,35 @@ const triggerAuthRecovery = async (): Promise<void> => {
   }
 };
 
+const emitSupabaseIncident = async (input: {
+  severity: "error" | "warn" | "info";
+  category: "auth" | "network" | "ui" | "runtime" | "storage";
+  code: string;
+  message: string;
+  stack?: string | null;
+  notifyUser?: boolean;
+  context?: Record<string, unknown>;
+}): Promise<void> => {
+  try {
+    const { logIncident } = await import("./incidentLogger");
+    await logIncident({
+      severity: input.severity,
+      source: "supabase-client",
+      category: input.category,
+      code: input.code,
+      message: input.message,
+      stack: input.stack ?? null,
+      notifyUser: input.notifyUser ?? false,
+      context: {
+        operation: "supabase.safe_fetch",
+        ...(input.context || {}),
+      },
+    });
+  } catch {
+    // swallow logging failures
+  }
+};
+
 const getStorageValue = (storage: Storage, key: string): string | null => {
   try {
     return storage.getItem(key);
@@ -402,6 +431,17 @@ const safeFetch: typeof fetch = async (input, init) => {
       console.warn(
         `[Supabase] Refresh token failure detected (${_refreshAuthErrorCount}/${MAX_REFRESH_AUTH_ERRORS}): status ${response.status}`,
       );
+      void emitSupabaseIncident({
+        severity: "warn",
+        category: "auth",
+        code: "SUPABASE_REFRESH_TOKEN_FAILURE",
+        message: `Supabase refresh token request failed with status ${response.status}`,
+        context: {
+          route: typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : "/",
+          http_status: response.status,
+          retry_count: _refreshAuthErrorCount,
+        },
+      });
 
       if (_refreshAuthErrorResetTimer) clearTimeout(_refreshAuthErrorResetTimer);
       _refreshAuthErrorResetTimer = setTimeout(() => {
@@ -410,6 +450,16 @@ const safeFetch: typeof fetch = async (input, init) => {
 
       if (_refreshAuthErrorCount >= MAX_REFRESH_AUTH_ERRORS) {
         _refreshAuthErrorCount = 0;
+        void emitSupabaseIncident({
+          severity: "error",
+          category: "auth",
+          code: "SUPABASE_REFRESH_TOKEN_THRESHOLD",
+          message: "Supabase refresh token failures exceeded threshold",
+          notifyUser: true,
+          context: {
+            retry_count: MAX_REFRESH_AUTH_ERRORS,
+          },
+        });
         await triggerAuthRecovery();
       }
     } else if (_refreshAuthErrorCount > 0) {
@@ -433,6 +483,16 @@ const safeFetch: typeof fetch = async (input, init) => {
     if (isInvalidValueError) {
       _authErrorCount++;
       console.warn(`[Supabase] Auth error detected (${_authErrorCount}/${MAX_AUTH_ERRORS}):`, error.message);
+      void emitSupabaseIncident({
+        severity: "warn",
+        category: "network",
+        code: "SUPABASE_FETCH_INVALID_HEADER",
+        message: `Supabase fetch failed due to invalid header value: ${error.message}`,
+        stack: error instanceof Error ? error.stack : null,
+        context: {
+          retry_count: _authErrorCount,
+        },
+      });
 
       // Reset counter after a period of time
       if (_authErrorResetTimer) clearTimeout(_authErrorResetTimer);
@@ -447,6 +507,16 @@ const safeFetch: typeof fetch = async (input, init) => {
           `Session may be corrupted. Triggering centralized auth recovery.`
         );
         _authErrorCount = 0;
+        void emitSupabaseIncident({
+          severity: "error",
+          category: "network",
+          code: "SUPABASE_FETCH_ERROR_THRESHOLD",
+          message: "Supabase fetch auth errors exceeded threshold",
+          notifyUser: true,
+          context: {
+            retry_count: MAX_AUTH_ERRORS,
+          },
+        });
         await triggerAuthRecovery();
       }
     }

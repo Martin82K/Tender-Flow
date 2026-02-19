@@ -19,6 +19,7 @@ import { isDesktop, platformAdapter } from "../services/platformAdapter";
 import {
   authSessionService,
 } from "../services/authSessionService";
+import { logIncident, setIncidentContext } from "@/services/incidentLogger";
 import { navigate } from "../shared/routing/router";
 import { authSessionStore } from "@infra/auth/authSessionStore";
 
@@ -67,6 +68,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       message.includes("refresh token not found")
     );
   };
+
+  useEffect(() => {
+    setIncidentContext({
+      user_id: user?.id ?? null,
+      organization_id: user?.organizationId ?? null,
+    });
+  }, [user?.id, user?.organizationId]);
 
   // Check biometric availability and validate stored credentials on mount
   useEffect(() => {
@@ -185,6 +193,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
       if (typeof credentials.refreshToken !== "string" || credentials.refreshToken.length < 10) {
         console.warn("[AuthContext] Auto-login: Invalid refresh token format");
+        void logIncident({
+          severity: "error",
+          source: "renderer",
+          category: "auth",
+          code: "AUTH_INVALID_REFRESH_TOKEN_FORMAT",
+          message: "Auto-login: invalid refresh token format",
+          context: {
+            operation: "auth.auto_login.validate_token",
+            reason: "invalid_refresh_token_format",
+          },
+        });
         await authSessionService.invalidateAuthState({
           navigateToLogin: false,
           reason: "invalid_refresh_token",
@@ -212,6 +231,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
         if (error || !data.session) {
           console.error("[AuthContext] Auto-login: Session refresh failed", error);
+          void logIncident({
+            severity: "error",
+            source: "renderer",
+            category: "auth",
+            code: isInvalidRefreshError(error)
+              ? "AUTH_INVALID_REFRESH_TOKEN"
+              : "AUTH_REFRESH_FAILED",
+            message: "Auto-login: session refresh failed",
+            stack: error instanceof Error ? error.stack : null,
+            context: {
+              operation: "auth.auto_login.refresh_session",
+              reason: isInvalidRefreshError(error) ? "invalid_refresh_token" : "refresh_failed",
+            },
+          });
           if (isInvalidRefreshError(error)) {
             await authSessionService.invalidateAuthState({
               navigateToLogin: false,
@@ -246,6 +279,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         return "success";
       } catch (error) {
         console.error("[AuthContext] Auto-login error:", error);
+        void logIncident({
+          severity: "error",
+          source: "renderer",
+          category: "auth",
+          code: "AUTH_AUTO_LOGIN_EXCEPTION",
+          message: "Auto-login exception",
+          stack: error instanceof Error ? error.stack : null,
+          context: {
+            operation: "auth.auto_login.exception",
+          },
+        });
         if (isInvalidRefreshError(error)) {
           await authSessionService.invalidateAuthState({
             navigateToLogin: false,
@@ -313,6 +357,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         }
       } else if (event === "SIGNED_OUT") {
         console.warn("[AuthContext] Received SIGNED_OUT event from Supabase");
+        void logIncident({
+          severity: "warn",
+          source: "renderer",
+          category: "auth",
+          code: "AUTH_SIGNED_OUT_EVENT",
+          message: "Received SIGNED_OUT event from Supabase",
+          context: {
+            operation: "auth.on_auth_state_change",
+          },
+        });
         void authSessionService.invalidateAuthState({
           navigateToLogin: false,
           reason: "invalid_refresh_token",
@@ -436,6 +490,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       }
     } catch (error) {
       console.error("Login failed", error);
+      void logIncident({
+        severity: "error",
+        source: "renderer",
+        category: "auth",
+        code: "AUTH_LOGIN_FAILED",
+        message: "Login failed",
+        stack: error instanceof Error ? error.stack : null,
+        context: {
+          operation: "auth.login",
+        },
+      });
       throw error;
     }
   };
@@ -486,6 +551,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
       if (error || !data.session) {
         console.error("[AuthContext] Failed to refresh session:", error);
+        void logIncident({
+          severity: "error",
+          source: "renderer",
+          category: "auth",
+          code: isInvalidRefreshError(error)
+            ? "AUTH_BIOMETRIC_INVALID_REFRESH_TOKEN"
+            : "AUTH_BIOMETRIC_REFRESH_FAILED",
+          message: "Biometric login: refresh failed",
+          stack: error instanceof Error ? error.stack : null,
+          context: {
+            operation: "auth.biometric.refresh_session",
+          },
+        });
         if (isInvalidRefreshError(error)) {
           await authSessionService.invalidateAuthState({
             navigateToLogin: false,
@@ -520,6 +598,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       return false;
     } catch (error) {
       console.error("[AuthContext] Biometric login error:", error);
+      void logIncident({
+        severity: "error",
+        source: "renderer",
+        category: "auth",
+        code: "AUTH_BIOMETRIC_EXCEPTION",
+        message: "Biometric login exception",
+        stack: error instanceof Error ? error.stack : null,
+        context: {
+          operation: "auth.biometric.exception",
+        },
+      });
       if (isInvalidRefreshError(error)) {
         await authSessionService.invalidateAuthState({
           navigateToLogin: false,
@@ -567,6 +656,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       }
     } catch (error) {
       console.error("Logout failed:", error);
+      void logIncident({
+        severity: "warn",
+        source: "renderer",
+        category: "auth",
+        code: "AUTH_LOGOUT_FAILED",
+        message: "Logout failed, continuing with local cleanup",
+        stack: error instanceof Error ? error.stack : null,
+        context: {
+          operation: "auth.logout",
+        },
+      });
     } finally {
       await authSessionService.invalidateAuthState({
         navigateToLogin: false,

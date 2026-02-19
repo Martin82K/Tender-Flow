@@ -12,6 +12,10 @@ const loadQueryClient = async () => {
     },
   }));
 
+  vi.doMock("../services/incidentLogger", () => ({
+    logIncident: vi.fn().mockResolvedValue({ incidentId: "INC-TEST" }),
+  }));
+
   vi.doMock("../shared/routing/router", () => ({
     navigate,
   }));

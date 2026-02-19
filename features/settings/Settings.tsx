@@ -18,6 +18,7 @@ import { UrlShortener } from "@/features/tools/UrlShortener";
 import { ExcelIndexerSettings } from "@/features/settings/ExcelIndexerSettings";
 import { SubscriptionSettings } from "@/features/settings/SubscriptionSettings";
 import { OrganizationSettings } from "@/features/settings/OrganizationSettings";
+import { IncidentLogsAdmin } from "@/features/settings/IncidentLogsAdmin";
 
 import { useFeatures } from "@/context/FeatureContext";
 import { FEATURES } from "@/config/features";
@@ -65,7 +66,12 @@ export const Settings: React.FC<SettingsProps> = ({
     | "excelMerger"
     | "urlShortener"
     | "excelIndexer";
-  type AdminSubTab = "registration" | "users" | "subscriptions" | "ai";
+  type AdminSubTab =
+    | "registration"
+    | "users"
+    | "subscriptions"
+    | "ai"
+    | "incidents";
 
   // -------------------------------------------------------------------------
   // Routing Logic
@@ -97,7 +103,8 @@ export const Settings: React.FC<SettingsProps> = ({
         subTabParam === "registration" ||
         subTabParam === "users" ||
         subTabParam === "subscriptions" ||
-        subTabParam === "ai"
+        subTabParam === "ai" ||
+        subTabParam === "incidents"
           ? subTabParam
           : null;
     }
@@ -130,6 +137,7 @@ export const Settings: React.FC<SettingsProps> = ({
         settingsRoute.subTab === "users" ||
         settingsRoute.subTab === "subscriptions" ||
         settingsRoute.subTab === "ai" ||
+        settingsRoute.subTab === "incidents" ||
         settingsRoute.subTab === "organization"
       ) {
         return settingsRoute.subTab;
@@ -363,6 +371,24 @@ export const Settings: React.FC<SettingsProps> = ({
                     AI
                   </div>
                 </button>
+
+                <button
+                  onClick={() =>
+                    updateSettingsUrl({ tab: "admin", subTab: "incidents" })
+                  }
+                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                    activeAdminSubTab === "incidents"
+                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[20px]">
+                      monitoring
+                    </span>
+                    Incidenty
+                  </div>
+                </button>
               </nav>
             </aside>
 
@@ -381,6 +407,7 @@ export const Settings: React.FC<SettingsProps> = ({
                   <AISettings isAdmin={isAdmin} />
                 </>
               )}
+              {activeAdminSubTab === "incidents" && <IncidentLogsAdmin />}
             </main>
           </div>
         )}

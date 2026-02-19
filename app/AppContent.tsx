@@ -19,6 +19,11 @@ import { AuthGate } from "@app/views/AuthGate";
 import { AppLoadErrorView } from "@app/views/AppLoadErrorView";
 import { AppLoadingView } from "@app/views/AppLoadingView";
 import {
+  INCIDENT_FATAL_EVENT_NAME,
+  setIncidentContext,
+} from "@/services/incidentLogger";
+import type { FatalIncidentNotice } from "@/shared/types/incidents";
+import {
   AppLazyFallback,
   Contacts,
   Dashboard,
@@ -75,6 +80,37 @@ export const AppContent: React.FC = () => {
       // ignore iframe access errors
     }
   }, []);
+
+  useEffect(() => {
+    setIncidentContext({
+      route: `${pathname}${search}`,
+      platform: isDesktop ? "desktop" : "web",
+    });
+  }, [pathname, search, isDesktop]);
+
+  useEffect(() => {
+    const handleFatalIncident = async (event: Event) => {
+      const detail = (event as CustomEvent<FatalIncidentNotice>).detail;
+      if (!detail?.incidentId) return;
+
+      showUiModal({
+        title: "Došlo k chybě",
+        message: `Kód incidentu: ${detail.incidentId}\n\nProsím pošli tento kód podpoře.`,
+        variant: "danger",
+        confirmLabel: "Kopírovat kód",
+        cancelLabel: "Zavřít",
+        onConfirm: () => {
+          if (!navigator.clipboard?.writeText) return;
+          void navigator.clipboard.writeText(detail.incidentId).catch(() => undefined);
+        },
+      });
+    };
+
+    window.addEventListener(INCIDENT_FATAL_EVENT_NAME, handleFatalIncident as EventListener);
+    return () => {
+      window.removeEventListener(INCIDENT_FATAL_EVENT_NAME, handleFatalIncident as EventListener);
+    };
+  }, [showUiModal]);
 
   useDesktopMcpTokenSync();
 

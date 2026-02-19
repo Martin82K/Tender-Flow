@@ -1,5 +1,6 @@
 import { QueryClient } from "@tanstack/react-query";
 import { authSessionService } from "./authSessionService";
+import { logIncident } from "./incidentLogger";
 
 /**
  * Check if an error is likely an auth/session error
@@ -27,8 +28,21 @@ let authErrorResetTimer: ReturnType<typeof setTimeout> | null = null;
  */
 const handleQueryError = (error: unknown) => {
     if (isAuthError(error)) {
+        const message = String((error as any)?.message || error);
         authErrorCount++;
         console.warn(`[QueryClient] Auth error detected (${authErrorCount}/${MAX_AUTH_ERRORS_BEFORE_LOGOUT}):`, error);
+        void logIncident({
+            severity: "warn",
+            source: "react-query",
+            category: "network",
+            code: "QUERY_AUTH_ERROR",
+            message: `React Query auth error: ${message}`,
+            stack: error instanceof Error ? error.stack : null,
+            context: {
+                operation: "react_query.on_error",
+                retry_count: authErrorCount,
+            },
+        });
 
         // Reset counter after 30 seconds of no errors
         if (authErrorResetTimer) clearTimeout(authErrorResetTimer);
@@ -40,6 +54,18 @@ const handleQueryError = (error: unknown) => {
         if (authErrorCount >= MAX_AUTH_ERRORS_BEFORE_LOGOUT) {
             console.error('[QueryClient] Too many auth errors, clearing session...');
             authErrorCount = 0;
+            void logIncident({
+                severity: "error",
+                source: "react-query",
+                category: "network",
+                code: "QUERY_AUTH_ERROR_THRESHOLD",
+                message: "Too many auth errors in query client; triggering auth invalidation",
+                context: {
+                    operation: "react_query.auth_threshold",
+                    retry_count: MAX_AUTH_ERRORS_BEFORE_LOGOUT,
+                },
+                notifyUser: true,
+            });
 
             void authSessionService.invalidateAuthState({
                 navigateToLogin: true,
