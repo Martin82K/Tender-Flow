@@ -1,5 +1,5 @@
 import React from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
 interface SuccessRateChartProps {
   sodCount: number;
@@ -52,7 +52,7 @@ export const SuccessRateChart: React.FC<SuccessRateChartProps> = ({
       )}
       
       <div className="relative" style={{ width: config.width, height: config.height }}>
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={120} minHeight={120}>
           <PieChart>
             <Pie
               data={data}

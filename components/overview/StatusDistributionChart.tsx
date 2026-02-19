@@ -1,5 +1,5 @@
 import React from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { CheckCircle2, Star, FileText, XCircle, Mail, Send } from 'lucide-react';
 
 interface StatusDistributionChartProps {
@@ -55,7 +55,7 @@ export const StatusDistributionChart: React.FC<StatusDistributionChartProps> = (
       </h4>
       
       <div className="flex-1 min-h-[180px]">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={180} minHeight={180}>
           <PieChart>
             <Pie
               data={data}

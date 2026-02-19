@@ -575,7 +575,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
                     </div>
                   ) : (
                     <div className="h-56" ref={chartRef}>
-                      <ResponsiveContainer width="100%" height="100%">
+                      <ResponsiveContainer width="100%" height="100%" minWidth={240} minHeight={180}>
                         <LineChart data={selectedSupplierMonthlySeries.data}>
                           <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.2)" />
                           <XAxis dataKey="month" tick={{ fill: "#94a3b8", fontSize: 12 }} />
