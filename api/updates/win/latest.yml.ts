@@ -6,6 +6,7 @@ import {
 } from "./_lib";
 
 const LATEST_PATH = "releases/win/latest.yml";
+export const config = { runtime: "nodejs" };
 
 export default async function handler(req: any, res: any): Promise<void> {
   if (req.method !== "GET") {

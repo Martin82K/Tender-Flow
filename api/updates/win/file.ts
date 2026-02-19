@@ -12,6 +12,7 @@ const readPathFromQuery = (queryValue: string | string[] | undefined): string | 
   if (!value) return null;
   return decodeURIComponent(value);
 };
+export const config = { runtime: "nodejs" };
 
 export default async function handler(req: any, res: any): Promise<void> {
   if (req.method !== "GET") {
