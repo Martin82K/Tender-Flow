@@ -1,10 +1,6 @@
 {
     "rewrites": [
         {
-            "source": "/api/updates/win/latest.yml",
-            "destination": "/api/updates/win/latest"
-        },
-        {
             "source": "/api/(.*)",
             "destination": "/api/$1"
         },

@@ -1,13 +1,8 @@
 import { get } from "@vercel/blob";
 import { createHmac, timingSafeEqual } from "crypto";
-import { Readable } from "stream";
 
-const readPathFromQuery = (queryValue: string | string[] | undefined): string | null => {
-  if (!queryValue) return null;
-  const value = Array.isArray(queryValue) ? queryValue[0] : queryValue;
-  if (!value) return null;
-  return decodeURIComponent(value);
-};
+const LATEST_PATH = "releases/win/latest.yml";
+export const config = { runtime: "nodejs" };
 
 const getBearerToken = (authorizationHeader: string | undefined): string | null => {
   if (!authorizationHeader) return null;
@@ -54,12 +49,21 @@ const verifySupabaseAccessToken = (token: string, jwtSecret: string): boolean =>
   return true;
 };
 
-const isAllowedUpdateBlobPath = (pathname: string): boolean => {
-  if (!pathname) return false;
-  if (pathname.includes("..")) return false;
-  return pathname.startsWith("releases/win/");
+const rewriteLatestYamlForUpdateProxy = (yamlContent: string): string => {
+  const replacer = (_: string, rawPath: string): string => {
+    const cleaned = rawPath.trim().replace(/^['"]|['"]$/g, "");
+    const normalized = cleaned.startsWith("releases/win/")
+      ? cleaned
+      : `releases/win/${cleaned.replace(/^\/+/, "").replace(/^\.\//, "")}`;
+    return `file?path=${encodeURIComponent(normalized)}`;
+  };
+
+  let output = yamlContent.replace(/^path:\s*(.+)\s*$/m, (_line, rawPath) => `path: ${replacer("", rawPath)}`);
+  output = output.replace(/^(\s*(?:-\s*)?url:\s*)(.+)\s*$/gm, (_line, prefix, rawPath) => {
+    return `${prefix}${replacer("", rawPath)}`;
+  });
+  return output;
 };
-export const config = { runtime: "nodejs" };
 
 export default async function handler(req: any, res: any): Promise<void> {
   if (req.method !== "GET") {
@@ -80,27 +84,17 @@ export default async function handler(req: any, res: any): Promise<void> {
     return;
   }
 
-  const requestedPath = readPathFromQuery(req.query?.path);
-  if (!requestedPath || !isAllowedUpdateBlobPath(requestedPath)) {
-    res.status(400).json({ error: "Invalid update file path" });
-    return;
-  }
-
-  const blobResult = await get(requestedPath, { access: "private" });
+  const blobResult = await get(LATEST_PATH, { access: "private" });
   if (!blobResult || blobResult.statusCode !== 200 || !blobResult.stream) {
-    res.status(404).json({ error: "Update file not found" });
+    res.status(404).json({ error: "latest.yml not found" });
     return;
   }
 
-  const contentType = blobResult.blob.contentType || "application/octet-stream";
-  const contentDisposition =
-    blobResult.blob.contentDisposition || `attachment; filename="${requestedPath.split("/").pop()}"`;
+  const rawYaml = await new Response(blobResult.stream).text();
+  const rewrittenYaml = rewriteLatestYamlForUpdateProxy(rawYaml);
 
-  res.setHeader("Content-Type", contentType);
-  res.setHeader("Content-Disposition", contentDisposition);
-  res.setHeader("Cache-Control", "private, no-store");
-  res.setHeader("ETag", blobResult.blob.etag);
+  res.setHeader("Content-Type", "text/yaml; charset=utf-8");
+  res.setHeader("Cache-Control", "no-store, max-age=0");
   res.setHeader("Vary", "Authorization");
-
-  Readable.fromWeb(blobResult.stream as unknown as ReadableStream).pipe(res);
+  res.status(200).send(rewrittenYaml);
 }
