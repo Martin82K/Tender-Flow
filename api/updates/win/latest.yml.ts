@@ -3,7 +3,7 @@ import {
   getBearerToken,
   rewriteLatestYamlForUpdateProxy,
   verifySupabaseAccessToken,
-} from "../../../server/updateApi/updateApiUtils";
+} from "./_lib";
 
 const LATEST_PATH = "releases/win/latest.yml";
 

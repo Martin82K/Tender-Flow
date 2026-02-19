@@ -5,7 +5,7 @@ import {
   isAllowedUpdateBlobPath,
   rewriteLatestYamlForUpdateProxy,
   verifySupabaseAccessToken,
-} from "@/server/updateApi/updateApiUtils";
+} from "@/api/updates/win/_lib";
 
 const toBase64Url = (value: string): string =>
   Buffer.from(value, "utf8")
