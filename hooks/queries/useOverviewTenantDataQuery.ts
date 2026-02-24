@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { dbAdapter } from "../../services/dbAdapter";
 import { isDemoSession } from "../../services/demoData";
+import { useAuth } from "../../context/AuthContext";
 import type { Project, ProjectDetails } from "../../types";
 
 export interface OverviewTenantData {
@@ -27,9 +28,11 @@ const normalizeOverviewTenantData = (payload: any): OverviewTenantData => {
 export const OVERVIEW_TENANT_DATA_KEY = ["overviewTenantData"] as const;
 
 export const useOverviewTenantDataQuery = () => {
+  const { user } = useAuth();
+
   return useQuery({
-    queryKey: OVERVIEW_TENANT_DATA_KEY,
-    enabled: !isDemoSession(),
+    queryKey: [...OVERVIEW_TENANT_DATA_KEY, user?.id ?? null],
+    enabled: !!user && !isDemoSession(),
     queryFn: async () => {
       const { data, error } = await dbAdapter.rpc("get_overview_tenant_data");
       if (error) throw error;
