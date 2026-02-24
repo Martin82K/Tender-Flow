@@ -8,7 +8,8 @@
 -- NOTE: This migration intentionally does NOT decrypt/re-encrypt data in SQL.
 --       Backfill must run via secure server-side job using edge-function crypto.
 
-CREATE OR REPLACE VIEW contract_markdown_integrity_backlog_v AS
+CREATE OR REPLACE VIEW contract_markdown_integrity_backlog_v
+WITH (security_invoker = true) AS
 SELECT
   cm.id,
   cm.entity_type,

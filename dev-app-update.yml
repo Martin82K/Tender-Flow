@@ -1,3 +1,5 @@
-provider: generic
-url: http://localhost:3000/dist
+provider: github
+owner: Martin82K
+repo: Tender-Flow
+private: false
 updaterCacheDirName: construction-crm-updater

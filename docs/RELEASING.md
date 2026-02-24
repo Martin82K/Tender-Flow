@@ -1,31 +1,32 @@
-# Releasing Guide - Tender Flow Desktop (Vercel Blob)
+# Releasing Guide - Tender Flow Desktop (GitHub Releases)
 
-Tento dokument popisuje release proces desktop aplikace s privátním update streamem přes Vercel Blob.
+Tento dokument popisuje release proces desktop aplikace přes GitHub Releases.
 
 ## Přehled
 
-Auto-update používá:
+Distribuce používá:
 
-- `electron-updater` (`generic` provider)
-- update metadata endpoint `GET /api/updates/win/latest.yml`
-- stream endpoint `GET /api/updates/win/file?path=...`
-- privátní soubory v Vercel Blob pod `releases/win/...`
-- autorizaci přes `Authorization: Bearer <Supabase access token>`
+- `electron-updater` s `github` providerem
+- GitHub Release assets jako zdroj aktualizačních souborů
+- Windows auto-update flow (`latest.yml`, `.exe`, `.blockmap`)
+- macOS arm64 artefakty pro manuální distribuci (`.dmg`, `.zip`, `.zip.blockmap`, `latest-mac.yml`)
+
+## Scope a chování
+
+- `Windows`: auto-update je aktivní.
+- `macOS arm64` (Apple Silicon): auto-update je zatím vypnutý (manual release mode), distribuují se pouze artefakty.
 
 ## Proměnné prostředí
 
-### Vercel projekt
-
-- `SUPABASE_JWT_SECRET`
-- `BLOB_READ_WRITE_TOKEN`
-
-### Desktop build/runtime
-
-- `UPDATE_BASE_URL` (např. `https://<domena>/api/updates/win`)
-
 ### GitHub Actions
 
-- `BLOB_READ_WRITE_TOKEN`
+- Není potřeba Vercel Blob secret.
+- Používá se vestavěný `GITHUB_TOKEN` s `contents: write`.
+
+### Desktop runtime
+
+- Není potřeba `UPDATE_BASE_URL` ani `UPDATER_BASE_URL`.
+- Není potřeba updater auth token pro klienta.
 
 ## Release flow
 
@@ -46,25 +47,34 @@ git push origin main --tags
 
 3. Workflow `.github/workflows/release.yml`:
 
-- buildne Windows artefakty
-- uploadne je do Blob:
-  - `releases/win/<version>/latest.yml`
-  - `releases/win/<version>/Tender-Flow-Setup-<version>.exe`
-  - `releases/win/<version>/Tender-Flow-Setup-<version>.exe.blockmap`
-  - `releases/win/latest.yml`
+- job `release-win`:
+  - buildne Windows artefakty
+  - uploadne do GitHub Release:
+    - `Tender-Flow-Setup-<version>.exe`
+    - `Tender-Flow-Setup-<version>.exe.blockmap`
+    - `latest.yml`
+- job `release-mac-arm64`:
+  - buildne macOS arm64 artefakty
+  - uploadne do stejného GitHub Release:
+    - `*.dmg`
+    - `*-mac.zip`
+    - `*-mac.zip.blockmap`
+    - `latest-mac.yml`
 
 ## Ověření
 
-1. Bez tokenu:
-
-- `GET /api/updates/win/latest.yml` => `401`
-
-2. S valid tokenem:
-
-- `GET /api/updates/win/latest.yml` => `200`
-- `GET /api/updates/win/file?path=releases/win/<version>/Tender-Flow-Setup-<version>.exe` => `200`
-
-3. Desktop:
+1. Po tagu `vX.Y.Z` existuje jeden GitHub Release obsahující win + mac arm64 assets.
+2. Windows desktop klient:
 
 - přihlášený uživatel
 - Nastavení -> Aktualizace -> `Zkontrolovat` -> `Stáhnout` -> `Restartovat`
+
+3. macOS arm64 desktop klient:
+
+- updater vrací `not-available` (expected)
+- instalace přes stažený release artefakt manuálně
+
+## Poznámky k bezpečnosti
+
+- Odstraněním Vercel update API se snižuje attack surface.
+- Public GitHub Releases eliminují potřebu distribuovat privátní updater tokeny do klientů.

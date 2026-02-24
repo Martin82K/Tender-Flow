@@ -78,8 +78,6 @@ export interface UpdaterAPI {
     downloadUpdate: () => Promise<void>;
     quitAndInstall: () => Promise<void>;
     getStatus: () => Promise<UpdateStatus>;
-    setAuthToken: (token: string | null) => Promise<void>;
-    setFeedBaseUrl: (url: string) => Promise<void>;
     onStatusChange: (callback: (status: UpdateStatus) => void) => () => void;
 }
 

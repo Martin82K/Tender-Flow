@@ -10,7 +10,7 @@ export interface UpdateStatus {
 
 /**
  * Auto-updater service for managing application updates
- * Uses electron-updater with generic provider backend
+ * Uses electron-updater with GitHub provider backend
  * Automatically checks for updates every 6 hours
  */
 export class AutoUpdaterService {
@@ -18,28 +18,29 @@ export class AutoUpdaterService {
     private updateStatus: UpdateStatus = { status: 'not-available' };
     private checkInterval: NodeJS.Timeout | null = null;
     private updateCheckIntervalHours: number = 6;
-    private authToken: string | null = null;
-    private feedBaseUrl: string;
+
+    private readonly isDevMode = process.env.NODE_ENV === 'development' || !app.isPackaged;
+    private readonly isWinAutoUpdateEnabled = process.platform === 'win32';
+    private readonly isMacArmManualMode = process.platform === 'darwin' && process.arch === 'arm64';
 
     constructor() {
-        this.feedBaseUrl = this.resolveInitialFeedBaseUrl();
-
-        // Configure auto-updater
-        autoUpdater.autoDownload = false; // We'll control when to download
+        autoUpdater.autoDownload = false;
         autoUpdater.autoInstallOnAppQuit = true;
-        autoUpdater.setFeedURL({
-            provider: 'generic',
-            url: this.feedBaseUrl,
-        });
-        this.applyRequestHeaders();
-        console.log('[AutoUpdater] Generic feed configured:', this.feedBaseUrl);
 
-        // For development, allow unsigned updates
-        if (process.env.NODE_ENV === 'development' || !app.isPackaged) {
+        // For development, allow local update config (dev-app-update.yml)
+        if (this.isDevMode) {
             autoUpdater.forceDevUpdateConfig = true;
         }
 
-        this.setupEventListeners();
+        if (this.isWinAutoUpdateEnabled) {
+            console.log('[AutoUpdater] Windows auto-update mode enabled (GitHub Releases)');
+            this.setupEventListeners();
+        } else if (this.isMacArmManualMode) {
+            console.log('[AutoUpdater] macOS arm64 manual update mode enabled (no auto-update)');
+        } else {
+            console.log('[AutoUpdater] Auto-update disabled on this platform:', process.platform, process.arch);
+        }
+
         this.registerIpcHandlers();
     }
 
@@ -50,37 +51,15 @@ export class AutoUpdaterService {
         this.mainWindow = window;
     }
 
-    setAuthToken(token: string | null): void {
-        this.authToken = token && token.trim() ? token.trim() : null;
-        this.applyRequestHeaders();
-    }
-
-    setFeedBaseUrl(url: string): void {
-        const normalized = this.normalizeFeedBaseUrl(url);
-        if (!normalized) {
-            console.warn('[AutoUpdater] Ignoring empty feed base URL update');
-            return;
-        }
-        this.feedBaseUrl = normalized;
-        autoUpdater.setFeedURL({
-            provider: 'generic',
-            url: this.feedBaseUrl,
-        });
-        this.applyRequestHeaders();
-        console.log('[AutoUpdater] Feed URL updated');
-    }
-
     /**
      * Start periodic update checks
      */
     startPeriodicChecks(): void {
-        // Skip in development
-        if (process.env.NODE_ENV === 'development' || !app.isPackaged) {
-            console.log('[AutoUpdater] Periodic checks disabled in development');
+        if (!this.isWinAutoUpdateEnabled || this.isDevMode) {
+            console.log('[AutoUpdater] Periodic checks disabled for current platform/mode');
             return;
         }
 
-        // Clear existing interval if any
         if (this.checkInterval) {
             clearInterval(this.checkInterval);
         }
@@ -90,7 +69,7 @@ export class AutoUpdaterService {
 
         this.checkInterval = setInterval(() => {
             console.log('[AutoUpdater] Running scheduled update check');
-            this.checkForUpdates();
+            void this.checkForUpdates();
         }, intervalMs);
     }
 
@@ -120,27 +99,31 @@ export class AutoUpdaterService {
      * Check for available updates
      */
     async checkForUpdates(): Promise<boolean> {
+        if (!this.isWinAutoUpdateEnabled) {
+            this.updateStatus = { status: 'not-available' };
+            this.sendStatusToRenderer();
+            return false;
+        }
+
         try {
             this.updateStatus = { status: 'checking' };
             this.sendStatusToRenderer();
 
-            // Skip update check in development to prevent errors
-            if (process.env.NODE_ENV === 'development' || !app.isPackaged) {
+            if (this.isDevMode) {
                 console.log('[AutoUpdater] Skipping real update check in development mode');
                 this.updateStatus = { status: 'not-available' };
                 this.sendStatusToRenderer();
                 return false;
             }
 
-            this.applyRequestHeaders();
-            console.log('[AutoUpdater] Checking for updates...');
+            console.log('[AutoUpdater] Checking for updates via GitHub Releases...');
             const result = await autoUpdater.checkForUpdates();
 
             if (result?.updateInfo) {
                 console.log('[AutoUpdater] Update check result:', {
                     currentVersion: app.getVersion(),
                     latestVersion: result.updateInfo.version,
-                    hasUpdate: !!result.updateInfo
+                    hasUpdate: !!result.updateInfo,
                 });
             }
 
@@ -149,7 +132,7 @@ export class AutoUpdaterService {
             console.error('[AutoUpdater] Update check failed:', error);
             this.updateStatus = {
                 status: 'error',
-                error: error instanceof Error ? error.message : 'Unknown error'
+                error: error instanceof Error ? error.message : 'Unknown error',
             };
             this.sendStatusToRenderer();
             return false;
@@ -160,15 +143,20 @@ export class AutoUpdaterService {
      * Download the available update
      */
     async downloadUpdate(): Promise<void> {
+        if (!this.isWinAutoUpdateEnabled) {
+            this.updateStatus = { status: 'not-available' };
+            this.sendStatusToRenderer();
+            return;
+        }
+
         try {
-            this.applyRequestHeaders();
             console.log('[AutoUpdater] Starting update download...');
             await autoUpdater.downloadUpdate();
         } catch (error) {
             console.error('[AutoUpdater] Update download failed:', error);
             this.updateStatus = {
                 status: 'error',
-                error: error instanceof Error ? error.message : 'Download failed'
+                error: error instanceof Error ? error.message : 'Download failed',
             };
             this.sendStatusToRenderer();
         }
@@ -178,6 +166,10 @@ export class AutoUpdaterService {
      * Install update and restart app
      */
     quitAndInstall(): void {
+        if (!this.isWinAutoUpdateEnabled) {
+            return;
+        }
+
         console.log('[AutoUpdater] Installing update and restarting...');
         autoUpdater.quitAndInstall(false, true);
     }
@@ -212,7 +204,7 @@ export class AutoUpdaterService {
             this.updateStatus = {
                 status: 'downloading',
                 progress,
-                info: this.updateStatus.info
+                info: this.updateStatus.info,
             };
             this.sendStatusToRenderer();
         });
@@ -246,47 +238,12 @@ export class AutoUpdaterService {
         ipcMain.handle('updater:getStatus', () => {
             return this.updateStatus;
         });
-
-        ipcMain.handle('updater:setAuthToken', (_event, token: string | null) => {
-            this.setAuthToken(token);
-        });
-
-        ipcMain.handle('updater:setFeedBaseUrl', (_event, url: string) => {
-            this.setFeedBaseUrl(url);
-        });
     }
 
     private sendStatusToRenderer(): void {
         if (this.mainWindow && !this.mainWindow.isDestroyed()) {
             this.mainWindow.webContents.send('updater:statusChanged', this.updateStatus);
         }
-    }
-
-    private applyRequestHeaders(): void {
-        const headers: Record<string, string> = {};
-        if (this.authToken) {
-            headers.Authorization = `Bearer ${this.authToken}`;
-        }
-        autoUpdater.requestHeaders = headers;
-    }
-
-    private resolveInitialFeedBaseUrl(): string {
-        const configuredUrl =
-            process.env.UPDATE_BASE_URL ||
-            process.env.UPDATER_BASE_URL ||
-            'https://www.tenderflow.cz/api/updates/win';
-        const normalized = this.normalizeFeedBaseUrl(configuredUrl);
-        if (!normalized) {
-            return 'https://www.tenderflow.cz/api/updates/win';
-        }
-        return normalized;
-    }
-
-    private normalizeFeedBaseUrl(url: string | null | undefined): string | null {
-        if (!url) return null;
-        const trimmed = String(url).trim();
-        if (!trimmed) return null;
-        return trimmed.replace(/\/+$/, '');
     }
 }
 

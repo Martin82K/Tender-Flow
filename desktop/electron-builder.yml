@@ -18,19 +18,19 @@ asar: true
 
 # Auto-update publish configuration
 publish:
-  provider: generic
-  url: "${env.UPDATE_BASE_URL}"
+  provider: github
+  owner: Martin82K
+  repo: Tender-Flow
+  private: false
 
 mac:
   category: public.app-category.business
   target:
     - target: dmg
       arch:
-        - x64
         - arm64
     - target: zip
       arch:
-        - x64
         - arm64
   icon: assets/icon.icns
   hardenedRuntime: true

@@ -151,12 +151,6 @@ const electronAPI: ElectronAPI = {
         getStatus: (): Promise<UpdateStatus> =>
             invokeTyped('updater:getStatus'),
 
-        setAuthToken: (token: string | null): Promise<void> =>
-            invokeTyped('updater:setAuthToken', token),
-
-        setFeedBaseUrl: (url: string): Promise<void> =>
-            invokeTyped('updater:setFeedBaseUrl', url),
-
         onStatusChange: (callback: (status: UpdateStatus) => void) => {
             const handler = (_: unknown, status: UpdateStatus) => callback(status);
             ipcRenderer.on('updater:statusChanged', handler);

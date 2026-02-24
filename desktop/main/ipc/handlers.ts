@@ -13,6 +13,7 @@ import { registerNetHandlers } from './modules/netHandlers';
 import { registerOAuthHandlers } from './modules/oauthHandlers';
 import { registerSessionHandlers } from './modules/sessionHandlers';
 import { registerWatcherHandlers } from './modules/watcherHandlers';
+import { getAutoUpdaterService } from '../services/autoUpdater';
 
 // Services (singleton instances)
 const storageService = new SecureStorageService();
@@ -187,12 +188,11 @@ export function registerIpcHandlers(): void {
     });
 
     ipcMain.handle('app:checkForUpdates', async (): Promise<boolean> => {
-        // TODO: Implement auto-updater
-        return false;
+        return getAutoUpdaterService().checkForUpdates();
     });
 
     ipcMain.handle('app:quitAndInstall', async (): Promise<void> => {
-        // TODO: Implement auto-updater
+        getAutoUpdaterService().quitAndInstall();
     });
 
     ipcMain.handle('app:quit', async (): Promise<void> => {
