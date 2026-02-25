@@ -20,16 +20,15 @@ export const AuthGate: React.FC<AuthGateProps> = ({
   search,
   isDesktop,
 }) => {
+  const shouldRenderDesktopLogin = pathname === "/" && isDesktop;
   const redirectTo = useMemo(() => {
-    if (pathname === "/" && isDesktop) {
-      return "/login";
-    }
+    if (shouldRenderDesktopLogin) return null;
     if (!AUTH_ROUTES.includes(pathname)) {
       const nextUrl = encodeURIComponent(pathname + search);
       return `/login?next=${nextUrl}`;
     }
     return null;
-  }, [pathname, search, isDesktop]);
+  }, [pathname, search, shouldRenderDesktopLogin]);
 
   useEffect(() => {
     if (!redirectTo) return;
@@ -48,9 +47,19 @@ export const AuthGate: React.FC<AuthGateProps> = ({
   if (redirectTo) {
     return (
       <AuthLayout>
-        <div className="flex min-h-[40vh] items-center justify-center px-6 text-center text-sm text-white/70">
+        <div
+          className="flex min-h-[40vh] items-center justify-center px-6 text-center text-sm text-white/70 select-none"
+          style={{ WebkitAppRegion: "drag" } as any}
+        >
           Přesměrování na přihlášení...
         </div>
+      </AuthLayout>
+    );
+  }
+  if (shouldRenderDesktopLogin) {
+    return (
+      <AuthLayout>
+        <LoginPage />
       </AuthLayout>
     );
   }
