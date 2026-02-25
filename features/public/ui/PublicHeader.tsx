@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import logo from "@/assets/logo.png";
 import { Link, useLocation, navigate } from "@/shared/routing/router";
 import { useAuth } from "@/context/AuthContext";
+import { logRuntimeEvent } from "@infra/diagnostics/runtimeDiagnostics";
 
 const navItems = [
   { id: "top", label: "Home" },
@@ -38,10 +39,37 @@ export const PublicHeader: React.FC<{ variant?: "marketing" | "auth" }> = ({
     setMobileOpen(false);
   };
 
+  const handleHeaderMouseDownCapture = (event: React.MouseEvent<HTMLElement>) => {
+    const target = event.target as HTMLElement | null;
+    if (!target) return;
+
+    const inlineRegion = target.style?.WebkitAppRegion || null;
+    const computedRegion = (() => {
+      try {
+        return window.getComputedStyle(target).getPropertyValue("-webkit-app-region") || null;
+      } catch {
+        return null;
+      }
+    })();
+
+    logRuntimeEvent("window-drag", "public_header_mousedown", {
+      button: event.button,
+      targetTag: target.tagName,
+      targetText: (target.textContent || "").trim().slice(0, 80),
+      inlineRegion,
+      computedRegion,
+      headerRegion: "drag",
+      variant,
+      mobileOpen,
+      pathname,
+    });
+  };
+
   return (
     <header
       className="sticky top-0 z-30 border-b border-white/10 bg-gray-950/40 backdrop-blur select-none"
       style={{ WebkitAppRegion: "drag" } as any}
+      onMouseDownCapture={handleHeaderMouseDownCapture}
     >
       <div className="mx-auto max-w-6xl px-4 py-3 grid grid-cols-[auto_1fr_auto] items-center gap-4">
         <Link

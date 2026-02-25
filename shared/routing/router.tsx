@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { logRuntimeEvent } from "@infra/diagnostics/runtimeDiagnostics";
 
 type LocationState = {
   pathname: string;
@@ -39,6 +40,7 @@ const isExternalHref = (href: string) =>
   href.startsWith("tel:");
 
 export const navigate = (to: string, opts?: { replace?: boolean }) => {
+  const from = typeof window !== "undefined" ? window.location.href : "";
   let url = to.startsWith("/") || to.startsWith("#") ? to : `/${to}`;
 
   if (isFileProtocol) {
@@ -54,6 +56,13 @@ export const navigate = (to: string, opts?: { replace?: boolean }) => {
   } else {
     window.history.pushState({}, "", url);
   }
+  logRuntimeEvent("router", "navigate", {
+    from,
+    to,
+    url,
+    replace: !!opts?.replace,
+    protocol: window.location.protocol,
+  });
   window.dispatchEvent(new PopStateEvent("popstate"));
 };
 
@@ -61,12 +70,22 @@ export const useLocation = (): LocationState => {
   const [location, setLocation] = useState<LocationState>(() => getLocation());
 
   useEffect(() => {
-    const onChange = () => setLocation(getLocation());
-    window.addEventListener("popstate", onChange);
-    window.addEventListener("hashchange", onChange);
+    const onPopState = () => {
+      const nextLocation = getLocation();
+      logRuntimeEvent("router", "popstate", nextLocation);
+      setLocation(nextLocation);
+    };
+    const onHashChange = () => {
+      const nextLocation = getLocation();
+      logRuntimeEvent("router", "hashchange", nextLocation);
+      setLocation(nextLocation);
+    };
+
+    window.addEventListener("popstate", onPopState);
+    window.addEventListener("hashchange", onHashChange);
     return () => {
-      window.removeEventListener("popstate", onChange);
-      window.removeEventListener("hashchange", onChange);
+      window.removeEventListener("popstate", onPopState);
+      window.removeEventListener("hashchange", onHashChange);
     };
   }, []);
 
@@ -119,4 +138,3 @@ export const Link: React.FC<LinkProps> = ({
     </a>
   );
 };
-

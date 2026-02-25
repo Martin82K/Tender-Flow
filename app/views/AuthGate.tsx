@@ -6,6 +6,7 @@ import { LoginPage } from "@/features/auth/ui/LoginPage";
 import { RegisterPage } from "@/features/auth/ui/RegisterPage";
 import { ResetPasswordPage } from "@/features/auth/ui/ResetPasswordPage";
 import { navigate } from "@/shared/routing/router";
+import { logRuntimeEvent } from "@infra/diagnostics/runtimeDiagnostics";
 
 interface AuthGateProps {
   pathname: string;
@@ -31,15 +32,29 @@ export const AuthGate: React.FC<AuthGateProps> = ({
   }, [pathname, search, shouldRenderDesktopLogin]);
 
   useEffect(() => {
+    logRuntimeEvent("auth-gate", "route_decision", {
+      pathname,
+      search,
+      isDesktop,
+      shouldRenderDesktopLogin,
+      redirectTo,
+    });
+  }, [pathname, search, isDesktop, shouldRenderDesktopLogin, redirectTo]);
+
+  useEffect(() => {
     if (!redirectTo) return;
     try {
       navigate(redirectTo, { replace: true });
+      logRuntimeEvent("auth-gate", "redirect_triggered", { redirectTo });
     } catch {
+      logRuntimeEvent("auth-gate", "redirect_failed_router_navigate", { redirectTo }, "warn");
       // Fallback to direct URL mutation if router navigation fails.
       if (typeof window !== "undefined" && window.location.protocol === "file:") {
         window.location.hash = `#${redirectTo}`;
+        logRuntimeEvent("auth-gate", "redirect_fallback_hash", { redirectTo }, "warn");
       } else if (typeof window !== "undefined") {
         window.location.replace(redirectTo);
+        logRuntimeEvent("auth-gate", "redirect_fallback_location_replace", { redirectTo }, "warn");
       }
     }
   }, [redirectTo]);

@@ -48,3 +48,16 @@ export async function getAppIncidentsAdmin(
 
   return (data ?? []) as IncidentAdminItem[];
 }
+
+export async function purgeOldAppIncidentsAdmin(daysToKeep: number): Promise<number> {
+  const sanitizedDays = Math.min(365, Math.max(7, Math.floor(daysToKeep || 60)));
+  const { data, error } = await supabase.rpc("purge_old_app_incident_events_admin", {
+    days_to_keep: sanitizedDays,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return Number(data ?? 0);
+}
