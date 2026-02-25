@@ -42,12 +42,12 @@ describe("AuthGate navigation", () => {
     vi.clearAllMocks();
   });
 
-  it("desktop + / přesměruje na /login a nic nevyrenderuje", async () => {
-    const { container } = render(
+  it("desktop + / přesměruje na /login a zobrazí fallback během redirectu", async () => {
+    render(
       <AuthGate pathname="/" search="" isDesktop={true} />,
     );
 
-    expect(container.firstChild).toBeNull();
+    expect(screen.getByText("Přesměrování na přihlášení...")).toBeInTheDocument();
     await waitFor(() => {
       expect(mockState.navigate).toHaveBeenCalledWith("/login", { replace: true });
     });
@@ -55,11 +55,11 @@ describe("AuthGate navigation", () => {
   });
 
   it("neauth route přesměruje na /login?next=...", async () => {
-    const { container } = render(
+    render(
       <AuthGate pathname="/app/projects" search="?tab=overview" isDesktop={false} />,
     );
 
-    expect(container.firstChild).toBeNull();
+    expect(screen.getByText("Přesměrování na přihlášení...")).toBeInTheDocument();
     await waitFor(() => {
       expect(mockState.navigate).toHaveBeenCalledWith(
         "/login?next=%2Fapp%2Fprojects%3Ftab%3Doverview",

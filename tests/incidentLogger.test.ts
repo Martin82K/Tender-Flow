@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { waitFor } from "@testing-library/react";
 
 const setup = async () => {
   vi.resetModules();
@@ -9,6 +10,15 @@ const setup = async () => {
   vi.doMock("../services/supabase", () => ({
     supabase: {
       rpc,
+      auth: {
+        getSession: vi.fn().mockResolvedValue({
+          data: {
+            session: {
+              user: { id: "user-1" },
+            },
+          },
+        }),
+      },
     },
   }));
 
@@ -113,6 +123,25 @@ describe("incidentLogger", () => {
     expect(storageMap.app_incident_queue_v1).toBeUndefined();
   });
 
+  it("bez aktivní session jen frontuje incident a nevolá RPC", async () => {
+    const { logger, rpc, storageMap } = await setup();
+    const { supabase } = await import("../services/supabase");
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({
+      data: { session: null },
+    } as any);
+
+    await logger.logIncident({
+      severity: "warn",
+      source: "renderer",
+      category: "auth",
+      code: "AUTH_PRELOGIN_WARNING",
+      message: "Pre-login warning",
+    });
+
+    expect(rpc).not.toHaveBeenCalled();
+    expect(storageMap.app_incident_queue_v1).toBeTruthy();
+  });
+
   it("globální handlers logují window error", async () => {
     const { logger, rpc } = await setup();
     rpc.mockResolvedValue({ data: "ok", error: null });
@@ -120,7 +149,9 @@ describe("incidentLogger", () => {
     logger.initIncidentGlobalHandlers();
     window.dispatchEvent(new ErrorEvent("error", { message: "Unhandled crash" }));
 
-    expect(rpc).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(rpc).toHaveBeenCalled();
+    });
     const hasWindowError = rpc.mock.calls.some(
       (call) => call[1].input.code === "WINDOW_ERROR",
     );

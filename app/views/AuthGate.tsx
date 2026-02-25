@@ -33,10 +33,27 @@ export const AuthGate: React.FC<AuthGateProps> = ({
 
   useEffect(() => {
     if (!redirectTo) return;
-    navigate(redirectTo, { replace: true });
+    try {
+      navigate(redirectTo, { replace: true });
+    } catch {
+      // Fallback to direct URL mutation if router navigation fails.
+      if (typeof window !== "undefined" && window.location.protocol === "file:") {
+        window.location.hash = `#${redirectTo}`;
+      } else if (typeof window !== "undefined") {
+        window.location.replace(redirectTo);
+      }
+    }
   }, [redirectTo]);
 
-  if (redirectTo) return null;
+  if (redirectTo) {
+    return (
+      <AuthLayout>
+        <div className="flex min-h-[40vh] items-center justify-center px-6 text-center text-sm text-white/70">
+          Přesměrování na přihlášení...
+        </div>
+      </AuthLayout>
+    );
+  }
   if (pathname === "/") return <LandingPage />;
 
   return (

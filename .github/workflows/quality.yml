@@ -10,6 +10,10 @@ on:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    env:
+      # Safe dummy values for CI test/runtime init. Real secrets are not needed here.
+      VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
+      VITE_SUPABASE_ANON_KEY: ci-placeholder-anon-key
 
     steps:
       - name: Checkout code

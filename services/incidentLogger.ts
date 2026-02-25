@@ -198,7 +198,26 @@ const enqueueIncident = async (payload: PersistedIncidentPayload): Promise<void>
   await writeQueue(queue);
 };
 
+const canSendIncidentNow = async (): Promise<boolean> => {
+  const authApi = (supabase as any)?.auth;
+  if (!authApi || typeof authApi.getSession !== "function") {
+    return true;
+  }
+
+  try {
+    const { data } = await authApi.getSession();
+    return !!data?.session?.user?.id;
+  } catch {
+    return false;
+  }
+};
+
 const sendPayload = async (payload: PersistedIncidentPayload): Promise<void> => {
+  const canSendNow = await canSendIncidentNow();
+  if (!canSendNow) {
+    throw new Error("AUTH_REQUIRED_FOR_INCIDENT_LOGGING");
+  }
+
   const { error } = await supabase.rpc("log_app_incident", {
     input: payload,
   });
