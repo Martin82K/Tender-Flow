@@ -39,9 +39,16 @@ export const PublicHeader: React.FC<{ variant?: "marketing" | "auth" }> = ({
   };
 
   return (
-    <header className="sticky top-0 z-30 border-b border-white/10 bg-gray-950/40 backdrop-blur">
+    <header
+      className="sticky top-0 z-30 border-b border-white/10 bg-gray-950/40 backdrop-blur select-none"
+      style={{ WebkitAppRegion: "drag" } as any}
+    >
       <div className="mx-auto max-w-6xl px-4 py-3 grid grid-cols-[auto_1fr_auto] items-center gap-4">
-        <Link to="/" className="flex items-center gap-3 group">
+        <Link
+          to="/"
+          className="flex items-center gap-3 group"
+          style={{ WebkitAppRegion: "no-drag" } as any}
+        >
           <img
             src={logo}
             alt="Tender Flow"
@@ -58,7 +65,10 @@ export const PublicHeader: React.FC<{ variant?: "marketing" | "auth" }> = ({
         </Link>
 
         {variant === "marketing" ? (
-          <nav className="hidden md:flex items-center justify-center gap-6 text-sm text-white/70">
+          <nav
+            className="hidden md:flex items-center justify-center gap-6 text-sm text-white/70"
+            style={{ WebkitAppRegion: "no-drag" } as any}
+          >
             {navItems.map((item) => (
               <button
                 key={item.id}
@@ -75,7 +85,10 @@ export const PublicHeader: React.FC<{ variant?: "marketing" | "auth" }> = ({
           </div>
         )}
 
-        <div className="flex items-center justify-end gap-2">
+        <div
+          className="flex items-center justify-end gap-2"
+          style={{ WebkitAppRegion: "no-drag" } as any}
+        >
           {variant === "marketing" ? (
             <button
               type="button"
@@ -112,7 +125,10 @@ export const PublicHeader: React.FC<{ variant?: "marketing" | "auth" }> = ({
       </div>
 
       {variant === "marketing" && mobileOpen ? (
-        <div className="md:hidden border-t border-white/10 bg-gray-950/40 backdrop-blur">
+        <div
+          className="md:hidden border-t border-white/10 bg-gray-950/40 backdrop-blur"
+          style={{ WebkitAppRegion: "no-drag" } as any}
+        >
           <div className="mx-auto max-w-6xl px-4 py-3 flex flex-col gap-2">
             {navItems.map((item) => (
               <button
