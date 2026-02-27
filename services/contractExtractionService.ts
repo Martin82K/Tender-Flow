@@ -23,6 +23,7 @@ VÝSTUP MUSÍ BÝT VALIDNÍ JSON v tomto formátu:
     "title": "Název smlouvy",
     "contractNumber": "Číslo smlouvy",
     "vendorName": "Název dodavatele/zhotovitele",
+    "vendorIco": "IČ zhotovitele/dodavatele (8 číslic)",
     "signedAt": "YYYY-MM-DD",
     "effectiveFrom": "YYYY-MM-DD",
     "effectiveTo": "YYYY-MM-DD",
@@ -38,6 +39,7 @@ VÝSTUP MUSÍ BÝT VALIDNÍ JSON v tomto formátu:
     "title": 0.95,
     "contractNumber": 0.90,
     "vendorName": 0.95,
+    "vendorIco": 0.85,
     "signedAt": 0.80,
     "effectiveFrom": 0.85,
     "effectiveTo": 0.70,
@@ -59,6 +61,7 @@ PRAVIDLA:
 5. Datumy vždy v formátu YYYY-MM-DD.
   6. Hledej tyto alternativní názvy:
    - vendorName: "zhotovitel", "dodavatel", "poskytovatel"
+   - vendorIco: "IČ", "IČO", "IČ zhotovitele", "IČ dodavatele"
    - basePrice: "cena díla", "celková cena", "smluvní cena", "cena za dílo", "činí"
    - Hledej částku v blízkosti slova "činí" nebo "celková cena".
    - Částka může být formátována s tečkami jako oddělovači tisíců (např. 4.530.832,00) nebo mezerami.
@@ -463,6 +466,40 @@ function extractPercentNearKeywords(text: string, keywords: string[]): number | 
   return null;
 }
 
+function normalizeIco(raw: string): string | null {
+  const digits = raw.replace(/\D/g, '');
+  if (digits.length !== 8) return null;
+  return digits;
+}
+
+function extractIcoNearKeywords(text: string, keywords: string[]): string | null {
+  const normalized = text.replace(/\s+/g, ' ');
+  const lower = normalized.toLowerCase();
+
+  for (const keyword of keywords) {
+    let index = lower.indexOf(keyword);
+    while (index !== -1) {
+      const start = Math.max(0, index - 120);
+      const end = Math.min(normalized.length, index + 500);
+      const windowText = normalized.slice(start, end);
+
+      const icoMatch =
+        windowText.match(/\bič(?:o)?\s*[:.]?\s*([0-9 ]{8,16})/i) ||
+        windowText.match(/\b([0-9]{8})\b/);
+
+      const rawIco = icoMatch?.[1];
+      if (rawIco) {
+        const normalizedIco = normalizeIco(rawIco);
+        if (normalizedIco) return normalizedIco;
+      }
+
+      index = lower.indexOf(keyword, index + keyword.length);
+    }
+  }
+
+  return null;
+}
+
 export const contractExtractionService = {
   /**
    * Extract contract data from plain text using AI
@@ -537,6 +574,21 @@ export const contractExtractionService = {
           0.45,
         );
       }
+    }
+
+    if (!fields.vendorIco || !normalizeIco(String(fields.vendorIco))) {
+      const fallbackIco = extractIcoNearKeywords(text, [
+        'zhotovitel',
+        'dodavatel',
+        'ič',
+        'ičo',
+      ]);
+      if (fallbackIco) {
+        fields.vendorIco = fallbackIco as never;
+        confidence.vendorIco = Math.max(confidence.vendorIco || 0, 0.45);
+      }
+    } else {
+      fields.vendorIco = normalizeIco(String(fields.vendorIco)) as never;
     }
 
     return {

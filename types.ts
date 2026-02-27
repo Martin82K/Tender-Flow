@@ -321,6 +321,7 @@ export interface Contract {
   projectId: string;
   vendorId?: string;
   vendorName: string;
+  vendorIco?: string;
 
   title: string;
   contractNumber?: string;

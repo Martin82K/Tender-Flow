@@ -246,18 +246,20 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
   };
 
   const inputCls =
-    "w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm";
+    "w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm";
   const helperButtonCls =
     "text-xs px-2 py-1 rounded-md border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/70 hover:text-slate-900 dark:hover:text-white transition-colors";
   const panelCls =
-    "rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900";
+    "rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800";
   const ghostActionCls =
-    "inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700/70 transition-colors";
+    "inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors";
+  const primaryActionCls =
+    "inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors whitespace-nowrap";
 
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900 lg:flex-row lg:items-end lg:justify-between">
+      <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800 lg:flex-row lg:items-end lg:justify-between">
         <div className="flex w-full flex-col gap-2 lg:w-auto lg:min-w-[420px]">
           <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Smlouva
@@ -308,7 +310,7 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
                 setSelectedDrawdown(null);
                 setShowModal(true);
               }}
-              className="inline-flex items-center gap-2 px-3 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90 transition-colors whitespace-nowrap"
+              className={primaryActionCls}
             >
               <span className="material-symbols-outlined text-lg">add</span>
               Nová průvodka
@@ -318,8 +320,12 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
       </div>
 
       {error && (
-        <div className="p-3 rounded-lg text-sm bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300 border border-red-200 dark:border-red-800">
-          {error}
+        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-400 text-sm flex items-start gap-2">
+          <span className="material-symbols-outlined text-lg">error</span>
+          <span>{error}</span>
+          <button onClick={() => setError(null)} className="ml-auto">
+            <span className="material-symbols-outlined text-lg">close</span>
+          </button>
         </div>
       )}
 
@@ -370,10 +376,10 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
       {/* List */}
       {!selectedContractId || drawdowns.length === 0 ? (
         <div className={`${panelCls} text-center py-10`}>
-          <span className="material-symbols-outlined text-5xl text-slate-300">
+          <span className="material-symbols-outlined text-5xl text-slate-300 dark:text-slate-600">
             account_balance
           </span>
-          <p className="text-slate-500 mt-4">
+          <p className="text-slate-500 dark:text-slate-400 mt-4">
             {!selectedContractId ? "Vyberte smlouvu" : "Žádné průvodky"}
           </p>
         </div>
@@ -600,19 +606,19 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
             />
           </div>
           <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-            <button
-              type="button"
-              onClick={() => setShowModal(false)}
-              className="px-4 py-2 text-sm"
-            >
-              Zrušit
-            </button>
+          <button
+            type="button"
+            onClick={() => setShowModal(false)}
+            className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
+          >
+            Zrušit
+          </button>
             <button
               type="submit"
               disabled={submitting}
-              className="px-4 py-2 bg-primary text-white rounded-lg text-sm disabled:opacity-50"
-            >
-              {submitting ? "Ukládám..." : "Uložit"}
+            className="px-4 py-2 bg-primary text-white rounded-lg text-sm disabled:opacity-50"
+          >
+            {submitting ? "Ukládám..." : "Uložit"}
             </button>
           </div>
         </form>
@@ -631,7 +637,7 @@ export const DrawdownsList: React.FC<DrawdownsListProps> = ({
         <div className="flex justify-end gap-3">
           <button
             onClick={() => setShowDeleteModal(false)}
-            className="px-4 py-2 text-sm"
+            className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
           >
             Zrušit
           </button>

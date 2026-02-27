@@ -168,16 +168,18 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
   };
 
   const inputCls =
-    "w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm";
+    "w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm";
   const panelCls =
-    "rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900";
+    "rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800";
   const ghostActionCls =
-    "inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700/70 transition-colors";
+    "inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors";
+  const primaryActionCls =
+    "inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors whitespace-nowrap";
 
   return (
     <div className="space-y-4">
       <div className={panelCls}>
-        <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+        <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-slate-50 dark:bg-slate-900/50">
           <div>
             <p className="text-sm font-semibold">Přehled dodatků</p>
             <p className="text-xs text-slate-500">
@@ -248,7 +250,7 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
         )}
       </div>
 
-      <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900 lg:flex-row lg:items-end lg:justify-between">
+      <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800 lg:flex-row lg:items-end lg:justify-between">
         <div className="flex w-full flex-col gap-2 lg:w-auto lg:min-w-[420px]">
           <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Smlouva
@@ -301,7 +303,7 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
                 setOcrSeedModel(null);
                 setShowCreateModal(true);
               }}
-              className="inline-flex items-center gap-2 px-3 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90 transition-colors whitespace-nowrap"
+              className={primaryActionCls}
             >
               <span className="material-symbols-outlined text-lg">add</span>
               Nový
@@ -311,8 +313,12 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
       </div>
 
       {error && (
-        <div className="p-3 rounded-lg text-sm bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300 border border-red-200 dark:border-red-800">
-          {error}
+        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-400 text-sm flex items-start gap-2">
+          <span className="material-symbols-outlined text-lg">error</span>
+          <span>{error}</span>
+          <button onClick={() => setError(null)} className="ml-auto">
+            <span className="material-symbols-outlined text-lg">close</span>
+          </button>
         </div>
       )}
 
@@ -358,10 +364,10 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
 
       {!selectedContractId || amendments.length === 0 ? (
         <div className={`${panelCls} text-center py-10`}>
-          <span className="material-symbols-outlined text-5xl text-slate-300">
+          <span className="material-symbols-outlined text-5xl text-slate-300 dark:text-slate-600">
             post_add
           </span>
-          <p className="text-slate-500 mt-4">
+          <p className="text-slate-500 dark:text-slate-400 mt-4">
             {!selectedContractId
               ? "Vyberte smlouvu"
               : "Pro vybranou smlouvu nejsou dodatky"}
@@ -533,13 +539,13 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
                 setOcrSeedProvider(null);
                 setOcrSeedModel(null);
               }}
-              className="px-4 py-2 text-sm"
+              className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
             >
               Zrušit
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-primary text-white rounded-lg text-sm"
+              className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90"
             >
               Přidat
             </button>
@@ -559,7 +565,7 @@ export const AmendmentsList: React.FC<AmendmentsListProps> = ({
         <div className="flex justify-end gap-3">
           <button
             onClick={() => setShowDeleteModal(false)}
-            className="px-4 py-2 text-sm"
+            className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
           >
             Zrušit
           </button>

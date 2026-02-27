@@ -17,6 +17,7 @@ const mapContract = (row: Record<string, unknown>): Contract => ({
   projectId: row.project_id as string,
   vendorId: row.vendor_id as string | undefined,
   vendorName: row.vendor_name as string,
+  vendorIco: row.vendor_ico as string | undefined,
   title: row.title as string,
   contractNumber: row.contract_number as string | undefined,
   status: row.status as Contract['status'],
@@ -215,6 +216,7 @@ export const contractService = {
         project_id: contract.projectId,
         vendor_id: contract.vendorId || null,
         vendor_name: contract.vendorName,
+        vendor_ico: contract.vendorIco || null,
         title: contract.title,
         contract_number: contract.contractNumber || null,
         status: contract.status,
@@ -285,6 +287,7 @@ export const contractService = {
     if (updates.extractionJson !== undefined) dbUpdates.extraction_json = updates.extractionJson;
     if (updates.vendorId !== undefined) dbUpdates.vendor_id = updates.vendorId;
     if (updates.vendorName !== undefined) dbUpdates.vendor_name = updates.vendorName;
+    if (updates.vendorIco !== undefined) dbUpdates.vendor_ico = updates.vendorIco;
     if (updates.vendorRating !== undefined) dbUpdates.vendor_rating = updates.vendorRating;
     if (updates.vendorRatingNote !== undefined) dbUpdates.vendor_rating_note = updates.vendorRatingNote;
     if (updates.vendorRatingAt !== undefined) dbUpdates.vendor_rating_at = updates.vendorRatingAt;

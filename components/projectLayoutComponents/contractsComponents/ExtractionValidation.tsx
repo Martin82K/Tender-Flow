@@ -37,6 +37,12 @@ const fieldConfigs: FieldConfig[] = [
     type: "text",
     placeholder: "Název dodavatele",
   },
+  {
+    key: "vendorIco",
+    label: "IČ",
+    type: "text",
+    placeholder: "12345678",
+  },
   { key: "signedAt", label: "Datum podpisu", type: "date" },
   { key: "effectiveFrom", label: "Platnost od", type: "date" },
   { key: "effectiveTo", label: "Platnost do", type: "date" },

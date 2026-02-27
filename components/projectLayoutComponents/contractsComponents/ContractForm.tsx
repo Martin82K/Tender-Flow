@@ -48,6 +48,7 @@ export const ContractForm: React.FC<ContractFormProps> = ({
     contractNumber: initialData?.contractNumber || "",
     vendorId: initialData?.vendorId || "",
     vendorName: initialData?.vendorName || "",
+    vendorIco: initialData?.vendorIco || "",
     status: initialData?.status || ("draft" as ContractStatus),
     source: initialData?.source || ("manual" as ContractSource),
     signedAt: initialData?.signedAt?.split("T")[0] || "",
@@ -74,6 +75,7 @@ export const ContractForm: React.FC<ContractFormProps> = ({
       ...prev,
       vendorId,
       vendorName: vendor?.company || "",
+      vendorIco: vendor?.ico || prev.vendorIco,
     }));
   };
 
@@ -134,6 +136,7 @@ export const ContractForm: React.FC<ContractFormProps> = ({
         projectId,
         vendorId: formData.vendorId || undefined,
         vendorName: formData.vendorName,
+        vendorIco: formData.vendorIco.trim() || undefined,
         title: formData.title,
         contractNumber: formData.contractNumber || undefined,
         status: formData.status,
@@ -290,6 +293,25 @@ export const ContractForm: React.FC<ContractFormProps> = ({
                 </option>
               ))}
             </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className={labelClasses}>IČ</label>
+            <input
+              type="text"
+              value={formData.vendorIco}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  vendorIco: e.target.value,
+                }))
+              }
+              className={inputClasses}
+              placeholder="12345678"
+              inputMode="numeric"
+            />
           </div>
         </div>
       </div>
