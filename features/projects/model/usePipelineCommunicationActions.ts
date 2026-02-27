@@ -17,6 +17,7 @@ import platformAdapter from "@/services/platformAdapter";
 import type { Bid, DemandCategory, ProjectDetails } from "@/types";
 import type { PipelineInquiryGenerationKind } from "./pipelineModel";
 import {
+  buildBccRecipientList,
   buildDefaultLosersEmailDraft,
   getLoserBidsWithPrice,
   getLoserEmails,
@@ -253,9 +254,8 @@ export const usePipelineCommunicationActions = ({
       }
     }
 
-    window.location.href = `mailto:?bcc=${emails.join(
-      ",",
-    )}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    const bccList = buildBccRecipientList(emails);
+    window.location.href = `mailto:?bcc=${encodeURIComponent(bccList)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 
   return {

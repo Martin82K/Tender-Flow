@@ -17,6 +17,18 @@ export const getLoserEmails = (loserBids: Bid[]): string[] => {
   return loserBids.filter((bid) => !!bid.email).map((bid) => bid.email);
 };
 
+export const buildBccRecipientList = (emails: string[]): string => {
+  const uniqueEmails = new Set<string>();
+
+  for (const email of emails) {
+    const normalized = email.trim();
+    if (!normalized) continue;
+    uniqueEmails.add(normalized);
+  }
+
+  return Array.from(uniqueEmails).join(";");
+};
+
 export const buildDefaultLosersEmailDraft = (
   projectTitle: string,
   categoryTitle: string,
