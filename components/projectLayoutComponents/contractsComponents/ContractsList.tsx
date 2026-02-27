@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import type {
   Contract,
   ContractExtractionResult,
@@ -74,6 +74,72 @@ export const ContractsList: React.FC<ContractsListProps> = ({
   const [extracting, setExtracting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    contract: ContractWithDetails;
+    top: number;
+    left: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!contextMenu) return;
+
+    const handlePointerDown = () => {
+      setContextMenu(null);
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setContextMenu(null);
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [contextMenu]);
+
+  const handleContextMenu = (
+    event: React.MouseEvent,
+    contract: ContractWithDetails,
+  ) => {
+    event.preventDefault();
+    onSelectContract(contract.id);
+
+    const menuWidth = 240;
+    const menuHeight = 160;
+    const viewportPadding = 8;
+
+    const left = Math.min(
+      event.clientX,
+      window.innerWidth - menuWidth - viewportPadding,
+    );
+    const top = Math.min(
+      event.clientY,
+      window.innerHeight - menuHeight - viewportPadding,
+    );
+
+    setContextMenu({
+      contract,
+      top: Math.max(viewportPadding, top),
+      left: Math.max(viewportPadding, left),
+    });
+  };
+
+  const handleSiteHandover = (_contract: ContractWithDetails) => {
+    // TODO: Doplníme logiku po dodání podkladů šablon.
+  };
+
+  const handleSubcontractDeliveryNote = (_contract: ContractWithDetails) => {
+    // TODO: Doplníme logiku po dodání podkladů šablon.
+  };
+
+  const handleSubWorkHandover = (_contract: ContractWithDetails) => {
+    // TODO: Doplníme logiku po dodání podkladů šablon.
+  };
 
   const handleCreateContract = async (
     data: Omit<Contract, "id" | "createdAt" | "updatedAt">,
@@ -335,6 +401,7 @@ export const ContractsList: React.FC<ContractsListProps> = ({
                     key={contract.id}
                     className="hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer"
                     onClick={() => onSelectContract(contract.id)}
+                    onContextMenu={(event) => handleContextMenu(event, contract)}
                   >
                     <td className="px-4 py-3 align-top">
                       <div>
@@ -433,6 +500,45 @@ export const ContractsList: React.FC<ContractsListProps> = ({
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {contextMenu && (
+        <div
+          className="fixed z-50 min-w-[240px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800"
+          style={{ top: contextMenu.top, left: contextMenu.left }}
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          <div className="border-b border-slate-200 px-3 py-2 text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400">
+            {contextMenu.contract.title}
+          </div>
+          <button
+            onClick={() => {
+              handleSiteHandover(contextMenu.contract);
+              setContextMenu(null);
+            }}
+            className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700"
+          >
+            Předání staveniště
+          </button>
+          <button
+            onClick={() => {
+              handleSubcontractDeliveryNote(contextMenu.contract);
+              setContextMenu(null);
+            }}
+            className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700"
+          >
+            Průvodka subdodávky
+          </button>
+          <button
+            onClick={() => {
+              handleSubWorkHandover(contextMenu.contract);
+              setContextMenu(null);
+            }}
+            className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700"
+          >
+            Předání díla SUB
+          </button>
         </div>
       )}
 
