@@ -13,6 +13,141 @@ interface Message {
     content: string | any[];
 }
 
+type MemoryVisibility = "public" | "internal";
+
+interface AgentProjectMemoryDocument {
+    meta: {
+        projectId: string;
+        updatedAt: string;
+        updatedBy: string;
+        version: number;
+        sectionsVisibility: Record<string, MemoryVisibility>;
+    };
+    sections: Array<{
+        title: string;
+        visibility: MemoryVisibility;
+        content: string;
+    }>;
+}
+
+const defaultMemorySections: Array<{ title: string; visibility: MemoryVisibility }> = [
+    { title: "Fakta (ověřená)", visibility: "internal" },
+    { title: "Otevřené body", visibility: "internal" },
+    { title: "Rozhodnutí", visibility: "internal" },
+    { title: "Rizika", visibility: "internal" },
+    { title: "Klientsky publikovatelné shrnutí", visibility: "public" },
+];
+
+const parseFrontmatter = (source: string): { frontmatter: Record<string, string>; body: string } => {
+    if (!source.startsWith("---\n")) return { frontmatter: {}, body: source };
+
+    const endMarker = source.indexOf("\n---\n", 4);
+    if (endMarker === -1) return { frontmatter: {}, body: source };
+
+    const raw = source.slice(4, endMarker);
+    const body = source.slice(endMarker + 5);
+    const frontmatter: Record<string, string> = {};
+
+    raw.split("\n").forEach((line) => {
+        const separator = line.indexOf(":");
+        if (separator <= 0) return;
+        const key = line.slice(0, separator).trim();
+        const value = line.slice(separator + 1).trim();
+        frontmatter[key] = value;
+    });
+
+    return { frontmatter, body };
+};
+
+const parseSections = (
+    body: string,
+    sectionsVisibility: Record<string, MemoryVisibility>,
+): AgentProjectMemoryDocument["sections"] => {
+    const matches = Array.from(body.matchAll(/^##\s+(.+)$/gm));
+    if (matches.length === 0) return [];
+
+    return matches.map((match, index) => {
+        const title = String(match[1] || "").trim();
+        const start = (match.index || 0) + match[0].length;
+        const end = index + 1 < matches.length ? (matches[index + 1].index || body.length) : body.length;
+        const content = body.slice(start, end).trim();
+
+        return {
+            title,
+            content,
+            visibility: sectionsVisibility[title] || "internal",
+        };
+    });
+};
+
+const createDefaultMemoryDocument = (projectId: string, userId: string): AgentProjectMemoryDocument => ({
+    meta: {
+        projectId,
+        updatedAt: new Date().toISOString(),
+        updatedBy: userId,
+        version: 1,
+        sectionsVisibility: defaultMemorySections.reduce((acc, item) => {
+            acc[item.title] = item.visibility;
+            return acc;
+        }, {} as Record<string, MemoryVisibility>),
+    },
+    sections: defaultMemorySections.map((item) => ({
+        title: item.title,
+        visibility: item.visibility,
+        content: "",
+    })),
+});
+
+const parseMemoryDocument = (
+    projectId: string,
+    source: string,
+    userId: string,
+): AgentProjectMemoryDocument => {
+    const { frontmatter, body } = parseFrontmatter(source);
+    let sectionsVisibility: Record<string, MemoryVisibility> = {};
+
+    try {
+        sectionsVisibility = JSON.parse(frontmatter.sections_visibility || "{}");
+    } catch {
+        sectionsVisibility = {};
+    }
+
+    const sections = parseSections(body, sectionsVisibility);
+    if (sections.length === 0) {
+        return createDefaultMemoryDocument(projectId, userId);
+    }
+
+    return {
+        meta: {
+            projectId: frontmatter.project_id || projectId,
+            updatedAt: frontmatter.updated_at || new Date().toISOString(),
+            updatedBy: frontmatter.updated_by || userId,
+            version: Number(frontmatter.version || 1) || 1,
+            sectionsVisibility,
+        },
+        sections,
+    };
+};
+
+const memoryDocumentToMarkdown = (document: AgentProjectMemoryDocument): string => {
+    const header = [
+        "---",
+        `project_id: ${document.meta.projectId}`,
+        `updated_at: ${document.meta.updatedAt}`,
+        `updated_by: ${document.meta.updatedBy}`,
+        `version: ${document.meta.version}`,
+        `sections_visibility: ${JSON.stringify(document.meta.sectionsVisibility || {})}`,
+        "---",
+        "",
+    ];
+
+    const sectionBlocks = document.sections.map((section) => (
+        [`## ${section.title}`, section.content.trim(), ""].join("\n")
+    ));
+
+    return [...header, ...sectionBlocks].join("\n").trimEnd() + "\n";
+};
+
 // Native Deno.serve (more robust)
 Deno.serve(async (req) => {
     // Handle CORS preflight request
@@ -115,7 +250,15 @@ Deno.serve(async (req) => {
             );
         }
 
-        const { prompt, history, model: clientModel, provider = 'openrouter', apiKey: clientApiKey, documentUrl } = body;
+        const {
+            action,
+            prompt,
+            history,
+            model: clientModel,
+            provider = 'openrouter',
+            apiKey: clientApiKey,
+            documentUrl
+        } = body;
         console.log(`[Proxy] Processing request for provider: ${provider}, model: ${clientModel || 'default'}`);
 
         // Helper to get system secrets
@@ -136,6 +279,230 @@ Deno.serve(async (req) => {
         }
 
         const secrets = (!clientApiKey) ? await getSystemSecrects() : {};
+
+        if (action === "memory-load" || action === "memory-save") {
+            const projectId = typeof body?.projectId === "string" ? body.projectId.trim() : "";
+            const bucket = typeof body?.bucket === "string" && body.bucket.trim().length > 0
+                ? body.bucket.trim()
+                : "agent-memory";
+
+            if (!projectId) {
+                return new Response(
+                    JSON.stringify({ error: "Missing projectId" }),
+                    { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                );
+            }
+
+            const { data: orgMember, error: orgError } = await service
+                .from("organization_members")
+                .select("organization_id")
+                .eq("user_id", user.id)
+                .limit(1)
+                .maybeSingle();
+
+            if (orgError || !orgMember?.organization_id) {
+                return new Response(
+                    JSON.stringify({ error: "Organization context not found" }),
+                    { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                );
+            }
+
+            const storagePath = `org/${orgMember.organization_id}/projects/${projectId}/viki-memory.md`;
+
+            if (action === "memory-load") {
+                const { data: fileData, error: fileError } = await service.storage
+                    .from(bucket)
+                    .download(storagePath);
+
+                if (fileError) {
+                    const message = (fileError.message || "").toLowerCase();
+                    if (message.includes("not found") || message.includes("does not exist")) {
+                        return new Response(
+                            JSON.stringify({ document: null }),
+                            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                        );
+                    }
+
+                    return new Response(
+                        JSON.stringify({ error: "Failed to load project memory", details: fileError.message }),
+                        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                    );
+                }
+
+                const source = await fileData.text();
+                const document = parseMemoryDocument(projectId, source, user.id);
+
+                return new Response(
+                    JSON.stringify({ document }),
+                    { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                );
+            }
+
+            const incomingDocument = body?.document as AgentProjectMemoryDocument | undefined;
+            if (!incomingDocument || !Array.isArray(incomingDocument.sections)) {
+                return new Response(
+                    JSON.stringify({ error: "Invalid memory document payload" }),
+                    { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                );
+            }
+
+            const normalizedSections = incomingDocument.sections.map((section) => ({
+                title: String(section?.title || "").trim(),
+                visibility: section?.visibility === "public" ? "public" : "internal",
+                content: String(section?.content || "").trim(),
+            })).filter((section) => section.title.length > 0);
+
+            const normalizedDocument: AgentProjectMemoryDocument = {
+                meta: {
+                    projectId,
+                    updatedAt: new Date().toISOString(),
+                    updatedBy: user.id,
+                    version: Math.max(1, Number(incomingDocument.meta?.version || 1)),
+                    sectionsVisibility: normalizedSections.reduce((acc, section) => {
+                        acc[section.title] = section.visibility;
+                        return acc;
+                    }, {} as Record<string, MemoryVisibility>),
+                },
+                sections: normalizedSections,
+            };
+
+            const markdown = memoryDocumentToMarkdown(normalizedDocument);
+            const { error: uploadError } = await service.storage.from(bucket).upload(storagePath, markdown, {
+                upsert: true,
+                contentType: "text/markdown; charset=utf-8",
+            });
+
+            if (uploadError) {
+                return new Response(
+                    JSON.stringify({ error: "Failed to save project memory", details: uploadError.message }),
+                    { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                );
+            }
+
+            return new Response(
+                JSON.stringify({ document: normalizedDocument }),
+                { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+        }
+
+        if (action === "list-models") {
+            if (provider === "google") {
+                const models = [
+                    {
+                        id: "gemini-1.5-flash",
+                        label: "Gemini 1.5 Flash",
+                        provider: "google",
+                        capabilities: ["chat", "fast"],
+                        pricingHint: "Úsporný"
+                    },
+                    {
+                        id: "gemini-1.5-pro",
+                        label: "Gemini 1.5 Pro",
+                        provider: "google",
+                        capabilities: ["chat", "quality"],
+                        pricingHint: "Vyvážený"
+                    },
+                    {
+                        id: "gemini-2.0-flash-001",
+                        label: "Gemini 2.0 Flash",
+                        provider: "google",
+                        capabilities: ["chat", "fast"],
+                        pricingHint: "Úsporný"
+                    }
+                ];
+
+                return new Response(
+                    JSON.stringify({ models }),
+                    { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                );
+            }
+
+            if (provider === "mistral") {
+                const apiKey = clientApiKey || secrets.mistral_api_key || Deno.env.get("MISTRAL_API_KEY");
+                if (!apiKey) {
+                    return new Response(
+                        JSON.stringify({ error: "Missing Mistral API Key", models: [] }),
+                        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                    );
+                }
+
+                const response = await fetch("https://api.mistral.ai/v1/models", {
+                    method: "GET",
+                    headers: {
+                        "Authorization": `Bearer ${apiKey}`
+                    },
+                });
+                const data = await response.json();
+
+                if (!response.ok) {
+                    return new Response(
+                        JSON.stringify({ error: "Mistral model list error", details: data, models: [] }),
+                        { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                    );
+                }
+
+                const rawModels = Array.isArray(data?.data) ? data.data : [];
+                const models = rawModels
+                    .map((model: any) => {
+                        const id = typeof model?.id === "string" ? model.id : "";
+                        if (!id) return null;
+                        const lower = id.toLowerCase();
+                        if (lower.includes("ocr") || lower.includes("embed") || lower.includes("moderation")) {
+                            return null;
+                        }
+                        return {
+                            id,
+                            label: id,
+                            provider: "mistral",
+                            capabilities: ["chat"],
+                            pricingHint: lower.includes("small") ? "Úsporný" : "Vyvážený"
+                        };
+                    })
+                    .filter(Boolean);
+
+                return new Response(
+                    JSON.stringify({ models }),
+                    { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                );
+            }
+
+            const apiKey = clientApiKey || secrets.openrouter_api_key || Deno.env.get("OPENROUTER_API_KEY");
+            const response = await fetch("https://openrouter.ai/api/v1/models", {
+                method: "GET",
+                headers: {
+                    ...(apiKey ? { "Authorization": `Bearer ${apiKey}` } : {}),
+                    "Content-Type": "application/json",
+                },
+            });
+            const data = await response.json();
+
+            if (!response.ok) {
+                return new Response(
+                    JSON.stringify({ error: "OpenRouter model list error", details: data, models: [] }),
+                    { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                );
+            }
+
+            const rawModels = Array.isArray(data?.data) ? data.data : [];
+            const models = rawModels
+                .map((model: any) => {
+                    const id = typeof model?.id === "string" ? model.id : "";
+                    if (!id) return null;
+                    return {
+                        id,
+                        label: typeof model?.name === "string" && model.name.length > 0 ? model.name : id,
+                        provider: "openrouter",
+                        capabilities: ["chat"],
+                        pricingHint: "Dle modelu",
+                    };
+                })
+                .filter(Boolean);
+
+            return new Response(
+                JSON.stringify({ models }),
+                { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+        }
 
         // --- GOOGLE GEMINI HANDLER ---
         if (provider === 'google') {

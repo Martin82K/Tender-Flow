@@ -18,11 +18,13 @@ import { useStuckLoadingRecovery } from "@app/hooks/useStuckLoadingRecovery";
 import { AuthGate } from "@app/views/AuthGate";
 import { AppLoadErrorView } from "@app/views/AppLoadErrorView";
 import { AppLoadingView } from "@app/views/AppLoadingView";
+import { AgentFloatingPanel } from "@shared/ui/agent/AgentFloatingPanel";
 import {
   INCIDENT_FATAL_EVENT_NAME,
   setIncidentContext,
 } from "@/services/incidentLogger";
 import type { FatalIncidentNotice } from "@/shared/types/incidents";
+import type { AgentRuntimeSnapshot } from "@shared/types/agent";
 import {
   AppLazyFallback,
   Contacts,
@@ -318,26 +320,45 @@ export const AppContent: React.FC = () => {
     }
   };
 
-  return (
-    <MainLayout
-      uiModal={uiModal}
-      closeUiModal={closeUiModal}
-      isSidebarOpen={isSidebarOpen}
-      setIsSidebarOpen={setIsSidebarOpen}
-      currentView={currentView}
-      projects={state.projects}
-      selectedProjectId={state.selectedProjectId}
-      onProjectSelect={handleNavigateToProject}
-      activeProjectTab={activeProjectTab}
-      user={user}
-      isBackgroundLoading={state.isBackgroundLoading}
-      backgroundWarning={state.backgroundWarning}
-      onReloadData={() => actions.loadInitialData(true)}
-      onHideBackgroundWarning={() => actions.setBackgroundWarning(null)}
-    >
-      <Suspense fallback={<AppLazyFallback />}>{renderCurrentView()}</Suspense>
+  const agentRuntime: AgentRuntimeSnapshot = {
+    pathname,
+    search,
+    currentView,
+    activeProjectTab,
+    selectedProjectId: state.selectedProjectId,
+    projects: state.projects,
+    projectDetails: state.allProjectDetails,
+    contacts: state.contacts,
+    audience: "internal",
+    contextScopes: ["project", "memory"],
+    contextPolicyVersion: "v1-strict-allowlist",
+    organizationId: user?.organizationId || null,
+    userId: user?.id || null,
+  };
 
-      {isDesktop && <UpdateBanner />}
-    </MainLayout>
+  return (
+    <>
+      <MainLayout
+        uiModal={uiModal}
+        closeUiModal={closeUiModal}
+        isSidebarOpen={isSidebarOpen}
+        setIsSidebarOpen={setIsSidebarOpen}
+        currentView={currentView}
+        projects={state.projects}
+        selectedProjectId={state.selectedProjectId}
+        onProjectSelect={handleNavigateToProject}
+        activeProjectTab={activeProjectTab}
+        user={user}
+        isBackgroundLoading={state.isBackgroundLoading}
+        backgroundWarning={state.backgroundWarning}
+        onReloadData={() => actions.loadInitialData(true)}
+        onHideBackgroundWarning={() => actions.setBackgroundWarning(null)}
+      >
+        <Suspense fallback={<AppLazyFallback />}>{renderCurrentView()}</Suspense>
+
+        {isDesktop && <UpdateBanner />}
+      </MainLayout>
+      <AgentFloatingPanel runtime={agentRuntime} />
+    </>
   );
 };

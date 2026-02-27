@@ -53,3 +53,6 @@ sub.csv
 
 # Local Claude folder
 .claude
+
+# Internal local architecture logs (not committed)
+docs/internal/*.md
