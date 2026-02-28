@@ -72,6 +72,17 @@ const isAllowedProxyUrl = (parsed: URL): boolean => {
     return ALLOWED_PROXY_HOST_SUFFIXES.some((suffix) => parsed.hostname.endsWith(suffix));
 };
 
+const sanitizeTempFilename = (fileName: string, fallback = 'document.tmp'): string => {
+    const baseName = path.basename(fileName || fallback);
+    const cleaned = baseName
+        .replace(/[\\/:*?"<>|]+/g, '_')
+        .replace(/\s+/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_+|_+$/g, '');
+
+    return cleaned || fallback;
+};
+
 const startLoopbackServer = (timeoutMs: number) => {
     return new Promise<{
         port: number;
@@ -325,7 +336,8 @@ export function registerIpcHandlers(): void {
         console.log('[Shell] openTempFile called:', filename);
         const os = require('os');
         const tempDir = os.tmpdir();
-        const tempPath = path.join(tempDir, filename);
+        const safeFileName = sanitizeTempFilename(filename, 'document.txt');
+        const tempPath = path.join(tempDir, safeFileName);
 
         try {
             await fs.writeFile(tempPath, content, 'utf-8');
@@ -334,6 +346,25 @@ export function registerIpcHandlers(): void {
             console.log('[Shell] Opened temp file successfully');
         } catch (error) {
             console.error('[Shell] openTempFile failed:', error);
+            throw error;
+        }
+    });
+
+    ipcMain.handle('shell:openTempBinaryFile', async (_, base64Content: string, filename: string): Promise<void> => {
+        console.log('[Shell] openTempBinaryFile called:', filename);
+        const os = require('os');
+        const tempDir = os.tmpdir();
+        const safeFileName = sanitizeTempFilename(filename, 'document.bin');
+        const tempPath = path.join(tempDir, safeFileName);
+
+        try {
+            const binaryBuffer = Buffer.from(base64Content, 'base64');
+            await fs.writeFile(tempPath, binaryBuffer);
+            console.log('[Shell] Wrote temp binary file:', tempPath);
+            await shell.openPath(tempPath);
+            console.log('[Shell] Opened temp binary file successfully');
+        } catch (error) {
+            console.error('[Shell] openTempBinaryFile failed:', error);
             throw error;
         }
     });

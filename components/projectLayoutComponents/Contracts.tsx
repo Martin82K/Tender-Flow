@@ -152,6 +152,7 @@ export const Contracts: React.FC<ContractsProps> = ({ projectId, projectDetails 
         {activeSubTab === 'contracts' && (
           <ContractsList
             projectId={projectId}
+            projectDetails={projectDetails}
             contracts={contracts}
             onContractCreated={refreshContracts}
             onContractUpdated={refreshContracts}

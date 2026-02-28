@@ -4,6 +4,7 @@ import type {
   ContractExtractionResult,
   ContractStatus,
   ContractWithDetails,
+  ProjectDetails,
 } from "../../../types";
 import { contractService } from "../../../services/contractService";
 import { ContractForm } from "./ContractForm";
@@ -12,9 +13,17 @@ import { contractExtractionService } from "../../../services/contractExtractionS
 import { Modal } from "@/shared/ui/Modal";
 import { StarRating } from "@/shared/ui/StarRating";
 import { MarkdownDocumentPanel } from "@/shared/contracts/MarkdownDocumentPanel";
+import { ContractProtocolModal } from "@/shared/ui/projects/ContractProtocolModal";
+import { generateContractProtocol } from "@/features/projects/api/generateContractProtocol";
+import type {
+  ContractProtocolDraft,
+  ContractProtocolKind,
+} from "@/features/projects/model/contractProtocolTypes";
+import { isDesktop, shellAdapter } from "@/services/platformAdapter";
 
 interface ContractsListProps {
   projectId: string;
+  projectDetails?: ProjectDetails;
   contracts: ContractWithDetails[];
   onContractCreated: () => void;
   onContractUpdated: () => void;
@@ -53,6 +62,7 @@ const statusColors: Record<ContractStatus, string> = {
 
 export const ContractsList: React.FC<ContractsListProps> = ({
   projectId,
+  projectDetails,
   contracts,
   onContractCreated,
   onContractUpdated,
@@ -74,6 +84,17 @@ export const ContractsList: React.FC<ContractsListProps> = ({
   const [extracting, setExtracting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [protocolModalOpen, setProtocolModalOpen] = useState(false);
+  const [protocolLoading, setProtocolLoading] = useState(false);
+  const [protocolSubmitting, setProtocolSubmitting] = useState(false);
+  const [protocolKind, setProtocolKind] = useState<ContractProtocolKind | null>(
+    null,
+  );
+  const [protocolContract, setProtocolContract] =
+    useState<ContractWithDetails | null>(null);
+  const [protocolDraft, setProtocolDraft] = useState<ContractProtocolDraft | null>(
+    null,
+  );
   const [contextMenu, setContextMenu] = useState<{
     contract: ContractWithDetails;
     top: number;
@@ -129,16 +150,129 @@ export const ContractsList: React.FC<ContractsListProps> = ({
     });
   };
 
-  const handleSiteHandover = (_contract: ContractWithDetails) => {
-    // TODO: Doplníme logiku po dodání podkladů šablon.
+  const handleSiteHandover = (contract: ContractWithDetails) => {
+    void handleOpenContractProtocol("site_handover", contract);
   };
 
   const handleSubcontractDeliveryNote = (_contract: ContractWithDetails) => {
-    // TODO: Doplníme logiku po dodání podkladů šablon.
+    setError(
+      "Průvodka subdodávky zatím není implementována. Implementace přijde v navazující iteraci.",
+    );
   };
 
-  const handleSubWorkHandover = (_contract: ContractWithDetails) => {
-    // TODO: Doplníme logiku po dodání podkladů šablon.
+  const handleSubWorkHandover = (contract: ContractWithDetails) => {
+    void handleOpenContractProtocol("sub_work_handover", contract);
+  };
+
+  const toBase64 = (arrayBuffer: ArrayBuffer): string => {
+    const bytes = new Uint8Array(arrayBuffer);
+    const chunkSize = 0x8000;
+    let binary = "";
+
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.subarray(i, i + chunkSize);
+      binary += String.fromCharCode(...chunk);
+    }
+
+    return btoa(binary);
+  };
+
+  const downloadGeneratedFile = (arrayBuffer: ArrayBuffer, fileName: string) => {
+    const blob = new Blob([arrayBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const resetProtocolModal = () => {
+    setProtocolModalOpen(false);
+    setProtocolKind(null);
+    setProtocolContract(null);
+    setProtocolDraft(null);
+  };
+
+  const handleOpenContractProtocol = async (
+    kind: ContractProtocolKind,
+    contract: ContractWithDetails,
+  ) => {
+    try {
+      setError(null);
+      setProtocolLoading(true);
+      setProtocolKind(kind);
+      setProtocolContract(contract);
+      setProtocolModalOpen(true);
+
+      const result = await generateContractProtocol({
+        documentKind: kind,
+        contractId: contract.id,
+        projectId,
+        mode: "draft",
+        contractSnapshot: contract,
+        projectDetailsSnapshot: projectDetails,
+      });
+
+      setProtocolDraft(result.draft);
+    } catch (err) {
+      resetProtocolModal();
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Nepodařilo se připravit návrh protokolu",
+      );
+    } finally {
+      setProtocolLoading(false);
+    }
+  };
+
+  const handleGenerateContractProtocol = async (
+    overrides: Record<string, string>,
+  ) => {
+    if (!protocolKind || !protocolContract) return;
+
+    try {
+      setError(null);
+      setProtocolSubmitting(true);
+
+      const result = await generateContractProtocol({
+        documentKind: protocolKind,
+        contractId: protocolContract.id,
+        projectId,
+        mode: "generate",
+        overrides,
+        contractSnapshot: protocolContract,
+        projectDetailsSnapshot: projectDetails,
+      });
+
+      setProtocolDraft(result.draft);
+
+      if (!result.arrayBuffer) {
+        throw new Error("Generátor nevrátil data souboru.");
+      }
+
+      downloadGeneratedFile(result.arrayBuffer, result.fileName);
+
+      if (isDesktop) {
+        await shellAdapter.openTempBinaryFile(
+          toBase64(result.arrayBuffer),
+          result.fileName,
+        );
+      }
+
+      resetProtocolModal();
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Nepodařilo se vygenerovat protokol",
+      );
+    } finally {
+      setProtocolSubmitting(false);
+    }
   };
 
   const handleCreateContract = async (
@@ -541,6 +675,14 @@ export const ContractsList: React.FC<ContractsListProps> = ({
           </button>
         </div>
       )}
+
+      <ContractProtocolModal
+        isOpen={protocolModalOpen}
+        draft={protocolDraft}
+        isSubmitting={protocolSubmitting || protocolLoading}
+        onClose={resetProtocolModal}
+        onSubmit={handleGenerateContractProtocol}
+      />
 
       {/* Create Modal */}
       <Modal

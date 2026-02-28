@@ -609,6 +609,34 @@ export const shellAdapter = {
         a.click();
         URL.revokeObjectURL(url);
     },
+
+    async openTempBinaryFile(base64Content: string, filename: string): Promise<void> {
+        console.log('[shellAdapter] openTempBinaryFile called:', filename);
+        if (isDesktop && window.electronAPI && window.electronAPI.shell && window.electronAPI.shell.openTempBinaryFile) {
+            try {
+                await window.electronAPI.shell.openTempBinaryFile(base64Content, filename);
+                console.log('[shellAdapter] openTempBinaryFile completed');
+            } catch (error) {
+                console.error('[shellAdapter] openTempBinaryFile failed:', error);
+                throw error;
+            }
+            return;
+        }
+
+        const binary = atob(base64Content);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i += 1) {
+            bytes[i] = binary.charCodeAt(i);
+        }
+
+        const blob = new Blob([bytes], { type: 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+    },
 };
 
 // Combined platform adapter

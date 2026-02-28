@@ -1,4 +1,7 @@
 export type { Project, ProjectDetails, ProjectStatus, ProjectTab } from "@/types";
+export * from "./contractProtocolTypes";
+export * from "./contractProtocolUtils";
+export * from "./contractDocumentRegistry";
 export * from "./projectOverviewModel";
 export * from "./useProjectOverviewController";
 export * from "./projectOverviewNewModel";
