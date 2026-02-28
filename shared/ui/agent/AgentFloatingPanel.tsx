@@ -122,14 +122,14 @@ export const AgentFloatingPanel: React.FC<AgentFloatingPanelProps> = ({ runtime 
             setIsSettingsOpen(false);
           }
         }}
-        className="fixed right-5 bottom-6 z-40 inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/70 px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-[0_12px_35px_-16px_rgba(15,23,42,0.8)] backdrop-blur-xl transition hover:bg-white/85 dark:border-slate-700/50 dark:bg-slate-900/60 dark:text-slate-100"
+        className="fixed right-5 bottom-6 z-40 inline-flex items-center gap-2.5 rounded-full border border-white/40 bg-white/70 px-5 py-3 text-base font-semibold text-slate-800 shadow-[0_12px_35px_-16px_rgba(15,23,42,0.8)] backdrop-blur-xl transition hover:bg-white/85 dark:border-slate-700/50 dark:bg-slate-900/60 dark:text-slate-100"
         title={isOpen ? "Zavřít Viki" : "Otevřít Viki"}
         aria-label={isOpen ? "Zavřít Viki" : "Otevřít Viki"}
       >
         <img
           src={vikiAvatar}
           alt="Viki avatar"
-          className="h-6 w-6 rounded-full object-cover"
+          className="h-7 w-7 rounded-full object-cover"
           loading="eager"
           decoding="async"
         />
