@@ -54,6 +54,13 @@ export interface GenerateContractProtocolResult {
   storageRef?: string;
 }
 
+export interface GenerateContractProtocolPdfResult {
+  fileName: string;
+  arrayBuffer: ArrayBuffer;
+  missingFields: string[];
+  draft: ContractProtocolDraft;
+}
+
 export interface ContractProtocolWorksheetInput {
   fields: Record<string, string>;
   context: ContractProtocolContext;

@@ -14,7 +14,10 @@ import { Modal } from "@/shared/ui/Modal";
 import { StarRating } from "@/shared/ui/StarRating";
 import { MarkdownDocumentPanel } from "@/shared/contracts/MarkdownDocumentPanel";
 import { ContractProtocolModal } from "@/shared/ui/projects/ContractProtocolModal";
-import { generateContractProtocol } from "@/features/projects/api/generateContractProtocol";
+import {
+  generateContractProtocol,
+  generateContractProtocolPdf,
+} from "@/features/projects/api/generateContractProtocol";
 import type {
   ContractProtocolDraft,
   ContractProtocolKind,
@@ -87,6 +90,7 @@ export const ContractsList: React.FC<ContractsListProps> = ({
   const [protocolModalOpen, setProtocolModalOpen] = useState(false);
   const [protocolLoading, setProtocolLoading] = useState(false);
   const [protocolSubmitting, setProtocolSubmitting] = useState(false);
+  const [protocolSubmittingPdf, setProtocolSubmittingPdf] = useState(false);
   const [protocolKind, setProtocolKind] = useState<ContractProtocolKind | null>(
     null,
   );
@@ -177,9 +181,13 @@ export const ContractsList: React.FC<ContractsListProps> = ({
     return btoa(binary);
   };
 
-  const downloadGeneratedFile = (arrayBuffer: ArrayBuffer, fileName: string) => {
+  const downloadGeneratedFile = (
+    arrayBuffer: ArrayBuffer,
+    fileName: string,
+    mimeType: string,
+  ) => {
     const blob = new Blob([arrayBuffer], {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      type: mimeType,
     });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -254,7 +262,11 @@ export const ContractsList: React.FC<ContractsListProps> = ({
         throw new Error("Generátor nevrátil data souboru.");
       }
 
-      downloadGeneratedFile(result.arrayBuffer, result.fileName);
+      downloadGeneratedFile(
+        result.arrayBuffer,
+        result.fileName,
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      );
 
       if (isDesktop) {
         await shellAdapter.openTempBinaryFile(
@@ -272,6 +284,44 @@ export const ContractsList: React.FC<ContractsListProps> = ({
       );
     } finally {
       setProtocolSubmitting(false);
+    }
+  };
+
+  const handleGenerateContractProtocolPdf = async (
+    overrides: Record<string, string>,
+  ) => {
+    if (!protocolKind || !protocolContract) return;
+
+    try {
+      setError(null);
+      setProtocolSubmittingPdf(true);
+
+      const result = await generateContractProtocolPdf({
+        documentKind: protocolKind,
+        contractId: protocolContract.id,
+        projectId,
+        overrides,
+        contractSnapshot: protocolContract,
+        projectDetailsSnapshot: projectDetails,
+      });
+
+      setProtocolDraft(result.draft);
+      downloadGeneratedFile(result.arrayBuffer, result.fileName, "application/pdf");
+
+      if (isDesktop) {
+        await shellAdapter.openTempBinaryFile(
+          toBase64(result.arrayBuffer),
+          result.fileName,
+        );
+      }
+
+      resetProtocolModal();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Nepodařilo se vygenerovat PDF protokol",
+      );
+    } finally {
+      setProtocolSubmittingPdf(false);
     }
   };
 
@@ -680,8 +730,10 @@ export const ContractsList: React.FC<ContractsListProps> = ({
         isOpen={protocolModalOpen}
         draft={protocolDraft}
         isSubmitting={protocolSubmitting || protocolLoading}
+        isSubmittingPdf={protocolSubmittingPdf}
         onClose={resetProtocolModal}
         onSubmit={handleGenerateContractProtocol}
+        onSubmitPdf={handleGenerateContractProtocolPdf}
       />
 
       {/* Create Modal */}

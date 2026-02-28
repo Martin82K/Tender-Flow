@@ -26,8 +26,10 @@ interface ContractProtocolModalProps {
   isOpen: boolean;
   draft: ContractProtocolDraftView | null;
   isSubmitting?: boolean;
+  isSubmittingPdf?: boolean;
   onClose: () => void;
   onSubmit: (values: Record<string, string>) => Promise<void> | void;
+  onSubmitPdf?: (values: Record<string, string>) => Promise<void> | void;
 }
 
 interface SectionDefinition {
@@ -165,8 +167,10 @@ export const ContractProtocolModal: React.FC<ContractProtocolModalProps> = ({
   isOpen,
   draft,
   isSubmitting = false,
+  isSubmittingPdf = false,
   onClose,
   onSubmit,
+  onSubmitPdf,
 }) => {
   const [values, setValues] = useState<Record<string, string>>({});
   const [showMissingOnly, setShowMissingOnly] = useState(false);
@@ -245,6 +249,10 @@ export const ContractProtocolModal: React.FC<ContractProtocolModalProps> = ({
       </Modal>
     );
   }
+
+  const isBusy = isSubmitting || isSubmittingPdf;
+  const canExportPdf =
+    draft.documentKind === "sub_work_handover" && typeof onSubmitPdf === "function";
 
   return (
     <Modal
@@ -440,13 +448,24 @@ export const ContractProtocolModal: React.FC<ContractProtocolModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+            disabled={isBusy}
+            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-60"
           >
             Zrušit
           </button>
+          {canExportPdf && (
+            <button
+              type="button"
+              disabled={isBusy}
+              onClick={() => onSubmitPdf(values)}
+              className="rounded-lg border border-primary/40 bg-white px-4 py-2 text-sm font-medium text-primary hover:bg-primary/5 disabled:opacity-60 dark:bg-slate-900"
+            >
+              {isSubmittingPdf ? "Generuji PDF..." : "Vytvořit PDF"}
+            </button>
+          )}
           <button
             type="button"
-            disabled={isSubmitting}
+            disabled={isBusy}
             onClick={() => onSubmit(values)}
             className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-60"
           >

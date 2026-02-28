@@ -3,10 +3,13 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const generateContractProtocolMock = vi.hoisted(() => vi.fn());
+const generateContractProtocolPdfMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/features/projects/api/generateContractProtocol", () => ({
   generateContractProtocol: (...args: unknown[]) =>
     generateContractProtocolMock(...args),
+  generateContractProtocolPdf: (...args: unknown[]) =>
+    generateContractProtocolPdfMock(...args),
 }));
 
 vi.mock("@/services/platformAdapter", () => ({
@@ -93,6 +96,7 @@ const draft = {
 describe("ContractsList protocol actions", () => {
   beforeEach(() => {
     generateContractProtocolMock.mockReset();
+    generateContractProtocolPdfMock.mockReset();
     Object.defineProperty(URL, "createObjectURL", {
       value: vi.fn(() => "blob:protocol"),
       writable: true,
@@ -173,5 +177,66 @@ describe("ContractsList protocol actions", () => {
         overrides: expect.objectContaining({ issuerCompany: "TF a.s." }),
       }),
     );
+  });
+
+  it("umožní export SUB protokolu do PDF", async () => {
+    generateContractProtocolMock.mockResolvedValueOnce({
+      fileName: "predani_dila_sub_vzt.xlsx",
+      arrayBuffer: null,
+      missingFields: ["issuerCompany"],
+      draft,
+      templateStatus: "final",
+    });
+
+    generateContractProtocolPdfMock.mockResolvedValueOnce({
+      fileName: "predani_dila_sub_vzt.pdf",
+      arrayBuffer: new ArrayBuffer(64),
+      missingFields: [],
+      draft: {
+        ...draft,
+        fields: {
+          ...draft.fields,
+          issuerCompany: "TF a.s.",
+        },
+        missingFields: [],
+      },
+    });
+
+    render(
+      <ContractsList
+        projectId="project-1"
+        projectDetails={projectDetails as any}
+        contracts={[contract as any]}
+        onContractCreated={vi.fn()}
+        onContractUpdated={vi.fn()}
+        onContractDeleted={vi.fn()}
+        onSelectContract={vi.fn()}
+      />,
+    );
+
+    const rowTitle = screen.getByText("VZT");
+    const row = rowTitle.closest("tr");
+    expect(row).not.toBeNull();
+
+    fireEvent.contextMenu(row!);
+    fireEvent.click(screen.getByText("Předání díla SUB"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Vytvořit PDF")).toBeInTheDocument();
+    });
+
+    const inputs = screen.getAllByRole("textbox");
+    fireEvent.change(inputs[0], { target: { value: "TF a.s." } });
+
+    fireEvent.click(screen.getByText("Vytvořit PDF"));
+
+    await waitFor(() => {
+      expect(generateContractProtocolPdfMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          documentKind: "sub_work_handover",
+          overrides: expect.objectContaining({ issuerCompany: "TF a.s." }),
+        }),
+      );
+    });
   });
 });

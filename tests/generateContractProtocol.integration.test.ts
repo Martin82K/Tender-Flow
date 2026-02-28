@@ -16,7 +16,10 @@ vi.mock("@/services/dbAdapter", () => ({
   },
 }));
 
-import { generateContractProtocol } from "@/features/projects/api/generateContractProtocol";
+import {
+  generateContractProtocol,
+  generateContractProtocolPdf,
+} from "@/features/projects/api/generateContractProtocol";
 
 const createTemplateBuffer = async () => {
   const workbook = new ExcelJS.Workbook();
@@ -157,5 +160,34 @@ describe("generateContractProtocol integration", () => {
       "Nový text předání dle aktuální smlouvy.",
     );
     expect(result.templateStatus).toBe("provisional");
+  });
+
+  it("vygeneruje PDF pro předání díla SUB", async () => {
+    const result = await generateContractProtocolPdf({
+      documentKind: "sub_work_handover",
+      contractId: "contract-1",
+      projectId: "project-1",
+      overrides: {
+        issuerCompany: "Tender Flow a.s.",
+      },
+    });
+
+    expect(result.fileName).toContain(".pdf");
+    expect(result.arrayBuffer.byteLength).toBeGreaterThan(1000);
+    const header = new TextDecoder("latin1")
+      .decode(result.arrayBuffer.slice(0, 5))
+      .toUpperCase();
+    expect(header).toContain("%PDF");
+    expect(result.draft.fields.issuerCompany).toBe("Tender Flow a.s.");
+  });
+
+  it("pro jiné typy dokumentu PDF export zamítne", async () => {
+    await expect(
+      generateContractProtocolPdf({
+        documentKind: "site_handover",
+        contractId: "contract-1",
+        projectId: "project-1",
+      }),
+    ).rejects.toThrow(/pouze pro Předání díla SUB/i);
   });
 });
