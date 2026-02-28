@@ -207,6 +207,23 @@
         padding: 4px 8px 4px 16px;
         border-left: 2px solid rgba(255, 255, 255, 0.05);
         margin-left: 12px;
+        max-height: 220px;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+      }
+      .sub::-webkit-scrollbar {
+        width: 4px;
+      }
+      .sub::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .sub::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 4px;
+      }
+      .sub::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.25);
       }
       .sub a {
         display: block;
@@ -533,10 +550,10 @@
           </div>
         </div>
         <nav class="nav" aria-label="Obsah příručky"><div class="section"><a class="sectionTitle" href="#obsah">📋 Obsah</a></div>
-<div class="section"><a class="sectionTitle" href="#novinky-posledni-zmeny">🎉 Novinky (poslední změny)</a><div class="sub"><a href="#v1-3-1">v1.3.1</a><a href="#v1-2-3">v1.2.3</a><a href="#v1-2-1">v1.2.1</a><a href="#v0-9-6-v08">v0.9.6 v08</a><a href="#v0-9-5">v0.9.5</a><a href="#v0-9-4-260104">v0.9.4-260104</a><a href="#v0-9-4-260102">v0.9.4-260102</a><a href="#v0-9-3-260101">v0.9.3-260101</a><a href="#v0-9-2">v0.9.2</a><a href="#v0-9-1">v0.9.1</a><a href="#v0-9-0">v0.9.0</a><a href="#v0-8-0">v0.8.0</a></div></div>
+<div class="section"><a class="sectionTitle" href="#novinky-posledni-zmeny">🎉 Novinky (poslední změny)</a><div class="sub"><a href="#v1-4-0">v1.4.0</a><a href="#v1-3-2">v1.3.2</a><a href="#v1-3-1">v1.3.1</a><a href="#v1-2-3">v1.2.3</a><a href="#v1-2-1">v1.2.1</a><a href="#v0-9-6-v08">v0.9.6 v08</a><a href="#v0-9-5">v0.9.5</a><a href="#v0-9-4-260104">v0.9.4-260104</a><a href="#v0-9-4-260102">v0.9.4-260102</a><a href="#v0-9-3-260101">v0.9.3-260101</a><a href="#v0-9-2">v0.9.2</a><a href="#v0-9-1">v0.9.1</a><a href="#v0-9-0">v0.9.0</a><a href="#v0-8-0">v0.8.0</a></div></div>
 <div class="section"><a class="sectionTitle" href="#ucel-a-role">Účel a role</a></div>
 <div class="section"><a class="sectionTitle" href="#prihlaseni-a-ucet">Přihlášení a účet</a></div>
-<div class="section"><a class="sectionTitle" href="#organizace-a-predplatne">Organizace a předplatné</a></div>
+<div class="section"><a class="sectionTitle" href="#organizace-a-predplatne">Organizace a předplatné</a><div class="sub"><a href="#organizace-clenstvi-a-role">Organizace (členství a role)</a></div></div>
 <div class="section"><a class="sectionTitle" href="#navigace-v-aplikaci">Navigace v aplikaci</a></div>
 <div class="section"><a class="sectionTitle" href="#dashboard">Dashboard</a><div class="sub"><a href="#co-dashboard-zobrazuje">🎯 Co dashboard zobrazuje:</a></div></div>
 <div class="section"><a class="sectionTitle" href="#plan-vr">📅 Plán VŘ</a></div>
@@ -555,16 +572,18 @@
 <div class="section"><a class="sectionTitle" href="#registrace-a-whitelist">📝 Registrace a whitelist</a></div>
 <div class="section"><a class="sectionTitle" href="#seznam-povolenych-emailu-whitelist">📧 Seznam povolených emailů (Whitelist)</a></div>
 <div class="section"><a class="sectionTitle" href="#sprava-uzivatelu-a-roli">👤 Správa uživatelů a rolí</a></div>
+<div class="section"><a class="sectionTitle" href="#organizace-clenstvi-a-role-2">🏢 Organizace (členství a role)</a></div>
+<div class="section"><a class="sectionTitle" href="#incident-logy-admin">🛰️ Incident logy (Admin)</a></div>
 <div class="section"><a class="sectionTitle" href="#import-a-synchronizace-kontaktu">🔄 Import a synchronizace kontaktů</a></div>
 <div class="section"><a class="sectionTitle" href="#ai-funkce">🤖 AI funkce</a><div class="sub"><a href="#zakladni-ai-funkce">Základní AI funkce</a><a href="#sprava-ai-klicu-admin">Správa AI klíčů (Admin)</a><a href="#ai-testovani-admin">AI testování (Admin)</a></div></div>
-<div class="section"><a class="sectionTitle" href="#caste-otazky">Časté otázky</a><div class="sub"><a href="#neotevre-se-emailovy-klient">Neotevře se emailový klient</a><a href="#nektere-volby-nevidim">Některé volby nevidím</a><a href="#excel-merger-pro-pise-funkce-neni-dostupna">Excel Merger PRO píše „Funkce není dostupná“</a><a href="#kde-si-mohu-stahnout-desktop-aplikaci">Kde si mohu stáhnout desktop aplikaci?</a></div></div>
+<div class="section"><a class="sectionTitle" href="#caste-otazky">Časté otázky</a><div class="sub"><a href="#neotevre-se-emailovy-klient">Neotevře se emailový klient</a><a href="#nektere-volby-nevidim">Některé volby nevidím</a><a href="#excel-merger-pro-pise-funkce-neni-dostupna">Excel Merger PRO píše „Funkce není dostupná“</a><a href="#kde-si-mohu-stahnout-desktop-aplikaci">Kde si mohu stáhnout desktop aplikaci?</a><a href="#proc-se-mi-na-macos-neinstaluje-update-automaticky">Proč se mi na macOS neinstaluje update automaticky?</a></div></div>
 <div class="section"><a class="sectionTitle" href="#licence-prava-a-ochrana-dat">Licence, práva a ochrana dat</a></div></nav>
       </aside>
       <main class="content">
         <div class="wrap">
           <article class="markdown"><h1 id="tender-flow-uzivatelska-prirucka">Tender Flow – Uživatelská příručka</h1>
 <p>Tato příručka popisuje práci v aplikaci Tender Flow pro řízení staveb, výběrových řízení a subdodavatelů.</p>
-<p>Verze příručky: <strong>1.7</strong> • Datum: <strong>2026‑02‑17</strong> • Aplikace: <strong>v1.3.2</strong></p>
+<p>Verze příručky: <strong>1.8</strong> • Datum: <strong>2026‑02‑28</strong> • Aplikace: <strong>v1.4.0</strong></p>
 <p class="manualLogoWrap">
   <img class="manualLogo" src="./assets/logo.png" alt="Tender Flow logo" />
 </p>
@@ -595,6 +614,8 @@
 <li><a href="#registrace-a-whitelist">📝 Registrace a whitelist</a></li>
 <li><a href="#seznam-povolenych-emailu-whitelist">📧 Seznam povolených emailů</a></li>
 <li><a href="#sprava-uzivatelu-a-roli">👤 Správa uživatelů a rolí</a></li>
+<li><a href="#organizace-clenstvi-a-role">🏢 Organizace (členství a role)</a></li>
+<li><a href="#incident-logy-admin">🛰️ Incident logy (Admin)</a></li>
 <li><a href="#import-a-synchronizace-kontaktu">🔄 Import a synchronizace kontaktů</a></li>
 <li><a href="#ai-funkce">🤖 AI funkce</a></li>
 <li><a href="#licence-prava-a-ochrana-dat">⚖️ Licence, práva a ochrana dat</a></li>
@@ -602,8 +623,19 @@
 </ul>
 <hr>
 <h2 id="novinky-posledni-zmeny">🎉 Novinky (poslední změny)</h2>
-<p><span class="version-badge">📱 v1.3.2</span> <span class="version-badge">📖 Verze příručky 1.7</span></p>
+<p><span class="version-badge">📱 v1.4.0</span> <span class="version-badge">📖 Verze příručky 1.8</span></p>
 <p>Verzi aplikace najdete vlevo dole v sidebaru.</p>
+<h3 id="v1-4-0">v1.4.0</h3>
+<ul>
+<li><strong>Desktop aktualizace přes GitHub Releases</strong>: Windows běží v auto-update režimu, macOS (Apple Silicon) v manuálním režimu instalace.</li>
+<li><strong>Administrace rozšířena o Incident logy</strong>: dohledání chyb podle incident ID, uživatele a času + mazání starých logů dle retence.</li>
+<li><strong>Správa uživatelů rozšířena</strong>: Admin může nastavit typ přihlášení (Auto/Email/Google/Microsoft/GitHub/SAML) a ručně přepsat úroveň předplatného konkrétního uživatele.</li>
+<li><strong>Organizace v Nastavení</strong>: přehled členů, schvalování žádostí, změny rolí člen/admin a předání vlastnictví organizace.</li>
+<li><strong>Smlouvy</strong>: formulář smlouvy obsahuje pole <strong>IČ dodavatele</strong> a kontextovou nabídku přímo nad řádky smluv.</li>
+<li><strong>Výběrová řízení (email nevybraným)</strong>: zlepšené sestavení BCC adres (odstranění duplicit, kompatibilnější oddělovač adres).</li>
+<li><strong>Stabilita</strong>: opravy načítání přehledů a ukládání základních údajů v detailu stavby.</li>
+</ul>
+<h3 id="v1-3-2">v1.3.2</h3>
 <ul>
 <li><strong>Uživatelská příručka doplněna</strong>: rozšířené a sjednocené popisy hlavních modulů včetně administrace, AI funkcí a desktop sekce.</li>
 <li><strong>Obsah příručky upraven</strong>: opravené interní odkazy a aktualizované metainformace verze/datum.</li>
@@ -760,6 +792,15 @@
 <li><strong>Statusy kontaktů</strong> (každá organizace má vlastní seznam a barvy).</li>
 </ul>
 <p>Tip: pokud některou část aplikace nevidíte (např. Import kontaktů, Přehled staveb, Excel nástroje), je pravděpodobně skrytá kvůli nastavení předplatného / oprávnění.</p>
+<h3 id="organizace-clenstvi-a-role">Organizace (členství a role)</h3>
+<p>V <strong>Nastavení → Organizace</strong> můžete spravovat členství v organizaci:</p>
+<ul>
+<li><strong>Členové organizace</strong>: přehled členů a jejich rolí (vlastník/admin/člen).</li>
+<li><strong>Žádosti o vstup</strong> (vlastník): schvalování a zamítání čekajících žádostí.</li>
+<li><strong>Ruční přidání uživatele</strong> (vlastník): přidání uživatele podle emailu (musí být registrovaný).</li>
+<li><strong>Změna role člena</strong> (vlastník): přepínání mezi rolí admin a člen.</li>
+<li><strong>Předání vlastnictví organizace</strong> (vlastník): bezpečný převod ownershipu na jiného člena.</li>
+</ul>
 <h2 id="navigace-v-aplikaci">Navigace v aplikaci</h2>
 <p>V levém panelu (sidebar) přepínáte hlavní části aplikace a vybíráte konkrétní stavbu.</p>
 <ul>
@@ -889,14 +930,15 @@
 <hr>
 <h2 id="nastaveni-aplikace">⚙️ Nastavení aplikace</h2>
 <ul>
-<li><strong>👤 Profil</strong> – zobrazované jméno, vzhled (tmavý režim, primární barva, pozadí) a správa statusů kontaktů.</li>
+<li><strong>👤 Profil</strong> – zobrazované jméno, vzhled (tmavý režim, primární barva, pozadí), statusy kontaktů a biometrické přihlášení v desktop aplikaci.</li>
+<li><strong>🏢 Organizace</strong> – členové, žádosti o vstup, role a předání vlastnictví (dle oprávnění).</li>
 <li><strong>📥 Import kontaktů</strong> – synchronizace z URL / ruční upload (může být v sekci <strong>Nástroje</strong> dle předplatného).</li>
 <li><strong>🔓 Excel Unlocker PRO</strong> – odemknutí <code>.xlsx</code> lokálně v prohlížeči (soubor se nikam neodesílá; dle předplatného).</li>
 <li><strong>🔀 Excel Merger PRO</strong> – slučování Excel listů; v desktop verzi nativní, ve web verzi externí aplikace (dle předplatného).</li>
 <li><strong>📊 Excel Indexer</strong> – dvou-fázová indexace a zpracování rozpočtů s automatickým doplněním popisů.</li>
 <li><strong>🔍 Index Matcher</strong> – rychlé doplnění popisů podle indexu (zjednodušená verze Indexer).</li>
 <li><strong>🔗 URL Zkracovač</strong> – vytváření zkrácených odkazů s vlastními aliasy (dle předplatného).</li>
-<li><strong>🛡️ Administrace systému (Admin)</strong> – registrace, whitelist, uživatelé, předplatné, AI.</li>
+<li><strong>🛡️ Administrace systému (Admin)</strong> – registrace, whitelist, uživatelé, role/oprávnění, přihlášení, předplatné, AI a incident logy.</li>
 </ul>
 <p><img src="./assets/09-settings.svg" alt="Nastavení aplikace"></p>
 <h2 id="excel-nastroje">📊 Excel nástroje</h2>
@@ -1087,7 +1129,7 @@
 </tr>
 <tr>
 <td>Auto-update</td>
-<td>✅</td>
+<td>Windows: ✅ • macOS arm64: manuálně</td>
 <td>❌</td>
 </tr>
 <tr>
@@ -1127,13 +1169,11 @@
 <li><strong>macOS</strong>: Otevřete Tender Flow z Launchpadu nebo složky Applications</li>
 </ul>
 <h3 id="auto-update">Auto-update</h3>
-<p>Desktop aplikace se automaticky aktualizuje:</p>
-<ol>
-<li>Při spuštění zkontroluje dostupnost nové verze</li>
-<li>Pokud je k dispozici update, zobrazí notifikaci</li>
-<li>Kliknutím na &quot;Aktualizovat&quot; se stáhne a nainstaluje nová verze</li>
-<li>Po instalaci se aplikace restartuje</li>
-</ol>
+<p>Aktualizace jsou rozdělené podle platformy:</p>
+<ul>
+<li><strong>Windows</strong>: automatická kontrola při spuštění a periodicky během běhu, stažení aktualizace v aplikaci a restart pro instalaci.</li>
+<li><strong>macOS (Apple Silicon)</strong>: aktualizace probíhá manuálně stažením nové verze z release artefaktu (<code>.dmg</code>).</li>
+</ul>
 <h3 id="biometricke-prihlaseni">Biometrické přihlášení</h3>
 <p>Desktop aplikace podporuje biometrické přihlášení:</p>
 <ul>
@@ -1143,7 +1183,7 @@
 <p><strong>Aktivace:</strong></p>
 <ol>
 <li>Přihlaste se poprvé emailem a heslem</li>
-<li>Zaškrtněte &quot;Uložit přihlášení pro Touch ID&quot;</li>
+<li>Aktivujte biometrické přihlášení v <strong>Nastavení → Profil</strong>.</li>
 <li>Při příštím spuštění můžete použít biometriku</li>
 </ol>
 <h3 id="nativni-souborove-operace">Nativní souborové operace</h3>
@@ -1186,7 +1226,7 @@
 <h2 id="administrace-systemu">🛡️ Administrace systému</h2>
 <p>Administrace je dostupná jen vybraným účtům. V aplikaci rozlišujeme:</p>
 <ul>
-<li><strong>🛡️ Admin</strong> – správa registrací, whitelistů, uživatelů, předplatného a AI nastavení.</li>
+<li><strong>🛡️ Admin</strong> – správa registrací, whitelistů, uživatelů, rolí/oprávnění, typů přihlášení, předplatného, AI nastavení a incident logů.</li>
 </ul>
 <blockquote>
 <p>💡 <strong>Tip:</strong> Pokud v Nastavení nevidíte sekce „Administrace systému&quot;, nemáte potřebná oprávnění.</p>
@@ -1211,9 +1251,31 @@
 <p>Sekce Správa uživatelů je určená pro <strong>Admina</strong>. Umožňuje:</p>
 <ul>
 <li><strong>👥 Spravovat role uživatelů</strong> (přiřazení role),</li>
+<li><strong>🔐 Nastavit typ přihlášení uživatele</strong> (Auto/Email/Google/Microsoft/GitHub/SAML),</li>
+<li><strong>💳 Přepsat úroveň předplatného uživatele</strong> (manuální override nad úrovní organizace),</li>
 <li><strong>✏️ Definovat oprávnění rolí</strong> (permissions).</li>
 </ul>
 <p><img src="./assets/15-user-management-roles.svg" alt="Správa uživatelů a rolí"></p>
+<h2 id="organizace-clenstvi-a-role-2">🏢 Organizace (členství a role)</h2>
+<p>Sekce <strong>Nastavení → Organizace</strong> je určená pro správu členů v rámci konkrétní organizace.</p>
+<ul>
+<li><strong>Seznam členů</strong>: rychlý přehled role vlastníka, adminů a členů.</li>
+<li><strong>Žádosti o vstup</strong>: schvalování/zamítání žádostí uživatelů o připojení do organizace.</li>
+<li><strong>Ruční přidání člena</strong>: přidání registrovaného uživatele podle emailu.</li>
+<li><strong>Role v organizaci</strong>: změna role člena mezi <code>admin</code> a <code>member</code>.</li>
+<li><strong>Předání ownershipu</strong>: možnost předat roli vlastníka jinému členovi.</li>
+</ul>
+<blockquote>
+<p>💡 <strong>Tip:</strong> Uživatel může požádat o vstup do organizace ze svého profilu; žádost potvrdí vlastník organizace.</p>
+</blockquote>
+<h2 id="incident-logy-admin">🛰️ Incident logy (Admin)</h2>
+<p>V <strong>Nastavení → Administrace → Incidenty</strong> můžete analyzovat a čistit provozní incidenty.</p>
+<ul>
+<li><strong>Filtrování incidentů</strong> podle Incident ID, User ID a časového intervalu.</li>
+<li><strong>Detail incidentu</strong> s možností kopie JSON detailu do schránky.</li>
+<li><strong>Čištění starých logů</strong> dle zadané retenční doby (v dnech).</li>
+</ul>
+<p>Incident logy slouží pro diagnostiku stability a bezpečnosti provozu; nejsou určeny jako náhrada auditního logu obchodních operací.</p>
 <h2 id="import-a-synchronizace-kontaktu">🔄 Import a synchronizace kontaktů</h2>
 <p>Kontakty lze nahrát jednorázově z CSV nebo synchronizovat z URL (např. export z Google Sheets).</p>
 <p>Očekávaný formát (typicky): <code>Firma, Jméno, Specializace, Telefon, Email, IČO, Region</code></p>
@@ -1301,6 +1363,8 @@
 <p>Excel Merger PRO vyžaduje, aby Admin nastavil URL externí aplikace v <strong>Nastavení → Administrace → Registrace</strong>.</p>
 <h3 id="kde-si-mohu-stahnout-desktop-aplikaci">Kde si mohu stáhnout desktop aplikaci?</h3>
 <p>Desktop verzi Tender Flow si můžete stáhnout po kontaktování administrátora. Desktop aplikace nabízí rozšířené funkce jako Touch ID, nativní přístup k souborům a lokální Excel nástroje.</p>
+<h3 id="proc-se-mi-na-macos-neinstaluje-update-automaticky">Proč se mi na macOS neinstaluje update automaticky?</h3>
+<p>V aktuální verzi je auto-update aktivní pro Windows. Na macOS (Apple Silicon) se aktualizace instalují manuálně přes nový <code>.dmg</code> balíček.</p>
 <hr>
 <h2 id="licence-prava-a-ochrana-dat">Licence, práva a ochrana dat</h2>
 <p>Aplikace Tender Flow je chráněna autorským právem a souvisejícími předpisy. Uživatel získává nevýhradní licenci k používání aplikace pouze v rozsahu potřebném pro její řádné užívání v rámci sjednaného tarifu.</p>

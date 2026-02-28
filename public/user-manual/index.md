@@ -2,7 +2,7 @@
 
 Tato příručka popisuje práci v aplikaci Tender Flow pro řízení staveb, výběrových řízení a subdodavatelů.
 
-Verze příručky: **1.7** • Datum: **2026‑02‑17** • Aplikace: **v1.3.2**
+Verze příručky: **1.8** • Datum: **2026‑02‑28** • Aplikace: **v1.4.0**
 
 <p class="manualLogoWrap">
   <img class="manualLogo" src="./assets/logo.png" alt="Tender Flow logo" />
@@ -35,6 +35,8 @@ Verze příručky: **1.7** • Datum: **2026‑02‑17** • Aplikace: **v1.3.2*
 - [📝 Registrace a whitelist](#registrace-a-whitelist)
 - [📧 Seznam povolených emailů](#seznam-povolenych-emailu-whitelist)
 - [👤 Správa uživatelů a rolí](#sprava-uzivatelu-a-roli)
+- [🏢 Organizace (členství a role)](#organizace-clenstvi-a-role)
+- [🛰️ Incident logy (Admin)](#incident-logy-admin)
 - [🔄 Import a synchronizace kontaktů](#import-a-synchronizace-kontaktu)
 - [🤖 AI funkce](#ai-funkce)
 - [⚖️ Licence, práva a ochrana dat](#licence-prava-a-ochrana-dat)
@@ -44,9 +46,21 @@ Verze příručky: **1.7** • Datum: **2026‑02‑17** • Aplikace: **v1.3.2*
 
 ## 🎉 Novinky (poslední změny)
 
-<span class="version-badge">📱 v1.3.2</span> <span class="version-badge">📖 Verze příručky 1.7</span>
+<span class="version-badge">📱 v1.4.0</span> <span class="version-badge">📖 Verze příručky 1.8</span>
 
 Verzi aplikace najdete vlevo dole v sidebaru.
+
+### v1.4.0
+
+- **Desktop aktualizace přes GitHub Releases**: Windows běží v auto-update režimu, macOS (Apple Silicon) v manuálním režimu instalace.
+- **Administrace rozšířena o Incident logy**: dohledání chyb podle incident ID, uživatele a času + mazání starých logů dle retence.
+- **Správa uživatelů rozšířena**: Admin může nastavit typ přihlášení (Auto/Email/Google/Microsoft/GitHub/SAML) a ručně přepsat úroveň předplatného konkrétního uživatele.
+- **Organizace v Nastavení**: přehled členů, schvalování žádostí, změny rolí člen/admin a předání vlastnictví organizace.
+- **Smlouvy**: formulář smlouvy obsahuje pole **IČ dodavatele** a kontextovou nabídku přímo nad řádky smluv.
+- **Výběrová řízení (email nevybraným)**: zlepšené sestavení BCC adres (odstranění duplicit, kompatibilnější oddělovač adres).
+- **Stabilita**: opravy načítání přehledů a ukládání základních údajů v detailu stavby.
+
+### v1.3.2
 
 - **Uživatelská příručka doplněna**: rozšířené a sjednocené popisy hlavních modulů včetně administrace, AI funkcí a desktop sekce.
 - **Obsah příručky upraven**: opravené interní odkazy a aktualizované metainformace verze/datum.
@@ -197,6 +211,16 @@ Organizace ovlivňuje zejména:
 - **Statusy kontaktů** (každá organizace má vlastní seznam a barvy).
 
 Tip: pokud některou část aplikace nevidíte (např. Import kontaktů, Přehled staveb, Excel nástroje), je pravděpodobně skrytá kvůli nastavení předplatného / oprávnění.
+
+### Organizace (členství a role)
+
+V **Nastavení → Organizace** můžete spravovat členství v organizaci:
+
+- **Členové organizace**: přehled členů a jejich rolí (vlastník/admin/člen).
+- **Žádosti o vstup** (vlastník): schvalování a zamítání čekajících žádostí.
+- **Ruční přidání uživatele** (vlastník): přidání uživatele podle emailu (musí být registrovaný).
+- **Změna role člena** (vlastník): přepínání mezi rolí admin a člen.
+- **Předání vlastnictví organizace** (vlastník): bezpečný převod ownershipu na jiného člena.
 
 ## Navigace v aplikaci
 
@@ -360,14 +384,15 @@ Manažerské souhrny napříč stavbami: metriky, grafy a volitelně AI analýza
 
 ## ⚙️ Nastavení aplikace
 
-- **👤 Profil** – zobrazované jméno, vzhled (tmavý režim, primární barva, pozadí) a správa statusů kontaktů.
+- **👤 Profil** – zobrazované jméno, vzhled (tmavý režim, primární barva, pozadí), statusy kontaktů a biometrické přihlášení v desktop aplikaci.
+- **🏢 Organizace** – členové, žádosti o vstup, role a předání vlastnictví (dle oprávnění).
 - **📥 Import kontaktů** – synchronizace z URL / ruční upload (může být v sekci **Nástroje** dle předplatného).
 - **🔓 Excel Unlocker PRO** – odemknutí `.xlsx` lokálně v prohlížeči (soubor se nikam neodesílá; dle předplatného).
 - **🔀 Excel Merger PRO** – slučování Excel listů; v desktop verzi nativní, ve web verzi externí aplikace (dle předplatného).
 - **📊 Excel Indexer** – dvou-fázová indexace a zpracování rozpočtů s automatickým doplněním popisů.
 - **🔍 Index Matcher** – rychlé doplnění popisů podle indexu (zjednodušená verze Indexer).
 - **🔗 URL Zkracovač** – vytváření zkrácených odkazů s vlastními aliasy (dle předplatného).
-- **🛡️ Administrace systému (Admin)** – registrace, whitelist, uživatelé, předplatné, AI.
+- **🛡️ Administrace systému (Admin)** – registrace, whitelist, uživatelé, role/oprávnění, přihlášení, předplatné, AI a incident logy.
 
 ![Nastavení aplikace](./assets/09-settings.svg)
 
@@ -539,7 +564,7 @@ Tender Flow Desktop je nativní desktopová aplikace postavená na Electronu. Na
 | Přístup k souborům | Nativní | Omezené |
 | Excel nástroje | Lokální Python | HTTP API |
 | Úložiště tokenů | OS Keychain (bezpečnější) | localStorage |
-| Auto-update | ✅ | ❌ |
+| Auto-update | Windows: ✅ • macOS arm64: manuálně | ❌ |
 | Folder watcher | ✅ | ❌ |
 | Biometrické přihlášení | ✅ (Touch ID/Windows Hello) | ❌ |
 | Mailto odkazy | IPC Bridge (spolehlivější) | Prohlížeč |
@@ -565,11 +590,10 @@ Tender Flow Desktop je nativní desktopová aplikace postavená na Electronu. Na
 
 ### Auto-update
 
-Desktop aplikace se automaticky aktualizuje:
-1. Při spuštění zkontroluje dostupnost nové verze
-2. Pokud je k dispozici update, zobrazí notifikaci
-3. Kliknutím na "Aktualizovat" se stáhne a nainstaluje nová verze
-4. Po instalaci se aplikace restartuje
+Aktualizace jsou rozdělené podle platformy:
+
+- **Windows**: automatická kontrola při spuštění a periodicky během běhu, stažení aktualizace v aplikaci a restart pro instalaci.
+- **macOS (Apple Silicon)**: aktualizace probíhá manuálně stažením nové verze z release artefaktu (`.dmg`).
 
 ### Biometrické přihlášení
 
@@ -579,7 +603,7 @@ Desktop aplikace podporuje biometrické přihlášení:
 
 **Aktivace:**
 1. Přihlaste se poprvé emailem a heslem
-2. Zaškrtněte "Uložit přihlášení pro Touch ID"
+2. Aktivujte biometrické přihlášení v **Nastavení → Profil**.
 3. Při příštím spuštění můžete použít biometriku
 
 ### Nativní souborové operace
@@ -619,7 +643,7 @@ Při kliknutí na "Odhlásit" v desktop verzi máte dvě možnosti:
 
 Administrace je dostupná jen vybraným účtům. V aplikaci rozlišujeme:
 
-- **🛡️ Admin** – správa registrací, whitelistů, uživatelů, předplatného a AI nastavení.
+- **🛡️ Admin** – správa registrací, whitelistů, uživatelů, rolí/oprávnění, typů přihlášení, předplatného, AI nastavení a incident logů.
 
 > 💡 **Tip:** Pokud v Nastavení nevidíte sekce „Administrace systému", nemáte potřebná oprávnění.
 
@@ -648,9 +672,33 @@ Pokud je zapnuté „Vyžadovat whitelist emailů", mohou se registrovat pouze e
 Sekce Správa uživatelů je určená pro **Admina**. Umožňuje:
 
 - **👥 Spravovat role uživatelů** (přiřazení role),
+- **🔐 Nastavit typ přihlášení uživatele** (Auto/Email/Google/Microsoft/GitHub/SAML),
+- **💳 Přepsat úroveň předplatného uživatele** (manuální override nad úrovní organizace),
 - **✏️ Definovat oprávnění rolí** (permissions).
 
 ![Správa uživatelů a rolí](./assets/15-user-management-roles.svg)
+
+## 🏢 Organizace (členství a role)
+
+Sekce **Nastavení → Organizace** je určená pro správu členů v rámci konkrétní organizace.
+
+- **Seznam členů**: rychlý přehled role vlastníka, adminů a členů.
+- **Žádosti o vstup**: schvalování/zamítání žádostí uživatelů o připojení do organizace.
+- **Ruční přidání člena**: přidání registrovaného uživatele podle emailu.
+- **Role v organizaci**: změna role člena mezi `admin` a `member`.
+- **Předání ownershipu**: možnost předat roli vlastníka jinému členovi.
+
+> 💡 **Tip:** Uživatel může požádat o vstup do organizace ze svého profilu; žádost potvrdí vlastník organizace.
+
+## 🛰️ Incident logy (Admin)
+
+V **Nastavení → Administrace → Incidenty** můžete analyzovat a čistit provozní incidenty.
+
+- **Filtrování incidentů** podle Incident ID, User ID a časového intervalu.
+- **Detail incidentu** s možností kopie JSON detailu do schránky.
+- **Čištění starých logů** dle zadané retenční doby (v dnech).
+
+Incident logy slouží pro diagnostiku stability a bezpečnosti provozu; nejsou určeny jako náhrada auditního logu obchodních operací.
 
 ## 🔄 Import a synchronizace kontaktů
 
@@ -752,6 +800,10 @@ Excel Merger PRO vyžaduje, aby Admin nastavil URL externí aplikace v **Nastave
 ### Kde si mohu stáhnout desktop aplikaci?
 
 Desktop verzi Tender Flow si můžete stáhnout po kontaktování administrátora. Desktop aplikace nabízí rozšířené funkce jako Touch ID, nativní přístup k souborům a lokální Excel nástroje.
+
+### Proč se mi na macOS neinstaluje update automaticky?
+
+V aktuální verzi je auto-update aktivní pro Windows. Na macOS (Apple Silicon) se aktualizace instalují manuálně přes nový `.dmg` balíček.
 
 ---
 

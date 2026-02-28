@@ -261,6 +261,23 @@ const main = async () => {
         padding: 4px 8px 4px 16px;
         border-left: 2px solid rgba(255, 255, 255, 0.05);
         margin-left: 12px;
+        max-height: 220px;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+      }
+      .sub::-webkit-scrollbar {
+        width: 4px;
+      }
+      .sub::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .sub::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 4px;
+      }
+      .sub::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.25);
       }
       .sub a {
         display: block;
