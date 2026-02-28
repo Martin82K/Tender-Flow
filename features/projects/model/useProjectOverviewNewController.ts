@@ -115,21 +115,27 @@ export const useProjectOverviewNewController = ({
   }, [visibleColumns, isLoaded, userId]);
 
   useEffect(() => {
-    setInfoForm(buildInfoForm(project));
+    if (!editingInfo) {
+      setInfoForm(buildInfoForm(project));
+    }
 
-    if (project.contract) {
+    if (!editingContract && project.contract) {
       setContractForm(project.contract);
     }
 
-    if (project.investorFinancials) {
-      setInvestorForm(project.investorFinancials);
-    } else {
-      setInvestorForm(DEFAULT_INVESTOR);
+    if (!editingInvestor) {
+      if (project.investorFinancials) {
+        setInvestorForm(project.investorFinancials);
+      } else {
+        setInvestorForm(DEFAULT_INVESTOR);
+      }
     }
 
-    setInternalForm({
-      plannedCost: project.plannedCost || 0,
-    });
+    if (!editingInternal) {
+      setInternalForm({
+        plannedCost: project.plannedCost || 0,
+      });
+    }
   }, [project, editingInfo, editingContract, editingInvestor, editingInternal]);
 
   const {
