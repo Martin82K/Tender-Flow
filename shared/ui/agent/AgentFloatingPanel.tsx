@@ -6,6 +6,7 @@ import type {
   AgentRuntimeSnapshot,
 } from "@shared/types/agent";
 import type { VoiceCostMode, VoiceInteractionMode } from "@shared/types/voice";
+import { renderMarkdownToSafeHtml } from "@shared/contracts/markdownRender";
 import vikiAvatar from "@/assets/viki.png";
 
 interface AgentFloatingPanelProps {
@@ -404,7 +405,14 @@ export const AgentFloatingPanel: React.FC<AgentFloatingPanelProps> = ({ runtime 
                       : "mr-auto border border-white/40 bg-white/85 text-slate-800 dark:border-slate-700/50 dark:bg-slate-900/80 dark:text-slate-100"
                   }`}
                 >
-                  <div className="whitespace-pre-wrap leading-relaxed">{message.content}</div>
+                  {message.role === "assistant" ? (
+                    <div
+                      className="viki-markdown leading-relaxed"
+                      dangerouslySetInnerHTML={{ __html: renderMarkdownToSafeHtml(message.content) }}
+                    />
+                  ) : (
+                    <div className="whitespace-pre-wrap leading-relaxed">{message.content}</div>
+                  )}
                   {message.role === "assistant" && (
                     <div className="mt-1 flex items-center justify-between gap-2 text-[10px] text-slate-500 dark:text-slate-400">
                       <span>

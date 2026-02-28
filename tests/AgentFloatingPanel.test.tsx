@@ -31,12 +31,15 @@ const runtimeFixture: AgentRuntimeSnapshot = {
 };
 
 describe("AgentFloatingPanel", () => {
-  const createControllerState = (mode: VoiceInteractionMode = "push_to_talk") => ({
+  const createControllerState = (
+    mode: VoiceInteractionMode = "push_to_talk",
+    assistantContent = "Ahoj",
+  ) => ({
     messages: [
       {
         id: "assistant-1",
         role: "assistant",
-        content: "Ahoj",
+        content: assistantContent,
         createdAt: new Date().toISOString(),
         source: "skill",
       },
@@ -91,6 +94,30 @@ describe("AgentFloatingPanel", () => {
     expect(screen.getByText("Audience režim")).toBeInTheDocument();
     expect(screen.getByLabelText("Hlasový režim")).toBeInTheDocument();
     expect(screen.getByRole("dialog", { name: "Nastavení Viki" })).toBeInTheDocument();
+  });
+
+  it("renderuje markdown v odpovedi asistentky a sanitizuje nebezpecny obsah", () => {
+    hookState.useAgentController.mockReturnValue(
+      createControllerState(
+        "push_to_talk",
+        "### Detailní briefing projektu\n\n**Důležité**\n\n```ts\nconst x = 1;\n```\n\n<script>alert(1)</script>",
+      ),
+    );
+
+    const { container } = render(<AgentFloatingPanel runtime={runtimeFixture} />);
+    fireEvent.click(screen.getByRole("button", { name: "Otevřít Viki" }));
+
+    const heading = container.querySelector(".viki-markdown h3");
+    const strong = container.querySelector(".viki-markdown strong");
+    const code = container.querySelector(".viki-markdown pre code");
+    const script = container.querySelector(".viki-markdown script");
+
+    expect(heading).toBeTruthy();
+    expect(heading?.textContent).toContain("Detailní briefing projektu");
+    expect(strong).toBeTruthy();
+    expect(strong?.textContent).toBe("Důležité");
+    expect(code?.textContent).toContain("const x = 1;");
+    expect(script).toBeNull();
   });
 
   it("v režimu text_only schova hlasove ovladani", () => {
