@@ -330,10 +330,11 @@ export const AppContent: React.FC = () => {
     projectDetails: state.allProjectDetails,
     contacts: state.contacts,
     audience: "internal",
-    contextScopes: ["project", "memory"],
+    contextScopes: ["project", "memory", "manual"],
     contextPolicyVersion: "v1-strict-allowlist",
     organizationId: user?.organizationId || null,
     userId: user?.id || null,
+    isAdmin: state.isAdmin,
   };
 
   return (

@@ -5,7 +5,13 @@ export type AgentReplySource = "skill" | "llm";
 export type AgentActionRisk = "read" | "write" | "delete";
 export type AgentModelProvider = "openrouter" | "mistral" | "google";
 export type AgentAudience = "internal" | "client";
-export type AgentContextScope = "project" | "pipeline" | "contacts" | "memory";
+export type AgentContextScope = "project" | "pipeline" | "contacts" | "memory" | "manual";
+
+export interface AgentManualCitation {
+  sectionTitle: string;
+  anchor: string;
+  confidence: number;
+}
 
 export interface AgentModelOption {
   id: string;
@@ -44,6 +50,7 @@ export interface AgentRuntimeSnapshot {
   contextPolicyVersion: string;
   organizationId?: string | null;
   userId?: string | null;
+  isAdmin?: boolean;
 }
 
 export interface AgentPendingAction {
@@ -64,6 +71,10 @@ export interface AgentResponse {
   pendingAction?: AgentPendingAction;
   guardTriggered?: boolean;
   guardReason?: string;
+  manualContextUsed?: boolean;
+  manualNoMatch?: boolean;
+  manualCitations?: AgentManualCitation[];
+  manualCitationEmitted?: boolean;
 }
 
 export interface AgentUiState {

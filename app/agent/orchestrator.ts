@@ -6,7 +6,11 @@ import type {
   AgentRuntimeSnapshot,
 } from "@shared/types/agent";
 import { sendAgentFallbackMessage, type AgentFallbackResponse } from "@app/agent/llmGateway";
-import { guardClientFacingOutput } from "@app/agent/contextPolicy";
+import {
+  guardClientFacingOutput,
+  guardRoleRestrictedOutput,
+  guardSensitiveOutput,
+} from "@app/agent/contextPolicy";
 
 const SKILL_MATCH_THRESHOLD = 0.45;
 
@@ -36,6 +40,24 @@ export const orchestrateAgentReply = async (
   const applyOutputGuard = (
     reply: string,
   ): { reply: string; guardTriggered: boolean; guardReason?: string } => {
+    const sensitiveGuarded = guardSensitiveOutput(reply);
+    if (sensitiveGuarded.blocked) {
+      return {
+        reply: sensitiveGuarded.text,
+        guardTriggered: true,
+        guardReason: sensitiveGuarded.reason,
+      };
+    }
+
+    const roleGuarded = guardRoleRestrictedOutput(reply, args.runtime);
+    if (roleGuarded.blocked) {
+      return {
+        reply: roleGuarded.text,
+        guardTriggered: true,
+        guardReason: roleGuarded.reason,
+      };
+    }
+
     if (args.runtime.audience !== "client") {
       return { reply, guardTriggered: false };
     }
@@ -92,5 +114,9 @@ export const orchestrateAgentReply = async (
     usedModel: fallback.usedModel,
     guardTriggered: guarded.guardTriggered,
     guardReason: guarded.guardReason,
+    manualContextUsed: fallback.manualContextUsed,
+    manualNoMatch: fallback.manualNoMatch,
+    manualCitations: fallback.manualCitations,
+    manualCitationEmitted: fallback.manualCitationEmitted,
   };
 };

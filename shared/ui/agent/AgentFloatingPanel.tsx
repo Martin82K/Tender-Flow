@@ -25,6 +25,7 @@ const scopeLabels: Record<AgentContextScope, string> = {
   pipeline: "Pipeline",
   contacts: "Kontakty",
   memory: "Paměť",
+  manual: "Příručka",
 };
 
 const voiceInteractionLabels: Record<VoiceInteractionMode, string> = {

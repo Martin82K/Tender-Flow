@@ -1,6 +1,7 @@
 import { invokeAuthedFunction } from "@/services/functionsClient";
 import { dbAdapter } from "@/services/dbAdapter";
 import type {
+  AgentManualCitation,
   AgentConversationMessage,
   AgentModelProvider,
   AgentModelSelection,
@@ -8,6 +9,13 @@ import type {
 } from "@shared/types/agent";
 import { buildSystemPrompt } from "@app/agent/contextPolicy";
 import { loadProjectMemory } from "@app/agent/memoryStore";
+import {
+  ensureManualCitationInReply,
+  formatManualContextForPrompt,
+  type RetrievedManualSection,
+  retrieveManualSections,
+  toManualCitations,
+} from "@app/agent/manualKnowledge";
 
 type AiProxyResponse = {
   text?: string;
@@ -81,6 +89,10 @@ export interface AgentFallbackResponse {
   text: string;
   usedModel: AgentModelSelection;
   memoryLoaded: boolean;
+  manualContextUsed: boolean;
+  manualNoMatch: boolean;
+  manualCitations: AgentManualCitation[];
+  manualCitationEmitted: boolean;
 }
 
 export const sendAgentFallbackMessage = async ({
@@ -105,12 +117,28 @@ export const sendAgentFallbackMessage = async ({
     }
   }
 
+  let manualSections: RetrievedManualSection[] = [];
+  if (runtime.contextScopes.includes("manual")) {
+    try {
+      const latestUserMessage =
+        [...conversation]
+          .reverse()
+          .find((message) => message.role === "user")
+          ?.content || "";
+      manualSections = await retrieveManualSections(latestUserMessage, runtime);
+    } catch {
+      manualSections = [];
+    }
+  }
+  const manualCitations = toManualCitations(manualSections);
+
   const history = [
     {
       role: "system",
       content: buildSystemPrompt({
         runtime,
         memory: projectMemory,
+        manualContext: formatManualContextForPrompt(manualSections),
       }),
     },
     ...conversation.map((message) => ({
@@ -127,9 +155,16 @@ export const sendAgentFallbackMessage = async ({
     },
   });
 
+  const normalizedReply = (result.text || "Nedostala jsem odpověď od AI modelu.").trim();
+  const replyWithCitation = ensureManualCitationInReply(normalizedReply, manualCitations);
+
   return {
-    text: (result.text || "Nedostala jsem odpověď od AI modelu.").trim(),
+    text: replyWithCitation.text,
     usedModel: selectedModel,
     memoryLoaded: Boolean(projectMemory),
+    manualContextUsed: manualSections.length > 0,
+    manualNoMatch: runtime.contextScopes.includes("manual") && manualSections.length === 0,
+    manualCitations,
+    manualCitationEmitted: replyWithCitation.emitted,
   };
 };

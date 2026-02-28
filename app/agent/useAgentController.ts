@@ -62,7 +62,7 @@ const VOICE_OUTPUT_STORAGE_KEY = "viki:voiceOutputEnabled";
 const VOICE_COST_MODE_STORAGE_KEY = "viki:voiceCostMode";
 const VOICE_INTERACTION_MODE_STORAGE_KEY = "viki:voiceInteractionMode";
 const MAX_VOICE_SECONDS = 30;
-const DEFAULT_SCOPES: AgentContextScope[] = ["project", "memory"];
+const DEFAULT_SCOPES: AgentContextScope[] = ["project", "memory", "manual"];
 
 const createId = (): string =>
   `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -157,7 +157,7 @@ export const useAgentController = (
     try {
       const parsed = JSON.parse(raw) as AgentContextScope[];
       const filtered = parsed.filter((scope) =>
-        ["project", "pipeline", "contacts", "memory"].includes(scope),
+        ["project", "pipeline", "contacts", "memory", "manual"].includes(scope),
       );
       return filtered.length > 0 ? filtered : DEFAULT_SCOPES;
     } catch {
@@ -286,7 +286,7 @@ export const useAgentController = (
     setContextScopes((prev) => {
       const hasScope = prev.includes(scope);
       const next = hasScope ? prev.filter((item) => item !== scope) : [...prev, scope];
-      return next.length > 0 ? next : ["project"];
+      return next.length > 0 ? next : ["project", "manual"];
     });
   }, []);
 
@@ -392,6 +392,23 @@ export const useAgentController = (
           void trackVikiUsageEvent("output_guard_triggered", {
             audience,
             reason: response.guardReason || "unknown",
+          });
+        }
+        if (response.manualContextUsed) {
+          void trackVikiUsageEvent("manual_context_used", {
+            audience,
+            citations: response.manualCitations?.map((item) => item.anchor) || [],
+          });
+        }
+        if (response.manualNoMatch) {
+          void trackVikiUsageEvent("manual_no_match", {
+            audience,
+          });
+        }
+        if (response.manualCitationEmitted) {
+          void trackVikiUsageEvent("manual_citation_emitted", {
+            audience,
+            citations: response.manualCitations?.map((item) => item.anchor) || [],
           });
         }
 

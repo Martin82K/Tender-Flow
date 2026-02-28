@@ -78,6 +78,54 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
     searchQuery,
   });
 
+  const formatEditableNumber = (value: number): string =>
+    new Intl.NumberFormat("cs-CZ", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(value || 0);
+
+  const parseEditableNumber = (value: string): number => {
+    const normalized = value
+      .replace(/\u00A0/g, " ")
+      .replace(/\s/g, "")
+      .replace(",", ".")
+      .replace(/[^0-9.-]/g, "");
+    const parsed = Number.parseFloat(normalized);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  const [compactInvestorSodInput, setCompactInvestorSodInput] = React.useState("");
+  const [compactAmendmentPriceInputs, setCompactAmendmentPriceInputs] =
+    React.useState<Record<string, string>>({});
+  const [compactInternalPlannedCostInput, setCompactInternalPlannedCostInput] =
+    React.useState("");
+
+  const amendmentsCount = investor.amendments.length;
+  const amendmentsTotal = investor.amendments.reduce(
+    (sum, amendment) => sum + (amendment.price || 0),
+    0,
+  );
+
+  React.useEffect(() => {
+    if (!editingInvestor) return;
+    setCompactInvestorSodInput(formatEditableNumber(investorForm.sodPrice || 0));
+    setCompactAmendmentPriceInputs(
+      Object.fromEntries(
+        investorForm.amendments.map((amendment) => [
+          amendment.id,
+          formatEditableNumber(amendment.price || 0),
+        ]),
+      ),
+    );
+  }, [editingInvestor, investorForm.sodPrice, investorForm.amendments]);
+
+  React.useEffect(() => {
+    if (!editingInternal) return;
+    setCompactInternalPlannedCostInput(
+      formatEditableNumber(internalForm.plannedCost || 0),
+    );
+  }, [editingInternal, internalForm.plannedCost]);
+
   const renderCompactDetails = () => (
     <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 mb-6 shadow-sm">
       <h3 className="text-base font-extrabold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
@@ -238,6 +286,22 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                 {formatMoney(investor.sodPrice)}
               </span>
             </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500 dark:text-slate-500 text-xs">
+                Počet dodatků:
+              </span>
+              <span className="text-slate-900 dark:text-slate-200 font-bold text-xs">
+                {amendmentsCount}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500 dark:text-slate-500 text-xs">
+                Dodatky celkem:
+              </span>
+              <span className="text-slate-900 dark:text-slate-200 font-bold text-xs">
+                {formatMoney(amendmentsTotal)}
+              </span>
+            </div>
             <div className="h-px bg-slate-200 dark:bg-slate-800 my-1"></div>
             <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
               <span className="font-extrabold text-xs">Celkem:</span>
@@ -246,6 +310,141 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
               </span>
             </div>
           </div>
+          {editingInvestor && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-2xl w-full shadow-2xl animate-fadeIn">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">
+                  Upravit finance investora
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs text-slate-500 font-bold mb-1.5 block">
+                      Základní cena SOD
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={compactInvestorSodInput}
+                      onChange={(e) => {
+                        setCompactInvestorSodInput(e.target.value);
+                        setInvestorForm({
+                          ...investorForm,
+                          sodPrice: parseEditableNumber(e.target.value),
+                        });
+                      }}
+                      onBlur={() =>
+                        setCompactInvestorSodInput(
+                          formatEditableNumber(investorForm.sodPrice || 0),
+                        )
+                      }
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-900 dark:text-white text-sm text-right tabular-nums focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800">
+                    <div className="flex justify-between gap-2">
+                      <span className="text-xs text-slate-500">Počet dodatků</span>
+                      <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                        {investorForm.amendments.length}
+                      </span>
+                    </div>
+                    <div className="flex justify-between gap-2">
+                      <span className="text-xs text-slate-500">Dodatky celkem</span>
+                      <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                        {formatMoney(
+                          investorForm.amendments.reduce(
+                            (sum, amendment) => sum + (amendment.price || 0),
+                            0,
+                          ),
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-500 font-bold mb-1.5 block">
+                      Dodatky
+                    </label>
+                    <div className="space-y-2">
+                      {investorForm.amendments.map((amendment, idx) => (
+                        <div
+                          key={amendment.id}
+                          className="flex gap-2 items-center"
+                        >
+                          <input
+                            type="text"
+                            value={amendment.label}
+                            onChange={(e) =>
+                              updateAmendment(idx, "label", e.target.value)
+                            }
+                            className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white"
+                            placeholder="Název dodatku"
+                          />
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={
+                              compactAmendmentPriceInputs[amendment.id] ??
+                              formatEditableNumber(amendment.price || 0)
+                            }
+                            onChange={(e) => {
+                              setCompactAmendmentPriceInputs((prev) => ({
+                                ...prev,
+                                [amendment.id]: e.target.value,
+                              }));
+                              updateAmendment(
+                                idx,
+                                "price",
+                                parseEditableNumber(e.target.value),
+                              );
+                            }}
+                            onBlur={() =>
+                              setCompactAmendmentPriceInputs((prev) => ({
+                                ...prev,
+                                [amendment.id]: formatEditableNumber(
+                                  investorForm.amendments[idx]?.price || 0,
+                                ),
+                              }))
+                            }
+                            className="w-40 md:w-48 shrink-0 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white text-right tabular-nums"
+                          />
+                          <button
+                            onClick={() => removeAmendment(idx)}
+                            className="text-red-500 hover:text-red-600 transition-colors"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">
+                              delete
+                            </span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      onClick={addAmendment}
+                      className="mt-2 text-xs flex items-center gap-1 text-primary hover:text-primary-dark transition-colors font-medium"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">
+                        add
+                      </span>
+                      Přidat dodatek
+                    </button>
+                  </div>
+                  <div className="flex justify-end gap-3 mt-6">
+                    <button
+                      onClick={() => setEditingInvestor(false)}
+                      className="px-4 py-2 text-slate-500 hover:text-slate-900 dark:hover:text-white font-medium transition-colors text-sm"
+                    >
+                      Zrušit
+                    </button>
+                    <button
+                      onClick={handleSaveInvestor}
+                      className="px-6 py-2 bg-primary text-white rounded-xl font-bold hover:bg-primary-dark shadow-lg shadow-primary/20 transition-all active:scale-95 text-sm"
+                    >
+                      Uložit změny
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* 3. Internal Budget */}
@@ -295,6 +494,54 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
               </span>
             </div>
           </div>
+          {editingInternal && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl animate-fadeIn">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">
+                  Upravit interní rozpočet
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs text-slate-500 font-bold mb-1.5 block">
+                      Plánovaný náklad (Cíl)
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={compactInternalPlannedCostInput}
+                      onChange={(e) => {
+                        setCompactInternalPlannedCostInput(e.target.value);
+                        setInternalForm({
+                          ...internalForm,
+                          plannedCost: parseEditableNumber(e.target.value),
+                        });
+                      }}
+                      onBlur={() =>
+                        setCompactInternalPlannedCostInput(
+                          formatEditableNumber(internalForm.plannedCost || 0),
+                        )
+                      }
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-900 dark:text-white text-sm text-right tabular-nums focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                    />
+                  </div>
+                  <div className="flex justify-end gap-3 mt-6">
+                    <button
+                      onClick={() => setEditingInternal(false)}
+                      className="px-4 py-2 text-slate-500 hover:text-slate-900 dark:hover:text-white font-medium transition-colors text-sm"
+                    >
+                      Zrušit
+                    </button>
+                    <button
+                      onClick={handleSaveInternal}
+                      className="px-6 py-2 bg-primary text-white rounded-xl font-bold hover:bg-primary-dark shadow-lg shadow-primary/20 transition-all active:scale-95 text-sm"
+                    >
+                      Uložit změny
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         {/* 4. Contract Parameters (Restored & Restructured) */}
         <div className="lg:col-span-1 border-r border-slate-200 dark:border-slate-800/50 pr-6">
@@ -368,6 +615,111 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
               </div>
             </div>
           </div>
+          {editingContract && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl animate-fadeIn">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">
+                  Upravit parametry smlouvy
+                </h3>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2 items-center">
+                    <label className="text-xs text-slate-500">
+                      Splatnost (dní)
+                    </label>
+                    <input
+                      type="number"
+                      value={contractForm.maturity}
+                      onChange={(e) =>
+                        setContractForm({
+                          ...contractForm,
+                          maturity: parseInt(e.target.value) || 0,
+                        })
+                      }
+                      className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white text-right"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 items-center">
+                    <label className="text-xs text-slate-500">
+                      Záruka (měsíců)
+                    </label>
+                    <input
+                      type="number"
+                      value={contractForm.warranty}
+                      onChange={(e) =>
+                        setContractForm({
+                          ...contractForm,
+                          warranty: parseInt(e.target.value) || 0,
+                        })
+                      }
+                      className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white text-right"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 items-center">
+                    <label className="text-xs text-slate-500">Pozastávka</label>
+                    <input
+                      type="text"
+                      value={contractForm.retention}
+                      onChange={(e) =>
+                        setContractForm({
+                          ...contractForm,
+                          retention: e.target.value,
+                        })
+                      }
+                      className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white text-right"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 items-center">
+                    <label className="text-xs text-slate-500">
+                      Zař. staveniště (%)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={contractForm.siteFacilities}
+                      onChange={(e) =>
+                        setContractForm({
+                          ...contractForm,
+                          siteFacilities: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                      className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white text-right"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 items-center">
+                    <label className="text-xs text-slate-500">
+                      Pojištění (%)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={contractForm.insurance}
+                      onChange={(e) =>
+                        setContractForm({
+                          ...contractForm,
+                          insurance: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                      className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white text-right"
+                    />
+                  </div>
+                  <div className="flex justify-end gap-3 mt-6">
+                    <button
+                      onClick={() => setEditingContract(false)}
+                      className="px-4 py-2 text-slate-500 hover:text-slate-900 dark:hover:text-white font-medium transition-colors text-sm"
+                    >
+                      Zrušit
+                    </button>
+                    <button
+                      onClick={handleSaveContract}
+                      className="px-6 py-2 bg-primary text-white rounded-xl font-bold hover:bg-primary-dark shadow-lg shadow-primary/20 transition-all active:scale-95 text-sm"
+                    >
+                      Uložit změny
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         {/* 4. Progress */}
         <div className="lg:col-span-1">

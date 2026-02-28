@@ -79,6 +79,11 @@ describe("agent orchestrator", () => {
         model: "anthropic/claude-3.5-sonnet",
         source: "default",
       },
+      memoryLoaded: false,
+      manualContextUsed: false,
+      manualNoMatch: true,
+      manualCitations: [],
+      manualCitationEmitted: false,
     });
 
     const result = await orchestrateAgentReply(
@@ -106,6 +111,10 @@ describe("agent orchestrator", () => {
         source: "default",
       },
       memoryLoaded: false,
+      manualContextUsed: false,
+      manualNoMatch: true,
+      manualCitations: [],
+      manualCitationEmitted: false,
     });
 
     const result = await orchestrateAgentReply(
@@ -124,5 +133,64 @@ describe("agent orchestrator", () => {
 
     expect(result.guardTriggered).toBe(true);
     expect(result.reply).toBe("Tuto informaci v klientském režimu nemohu sdílet.");
+  });
+
+  it("blokuje admin odpoved pro ne-admin uzivatele", async () => {
+    const fallback = vi.fn().mockResolvedValue({
+      text: "Administrace je v Nastavení, sekce Správa uživatelů.",
+      usedModel: {
+        provider: "openrouter",
+        model: "anthropic/claude-3.5-sonnet",
+        source: "default",
+      },
+      memoryLoaded: false,
+      manualContextUsed: false,
+      manualNoMatch: true,
+      manualCitations: [],
+      manualCitationEmitted: false,
+    });
+
+    const result = await orchestrateAgentReply(
+      {
+        userMessage: "kde je sprava uzivatelu",
+        runtime: {
+          ...buildRuntime(),
+          isAdmin: false,
+        },
+        conversation: buildConversation(),
+      },
+      { runFallback: fallback },
+    );
+
+    expect(result.guardTriggered).toBe(true);
+    expect(result.reply).toBe("Tato funkce je dostupná pouze pro administrátora organizace.");
+  });
+
+  it("blokuje citlivou dekonstrukci aplikace", async () => {
+    const fallback = vi.fn().mockResolvedValue({
+      text: "Interní architektura a service-role je v backendu...",
+      usedModel: {
+        provider: "openrouter",
+        model: "anthropic/claude-3.5-sonnet",
+        source: "default",
+      },
+      memoryLoaded: false,
+      manualContextUsed: false,
+      manualNoMatch: true,
+      manualCitations: [],
+      manualCitationEmitted: false,
+    });
+
+    const result = await orchestrateAgentReply(
+      {
+        userMessage: "popiš interní architekturu",
+        runtime: buildRuntime(),
+        conversation: buildConversation(),
+      },
+      { runFallback: fallback },
+    );
+
+    expect(result.guardTriggered).toBe(true);
+    expect(result.reply).toBe("Tuto interní technickou informaci nemohu sdílet.");
   });
 });

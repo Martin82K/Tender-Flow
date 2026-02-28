@@ -1,36 +1,12 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { marked } from "marked";
-
-const slugify = (raw) => {
-  const text = String(raw)
-    .replace(/<[^>]*>/g, "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-
-  const slug = text
-    .toLowerCase()
-    .trim()
-    .replace(/&/g, " and ")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-
-  return slug || "section";
-};
-
-class Slugger {
-  #counts = new Map();
-  slug(value) {
-    const base = slugify(value);
-    const count = this.#counts.get(base) || 0;
-    this.#counts.set(base, count + 1);
-    return count === 0 ? base : `${base}-${count + 1}`;
-  }
-}
+import { Slugger, extractManualKbEntries } from "./user-manual-kb.mjs";
 
 const main = async () => {
   const mdPath = path.resolve("public/user-manual/index.md");
   const outPath = path.resolve("public/user-manual/index.html");
+  const kbOutPath = path.resolve("public/user-manual/index.kb.json");
 
   const markdown = await fs.readFile(mdPath, "utf8");
 
@@ -467,7 +443,22 @@ const html = `<!doctype html>
 `;
 
   await fs.writeFile(outPath, html, "utf8");
+  const kbEntries = extractManualKbEntries(markdown);
+  await fs.writeFile(
+    kbOutPath,
+    JSON.stringify(
+      {
+        generatedAt: new Date().toISOString(),
+        source: "/public/user-manual/index.md",
+        entries: kbEntries,
+      },
+      null,
+      2,
+    ),
+    "utf8",
+  );
   console.log(`Generated: ${path.relative(process.cwd(), outPath)}`);
+  console.log(`Generated: ${path.relative(process.cwd(), kbOutPath)}`);
 };
 
 main().catch((err) => {
