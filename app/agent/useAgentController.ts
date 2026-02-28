@@ -15,7 +15,12 @@ import type {
   AgentPendingAction,
   AgentRuntimeSnapshot,
 } from "@shared/types/agent";
-import type { VoiceBudgetStatus, VoiceCaptureState, VoiceCostMode } from "@shared/types/voice";
+import type {
+  VoiceBudgetStatus,
+  VoiceCaptureState,
+  VoiceCostMode,
+  VoiceInteractionMode,
+} from "@shared/types/voice";
 
 interface UseAgentControllerResult {
   messages: AgentConversationMessage[];
@@ -31,6 +36,7 @@ interface UseAgentControllerResult {
   isModelListLoading: boolean;
   voiceCaptureState: VoiceCaptureState;
   voiceCostMode: VoiceCostMode;
+  voiceInteractionMode: VoiceInteractionMode;
   voiceOutputEnabled: boolean;
   latestBudget: VoiceBudgetStatus | null;
   lastVoiceWarning: string | null;
@@ -40,6 +46,7 @@ interface UseAgentControllerResult {
   toggleContextScope: (scope: AgentContextScope) => void;
   setVoiceOutputEnabled: (enabled: boolean) => void;
   setVoiceCostMode: (mode: VoiceCostMode) => void;
+  setVoiceInteractionMode: (mode: VoiceInteractionMode) => void;
   sendUserMessage: (content: string) => Promise<void>;
   confirmPendingAction: (actionId: string) => void;
   dismissPendingAction: (actionId: string) => void;
@@ -53,6 +60,7 @@ const AUDIENCE_STORAGE_KEY = "viki:audience";
 const CONTEXT_SCOPES_STORAGE_KEY = "viki:contextScopes";
 const VOICE_OUTPUT_STORAGE_KEY = "viki:voiceOutputEnabled";
 const VOICE_COST_MODE_STORAGE_KEY = "viki:voiceCostMode";
+const VOICE_INTERACTION_MODE_STORAGE_KEY = "viki:voiceInteractionMode";
 const MAX_VOICE_SECONDS = 30;
 const DEFAULT_SCOPES: AgentContextScope[] = ["project", "memory"];
 
@@ -165,6 +173,12 @@ export const useAgentController = (
     const raw = localStorage.getItem(VOICE_COST_MODE_STORAGE_KEY);
     return raw === "balanced" || raw === "premium" ? raw : "economy";
   });
+  const [voiceInteractionMode, setVoiceInteractionModeState] = useState<VoiceInteractionMode>(() => {
+    const raw = localStorage.getItem(VOICE_INTERACTION_MODE_STORAGE_KEY);
+    return raw === "text_only" || raw === "push_to_talk_auto_voice" || raw === "push_to_talk"
+      ? raw
+      : "push_to_talk";
+  });
   const [voiceOutputEnabled, setVoiceOutputEnabledState] = useState<boolean>(() => {
     return localStorage.getItem(VOICE_OUTPUT_STORAGE_KEY) === "true";
   });
@@ -237,6 +251,23 @@ export const useAgentController = (
     localStorage.setItem(VOICE_COST_MODE_STORAGE_KEY, voiceCostMode);
   }, [voiceCostMode]);
 
+  useEffect(() => {
+    localStorage.setItem(VOICE_INTERACTION_MODE_STORAGE_KEY, voiceInteractionMode);
+  }, [voiceInteractionMode]);
+
+  useEffect(() => {
+    if (voiceInteractionMode === "text_only") {
+      setVoiceOutputEnabledState(false);
+      if (mediaRecorderRef.current?.state === "recording") {
+        mediaRecorderRef.current.stop();
+      }
+      return;
+    }
+    if (voiceInteractionMode === "push_to_talk_auto_voice") {
+      setVoiceOutputEnabledState(true);
+    }
+  }, [voiceInteractionMode]);
+
   const activeModelSelection = useMemo<AgentModelSelection | null>(() => {
     if (!selectedModel) return null;
     return {
@@ -279,6 +310,10 @@ export const useAgentController = (
     },
     [selectedProvider],
   );
+
+  const setVoiceInteractionMode = useCallback((mode: VoiceInteractionMode) => {
+    setVoiceInteractionModeState(mode);
+  }, []);
 
   const playVoiceReply = useCallback(async (text: string) => {
     const clean = text.trim();
@@ -569,6 +604,7 @@ export const useAgentController = (
     isModelListLoading,
     voiceCaptureState,
     voiceCostMode,
+    voiceInteractionMode,
     voiceOutputEnabled,
     latestBudget,
     lastVoiceWarning,
@@ -578,6 +614,7 @@ export const useAgentController = (
     toggleContextScope,
     setVoiceOutputEnabled: setVoiceOutputEnabledState,
     setVoiceCostMode,
+    setVoiceInteractionMode,
     sendUserMessage,
     confirmPendingAction,
     dismissPendingAction,

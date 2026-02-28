@@ -6,6 +6,7 @@ export type VoiceCaptureState =
   | "replying";
 
 export type VoiceCostMode = "economy" | "balanced" | "premium";
+export type VoiceInteractionMode = "text_only" | "push_to_talk" | "push_to_talk_auto_voice";
 
 export interface VoiceBudgetStatus {
   userUsedSecondsToday: number;
