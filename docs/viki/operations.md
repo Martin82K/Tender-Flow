@@ -13,6 +13,10 @@ Zdroj: `app/agent/usageTracking.ts`
 - `manual_context_used`
 - `manual_citation_emitted`
 - `manual_no_match`
+- `tool_executed`
+- `policy_decision_recorded`
+- `trace_recorded`
+- `cost_overview_viewed` (UI-side event lze doplnit, backend metrika už existuje přes `ai_agent_usage_events`)
 
 Všechny eventy se trackují přes `trackFeatureUsage` se `source: "viki"`.
 
@@ -23,14 +27,24 @@ Všechny eventy se trackují přes `trackFeatureUsage` se `source: "viki"`.
 
 ## Kritické závislosti
 - Supabase Auth (session token)
-- Supabase Functions (`ai-proxy`, `ai-voice/transcribe`, `ai-voice/speak`)
+- Supabase Functions (`ai-agent`, `ai-proxy`, `ai-voice/transcribe`, `ai-voice/speak`)
 - Supabase Storage bucket `agent-memory`
 - `/user-manual/index.kb.json`
+- DB tabulky `ai_agent_usage_events` a `ai_voice_usage_events` + admin RPC `get_viki_cost_*_admin`
+- Supabase Secrets: `OPENAI_API_KEY`, `MISTRAL_API_KEY`, `OPENROUTER_API_KEY`, `GEMINI_API_KEY`/`GOOGLE_API_KEY`, `TINYURL_API_KEY`
+
+## Správa klíčů
+- Viki běží v režimu server-only secrets: klíče se berou pouze z Supabase Secrets.
+- UI neslouží pro ukládání API klíčů a neposílá je do functions.
+- Rotace klíče:
+1. Aktualizuj klíč v Supabase project secrets.
+2. Redeployni dotčené functions (`ai-agent`, `ai-proxy`, `ai-voice`).
+3. Proveď smoke test přes admin AI stránku a zkontroluj `ai_agent_usage_events`.
 
 ## Incident runbook (minimum)
 1. Ověř, že uživatel má platnou session.
 2. Ověř dostupnost functions endpointů.
-3. Ověř, že `ai-proxy` nevrací auth/subscription chyby.
+3. Ověř, že `ai-agent`/`ai-proxy` nevrací auth/subscription chyby.
 4. Ověř načtení manual indexu.
 5. Ověř guard trigger ratio (nárůst může indikovat policy drift).
 

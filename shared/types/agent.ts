@@ -1,11 +1,12 @@
 import type { Project, ProjectDetails, Subcontractor, View } from "@/types";
 
 export type AgentMessageRole = "user" | "assistant";
-export type AgentReplySource = "skill" | "llm";
+export type AgentReplySource = "skill" | "llm" | "tool";
 export type AgentActionRisk = "read" | "write" | "delete";
-export type AgentModelProvider = "openrouter" | "mistral" | "google";
+export type AgentModelProvider = "openrouter" | "mistral" | "google" | "openai";
 export type AgentAudience = "internal" | "client";
 export type AgentContextScope = "project" | "pipeline" | "contacts" | "memory" | "manual";
+export type AgentPolicyDecision = "auto_execute" | "require_confirmation" | "denied";
 
 export interface AgentManualCitation {
   sectionTitle: string;
@@ -51,6 +52,7 @@ export interface AgentRuntimeSnapshot {
   organizationId?: string | null;
   userId?: string | null;
   isAdmin?: boolean;
+  sessionRiskLevel?: "low" | "elevated";
 }
 
 export interface AgentPendingAction {
@@ -60,7 +62,20 @@ export interface AgentPendingAction {
   skillId: string;
   risk: AgentActionRisk;
   requiresConfirmation: boolean;
+  policyDecision?: AgentPolicyDecision;
+  idempotencyKey?: string;
   payload?: Record<string, unknown>;
+}
+
+export interface AgentToolExecution {
+  tool: string;
+  status: "ok" | "denied" | "error";
+  reason?: string;
+}
+
+export interface AgentGuardInfo {
+  triggered: boolean;
+  reason?: string;
 }
 
 export interface AgentResponse {
@@ -69,6 +84,9 @@ export interface AgentResponse {
   skillId?: string;
   usedModel?: AgentModelSelection;
   pendingAction?: AgentPendingAction;
+  toolExecutions?: AgentToolExecution[];
+  traceId?: string;
+  guard?: AgentGuardInfo;
   guardTriggered?: boolean;
   guardReason?: string;
   manualContextUsed?: boolean;

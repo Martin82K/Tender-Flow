@@ -268,6 +268,7 @@ export const AgentFloatingPanel: React.FC<AgentFloatingPanelProps> = ({ runtime 
                     }}
                     className="rounded-lg border border-slate-300/70 bg-white/90 px-2 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-900/80"
                   >
+                    <option value="openai">OpenAI</option>
                     <option value="openrouter">OpenRouter</option>
                     <option value="mistral">Mistral</option>
                     <option value="google">Google</option>

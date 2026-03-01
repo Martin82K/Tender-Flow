@@ -49,4 +49,12 @@ describe("viki model catalog", () => {
     expect(models.length).toBeGreaterThan(0);
     expect(models.some((item) => item.id === "anthropic/claude-3.5-sonnet")).toBe(true);
   });
+
+  it("vraci staticky katalog pro openai", async () => {
+    const models = await getProviderModels("openai");
+
+    expect(models.length).toBeGreaterThan(0);
+    expect(models.some((item) => item.id === "gpt-5-mini")).toBe(true);
+    expect(invokeAuthedFunctionMock).not.toHaveBeenCalled();
+  });
 });

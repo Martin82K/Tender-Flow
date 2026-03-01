@@ -110,8 +110,12 @@ export const orchestrateAgentReply = async (
 
   return {
     reply: guarded.reply,
-    source: "llm",
+    source: fallback.source || "llm",
     usedModel: fallback.usedModel,
+    pendingAction: fallback.pendingAction,
+    toolExecutions: fallback.toolExecutions,
+    traceId: fallback.traceId,
+    guard: fallback.guard,
     guardTriggered: guarded.guardTriggered,
     guardReason: guarded.guardReason,
     manualContextUsed: fallback.manualContextUsed,

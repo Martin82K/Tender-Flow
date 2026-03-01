@@ -3,6 +3,9 @@ import { dbAdapter } from "@/services/dbAdapter";
 import type {
   AgentManualCitation,
   AgentConversationMessage,
+  AgentPendingAction,
+  AgentReplySource,
+  AgentToolExecution,
   AgentModelProvider,
   AgentModelSelection,
   AgentRuntimeSnapshot,
@@ -17,12 +20,21 @@ import {
   toManualCitations,
 } from "@app/agent/manualKnowledge";
 
-type AiProxyResponse = {
-  text?: string;
+type AiAgentResponse = {
+  reply?: string;
+  source?: AgentReplySource;
+  usedModel?: AgentModelSelection;
+  toolExecutions?: AgentToolExecution[];
+  pendingAction?: AgentPendingAction;
+  traceId?: string;
+  guard?: {
+    triggered: boolean;
+    reason?: string;
+  };
 };
 
-const DEFAULT_PROVIDER: AgentModelProvider = "openrouter";
-const DEFAULT_MODEL = "anthropic/claude-3.5-sonnet";
+const DEFAULT_PROVIDER: AgentModelProvider = "openai";
+const DEFAULT_MODEL = "gpt-5-mini";
 const MODEL_CACHE_TTL = 1000 * 60 * 5;
 
 let modelCache: {
@@ -31,7 +43,7 @@ let modelCache: {
 } | null = null;
 
 const toProvider = (value: unknown): AgentModelProvider => {
-  if (value === "mistral" || value === "google" || value === "openrouter") {
+  if (value === "mistral" || value === "google" || value === "openrouter" || value === "openai") {
     return value;
   }
   return DEFAULT_PROVIDER;
@@ -87,13 +99,24 @@ interface SendAgentFallbackMessageArgs {
 
 export interface AgentFallbackResponse {
   text: string;
+  source: AgentReplySource;
   usedModel: AgentModelSelection;
   memoryLoaded: boolean;
   manualContextUsed: boolean;
   manualNoMatch: boolean;
   manualCitations: AgentManualCitation[];
   manualCitationEmitted: boolean;
+  toolExecutions: AgentToolExecution[];
+  pendingAction?: AgentPendingAction;
+  traceId?: string;
+  guard?: {
+    triggered: boolean;
+    reason?: string;
+  };
 }
+
+const createIdempotencyKey = (): string =>
+  `viki-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
 export const sendAgentFallbackMessage = async ({
   runtime,
@@ -132,7 +155,7 @@ export const sendAgentFallbackMessage = async ({
   }
   const manualCitations = toManualCitations(manualSections);
 
-  const history = [
+  const conversationWithSystem = [
     {
       role: "system",
       content: buildSystemPrompt({
@@ -147,24 +170,44 @@ export const sendAgentFallbackMessage = async ({
     })),
   ];
 
-  const result = await invokeAuthedFunction<AiProxyResponse>("ai-proxy", {
+  const idempotencyKey = createIdempotencyKey();
+  const modelForAiAgent =
+    selectedModel.provider === "openai" && selectedModel.model.trim().length > 0
+      ? selectedModel.model
+      : DEFAULT_MODEL;
+
+  const result = await invokeAuthedFunction<AiAgentResponse>("ai-agent", {
     body: {
-      history,
-      provider: selectedModel.provider,
-      model: selectedModel.model,
+      mode: "chat",
+      autonomy: "semi_autonomous",
+      idempotencyKey,
+      runtime,
+      conversation: conversationWithSystem,
+      model: {
+        provider: "openai",
+        model: modelForAiAgent,
+      },
     },
+    idempotencyKey,
+    timeoutMs: 45_000,
+    retries: 1,
   });
 
-  const normalizedReply = (result.text || "Nedostala jsem odpověď od AI modelu.").trim();
+  const normalizedReply = (result.reply || "Nedostala jsem odpověď od AI modelu.").trim();
   const replyWithCitation = ensureManualCitationInReply(normalizedReply, manualCitations);
 
   return {
     text: replyWithCitation.text,
-    usedModel: selectedModel,
+    source: result.source || "llm",
+    usedModel: result.usedModel || selectedModel,
     memoryLoaded: Boolean(projectMemory),
     manualContextUsed: manualSections.length > 0,
     manualNoMatch: runtime.contextScopes.includes("manual") && manualSections.length === 0,
     manualCitations,
     manualCitationEmitted: replyWithCitation.emitted,
+    toolExecutions: result.toolExecutions || [],
+    pendingAction: result.pendingAction,
+    traceId: result.traceId,
+    guard: result.guard,
   };
 };

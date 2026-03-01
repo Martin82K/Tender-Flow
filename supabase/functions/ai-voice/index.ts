@@ -258,12 +258,7 @@ Deno.serve(async (req) => {
     const file = new Blob([bytes], { type: mimeType || "audio/webm" });
 
     const openAiKey = (Deno.env.get("OPENAI_API_KEY") || "").trim();
-    const { data: secretRow } = await service
-      .from("app_secrets")
-      .select("mistral_api_key")
-      .eq("id", "default")
-      .single();
-    const mistralKey = (secretRow?.mistral_api_key || Deno.env.get("MISTRAL_API_KEY") || "").trim();
+    const mistralKey = (Deno.env.get("MISTRAL_API_KEY") || "").trim();
 
     const callMistral = async (): Promise<string> => {
       if (!mistralKey) throw new Error("Mistral API key missing");

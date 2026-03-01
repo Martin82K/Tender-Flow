@@ -16,6 +16,8 @@
   - retrieval z příručky, admin filtering, citace
 - `tests/useAgentController.voiceInteractionMode.test.ts`
   - persist/fallback voice režimů
+- `tests/vikiCostService.test.ts`
+  - admin RPC metriky tokenů/cost (overview + model breakdown)
 
 ### UI integrační
 - `tests/AgentFloatingPanel.test.tsx`

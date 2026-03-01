@@ -13,7 +13,10 @@ export const trackVikiUsageEvent = async (
     | "output_guard_triggered"
     | "manual_context_used"
     | "manual_citation_emitted"
-    | "manual_no_match",
+    | "manual_no_match"
+    | "tool_executed"
+    | "policy_decision_recorded"
+    | "trace_recorded",
   metadata: Record<string, unknown> = {},
 ): Promise<void> => {
   await trackFeatureUsage(FEATURE_KEY, {

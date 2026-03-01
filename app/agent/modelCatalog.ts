@@ -29,6 +29,23 @@ const GOOGLE_MODELS: AgentModelOption[] = [
   },
 ];
 
+const OPENAI_MODELS: AgentModelOption[] = [
+  {
+    id: "gpt-5-mini",
+    label: "GPT-5 mini",
+    provider: "openai",
+    capabilities: ["chat", "fast"],
+    pricingHint: "Úsporný",
+  },
+  {
+    id: "gpt-5",
+    label: "GPT-5",
+    provider: "openai",
+    capabilities: ["chat", "quality"],
+    pricingHint: "Vyvážený",
+  },
+];
+
 const uniqById = (items: AgentModelOption[]): AgentModelOption[] => {
   const seen = new Set<string>();
   const out: AgentModelOption[] = [];
@@ -47,7 +64,9 @@ const normalizeFromApi = (
   items: AgentModelOption[] | undefined,
 ): AgentModelOption[] => {
   if (!items || items.length === 0) {
-    return provider === "google" ? GOOGLE_MODELS : [];
+    if (provider === "google") return GOOGLE_MODELS;
+    if (provider === "openai") return OPENAI_MODELS;
+    return [];
   }
 
   return uniqById(
@@ -66,6 +85,9 @@ export const getProviderModels = async (
 ): Promise<AgentModelOption[]> => {
   if (provider === "google") {
     return GOOGLE_MODELS;
+  }
+  if (provider === "openai") {
+    return OPENAI_MODELS;
   }
 
   try {

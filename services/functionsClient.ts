@@ -3,7 +3,27 @@ import { supabase } from "./supabase";
 type InvokeOptions = {
   body?: unknown;
   method?: "POST" | "GET";
+  timeoutMs?: number;
+  retries?: number;
+  idempotencyKey?: string;
 };
+
+const DEFAULT_TIMEOUT_MS = 25_000;
+const DEFAULT_RETRIES = 0;
+
+const wait = (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+
+const buildHeaders = (
+  anonKey: string,
+  bearer: string,
+  idempotencyKey?: string,
+): Record<string, string> => ({
+  apikey: anonKey,
+  Authorization: `Bearer ${bearer}`,
+  "content-type": "application/json",
+  ...(idempotencyKey ? { "x-idempotency-key": idempotencyKey } : {}),
+});
 
 const getRequiredEnv = (key: "VITE_SUPABASE_URL" | "VITE_SUPABASE_ANON_KEY") => {
   const value = import.meta.env[key];
@@ -24,14 +44,13 @@ export const invokeAuthedFunction = async <TResponse>(
   const supabaseUrl = getRequiredEnv("VITE_SUPABASE_URL");
   const anonKey = getRequiredEnv("VITE_SUPABASE_ANON_KEY");
 
-  const redactedKey = anonKey ? `${anonKey.substring(0, 5)}...` : 'MISSING';
-  console.log('[Functions] Environment check:', {
-    url: supabaseUrl,
-    keyPrefix: redactedKey
-  });
+  console.log('[Functions] Environment check:', { url: supabaseUrl });
 
   const url = `${supabaseUrl}/functions/v1/${name}`;
   const method = options.method || "POST";
+  const retries = Math.max(0, Number.isFinite(options.retries) ? Number(options.retries) : DEFAULT_RETRIES);
+  const timeoutMs = Math.max(1_000, Number.isFinite(options.timeoutMs) ? Number(options.timeoutMs) : DEFAULT_TIMEOUT_MS);
+  const idempotencyKey = options.idempotencyKey;
 
   // @ts-ignore - electronAPI is injected via preload
   const isDesktop = typeof window !== 'undefined' && window.electronAPI?.platform?.isDesktop;
@@ -43,83 +62,98 @@ export const invokeAuthedFunction = async <TResponse>(
 
   if (isDesktop) {
     console.log(`[Functions] Using Desktop IPC Proxy for ${name}`);
-    // @ts-ignore
-    const res = await window.electronAPI.net.request(url, {
-      method,
-      headers: {
-        apikey: anonKey,
-        Authorization: `Bearer ${accessToken}`,
-        "content-type": "application/json",
-      },
-      body: method === "GET" ? undefined : JSON.stringify(options.body ?? {}),
-    });
-
-    if (!res.ok) {
-      // Enhanced error handling for IPC response
-      let errorMsg = res.statusText || `HTTP ${res.status}`;
+    let lastError: unknown = null;
+    for (let attempt = 0; attempt <= retries; attempt += 1) {
       try {
-        const errorJson = JSON.parse(res.text);
-        errorMsg = errorJson.error || errorJson.message || errorMsg;
-        if (errorJson.details) {
-          const detailStr = typeof errorJson.details === 'object' ? JSON.stringify(errorJson.details) : String(errorJson.details);
-          errorMsg += ` (${detailStr})`;
-        }
-      } catch {
-        // ignore JSON parse error, use text if available
-        if (res.text && res.text.length < 500) errorMsg = res.text;
-      }
-      throw new Error(errorMsg);
-    }
+        // @ts-ignore
+        const res = await window.electronAPI.net.request(url, {
+          method,
+          headers: buildHeaders(anonKey, accessToken, idempotencyKey),
+          body: method === "GET" ? undefined : JSON.stringify(options.body ?? {}),
+          timeoutMs,
+        });
 
-    try {
-      return (res.text ? JSON.parse(res.text) : {}) as TResponse;
-    } catch (e) {
-      console.warn('Failed to parse (IPC)', res.text);
-      return {} as TResponse;
+        if (!res.ok) {
+          // Enhanced error handling for IPC response
+          let errorMsg = res.statusText || `HTTP ${res.status}`;
+          try {
+            const errorJson = JSON.parse(res.text);
+            errorMsg = errorJson.error || errorJson.message || errorMsg;
+            if (errorJson.details) {
+              const detailStr = typeof errorJson.details === 'object' ? JSON.stringify(errorJson.details) : String(errorJson.details);
+              errorMsg += ` (${detailStr})`;
+            }
+          } catch {
+            // ignore JSON parse error, use text if available
+            if (res.text && res.text.length < 500) errorMsg = res.text;
+          }
+          throw new Error(errorMsg);
+        }
+
+        try {
+          return (res.text ? JSON.parse(res.text) : {}) as TResponse;
+        } catch {
+          console.warn('Failed to parse (IPC)', res.text);
+          return {} as TResponse;
+        }
+      } catch (error) {
+        lastError = error;
+        if (attempt >= retries) break;
+        await wait(250 * (attempt + 1));
+      }
     }
+    throw lastError instanceof Error ? lastError : new Error("Function IPC call failed");
 
   } else {
     // Normal Web Fetch
     console.log(`[Invoking Function] ${name}`, { url, method });
 
-    let res: Response;
-    try {
-      res = await fetch(url, {
-        method,
-        headers: {
-          apikey: anonKey,
-          Authorization: `Bearer ${accessToken}`,
-          "content-type": "application/json",
-        },
-        body: method === "GET" ? undefined : JSON.stringify(options.body ?? {}),
-        mode: 'cors', // Explicitly request CORS
-      });
-    } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : String(err);
-      console.error(`[Function Error] Failed to fetch ${url}`, err);
-      throw new Error(`Failed to fetch ${url} (Supabase URL: ${supabaseUrl}). Original error: ${errorMsg}`);
-    }
+    let lastError: unknown = null;
+    for (let attempt = 0; attempt <= retries; attempt += 1) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+        let res: Response;
+        try {
+          res = await fetch(url, {
+            method,
+            headers: buildHeaders(anonKey, accessToken, idempotencyKey),
+            body: method === "GET" ? undefined : JSON.stringify(options.body ?? {}),
+            mode: 'cors',
+            signal: controller.signal,
+          });
+        } finally {
+          clearTimeout(timeoutId);
+        }
 
-    const text = await res.text();
-    let json: any = null;
-    try {
-      json = text ? JSON.parse(text) : null;
-    } catch {
-      // ignore
-    }
+        const text = await res.text();
+        let json: any = null;
+        try {
+          json = text ? JSON.parse(text) : null;
+        } catch {
+          // ignore
+        }
 
-    if (!res.ok) {
-      const errorData = json?.error || json?.message || json;
-      let message = typeof errorData === 'object' ? JSON.stringify(errorData) : (errorData || text || `HTTP ${res.status}`);
-      
-      if (json?.details) {
-        const detailStr = typeof json.details === 'object' ? JSON.stringify(json.details) : String(json.details);
-        message += ` Details: ${detailStr}`;
+        if (!res.ok) {
+          const errorData = json?.error || json?.message || json;
+          let message = typeof errorData === 'object' ? JSON.stringify(errorData) : (errorData || text || `HTTP ${res.status}`);
+          if (json?.details) {
+            const detailStr = typeof json.details === 'object' ? JSON.stringify(json.details) : String(json.details);
+            message += ` Details: ${detailStr}`;
+          }
+          throw new Error(message);
+        }
+
+        return (json ?? {}) as TResponse;
+      } catch (err: unknown) {
+        lastError = err;
+        if (attempt >= retries) break;
+        await wait(250 * (attempt + 1));
       }
-      throw new Error(message);
     }
-
-    return (json ?? {}) as TResponse;
+    const errorMsg = lastError instanceof Error ? lastError.message : String(lastError);
+    console.error(`[Function Error] Failed to fetch ${url}`, lastError);
+    throw new Error(`Failed to fetch ${url} (Supabase URL: ${supabaseUrl}). Original error: ${errorMsg}`);
   }
 };
 
@@ -209,4 +243,3 @@ export const invokePublicFunction = async <TResponse>(
     return (json ?? {}) as TResponse;
   }
 };
-

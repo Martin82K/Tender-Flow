@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { dbAdapter } from "../../services/dbAdapter";
+import { VikiCostControl } from "@/features/settings/VikiCostControl";
 
 // Default AI Prompts
 const DEFAULT_PROMPT_ACHIEVEMENTS = `Jsi kreativní analytik stavebních projektů. Vygeneruj 4-5 UNIKÁTNÍCH achievement-style insights ve stylu herních úspěchů. Buď kreativní - každé volání má být jiné!
@@ -72,73 +73,6 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
     localStorage.setItem("aiEnabled", aiEnabled.toString());
   }, [aiEnabled]);
 
-  const [googleKey, setGoogleKey] = useState("");
-  const [openRouterKey, setOpenRouterKey] = useState("");
-  const [mistralKey, setMistralKey] = useState("");
-  const [isGoogleKeySet, setIsGoogleKeySet] = useState(false);
-  const [isOpenRouterKeySet, setIsOpenRouterKeySet] = useState(false);
-  const [isMistralKeySet, setIsMistralKeySet] = useState(false);
-  const [secretsSaved, setSecretsSaved] = useState(false);
-
-  // Load secret status (not values)
-  useEffect(() => {
-    const checkSecrets = async () => {
-      const { data, error } = await dbAdapter
-        .from("app_secrets")
-        .select("google_api_key, openrouter_api_key, mistral_api_key")
-        .eq("id", "default")
-        .single();
-
-      if (data) {
-        setIsGoogleKeySet(
-          !!data.google_api_key && data.google_api_key.length > 0,
-        );
-        setIsOpenRouterKeySet(
-          !!data.openrouter_api_key && data.openrouter_api_key.length > 0,
-        );
-        setIsMistralKeySet(
-          !!data.mistral_api_key && data.mistral_api_key.length > 0,
-        );
-      }
-    };
-    checkSecrets();
-  }, []);
-
-  const saveSecrets = async () => {
-    const updates: any = {
-      id: "default",
-      updated_at: new Date().toISOString(),
-    };
-    if (googleKey.trim()) updates.google_api_key = googleKey.trim();
-    if (openRouterKey.trim()) updates.openrouter_api_key = openRouterKey.trim();
-    if (mistralKey.trim()) updates.mistral_api_key = mistralKey.trim();
-
-    if (Object.keys(updates).length <= 2) {
-      // Nothing to update
-      return;
-    }
-
-    const { error } = await dbAdapter
-      .from("app_secrets")
-      .upsert(updates, { onConflict: "id" });
-
-    if (error) {
-      console.error("Error saving secrets:", error);
-      alert("Chyba při ukládání klíčů.");
-    } else {
-      setGoogleKey("");
-      setOpenRouterKey("");
-      setMistralKey("");
-      setSecretsSaved(true);
-      setTimeout(() => setSecretsSaved(false), 3000);
-
-      // Refresh status
-      if (updates.google_api_key) setIsGoogleKeySet(true);
-      if (updates.openrouter_api_key) setIsOpenRouterKeySet(true);
-      if (updates.mistral_api_key) setIsMistralKeySet(true);
-    }
-  };
-
   // AI Models State
   const [ocrProvider, setOcrProvider] = useState("mistral");
   const [ocrModel, setOcrModel] = useState("mistral-ocr-latest");
@@ -185,33 +119,25 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
     loadModels();
   }, []);
 
-  const fetchMistralModels = async (apiKey: string) => {
-    const trimmedKey = apiKey.trim();
-    if (!trimmedKey) {
-      return;
-    }
-
+  const fetchMistralModels = async () => {
     setIsMistralModelsLoading(true);
     setMistralModelsError(null);
 
     try {
-      const response = await fetch("https://api.mistral.ai/v1/models", {
-        headers: {
-          Authorization: `Bearer ${trimmedKey}`,
+      const response = await dbAdapter.functions.invoke("ai-proxy", {
+        body: {
+          action: "list-models",
+          provider: "mistral",
         },
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        const message =
-          data?.error?.message ||
-          data?.message ||
-          "Mistral API Error";
-        throw new Error(message);
+      const data = response.data as { models?: Array<{ id?: string }> } | null;
+      const invokeError = response.error;
+      if (invokeError) throw invokeError;
+      if (!data || !Array.isArray(data.models)) {
+        throw new Error("Neplatná odpověď při načtení modelů.");
       }
 
-      const rawModels = Array.isArray(data?.data) ? data.data : [];
+      const rawModels = data.models;
       const chatModels = new Set<string>();
       const ocrModels = new Set<string>();
 
@@ -254,16 +180,6 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
       setIsMistralModelsLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (!mistralKey.trim()) return;
-
-    const timeout = setTimeout(() => {
-      fetchMistralModels(mistralKey);
-    }, 600);
-
-    return () => clearTimeout(timeout);
-  }, [mistralKey]);
 
   const saveModels = async () => {
     const { error } = await dbAdapter
@@ -327,6 +243,9 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
         <span className="ml-2 px-2.5 py-1 bg-violet-500/20 text-violet-400 text-xs font-bold rounded-lg border border-violet-500/30">
           Admin
         </span>
+        <span className="px-2.5 py-1 bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 text-xs font-bold rounded-lg border border-emerald-500/30">
+          Viki default: OpenAI / gpt-5-mini
+        </span>
       </h2>
 
       <div className="flex items-center justify-between mb-8">
@@ -362,143 +281,25 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
 
       {aiEnabled && (
         <div className="space-y-8">
-          {/* API Keys Management */}
+          <VikiCostControl />
+
+          {/* API Keys Policy */}
           <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-700">
             <h3 className="text-md font-bold text-slate-900 dark:text-white pb-2 flex items-center gap-2">
-              <span className="material-symbols-outlined text-indigo-400">
-                vpn_key
+              <span className="material-symbols-outlined text-emerald-500">
+                verified_user
               </span>
-              API Klíče (System Secret Storage)
+              Bezpečnost klíčů (Supabase Secrets)
             </h3>
-            <p className="text-xs text-slate-500 mb-4">
-              Zde uložené klíče jsou bezpečně uloženy v databázi a používají se
-              automaticky, pokud uživatel neposkytne vlastní klíč.
-              <br />
-              Klíče se po uložení <b>nezobrazují</b> (jsou skryty bezpečnostní
-              politikou).
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex justify-between">
-                  <span>Gemini API Key</span>
-                  {isGoogleKeySet ? (
-                    <span className="text-emerald-500 text-xs font-bold flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[14px]">
-                        check_circle
-                      </span>{" "}
-                      Nastaveno
-                    </span>
-                  ) : (
-                    <span className="text-slate-400 text-xs flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[14px]">
-                        cancel
-                      </span>{" "}
-                      Nenastaveno
-                    </span>
-                  )}
-                </label>
-                <input
-                  type="password"
-                  value={googleKey}
-                  onChange={(e) => setGoogleKey(e.target.value)}
-                  placeholder={
-                    isGoogleKeySet
-                      ? "●●●●●●●●●●●● (Klíč je uložen)"
-                      : "Vložte nový API klíč..."
-                  }
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 dark:text-white"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex justify-between">
-                  <span>OpenRouter Key</span>
-                  {isOpenRouterKeySet ? (
-                    <span className="text-emerald-500 text-xs font-bold flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[14px]">
-                        check_circle
-                      </span>{" "}
-                      Nastaveno
-                    </span>
-                  ) : (
-                    <span className="text-slate-400 text-xs flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[14px]">
-                        cancel
-                      </span>{" "}
-                      Nenastaveno
-                    </span>
-                  )}
-                </label>
-                <input
-                  type="password"
-                  value={openRouterKey}
-                  onChange={(e) => setOpenRouterKey(e.target.value)}
-                  placeholder={
-                    isOpenRouterKeySet
-                      ? "●●●●●●●●●●●● (Klíč je uložen)"
-                      : "Vložte nový API klíč..."
-                  }
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 dark:text-white"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex justify-between">
-                  <span>Mistral API Key</span>
-                  {isMistralKeySet ? (
-                    <span className="text-emerald-500 text-xs font-bold flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[14px]">
-                        check_circle
-                      </span>{" "}
-                      Nastaveno
-                    </span>
-                  ) : (
-                    <span className="text-slate-400 text-xs flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[14px]">
-                        cancel
-                      </span>{" "}
-                      Nenastaveno
-                    </span>
-                  )}
-                </label>
-                <input
-                  type="password"
-                  value={mistralKey}
-                  onChange={(e) => setMistralKey(e.target.value)}
-                  placeholder={
-                    isMistralKeySet
-                      ? "●●●●●●●●●●●● (Klíč je uložen)"
-                      : "Vložte nový API klíč..."
-                  }
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 dark:text-white"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-2">
-              {secretsSaved && (
-                <span className="text-emerald-500 text-sm font-medium flex items-center gap-1 animate-fadeIn mr-4">
-                  <span className="material-symbols-outlined text-[18px]">
-                    check_circle
-                  </span>
-                  Klíče uloženy
+            <div className="p-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/10">
+              <p className="text-sm text-emerald-900 dark:text-emerald-200 flex items-start gap-2">
+                <span className="material-symbols-outlined text-[18px] mt-0.5">
+                  shield_lock
                 </span>
-              )}
-              <button
-                onClick={saveSecrets}
-                disabled={!googleKey && !openRouterKey && !mistralKey}
-                className={`px-4 py-2 rounded-lg font-bold text-sm shadow-lg transition-all flex items-center gap-2 ${
-                  !googleKey && !openRouterKey && !mistralKey
-                    ? "bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed"
-                    : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-500/20"
-                }`}
-              >
-                <span className="material-symbols-outlined text-[18px]">
-                  lock
-                </span>
-                Uložit klíče do trezoru
-              </button>
+                API klíče se načítají výhradně ze Supabase Secrets (serverové
+                proměnné). Klient nikdy neposílá vlastní klíč a klíče se
+                neukládají do `app_secrets`, localStorage ani do logů.
+              </p>
             </div>
           </div>
 
@@ -616,12 +417,12 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
                               ? mistralModelsError
                               : mistralModelsFetchedAt
                                 ? `Aktualizováno ${mistralModelsFetchedAt.toLocaleTimeString()}`
-                                : "Použijte Mistral klíč pro načtení modelů"}
+                                : "Modely jsou načítány přes server (Supabase Secrets)"}
                         </span>
                         <button
-                          onClick={() => fetchMistralModels(mistralKey)}
+                          onClick={fetchMistralModels}
                           className="text-emerald-600 hover:text-emerald-500 font-semibold"
-                          disabled={isMistralModelsLoading || !mistralKey.trim()}
+                          disabled={isMistralModelsLoading}
                           type="button"
                         >
                           Obnovit
@@ -741,12 +542,12 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
                               ? mistralModelsError
                               : mistralModelsFetchedAt
                                 ? `Aktualizováno ${mistralModelsFetchedAt.toLocaleTimeString()}`
-                                : "Použijte Mistral klíč pro načtení modelů"}
+                                : "Modely jsou načítány přes server (Supabase Secrets)"}
                         </span>
                         <button
-                          onClick={() => fetchMistralModels(mistralKey)}
+                          onClick={fetchMistralModels}
                           className="text-blue-600 hover:text-blue-500 font-semibold"
-                          disabled={isMistralModelsLoading || !mistralKey.trim()}
+                          disabled={isMistralModelsLoading}
                           type="button"
                         >
                           Obnovit

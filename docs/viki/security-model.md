@@ -13,8 +13,18 @@
 ## Authorization model
 - `invokeAuthedFunction` vyžaduje aktivní session token.
 - `ai-proxy` ověřuje token proti Auth API a provádí subscription check.
+- `ai-agent` ověřuje token, subscription tier a členství v organizaci před tool-calling.
+- `ai-agent` používá allowlist nástrojů a policy engine (`read` auto, `write` podle policy, `delete` vždy potvrzení).
+- Cost metriky (`get_viki_cost_*_admin`) jsou dostupné pouze pro admin roli.
 - `memory-load`/`memory-save` používá organizační kontext (`organization_members`) a tenant path ve storage.
 - Projektová data v query vrstvě jsou limitována DB oprávněními (RLS/policies).
+
+## Policy pro API klíče (závazné)
+- Klíče jsou čteny pouze server-side ze Supabase Secrets (`Deno.env`).
+- Klient nesmí posílat vlastní API klíč v request payloadu.
+- Klíče se nesmí ukládat do DB tabulek (`app_secrets`), `localStorage` ani uživatelského nastavení.
+- Klíče ani jejich části (prefix/suffix/length debug) se nesmí logovat.
+- Pokud klíč v Supabase Secrets chybí, endpoint vrací kontrolovanou chybu konfigurace.
 
 ## Audience režimy
 - `internal`

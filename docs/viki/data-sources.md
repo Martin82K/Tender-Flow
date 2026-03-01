@@ -31,6 +31,10 @@ Poznámka: cache je klient-side optimalizace. Zdroj pravdy je serverová DB.
   - `list-models`
   - `memory-load`
   - `memory-save`
+- `ai-agent`
+  - OpenAI Responses fallback + tool-calling
+  - policy decision (`auto_execute` / `require_confirmation`)
+  - trace metadata + audit payload
 - `ai-voice/transcribe`
   - přepis hlasové zprávy
 - `ai-voice/speak`
@@ -57,9 +61,10 @@ Klientský gateway:
   - React Query (`projects`, `projectDetails`, `contacts`)
   - lokalně držený runtime snapshot
 - Server autorita:
-  - Supabase tabulky a RPC
-  - Supabase storage pro `viki-memory.md`
-  - Edge Functions autorizované tokenem
+- Supabase tabulky a RPC
+- Supabase tabulky a RPC (`ai_agent_usage_events`, `ai_voice_usage_events`, `get_viki_cost_*_admin`)
+- Supabase storage pro `viki-memory.md`
+- Edge Functions autorizované tokenem
 
 ## Pravidlo přístupu pro shrnutí projektu
 - Viki smí číst a shrnovat jen projekt, ke kterému má uživatel oprávnění.

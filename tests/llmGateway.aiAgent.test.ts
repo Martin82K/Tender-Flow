@@ -14,8 +14,8 @@ vi.mock("@/services/dbAdapter", () => ({
         eq: () => ({
           single: async () => ({
             data: {
-              ai_extraction_provider: "openrouter",
-              ai_extraction_model: "anthropic/claude-3.5-sonnet",
+              ai_extraction_provider: "openai",
+              ai_extraction_model: "gpt-5-mini",
             },
           }),
         }),
@@ -34,82 +34,77 @@ const runtimeFixture: AgentRuntimeSnapshot = {
   pathname: "/app",
   search: "",
   currentView: "dashboard",
-  selectedProjectId: null,
+  selectedProjectId: "p-1",
   projects: [],
   projectDetails: {},
   contacts: [],
   audience: "internal",
-  contextScopes: ["project", "manual"],
+  contextScopes: ["project"],
   contextPolicyVersion: "v1-strict-allowlist",
-  isAdmin: false,
+  isAdmin: true,
+  organizationId: "org-1",
+  userId: "u-1",
+  sessionRiskLevel: "low",
 };
 
 const conversationFixture: AgentConversationMessage[] = [
   {
     id: "m-1",
     role: "user",
-    content: "kde najdu dashboard",
+    content: "zmen status projektu",
     createdAt: new Date().toISOString(),
   },
 ];
 
-describe("llmGateway manual context", () => {
+describe("llmGateway ai-agent", () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
-
     invokeAuthedFunctionMock.mockReset();
     invokeAuthedFunctionMock.mockResolvedValue({
-      reply: "Dashboard najdeš v levém sidebaru.",
-      source: "llm",
+      reply: "Pripravila jsem navrh akce.",
+      source: "tool",
       usedModel: {
         provider: "openai",
         model: "gpt-5-mini",
         source: "override",
       },
-      toolExecutions: [],
+      toolExecutions: [
+        {
+          tool: "queue_status_update",
+          status: "denied",
+          reason: "requires_confirmation",
+        },
+      ],
+      pendingAction: {
+        id: "pa-1",
+        title: "Potvrdit akci",
+        summary: "Agent navrhuje zmenu statusu.",
+        skillId: "ai-agent",
+        risk: "write",
+        requiresConfirmation: true,
+        policyDecision: "require_confirmation",
+      },
       traceId: "trace-1",
-      guard: { triggered: false },
+      guard: {
+        triggered: false,
+      },
     });
-
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          entries: [
-            {
-              slug: "navigace-v-aplikaci",
-              title: "Navigace v aplikaci",
-              content: "V levém panelu je Dashboard.",
-              keywords: ["dashboard", "navigace"],
-              source_anchor: "#navigace-v-aplikaci",
-            },
-          ],
-        }),
-      }),
-    );
   });
 
-  it("prida manual context do system promptu a vrati citaci", async () => {
+  it("preda ai-agent metadata do fallback odpovedi", async () => {
     const response = await sendAgentFallbackMessage({
       runtime: runtimeFixture,
       conversation: conversationFixture,
       modelSelection: {
-        provider: "openrouter",
-        model: "anthropic/claude-3.5-sonnet",
+        provider: "openai",
+        model: "gpt-5-mini",
         source: "override",
       },
     });
 
     expect(invokeAuthedFunctionMock).toHaveBeenCalledTimes(1);
-    const call = invokeAuthedFunctionMock.mock.calls[0];
-    expect(call[0]).toBe("ai-agent");
-    const payload = call[1] as { body: { conversation: Array<{ role: string; content: string }> } };
-    expect(payload.body.conversation[0].content).toContain("MANUAL CONTEXT");
-    expect(payload.body.conversation[0].content).toContain("#navigace-v-aplikaci");
-
-    expect(response.text).toContain("Zdroj: Navigace v aplikaci (#navigace-v-aplikaci)");
-    expect(response.manualContextUsed).toBe(true);
-    expect(response.manualCitationEmitted).toBe(true);
+    expect(response.source).toBe("tool");
+    expect(response.pendingAction?.policyDecision).toBe("require_confirmation");
+    expect(response.toolExecutions[0]?.tool).toBe("queue_status_update");
+    expect(response.traceId).toBe("trace-1");
   });
 });

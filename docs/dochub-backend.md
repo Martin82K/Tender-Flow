@@ -61,7 +61,7 @@ Google Picker (frontend):
 2) Restrict key:
    - Application restrictions: HTTP referrers
    - Allowed referrers: `http://localhost:5173/*` a `https://tenderflow.cz/*`
-3) Ve frontendu nastav `VITE_GOOGLE_API_KEY`
+3) Nepoužívej API klíče pro LLM providery ve frontendu; patří pouze do Supabase Secrets.
 
 ## 3) Azure Portal (OneDrive / SharePoint)
 1) Azure → App registrations → New registration
@@ -136,5 +136,4 @@ Tokeny se ukládají šifrovaně do `public.dochub_user_tokens`. Tabulka má RLS
 ## Co je další krok
 - OneDrive/SharePoint picker (ekvivalent Google Pickeru).
 - Podsložky `Email` / `Cenová nabídka` + ukládání emailu/CN do Drive/OneDrive.
-
 

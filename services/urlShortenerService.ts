@@ -5,6 +5,7 @@
 
 import { supabase } from './supabase';
 import { ShortUrl } from '../types';
+import { invokeAuthedFunction } from './functionsClient';
 
 export interface ShortenResult {
   success: boolean;
@@ -16,11 +17,6 @@ export interface ShortenResult {
 }
 
 const SHORT_URL_BASE = window.location.origin + '/s/';
-
-// TinyURL Configuration
-// TinyURL Configuration
-const TINYURL_API_KEY = import.meta.env.VITE_TINYURL_API_KEY || import.meta.env.TINY_URL_API_KEY;
-const TINYURL_API_ENDPOINT = 'https://api.tinyurl.com/create';
 
 /**
  * Generates a random short code (6 chars)
@@ -38,35 +34,25 @@ function generateShortCode(length: number = 6): string {
  * Shortens a URL using TinyURL API
  */
 async function shortenWithTinyUrl(url: string): Promise<ShortenResult> {
-  if (!TINYURL_API_KEY) {
-    console.warn('TinyURL API key not configured.');
-    return { success: false, originalUrl: url, error: 'TinyURL API key missing' };
-  }
-
   try {
-    const response = await fetch(TINYURL_API_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${TINYURL_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ url: url, domain: 'tinyurl.com' }),
+    const response = await invokeAuthedFunction<{
+      success: boolean;
+      shortUrl?: string;
+      originalUrl: string;
+      provider?: 'tinyurl';
+      error?: string;
+    }>('url-shorten', {
+      body: { url },
     });
-
-    if (!response.ok) {
-      throw new Error(`TinyURL API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    if (data.data?.tiny_url) {
+    if (response.success && response.shortUrl) {
       return {
         success: true,
-        shortUrl: data.data.tiny_url,
+        shortUrl: response.shortUrl,
         originalUrl: url,
         provider: 'tinyurl'
       };
     }
-    throw new Error('Unexpected TinyURL response');
+    throw new Error(response.error || 'Unexpected TinyURL response');
   } catch (error) {
     console.error('TinyURL error:', error);
     return {
@@ -220,6 +206,19 @@ export interface UserLink {
   title?: string;
 }
 
+const getReadableError = (error: unknown): string => {
+  if (error instanceof Error && error.message) return error.message;
+  if (error && typeof error === 'object') {
+    const maybe = error as Record<string, unknown>;
+    const message = String(maybe.message || '');
+    const details = String(maybe.details || '');
+    const hint = String(maybe.hint || '');
+    const text = [message, details, hint].filter(Boolean).join(' | ').trim();
+    if (text) return text;
+  }
+  return 'Unknown error';
+};
+
 /**
  * Get all links created by the current user
  */
@@ -303,20 +302,22 @@ export async function shortenUrlWithAlias(
   customAlias?: string
 ): Promise<ShortenResult> {
   try {
+    if (!customAlias) {
+      return shortenUrl(url);
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
 
-    if (customAlias) {
-      if (!/^[a-zA-Z0-9_-]+$/.test(customAlias)) {
-        return { success: false, originalUrl: url, error: 'Alias může obsahovat pouze písmena, čísla, pomlčky a podtržítka' };
-      }
-      if (customAlias.length < 3 || customAlias.length > 20) {
-        return { success: false, originalUrl: url, error: 'Alias musí mít 3-20 znaků' };
-      }
+    if (!/^[a-zA-Z0-9_-]+$/.test(customAlias)) {
+      return { success: false, originalUrl: url, error: 'Alias může obsahovat pouze písmena, čísla, pomlčky a podtržítka' };
+    }
+    if (customAlias.length < 3 || customAlias.length > 20) {
+      return { success: false, originalUrl: url, error: 'Alias musí mít 3-20 znaků' };
+    }
 
-      const { data } = await supabase.from('short_urls').select('id').eq('id', customAlias).single();
-      if (data) {
-        return { success: false, originalUrl: url, error: 'Tento alias už je používán' };
-      }
+    const { data } = await supabase.from('short_urls').select('id').eq('id', customAlias).single();
+    if (data) {
+      return { success: false, originalUrl: url, error: 'Tento alias už je používán' };
     }
 
     const code = customAlias || generateShortCode();
@@ -330,6 +331,6 @@ export async function shortenUrlWithAlias(
     return { success: true, shortUrl: `${SHORT_URL_BASE}${code}`, code, originalUrl: url, provider: 'tfurl' };
   } catch (error) {
     console.error('TF URL error:', error);
-    return { success: false, originalUrl: url, error: error instanceof Error ? error.message : 'Unknown error', provider: 'tfurl' };
+    return { success: false, originalUrl: url, error: getReadableError(error), provider: 'tfurl' };
   }
 }

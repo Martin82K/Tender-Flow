@@ -101,7 +101,7 @@ const readPersistedModelSelection = (): {
     };
 
     if (!parsed.provider || !parsed.model) return null;
-    if (!["openrouter", "mistral", "google"].includes(parsed.provider)) return null;
+    if (!["openrouter", "mistral", "google", "openai"].includes(parsed.provider)) return null;
 
     return {
       provider: parsed.provider,
@@ -124,7 +124,7 @@ const persistModelSelection = (provider: AgentModelProvider, model: string): voi
 
 const buildAssistantMessage = (
   content: string,
-  options?: { skillId?: string; source?: "skill" | "llm" },
+  options?: { skillId?: string; source?: "skill" | "llm" | "tool" },
 ): AgentConversationMessage => ({
   id: createId(),
   role: "assistant",
@@ -164,8 +164,8 @@ export const useAgentController = (
       return DEFAULT_SCOPES;
     }
   });
-  const [selectedProvider, setSelectedProviderState] = useState<AgentModelProvider>("openrouter");
-  const [selectedModel, setSelectedModelState] = useState<string>("anthropic/claude-3.5-sonnet");
+  const [selectedProvider, setSelectedProviderState] = useState<AgentModelProvider>("openai");
+  const [selectedModel, setSelectedModelState] = useState<string>("gpt-5-mini");
   const [availableModels, setAvailableModels] = useState<AgentModelOption[]>([]);
   const [isModelListLoading, setIsModelListLoading] = useState(false);
   const [voiceCaptureState, setVoiceCaptureState] = useState<VoiceCaptureState>("idle");
@@ -409,6 +409,25 @@ export const useAgentController = (
           void trackVikiUsageEvent("manual_citation_emitted", {
             audience,
             citations: response.manualCitations?.map((item) => item.anchor) || [],
+          });
+        }
+        if (response.toolExecutions && response.toolExecutions.length > 0) {
+          void trackVikiUsageEvent("tool_executed", {
+            audience,
+            tools: response.toolExecutions.map((item) => `${item.tool}:${item.status}`),
+          });
+        }
+        if (response.pendingAction?.policyDecision) {
+          void trackVikiUsageEvent("policy_decision_recorded", {
+            audience,
+            decision: response.pendingAction.policyDecision,
+            actionRisk: response.pendingAction.risk,
+          });
+        }
+        if (response.traceId) {
+          void trackVikiUsageEvent("trace_recorded", {
+            audience,
+            traceId: response.traceId,
           });
         }
 

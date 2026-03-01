@@ -84,6 +84,8 @@ describe("agent orchestrator", () => {
       manualNoMatch: true,
       manualCitations: [],
       manualCitationEmitted: false,
+      source: "llm",
+      toolExecutions: [],
     });
 
     const result = await orchestrateAgentReply(
@@ -115,6 +117,8 @@ describe("agent orchestrator", () => {
       manualNoMatch: true,
       manualCitations: [],
       manualCitationEmitted: false,
+      source: "llm",
+      toolExecutions: [],
     });
 
     const result = await orchestrateAgentReply(
@@ -148,6 +152,8 @@ describe("agent orchestrator", () => {
       manualNoMatch: true,
       manualCitations: [],
       manualCitationEmitted: false,
+      source: "llm",
+      toolExecutions: [],
     });
 
     const result = await orchestrateAgentReply(
@@ -179,6 +185,8 @@ describe("agent orchestrator", () => {
       manualNoMatch: true,
       manualCitations: [],
       manualCitationEmitted: false,
+      source: "llm",
+      toolExecutions: [],
     });
 
     const result = await orchestrateAgentReply(
@@ -192,5 +200,54 @@ describe("agent orchestrator", () => {
 
     expect(result.guardTriggered).toBe(true);
     expect(result.reply).toBe("Tuto interní technickou informaci nemohu sdílet.");
+  });
+
+  it("propaguje tool odpoved a pending action z ai-agent fallbacku", async () => {
+    const fallback = vi.fn().mockResolvedValue({
+      text: "Pripravila jsem navrh zmeny statusu.",
+      source: "tool",
+      usedModel: {
+        provider: "openai",
+        model: "gpt-5-mini",
+        source: "override",
+      },
+      memoryLoaded: false,
+      manualContextUsed: false,
+      manualNoMatch: true,
+      manualCitations: [],
+      manualCitationEmitted: false,
+      toolExecutions: [
+        {
+          tool: "queue_status_update",
+          status: "denied",
+          reason: "requires_confirmation",
+        },
+      ],
+      pendingAction: {
+        id: "pa-1",
+        title: "Potvrdit akci",
+        summary: "Agent navrhuje zmenu statusu.",
+        skillId: "ai-agent",
+        risk: "write",
+        requiresConfirmation: true,
+        policyDecision: "require_confirmation",
+      },
+      traceId: "trace-1",
+      guard: { triggered: false },
+    });
+
+    const result = await orchestrateAgentReply(
+      {
+        userMessage: "zmen status projektu na realizaci",
+        runtime: buildRuntime(),
+        conversation: buildConversation(),
+      },
+      { runFallback: fallback },
+    );
+
+    expect(result.source).toBe("tool");
+    expect(result.pendingAction?.policyDecision).toBe("require_confirmation");
+    expect(result.toolExecutions?.[0]?.tool).toBe("queue_status_update");
+    expect(result.traceId).toBe("trace-1");
   });
 });

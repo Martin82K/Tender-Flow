@@ -1,7 +1,7 @@
 import { readFileSync, statSync } from 'fs';
 import { join, basename } from 'path';
 
-const GITHUB_TOKEN = 'github_token'
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
 const REPO_OWNER = 'Martin82K';
 const REPO_NAME = 'Tender-Flow';
 const TAG_NAME = 'v1.1.8';
@@ -14,6 +14,9 @@ const FILES_TO_UPLOAD = [
 ];
 
 async function upload() {
+    if (!GITHUB_TOKEN) {
+        throw new Error('Missing GITHUB_TOKEN in environment.');
+    }
     console.log(`Getting release for tag ${TAG_NAME}...`);
     const releaseResponse = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/tags/${TAG_NAME}`, {
         headers: {

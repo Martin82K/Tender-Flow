@@ -256,29 +256,9 @@ Deno.serve(async (req) => {
             history,
             model: clientModel,
             provider = 'openrouter',
-            apiKey: clientApiKey,
             documentUrl
         } = body;
         console.log(`[Proxy] Processing request for provider: ${provider}, model: ${clientModel || 'default'}`);
-
-        // Helper to get system secrets
-        async function getSystemSecrects() {
-            try {
-                const service = createServiceClient();
-                const { data, error } = await service
-                    .from('app_secrets')
-                    .select('google_api_key, openrouter_api_key, mistral_api_key')
-                    .eq('id', 'default')
-                    .single();
-                if (error || !data) return {};
-                return data;
-            } catch (e) {
-                console.error("Failed to fetch system secrets:", e);
-                return {};
-            }
-        }
-
-        const secrets = (!clientApiKey) ? await getSystemSecrects() : {};
 
         if (action === "memory-load" || action === "memory-save") {
             const projectId = typeof body?.projectId === "string" ? body.projectId.trim() : "";
@@ -418,7 +398,7 @@ Deno.serve(async (req) => {
             }
 
             if (provider === "mistral") {
-                const apiKey = clientApiKey || secrets.mistral_api_key || Deno.env.get("MISTRAL_API_KEY");
+                const apiKey = (Deno.env.get("MISTRAL_API_KEY") || "").trim();
                 if (!apiKey) {
                     return new Response(
                         JSON.stringify({ error: "Missing Mistral API Key", models: [] }),
@@ -466,7 +446,7 @@ Deno.serve(async (req) => {
                 );
             }
 
-            const apiKey = clientApiKey || secrets.openrouter_api_key || Deno.env.get("OPENROUTER_API_KEY");
+            const apiKey = (Deno.env.get("OPENROUTER_API_KEY") || "").trim();
             const response = await fetch("https://openrouter.ai/api/v1/models", {
                 method: "GET",
                 headers: {
@@ -506,7 +486,11 @@ Deno.serve(async (req) => {
 
         // --- GOOGLE GEMINI HANDLER ---
         if (provider === 'google') {
-            const apiKey = clientApiKey || secrets.google_api_key || Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_API_KEY");
+            const apiKey = (
+                Deno.env.get("GEMINI_API_KEY")
+                || Deno.env.get("GOOGLE_API_KEY")
+                || ""
+            ).trim();
             if (!apiKey) {
                 return new Response(
                     JSON.stringify({ error: "Missing Google API Key" }),
@@ -547,7 +531,7 @@ Deno.serve(async (req) => {
 
             // --- MISTRAL OCR HANDLER ---
         if (provider === 'mistral-ocr') {
-            const apiKey = clientApiKey || secrets.mistral_api_key || Deno.env.get("MISTRAL_API_KEY");
+            const apiKey = (Deno.env.get("MISTRAL_API_KEY") || "").trim();
             if (!apiKey) {
                 return new Response(
                     JSON.stringify({ error: "Missing Mistral API Key" }),
@@ -615,7 +599,7 @@ Deno.serve(async (req) => {
 
         // --- MISTRAL CHAT HANDLER ---
         if (provider === 'mistral') {
-            const apiKey = clientApiKey || secrets.mistral_api_key || Deno.env.get("MISTRAL_API_KEY");
+            const apiKey = (Deno.env.get("MISTRAL_API_KEY") || "").trim();
             if (!apiKey) {
                 return new Response(
                     JSON.stringify({ error: "Missing Mistral API Key" }),
@@ -656,7 +640,7 @@ Deno.serve(async (req) => {
         }
 
         // --- OPENROUTER HANDLER (Default) ---
-        const apiKey = clientApiKey || secrets.openrouter_api_key || Deno.env.get("OPENROUTER_API_KEY");
+        const apiKey = (Deno.env.get("OPENROUTER_API_KEY") || "").trim();
         if (!apiKey) {
             return new Response(
                 JSON.stringify({ error: "Missing OpenRouter API Key" }),
@@ -666,14 +650,6 @@ Deno.serve(async (req) => {
 
         const model = clientModel || "anthropic/claude-3-haiku";
         console.log(`Using OpenRouter Model: ${model}`);
-        
-        // Debug key (safe)
-        const keyDebug = {
-            length: apiKey.length,
-            prefix: apiKey.substring(0, 7) + '...',
-            suffix: '...' + apiKey.substring(apiKey.length - 4)
-        };
-        console.log("Using OpenRouter Key:", keyDebug);
 
         const defaultOcrPrompt = "Extract all readable text from the document. Return plain text only.";
         const messages = documentUrl
@@ -706,11 +682,7 @@ Deno.serve(async (req) => {
             return new Response(
                 JSON.stringify({ 
                     error: "OpenRouter API Error", 
-                    details: data,
-                    debug: {
-                        key_info: keyDebug,
-                        provider: provider
-                    }
+                    details: data
                 }),
                 { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );

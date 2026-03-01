@@ -660,8 +660,8 @@
 </ul>
 <h3 id="v0-9-6-v08">v0.9.6 v08</h3>
 <ul>
-<li><strong>AI Key Persistence</strong>: AI klíče se nyní ukládají bezpečně v databázi (<code>app_secrets</code>) a jsou dostupné pro všechny uživatele organizace.</li>
-<li><strong>AI Testování</strong>: Nový nástroj pro administrátory k testování AI klíčů a ověření funkčnosti (Nastavení → Administrace → AI Testování).</li>
+<li><strong>AI Key Policy</strong>: AI klíče se používají pouze server-side přes Supabase Secrets (nikdy ne přes klienta nebo databázové úložiště klíčů).</li>
+<li><strong>AI Testování</strong>: Nástroj pro administrátory běží v server-only režimu a ověřuje funkčnost přes backend.</li>
 <li><strong>Excel Indexer</strong>: Nový pokročilý nástroj pro dvou-fázové zpracování Excel rozpočtů s automatickým indexováním a doplněním popisů.</li>
 <li><strong>Index Matcher</strong>: Zjednodušená verze Indexer pro rychlé doplnění popisů podle indexu.</li>
 <li><strong>URL Zkracovač</strong>: Nový nástroj pro vytváření zkrácených odkazů s vlastními aliasy (tenderflow.cz/s/alias).</li>
@@ -1293,28 +1293,16 @@
 <li><strong>📊 AI analýza v přehledech</strong>: Automatická analýza projekty s grafy a reporty (dle nastavení)</li>
 </ul>
 <h3 id="sprava-ai-klicu-admin">Správa AI klíčů (Admin)</h3>
-<p>Administrátoři mohou nastavit systémové AI klíče, které se použijí pro všechny uživatele organizace.</p>
-<p><strong>Umístění:</strong> Nastavení → Administrace systému → AI Nastavení</p>
-<h4 id="ulozeni-api-klicu">Uložení API klíčů</h4>
-<p>Klíče se ukládají bezpečně v databázi (tabulka <code>app_secrets</code>):</p>
+<p>Administrátoři spravují AI klíče výhradně na backendu přes Supabase Secrets.</p>
+<p><strong>Umístění:</strong> Supabase Dashboard → Project Settings → Edge Functions Secrets</p>
+<h4 id="bezpecnostni-pravidla-klicu">Bezpečnostní pravidla klíčů</h4>
 <ol>
-<li><p><strong>OpenRouter API Key</strong>:</p>
-<ul>
-<li>Zadejte váš OpenRouter klíč</li>
-<li>Po uložení se zobrazí maskovaně (••••)</li>
-<li>Klíč se použije pro AI proxy</li>
-</ul>
-</li>
-<li><p><strong>Gemini API Key</strong>:</p>
-<ul>
-<li>Zadejte váš Google Gemini klíč</li>
-<li>Po uložení se zobrazí maskovaně (••••)</li>
-<li>Klíč se použije pro AI analýzy</li>
-</ul>
-</li>
+<li>Klíče se čtou pouze na serveru (<code>Deno.env</code>) ve functions (<code>ai-agent</code>, <code>ai-proxy</code>, <code>ai-voice</code>).</li>
+<li>Klíče se nikdy neposílají z klienta a neukládají se do databáze ani <code>localStorage</code>.</li>
+<li>Klíče ani jejich části se nezobrazují v UI a nelogují se.</li>
 </ol>
 <blockquote>
-<p>⚠️ <strong>DŮLEŽITÉ</strong>: API klíče vidí a upravuje pouze Admin. Běžní uživatelé je nevidí, ale mohou použít AI funkce.</p>
+<p>⚠️ <strong>DŮLEŽITÉ</strong>: Pokud klíč chybí, AI endpoint vrátí řízenou konfigurační chybu. Nejprve nastavte secret a znovu nasaďte function.</p>
 </blockquote>
 <h4 id="prizpusobeni-ai-promptu">Přizpůsobení AI promptů</h4>
 <p>Admin může upravit systémové prompty pro ovlivnění chování AI:</p>
@@ -1336,24 +1324,22 @@
 </ol>
 <p>Po úpravě klikněte <strong>Uložit prompty</strong>.</p>
 <h3 id="ai-testovani-admin">AI testování (Admin)</h3>
-<p>Nástroj pro ověření funkčnosti AI klíčů a testování AI odpovědí.</p>
+<p>Nástroj pro ověření AI odpovědí v server-only režimu.</p>
 <p><strong>Umístění</strong>: Nastavení → Administrace systému → AI Testování</p>
 <h4 id="funkce-3">Funkce</h4>
 <ul>
-<li><strong>Výběr poskytovatele</strong>: OpenRouter nebo Gemini</li>
+<li><strong>Výběr poskytovatele</strong>: OpenRouter, Gemini nebo Mistral</li>
 <li><strong>Testovací chat</strong>: Otestujte AI odpovědi v reálném čase</li>
-<li><strong>Diagnostika</strong>: Ověření platnosti klíčů</li>
+<li><strong>Diagnostika</strong>: Serverové testy přes <code>ai-proxy</code></li>
 <li><strong>Historie</strong>: Zobrazení testovací konverzace</li>
 </ul>
 <h4 id="pouziti">Použití</h4>
 <ol>
-<li>Vyberte poskytovatele (OpenRouter/Gemini)</li>
-<li><em>Volitelně</em> zadejte vlastní API klíč pro test</li>
+<li>Vyberte poskytovatele</li>
 <li>Napište testovací zprávu</li>
 <li>Klikněte <strong>Odeslat</strong></li>
-<li>AI odpoví pomocí nastaveného klíče</li>
+<li>AI odpoví přes server s klíčem ze Supabase Secrets</li>
 </ol>
-<p><strong>Tip</strong>: Pokud nezadáte vlastní klíč, použije se systémový klíč uložený v AI Nastavení.</p>
 <h2 id="caste-otazky">Časté otázky</h2>
 <h3 id="neotevre-se-emailovy-klient">Neotevře se emailový klient</h3>
 <p>Zkontrolujte výchozí emailový klient v systému. Funkce „Generovat poptávku“ používá <code>mailto:</code>.</p>
