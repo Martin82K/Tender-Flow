@@ -39,6 +39,8 @@ export interface GenerateContractProtocolInput {
   documentKind: ContractProtocolKind;
   contractId: string;
   projectId: string;
+  organizationId?: string;
+  organizationLogoUrl?: string;
   overrides?: Partial<Record<string, string>>;
   mode?: ContractProtocolGenerationMode;
   contractSnapshot?: ContractWithDetails;

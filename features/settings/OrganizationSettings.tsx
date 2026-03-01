@@ -13,6 +13,15 @@ import { userManagementService } from "../../services/userManagementService";
 const TIME_SAVINGS_DAYS_BACK = 30;
 const MINUTES_PER_UNLOCKED_SHEET = 2;
 const MEMBERS_COLLAPSED_LIMIT = 3;
+const LOGO_MAX_BYTES = 2 * 1024 * 1024;
+const LOGO_ALLOWED_MIME_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/svg+xml",
+] as const;
+const LOGO_MAX_WIDTH_PX = 4000;
+const LOGO_MAX_HEIGHT_PX = 4000;
 
 const formatMinutes = (minutes: number): string => {
   if (minutes <= 0) return "0 min";
@@ -22,6 +31,48 @@ const formatMinutes = (minutes: number): string => {
   const restMinutes = minutes % 60;
   if (restMinutes === 0) return `${hours} h`;
   return `${hours} h ${restMinutes} min`;
+};
+
+const validateLogoFile = async (file: File): Promise<void> => {
+  if (!LOGO_ALLOWED_MIME_TYPES.includes(file.type as (typeof LOGO_ALLOWED_MIME_TYPES)[number])) {
+    throw new Error("Nepodporovaný formát. Povolené: PNG, JPG, WEBP, SVG.");
+  }
+
+  if (file.size > LOGO_MAX_BYTES) {
+    throw new Error("Soubor je příliš velký. Maximální velikost je 2 MB.");
+  }
+
+  if (file.type === "image/svg+xml") {
+    return;
+  }
+
+  const imageUrl = URL.createObjectURL(file);
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => {
+        if (image.width <= 0 || image.height <= 0) {
+          reject(new Error("Nepodařilo se ověřit rozměry obrázku."));
+          return;
+        }
+        if (image.width > LOGO_MAX_WIDTH_PX || image.height > LOGO_MAX_HEIGHT_PX) {
+          reject(
+            new Error(
+              `Rozměry loga jsou příliš velké. Maximum je ${LOGO_MAX_WIDTH_PX}x${LOGO_MAX_HEIGHT_PX}px.`,
+            ),
+          );
+          return;
+        }
+        resolve();
+      };
+      image.onerror = () => {
+        reject(new Error("Soubor není validní obrázek."));
+      };
+      image.src = imageUrl;
+    });
+  } finally {
+    URL.revokeObjectURL(imageUrl);
+  }
 };
 
 export const OrganizationSettings: React.FC = () => {
@@ -40,12 +91,18 @@ export const OrganizationSettings: React.FC = () => {
   const [timeSavings, setTimeSavings] = useState<OrganizationUnlockerTimeSavings | null>(null);
   const [isLoadingTimeSavings, setIsLoadingTimeSavings] = useState(false);
   const [areMembersExpanded, setAreMembersExpanded] = useState(false);
+  const [brandingLogoUrl, setBrandingLogoUrl] = useState<string | null>(null);
+  const [isLoadingBrandingLogo, setIsLoadingBrandingLogo] = useState(false);
+  const [isUploadingBrandingLogo, setIsUploadingBrandingLogo] = useState(false);
+  const [isRemovingBrandingLogo, setIsRemovingBrandingLogo] = useState(false);
 
   const selectedOrg = useMemo(
     () => organizations.find((org) => org.organization_id === selectedOrgId) || null,
     [organizations, selectedOrgId],
   );
   const isOwner = isOrgOwnerRole(selectedOrg?.member_role);
+  const canManageBranding =
+    selectedOrg?.member_role === "owner" || selectedOrg?.member_role === "admin";
 
   const filteredRequests = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -109,6 +166,7 @@ export const OrganizationSettings: React.FC = () => {
     setLoading(true);
     setNotAuthorized(false);
     setIsLoadingTimeSavings(true);
+    setIsLoadingBrandingLogo(true);
     try {
       const membersData = await organizationService.getOrganizationMembers(orgId);
       setMembers(membersData);
@@ -125,6 +183,18 @@ export const OrganizationSettings: React.FC = () => {
         setTimeSavings(null);
       } finally {
         setIsLoadingTimeSavings(false);
+      }
+
+      try {
+        const logoUrl = await organizationService.getOrganizationLogoUrl(orgId, {
+          expiresInSeconds: 1800,
+        });
+        setBrandingLogoUrl(logoUrl);
+      } catch (error) {
+        console.error("Failed to load organization logo:", error);
+        setBrandingLogoUrl(null);
+      } finally {
+        setIsLoadingBrandingLogo(false);
       }
 
       try {
@@ -151,6 +221,7 @@ export const OrganizationSettings: React.FC = () => {
     } catch (error) {
       console.error("Failed to load org data:", error);
       setIsLoadingTimeSavings(false);
+      setIsLoadingBrandingLogo(false);
       showAlert({
         title: "Chyba",
         message: "Nelze načíst členy nebo žádosti.",
@@ -367,6 +438,75 @@ export const OrganizationSettings: React.FC = () => {
     }
   };
 
+  const handleBrandingLogoUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    event.currentTarget.value = "";
+    if (!file || !selectedOrgId || !canManageBranding) return;
+
+    try {
+      await validateLogoFile(file);
+      setIsUploadingBrandingLogo(true);
+      const result = await organizationService.uploadOrganizationLogo(selectedOrgId, file);
+      setBrandingLogoUrl(result.logoUrl);
+      showAlert({
+        title: "Hotovo",
+        message: "Logo organizace bylo uloženo.",
+        variant: "success",
+      });
+      await loadOrganizations();
+    } catch (error) {
+      console.error("Failed to upload organization logo:", error);
+      showAlert({
+        title: "Chyba",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Nepodařilo se nahrát logo organizace.",
+        variant: "danger",
+      });
+    } finally {
+      setIsUploadingBrandingLogo(false);
+    }
+  };
+
+  const handleBrandingLogoRemove = async () => {
+    if (!selectedOrgId || !canManageBranding) return;
+    const ok = await showConfirm({
+      title: "Smazat logo?",
+      message: "Logo bude odstraněno z oficiálních formulářů této organizace.",
+      variant: "danger",
+      confirmLabel: "Smazat",
+      cancelLabel: "Zrušit",
+    });
+    if (!ok) return;
+
+    try {
+      setIsRemovingBrandingLogo(true);
+      await organizationService.removeOrganizationLogo(selectedOrgId);
+      setBrandingLogoUrl(null);
+      showAlert({
+        title: "Hotovo",
+        message: "Logo organizace bylo smazáno.",
+        variant: "success",
+      });
+      await loadOrganizations();
+    } catch (error) {
+      console.error("Failed to remove organization logo:", error);
+      showAlert({
+        title: "Chyba",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Nepodařilo se smazat logo organizace.",
+        variant: "danger",
+      });
+    } finally {
+      setIsRemovingBrandingLogo(false);
+    }
+  };
+
   const eligibleUsers = useMemo(() => {
     const memberIds = new Set(members.map((m) => m.user_id));
     const pendingIds = new Set(requests.map((r) => r.user_id));
@@ -426,6 +566,83 @@ export const OrganizationSettings: React.FC = () => {
           placeholder="Vyhledat uživatele podle jména nebo emailu"
           className="flex-1 h-10 rounded-lg border border-slate-200/70 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-slate-700 dark:text-slate-200"
         />
+      </div>
+
+      <div className="mb-6 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/50 p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+              Branding organizace
+            </h3>
+            <p className="mt-1 text-xs text-slate-500">
+              Logo se použije v oficiálních formulářích (PDF exporty protokolů).
+            </p>
+            <p className="mt-1 text-[11px] text-slate-500">
+              Povolené formáty: PNG, JPG, WEBP, SVG. Max. velikost: 2 MB.
+            </p>
+          </div>
+          {!canManageBranding && (
+            <span className="rounded-lg border border-amber-400/40 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-200">
+              Pouze owner/admin
+            </span>
+          )}
+        </div>
+
+        <div className="mt-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-16 w-36 items-center justify-center overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/50">
+              {isLoadingBrandingLogo ? (
+                <span className="text-xs text-slate-500">Načítám logo...</span>
+              ) : brandingLogoUrl ? (
+                <img
+                  src={brandingLogoUrl}
+                  alt={`Logo ${selectedOrg?.organization_name || "organizace"}`}
+                  className="max-h-14 max-w-32 object-contain"
+                />
+              ) : (
+                <span className="text-xs text-slate-500">Bez loga</span>
+              )}
+            </div>
+            <div className="text-xs text-slate-500">
+              {brandingLogoUrl
+                ? "Logo je aktivní pro oficiální formuláře."
+                : "Prozatím se používá textový fallback."}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <label
+              className={`inline-flex cursor-pointer items-center rounded-lg border px-3 py-2 text-xs font-semibold transition-colors ${
+                canManageBranding
+                  ? "border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100/80 dark:hover:bg-slate-800/70"
+                  : "cursor-not-allowed border-slate-200 dark:border-slate-700 text-slate-400"
+              }`}
+            >
+              <input
+                type="file"
+                accept=".png,.jpg,.jpeg,.webp,.svg,image/png,image/jpeg,image/webp,image/svg+xml"
+                disabled={!canManageBranding || isUploadingBrandingLogo || isRemovingBrandingLogo}
+                onChange={handleBrandingLogoUpload}
+                className="hidden"
+              />
+              {isUploadingBrandingLogo ? "Nahrávám..." : "Nahrát logo"}
+            </label>
+
+            <button
+              type="button"
+              disabled={
+                !canManageBranding ||
+                !brandingLogoUrl ||
+                isUploadingBrandingLogo ||
+                isRemovingBrandingLogo
+              }
+              onClick={handleBrandingLogoRemove}
+              className="rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-500 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isRemovingBrandingLogo ? "Mažu..." : "Smazat logo"}
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="mb-6 rounded-xl border border-sky-200/60 dark:border-sky-800/40 bg-sky-50/60 dark:bg-sky-900/10 p-4">

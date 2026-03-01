@@ -7,6 +7,9 @@ const organizationServiceMocks = vi.hoisted(() => ({
   getMyOrganizations: vi.fn(),
   getOrganizationMembers: vi.fn(),
   getOrganizationUnlockerTimeSavings: vi.fn(),
+  getOrganizationLogoUrl: vi.fn(),
+  uploadOrganizationLogo: vi.fn(),
+  removeOrganizationLogo: vi.fn(),
   getOrganizationJoinRequests: vi.fn(),
   addOrganizationMemberByEmail: vi.fn(),
   updateOrganizationMemberRole: vi.fn(),
@@ -69,6 +72,7 @@ describe('OrganizationSettings - sbalení členů', () => {
     ]);
     organizationServiceMocks.getOrganizationMembers.mockResolvedValue(createMembers(8));
     organizationServiceMocks.getOrganizationUnlockerTimeSavings.mockResolvedValue(null);
+    organizationServiceMocks.getOrganizationLogoUrl.mockResolvedValue(null);
     organizationServiceMocks.getOrganizationJoinRequests.mockResolvedValue([]);
     userManagementServiceMocks.getAllUsers.mockResolvedValue([]);
   });

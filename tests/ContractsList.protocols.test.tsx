@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const generateContractProtocolMock = vi.hoisted(() => vi.fn());
 const generateContractProtocolPdfMock = vi.hoisted(() => vi.fn());
+const getOrganizationLogoUrlMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/features/projects/api/generateContractProtocol", () => ({
   generateContractProtocol: (...args: unknown[]) =>
@@ -17,6 +18,23 @@ vi.mock("@/services/platformAdapter", () => ({
   shellAdapter: {
     openTempBinaryFile: vi.fn(),
   },
+}));
+
+vi.mock("@/services/organizationService", () => ({
+  organizationService: {
+    getOrganizationLogoUrl: (...args: unknown[]) => getOrganizationLogoUrlMock(...args),
+  },
+}));
+
+vi.mock("@/context/AuthContext", () => ({
+  useAuth: () => ({
+    user: {
+      id: "u1",
+      email: "kalkus@baustav.cz",
+      organizationName: "Baustav",
+      organizationId: "org-1",
+    },
+  }),
 }));
 
 vi.mock("../components/projectLayoutComponents/contractsComponents/ContractForm", () => ({
@@ -67,18 +85,11 @@ const draft = {
   actionLabel: "Předání díla SUB",
   templateStatus: "final" as const,
   fields: {
-    issuerCompany: "",
     subcontractorCompany: "KLIMA - ELEKTRON s.r.o.",
+    subcontractorRepresentative: "",
   },
-  fieldOrder: ["issuerCompany", "subcontractorCompany"],
+  fieldOrder: ["subcontractorCompany", "subcontractorRepresentative"],
   fieldMeta: {
-    issuerCompany: {
-      key: "issuerCompany",
-      label: "Zhotovitel",
-      required: true,
-      autofill: false,
-      manualOnly: true,
-    },
     subcontractorCompany: {
       key: "subcontractorCompany",
       label: "Subdodavatel",
@@ -86,17 +97,26 @@ const draft = {
       autofill: true,
       manualOnly: false,
     },
+    subcontractorRepresentative: {
+      key: "subcontractorRepresentative",
+      label: "Zástupce subdodavatele",
+      required: false,
+      autofill: false,
+      manualOnly: true,
+    },
   },
-  requiredFields: ["issuerCompany", "subcontractorCompany"],
+  requiredFields: ["subcontractorCompany"],
   autofillFields: ["subcontractorCompany"],
-  manualOnlyFields: ["issuerCompany"],
-  missingFields: ["issuerCompany"],
+  manualOnlyFields: ["subcontractorRepresentative"],
+  missingFields: [],
 };
 
 describe("ContractsList protocol actions", () => {
   beforeEach(() => {
     generateContractProtocolMock.mockReset();
     generateContractProtocolPdfMock.mockReset();
+    getOrganizationLogoUrlMock.mockReset();
+    getOrganizationLogoUrlMock.mockResolvedValue("https://cdn.example/logo.png");
     Object.defineProperty(URL, "createObjectURL", {
       value: vi.fn(() => "blob:protocol"),
       writable: true,
@@ -117,7 +137,7 @@ describe("ContractsList protocol actions", () => {
       .mockResolvedValueOnce({
         fileName: "predani_dila_sub_vzt.xlsx",
         arrayBuffer: null,
-        missingFields: ["issuerCompany"],
+        missingFields: [],
         draft,
         templateStatus: "final",
       })
@@ -125,7 +145,11 @@ describe("ContractsList protocol actions", () => {
         fileName: "predani_dila_sub_vzt.xlsx",
         arrayBuffer: new ArrayBuffer(16),
         missingFields: [],
-        draft: { ...draft, missingFields: [], fields: { ...draft.fields, issuerCompany: "TF a.s." } },
+        draft: {
+          ...draft,
+          missingFields: [],
+          fields: { ...draft.fields, subcontractorRepresentative: "TF a.s." },
+        },
         templateStatus: "final",
       });
 
@@ -160,6 +184,7 @@ describe("ContractsList protocol actions", () => {
     await waitFor(() => {
       expect(screen.getByText("Předání díla SUB")).toBeInTheDocument();
     });
+    expect(screen.getByAltText("Baustav")).toBeInTheDocument();
 
     const inputs = screen.getAllByRole("textbox");
     fireEvent.change(inputs[0], { target: { value: "TF a.s." } });
@@ -174,7 +199,7 @@ describe("ContractsList protocol actions", () => {
       expect.objectContaining({
         documentKind: "sub_work_handover",
         mode: "generate",
-        overrides: expect.objectContaining({ issuerCompany: "TF a.s." }),
+        overrides: expect.objectContaining({ subcontractorCompany: "TF a.s." }),
       }),
     );
   });
@@ -183,7 +208,7 @@ describe("ContractsList protocol actions", () => {
     generateContractProtocolMock.mockResolvedValueOnce({
       fileName: "predani_dila_sub_vzt.xlsx",
       arrayBuffer: null,
-      missingFields: ["issuerCompany"],
+      missingFields: [],
       draft,
       templateStatus: "final",
     });
@@ -196,7 +221,7 @@ describe("ContractsList protocol actions", () => {
         ...draft,
         fields: {
           ...draft.fields,
-          issuerCompany: "TF a.s.",
+          subcontractorCompany: "TF a.s.",
         },
         missingFields: [],
       },
@@ -234,7 +259,7 @@ describe("ContractsList protocol actions", () => {
       expect(generateContractProtocolPdfMock).toHaveBeenCalledWith(
         expect.objectContaining({
           documentKind: "sub_work_handover",
-          overrides: expect.objectContaining({ issuerCompany: "TF a.s." }),
+          overrides: expect.objectContaining({ subcontractorCompany: "TF a.s." }),
         }),
       );
     });

@@ -60,7 +60,8 @@ describe("contract document registry", () => {
     expect(definition.actionLabel).toBe("Předání díla SUB");
     expect(draft.fields.subcontractorCompany).toBe("KLIMA - ELEKTRON s.r.o.");
     expect(draft.fields.contractNumber).toBe("SOD-2026-001");
-    expect(draft.missingFields).toContain("issuerCompany");
+    expect(draft.missingFields).not.toContain("issuerCompany");
+    expect(draft.fieldOrder).not.toContain("issuerCompany");
   });
 
   it("vytvoří draft pro předání staveniště jako provisional", () => {

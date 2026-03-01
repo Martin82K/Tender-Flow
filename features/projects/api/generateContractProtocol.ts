@@ -5,6 +5,7 @@ import autoTable from "jspdf-autotable";
 import { RobotoRegularBase64 } from "@/fonts/roboto-regular";
 import { contractService } from "@/services/contractService";
 import { dbAdapter } from "@/services/dbAdapter";
+import { organizationService } from "@/services/organizationService";
 import type { ProjectDetails } from "@/types";
 
 import { getContractProtocolDefinition } from "../model/contractDocumentRegistry";
@@ -142,6 +143,90 @@ const prepareContractProtocol = async (
 const formatDateForPdf = (date: Date): string =>
   date.toLocaleDateString("cs-CZ");
 
+const resolveTenantLogoUrl = async (
+  input: GenerateContractProtocolInput,
+): Promise<string | null> => {
+  if (input.organizationLogoUrl) {
+    return input.organizationLogoUrl;
+  }
+  if (!input.organizationId) {
+    return null;
+  }
+
+  try {
+    return await organizationService.getOrganizationLogoUrl(input.organizationId, {
+      expiresInSeconds: 1800,
+    });
+  } catch {
+    return null;
+  }
+};
+
+const drawProtocolPrintBranding = async (
+  doc: jsPDF,
+  pageWidth: number,
+  marginX: number,
+  logoUrl: string | null,
+): Promise<void> => {
+  if (logoUrl) {
+    try {
+      const logoResponse = await fetch(logoUrl);
+      if (logoResponse.ok) {
+        const contentType = logoResponse.headers.get("content-type") || "";
+        const imageType = contentType.includes("svg")
+          ? "SVG"
+          : contentType.includes("webp")
+            ? "WEBP"
+            : contentType.includes("jpeg") || contentType.includes("jpg")
+              ? "JPEG"
+              : "PNG";
+        const logoBytes = new Uint8Array(await logoResponse.arrayBuffer());
+        doc.addImage(logoBytes, imageType, pageWidth - marginX - 36, 8, 36, 14);
+        return;
+      }
+    } catch {
+      // Bezpečný fallback níže.
+    }
+  }
+
+  doc.setFontSize(12);
+  doc.setTextColor(30, 41, 59);
+  doc.text("Tender Flow", pageWidth - marginX, 14, { align: "right" });
+};
+
+const renderSignatureSection = (
+  doc: jsPDF,
+  startY: number,
+  marginX: number,
+  pageWidth: number,
+  leftSigner: string,
+  rightSigner: string,
+): void => {
+  const gap = 10;
+  const blockWidth = (pageWidth - marginX * 2 - gap) / 2;
+  const leftX = marginX;
+  const rightX = leftX + blockWidth + gap;
+  const lineY = startY + 13;
+
+  doc.setTextColor(15, 23, 42);
+  doc.setFontSize(11);
+  doc.text("Podpisy stran", marginX, startY);
+
+  doc.setFontSize(9);
+  doc.text("Za zhotovitele", leftX, startY + 7);
+  doc.text("Za subdodavatele", rightX, startY + 7);
+
+  doc.line(leftX, lineY, leftX + blockWidth, lineY);
+  doc.line(rightX, lineY, rightX + blockWidth, lineY);
+
+  if (leftSigner.trim()) {
+    doc.text(leftSigner, leftX, lineY + 5);
+  }
+  if (rightSigner.trim()) {
+    doc.text(rightSigner, rightX, lineY + 5);
+  }
+};
+
 export const generateContractProtocol = async (
   input: GenerateContractProtocolInput,
 ): Promise<GenerateContractProtocolResult> => {
@@ -207,8 +292,11 @@ export const generateContractProtocolPdf = async (
   doc.setFont("Roboto", "normal");
 
   const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
   const marginX = 14;
-  let y = 16;
+  const tenantLogoUrl = await resolveTenantLogoUrl(input);
+  await drawProtocolPrintBranding(doc, pageWidth, marginX, tenantLogoUrl);
+  let y = 20;
 
   doc.setFontSize(16);
   doc.text(definition.actionLabel, marginX, y);
@@ -278,6 +366,29 @@ export const generateContractProtocolPdf = async (
     },
     margin: { left: marginX, right: marginX },
   });
+
+  const autoTableState = doc as jsPDF & {
+    lastAutoTable?: {
+      finalY?: number;
+    };
+  };
+  const tableBottomY = autoTableState.lastAutoTable?.finalY ?? y;
+
+  const signatureSectionHeight = 24;
+  let signatureStartY = tableBottomY + 11;
+  if (signatureStartY + signatureSectionHeight > pageHeight - 12) {
+    doc.addPage();
+    signatureStartY = 20;
+  }
+
+  renderSignatureSection(
+    doc,
+    signatureStartY,
+    marginX,
+    pageWidth,
+    draft.fields.issuerSigner || "",
+    draft.fields.subcontractorSigner || "",
+  );
 
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i += 1) {

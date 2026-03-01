@@ -11,7 +11,6 @@ const subWorkHandoverDefinition: ContractProtocolDefinition = {
   templateAssetPath: "/forms/contract-protocols/sub-work-handover-template.xlsx",
   templateStatus: "final",
   fieldOrder: [
-    "issuerCompany",
     "issuerRepresentative",
     "subcontractorCompany",
     "subcontractorRepresentative",
@@ -36,12 +35,6 @@ const subWorkHandoverDefinition: ContractProtocolDefinition = {
     "subcontractorSigner",
   ],
   fieldMeta: {
-    issuerCompany: {
-      label: "Zhotovitel",
-      required: true,
-      autofill: false,
-      manualOnly: true,
-    },
     issuerRepresentative: {
       label: "Zástupce zhotovitele",
       required: false,
@@ -180,7 +173,6 @@ const subWorkHandoverDefinition: ContractProtocolDefinition = {
     },
   },
   requiredFields: [
-    "issuerCompany",
     "subcontractorCompany",
     "contractNumber",
     "projectName",
@@ -204,7 +196,6 @@ const subWorkHandoverDefinition: ContractProtocolDefinition = {
     "issuerSigner",
   ],
   manualOnlyFields: [
-    "issuerCompany",
     "subcontractorRepresentative",
     "qualityDocuments",
     "asBuiltDocuments",
@@ -236,7 +227,6 @@ const subWorkHandoverDefinition: ContractProtocolDefinition = {
     const today = formatCzechDate(context.today);
 
     return {
-      issuerCompany: "",
       issuerRepresentative: project.siteManager || "",
       subcontractorCompany: contract.vendorName || "",
       subcontractorRepresentative: "",
@@ -265,7 +255,6 @@ const subWorkHandoverDefinition: ContractProtocolDefinition = {
     const { fields } = input;
 
     const cellMap: Record<string, string> = {
-      issuerCompany: "G8",
       issuerRepresentative: "G9",
       subcontractorCompany: "G11",
       subcontractorRepresentative: "G12",

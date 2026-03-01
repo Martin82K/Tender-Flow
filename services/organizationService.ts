@@ -5,6 +5,7 @@ export type OrganizationSummary = {
   organization_name: string;
   member_role: "owner" | "admin" | "member";
   domain_whitelist: string[] | null;
+  logo_path?: string | null;
 };
 
 export type OrganizationMember = {
@@ -34,6 +35,39 @@ export type OrganizationUnlockerTimeSavings = {
   minutes_saved_total: number;
   minutes_saved_range: number;
   last_unlock_at: string | null;
+};
+
+const BRANDING_BUCKET = "organization-branding";
+const MAX_LOGO_BYTES = 2 * 1024 * 1024;
+const ALLOWED_LOGO_MIME_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "image/jpg",
+  "image/pjpeg",
+  "image/webp",
+  "image/svg+xml",
+] as const;
+
+const guessExtensionFromMime = (mimeType: string): string => {
+  if (mimeType === "image/png") return "png";
+  if (mimeType === "image/jpeg" || mimeType === "image/jpg" || mimeType === "image/pjpeg") return "jpg";
+  if (mimeType === "image/webp") return "webp";
+  if (mimeType === "image/svg+xml") return "svg";
+  return "bin";
+};
+
+const normalizeBrandingStorageError = (message: string): string => {
+  const lower = message.toLowerCase();
+  if (lower.includes("bucket not found")) {
+    return "Storage bucket `organization-branding` nebyl nalezen. Aplikujte prosím migraci `supabase/migrations/20260301103000_organization_branding_logo.sql` v Supabase.";
+  }
+  if (lower.includes("row-level security policy")) {
+    return "Upload loga blokuje RLS policy ve Storage. Ověřte, že máte v organizaci roli owner/admin a že jsou v Supabase aktivní policy `org_branding_insert`/`org_branding_update` pro bucket `organization-branding`.";
+  }
+  if (lower.includes("invalid logo path")) {
+    return "Neplatná cesta loga v DB validaci. Nahrajte prosím znovu aktuální SQL fix pro funkci `set_organization_logo_path` (regex `logo\\.(png|jpg|jpeg|webp|svg)`).";
+  }
+  return message;
 };
 
 const pickEarlierMemberJoin = (
@@ -173,5 +207,104 @@ export const organizationService = {
 
     const row = Array.isArray(data) ? data[0] : data;
     return row || null;
+  },
+
+  getOrganizationLogoUrl: async (
+    orgId: string,
+    options?: { expiresInSeconds?: number },
+  ): Promise<string | null> => {
+    if (!orgId) return null;
+
+    const { data, error } = await supabase.rpc("get_my_organizations");
+    if (error) throw new Error(error.message);
+
+    const organizations = (data || []) as OrganizationSummary[];
+    const org = organizations.find((item) => item.organization_id === orgId);
+    if (!org?.logo_path) return null;
+
+    const expiresInSeconds = Math.min(
+      Math.max(options?.expiresInSeconds ?? 3600, 60),
+      24 * 3600,
+    );
+    const { data: signedData, error: signedError } = await supabase.storage
+      .from(BRANDING_BUCKET)
+      .createSignedUrl(org.logo_path, expiresInSeconds);
+
+    if (signedError) {
+      throw new Error(normalizeBrandingStorageError(signedError.message));
+    }
+
+    return signedData?.signedUrl || null;
+  },
+
+  uploadOrganizationLogo: async (
+    orgId: string,
+    file: File,
+  ): Promise<{ logoPath: string; logoUrl: string | null }> => {
+    if (!orgId) throw new Error("Chybí organizace.");
+    if (!file) throw new Error("Nebyl vybrán soubor.");
+    if (file.size > MAX_LOGO_BYTES) {
+      throw new Error("Logo je příliš velké. Maximální velikost je 2 MB.");
+    }
+    if (!ALLOWED_LOGO_MIME_TYPES.includes(file.type as (typeof ALLOWED_LOGO_MIME_TYPES)[number])) {
+      throw new Error("Nepodporovaný formát loga. Povolené: PNG, JPG, WEBP, SVG.");
+    }
+
+    const extension = guessExtensionFromMime(file.type);
+    const logoPath = `organizations/${orgId}/logo.${extension}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from(BRANDING_BUCKET)
+      .upload(logoPath, file, {
+        upsert: true,
+        cacheControl: "3600",
+        contentType: file.type,
+      });
+
+    if (uploadError) {
+      throw new Error(normalizeBrandingStorageError(uploadError.message));
+    }
+
+    const { error: updateError } = await supabase.rpc("set_organization_logo_path", {
+      org_id_input: orgId,
+      logo_path_input: logoPath,
+    });
+    if (updateError) {
+      throw new Error(updateError.message);
+    }
+
+    const logoUrl = await organizationService.getOrganizationLogoUrl(orgId);
+    return {
+      logoPath,
+      logoUrl,
+    };
+  },
+
+  removeOrganizationLogo: async (orgId: string): Promise<void> => {
+    if (!orgId) throw new Error("Chybí organizace.");
+
+    const { data, error } = await supabase.rpc("get_my_organizations");
+    if (error) throw new Error(error.message);
+
+    const organizations = (data || []) as OrganizationSummary[];
+    const org = organizations.find((item) => item.organization_id === orgId);
+    const existingPath = org?.logo_path || null;
+
+    if (existingPath) {
+      const { error: removeError } = await supabase.storage
+        .from(BRANDING_BUCKET)
+        .remove([existingPath]);
+      if (removeError) {
+        throw new Error(normalizeBrandingStorageError(removeError.message));
+      }
+    }
+
+    const { error: updateError } = await supabase.rpc("set_organization_logo_path", {
+      org_id_input: orgId,
+      logo_path_input: null,
+    });
+    if (updateError) {
+      throw new Error(updateError.message);
+    }
   },
 };

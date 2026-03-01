@@ -27,6 +27,8 @@ interface ContractProtocolModalProps {
   draft: ContractProtocolDraftView | null;
   isSubmitting?: boolean;
   isSubmittingPdf?: boolean;
+  brandLogoSrc?: string;
+  brandLogoAlt?: string;
   onClose: () => void;
   onSubmit: (values: Record<string, string>) => Promise<void> | void;
   onSubmitPdf?: (values: Record<string, string>) => Promise<void> | void;
@@ -44,7 +46,6 @@ const PROTOCOL_SECTIONS: Record<ContractProtocolKindView, SectionDefinition[]> =
       id: "contract-subject",
       title: "Identifikace Předání",
       fieldKeys: [
-        "issuerCompany",
         "issuerRepresentative",
         "subcontractorCompany",
         "subcontractorRepresentative",
@@ -168,6 +169,8 @@ export const ContractProtocolModal: React.FC<ContractProtocolModalProps> = ({
   draft,
   isSubmitting = false,
   isSubmittingPdf = false,
+  brandLogoSrc,
+  brandLogoAlt = "Logo tenantu",
   onClose,
   onSubmit,
   onSubmitPdf,
@@ -263,6 +266,17 @@ export const ContractProtocolModal: React.FC<ContractProtocolModalProps> = ({
       size="2xl"
     >
       <div className="space-y-4">
+        {brandLogoSrc && (
+          <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-900">
+            <img
+              src={brandLogoSrc}
+              alt={brandLogoAlt}
+              className="h-10 w-auto max-w-full object-contain sm:h-12"
+              loading="lazy"
+            />
+          </div>
+        )}
+
         {draft.templateStatus === "provisional" && (
           <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-200">
             Používá se dočasná šablona. Po dodání finálního vzoru se vymění pouze

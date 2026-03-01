@@ -22,7 +22,9 @@ import type {
   ContractProtocolDraft,
   ContractProtocolKind,
 } from "@/features/projects/model/contractProtocolTypes";
+import { organizationService } from "@/services/organizationService";
 import { isDesktop, shellAdapter } from "@/services/platformAdapter";
+import { useAuth } from "@/context/AuthContext";
 
 interface ContractsListProps {
   projectId: string;
@@ -72,6 +74,7 @@ export const ContractsList: React.FC<ContractsListProps> = ({
   onContractDeleted,
   onSelectContract,
 }) => {
+  const { user } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -104,6 +107,7 @@ export const ContractsList: React.FC<ContractsListProps> = ({
     top: number;
     left: number;
   } | null>(null);
+  const [tenantLogoUrl, setTenantLogoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!contextMenu) return;
@@ -126,6 +130,34 @@ export const ContractsList: React.FC<ContractsListProps> = ({
       document.removeEventListener("keydown", handleEscape);
     };
   }, [contextMenu]);
+
+  useEffect(() => {
+    const orgId = user?.organizationId;
+    if (!orgId) {
+      setTenantLogoUrl(null);
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const logoUrl = await organizationService.getOrganizationLogoUrl(orgId, {
+          expiresInSeconds: 1800,
+        });
+        if (!cancelled) {
+          setTenantLogoUrl(logoUrl);
+        }
+      } catch {
+        if (!cancelled) {
+          setTenantLogoUrl(null);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.organizationId]);
 
   const handleContextMenu = (
     event: React.MouseEvent,
@@ -219,6 +251,8 @@ export const ContractsList: React.FC<ContractsListProps> = ({
         documentKind: kind,
         contractId: contract.id,
         projectId,
+        organizationId: user?.organizationId,
+        organizationLogoUrl: tenantLogoUrl || undefined,
         mode: "draft",
         contractSnapshot: contract,
         projectDetailsSnapshot: projectDetails,
@@ -250,6 +284,8 @@ export const ContractsList: React.FC<ContractsListProps> = ({
         documentKind: protocolKind,
         contractId: protocolContract.id,
         projectId,
+        organizationId: user?.organizationId,
+        organizationLogoUrl: tenantLogoUrl || undefined,
         mode: "generate",
         overrides,
         contractSnapshot: protocolContract,
@@ -300,6 +336,8 @@ export const ContractsList: React.FC<ContractsListProps> = ({
         documentKind: protocolKind,
         contractId: protocolContract.id,
         projectId,
+        organizationId: user?.organizationId,
+        organizationLogoUrl: tenantLogoUrl || undefined,
         overrides,
         contractSnapshot: protocolContract,
         projectDetailsSnapshot: projectDetails,
@@ -731,6 +769,8 @@ export const ContractsList: React.FC<ContractsListProps> = ({
         draft={protocolDraft}
         isSubmitting={protocolSubmitting || protocolLoading}
         isSubmittingPdf={protocolSubmittingPdf}
+        brandLogoSrc={tenantLogoUrl || undefined}
+        brandLogoAlt={user?.organizationName || "Logo organizace"}
         onClose={resetProtocolModal}
         onSubmit={handleGenerateContractProtocol}
         onSubmitPdf={handleGenerateContractProtocolPdf}
