@@ -20,7 +20,7 @@ vi.mock('@/services/supabase', () => ({
   },
 }));
 
-import { shortenUrl } from '@/services/urlShortenerService';
+import { shortenUrl, shortenUrlWithAlias } from '@/services/urlShortenerService';
 
 describe('urlShortenerService server proxy', () => {
   beforeEach(() => {
@@ -51,5 +51,26 @@ describe('urlShortenerService server proxy', () => {
     expect(result.success).toBe(true);
     expect(result.provider).toBe('tinyurl');
     expect(result.shortUrl).toBe('https://tinyurl.com/demo');
+  });
+
+  it('shortenUrlWithAlias bez aliasu deleguje na provider flow', async () => {
+    maybeSingleMock.mockResolvedValue({
+      data: { preferences: { urlShortenerProvider: 'tinyurl' } },
+    });
+
+    invokeAuthedFunctionMock.mockResolvedValue({
+      success: true,
+      shortUrl: 'https://tinyurl.com/no-alias',
+      originalUrl: 'https://example.org',
+      provider: 'tinyurl',
+    });
+
+    const result = await shortenUrlWithAlias('https://example.org');
+
+    expect(invokeAuthedFunctionMock).toHaveBeenCalledWith('url-shorten', {
+      body: { url: 'https://example.org' },
+    });
+    expect(result.success).toBe(true);
+    expect(result.shortUrl).toBe('https://tinyurl.com/no-alias');
   });
 });
