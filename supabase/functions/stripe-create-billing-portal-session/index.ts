@@ -1,6 +1,11 @@
-import Stripe from "npm:stripe@14.21.0";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { createAuthedUserClient, createServiceClient } from "../_shared/supabase.ts";
+import {
+  getStripeClient,
+  loadBillingProfile,
+  resolveBillingCustomerId,
+  validateAllowedRedirectUrl,
+} from "../_shared/stripeBilling.ts";
 
 interface PortalRequest {
   returnUrl?: string;
@@ -11,18 +16,6 @@ const json = (status: number, body: unknown) =>
     status,
     headers: { ...corsHeaders, "content-type": "application/json" },
   });
-
-const getStripeClient = () => {
-  const secretKey = Deno.env.get("STRIPE_SECRET_KEY") || "";
-  if (!secretKey) {
-    throw new Error("Missing STRIPE_SECRET_KEY");
-  }
-
-  return new Stripe(secretKey, {
-    apiVersion: "2023-10-16",
-    httpClient: Stripe.createFetchHttpClient(),
-  });
-};
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -38,6 +31,9 @@ Deno.serve(async (req) => {
       body.returnUrl ||
       Deno.env.get("SITE_URL") ||
       "http://localhost:3000";
+    if (!validateAllowedRedirectUrl(returnUrl)) {
+      return json(400, { error: "Redirect URL is not allowed" });
+    }
 
     const stripe = getStripeClient();
     const authed = createAuthedUserClient(req);
@@ -47,22 +43,14 @@ Deno.serve(async (req) => {
     }
 
     const service = createServiceClient();
-    const { data: profile, error: profileError } = await service
-      .from("user_profiles")
-      .select("stripe_customer_id")
-      .eq("user_id", userData.user.id)
-      .maybeSingle();
-
-    if (profileError) {
-      return json(500, { error: "Failed to load user profile" });
-    }
-
-    if (!profile?.stripe_customer_id) {
+    const profile = await loadBillingProfile(service, userData.user.id);
+    const customerId = resolveBillingCustomerId(profile);
+    if (!customerId) {
       return json(400, { error: "Stripe customer not found" });
     }
 
     const session = await stripe.billingPortal.sessions.create({
-      customer: profile.stripe_customer_id,
+      customer: customerId,
       return_url: returnUrl,
     });
 

@@ -1,35 +1,17 @@
-import Stripe from "npm:stripe@14.21.0";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { createAuthedUserClient, createServiceClient } from "../_shared/supabase.ts";
+import {
+    getPriceToTierMap,
+    getStripeClient,
+    loadBillingProfile,
+    resolveBillingCustomerId,
+} from "../_shared/stripeBilling.ts";
 
 const json = (status: number, body: unknown) =>
     new Response(JSON.stringify(body), {
         status,
         headers: { ...corsHeaders, "content-type": "application/json" },
     });
-
-const getStripeClient = () => {
-    const secretKey = Deno.env.get("STRIPE_SECRET_KEY") || "";
-    if (!secretKey) {
-        throw new Error("Missing STRIPE_SECRET_KEY");
-    }
-    return new Stripe(secretKey, {
-        apiVersion: "2023-10-16",
-        httpClient: Stripe.createFetchHttpClient(),
-    });
-};
-
-// Map Stripe price IDs to tier names
-const getPriceToTierMap = () => {
-    return {
-        [Deno.env.get("STRIPE_PRICE_ID_STARTER_MONTHLY") || ""]: "starter",
-        [Deno.env.get("STRIPE_PRICE_ID_STARTER_YEARLY") || ""]: "starter",
-        [Deno.env.get("STRIPE_PRICE_ID_PRO_MONTHLY") || ""]: "pro",
-        [Deno.env.get("STRIPE_PRICE_ID_PRO_YEARLY") || ""]: "pro",
-        [Deno.env.get("STRIPE_PRICE_ID_ENTERPRISE_MONTHLY") || ""]: "enterprise",
-        [Deno.env.get("STRIPE_PRICE_ID_ENTERPRISE_YEARLY") || ""]: "enterprise",
-    };
-};
 
 Deno.serve(async (req) => {
     // Handle CORS preflight
@@ -53,17 +35,9 @@ Deno.serve(async (req) => {
         const stripe = getStripeClient();
 
         // Get user's Stripe customer ID from DB
-        const { data: profile, error: profileError } = await service
-            .from("user_profiles")
-            .select("stripe_customer_id, billing_subscription_id")
-            .eq("user_id", userId)
-            .maybeSingle();
-
-        if (profileError) {
-            return json(500, { error: "Failed to load user profile" });
-        }
-
-        if (!profile?.stripe_customer_id) {
+        const profile = await loadBillingProfile(service, userId);
+        const customerId = resolveBillingCustomerId(profile);
+        if (!customerId) {
             return json(200, {
                 success: true,
                 message: "No Stripe customer found, nothing to sync",
@@ -73,7 +47,7 @@ Deno.serve(async (req) => {
 
         // Get all active subscriptions for this customer from Stripe
         const subscriptions = await stripe.subscriptions.list({
-            customer: profile.stripe_customer_id,
+            customer: customerId,
             status: "all", // Get all statuses
             limit: 1, // Most recent
         });
@@ -88,6 +62,9 @@ Deno.serve(async (req) => {
                     subscription_expires_at: null,
                     subscription_cancel_at_period_end: false,
                     billing_subscription_id: null,
+                    stripe_customer_id: customerId,
+                    billing_customer_id: customerId,
+                    billing_provider: "stripe",
                     updated_at: new Date().toISOString(),
                 })
                 .eq("user_id", userId);
@@ -132,6 +109,9 @@ Deno.serve(async (req) => {
                 subscription_expires_at: expiresAt,
                 subscription_cancel_at_period_end: isCancelAtPeriodEnd,
                 billing_subscription_id: subscription.id,
+                stripe_customer_id: customerId,
+                billing_customer_id: customerId,
+                billing_provider: "stripe",
                 updated_at: new Date().toISOString(),
             })
             .eq("user_id", userId);

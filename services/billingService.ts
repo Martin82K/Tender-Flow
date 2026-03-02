@@ -6,6 +6,7 @@
  */
 
 import { invokeAuthedFunction } from './functionsClient';
+import type { SubscriptionTier } from '@/types';
 
 // Types for billing operations
 export interface CheckoutSessionRequest {
@@ -13,6 +14,7 @@ export interface CheckoutSessionRequest {
     successUrl: string;
     cancelUrl: string;
     billingPeriod?: 'monthly' | 'yearly';
+    paymentMethodPreference?: 'auto' | 'wallet_first';
 }
 
 export interface CheckoutSessionResponse {
@@ -28,6 +30,31 @@ export interface BillingPortalResponse {
     error?: string;
 }
 
+export interface CreateSetupIntentResponse {
+    success: boolean;
+    customerId?: string;
+    clientSecret?: string | null;
+    setupIntentId?: string;
+    error?: string;
+}
+
+export interface CreateSubscriptionFromPaymentMethodRequest {
+    tier: 'starter' | 'pro' | 'enterprise';
+    billingPeriod?: 'monthly' | 'yearly';
+    paymentMethodId: string;
+    idempotencyKey: string;
+}
+
+export interface CreateSubscriptionFromPaymentMethodResponse {
+    success: boolean;
+    subscriptionId?: string;
+    status?: string;
+    requiresAction?: boolean;
+    paymentIntentClientSecret?: string | null;
+    message?: string;
+    error?: string;
+}
+
 export interface WebhookEvent {
     type: string;
     data: {
@@ -40,6 +67,48 @@ export interface WebhookResult {
     processed: boolean;
     error?: string;
 }
+
+const normalizeErrorMessage = (error: unknown, fallback: string): string => {
+    if (error instanceof Error && error.message) {
+        return error.message;
+    }
+    return fallback;
+};
+
+const mapBillingErrorToUserMessage = (rawError?: string): string => {
+    const normalized = (rawError || '').toLowerCase();
+    if (!normalized) return 'Platební brána není dostupná.';
+
+    if (
+        normalized.includes('missing stripe_secret_key') ||
+        normalized.includes('not configured') ||
+        normalized.includes('price id')
+    ) {
+        return 'Platební brána není správně nakonfigurovaná. Kontaktujte prosím podporu.';
+    }
+
+    if (normalized.includes('redirect url is not allowed')) {
+        return 'Neplatná návratová URL platby. Obnovte stránku a zkuste to znovu.';
+    }
+
+    if (normalized.includes('unauthorized') || normalized.includes('nejste přihlášen')) {
+        return 'Vaše relace vypršela. Přihlaste se znovu a opakujte akci.';
+    }
+
+    if (normalized.includes('payment method') && normalized.includes('available')) {
+        return 'Zvolená platební metoda není na tomto zařízení dostupná.';
+    }
+
+    if (normalized.includes('idempotency')) {
+        return 'Stejná platební akce už byla zpracována. Ověřte stav předplatného.';
+    }
+
+    if (normalized.includes('request is already being processed')) {
+        return 'Platba se už zpracovává. Vyčkejte prosím několik sekund.';
+    }
+
+    return rawError || 'Platební brána není dostupná.';
+};
 
 // Pricing configuration (can be moved to environment or database)
 export const PRICING_CONFIG = {
@@ -134,7 +203,7 @@ export const billingService = {
         } catch (error) {
             return {
                 success: false,
-                error: error instanceof Error ? error.message : 'Platební brána není dostupná.',
+                error: mapBillingErrorToUserMessage(normalizeErrorMessage(error, 'Platební brána není dostupná.')),
             };
         }
     },
@@ -156,7 +225,45 @@ export const billingService = {
         } catch (error) {
             return {
                 success: false,
-                error: error instanceof Error ? error.message : 'Platební brána není dostupná.',
+                error: mapBillingErrorToUserMessage(normalizeErrorMessage(error, 'Platební brána není dostupná.')),
+            };
+        }
+    },
+
+    createSetupIntent: async (): Promise<CreateSetupIntentResponse> => {
+        try {
+            return await invokeAuthedFunction<CreateSetupIntentResponse>(
+                'stripe-create-setup-intent',
+                { body: {} },
+            );
+        } catch (error) {
+            return {
+                success: false,
+                error: mapBillingErrorToUserMessage(normalizeErrorMessage(error, 'Nepodařilo se zahájit peněženkovou platbu.')),
+            };
+        }
+    },
+
+    createSubscriptionFromPaymentMethod: async (
+        request: CreateSubscriptionFromPaymentMethodRequest,
+    ): Promise<CreateSubscriptionFromPaymentMethodResponse> => {
+        try {
+            return await invokeAuthedFunction<CreateSubscriptionFromPaymentMethodResponse>(
+                'stripe-create-subscription-from-payment-method',
+                {
+                    body: {
+                        tier: request.tier,
+                        billingPeriod: request.billingPeriod ?? 'monthly',
+                        paymentMethodId: request.paymentMethodId,
+                        idempotencyKey: request.idempotencyKey,
+                    },
+                    idempotencyKey: request.idempotencyKey,
+                },
+            );
+        } catch (error) {
+            return {
+                success: false,
+                error: mapBillingErrorToUserMessage(normalizeErrorMessage(error, 'Nepodařilo se vytvořit předplatné.')),
             };
         }
     },
@@ -229,7 +336,29 @@ export const billingService = {
     /**
      * Get formatted price for display.
      */
-    formatPrice: (priceInCents: number | null): string => {
+    formatPrice: (
+        priceOrTier: number | null | SubscriptionTier,
+        billingCycle: 'monthly' | 'yearly' = 'monthly',
+    ): string => {
+        let priceInCents: number | null = null;
+        if (priceOrTier === null) {
+            priceInCents = priceOrTier;
+        } else if (typeof priceOrTier === 'number') {
+            priceInCents = priceOrTier;
+        } else if (priceOrTier === 'starter') {
+            priceInCents = billingCycle === 'monthly'
+                ? PRICING_CONFIG.starter.monthlyPrice
+                : Math.round(PRICING_CONFIG.starter.yearlyPrice / 12);
+        } else if (priceOrTier === 'pro') {
+            priceInCents = billingCycle === 'monthly'
+                ? PRICING_CONFIG.pro.monthlyPrice
+                : Math.round(PRICING_CONFIG.pro.yearlyPrice / 12);
+        } else if (priceOrTier === 'enterprise') {
+            priceInCents = null;
+        } else {
+            priceInCents = 0;
+        }
+
         if (priceInCents === null) return 'Na míru';
         return new Intl.NumberFormat('cs-CZ', {
             style: 'currency',

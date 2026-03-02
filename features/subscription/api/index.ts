@@ -12,6 +12,8 @@ export {
   createCheckoutSession,
   createBillingPortalSession,
   syncSubscription,
+  createSetupIntent,
+  createSubscriptionFromPaymentMethod,
   isBillingConfigured,
   formatBillingPrice,
   PRICING_CONFIG,

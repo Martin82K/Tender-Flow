@@ -13,9 +13,9 @@ import {
   requestPlanChange,
   syncSubscription,
 } from "@/features/subscription/api";
+import { WalletExpressCheckoutModal } from "@/features/subscription/ui/WalletExpressCheckoutModal";
 import {
   getTierLabel,
-  getTierBadgeClass,
   SUBSCRIPTION_TIERS,
 } from "../../config/subscriptionTiers";
 import {
@@ -43,17 +43,23 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
     pro: false,
     enterprise: false,
   });
-  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [message, setMessage] = useState<{
     type: "success" | "error";
     text: string;
   } | null>(null);
+  const [walletCheckoutOpen, setWalletCheckoutOpen] = useState(false);
+  const [walletCheckoutTier, setWalletCheckoutTier] = useState<
+    "starter" | "pro" | "enterprise"
+  >("starter");
 
   useEffect(() => {
     const init = async () => {
       // Check for success param from Stripe redirect
       const params = new URLSearchParams(window.location.search);
-      if (params.get("success") === "true") {
+      const hasSuccess = params.get("success") === "true";
+      const wasCancelled = params.get("cancelled") === "true";
+
+      if (hasSuccess) {
         setMessage({
           type: "success",
           text: "Platba proběhla úspěšně. Aktualizujeme vaše předplatné...",
@@ -67,6 +73,18 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
         }
 
         // Clean URL
+        window.history.replaceState(
+          {},
+          "",
+          window.location.pathname + "?tab=user&subTab=subscription",
+        );
+      }
+
+      if (wasCancelled) {
+        setMessage({
+          type: "error",
+          text: "Platba byla zrušena. Předplatné zůstalo beze změny.",
+        });
         window.history.replaceState(
           {},
           "",
@@ -103,7 +121,6 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
             result.message ||
             "Předplatné bude zrušeno na konci aktuálního období.",
         });
-        setShowCancelConfirm(false);
         await loadSubscription();
       } else {
         setMessage({
@@ -176,22 +193,37 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
             window.location.href = result.portalUrl;
             return;
           }
+          setMessage({
+            type: "error",
+            text:
+              result.error ||
+              "Nepodařilo se otevřít správu předplatného. Zkuste to prosím znovu.",
+          });
+          return;
         } else {
           // Create new subscription via Checkout
           const result = await createCheckoutSession({
-            tier: tier as "pro" | "enterprise",
+            tier,
             billingPeriod,
             successPath:
               window.location.origin +
               "/app/settings?tab=user&subTab=subscription&success=true",
             cancelPath:
               window.location.origin +
-              "/app/settings?tab=user&subTab=subscription",
+              "/app/settings?tab=user&subTab=subscription&cancelled=true",
+            paymentMethodPreference: "auto",
           });
           if (result.success && result.checkoutUrl) {
             window.location.href = result.checkoutUrl;
             return;
           }
+          setMessage({
+            type: "error",
+            text:
+              result.error ||
+              "Nepodařilo se zahájit Stripe Checkout. Zkuste to prosím znovu.",
+          });
+          return;
         }
       }
 
@@ -214,6 +246,20 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
     } finally {
       setActionLoading(false);
     }
+  };
+
+  const handleWalletCheckoutSuccess = async () => {
+    setWalletCheckoutOpen(false);
+    setMessage({
+      type: "success",
+      text: "Platba byla přijata. Synchronizuji stav předplatného ze Stripe...",
+    });
+    try {
+      await syncSubscription();
+    } catch (error) {
+      console.error("Stripe sync after wallet checkout failed:", error);
+    }
+    await loadSubscription();
   };
 
   if (loading) {
@@ -578,7 +624,22 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
             </h3>
 
             {/* Monthly / Yearly Toggle */}
-            <div className="flex bg-slate-100/50 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
+            <div className="flex items-center gap-2">
+              {isBillingConfigured() && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWalletCheckoutTier(
+                      subscription.effectiveTier === "free" ? "starter" : "pro",
+                    );
+                    setWalletCheckoutOpen(true);
+                  }}
+                  className="px-3 py-1.5 text-[11px] font-bold rounded-lg transition-all border border-orange-300/80 dark:border-orange-700 text-orange-600 dark:text-orange-400 hover:bg-orange-500/10"
+                >
+                  Apple Pay / Google Pay (beta)
+                </button>
+              )}
+              <div className="flex bg-slate-100/50 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
               <button
                 onClick={() => setBillingPeriod("monthly")}
                 className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
@@ -602,6 +663,7 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
                   -20%
                 </span>
               </button>
+              </div>
             </div>
           </div>
 
@@ -912,10 +974,19 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
 
           <p className="mt-5 text-[10px] text-slate-400 dark:text-slate-500 text-center">
             Bezpečné platby přes Stripe. Nevyužité období je automaticky
-            přepočítáno.
+            přepočítáno. Apple Pay / Google Pay jsou dostupné podle zařízení a
+            prohlížeče.
           </p>
         </div>
       )}
+
+      <WalletExpressCheckoutModal
+        isOpen={walletCheckoutOpen}
+        onClose={() => setWalletCheckoutOpen(false)}
+        tier={walletCheckoutTier}
+        billingPeriod={billingPeriod}
+        onSuccess={handleWalletCheckoutSuccess}
+      />
     </section>
   );
 };

@@ -800,6 +800,10 @@ export const LandingPage: React.FC = () => {
               );
             })}
           </div>
+          <p className="mt-6 text-center text-xs text-white/55">
+            Platby běží přes Stripe. Apple Pay / Google Pay se zobrazí
+            automaticky podle zařízení a prohlížeče.
+          </p>
         </section>
 
         <section className="mt-16 md:mt-24">

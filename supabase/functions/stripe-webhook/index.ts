@@ -1,6 +1,7 @@
 import Stripe from "npm:stripe@14.21.0";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { createServiceClient } from "../_shared/supabase.ts";
+import { getPriceToTierMap, getStripeClient } from "../_shared/stripeBilling.ts";
 
 const json = (status: number, body: unknown) =>
     new Response(JSON.stringify(body), {
@@ -8,40 +9,23 @@ const json = (status: number, body: unknown) =>
         headers: { ...corsHeaders, "content-type": "application/json" },
     });
 
-// Map Stripe price IDs to tier names
-const getPriceToTierMap = () => {
-    return {
-        [Deno.env.get("STRIPE_PRICE_ID_STARTER_MONTHLY") || ""]: "starter",
-        [Deno.env.get("STRIPE_PRICE_ID_STARTER_YEARLY") || ""]: "starter",
-        [Deno.env.get("STRIPE_PRICE_ID_PRO_MONTHLY") || ""]: "pro",
-        [Deno.env.get("STRIPE_PRICE_ID_PRO_YEARLY") || ""]: "pro",
-        [Deno.env.get("STRIPE_PRICE_ID_ENTERPRISE_MONTHLY") || ""]: "enterprise",
-        [Deno.env.get("STRIPE_PRICE_ID_ENTERPRISE_YEARLY") || ""]: "enterprise",
-    };
-};
-
-const getStripeClient = () => {
-    const secretKey = Deno.env.get("STRIPE_SECRET_KEY") || "";
-    if (!secretKey) {
-        throw new Error("Missing STRIPE_SECRET_KEY");
-    }
-    return new Stripe(secretKey, {
-        apiVersion: "2023-10-16",
-        httpClient: Stripe.createFetchHttpClient(),
-    });
-};
+type ProcessStatus = "processed" | "ignored";
+type SubscriptionStatus = "active" | "cancelled" | "expired";
 
 // Update user subscription in database
 async function updateUserSubscription(
+    supabase: ReturnType<typeof createServiceClient>,
     userId: string,
     tier: string,
-    status: "active" | "cancelled" | "expired",
+    status: SubscriptionStatus,
     expiresAt: Date | null,
     stripeSubscriptionId: string | null,
-    stripeCustomerId: string | null
+    stripeCustomerId: string | null,
+    context: {
+        eventId: string;
+        eventType: string;
+    },
 ) {
-    const supabase = createServiceClient();
-
     // NOTE: We update stripe_subscription_tier, NOT subscription_tier_override
     // subscription_tier_override is for admin-set values only
     const updateData: Record<string, unknown> = {
@@ -56,6 +40,7 @@ async function updateUserSubscription(
 
     if (stripeCustomerId) {
         updateData.billing_customer_id = stripeCustomerId;
+        updateData.stripe_customer_id = stripeCustomerId;
     }
 
     const { error } = await supabase
@@ -69,17 +54,98 @@ async function updateUserSubscription(
     }
 
     // Log the change in audit table
-    await supabase.from("subscription_audit_log").insert({
+    const notes = [
+        `eventType=${context.eventType}`,
+        `eventId=${context.eventId}`,
+        `customer=${stripeCustomerId || "n/a"}`,
+        `subscription=${stripeSubscriptionId || "n/a"}`,
+        `status=${status}`,
+    ].join("; ");
+
+    const { error: auditError } = await supabase.from("subscription_audit_log").insert({
         user_id: userId,
         changed_by: null, // System change
         old_tier: null, // We don't track old tier here
         new_tier: tier,
         change_type: "stripe_webhook",
-        notes: `Stripe subscription ${status}: ${stripeSubscriptionId}`,
+        notes,
     });
+    if (auditError) {
+        console.error("Failed to write subscription audit log:", auditError);
+    }
 
     console.log(`Updated subscription for user ${userId}: tier=${tier}, status=${status}`);
 }
+
+const markWebhookStatus = async (
+    supabase: ReturnType<typeof createServiceClient>,
+    eventId: string,
+    status: "processed" | "ignored" | "failed",
+    errorMessage?: string,
+) => {
+    const { error } = await supabase
+        .from("billing_webhook_events")
+        .update({
+            status,
+            error_message: errorMessage ?? null,
+            processed_at: new Date().toISOString(),
+        })
+        .eq("event_id", eventId);
+
+    if (error) {
+        console.error("Failed to update webhook status:", error);
+    }
+};
+
+const registerWebhookEvent = async (
+    supabase: ReturnType<typeof createServiceClient>,
+    event: Stripe.Event,
+): Promise<{ duplicate: boolean }> => {
+    const payloadSummary = {
+        id: event.id,
+        type: event.type,
+        created: event.created,
+        livemode: event.livemode,
+    };
+
+    const { error } = await supabase.from("billing_webhook_events").insert({
+        event_id: event.id,
+        event_type: event.type,
+        status: "received",
+        payload_summary: payloadSummary,
+    });
+
+    if (error) {
+        if (error.code === "23505") {
+            return { duplicate: true };
+        }
+        throw error;
+    }
+
+    return { duplicate: false };
+};
+
+const resolveUserIdFromSubscription = async (
+    supabase: ReturnType<typeof createServiceClient>,
+    subscription: Stripe.Subscription,
+): Promise<string | null> => {
+    if (subscription.metadata?.userId) {
+        return subscription.metadata.userId;
+    }
+
+    const { data, error } = await supabase
+        .from("user_profiles")
+        .select("user_id")
+        .eq("billing_subscription_id", subscription.id)
+        .maybeSingle();
+
+    if (error) {
+        console.error("Failed to resolve user by subscription ID:", error);
+        return null;
+    }
+
+    return data?.user_id || null;
+};
 
 Deno.serve(async (req) => {
     // Handle CORS preflight
@@ -91,6 +157,7 @@ Deno.serve(async (req) => {
     }
 
     const stripe = getStripeClient();
+    const supabase = createServiceClient();
     const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET") || "";
 
     if (!webhookSecret) {
@@ -120,6 +187,13 @@ Deno.serve(async (req) => {
     const priceToTier = getPriceToTierMap();
 
     try {
+        const registration = await registerWebhookEvent(supabase, event);
+        if (registration.duplicate) {
+            return json(200, { received: true, duplicate: true, type: event.type });
+        }
+
+        let processStatus: ProcessStatus = "processed";
+
         switch (event.type) {
             // Checkout completed - user just paid for a subscription
             case "checkout.session.completed": {
@@ -145,13 +219,20 @@ Deno.serve(async (req) => {
                         : null;
 
                     await updateUserSubscription(
+                        supabase,
                         userId,
                         tier,
                         "active",
                         expiresAt,
                         subscription.id,
-                        session.customer as string
+                        session.customer as string,
+                        {
+                            eventId: event.id,
+                            eventType: event.type,
+                        },
                     );
+                } else {
+                    processStatus = "ignored";
                 }
                 break;
             }
@@ -161,9 +242,10 @@ Deno.serve(async (req) => {
                 const subscription = event.data.object as Stripe.Subscription;
                 console.log("Subscription updated:", subscription.id);
 
-                const userId = subscription.metadata?.userId;
+                const userId = await resolveUserIdFromSubscription(supabase, subscription);
                 if (!userId) {
                     console.error("No userId in subscription metadata");
+                    processStatus = "ignored";
                     break;
                 }
 
@@ -181,12 +263,17 @@ Deno.serve(async (req) => {
                 }
 
                 await updateUserSubscription(
+                    supabase,
                     userId,
                     tier,
                     status,
                     expiresAt,
                     subscription.id,
-                    subscription.customer as string
+                    subscription.customer as string,
+                    {
+                        eventId: event.id,
+                        eventType: event.type,
+                    },
                 );
                 break;
             }
@@ -196,20 +283,26 @@ Deno.serve(async (req) => {
                 const subscription = event.data.object as Stripe.Subscription;
                 console.log("Subscription deleted:", subscription.id);
 
-                const userId = subscription.metadata?.userId;
+                const userId = await resolveUserIdFromSubscription(supabase, subscription);
                 if (!userId) {
                     console.error("No userId in subscription metadata");
+                    processStatus = "ignored";
                     break;
                 }
 
                 // Downgrade to free tier
                 await updateUserSubscription(
+                    supabase,
                     userId,
                     "free",
                     "expired",
                     null,
                     null,
-                    subscription.customer as string
+                    subscription.customer as string,
+                    {
+                        eventId: event.id,
+                        eventType: event.type,
+                    },
                 );
                 break;
             }
@@ -233,12 +326,15 @@ Deno.serve(async (req) => {
 
             default:
                 console.log(`Unhandled event type: ${event.type}`);
+                processStatus = "ignored";
         }
 
-        return json(200, { received: true, type: event.type });
+        await markWebhookStatus(supabase, event.id, processStatus);
+        return json(200, { received: true, type: event.type, status: processStatus });
     } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown error";
         console.error("Error processing webhook:", message);
+        await markWebhookStatus(supabase, event.id, "failed", message);
         return json(500, { error: message });
     }
 });

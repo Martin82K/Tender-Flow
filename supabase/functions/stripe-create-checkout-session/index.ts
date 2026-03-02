@@ -1,15 +1,21 @@
-import Stripe from "npm:stripe@14.21.0";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { createAuthedUserClient, createServiceClient } from "../_shared/supabase.ts";
-
-type BillingPeriod = "monthly" | "yearly";
-type Tier = "starter" | "pro" | "enterprise";
+import {
+  type BillingPeriod,
+  type PaymentMethodPreference,
+  type Tier,
+  getOrCreateBillingCustomer,
+  getPriceId,
+  getStripeClient,
+  validateAllowedRedirectUrl,
+} from "../_shared/stripeBilling.ts";
 
 interface CheckoutRequest {
   tier?: Tier;
   billingPeriod?: BillingPeriod;
   successUrl?: string;
   cancelUrl?: string;
+  paymentMethodPreference?: PaymentMethodPreference;
 }
 
 const json = (status: number, body: unknown) =>
@@ -17,35 +23,6 @@ const json = (status: number, body: unknown) =>
     status,
     headers: { ...corsHeaders, "content-type": "application/json" },
   });
-
-const getStripeClient = () => {
-  const secretKey = Deno.env.get("STRIPE_SECRET_KEY") || "";
-  if (!secretKey) {
-    throw new Error("Missing STRIPE_SECRET_KEY");
-  }
-
-  return new Stripe(secretKey, {
-    apiVersion: "2023-10-16",
-    httpClient: Stripe.createFetchHttpClient(),
-  });
-};
-
-const getPriceId = (tier: Tier, billingPeriod: BillingPeriod) => {
-  const starterMonthly = Deno.env.get("STRIPE_PRICE_ID_STARTER_MONTHLY") || "";
-  const starterYearly = Deno.env.get("STRIPE_PRICE_ID_STARTER_YEARLY") || "";
-  const proMonthly = Deno.env.get("STRIPE_PRICE_ID_PRO_MONTHLY") || "";
-  const proYearly = Deno.env.get("STRIPE_PRICE_ID_PRO_YEARLY") || "";
-  const enterpriseMonthly = Deno.env.get("STRIPE_PRICE_ID_ENTERPRISE_MONTHLY") || "";
-  const enterpriseYearly = Deno.env.get("STRIPE_PRICE_ID_ENTERPRISE_YEARLY") || "";
-
-  if (tier === "starter" && billingPeriod === "monthly") return starterMonthly;
-  if (tier === "starter" && billingPeriod === "yearly") return starterYearly;
-  if (tier === "pro" && billingPeriod === "monthly") return proMonthly;
-  if (tier === "pro" && billingPeriod === "yearly") return proYearly;
-  if (tier === "enterprise" && billingPeriod === "monthly") return enterpriseMonthly;
-  if (tier === "enterprise" && billingPeriod === "yearly") return enterpriseYearly;
-  return "";
-};
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -61,6 +38,7 @@ Deno.serve(async (req) => {
     const billingPeriod = body.billingPeriod ?? "monthly";
     const successUrl = body.successUrl;
     const cancelUrl = body.cancelUrl;
+    const paymentMethodPreference = body.paymentMethodPreference ?? "auto";
 
     if (!tier || !successUrl || !cancelUrl) {
       return json(400, { error: "Missing required fields: tier, successUrl, cancelUrl" });
@@ -75,6 +53,14 @@ Deno.serve(async (req) => {
       return json(400, { error: "Stripe price ID not configured for requested plan" });
     }
 
+    if (!validateAllowedRedirectUrl(successUrl) || !validateAllowedRedirectUrl(cancelUrl)) {
+      return json(400, { error: "Redirect URL is not allowed" });
+    }
+
+    if (paymentMethodPreference !== "auto" && paymentMethodPreference !== "wallet_first") {
+      return json(400, { error: "Invalid paymentMethodPreference" });
+    }
+
     const stripe = getStripeClient();
     const authed = createAuthedUserClient(req);
     const { data: userData, error: userError } = await authed.auth.getUser();
@@ -82,34 +68,20 @@ Deno.serve(async (req) => {
       return json(401, { error: "Unauthorized" });
     }
 
+    const fullName =
+      (typeof userData.user.user_metadata?.name === "string" && userData.user.user_metadata.name) ||
+      (typeof userData.user.user_metadata?.full_name === "string" && userData.user.user_metadata.full_name) ||
+      (typeof userData.user.user_metadata?.display_name === "string" && userData.user.user_metadata.display_name) ||
+      null;
+
     const service = createServiceClient();
-    const { data: profile, error: profileError } = await service
-      .from("user_profiles")
-      .select("stripe_customer_id")
-      .eq("user_id", userData.user.id)
-      .maybeSingle();
-
-    if (profileError) {
-      return json(500, { error: "Failed to load user profile" });
-    }
-
-    let customerId = profile?.stripe_customer_id || "";
-    if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: userData.user.email || undefined,
-        metadata: { userId: userData.user.id },
-      });
-
-      customerId = customer.id;
-      const { error: updateError } = await service
-        .from("user_profiles")
-        .update({ stripe_customer_id: customerId })
-        .eq("user_id", userData.user.id);
-
-      if (updateError) {
-        return json(500, { error: "Failed to store Stripe customer" });
-      }
-    }
+    const customerId = await getOrCreateBillingCustomer({
+      service,
+      stripe,
+      userId: userData.user.id,
+      email: userData.user.email,
+      fullName,
+    });
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
@@ -123,12 +95,14 @@ Deno.serve(async (req) => {
         userId: userData.user.id,
         tier,
         billingPeriod,
+        paymentMethodPreference,
       },
       subscription_data: {
         metadata: {
           userId: userData.user.id,
           tier,
           billingPeriod,
+          paymentMethodPreference,
         },
       },
     });
