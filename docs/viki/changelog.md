@@ -6,6 +6,8 @@
 - `ai-voice/speak` už nepoužívá pevný hlas `alloy`; výchozí hlas Viki je nyní `nova` (ženský profil).
 - Přidána konfigurace `VIKI_TTS_VOICE` pro server-side override TTS hlasu bez změny kódu.
 - Konfigurace hlasu je sanitována (`[a-z0-9_-]{2,32}`), kontrolována proti allowlistu podporovaných hlasů a při nevalidní hodnotě bezpečně fallbackne na `nova`.
+- `VIKI_TTS_VOICE` nyní akceptuje pouze ženský allowlist (`nova`, `shimmer`); hodnoty jako `alloy` jsou automaticky přepsány na `nova`.
+- Do UI nastavení Viki byl přidán výběr hlasu TTS (`nova`, `shimmer`) s persistencí v `localStorage`.
 
 ## 2026-02-28
 

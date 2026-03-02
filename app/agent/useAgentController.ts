@@ -3,6 +3,7 @@ import { AGENT_CONTEXT_POLICY_VERSION } from "@app/agent/contextPolicy";
 import { getDefaultAgentModelSelection } from "@app/agent/llmGateway";
 import { getProviderModels } from "@app/agent/modelCatalog";
 import { orchestrateAgentReply } from "@app/agent/orchestrator";
+import { selectPreferredFemaleCzechVoice } from "@app/agent/speechSynthesisVoice";
 import { base64ToObjectUrl, synthesizeVoiceReply, transcribeVoiceMessage } from "@app/agent/voiceGateway";
 import { trackVikiUsageEvent } from "@app/agent/usageTracking";
 import type {
@@ -20,6 +21,7 @@ import type {
   VoiceCaptureState,
   VoiceCostMode,
   VoiceInteractionMode,
+  VoiceStyle,
 } from "@shared/types/voice";
 
 interface UseAgentControllerResult {
@@ -37,6 +39,7 @@ interface UseAgentControllerResult {
   voiceCaptureState: VoiceCaptureState;
   voiceCostMode: VoiceCostMode;
   voiceInteractionMode: VoiceInteractionMode;
+  voiceStyle: VoiceStyle;
   voiceOutputEnabled: boolean;
   latestBudget: VoiceBudgetStatus | null;
   lastVoiceWarning: string | null;
@@ -47,6 +50,7 @@ interface UseAgentControllerResult {
   setVoiceOutputEnabled: (enabled: boolean) => void;
   setVoiceCostMode: (mode: VoiceCostMode) => void;
   setVoiceInteractionMode: (mode: VoiceInteractionMode) => void;
+  setVoiceStyle: (voice: VoiceStyle) => void;
   sendUserMessage: (content: string) => Promise<void>;
   confirmPendingAction: (actionId: string) => void;
   dismissPendingAction: (actionId: string) => void;
@@ -61,6 +65,7 @@ const CONTEXT_SCOPES_STORAGE_KEY = "viki:contextScopes";
 const VOICE_OUTPUT_STORAGE_KEY = "viki:voiceOutputEnabled";
 const VOICE_COST_MODE_STORAGE_KEY = "viki:voiceCostMode";
 const VOICE_INTERACTION_MODE_STORAGE_KEY = "viki:voiceInteractionMode";
+const VOICE_STYLE_STORAGE_KEY = "viki:voiceStyle";
 const MAX_VOICE_SECONDS = 30;
 const DEFAULT_SCOPES: AgentContextScope[] = ["project", "memory", "manual"];
 
@@ -134,6 +139,22 @@ const buildAssistantMessage = (
   skillId: options?.skillId,
 });
 
+const speakBrowserFallback = (text: string): void => {
+  if (!("speechSynthesis" in window)) return;
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "cs-CZ";
+  utterance.pitch = 1.2;
+
+  const preferredVoice = selectPreferredFemaleCzechVoice(window.speechSynthesis.getVoices());
+  if (preferredVoice) {
+    utterance.voice = preferredVoice;
+  }
+
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utterance);
+};
+
 export const useAgentController = (
   runtime: AgentRuntimeSnapshot,
 ): UseAgentControllerResult => {
@@ -178,6 +199,10 @@ export const useAgentController = (
     return raw === "text_only" || raw === "push_to_talk_auto_voice" || raw === "push_to_talk"
       ? raw
       : "push_to_talk";
+  });
+  const [voiceStyle, setVoiceStyleState] = useState<VoiceStyle>(() => {
+    const raw = localStorage.getItem(VOICE_STYLE_STORAGE_KEY);
+    return raw === "shimmer" ? "shimmer" : "nova";
   });
   const [voiceOutputEnabled, setVoiceOutputEnabledState] = useState<boolean>(() => {
     return localStorage.getItem(VOICE_OUTPUT_STORAGE_KEY) === "true";
@@ -254,6 +279,9 @@ export const useAgentController = (
   useEffect(() => {
     localStorage.setItem(VOICE_INTERACTION_MODE_STORAGE_KEY, voiceInteractionMode);
   }, [voiceInteractionMode]);
+  useEffect(() => {
+    localStorage.setItem(VOICE_STYLE_STORAGE_KEY, voiceStyle);
+  }, [voiceStyle]);
 
   useEffect(() => {
     if (voiceInteractionMode === "text_only") {
@@ -314,6 +342,9 @@ export const useAgentController = (
   const setVoiceInteractionMode = useCallback((mode: VoiceInteractionMode) => {
     setVoiceInteractionModeState(mode);
   }, []);
+  const setVoiceStyle = useCallback((voice: VoiceStyle) => {
+    setVoiceStyleState(voice);
+  }, []);
 
   const playVoiceReply = useCallback(async (text: string) => {
     const clean = text.trim();
@@ -322,7 +353,7 @@ export const useAgentController = (
     setVoiceCaptureState("replying");
 
     try {
-      const response = await synthesizeVoiceReply(clean, voiceCostMode, "openai");
+      const response = await synthesizeVoiceReply(clean, voiceCostMode, "openai", voiceStyle);
       setLatestBudget(response.budget);
       setLastVoiceWarning(response.warning || null);
 
@@ -331,27 +362,19 @@ export const useAgentController = (
         const audio = new Audio(url);
         await audio.play();
         audio.onended = () => URL.revokeObjectURL(url);
-      } else if ("speechSynthesis" in window) {
-        const utterance = new SpeechSynthesisUtterance(clean);
-        utterance.lang = "cs-CZ";
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(utterance);
+      } else {
+        speakBrowserFallback(clean);
       }
 
       void trackVikiUsageEvent("voice_tts_played", {
         provider: response.provider,
       });
     } catch {
-      if ("speechSynthesis" in window) {
-        const utterance = new SpeechSynthesisUtterance(clean);
-        utterance.lang = "cs-CZ";
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(utterance);
-      }
+      speakBrowserFallback(clean);
     } finally {
       setVoiceCaptureState("idle");
     }
-  }, [voiceCostMode]);
+  }, [voiceCostMode, voiceStyle]);
 
   const sendUserMessage = useCallback(
     async (content: string) => {
@@ -641,6 +664,7 @@ export const useAgentController = (
     voiceCaptureState,
     voiceCostMode,
     voiceInteractionMode,
+    voiceStyle,
     voiceOutputEnabled,
     latestBudget,
     lastVoiceWarning,
@@ -651,6 +675,7 @@ export const useAgentController = (
     setVoiceOutputEnabled: setVoiceOutputEnabledState,
     setVoiceCostMode,
     setVoiceInteractionMode,
+    setVoiceStyle,
     sendUserMessage,
     confirmPendingAction,
     dismissPendingAction,

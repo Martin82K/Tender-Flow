@@ -24,7 +24,9 @@ Všechny eventy se trackují přes `trackFeatureUsage` se `source: "viki"`.
 - Voice interaction mode: `text_only`, `push_to_talk`, `push_to_talk_auto_voice`.
 - Lokální limit nahrávání ve controlleru: 30 s (`MAX_VOICE_SECONDS`).
 - Rozpočtové limity vrací response typ `VoiceBudgetStatus`.
-- Cloud TTS hlas pro `ai-voice/speak` defaultně používá `nova` (ženský profil); volitelný server-side override: `VIKI_TTS_VOICE`.
+- Cloud TTS hlas pro `ai-voice/speak` defaultně používá `nova` (ženský profil).
+- Uživatel může v nastavení Viki přepnout TTS hlas (`nova`, `shimmer`); preference se ukládá lokálně.
+- `VIKI_TTS_VOICE` je server-side override, ale povoluje pouze ženský allowlist (`nova`, `shimmer`); ostatní hodnoty bezpečně fallbacknou na `nova`.
 
 ## Kritické závislosti
 - Supabase Auth (session token)

@@ -125,4 +125,23 @@ describe("useAgentController voice interaction mode", () => {
       expect(localStorage.getItem("viki:voiceInteractionMode")).toBe("push_to_talk_auto_voice");
     });
   });
+
+  it("persistuje vybrany hlas Viki", async () => {
+    localStorage.setItem("viki:voiceStyle", "shimmer");
+
+    const { result } = renderHook(() => useAgentController(runtimeFixture));
+
+    await waitFor(() => {
+      expect(result.current.availableModels.length).toBeGreaterThan(0);
+    });
+    expect(result.current.voiceStyle).toBe("shimmer");
+
+    act(() => {
+      result.current.setVoiceStyle("nova");
+    });
+
+    await waitFor(() => {
+      expect(localStorage.getItem("viki:voiceStyle")).toBe("nova");
+    });
+  });
 });

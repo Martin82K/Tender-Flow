@@ -7,6 +7,7 @@ export type VoiceCaptureState =
 
 export type VoiceCostMode = "economy" | "balanced" | "premium";
 export type VoiceInteractionMode = "text_only" | "push_to_talk" | "push_to_talk_auto_voice";
+export type VoiceStyle = "nova" | "shimmer";
 
 export interface VoiceBudgetStatus {
   userUsedSecondsToday: number;
@@ -38,6 +39,7 @@ export interface VoiceSynthesisRequest {
   text: string;
   costMode: VoiceCostMode;
   preferredProvider?: "openai" | "browser";
+  voice?: VoiceStyle;
 }
 
 export interface VoiceSynthesisResponse {

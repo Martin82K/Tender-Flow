@@ -719,7 +719,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     >
                       {user.subscriptionTier === "admin"
                         ? "BOSS"
-                        : user.subscriptionTier}
+                        : user.subscriptionTier === "enterprise"
+                          ? "ENT"
+                          : user.subscriptionTier}
                     </span>
                   </div>
                 ) : user?.avatarUrl ? (

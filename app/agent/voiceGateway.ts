@@ -1,5 +1,6 @@
 import { invokeAuthedFunction } from "@/services/functionsClient";
 import type {
+  VoiceStyle,
   VoiceSynthesisRequest,
   VoiceSynthesisResponse,
   VoiceTranscriptionRequest,
@@ -41,12 +42,14 @@ export const synthesizeVoiceReply = async (
   text: string,
   costMode: "economy" | "balanced" | "premium",
   preferredProvider: "openai" | "browser" = "openai",
+  voice?: VoiceStyle,
 ): Promise<VoiceSynthesisResponse> => {
   return invokeAuthedFunction<VoiceSynthesisResponse>("ai-voice/speak", {
     body: {
       text,
       preferredProvider,
       costMode,
+      voice,
     } satisfies VoiceSynthesisRequest,
   });
 };

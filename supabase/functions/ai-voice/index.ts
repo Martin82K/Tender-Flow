@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { resolveTtsVoice, TTS_VOICE_ENV_KEY } from "./ttsVoice.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -48,34 +49,9 @@ const LIMITS: Record<VoiceCostMode, {
   },
 };
 
-const DEFAULT_TTS_VOICE = "nova";
-const TTS_VOICE_ENV_KEY = "VIKI_TTS_VOICE";
-const TTS_VOICE_PATTERN = /^[a-z0-9_-]{2,32}$/;
-const ALLOWED_TTS_VOICES = new Set([
-  "alloy",
-  "ash",
-  "ballad",
-  "coral",
-  "echo",
-  "fable",
-  "nova",
-  "onyx",
-  "sage",
-  "shimmer",
-  "verse",
-]);
-
 const toCostMode = (value: unknown): VoiceCostMode => {
   if (value === "balanced" || value === "premium") return value;
   return "economy";
-};
-
-const resolveTtsVoice = (): string => {
-  const raw = (Deno.env.get(TTS_VOICE_ENV_KEY) || "").trim().toLowerCase();
-  if (!raw) return DEFAULT_TTS_VOICE;
-  if (!TTS_VOICE_PATTERN.test(raw)) return DEFAULT_TTS_VOICE;
-  if (!ALLOWED_TTS_VOICES.has(raw)) return DEFAULT_TTS_VOICE;
-  return raw;
 };
 
 const decodeBase64 = (input: string): Uint8Array => {
@@ -399,7 +375,8 @@ Deno.serve(async (req) => {
     });
   }
 
-  const ttsVoice = resolveTtsVoice();
+  const requestedVoice = typeof body?.voice === "string" ? body.voice : "";
+  const ttsVoice = resolveTtsVoice(requestedVoice, Deno.env.get(TTS_VOICE_ENV_KEY));
 
   const speakResponse = await fetch("https://api.openai.com/v1/audio/speech", {
     method: "POST",

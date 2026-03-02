@@ -5,7 +5,7 @@ import type {
   AgentModelProvider,
   AgentRuntimeSnapshot,
 } from "@shared/types/agent";
-import type { VoiceCostMode, VoiceInteractionMode } from "@shared/types/voice";
+import type { VoiceCostMode, VoiceInteractionMode, VoiceStyle } from "@shared/types/voice";
 import { renderMarkdownToSafeHtml } from "@shared/contracts/markdownRender";
 import vikiAvatar from "@/assets/viki.png";
 
@@ -35,6 +35,11 @@ const voiceInteractionLabels: Record<VoiceInteractionMode, string> = {
   push_to_talk_auto_voice: "Push-to-talk + auto hlas",
 };
 
+const voiceStyleLabels: Record<VoiceStyle, string> = {
+  nova: "Nova (doporučeno)",
+  shimmer: "Shimmer",
+};
+
 export const AgentFloatingPanel: React.FC<AgentFloatingPanelProps> = ({ runtime }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -61,6 +66,7 @@ export const AgentFloatingPanel: React.FC<AgentFloatingPanelProps> = ({ runtime 
     voiceCaptureState,
     voiceCostMode,
     voiceInteractionMode,
+    voiceStyle,
     voiceOutputEnabled,
     latestBudget,
     lastVoiceWarning,
@@ -71,6 +77,7 @@ export const AgentFloatingPanel: React.FC<AgentFloatingPanelProps> = ({ runtime 
     setVoiceOutputEnabled,
     setVoiceCostMode,
     setVoiceInteractionMode,
+    setVoiceStyle,
     sendUserMessage,
     confirmPendingAction,
     dismissPendingAction,
@@ -317,6 +324,21 @@ export const AgentFloatingPanel: React.FC<AgentFloatingPanelProps> = ({ runtime 
                     <option value="economy">Úsporný</option>
                     <option value="balanced">Vyvážený</option>
                     <option value="premium">Premium</option>
+                  </select>
+                </div>
+                <div className="mt-2 flex items-center justify-between">
+                  <div className="font-medium text-slate-800 dark:text-slate-100">Hlas Viki (TTS)</div>
+                  <select
+                    value={voiceStyle}
+                    onChange={(event) => setVoiceStyle(event.target.value as VoiceStyle)}
+                    aria-label="Hlas Viki"
+                    className="rounded-md border border-slate-300/70 bg-white/90 px-1.5 py-0.5 text-[11px] text-slate-600 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-200"
+                  >
+                    {(Object.keys(voiceStyleLabels) as VoiceStyle[]).map((style) => (
+                      <option key={style} value={style}>
+                        {voiceStyleLabels[style]}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 {showVoiceControls ? (

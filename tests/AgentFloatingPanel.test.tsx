@@ -57,6 +57,7 @@ describe("AgentFloatingPanel", () => {
     voiceCaptureState: "idle",
     voiceCostMode: "economy",
     voiceInteractionMode: mode,
+    voiceStyle: "nova",
     voiceOutputEnabled: mode === "push_to_talk_auto_voice",
     latestBudget: null,
     lastVoiceWarning: null,
@@ -67,6 +68,7 @@ describe("AgentFloatingPanel", () => {
     setVoiceOutputEnabled: vi.fn(),
     setVoiceCostMode: vi.fn(),
     setVoiceInteractionMode: vi.fn(),
+    setVoiceStyle: vi.fn(),
     sendUserMessage: vi.fn(),
     confirmPendingAction: vi.fn(),
     dismissPendingAction: vi.fn(),
@@ -151,5 +153,20 @@ describe("AgentFloatingPanel", () => {
     const checkbox = screen.getByRole("checkbox");
     expect(checkbox).toBeChecked();
     expect(checkbox).toBeDisabled();
+  });
+
+  it("umozni zmenit hlas Viki v nastaveni", () => {
+    const state = createControllerState("push_to_talk");
+    hookState.useAgentController.mockReturnValue(state);
+    render(<AgentFloatingPanel runtime={runtimeFixture} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Otevřít Viki" }));
+    fireEvent.click(screen.getByRole("button", { name: "Otevřít nastavení Viki" }));
+
+    fireEvent.change(screen.getByLabelText("Hlas Viki"), {
+      target: { value: "shimmer" },
+    });
+
+    expect(state.setVoiceStyle).toHaveBeenCalledWith("shimmer");
   });
 });
