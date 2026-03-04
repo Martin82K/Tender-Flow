@@ -473,7 +473,7 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
                       Poskytovatel
                     </label>
                     <div className="flex flex-wrap gap-2">
-                      {["openrouter", "google", "mistral"].map((p) => (
+                      {["openrouter", "google", "mistral", "openai"].map((p) => (
                         <button
                           key={p}
                           onClick={() => {
@@ -484,10 +484,12 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
                               setExtractionModel("gemini-1.5-pro");
                             if (p === "mistral")
                               setExtractionModel("mistral-large-latest");
+                            if (p === "openai")
+                              setExtractionModel("gpt-5-mini");
                           }}
                           className={`px-3 py-2 text-xs font-bold rounded-xl border transition-all capitalize ${extractionProvider === p ? "bg-blue-500/10 border-blue-500/50 text-blue-600 dark:text-blue-400" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500"}`}
                         >
-                          {p === "openrouter" ? "OpenRouter" : p}
+                          {p === "openrouter" ? "OpenRouter" : p === "openai" ? "OpenAI" : p}
                         </button>
                       ))}
                     </div>
@@ -497,12 +499,12 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
                     <label className="text-xs font-bold text-slate-600 dark:text-slate-400">
                       Model
                     </label>
-                    {extractionProvider === "openrouter" ? (
+                    {extractionProvider === "openrouter" || extractionProvider === "openai" ? (
                       <input
                         type="text"
                         value={extractionModel}
                         onChange={(e) => setExtractionModel(e.target.value)}
-                        placeholder="Např: anthropic/claude-3-haiku"
+                        placeholder={extractionProvider === "openai" ? "Např: gpt-5-mini" : "Např: anthropic/claude-3-haiku"}
                         className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:border-blue-500 dark:text-white"
                       />
                     ) : (
@@ -565,6 +567,8 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
                       <span className="font-bold text-slate-900 dark:text-white">
                         {extractionProvider === "openrouter"
                           ? "OpenRouter API Key"
+                          : extractionProvider === "openai"
+                            ? "OpenAI API Key"
                           : extractionProvider === "google"
                             ? "Google Gemini Key"
                             : "Mistral API Key"}

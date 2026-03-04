@@ -1,5 +1,6 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { getFirstEnvSecret } from "../_shared/env.ts";
 
 // CORS headers
 const corsHeaders = {
@@ -398,10 +399,10 @@ Deno.serve(async (req) => {
             }
 
             if (provider === "mistral") {
-                const apiKey = (Deno.env.get("MISTRAL_API_KEY") || "").trim();
+                const { value: apiKey } = getFirstEnvSecret("MISTRAL_API_KEY", "MISTRAL_OCR_API_KEY");
                 if (!apiKey) {
                     return new Response(
-                        JSON.stringify({ error: "Missing Mistral API Key", models: [] }),
+                        JSON.stringify({ error: "Missing Mistral API Key (MISTRAL_API_KEY/MISTRAL_OCR_API_KEY)", models: [] }),
                         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
                     );
                 }
@@ -446,7 +447,7 @@ Deno.serve(async (req) => {
                 );
             }
 
-            const apiKey = (Deno.env.get("OPENROUTER_API_KEY") || "").trim();
+            const { value: apiKey, key: apiKeySource } = getFirstEnvSecret("OPENROUTER_API_KEY", "OPEN_ROUTER_API_KEY");
             const response = await fetch("https://openrouter.ai/api/v1/models", {
                 method: "GET",
                 headers: {
@@ -458,7 +459,14 @@ Deno.serve(async (req) => {
 
             if (!response.ok) {
                 return new Response(
-                    JSON.stringify({ error: "OpenRouter model list error", details: data, models: [] }),
+                    JSON.stringify({
+                        error: "OpenRouter model list error",
+                        details: data,
+                        models: [],
+                        hint: response.status === 401
+                            ? `OpenRouter returned 401. Verify Supabase Secret ${apiKeySource || "OPENROUTER_API_KEY"} has a valid key without extra quotes and redeploy ai-proxy.`
+                            : undefined
+                    }),
                     { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
                 );
             }
@@ -486,11 +494,7 @@ Deno.serve(async (req) => {
 
         // --- GOOGLE GEMINI HANDLER ---
         if (provider === 'google') {
-            const apiKey = (
-                Deno.env.get("GEMINI_API_KEY")
-                || Deno.env.get("GOOGLE_API_KEY")
-                || ""
-            ).trim();
+            const { value: apiKey } = getFirstEnvSecret("GEMINI_API_KEY", "GOOGLE_API_KEY");
             if (!apiKey) {
                 return new Response(
                     JSON.stringify({ error: "Missing Google API Key" }),
@@ -529,12 +533,87 @@ Deno.serve(async (req) => {
             );
         }
 
-            // --- MISTRAL OCR HANDLER ---
-        if (provider === 'mistral-ocr') {
-            const apiKey = (Deno.env.get("MISTRAL_API_KEY") || "").trim();
+        // --- OPENAI HANDLER ---
+        if (provider === "openai") {
+            const { value: apiKey, key: apiKeySource } = getFirstEnvSecret("OPENAI_API_KEY", "OPEN_AI_API_KEY");
             if (!apiKey) {
                 return new Response(
-                    JSON.stringify({ error: "Missing Mistral API Key" }),
+                    JSON.stringify({ error: "Missing OpenAI API Key (OPENAI_API_KEY/OPEN_AI_API_KEY)" }),
+                    { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                );
+            }
+
+            const model = (clientModel || "gpt-5-mini").trim();
+            const input = prompt
+                ? prompt
+                : Array.isArray(history)
+                    ? history
+                        .map((msg: any) => {
+                            const role = typeof msg?.role === "string" ? msg.role : "user";
+                            const content = Array.isArray(msg?.parts)
+                                ? msg.parts
+                                    .map((part: any) => typeof part?.text === "string" ? part.text : JSON.stringify(part))
+                                    .join("\n")
+                                : typeof msg?.parts === "string"
+                                    ? msg.parts
+                                    : typeof msg?.content === "string"
+                                        ? msg.content
+                                        : JSON.stringify(msg ?? {});
+                            return `${role}: ${content}`;
+                        })
+                        .join("\n")
+                    : "";
+
+            const openAiResponse = await fetch("https://api.openai.com/v1/responses", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model,
+                    input,
+                    text: { format: { type: "text" } }
+                }),
+            });
+
+            const data = await openAiResponse.json();
+            if (!openAiResponse.ok) {
+                return new Response(
+                    JSON.stringify({
+                        error: "OpenAI API Error",
+                        details: data,
+                        hint: openAiResponse.status === 401
+                            ? `OpenAI returned 401. Verify Supabase Secret ${apiKeySource || "OPENAI_API_KEY"} has a valid key without extra quotes and redeploy ai-proxy.`
+                            : undefined
+                    }),
+                    { status: openAiResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                );
+            }
+
+            const text =
+                typeof data?.output_text === "string"
+                    ? data.output_text
+                    : Array.isArray(data?.output)
+                        ? data.output
+                            .flatMap((item: any) => Array.isArray(item?.content) ? item.content : [])
+                            .map((content: any) => (typeof content?.text === "string" ? content.text : ""))
+                            .join("\n")
+                            .trim()
+                        : "";
+
+            return new Response(
+                JSON.stringify({ text, raw: data }),
+                { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+        }
+
+            // --- MISTRAL OCR HANDLER ---
+        if (provider === 'mistral-ocr') {
+            const { value: apiKey, key: apiKeySource } = getFirstEnvSecret("MISTRAL_API_KEY", "MISTRAL_OCR_API_KEY");
+            if (!apiKey) {
+                return new Response(
+                    JSON.stringify({ error: "Missing Mistral API Key (MISTRAL_API_KEY/MISTRAL_OCR_API_KEY)" }),
                     { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
                 );
             }
@@ -575,7 +654,13 @@ Deno.serve(async (req) => {
                 if (!ocrResponse.ok) {
                     console.error("Mistral OCR Error Response:", data);
                     return new Response(
-                        JSON.stringify({ error: "Mistral OCR API Error", details: data }),
+                        JSON.stringify({
+                            error: "Mistral OCR API Error",
+                            details: data,
+                            hint: ocrResponse.status === 401
+                                ? `Mistral returned 401 Unauthorized. Verify Supabase Secret ${apiKeySource || "MISTRAL_API_KEY"} contains a valid key without extra quotes and redeploy ai-proxy.`
+                                : undefined
+                        }),
                         { status: ocrResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
                     );
                 }
@@ -599,10 +684,10 @@ Deno.serve(async (req) => {
 
         // --- MISTRAL CHAT HANDLER ---
         if (provider === 'mistral') {
-            const apiKey = (Deno.env.get("MISTRAL_API_KEY") || "").trim();
+            const { value: apiKey, key: apiKeySource } = getFirstEnvSecret("MISTRAL_API_KEY", "MISTRAL_OCR_API_KEY");
             if (!apiKey) {
                 return new Response(
-                    JSON.stringify({ error: "Missing Mistral API Key" }),
+                    JSON.stringify({ error: "Missing Mistral API Key (MISTRAL_API_KEY/MISTRAL_OCR_API_KEY)" }),
                     { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
                 );
             }
@@ -627,7 +712,13 @@ Deno.serve(async (req) => {
             if (!response.ok) {
                 console.error("Mistral API Error:", data);
                 return new Response(
-                    JSON.stringify({ error: "Mistral API Error", details: data }),
+                    JSON.stringify({
+                        error: "Mistral API Error",
+                        details: data,
+                        hint: response.status === 401
+                            ? `Mistral returned 401 Unauthorized. Verify Supabase Secret ${apiKeySource || "MISTRAL_API_KEY"} contains a valid key without extra quotes and redeploy ai-proxy.`
+                            : undefined
+                    }),
                     { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
                 );
             }
@@ -640,10 +731,10 @@ Deno.serve(async (req) => {
         }
 
         // --- OPENROUTER HANDLER (Default) ---
-        const apiKey = (Deno.env.get("OPENROUTER_API_KEY") || "").trim();
+        const { value: apiKey, key: apiKeySource } = getFirstEnvSecret("OPENROUTER_API_KEY", "OPEN_ROUTER_API_KEY");
         if (!apiKey) {
             return new Response(
-                JSON.stringify({ error: "Missing OpenRouter API Key" }),
+                JSON.stringify({ error: "Missing OpenRouter API Key (OPENROUTER_API_KEY/OPEN_ROUTER_API_KEY)" }),
                 { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
         }
@@ -682,7 +773,10 @@ Deno.serve(async (req) => {
             return new Response(
                 JSON.stringify({ 
                     error: "OpenRouter API Error", 
-                    details: data
+                    details: data,
+                    hint: response.status === 401
+                        ? `OpenRouter returned 401. Verify Supabase Secret ${apiKeySource || "OPENROUTER_API_KEY"} has a valid key without extra quotes and redeploy ai-proxy.`
+                        : undefined
                 }),
                 { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
