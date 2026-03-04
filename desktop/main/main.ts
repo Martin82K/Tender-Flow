@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import { registerIpcHandlers } from './ipc/handlers';
 import { getAutoUpdaterService } from './services/autoUpdater';
 import { startMcpServer } from './services/mcpServer';
+import { buildDesktopCsp } from './services/csp';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {
@@ -62,9 +63,7 @@ function createWindow(): void {
 
     // Set CSP for desktop renderer (stricter in production)
     defaultSession.webRequest.onHeadersReceived((details, callback) => {
-        const csp = isDev
-            ? "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:; connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in https://api.stripe.com https://fonts.googleapis.com https://fonts.gstatic.com;"
-            : "default-src 'self' 'unsafe-inline' https: data: blob:; connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in https://api.stripe.com https://fonts.googleapis.com https://fonts.gstatic.com;";
+        const csp = buildDesktopCsp(isDev);
         callback({
             responseHeaders: {
                 ...details.responseHeaders,
