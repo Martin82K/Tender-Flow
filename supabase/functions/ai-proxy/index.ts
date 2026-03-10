@@ -98,6 +98,7 @@ const createDefaultMemoryDocument = (projectId: string, userId: string): AgentPr
         content: "",
     })),
 });
+const VIKI_FEATURE_KEY = "ai_viki";
 
 const parseMemoryDocument = (
     projectId: string,
@@ -212,34 +213,8 @@ Deno.serve(async (req) => {
         }
         const user = await authRes.json();
 
-        // 3. Subscription Check
-        const service = createServiceClient();
-        const { data: tier, error: tierError } = await service.rpc('get_user_subscription_tier', { target_user_id: user.id });
-
-        if (tierError) {
-            console.error("Tier check error:", tierError);
-            return new Response(
-                JSON.stringify({ error: "Failed to verify subscription" }),
-                { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-        }
-
-        const ALLOWED_TIERS = ['pro', 'enterprise', 'admin'];
-        if (!ALLOWED_TIERS.includes(tier)) {
-            return new Response(
-                JSON.stringify({
-                    error: "Subscription required",
-                    message: "This feature requires a PRO or Enterprise subscription.",
-                    tier: tier
-                }),
-                {
-                    status: 403,
-                    headers: { ...corsHeaders, "Content-Type": "application/json" }
-                }
-            );
-        }
-
-        // 4. Proxy Logic
+        // 3. Parse request body before access control so Viki-specific actions can
+        // follow ai_viki feature flags instead of generic tier gating.
         let body;
         try {
             body = await req.json();
@@ -251,6 +226,8 @@ Deno.serve(async (req) => {
             );
         }
 
+        const service = createServiceClient();
+
         const {
             action,
             prompt,
@@ -260,6 +237,61 @@ Deno.serve(async (req) => {
             documentUrl
         } = body;
         console.log(`[Proxy] Processing request for provider: ${provider}, model: ${clientModel || 'default'}`);
+
+        const isVikiScopedAction = action === "memory-load" || action === "memory-save" || action === "list-models";
+
+        if (isVikiScopedAction) {
+            const { data: hasVikiAccess, error: accessError } = await service.rpc("user_id_has_feature", {
+                target_user_id: user.id,
+                feature_key: VIKI_FEATURE_KEY,
+            });
+
+            if (accessError) {
+                console.error("Viki access check error:", accessError);
+                return new Response(
+                    JSON.stringify({ error: "Failed to verify Viki access" }),
+                    { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                );
+            }
+
+            if (!hasVikiAccess) {
+                return new Response(
+                    JSON.stringify({
+                        error: "Viki feature disabled",
+                        feature: VIKI_FEATURE_KEY,
+                    }),
+                    {
+                        status: 403,
+                        headers: { ...corsHeaders, "Content-Type": "application/json" }
+                    }
+                );
+            }
+        } else {
+            const { data: tier, error: tierError } = await service.rpc('get_user_subscription_tier', { target_user_id: user.id });
+
+            if (tierError) {
+                console.error("Tier check error:", tierError);
+                return new Response(
+                    JSON.stringify({ error: "Failed to verify subscription" }),
+                    { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                );
+            }
+
+            const ALLOWED_TIERS = ['pro', 'enterprise', 'admin'];
+            if (!ALLOWED_TIERS.includes(tier)) {
+                return new Response(
+                    JSON.stringify({
+                        error: "Subscription required",
+                        message: "This feature requires a PRO or Enterprise subscription.",
+                        tier: tier
+                    }),
+                    {
+                        status: 403,
+                        headers: { ...corsHeaders, "Content-Type": "application/json" }
+                    }
+                );
+            }
+        }
 
         if (action === "memory-load" || action === "memory-save") {
             const projectId = typeof body?.projectId === "string" ? body.projectId.trim() : "";

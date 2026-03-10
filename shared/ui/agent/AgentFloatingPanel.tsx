@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useAgentController } from "@app/agent/useAgentController";
+import { FEATURES } from "@/config/features";
+import { useFeatures } from "@/context/FeatureContext";
 import type {
   AgentContextScope,
   AgentModelProvider,
@@ -41,6 +43,7 @@ const voiceStyleLabels: Record<VoiceStyle, string> = {
 };
 
 export const AgentFloatingPanel: React.FC<AgentFloatingPanelProps> = ({ runtime }) => {
+  const { hasFeature, isLoading: isFeatureLoading } = useFeatures();
   const [isOpen, setIsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [draft, setDraft] = useState("");
@@ -50,6 +53,7 @@ export const AgentFloatingPanel: React.FC<AgentFloatingPanelProps> = ({ runtime 
     const localFlag = localStorage.getItem("aiEnabled");
     return localFlag !== "false";
   }, []);
+  const canUseViki = hasFeature(FEATURES.AI_VIKI);
 
   const {
     messages,
@@ -103,7 +107,7 @@ export const AgentFloatingPanel: React.FC<AgentFloatingPanelProps> = ({ runtime 
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isSettingsOpen]);
 
-  if (!isAiEnabled) {
+  if (!isAiEnabled || isFeatureLoading || !canUseViki) {
     return null;
   }
 

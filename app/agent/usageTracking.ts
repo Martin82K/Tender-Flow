@@ -1,6 +1,6 @@
 import { trackFeatureUsage } from "@/services/featureUsageService";
 
-const FEATURE_KEY = "ai_insights";
+const FEATURE_KEY = "ai_viki";
 
 export const trackVikiUsageEvent = async (
   eventKey:

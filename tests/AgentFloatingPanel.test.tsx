@@ -17,6 +17,18 @@ vi.mock("@app/agent/useAgentController", () => ({
   useAgentController: (...args: unknown[]) => hookState.useAgentController(...args),
 }));
 
+const featureState = vi.hoisted(() => ({
+  hasFeature: vi.fn(),
+  isLoading: false,
+}));
+
+vi.mock("@/context/FeatureContext", () => ({
+  useFeatures: () => ({
+    hasFeature: featureState.hasFeature,
+    isLoading: featureState.isLoading,
+  }),
+}));
+
 const runtimeFixture: AgentRuntimeSnapshot = {
   pathname: "/",
   search: "",
@@ -80,6 +92,16 @@ describe("AgentFloatingPanel", () => {
   beforeEach(() => {
     window.HTMLElement.prototype.scrollIntoView = vi.fn();
     hookState.useAgentController.mockReturnValue(createControllerState("push_to_talk"));
+    featureState.isLoading = false;
+    featureState.hasFeature.mockReturnValue(true);
+  });
+
+  it("skryje panel kdyz ai_viki neni pro uzivatele povolena", () => {
+    featureState.hasFeature.mockReturnValue(false);
+
+    render(<AgentFloatingPanel runtime={runtimeFixture} />);
+
+    expect(screen.queryByRole("button", { name: "Otevřít Viki" })).not.toBeInTheDocument();
   });
 
   it("zobrazi avatar Viki, otevíra nastaveni a neobsahuje text Glass režim", () => {

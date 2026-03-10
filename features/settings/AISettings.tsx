@@ -62,17 +62,6 @@ interface AISettingsProps {
 }
 
 export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
-  // AI Settings State (Admin only) - localStorage
-  const [aiEnabled, setAiEnabled] = useState(() => {
-    const stored = localStorage.getItem("aiEnabled");
-    return stored !== "false"; // Default to true
-  });
-
-  // Save AI setting to localStorage when it changes
-  useEffect(() => {
-    localStorage.setItem("aiEnabled", aiEnabled.toString());
-  }, [aiEnabled]);
-
   // AI Models State
   const [ocrProvider, setOcrProvider] = useState("mistral");
   const [ocrModel, setOcrModel] = useState("mistral-ocr-latest");
@@ -251,37 +240,43 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
       <div className="flex items-center justify-between mb-8">
         <div>
           <p className="text-sm font-medium text-slate-900 dark:text-white">
-            Povolit AI analýzu
+            Přístup k AI modulům se řídí předplatným
           </p>
           <p className="text-xs text-slate-500">
-            Aktivuje AI Insights na Dashboardu a automatickou analýzu dokumentů.
+            Moduly <strong>Viki</strong> a <strong>OCR</strong> zapínejte v
+            administraci <strong>Předplatné</strong> podle tarifu. Tato sekce
+            slouží pouze pro konfiguraci modelů, providerů a bezpečnostní
+            pravidla.
           </p>
         </div>
-        <button
-          onClick={() => setAiEnabled(!aiEnabled)}
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${aiEnabled ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600"}`}
-        >
-          <span
-            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${aiEnabled ? "translate-x-6" : "translate-x-1"}`}
-          />
-        </button>
+        <div className="inline-flex items-center gap-2 rounded-xl border border-blue-500/30 bg-blue-500/10 px-3 py-2 text-xs font-semibold text-blue-700 dark:text-blue-300">
+          <span className="material-symbols-outlined text-[18px]">
+            workspace_premium
+          </span>
+          Řízeno předplatným
+        </div>
       </div>
 
-      {!aiEnabled && (
-        <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl">
-          <p className="text-sm text-amber-800 dark:text-amber-200 flex items-center gap-2">
-            <span className="material-symbols-outlined text-[18px]">
-              warning
+      <div className="space-y-8">
+        <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-4">
+          <div className="flex items-start gap-3">
+            <span className="material-symbols-outlined text-blue-400">
+              info
             </span>
-            AI funkce jsou vypnuty. Uživatelé uvidí lokální statistiky místo AI
-            analýzy.
-          </p>
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                Aktivace AI už není globální vypínač
+              </p>
+              <p className="text-xs text-slate-600 dark:text-slate-300">
+                Přístup k jednotlivým AI modulům se nastavuje po tarifech v
+                sekci Předplatné. Tím zůstává řízení přístupu konzistentní s
+                backendem a nejde obejít klientským stavem.
+              </p>
+            </div>
+          </div>
         </div>
-      )}
 
-      {aiEnabled && (
-        <div className="space-y-8">
-          <VikiCostControl />
+        <VikiCostControl />
 
           {/* API Keys Policy */}
           <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-700">
@@ -599,9 +594,7 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
               </button>
             </div>
           </div>
-
-        </div>
-      )}
+      </div>
     </section>
   );
 };

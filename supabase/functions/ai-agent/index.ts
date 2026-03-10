@@ -75,7 +75,7 @@ type ToolCall = {
 
 const OPENAI_API_URL = "https://api.openai.com/v1/responses";
 const DEFAULT_MODEL = "gpt-5-mini";
-const ALLOWED_TIERS = new Set(["pro", "enterprise", "admin"]);
+const VIKI_FEATURE_KEY = "ai_viki";
 const ALLOWED_PROJECT_STATUS = new Set(["tender", "realization", "archived"]);
 const MAX_CONVERSATION_ITEMS = 30;
 const MAX_CONTENT_LENGTH = 8_000;
@@ -590,21 +590,22 @@ Deno.serve(async (req) => {
     const user = (await authRes.json()) as { id: string };
     const service = createServiceClient();
 
-    const { data: tier, error: tierError } = await service.rpc("get_user_subscription_tier", {
+    const { data: hasVikiAccess, error: accessError } = await service.rpc("user_id_has_feature", {
       target_user_id: user.id,
+      feature_key: VIKI_FEATURE_KEY,
     });
 
-    if (tierError) {
+    if (accessError) {
       return jsonResponse(500, {
-        error: "Failed to verify subscription",
+        error: "Failed to verify Viki access",
         traceId,
       });
     }
 
-    if (!ALLOWED_TIERS.has(String(tier || ""))) {
+    if (!hasVikiAccess) {
       return jsonResponse(403, {
-        error: "Subscription required",
-        tier: String(tier || "unknown"),
+        error: "Viki feature disabled",
+        feature: VIKI_FEATURE_KEY,
         traceId,
       });
     }

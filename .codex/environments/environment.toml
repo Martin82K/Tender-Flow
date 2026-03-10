@@ -6,4 +6,19 @@ name = "Tender Flow"
 script = '''
 npm install
 npm run dev
+
 '''
+
+[[actions]]
+name = "Run"
+icon = "tool"
+command = '''
+npm install
+npm run dev
+npm run desktop:dev
+'''
+
+[[actions]]
+name = "elektron"
+icon = "tool"
+command = "npm run desktop:dev"

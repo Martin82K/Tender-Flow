@@ -5,6 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+const VIKI_FEATURE_KEY = "ai_viki";
 
 type VoiceCostMode = "economy" | "balanced" | "premium";
 
@@ -120,20 +121,20 @@ Deno.serve(async (req) => {
   }
 
   const user = await authRes.json();
-  const { data: tier, error: tierError } = await service.rpc("get_user_subscription_tier", {
+  const { data: hasVikiAccess, error: accessError } = await service.rpc("user_id_has_feature", {
     target_user_id: user.id,
+    feature_key: VIKI_FEATURE_KEY,
   });
 
-  if (tierError) {
-    return jsonResponse({ error: "Failed to verify subscription" }, 500);
+  if (accessError) {
+    return jsonResponse({ error: "Failed to verify Viki access" }, 500);
   }
 
-  const allowedTiers = ["pro", "enterprise", "admin"];
-  if (!allowedTiers.includes(tier)) {
+  if (!hasVikiAccess) {
     return jsonResponse(
       {
-        error: "Subscription required",
-        message: "Voice mode requires PRO or higher subscription.",
+        error: "Viki feature disabled",
+        message: "Voice mode requires enabled Viki access.",
       },
       403,
     );

@@ -28,10 +28,19 @@ vi.mock('@/services/dbAdapter', () => ({
 import { AISettings } from '@/features/settings/AISettings';
 
 describe('AISettings security policy', () => {
-  it('zobrazuje server-only policy a neumožňuje ukládat API klíče v UI', () => {
+  it('zobrazuje server-only policy a vysvětluje, že AI moduly se řídí předplatným', () => {
     render(<AISettings isAdmin />);
 
     expect(screen.getAllByText(/Supabase Secrets/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Přístup k AI modulům se řídí předplatným/i)).toBeInTheDocument();
+    expect(
+      screen.getAllByText((_, element) =>
+        element?.textContent?.includes(
+          "Moduly Viki a OCR zapínejte v administraci Předplatné"
+        ) ?? false
+      ).length
+    ).toBeGreaterThan(0);
+    expect(screen.queryByText(/Povolit AI analýzu/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Uložit klíče do trezoru/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/^API Klíče \(System Secret Storage\)$/i)).not.toBeInTheDocument();
   });

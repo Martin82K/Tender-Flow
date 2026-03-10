@@ -27,7 +27,7 @@ export const FEATURES = {
   EXPORT_PDF: 'export_pdf',
   EXPORT_EXCEL: 'export_excel',
   DOC_HUB: 'doc_hub',
-  AI_INSIGHTS: 'ai_insights',
+  AI_VIKI: 'ai_viki',
   URL_SHORTENER: 'url_shortener',
   EXCEL_INDEXER: 'excel_indexer',
   DYNAMIC_TEMPLATES: 'dynamic_templates',
@@ -68,7 +68,6 @@ export const PLANS = {
       FEATURES.PROJECT_SCHEDULE,
       FEATURES.EXPORT_PDF,
       FEATURES.EXPORT_EXCEL,
-      FEATURES.AI_INSIGHTS,
       FEATURES.URL_SHORTENER,
       FEATURES.EXCEL_INDEXER,
     ]
