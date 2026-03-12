@@ -57,7 +57,9 @@ describe("complianceAdminService", () => {
     expect(result.retentionPolicies.length).toBeGreaterThan(0);
     expect(result.dsrQueue.length).toBeGreaterThan(0);
     expect(result.breachCases.length).toBeGreaterThan(0);
+    expect(result.breachCaseEvents.length).toBeGreaterThan(0);
     expect(result.subprocessors.length).toBeGreaterThan(0);
+    expect(result.processingActivities.length).toBeGreaterThan(0);
   });
 
   it("normalizuje data z databáze", async () => {
@@ -97,6 +99,20 @@ describe("complianceAdminService", () => {
           status: "assessment",
           risk_level: "high",
           linked_incident_id: "INC-1",
+          assessment_summary: "Probíhá posouzení.",
+          authority_notified_at: "2026-03-12T12:00:00.000Z",
+          data_subjects_notified_at: null,
+          created_at: "2026-03-12T09:00:00.000Z",
+        },
+      ],
+      breach_case_events: [
+        {
+          id: "bre-evt-1",
+          breach_case_id: "breach-1",
+          event_type: "created",
+          summary: "Případ založen",
+          actor: "admin",
+          created_at: "2026-03-12T09:15:00.000Z",
         },
       ],
       subprocessors: [
@@ -106,6 +122,16 @@ describe("complianceAdminService", () => {
           region: "EU",
           purpose: "Hosting",
           transfer_mechanism: "SCC",
+        },
+      ],
+      processing_activities: [
+        {
+          id: "ropa-1",
+          activity_name: "Správa kontaktů",
+          purpose: "CRM agenda",
+          legal_basis: "plnění smlouvy",
+          data_categories: ["jméno", "e-mail"],
+          retention_policy_id: "retention-1",
         },
       ],
     };
@@ -153,10 +179,21 @@ describe("complianceAdminService", () => {
       status: "assessment",
       riskLevel: "high",
       linkedIncidentId: "INC-1",
+      assessmentSummary: "Probíhá posouzení.",
+      authorityNotifiedAt: "2026-03-12T12:00:00.000Z",
+    });
+    expect(result.breachCaseEvents[0]).toMatchObject({
+      breachCaseId: "breach-1",
+      eventType: "created",
     });
     expect(result.subprocessors[0]).toMatchObject({
       name: "Supabase",
       region: "EU",
+    });
+    expect(result.processingActivities[0]).toMatchObject({
+      activityName: "Správa kontaktů",
+      legalBasis: "plnění smlouvy",
+      retentionPolicyId: "retention-1",
     });
   });
 
@@ -230,6 +267,116 @@ describe("complianceAdminService", () => {
       target_type: "breach_case",
       target_id: "BREACH-1",
       summary: "Breach case BREACH-1 změněn na stav reported",
+    });
+  });
+
+  it("umí uložit breach posouzení a timeline event", async () => {
+    const updateQuery = {
+      update: vi.fn(),
+      eq: vi.fn(),
+    };
+    updateQuery.update.mockReturnValue(updateQuery);
+    updateQuery.eq.mockResolvedValue({ error: null });
+    const insertMock = vi.fn().mockResolvedValue({ error: null });
+
+    state.from.mockImplementation((table: string) => {
+      if (table === "breach_cases") return updateQuery;
+      return { insert: insertMock };
+    });
+
+    const { saveBreachAssessmentAdmin } = await import(
+      "@/features/settings/api/complianceAdminService"
+    );
+
+    await saveBreachAssessmentAdmin({
+      id: "BREACH-1",
+      assessmentSummary: "Rozsah potvrzen a běží containment.",
+      actor: "martin",
+    });
+
+    expect(updateQuery.eq).toHaveBeenCalledWith("id", "BREACH-1");
+    expect(insertMock).toHaveBeenNthCalledWith(1, {
+      actor: "martin",
+      action: "save_breach_assessment",
+      target_type: "breach_case",
+      target_id: "BREACH-1",
+      summary: "Uloženo posouzení breach case BREACH-1",
+    });
+    expect(insertMock).toHaveBeenNthCalledWith(2, {
+      breach_case_id: "BREACH-1",
+      event_type: "assessment_saved",
+      summary: "Rozsah potvrzen a běží containment.",
+      actor: "martin",
+    });
+  });
+
+  it("umí přidat timeline event breach případu", async () => {
+    const insertMock = vi.fn().mockResolvedValue({ error: null });
+
+    state.from.mockImplementation(() => ({ insert: insertMock }));
+
+    const { addBreachCaseTimelineEventAdmin } = await import(
+      "@/features/settings/api/complianceAdminService"
+    );
+
+    await addBreachCaseTimelineEventAdmin({
+      breachCaseId: "BREACH-1",
+      summary: "Interní eskalace dokončena.",
+      actor: "martin",
+    });
+
+    expect(insertMock).toHaveBeenNthCalledWith(1, {
+      actor: "martin",
+      action: "add_breach_timeline_event",
+      target_type: "breach_case",
+      target_id: "BREACH-1",
+      summary: "Doplněn timeline krok pro breach case BREACH-1",
+    });
+    expect(insertMock).toHaveBeenNthCalledWith(2, {
+      breach_case_id: "BREACH-1",
+      event_type: "note",
+      summary: "Interní eskalace dokončena.",
+      actor: "martin",
+    });
+  });
+
+  it("umí zapsat notifikaci úřadu nebo subjektů", async () => {
+    const updateQuery = {
+      update: vi.fn(),
+      eq: vi.fn(),
+    };
+    updateQuery.update.mockReturnValue(updateQuery);
+    updateQuery.eq.mockResolvedValue({ error: null });
+    const insertMock = vi.fn().mockResolvedValue({ error: null });
+
+    state.from.mockImplementation((table: string) => {
+      if (table === "breach_cases") return updateQuery;
+      return { insert: insertMock };
+    });
+
+    const { markBreachNotificationAdmin } = await import(
+      "@/features/settings/api/complianceAdminService"
+    );
+
+    await markBreachNotificationAdmin({
+      id: "BREACH-1",
+      target: "authority",
+      actor: "martin",
+    });
+
+    expect(updateQuery.eq).toHaveBeenCalledWith("id", "BREACH-1");
+    expect(insertMock).toHaveBeenNthCalledWith(1, {
+      actor: "martin",
+      action: "mark_breach_authority_notification",
+      target_type: "breach_case",
+      target_id: "BREACH-1",
+      summary: "Zapsáno hlášení ÚOOÚ pro breach case BREACH-1",
+    });
+    expect(insertMock).toHaveBeenNthCalledWith(2, {
+      breach_case_id: "BREACH-1",
+      event_type: "authority_notified",
+      summary: "Zapsáno hlášení ÚOOÚ",
+      actor: "martin",
     });
   });
 
@@ -393,6 +540,51 @@ describe("complianceAdminService", () => {
       target_type: "subprocessor",
       target_id: "sub-2",
       summary: "Uložen subprocessor OpenAI (US)",
+    });
+  });
+
+  it("umí uložit činnost zpracování a zapsat audit", async () => {
+    const upsertMock = vi.fn().mockResolvedValue({ error: null });
+    const insertMock = vi.fn().mockResolvedValue({ error: null });
+
+    state.from.mockImplementation((table: string) => {
+      if (table === "processing_activities") {
+        return { upsert: upsertMock };
+      }
+      return { insert: insertMock };
+    });
+
+    const { saveProcessingActivityAdmin } = await import(
+      "@/features/settings/api/complianceAdminService"
+    );
+
+    await saveProcessingActivityAdmin({
+      id: "ropa-1",
+      activityName: "Správa kontaktů",
+      purpose: "CRM agenda",
+      legalBasis: "plnění smlouvy",
+      dataCategories: ["jméno", "e-mail"],
+      retentionPolicyId: "retention-1",
+      actor: "martin",
+    });
+
+    expect(upsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "ropa-1",
+        activity_name: "Správa kontaktů",
+        purpose: "CRM agenda",
+        legal_basis: "plnění smlouvy",
+        data_categories: ["jméno", "e-mail"],
+        retention_policy_id: "retention-1",
+      }),
+      { onConflict: "id" },
+    );
+    expect(insertMock).toHaveBeenCalledWith({
+      actor: "martin",
+      action: "save_processing_activity",
+      target_type: "processing_activity",
+      target_id: "ropa-1",
+      summary: "Uložena činnost zpracování Správa kontaktů",
     });
   });
 });

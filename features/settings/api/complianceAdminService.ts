@@ -1,8 +1,10 @@
 import { dbAdapter } from "@/services/dbAdapter";
 import type {
   BreachCase,
+  BreachCaseEvent,
   ComplianceChecklistItem,
   DataSubjectRequest,
+  ProcessingActivityRecord,
   RetentionPolicy,
   SubprocessorRecord,
 } from "@/shared/types/compliance";
@@ -12,7 +14,9 @@ export interface ComplianceOverview {
   retentionPolicies: RetentionPolicy[];
   dsrQueue: DataSubjectRequest[];
   breachCases: BreachCase[];
+  breachCaseEvents: BreachCaseEvent[];
   subprocessors: SubprocessorRecord[];
+  processingActivities: ProcessingActivityRecord[];
 }
 
 export interface AdminAuditEvent {
@@ -84,6 +88,15 @@ const defaultChecklistItems: ComplianceChecklistItem[] = [
     priority: "P0",
   },
   {
+    id: "ropa",
+    area: "ROPA",
+    title: "Záznamy o činnostech zpracování",
+    description:
+      "Je potřeba centrální evidence účelů, právních titulů, kategorií dat a vazeb na retenci.",
+    status: "partial",
+    priority: "P1",
+  },
+  {
     id: "mfa",
     area: "Přístupy",
     title: "MFA enforcement pro adminy",
@@ -151,6 +164,21 @@ const defaultBreachCases: BreachCase[] = [
     status: "triage",
     riskLevel: "high",
     linkedIncidentId: null,
+    assessmentSummary: "Zatím chybí workflow pro formální posouzení a 72h evidenci.",
+    authorityNotifiedAt: null,
+    dataSubjectsNotifiedAt: null,
+    createdAt: "2026-03-12T09:00:00.000Z",
+  },
+];
+
+const defaultBreachCaseEvents: BreachCaseEvent[] = [
+  {
+    id: "breach-event-bootstrap-1",
+    breachCaseId: "BREACH-BOOTSTRAP-1",
+    eventType: "created",
+    summary: "Bootstrap breach case založen pro dokončení GDPR workflow.",
+    actor: "system",
+    createdAt: "2026-03-12T09:00:00.000Z",
   },
 ];
 
@@ -161,6 +189,17 @@ const defaultSubprocessors: SubprocessorRecord[] = [
     region: "n/a",
     purpose: "Doplnit v další fázi",
     transferMechanism: "n/a",
+  },
+];
+
+const defaultProcessingActivities: ProcessingActivityRecord[] = [
+  {
+    id: "processing-activities-missing",
+    activityName: "Registr činností zatím není doplněn",
+    purpose: "Doplnit v další fázi",
+    legalBasis: "n/a",
+    dataCategories: ["n/a"],
+    retentionPolicyId: null,
   },
 ];
 
@@ -250,6 +289,31 @@ const normalizeBreachCases = (rows: unknown): BreachCase[] => {
         item.linked_incident_id === null || item.linked_incident_id === undefined
           ? null
           : String(item.linked_incident_id),
+      assessmentSummary: String(item.assessment_summary || ""),
+      authorityNotifiedAt:
+        item.authority_notified_at === null || item.authority_notified_at === undefined
+          ? null
+          : String(item.authority_notified_at),
+      dataSubjectsNotifiedAt:
+        item.data_subjects_notified_at === null || item.data_subjects_notified_at === undefined
+          ? null
+          : String(item.data_subjects_notified_at),
+      createdAt: String(item.created_at || new Date().toISOString()),
+    };
+  });
+};
+
+const normalizeBreachCaseEvents = (rows: unknown): BreachCaseEvent[] => {
+  if (!Array.isArray(rows) || rows.length === 0) return defaultBreachCaseEvents;
+  return rows.map((row, index) => {
+    const item = row as Record<string, unknown>;
+    return {
+      id: String(item.id || `breach-event-${index}`),
+      breachCaseId: String(item.breach_case_id || ""),
+      eventType: String(item.event_type || "note"),
+      summary: String(item.summary || ""),
+      actor: String(item.actor || "admin"),
+      createdAt: String(item.created_at || new Date().toISOString()),
     };
   });
 };
@@ -264,6 +328,30 @@ const normalizeSubprocessors = (rows: unknown): SubprocessorRecord[] => {
       region: String(item.region || "n/a"),
       purpose: String(item.purpose || ""),
       transferMechanism: String(item.transfer_mechanism || "n/a"),
+    };
+  });
+};
+
+const normalizeProcessingActivities = (rows: unknown): ProcessingActivityRecord[] => {
+  if (!Array.isArray(rows) || rows.length === 0) return defaultProcessingActivities;
+  return rows.map((row, index) => {
+    const item = row as Record<string, unknown>;
+    const dataCategories = Array.isArray(item.data_categories)
+      ? item.data_categories.map((value) => String(value))
+      : typeof item.data_categories === "string" && item.data_categories.length > 0
+        ? item.data_categories.split(",").map((value) => value.trim()).filter(Boolean)
+        : ["n/a"];
+
+    return {
+      id: String(item.id || `processing-activity-${index}`),
+      activityName: String(item.activity_name || "Činnost zpracování"),
+      purpose: String(item.purpose || ""),
+      legalBasis: String(item.legal_basis || "n/a"),
+      dataCategories,
+      retentionPolicyId:
+        item.retention_policy_id === null || item.retention_policy_id === undefined
+          ? null
+          : String(item.retention_policy_id),
     };
   });
 };
@@ -289,19 +377,31 @@ export const getComplianceOverviewAdmin = async (): Promise<ComplianceOverview> 
       .from("breach_cases")
       .select("*")
       .order("created_at", { ascending: false });
+    const breachEventsResult = await dbAdapter
+      .from("breach_case_events")
+      .select("*")
+      .order("created_at", { ascending: false });
     const subprocessorsResult = await dbAdapter.from("subprocessors").select("*").order("name");
+    const processingActivitiesResult = await dbAdapter
+      .from("processing_activities")
+      .select("*")
+      .order("activity_name");
 
     if (
       retentionResult.error ||
       dsrResult.error ||
       breachResult.error ||
-      subprocessorsResult.error
+      breachEventsResult.error ||
+      subprocessorsResult.error ||
+      processingActivitiesResult.error
     ) {
       throw (
         retentionResult.error ||
         dsrResult.error ||
         breachResult.error ||
-        subprocessorsResult.error
+        breachEventsResult.error ||
+        subprocessorsResult.error ||
+        processingActivitiesResult.error
       );
     }
 
@@ -310,7 +410,9 @@ export const getComplianceOverviewAdmin = async (): Promise<ComplianceOverview> 
       retentionPolicies: normalizeRetentionPolicies(retentionResult.data),
       dsrQueue: normalizeDsrQueue(dsrResult.data),
       breachCases: normalizeBreachCases(breachResult.data),
+      breachCaseEvents: normalizeBreachCaseEvents(breachEventsResult.data),
       subprocessors: normalizeSubprocessors(subprocessorsResult.data),
+      processingActivities: normalizeProcessingActivities(processingActivitiesResult.data),
     };
   } catch {
     return {
@@ -318,7 +420,9 @@ export const getComplianceOverviewAdmin = async (): Promise<ComplianceOverview> 
       retentionPolicies: defaultRetentionPolicies,
       dsrQueue: defaultDsrQueue,
       breachCases: defaultBreachCases,
+      breachCaseEvents: defaultBreachCaseEvents,
       subprocessors: defaultSubprocessors,
+      processingActivities: defaultProcessingActivities,
     };
   }
 };
@@ -433,6 +537,9 @@ export const createBreachCaseAdmin = async (input: {
     status: "triage",
     risk_level: input.riskLevel,
     linked_incident_id: input.linkedIncidentId ?? null,
+    assessment_summary: "",
+    authority_notified_at: null,
+    data_subjects_notified_at: null,
   });
 
   if (error) throw error;
@@ -475,6 +582,95 @@ export const updateBreachCaseStatusAdmin = async (input: {
     breachCaseId: input.id,
     eventType: "status_changed",
     summary: `Stav změněn na ${input.status}`,
+    actor: input.actor,
+  });
+};
+
+export const saveBreachAssessmentAdmin = async (input: {
+  id: string;
+  assessmentSummary: string;
+  actor?: string;
+}): Promise<void> => {
+  const { error } = await dbAdapter
+    .from("breach_cases")
+    .update({
+      assessment_summary: input.assessmentSummary,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", input.id);
+
+  if (error) throw error;
+
+  await writeAdminAuditEvent({
+    actor: input.actor ?? "admin",
+    action: "save_breach_assessment",
+    targetType: "breach_case",
+    targetId: input.id,
+    summary: `Uloženo posouzení breach case ${input.id}`,
+  });
+  await writeBreachCaseEvent({
+    breachCaseId: input.id,
+    eventType: "assessment_saved",
+    summary: input.assessmentSummary,
+    actor: input.actor,
+  });
+};
+
+export const addBreachCaseTimelineEventAdmin = async (input: {
+  breachCaseId: string;
+  summary: string;
+  actor?: string;
+}): Promise<void> => {
+  await writeAdminAuditEvent({
+    actor: input.actor ?? "admin",
+    action: "add_breach_timeline_event",
+    targetType: "breach_case",
+    targetId: input.breachCaseId,
+    summary: `Doplněn timeline krok pro breach case ${input.breachCaseId}`,
+  });
+  await writeBreachCaseEvent({
+    breachCaseId: input.breachCaseId,
+    eventType: "note",
+    summary: input.summary,
+    actor: input.actor,
+  });
+};
+
+export const markBreachNotificationAdmin = async (input: {
+  id: string;
+  target: "authority" | "data_subjects";
+  actor?: string;
+}): Promise<void> => {
+  const nowIso = new Date().toISOString();
+  const patch =
+    input.target === "authority"
+      ? { authority_notified_at: nowIso, updated_at: nowIso }
+      : { data_subjects_notified_at: nowIso, updated_at: nowIso };
+
+  const { error } = await dbAdapter.from("breach_cases").update(patch).eq("id", input.id);
+
+  if (error) throw error;
+
+  await writeAdminAuditEvent({
+    actor: input.actor ?? "admin",
+    action:
+      input.target === "authority"
+        ? "mark_breach_authority_notification"
+        : "mark_breach_data_subject_notification",
+    targetType: "breach_case",
+    targetId: input.id,
+    summary:
+      input.target === "authority"
+        ? `Zapsáno hlášení ÚOOÚ pro breach case ${input.id}`
+        : `Zapsáno informování subjektů pro breach case ${input.id}`,
+  });
+  await writeBreachCaseEvent({
+    breachCaseId: input.id,
+    eventType: input.target === "authority" ? "authority_notified" : "data_subjects_notified",
+    summary:
+      input.target === "authority"
+        ? "Zapsáno hlášení ÚOOÚ"
+        : "Zapsáno informování dotčených subjektů",
     actor: input.actor,
   });
 };
@@ -602,6 +798,41 @@ export const saveSubprocessorAdmin = async (input: {
     targetType: "subprocessor",
     targetId: input.id,
     summary: `Uložen subprocessor ${input.name} (${input.region})`,
+  });
+};
+
+export const saveProcessingActivityAdmin = async (input: {
+  id: string;
+  activityName: string;
+  purpose: string;
+  legalBasis: string;
+  dataCategories: string[];
+  retentionPolicyId?: string | null;
+  notes?: string;
+  actor?: string;
+}): Promise<void> => {
+  const { error } = await dbAdapter.from("processing_activities").upsert(
+    {
+      id: input.id,
+      activity_name: input.activityName,
+      purpose: input.purpose,
+      legal_basis: input.legalBasis,
+      data_categories: input.dataCategories,
+      retention_policy_id: input.retentionPolicyId ?? null,
+      notes: input.notes ?? "",
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "id" },
+  );
+
+  if (error) throw error;
+
+  await writeAdminAuditEvent({
+    actor: input.actor ?? "admin",
+    action: "save_processing_activity",
+    targetType: "processing_activity",
+    targetId: input.id,
+    summary: `Uložena činnost zpracování ${input.activityName}`,
   });
 };
 

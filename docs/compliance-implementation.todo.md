@@ -20,6 +20,9 @@ Poslední aktualizace: 12. března 2026
 - [x] 2026-03-12: přidán základní editor subprocessor registry se zápisem a admin auditem
 - [x] 2026-03-12: přidán admin MFA guard s TOTP enrollment flow a AAL2 ověřením session pro admin sekci
 - [x] 2026-03-12: nepovinná usage analytika je centrálně blokovaná bez souhlasu cookies
+- [x] 2026-03-12: compliance admin převeden do bezpečného režimu bez mazání dat z databáze; výmaz/purge akce jsou jen evidenční a vysvětlené v UI
+- [x] 2026-03-12: přidán první ROPA registr činností zpracování do compliance adminu včetně migrace, evidence právního titulu a vazby na retenci
+- [x] 2026-03-12: rozšířen breach workflow o 72h timeline, posouzení případu a evidenci notifikací vůči ÚOOÚ a subjektům bez mazání dat
 - [ ] Další krok: doplnit hlubší DSR/breach workflow, ROPA evidenci a vazbu legal textů na interní registry
 
 ## Přehled priorit
@@ -119,6 +122,7 @@ Dopad do struktury: sdílený helper pro log policy
 - [x] Některé feature-specific logy mají vlastní mazání
 - [x] Přidat centrální retention matrix
 - [-] Přidat purge/anonymize joby pro další datové oblasti
+- [x] Admin UI běží v safe-mode a z produkční databáze nic nemaže bez dalšího explicitního kroku
 - [ ] Evidovat výjimky a vazbu na backupy
 Stav: částečně
 Priorita: kritická
@@ -130,7 +134,8 @@ Dopad do struktury: nový compliance/retention modul
 - [x] Existují běžné CRUD operace nad kontakty a projekty
 - [x] Přidat centrální subject request workflow
 - [x] Přidat export osobních údajů po subjektu
-[-] Přidat delete/anonymize orchestraci přes tabulky
+[ ] Přidat delete/anonymize orchestraci přes tabulky
+[x] Admin UI nyní eviduje požadavky na výmaz bez spuštění mazání nebo anonymizace dat
 [x] Auditovat requesty a SLA
 Stav: částečně
 Priorita: kritická
@@ -150,8 +155,9 @@ Dopad do struktury: nový public/privacy modul + consent utilita
 ### 10. Breach register a GDPR incident workflow
 - [x] Technické incidenty se sbírají
 - [x] Přidat datový model breach case
-[-] Přidat klasifikaci rizika a dotčených údajů
-[-] Přidat timeline 72h procesu
+- [-] Přidat klasifikaci rizika a dotčených údajů
+- [x] Přidat timeline 72h procesu
+- [x] Přidat evidenci hlášení ÚOOÚ a informování subjektů
 - [ ] Přidat export/print podklady pro ÚOOÚ
 Stav: částečně
 Priorita: kritická
@@ -159,9 +165,9 @@ Dopad do kódu: vysoký
 Dopad do struktury: nový compliance backend model + admin UI
 
 ### 11. ROPA / záznamy o činnostech zpracování
-- [ ] Přidat strukturovaný registr processing activities
-- [ ] Provázat účely, kategorie dat, retention a subprocessors
-Stav: neimplementováno
+- [x] Přidat strukturovaný registr processing activities
+- [-] Provázat účely, kategorie dat, retention a subprocessors
+Stav: částečně
 Priorita: vysoká
 Dopad do kódu: střední
 Dopad do struktury: nový compliance datastore

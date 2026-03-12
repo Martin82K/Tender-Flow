@@ -9,9 +9,13 @@ const mockState = vi.hoisted(() => ({
   updateDataSubjectRequestStatusAdmin: vi.fn(),
   createBreachCaseAdmin: vi.fn(),
   updateBreachCaseStatusAdmin: vi.fn(),
+  saveBreachAssessmentAdmin: vi.fn(),
+  addBreachCaseTimelineEventAdmin: vi.fn(),
+  markBreachNotificationAdmin: vi.fn(),
   exportDataSubjectAdmin: vi.fn(),
   anonymizeDataSubjectAdmin: vi.fn(),
   saveComplianceRetentionPolicyAdmin: vi.fn(),
+  saveProcessingActivityAdmin: vi.fn(),
   saveSubprocessorAdmin: vi.fn(),
   runComplianceRetentionPurgeAdmin: vi.fn(),
   showAlert: vi.fn(),
@@ -24,11 +28,13 @@ vi.mock("@/features/settings/api/complianceAdminService", () => ({
   updateDataSubjectRequestStatusAdmin: mockState.updateDataSubjectRequestStatusAdmin,
   createBreachCaseAdmin: mockState.createBreachCaseAdmin,
   updateBreachCaseStatusAdmin: mockState.updateBreachCaseStatusAdmin,
+  saveBreachAssessmentAdmin: mockState.saveBreachAssessmentAdmin,
+  addBreachCaseTimelineEventAdmin: mockState.addBreachCaseTimelineEventAdmin,
+  markBreachNotificationAdmin: mockState.markBreachNotificationAdmin,
   exportDataSubjectAdmin: mockState.exportDataSubjectAdmin,
-  anonymizeDataSubjectAdmin: mockState.anonymizeDataSubjectAdmin,
   saveComplianceRetentionPolicyAdmin: mockState.saveComplianceRetentionPolicyAdmin,
+  saveProcessingActivityAdmin: mockState.saveProcessingActivityAdmin,
   saveSubprocessorAdmin: mockState.saveSubprocessorAdmin,
-  runComplianceRetentionPurgeAdmin: mockState.runComplianceRetentionPurgeAdmin,
 }));
 
 vi.mock("@/context/UIContext", () => ({
@@ -83,6 +89,20 @@ describe("ComplianceAdmin", () => {
         status: "triage",
         riskLevel: "high",
         linkedIncidentId: null,
+        assessmentSummary: "Prvotní vyhodnocení dopadu.",
+        authorityNotifiedAt: null,
+        dataSubjectsNotifiedAt: null,
+        createdAt: "2026-03-12T09:00:00.000Z",
+      },
+    ],
+    breachCaseEvents: [
+      {
+        id: "bre-evt-1",
+        breachCaseId: "breach-1",
+        eventType: "created",
+        summary: "Případ založen.",
+        actor: "admin",
+        createdAt: "2026-03-12T09:15:00.000Z",
       },
     ],
     subprocessors: [
@@ -94,6 +114,16 @@ describe("ComplianceAdmin", () => {
         transferMechanism: "SCC",
       },
     ],
+    processingActivities: [
+      {
+        id: "ropa-1",
+        activityName: "Správa kontaktů v CRM",
+        purpose: "Obchodní komunikace",
+        legalBasis: "plnění smlouvy",
+        dataCategories: ["jméno", "e-mail"],
+        retentionPolicyId: "ret-1",
+      },
+    ],
   };
 
   beforeEach(() => {
@@ -103,6 +133,9 @@ describe("ComplianceAdmin", () => {
     mockState.updateDataSubjectRequestStatusAdmin.mockResolvedValue(undefined);
     mockState.createBreachCaseAdmin.mockResolvedValue(undefined);
     mockState.updateBreachCaseStatusAdmin.mockResolvedValue(undefined);
+    mockState.saveBreachAssessmentAdmin.mockResolvedValue(undefined);
+    mockState.addBreachCaseTimelineEventAdmin.mockResolvedValue(undefined);
+    mockState.markBreachNotificationAdmin.mockResolvedValue(undefined);
     mockState.exportDataSubjectAdmin.mockResolvedValue({
       query: "Export osobních údajů",
       generated_at: "2026-03-12T10:00:00.000Z",
@@ -118,6 +151,7 @@ describe("ComplianceAdmin", () => {
       completed_at: "2026-03-12T10:00:00.000Z",
     });
     mockState.saveComplianceRetentionPolicyAdmin.mockResolvedValue(undefined);
+    mockState.saveProcessingActivityAdmin.mockResolvedValue(undefined);
     mockState.saveSubprocessorAdmin.mockResolvedValue(undefined);
     mockState.runComplianceRetentionPurgeAdmin.mockResolvedValue({
       admin_audit_deleted: 1,
@@ -142,9 +176,14 @@ describe("ComplianceAdmin", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "DSR fronta" })).toBeInTheDocument();
     expect(screen.getAllByText("Breach register").length).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.getByRole("heading", { name: /ROPA \/ činnosti zpracování/i }),
+    ).toBeInTheDocument();
     expect(await screen.findByText(/Sdílená sanitizace logů/i)).toBeInTheDocument();
     expect(screen.getByText(/Cookie consent vrstva/i)).toBeInTheDocument();
     expect(screen.getByText(/Supabase/i)).toBeInTheDocument();
+    expect(screen.getByText(/Správa kontaktů v CRM/i)).toBeInTheDocument();
+    expect(screen.getByText(/Případ založen/i)).toBeInTheDocument();
   });
 
   it("umožní vytvořit DSR požadavek", async () => {
@@ -179,6 +218,51 @@ describe("ComplianceAdmin", () => {
       expect(mockState.updateBreachCaseStatusAdmin).toHaveBeenCalledWith({
         id: "breach-1",
         status: "assessment",
+      });
+    });
+  });
+
+  it("umožní uložit breach posouzení", async () => {
+    render(<ComplianceAdmin />);
+
+    fireEvent.change(await screen.findByLabelText("Posouzení breach-1"), {
+      target: { value: "Rozsah potvrzen, běží právní posouzení a containment." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Uložit posouzení" }));
+
+    await waitFor(() => {
+      expect(mockState.saveBreachAssessmentAdmin).toHaveBeenCalledWith({
+        id: "breach-1",
+        assessmentSummary: "Rozsah potvrzen, běží právní posouzení a containment.",
+      });
+    });
+  });
+
+  it("umožní přidat krok do breach timeline", async () => {
+    render(<ComplianceAdmin />);
+
+    fireEvent.change(await screen.findByLabelText("Timeline breach-1"), {
+      target: { value: "Interní eskalace dokončena a klíče byly rotovány." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Přidat krok do timeline" }));
+
+    await waitFor(() => {
+      expect(mockState.addBreachCaseTimelineEventAdmin).toHaveBeenCalledWith({
+        breachCaseId: "breach-1",
+        summary: "Interní eskalace dokončena a klíče byly rotovány.",
+      });
+    });
+  });
+
+  it("umožní zapsat hlášení ÚOOÚ", async () => {
+    render(<ComplianceAdmin />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Zapsat hlášení ÚOOÚ" }));
+
+    await waitFor(() => {
+      expect(mockState.markBreachNotificationAdmin).toHaveBeenCalledWith({
+        id: "breach-1",
+        target: "authority",
       });
     });
   });
@@ -221,24 +305,27 @@ describe("ComplianceAdmin", () => {
     revokeObjectUrlMock.mockRestore();
   });
 
-  it("umožní anonymizovat DSR data po potvrzení", async () => {
+  it("u požadavku na výmaz jen zobrazí bezpečnostní informaci a nic nemaže", async () => {
     render(<ComplianceAdmin />);
 
     expect(await screen.findByText(/Export osobních údajů/i)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Anonymizovat" }));
+    fireEvent.click(screen.getByRole("button", { name: "Výmaz je jen evidenční" }));
 
     await waitFor(() => {
-      expect(mockState.showConfirm).toHaveBeenCalledTimes(1);
-      expect(mockState.anonymizeDataSubjectAdmin).toHaveBeenCalledWith({
-        query: "Export osobních údajů",
-      });
+      expect(mockState.showAlert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: "Mazání je vypnuté",
+          variant: "info",
+        }),
+      );
+      expect(mockState.anonymizeDataSubjectAdmin).not.toHaveBeenCalled();
     });
   });
 
   it("umožní uložit retention policy", async () => {
     render(<ComplianceAdmin />);
 
-    expect(await screen.findByText(/Incident logy/i)).toBeInTheDocument();
+    expect(await screen.findByLabelText("Retence ret-1")).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Retence ret-1"), {
       target: { value: "90" },
     });
@@ -254,14 +341,19 @@ describe("ComplianceAdmin", () => {
     });
   });
 
-  it("umožní spustit retention purge po potvrzení", async () => {
+  it("u retention purge jen zobrazí bezpečnostní informaci a nic nemaže", async () => {
     render(<ComplianceAdmin />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Spustit purge" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Purge je vypnuté" }));
 
     await waitFor(() => {
-      expect(mockState.showConfirm).toHaveBeenCalled();
-      expect(mockState.runComplianceRetentionPurgeAdmin).toHaveBeenCalledTimes(1);
+      expect(mockState.showAlert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: "Mazání je vypnuté",
+          variant: "info",
+        }),
+      );
+      expect(mockState.runComplianceRetentionPurgeAdmin).not.toHaveBeenCalled();
     });
   });
 
@@ -289,6 +381,39 @@ describe("ComplianceAdmin", () => {
           region: "US",
           purpose: "AI processing",
           transferMechanism: "SCC",
+        }),
+      );
+    });
+  });
+
+  it("umožní přidat činnost zpracování do ROPA registru", async () => {
+    render(<ComplianceAdmin />);
+
+    fireEvent.change(await screen.findByLabelText("Název činnosti zpracování"), {
+      target: { value: "Správa uživatelských účtů" },
+    });
+    fireEvent.change(screen.getByLabelText("Účel činnosti zpracování"), {
+      target: { value: "Autentizace a autorizace" },
+    });
+    fireEvent.change(screen.getByLabelText("Právní titul činnosti zpracování"), {
+      target: { value: "plnění smlouvy" },
+    });
+    fireEvent.change(screen.getByLabelText("Kategorie dat činnosti zpracování"), {
+      target: { value: "jméno, e-mail, role" },
+    });
+    fireEvent.change(screen.getByLabelText("Navázaná retention policy"), {
+      target: { value: "ret-1" },
+    });
+    fireEvent.click(screen.getAllByRole("button", { name: "Přidat" })[3]);
+
+    await waitFor(() => {
+      expect(mockState.saveProcessingActivityAdmin).toHaveBeenCalledWith(
+        expect.objectContaining({
+          activityName: "Správa uživatelských účtů",
+          purpose: "Autentizace a autorizace",
+          legalBasis: "plnění smlouvy",
+          dataCategories: ["jméno", "e-mail", "role"],
+          retentionPolicyId: "ret-1",
         }),
       );
     });

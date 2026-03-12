@@ -1,13 +1,15 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useUI } from "@/context/UIContext";
 import {
-  anonymizeDataSubjectAdmin,
+  addBreachCaseTimelineEventAdmin,
   createBreachCaseAdmin,
   createDataSubjectRequestAdmin,
   exportDataSubjectAdmin,
   getComplianceOverviewAdmin,
-  runComplianceRetentionPurgeAdmin,
+  markBreachNotificationAdmin,
   saveComplianceRetentionPolicyAdmin,
+  saveBreachAssessmentAdmin,
+  saveProcessingActivityAdmin,
   saveSubprocessorAdmin,
   updateBreachCaseStatusAdmin,
   updateDataSubjectRequestStatusAdmin,
@@ -62,8 +64,23 @@ const breachStatusLabel: Record<BreachCase["status"], string> = {
   closed: "Uzavřeno",
 };
 
+const formatDateTime = (value: string | null) => {
+  if (!value) return "nezapsáno";
+
+  try {
+    return new Intl.DateTimeFormat("cs-CZ", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+};
+
+const COMPLIANCE_DB_SAFE_MODE = true;
+
 export const ComplianceAdmin: React.FC = () => {
-  const { showAlert, showConfirm } = useUI();
+  const { showAlert } = useUI();
   const [overview, setOverview] = useState<ComplianceOverview | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingDsr, setIsSavingDsr] = useState(false);
@@ -74,14 +91,26 @@ export const ComplianceAdmin: React.FC = () => {
   const [newBreachTitle, setNewBreachTitle] = useState("");
   const [newBreachRisk, setNewBreachRisk] = useState<BreachCase["riskLevel"]>("medium");
   const [newBreachIncidentId, setNewBreachIncidentId] = useState("");
+  const [breachAssessmentDrafts, setBreachAssessmentDrafts] = useState<Record<string, string>>({});
+  const [breachTimelineDrafts, setBreachTimelineDrafts] = useState<Record<string, string>>({});
+  const [savingBreachAssessmentId, setSavingBreachAssessmentId] = useState<string | null>(null);
+  const [savingBreachTimelineId, setSavingBreachTimelineId] = useState<string | null>(null);
+  const [markingBreachNotification, setMarkingBreachNotification] = useState<string | null>(null);
   const [retentionDrafts, setRetentionDrafts] = useState<Record<string, number>>({});
   const [savingRetentionId, setSavingRetentionId] = useState<string | null>(null);
-  const [isRunningRetentionPurge, setIsRunningRetentionPurge] = useState(false);
   const [isSavingSubprocessor, setIsSavingSubprocessor] = useState(false);
+  const [isSavingProcessingActivity, setIsSavingProcessingActivity] = useState(false);
   const [newSubprocessorName, setNewSubprocessorName] = useState("");
   const [newSubprocessorRegion, setNewSubprocessorRegion] = useState("EU");
   const [newSubprocessorPurpose, setNewSubprocessorPurpose] = useState("");
   const [newSubprocessorTransfer, setNewSubprocessorTransfer] = useState("SCC");
+  const [newProcessingActivityName, setNewProcessingActivityName] = useState("");
+  const [newProcessingActivityPurpose, setNewProcessingActivityPurpose] = useState("");
+  const [newProcessingActivityLegalBasis, setNewProcessingActivityLegalBasis] = useState(
+    "oprávněný zájem",
+  );
+  const [newProcessingActivityCategories, setNewProcessingActivityCategories] = useState("");
+  const [newProcessingActivityRetentionId, setNewProcessingActivityRetentionId] = useState("");
 
   const loadOverview = async () => {
     setIsLoading(true);
@@ -100,6 +129,9 @@ export const ComplianceAdmin: React.FC = () => {
       const data = await getComplianceOverviewAdmin();
       if (cancelled) return;
       setOverview(data);
+      setRetentionDrafts(
+        Object.fromEntries(data.retentionPolicies.map((policy) => [policy.id, policy.retentionDays])),
+      );
       setIsLoading(false);
     };
 
@@ -114,11 +146,17 @@ export const ComplianceAdmin: React.FC = () => {
   const retentionPolicies = overview?.retentionPolicies ?? [];
   const dsrQueue = overview?.dsrQueue ?? [];
   const breachCases = overview?.breachCases ?? [];
+  const breachCaseEvents = overview?.breachCaseEvents ?? [];
   const subprocessors = overview?.subprocessors ?? [];
+  const processingActivities = overview?.processingActivities ?? [];
 
   const hasRealSubprocessors = useMemo(
     () => subprocessors.some((record) => record.id !== "subprocessors-missing"),
     [subprocessors],
+  );
+  const hasRealProcessingActivities = useMemo(
+    () => processingActivities.some((record) => record.id !== "processing-activities-missing"),
+    [processingActivities],
   );
 
   const handleCreateDsr = async () => {
@@ -218,36 +256,6 @@ export const ComplianceAdmin: React.FC = () => {
     }
   };
 
-  const handleAnonymizeDsr = async (request: DataSubjectRequest) => {
-    const confirmed = await showConfirm({
-      title: "Spustit anonymizaci?",
-      message: `Anonymizace nahradí nalezené osobní údaje pro dotaz "${request.subjectLabel}". Akce je nevratná.`,
-      variant: "danger",
-      confirmLabel: "Anonymizovat",
-      cancelLabel: "Zrušit",
-    });
-
-    if (!confirmed) return;
-
-    try {
-      const result = await anonymizeDataSubjectAdmin({
-        query: request.subjectLabel,
-      });
-
-      showAlert({
-        title: "Anonymizace dokončena",
-        message: `Profily: ${result.anonymized_user_profiles}, kontakty: ${result.anonymized_subcontractors}, projekty: ${result.anonymized_projects}.`,
-        variant: "success",
-      });
-    } catch (error) {
-      showAlert({
-        title: "Anonymizace selhala",
-        message: `Nepodařilo se anonymizovat data subjektu: ${String((error as Error)?.message || error)}`,
-        variant: "danger",
-      });
-    }
-  };
-
   const handleSaveRetention = async (policy: RetentionPolicy) => {
     const nextDays = Math.max(0, Math.floor(retentionDrafts[policy.id] ?? policy.retentionDays));
     setSavingRetentionId(policy.id);
@@ -277,34 +285,12 @@ export const ComplianceAdmin: React.FC = () => {
   };
 
   const handleRunRetentionPurge = async () => {
-    const confirmed = await showConfirm({
-      title: "Spustit retention purge?",
+    showAlert({
+      title: "Mazání je vypnuté",
       message:
-        "Purge smaže staré auditní a timeline záznamy podle aktuálních retention policies.",
-      variant: "danger",
-      confirmLabel: "Spustit purge",
-      cancelLabel: "Zrušit",
+        "Compliance admin běží v bezpečném režimu. Z UI se teď nespouští žádné mazání ani purge nad produkční databází.",
+      variant: "info",
     });
-
-    if (!confirmed) return;
-
-    setIsRunningRetentionPurge(true);
-    try {
-      const result = await runComplianceRetentionPurgeAdmin();
-      showAlert({
-        title: "Purge dokončen",
-        message: `Admin audit: ${result.admin_audit_deleted}, DSR eventy: ${result.dsr_events_deleted}, breach eventy: ${result.breach_events_deleted}.`,
-        variant: "success",
-      });
-    } catch (error) {
-      showAlert({
-        title: "Purge selhal",
-        message: `Compliance purge se nepodařilo dokončit: ${String((error as Error)?.message || error)}`,
-        variant: "danger",
-      });
-    } finally {
-      setIsRunningRetentionPurge(false);
-    }
   };
 
   const handleCreateSubprocessor = async () => {
@@ -349,6 +335,56 @@ export const ComplianceAdmin: React.FC = () => {
       });
     } finally {
       setIsSavingSubprocessor(false);
+    }
+  };
+
+  const handleCreateProcessingActivity = async () => {
+    const activityName = newProcessingActivityName.trim();
+    const purpose = newProcessingActivityPurpose.trim();
+    const legalBasis = newProcessingActivityLegalBasis.trim();
+    const dataCategories = newProcessingActivityCategories
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean);
+
+    if (!activityName || !purpose || !legalBasis || dataCategories.length === 0) {
+      showAlert({
+        title: "Chybí údaje",
+        message: "Vyplňte název činnosti, účel, právní titul a alespoň jednu kategorii dat.",
+        variant: "danger",
+      });
+      return;
+    }
+
+    setIsSavingProcessingActivity(true);
+    try {
+      await saveProcessingActivityAdmin({
+        id: `processing-activity-${Date.now()}`,
+        activityName,
+        purpose,
+        legalBasis,
+        dataCategories,
+        retentionPolicyId: newProcessingActivityRetentionId || null,
+      });
+      setNewProcessingActivityName("");
+      setNewProcessingActivityPurpose("");
+      setNewProcessingActivityLegalBasis("oprávněný zájem");
+      setNewProcessingActivityCategories("");
+      setNewProcessingActivityRetentionId("");
+      await loadOverview();
+      showAlert({
+        title: "Uloženo",
+        message: "Činnost zpracování byla zapsána do interního registru.",
+        variant: "success",
+      });
+    } catch (error) {
+      showAlert({
+        title: "Uložení selhalo",
+        message: `Činnost zpracování se nepodařilo uložit: ${String((error as Error)?.message || error)}`,
+        variant: "danger",
+      });
+    } finally {
+      setIsSavingProcessingActivity(false);
     }
   };
 
@@ -421,6 +457,107 @@ export const ComplianceAdmin: React.FC = () => {
     }
   };
 
+  const handleSaveBreachAssessment = async (breach: BreachCase) => {
+    const summary = (breachAssessmentDrafts[breach.id] ?? breach.assessmentSummary).trim();
+
+    if (!summary) {
+      showAlert({
+        title: "Chybí posouzení",
+        message: "Vyplňte stručné posouzení dopadu, rozsahu a dalšího postupu.",
+        variant: "danger",
+      });
+      return;
+    }
+
+    setSavingBreachAssessmentId(breach.id);
+    try {
+      await saveBreachAssessmentAdmin({
+        id: breach.id,
+        assessmentSummary: summary,
+      });
+      await loadOverview();
+      showAlert({
+        title: "Posouzení uloženo",
+        message: "Shrnutí breach case bylo zapsáno do timeline i evidence případu.",
+        variant: "success",
+      });
+    } catch (error) {
+      showAlert({
+        title: "Uložení selhalo",
+        message: `Posouzení se nepodařilo uložit: ${String((error as Error)?.message || error)}`,
+        variant: "danger",
+      });
+    } finally {
+      setSavingBreachAssessmentId(null);
+    }
+  };
+
+  const handleAddBreachTimelineEvent = async (breach: BreachCase) => {
+    const summary = (breachTimelineDrafts[breach.id] ?? "").trim();
+
+    if (!summary) {
+      showAlert({
+        title: "Chybí krok do timeline",
+        message: "Zapište stručně, co se stalo nebo jaký krok byl proveden.",
+        variant: "danger",
+      });
+      return;
+    }
+
+    setSavingBreachTimelineId(breach.id);
+    try {
+      await addBreachCaseTimelineEventAdmin({
+        breachCaseId: breach.id,
+        summary,
+      });
+      setBreachTimelineDrafts((prev) => ({ ...prev, [breach.id]: "" }));
+      await loadOverview();
+      showAlert({
+        title: "Timeline doplněna",
+        message: "Krok byl zapsán do auditní timeline případu.",
+        variant: "success",
+      });
+    } catch (error) {
+      showAlert({
+        title: "Zápis selhal",
+        message: `Timeline krok se nepodařilo uložit: ${String((error as Error)?.message || error)}`,
+        variant: "danger",
+      });
+    } finally {
+      setSavingBreachTimelineId(null);
+    }
+  };
+
+  const handleMarkBreachNotification = async (
+    breach: BreachCase,
+    target: "authority" | "data_subjects",
+  ) => {
+    setMarkingBreachNotification(`${breach.id}:${target}`);
+    try {
+      await markBreachNotificationAdmin({
+        id: breach.id,
+        target,
+      });
+      await loadOverview();
+      showAlert({
+        title: "Notifikace zapsána",
+        message:
+          target === "authority"
+            ? "Do případu bylo zapsáno hlášení vůči ÚOOÚ."
+            : "Do případu bylo zapsáno informování dotčených subjektů.",
+        variant: "success",
+      });
+    } catch (error) {
+      showAlert({
+        title: "Zápis selhal",
+        message: `Notifikaci se nepodařilo zapsat: ${String((error as Error)?.message || error)}`,
+        variant: "danger",
+      });
+    } finally {
+      setMarkingBreachNotification(null);
+    }
+  };
+
   const summary = useMemo(
     () =>
       checklistItems.reduce(
@@ -447,6 +584,14 @@ export const ComplianceAdmin: React.FC = () => {
           postupu.
         </p>
       </div>
+
+      {COMPLIANCE_DB_SAFE_MODE ? (
+        <div className="rounded-2xl border border-cyan-200 bg-cyan-50 p-4 text-sm text-cyan-900 dark:border-cyan-500/30 dark:bg-cyan-500/10 dark:text-cyan-100">
+          Bezpečný režim databáze: z tohoto compliance panelu se nyní nespouští žádné mazání,
+          anonymizace ani purge nad tvou databází. Panel slouží pro evidenci, audit, export a
+          přípravu procesů.
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-500/20 dark:bg-emerald-500/10">
@@ -479,6 +624,9 @@ export const ComplianceAdmin: React.FC = () => {
         <h3 className="text-base font-bold text-slate-900 dark:text-white">
           Compliance checklist
         </h3>
+        <p className="mt-2 text-sm text-slate-500">
+          Shrnutí, co je hotové, co chybí a proč je to důležité pro GDPR a interní provoz.
+        </p>
         {isLoading && (
           <p className="mt-3 text-sm text-slate-500">Načítám compliance přehled…</p>
         )}
@@ -517,14 +665,21 @@ export const ComplianceAdmin: React.FC = () => {
           <h3 className="text-base font-bold text-slate-900 dark:text-white">
             Retence dat
           </h3>
+          <p className="mt-2 text-sm text-slate-500">
+            Nastavení, jak dlouho se mají jednotlivé provozní záznamy držet. Slouží pro evidenci
+            retention politik, ne pro okamžité mazání produkčních dat.
+          </p>
           <div className="mt-3">
             <button
               onClick={() => void handleRunRetentionPurge()}
-              disabled={isRunningRetentionPurge}
-              className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-500 disabled:opacity-50"
+              className="rounded-lg border border-amber-300 px-4 py-2 text-sm font-semibold text-amber-800 transition hover:bg-amber-50 dark:border-amber-500/40 dark:text-amber-200 dark:hover:bg-amber-500/10"
             >
-              {isRunningRetentionPurge ? "Spouštím purge…" : "Spustit purge"}
+              Purge je vypnuté
             </button>
+            <p className="mt-2 text-xs text-slate-500">
+              Tohle tlačítko teď nic nemaže. Jen vysvětluje, že purge workflow budeme zapínat až po
+              samostatném schválení a kontrole nad neprodukční kopií.
+            </p>
           </div>
           <div className="mt-4 space-y-3">
             {retentionPolicies.map((policy) => (
@@ -582,6 +737,10 @@ export const ComplianceAdmin: React.FC = () => {
           <h3 className="text-base font-bold text-slate-900 dark:text-white">
             DSR fronta
           </h3>
+        <p className="mt-2 text-sm text-slate-500">
+          Evidence požadavků subjektů údajů. Slouží ke sledování přístupu, exportu, oprav a
+          požadavků na výmaz bez automatického zásahu do produkčních dat.
+        </p>
         <div className="mt-4 space-y-3">
           <div className="rounded-xl border border-dashed border-slate-300 p-4 dark:border-slate-700/50">
             <div className="grid grid-cols-1 gap-3 xl:grid-cols-[140px_minmax(0,1fr)_180px_auto]">
@@ -636,6 +795,10 @@ export const ComplianceAdmin: React.FC = () => {
                 <div className="mt-2 text-xs text-slate-500">
                   {request.id} • termín {request.dueAt}
                 </div>
+                <div className="mt-2 text-xs text-slate-500">
+                  Export stáhne podklady k ručnímu vyřízení požadavku. Tlačítko pro výmaz zde pouze
+                  eviduje záměr a nespouští žádný zásah do databáze.
+                </div>
                 {request.status !== "completed" && (
                   <div className="mt-3 flex flex-wrap gap-2">
                     <button
@@ -651,10 +814,17 @@ export const ComplianceAdmin: React.FC = () => {
                       Export JSON
                     </button>
                     <button
-                      onClick={() => void handleAnonymizeDsr(request)}
+                      onClick={() =>
+                        showAlert({
+                          title: "Mazání je vypnuté",
+                          message:
+                            "Požadavek na výmaz se v tomto panelu pouze eviduje. Žádná anonymizace ani mazání databázových dat se teď z UI nespouští.",
+                          variant: "info",
+                        })
+                      }
                       className="rounded-lg border border-rose-300 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 dark:border-rose-700 dark:text-rose-300 dark:hover:bg-rose-950/40"
                     >
-                      Anonymizovat
+                      Výmaz je jen evidenční
                     </button>
                   </div>
                 )}
@@ -667,6 +837,10 @@ export const ComplianceAdmin: React.FC = () => {
           <h3 className="text-base font-bold text-slate-900 dark:text-white">
             Breach register
           </h3>
+          <p className="mt-2 text-sm text-slate-500">
+            Evidence bezpečnostních incidentů s dopadem do osobních údajů. Pomáhá doložit posouzení,
+            stav řešení a případnou notifikaci do 72 hodin.
+          </p>
           <div className="mt-4 space-y-3">
             <div className="rounded-xl border border-dashed border-slate-300 p-4 dark:border-slate-700/50">
               <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_140px_180px_auto]">
@@ -710,6 +884,24 @@ export const ComplianceAdmin: React.FC = () => {
                 key={breach.id}
                 className="rounded-xl border border-slate-200 p-4 dark:border-slate-700/50"
               >
+                {(() => {
+                  const deadlineAt = new Date(
+                    new Date(breach.createdAt).getTime() + 72 * 60 * 60 * 1000,
+                  );
+                  const hoursLeft = Math.round((deadlineAt.getTime() - Date.now()) / (60 * 60 * 1000));
+                  const deadlineTone =
+                    hoursLeft < 0
+                      ? "text-rose-600 dark:text-rose-300"
+                      : hoursLeft <= 24
+                        ? "text-amber-600 dark:text-amber-300"
+                        : "text-emerald-600 dark:text-emerald-300";
+
+                  const eventsForBreach = breachCaseEvents.filter(
+                    (event) => event.breachCaseId === breach.id,
+                  );
+
+                  return (
+                    <>
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-sm font-semibold text-slate-900 dark:text-white">
                     {breach.title}
@@ -721,11 +913,23 @@ export const ComplianceAdmin: React.FC = () => {
                 <div className="mt-2 text-xs text-slate-500">
                   {breach.id} • stav {breachStatusLabel[breach.status]}
                 </div>
+                <div className={`mt-2 text-xs font-semibold ${deadlineTone}`}>
+                  72h deadline: {formatDateTime(deadlineAt.toISOString())}{" "}
+                  {hoursLeft < 0 ? `• po termínu ${Math.abs(hoursLeft)} h` : `• zbývá cca ${hoursLeft} h`}
+                </div>
                 {breach.linkedIncidentId ? (
                   <div className="mt-1 text-xs text-slate-500">
                     Navázaný incident: {breach.linkedIncidentId}
                   </div>
                 ) : null}
+                <div className="mt-2 text-xs text-slate-500">
+                  Posun stavu zapisuje průběh posouzení a pomáhá hlídat 72h proces. Neprovádí žádné
+                  změny v produkčních datech zákazníků.
+                </div>
+                <div className="mt-2 text-xs text-slate-500">
+                  ÚOOÚ: {formatDateTime(breach.authorityNotifiedAt)} • Subjekty:{" "}
+                  {formatDateTime(breach.dataSubjectsNotifiedAt)}
+                </div>
                 {breach.status !== "closed" && (
                   <button
                     onClick={() => void handleAdvanceBreachStatus(breach)}
@@ -741,6 +945,93 @@ export const ComplianceAdmin: React.FC = () => {
                     ]}
                   </button>
                 )}
+                <div className="mt-4 space-y-3 rounded-xl border border-slate-200/80 p-3 dark:border-slate-700/50">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Posouzení případu
+                  </div>
+                  <textarea
+                    aria-label={`Posouzení ${breach.id}`}
+                    value={breachAssessmentDrafts[breach.id] ?? breach.assessmentSummary}
+                    onChange={(e) =>
+                      setBreachAssessmentDrafts((prev) => ({ ...prev, [breach.id]: e.target.value }))
+                    }
+                    rows={3}
+                    placeholder="Stručně popište rozsah, dopad, pravděpodobnost rizika a další krok."
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                  />
+                  <button
+                    onClick={() => void handleSaveBreachAssessment(breach)}
+                    disabled={savingBreachAssessmentId === breach.id}
+                    className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+                  >
+                    {savingBreachAssessmentId === breach.id ? "Ukládám…" : "Uložit posouzení"}
+                  </button>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <button
+                    onClick={() => void handleMarkBreachNotification(breach, "authority")}
+                    disabled={Boolean(breach.authorityNotifiedAt) || markingBreachNotification === `${breach.id}:authority`}
+                    className="rounded-lg border border-cyan-300 px-3 py-1.5 text-xs font-semibold text-cyan-700 transition hover:bg-cyan-50 disabled:opacity-50 dark:border-cyan-700 dark:text-cyan-300 dark:hover:bg-cyan-950/40"
+                  >
+                    {breach.authorityNotifiedAt ? "ÚOOÚ zapsáno" : "Zapsat hlášení ÚOOÚ"}
+                  </button>
+                  <button
+                    onClick={() => void handleMarkBreachNotification(breach, "data_subjects")}
+                    disabled={
+                      Boolean(breach.dataSubjectsNotifiedAt) ||
+                      markingBreachNotification === `${breach.id}:data_subjects`
+                    }
+                    className="rounded-lg border border-violet-300 px-3 py-1.5 text-xs font-semibold text-violet-700 transition hover:bg-violet-50 disabled:opacity-50 dark:border-violet-700 dark:text-violet-300 dark:hover:bg-violet-950/40"
+                  >
+                    {breach.dataSubjectsNotifiedAt
+                      ? "Subjekty zapsány"
+                      : "Zapsat informování subjektů"}
+                  </button>
+                </div>
+                <div className="mt-4 space-y-3 rounded-xl border border-slate-200/80 p-3 dark:border-slate-700/50">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Timeline 72h
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    Sem zapisuj jen evidenční kroky: detekce, containment, interní eskalace,
+                    právní posouzení a případné notifikace.
+                  </p>
+                  <div className="space-y-2">
+                    {eventsForBreach.map((event) => (
+                      <div
+                        key={event.id}
+                        className="rounded-lg border border-slate-200 px-3 py-2 text-xs dark:border-slate-700/50"
+                      >
+                        <div className="font-semibold text-slate-700 dark:text-slate-200">
+                          {formatDateTime(event.createdAt)} • {event.eventType}
+                        </div>
+                        <div className="mt-1 text-slate-500">
+                          {event.summary}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <textarea
+                    aria-label={`Timeline ${breach.id}`}
+                    value={breachTimelineDrafts[breach.id] ?? ""}
+                    onChange={(e) =>
+                      setBreachTimelineDrafts((prev) => ({ ...prev, [breach.id]: e.target.value }))
+                    }
+                    rows={2}
+                    placeholder="Např. potvrzena interní eskalace, rotace klíčů, právní posouzení rizika…"
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                  />
+                  <button
+                    onClick={() => void handleAddBreachTimelineEvent(breach)}
+                    disabled={savingBreachTimelineId === breach.id}
+                    className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+                  >
+                    {savingBreachTimelineId === breach.id ? "Ukládám…" : "Přidat krok do timeline"}
+                  </button>
+                </div>
+                    </>
+                  );
+                })()}
               </div>
             ))}
           </div>
@@ -750,6 +1041,10 @@ export const ComplianceAdmin: React.FC = () => {
           <h3 className="text-base font-bold text-slate-900 dark:text-white">
             Subprocessors
           </h3>
+          <p className="mt-2 text-sm text-slate-500">
+            Registr dodavatelů, kteří zpracovávají data pro Tender Flow. Slouží pro audit, DPA
+            přehled a kontrolu regionů a přenosových mechanismů.
+          </p>
           <div className="mt-4 space-y-3">
             <div className="rounded-xl border border-dashed border-slate-300 p-4 dark:border-slate-700/50">
               <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1.1fr)_120px_minmax(0,1.2fr)_120px_auto]">
@@ -813,6 +1108,109 @@ export const ComplianceAdmin: React.FC = () => {
                 </div>
                 <div className="mt-2 text-xs text-slate-500">
                   {record.region} • {record.transferMechanism}
+                </div>
+                <div className="mt-2 text-xs text-slate-500">
+                  Záznam slouží pro audit dodavatelů, DPA kontrolu a ověření přenosů mimo EU.
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700/40 dark:bg-slate-900/80">
+          <h3 className="text-base font-bold text-slate-900 dark:text-white">
+            ROPA / činnosti zpracování
+          </h3>
+          <p className="mt-2 text-sm text-slate-500">
+            Interní registr účelů zpracování, právních titulů a kategorií dat. Pomáhá při auditu,
+            odpovědích na dotazy zákazníků i při sladění legal textů s realitou.
+          </p>
+          <div className="mt-4 space-y-3">
+            <div className="rounded-xl border border-dashed border-slate-300 p-4 dark:border-slate-700/50">
+              <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                <input
+                  aria-label="Název činnosti zpracování"
+                  type="text"
+                  value={newProcessingActivityName}
+                  onChange={(e) => setNewProcessingActivityName(e.target.value)}
+                  placeholder="Např. Správa kontaktů v CRM"
+                  className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                />
+                <input
+                  aria-label="Účel činnosti zpracování"
+                  type="text"
+                  value={newProcessingActivityPurpose}
+                  onChange={(e) => setNewProcessingActivityPurpose(e.target.value)}
+                  placeholder="Např. obchodní komunikace a plnění smlouvy"
+                  className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                />
+                <input
+                  aria-label="Právní titul činnosti zpracování"
+                  type="text"
+                  value={newProcessingActivityLegalBasis}
+                  onChange={(e) => setNewProcessingActivityLegalBasis(e.target.value)}
+                  placeholder="Např. plnění smlouvy"
+                  className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                />
+                <input
+                  aria-label="Kategorie dat činnosti zpracování"
+                  type="text"
+                  value={newProcessingActivityCategories}
+                  onChange={(e) => setNewProcessingActivityCategories(e.target.value)}
+                  placeholder="Např. jméno, e-mail, telefon"
+                  className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                />
+                <select
+                  aria-label="Navázaná retention policy"
+                  value={newProcessingActivityRetentionId}
+                  onChange={(e) => setNewProcessingActivityRetentionId(e.target.value)}
+                  className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                >
+                  <option value="">Bez vazby na retention policy</option>
+                  {retentionPolicies.map((policy) => (
+                    <option key={policy.id} value={policy.id}>
+                      {policy.category}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => void handleCreateProcessingActivity()}
+                  disabled={isSavingProcessingActivity}
+                  className="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:opacity-50"
+                >
+                  {isSavingProcessingActivity ? "Ukládám…" : "Přidat"}
+                </button>
+              </div>
+            </div>
+            {!hasRealProcessingActivities ? (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+                Registr činností zatím obsahuje jen placeholder. Další krok je zapsat hlavní
+                datové toky, právní titul a vazbu na retenci.
+              </div>
+            ) : null}
+            {processingActivities.map((record) => (
+              <div
+                key={record.id}
+                className="rounded-xl border border-slate-200 p-4 dark:border-slate-700/50"
+              >
+                <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                  {record.activityName}
+                </div>
+                <div className="mt-1 text-sm text-slate-500">{record.purpose}</div>
+                <div className="mt-2 text-xs text-slate-500">
+                  Právní titul: {record.legalBasis}
+                </div>
+                <div className="mt-1 text-xs text-slate-500">
+                  Kategorie dat: {record.dataCategories.join(", ")}
+                </div>
+                <div className="mt-1 text-xs text-slate-500">
+                  {record.retentionPolicyId
+                    ? `Navázaná retence: ${record.retentionPolicyId}`
+                    : "Retence zatím není navázaná"}
+                </div>
+                <div className="mt-2 text-xs text-slate-500">
+                  Tento záznam jen dokumentuje činnost zpracování. Nemění ani nemaže žádná
+                  produkční data.
                 </div>
               </div>
             ))}
