@@ -403,6 +403,36 @@ export interface ContractWithDetails extends Contract {
   remaining: number;    // currentTotal - approvedSum
 }
 
+export interface ContractSummaryDto {
+  id: string;
+  projectId: string;
+  title: string;
+  contractNumber?: string;
+  vendorName: string;
+  status: ContractStatus;
+  currency: string;
+  basePrice: number;
+  currentTotal: number;
+  approvedSum: number;
+  remaining: number;
+  retentionPercent?: number;
+  retentionAmount?: number;
+  siteSetupPercent?: number;
+  warrantyMonths?: number;
+  paymentTerms?: string;
+  signedAt?: string;
+  effectiveFrom?: string;
+  effectiveTo?: string;
+  scopeSummary?: string;
+}
+
+export interface ContractSummaryFilters {
+  query?: string;
+  status?: ContractStatus | "all";
+}
+
+export type ContractSummarySort = "vendor_asc";
+
 export interface ContractExtractionResult {
   fields: Partial<Contract>;
   confidence: Record<string, number>;

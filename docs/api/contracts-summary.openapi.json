@@ -1,0 +1,161 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Tender Flow Contracts Summary API",
+    "version": "0.1.0",
+    "description": "Návrhový kontrakt pro přehled smluv použitelný v UI, exportech a budoucím veřejném API."
+  },
+  "paths": {
+    "/projects/{projectId}/contracts/summary": {
+      "get": {
+        "summary": "Vrátí přehled smluv projektu",
+        "description": "Read-only endpoint vracející tenant-scoped summary data pro smlouvy v projektu.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Fulltext nad contractNumber, vendorName a title."
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["active", "draft", "closed", "cancelled"]
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["vendor_asc"],
+              "default": "vendor_asc"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Seznam summary smluv",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ContractSummaryDto"
+                  }
+                },
+                "example": [
+                  {
+                    "id": "contract-1",
+                    "projectId": "project-1",
+                    "title": "VZT",
+                    "contractNumber": "SOD-2026-001",
+                    "vendorName": "KLIMA - ELEKTRON s.r.o.",
+                    "status": "active",
+                    "currency": "CZK",
+                    "basePrice": 100000,
+                    "currentTotal": 125000,
+                    "approvedSum": 30000,
+                    "remaining": 95000,
+                    "retentionPercent": 5,
+                    "retentionAmount": null,
+                    "siteSetupPercent": 2,
+                    "warrantyMonths": 24,
+                    "paymentTerms": "21 dní",
+                    "signedAt": "2026-02-01",
+                    "effectiveFrom": "2026-02-05",
+                    "effectiveTo": "2026-12-20",
+                    "scopeSummary": "Vzduchotechnika a související montáže"
+                  }
+                ]
+              }
+            }
+          },
+          "400": {
+            "description": "Neplatný filtr nebo řazení"
+          },
+          "401": {
+            "description": "Neautorizovaný přístup"
+          },
+          "403": {
+            "description": "Projekt není v tenant scope uživatele"
+          },
+          "404": {
+            "description": "Projekt nebyl nalezen"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "ContractSummaryDto": {
+        "type": "object",
+        "required": [
+          "id",
+          "projectId",
+          "title",
+          "vendorName",
+          "status",
+          "currency",
+          "basePrice",
+          "currentTotal",
+          "approvedSum",
+          "remaining"
+        ],
+        "properties": {
+          "id": { "type": "string" },
+          "projectId": { "type": "string" },
+          "title": { "type": "string" },
+          "contractNumber": { "type": "string" },
+          "vendorName": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["draft", "active", "closed", "cancelled"]
+          },
+          "currency": { "type": "string" },
+          "basePrice": { "type": "number" },
+          "currentTotal": { "type": "number" },
+          "approvedSum": { "type": "number" },
+          "remaining": { "type": "number" },
+          "retentionPercent": { "type": ["number", "null"] },
+          "retentionAmount": { "type": ["number", "null"] },
+          "siteSetupPercent": { "type": ["number", "null"] },
+          "warrantyMonths": { "type": ["number", "null"] },
+          "paymentTerms": { "type": ["string", "null"] },
+          "signedAt": { "type": ["string", "null"], "format": "date" },
+          "effectiveFrom": { "type": ["string", "null"], "format": "date" },
+          "effectiveTo": { "type": ["string", "null"], "format": "date" },
+          "scopeSummary": { "type": ["string", "null"] }
+        }
+      }
+    }
+  }
+}

@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ProjectDetails, ContractWithDetails } from '../../types';
 import { contractService } from '../../services/contractService';
 import { ContractsOverview } from './contractsComponents/ContractsOverview';
 import { ContractsList } from './contractsComponents/ContractsList';
 import { AmendmentsList } from './contractsComponents/AmendmentsList';
 import { DrawdownsList } from './contractsComponents/DrawdownsList';
+import { ContractsSummaryView } from '@/shared/ui/projects/ContractsSummaryView';
+import { buildContractSummaryList } from '@/shared/contracts/contractSummary';
 
 export interface ContractsProps {
   projectId: string;
@@ -12,6 +14,8 @@ export interface ContractsProps {
 }
 
 type ContractsSubTab = 'overview' | 'contracts' | 'amendments' | 'drawdowns';
+type ContractsListViewMode = 'table' | 'summary';
+type DrawdownsViewMode = 'drawdowns' | 'summary';
 
 const normalizeContractSortKey = (value: string | null | undefined): string =>
   (value || "").trim().toLocaleLowerCase("cs");
@@ -43,10 +47,16 @@ const getPreferredContractSelection = (
 
 export const Contracts: React.FC<ContractsProps> = ({ projectId, projectDetails }) => {
   const [activeSubTab, setActiveSubTab] = useState<ContractsSubTab>('overview');
+  const [contractsViewMode, setContractsViewMode] = useState<ContractsListViewMode>('table');
+  const [drawdownsViewMode, setDrawdownsViewMode] = useState<DrawdownsViewMode>('drawdowns');
   const [contracts, setContracts] = useState<ContractWithDetails[]>([]);
   const [selectedContractId, setSelectedContractId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const contractSummaries = useMemo(
+    () => buildContractSummaryList(contracts),
+    [contracts],
+  );
 
   // Load contracts
   useEffect(() => {
@@ -150,18 +160,53 @@ export const Contracts: React.FC<ContractsProps> = ({ projectId, projectDetails 
         )}
 
         {activeSubTab === 'contracts' && (
-          <ContractsList
-            projectId={projectId}
-            projectDetails={projectDetails}
-            contracts={contracts}
-            onContractCreated={refreshContracts}
-            onContractUpdated={refreshContracts}
-            onContractDeleted={refreshContracts}
-            onSelectContract={(id) => {
-              setSelectedContractId(id);
-              // Optionally switch to amendments or drawdowns tab
-            }}
-          />
+          <div className="space-y-4">
+            <div className="flex w-fit items-center gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-900">
+              <button
+                type="button"
+                onClick={() => setContractsViewMode('table')}
+                className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  contractsViewMode === 'table'
+                    ? 'bg-white text-primary shadow-sm dark:bg-slate-800'
+                    : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                }`}
+              >
+                Tabulka
+              </button>
+              <button
+                type="button"
+                onClick={() => setContractsViewMode('summary')}
+                className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  contractsViewMode === 'summary'
+                    ? 'bg-white text-primary shadow-sm dark:bg-slate-800'
+                    : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                }`}
+              >
+                Přehled smluv
+              </button>
+            </div>
+
+            {contractsViewMode === 'table' ? (
+              <ContractsList
+                projectId={projectId}
+                projectDetails={projectDetails}
+                contracts={contracts}
+                onContractCreated={refreshContracts}
+                onContractUpdated={refreshContracts}
+                onContractDeleted={refreshContracts}
+                onSelectContract={(id) => {
+                  setSelectedContractId(id);
+                }}
+              />
+            ) : (
+              <ContractsSummaryView
+                contracts={contractSummaries}
+                projectDetails={projectDetails}
+                emptyTitle="Žádné smlouvy k přehledu"
+                emptyDescription="Jakmile přidáte smlouvy, objeví se zde jejich souhrn pro rychlou orientaci i export."
+              />
+            )}
+          </div>
         )}
 
         {activeSubTab === 'amendments' && (
@@ -175,14 +220,55 @@ export const Contracts: React.FC<ContractsProps> = ({ projectId, projectDetails 
         )}
 
         {activeSubTab === 'drawdowns' && (
-          <DrawdownsList
-            contracts={contracts}
-            selectedContractId={selectedContractId}
-            onSelectContract={setSelectedContractId}
-            onDrawdownCreated={refreshContracts}
-            onDrawdownUpdated={refreshContracts}
-            onDrawdownDeleted={refreshContracts}
-          />
+          <div className="space-y-4">
+            <div className="flex w-fit items-center gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-900">
+              <button
+                type="button"
+                onClick={() => setDrawdownsViewMode('drawdowns')}
+                className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  drawdownsViewMode === 'drawdowns'
+                    ? 'bg-white text-primary shadow-sm dark:bg-slate-800'
+                    : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                }`}
+              >
+                Čerpání
+              </button>
+              <button
+                type="button"
+                onClick={() => setDrawdownsViewMode('summary')}
+                className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  drawdownsViewMode === 'summary'
+                    ? 'bg-white text-primary shadow-sm dark:bg-slate-800'
+                    : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                }`}
+              >
+                Smlouvy
+              </button>
+            </div>
+
+            {drawdownsViewMode === 'drawdowns' ? (
+              <DrawdownsList
+                contracts={contracts}
+                selectedContractId={selectedContractId}
+                onSelectContract={setSelectedContractId}
+                onDrawdownCreated={refreshContracts}
+                onDrawdownUpdated={refreshContracts}
+                onDrawdownDeleted={refreshContracts}
+              />
+            ) : (
+              <ContractsSummaryView
+                contracts={contractSummaries}
+                projectDetails={projectDetails}
+                emptyTitle="Žádné smlouvy pro čerpání"
+                emptyDescription="V tomto pohledu uvidíte smluvní rámec ještě před tím, než nad smlouvami vznikne průvodka nebo další čerpání."
+                onContractSelect={(contractId) => {
+                  setSelectedContractId(contractId);
+                  setDrawdownsViewMode('drawdowns');
+                }}
+                rowActionLabel="Otevřít čerpání"
+              />
+            )}
+          </div>
         )}
       </div>
     </div>

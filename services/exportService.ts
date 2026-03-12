@@ -2,10 +2,26 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { marked } from 'marked';
-import { DemandCategory, Bid, ProjectDetails, TenderPlanItem, Subcontractor, StatusConfig } from '../types';
+import {
+  DemandCategory,
+  Bid,
+  ProjectDetails,
+  TenderPlanItem,
+  Subcontractor,
+  StatusConfig,
+  ContractSummaryDto,
+} from '../types';
 import type { SupplierOfferRef } from '../utils/overviewAnalytics';
 import { getOfferStatusMeta } from '../utils/offerStatus';
 import { RobotoRegularBase64 } from '../fonts/roboto-regular';
+import {
+  formatContractSummaryMoney,
+  formatContractSummaryPaymentTerms,
+  formatContractSummaryRetention,
+  formatContractSummarySiteSetup,
+  formatContractSummaryWarranty,
+  getContractSummaryStatusLabel,
+} from '@/shared/contracts/contractSummary';
 
 /**
  * Format money for display
@@ -1217,4 +1233,202 @@ export function exportDashboardToPDF(
 
   const filename = `prehledy_dashboard_${new Date().toISOString().split('T')[0]}.pdf`;
   doc.save(filename);
+}
+
+export interface ContractSummaryExportMeta {
+  organizationName: string;
+  organizationLogoUrl?: string;
+  projectName: string;
+}
+
+const sanitizeExportFileName = (value: string): string => {
+  const trimmed = value.trim();
+  if (!trimmed) return 'smlouvy';
+  return (
+    trimmed
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9_-]+/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_|_$/g, '')
+      .toLowerCase() || 'smlouvy'
+  );
+};
+
+const fetchImageDataUrl = async (url?: string): Promise<string | null> => {
+  if (!url) return null;
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return null;
+
+    const blob = await response.blob();
+    return await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () =>
+        resolve(typeof reader.result === 'string' ? reader.result : '');
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+};
+
+const getContractSummaryFilename = (
+  projectName: string,
+  extension: 'xlsx' | 'pdf',
+) =>
+  `smlouvy_prehled_${sanitizeExportFileName(projectName)}_${new Date()
+    .toISOString()
+    .split('T')[0]}.${extension}`;
+
+export async function exportContractSummariesToXlsx(
+  contracts: ContractSummaryDto[],
+  meta: ContractSummaryExportMeta,
+): Promise<void> {
+  const workbook = XLSX.utils.book_new();
+  const rows: (string | number)[][] = [
+    [meta.organizationName || 'Organizace'],
+    [`Projekt: ${meta.projectName}`],
+    [`Datum exportu: ${formatDate(new Date().toISOString())}`],
+    [],
+    [
+      'Číslo smlouvy',
+      'Dodavatel',
+      'Cena',
+      'Pozastávka',
+      'Zařízení staveniště',
+      'Záruční doba',
+      'Splatnost',
+      'Stav',
+    ],
+    ...contracts.map((contract) => [
+      contract.contractNumber || '-',
+      contract.vendorName,
+      formatContractSummaryMoney(contract.currentTotal, contract.currency),
+      formatContractSummaryRetention(contract),
+      formatContractSummarySiteSetup(contract.siteSetupPercent),
+      formatContractSummaryWarranty(contract.warrantyMonths),
+      formatContractSummaryPaymentTerms(contract.paymentTerms),
+      getContractSummaryStatusLabel(contract.status),
+    ]),
+    [],
+    ['Exportováno z Tender Flow'],
+  ];
+
+  const sheet = XLSX.utils.aoa_to_sheet(rows);
+  sheet['!cols'] = [
+    { wch: 18 },
+    { wch: 28 },
+    { wch: 16 },
+    { wch: 16 },
+    { wch: 20 },
+    { wch: 18 },
+    { wch: 24 },
+    { wch: 14 },
+  ];
+  sheet['!merges'] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 7 } },
+    { s: { r: rows.length - 1, c: 0 }, e: { r: rows.length - 1, c: 7 } },
+  ];
+
+  XLSX.utils.book_append_sheet(workbook, sheet, 'Smlouvy');
+  XLSX.writeFile(workbook, getContractSummaryFilename(meta.projectName, 'xlsx'));
+}
+
+export async function exportContractSummariesToPdf(
+  contracts: ContractSummaryDto[],
+  meta: ContractSummaryExportMeta,
+): Promise<void> {
+  const doc = new jsPDF();
+  registerRobotoFont(doc);
+  doc.setFont('Roboto', 'normal');
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const logoDataUrl = await fetchImageDataUrl(meta.organizationLogoUrl);
+
+  if (logoDataUrl) {
+    try {
+      doc.addImage(logoDataUrl, 'PNG', 14, 10, 22, 12);
+    } catch {
+      // Pokud se logo nepodaří načíst nebo zpracovat, export pokračuje bez něj.
+    }
+  }
+
+  doc.setFontSize(16);
+  doc.setTextColor(15, 23, 42);
+  doc.text(meta.organizationName || 'Organizace', logoDataUrl ? 40 : 14, 18);
+  doc.setFontSize(11);
+  doc.setTextColor(71, 85, 105);
+  doc.text(`Projekt: ${meta.projectName}`, 14, 28);
+  doc.text(`Datum exportu: ${formatDate(new Date().toISOString())}`, pageWidth - 14, 18, {
+    align: 'right',
+  });
+  doc.text('Přehled smluv', pageWidth - 14, 28, { align: 'right' });
+
+  autoTable(doc, {
+    startY: 38,
+    head: [[
+      'Číslo smlouvy',
+      'Dodavatel',
+      'Cena',
+      'Pozastávka',
+      'Zařízení',
+      'Záruka',
+      'Splatnost',
+      'Stav',
+    ]],
+    body: contracts.map((contract) => [
+      contract.contractNumber || '-',
+      contract.vendorName,
+      formatContractSummaryMoney(contract.currentTotal, contract.currency),
+      formatContractSummaryRetention(contract),
+      formatContractSummarySiteSetup(contract.siteSetupPercent),
+      formatContractSummaryWarranty(contract.warrantyMonths),
+      formatContractSummaryPaymentTerms(contract.paymentTerms),
+      getContractSummaryStatusLabel(contract.status),
+    ]),
+    styles: {
+      font: 'Roboto',
+      fontSize: 8,
+      cellPadding: 2.5,
+      textColor: [15, 23, 42],
+    },
+    headStyles: {
+      fillColor: [14, 165, 233],
+      textColor: 255,
+      fontStyle: 'normal',
+    },
+    alternateRowStyles: {
+      fillColor: [248, 250, 252],
+    },
+    margin: { left: 14, right: 14 },
+    columnStyles: {
+      0: { cellWidth: 21 },
+      1: { cellWidth: 35 },
+      2: { cellWidth: 22, halign: 'right' },
+      3: { cellWidth: 20 },
+      4: { cellWidth: 18 },
+      5: { cellWidth: 18 },
+      6: { cellWidth: 28 },
+      7: { cellWidth: 18 },
+    },
+  });
+
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(100);
+    doc.text(
+      `Exportováno z Tender Flow | Strana ${i} z ${pageCount}`,
+      pageWidth / 2,
+      pageHeight - 10,
+      { align: 'center' },
+    );
+  }
+
+  doc.save(getContractSummaryFilename(meta.projectName, 'pdf'));
 }
