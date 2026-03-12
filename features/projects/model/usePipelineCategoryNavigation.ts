@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { DemandCategory } from "@/types";
 import { folderExists } from "@/services/fileSystemService";
+import { logIncident } from "@/services/incidentLogger";
 import platformAdapter from "@/services/platformAdapter";
 import {
   getTendersFolderName,
@@ -106,6 +107,22 @@ export const usePipelineCategoryNavigation = ({
       setBidComparisonTenderPath(resolvedPath);
     } catch (error) {
       console.error("[BidComparison] Nelze dopočítat cestu složky VŘ:", error);
+      void logIncident({
+        severity: "error",
+        source: "renderer",
+        category: "storage",
+        code: "BID_COMPARISON_PATH_RESOLVE_FAILED",
+        message: `Nelze dopočítat cestu ke složce VŘ: ${error instanceof Error ? error.message : String(error)}`,
+        stack: error instanceof Error ? error.stack : null,
+        context: {
+          action: "resolve_bid_comparison_path",
+          operation: "pipeline.resolve_desktop_tender_folder_path",
+          project_id: projectId,
+          category_id: activeCategory.id,
+          reason: error instanceof Error ? error.message : String(error),
+          action_status: "error",
+        },
+      });
       setBidComparisonTenderPath(null);
     } finally {
       setIsResolvingBidComparisonPath(false);

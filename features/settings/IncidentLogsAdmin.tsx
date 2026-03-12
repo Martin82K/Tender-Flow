@@ -22,6 +22,15 @@ const normalizeDatetimeFilter = (value: string): string | undefined => {
   return parsed.toISOString();
 };
 
+const readContextValue = (
+  context: Record<string, unknown> | null | undefined,
+  key: string,
+): string => {
+  const value = context?.[key];
+  if (value === null || value === undefined || value === "") return "-";
+  return String(value);
+};
+
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, value));
 
@@ -29,6 +38,8 @@ export const IncidentLogsAdmin: React.FC = () => {
   const { showAlert, showConfirm } = useUI();
   const [incidentId, setIncidentId] = useState("");
   const [userId, setUserId] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+  const [actionOrCode, setActionOrCode] = useState("");
   const [fromTs, setFromTs] = useState("");
   const [toTs, setToTs] = useState("");
   const [retentionDays, setRetentionDays] = useState("60");
@@ -67,9 +78,11 @@ export const IncidentLogsAdmin: React.FC = () => {
     () =>
       Boolean(incidentId.trim()) ||
       Boolean(userId.trim()) ||
+      Boolean(userEmail.trim()) ||
+      Boolean(actionOrCode.trim()) ||
       Boolean(fromTs.trim()) ||
       Boolean(toTs.trim()),
-    [incidentId, userId, fromTs, toTs],
+    [incidentId, userId, userEmail, actionOrCode, fromTs, toTs],
   );
 
   const handleSearch = async () => {
@@ -78,6 +91,8 @@ export const IncidentLogsAdmin: React.FC = () => {
       const data = await getAppIncidentsAdmin({
         incidentId: incidentId.trim() || undefined,
         userId: userId.trim() || undefined,
+        userEmail: userEmail.trim() || undefined,
+        actionOrCode: actionOrCode.trim() || undefined,
         fromTs: normalizeDatetimeFilter(fromTs),
         toTs: normalizeDatetimeFilter(toTs),
         limit: 500,
@@ -174,7 +189,7 @@ export const IncidentLogsAdmin: React.FC = () => {
       </div>
 
       <div className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700/40 rounded-2xl p-5">
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
           <input
             type="text"
             value={incidentId}
@@ -187,6 +202,20 @@ export const IncidentLogsAdmin: React.FC = () => {
             value={userId}
             onChange={(e) => setUserId(e.target.value)}
             placeholder="User ID (UUID)"
+            className="rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
+          />
+          <input
+            type="text"
+            value={userEmail}
+            onChange={(e) => setUserEmail(e.target.value)}
+            placeholder="E-mail uživatele"
+            className="rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
+          />
+          <input
+            type="text"
+            value={actionOrCode}
+            onChange={(e) => setActionOrCode(e.target.value)}
+            placeholder="Akce / kód / text"
             className="rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
           />
           <input
@@ -221,6 +250,8 @@ export const IncidentLogsAdmin: React.FC = () => {
             onClick={() => {
               setIncidentId("");
               setUserId("");
+              setUserEmail("");
+              setActionOrCode("");
               setFromTs("");
               setToTs("");
               setItems([]);
@@ -306,6 +337,8 @@ export const IncidentLogsAdmin: React.FC = () => {
                 <th className="px-4 py-2">Sev</th>
                 <th className="px-4 py-2">Kategorie</th>
                 <th className="px-4 py-2">Kód</th>
+                <th className="px-4 py-2">Akce</th>
+                <th className="px-4 py-2">Provider</th>
                 <th className="px-4 py-2">Zpráva</th>
                 <th className="px-4 py-2">Uživatel</th>
                 <th className="px-4 py-2">Route</th>
@@ -321,6 +354,14 @@ export const IncidentLogsAdmin: React.FC = () => {
                     return "{}";
                   }
                 })();
+                const action = readContextValue(item.context, "action");
+                const provider = readContextValue(item.context, "provider");
+                const actionStatus = readContextValue(item.context, "action_status");
+                const folderPath = readContextValue(item.context, "folder_path");
+                const targetPath = readContextValue(item.context, "target_path");
+                const projectId = readContextValue(item.context, "project_id");
+                const entityType = readContextValue(item.context, "entity_type");
+                const entityId = readContextValue(item.context, "entity_id");
 
                 return (
                   <React.Fragment key={item.id}>
@@ -346,11 +387,18 @@ export const IncidentLogsAdmin: React.FC = () => {
                       <td className="px-4 py-2 uppercase">{item.severity}</td>
                       <td className="px-4 py-2">{item.category}</td>
                       <td className="px-4 py-2 font-mono text-xs">{item.code}</td>
+                      <td className="px-4 py-2 font-mono text-xs whitespace-nowrap">{action}</td>
+                      <td className="px-4 py-2 font-mono text-xs whitespace-nowrap">{provider}</td>
                       <td className="px-4 py-2 max-w-[460px] truncate" title={item.message}>
                         {item.message}
                       </td>
-                      <td className="px-4 py-2 font-mono text-xs whitespace-nowrap">
-                        {item.user_id || "-"}
+                      <td className="px-4 py-2 text-xs min-w-[200px]">
+                        <div className="font-medium text-slate-700 dark:text-slate-100">
+                          {item.user_email || "-"}
+                        </div>
+                        <div className="font-mono text-[11px] text-slate-500 dark:text-slate-400">
+                          {item.user_id || "-"}
+                        </div>
                       </td>
                       <td className="px-4 py-2 font-mono text-xs whitespace-nowrap">
                         {item.route || "-"}
@@ -358,7 +406,7 @@ export const IncidentLogsAdmin: React.FC = () => {
                     </tr>
                     {isExpanded && (
                       <tr className="border-t border-slate-100 dark:border-slate-800/70">
-                        <td colSpan={9} className="px-4 py-4 bg-slate-50/60 dark:bg-slate-900/40">
+                        <td colSpan={11} className="px-4 py-4 bg-slate-50/60 dark:bg-slate-900/40">
                           <div className="flex items-center justify-between gap-2 mb-3">
                             <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                               Detail incidentu {item.incident_id}
@@ -413,6 +461,15 @@ export const IncidentLogsAdmin: React.FC = () => {
                                 <strong>Platform:</strong> {item.platform}/{item.os}
                               </div>
                               <div className="text-xs text-slate-600 dark:text-slate-300">
+                                <strong>Akce:</strong> {action}
+                              </div>
+                              <div className="text-xs text-slate-600 dark:text-slate-300">
+                                <strong>Stav akce:</strong> {actionStatus}
+                              </div>
+                              <div className="text-xs text-slate-600 dark:text-slate-300">
+                                <strong>Provider:</strong> {provider}
+                              </div>
+                              <div className="text-xs text-slate-600 dark:text-slate-300">
                                 <strong>Release:</strong> {item.release_channel} ({item.app_version})
                               </div>
                               <div className="text-xs text-slate-600 dark:text-slate-300 break-all">
@@ -423,6 +480,21 @@ export const IncidentLogsAdmin: React.FC = () => {
                               </div>
                               <div className="text-xs text-slate-600 dark:text-slate-300 break-all">
                                 <strong>Org:</strong> {item.organization_id || "-"}
+                              </div>
+                              <div className="text-xs text-slate-600 dark:text-slate-300 break-all">
+                                <strong>Uživatel:</strong> {item.user_email || "-"}
+                              </div>
+                              <div className="text-xs text-slate-600 dark:text-slate-300 break-all">
+                                <strong>Projekt:</strong> {projectId}
+                              </div>
+                              <div className="text-xs text-slate-600 dark:text-slate-300 break-all">
+                                <strong>Entita:</strong> {entityType} / {entityId}
+                              </div>
+                              <div className="text-xs text-slate-600 dark:text-slate-300 break-all">
+                                <strong>Složka:</strong> {folderPath}
+                              </div>
+                              <div className="text-xs text-slate-600 dark:text-slate-300 break-all">
+                                <strong>Cíl:</strong> {targetPath}
                               </div>
                               <div className="text-xs text-slate-600 dark:text-slate-300 break-all">
                                 <strong>Ingested:</strong> {formatTs(item.ingested_at)}
@@ -438,7 +510,7 @@ export const IncidentLogsAdmin: React.FC = () => {
               {!items.length && (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={11}
                     className="px-4 py-10 text-center text-slate-500 dark:text-slate-400"
                   >
                     Zatím žádné incidenty. Spusť vyhledání nebo zadej filtr.

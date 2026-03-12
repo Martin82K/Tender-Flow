@@ -42,6 +42,7 @@ const ALLOWED_CONTEXT_KEYS = new Set<keyof IncidentContext>([
   "action",
   "feature",
   "operation",
+  "function_name",
   "http_status",
   "retry_count",
   "provider",
@@ -51,6 +52,13 @@ const ALLOWED_CONTEXT_KEYS = new Set<keyof IncidentContext>([
   "os",
   "user_id",
   "organization_id",
+  "project_id",
+  "category_id",
+  "entity_id",
+  "entity_type",
+  "folder_path",
+  "target_path",
+  "action_status",
 ]);
 
 let initializedGlobalHandlers = false;

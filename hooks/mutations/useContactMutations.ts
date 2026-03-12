@@ -8,6 +8,7 @@ import { mergeContacts } from "../../services/contactsImportService";
 import { useLocation } from "../../shared/routing/router";
 import { parseAppRoute } from "../../shared/routing/routeUtils";
 import { renameFolder } from '../../services/fileSystemService';
+import { logIncident } from "../../services/incidentLogger";
 import { ProjectDetails } from '../../types';
 import { validateSubcontractorCompanyName } from "../../shared/dochub/subcontractorNameRules";
 
@@ -173,7 +174,29 @@ export const useUpdateContactMutation = () => {
                                             const newPath = `${rootPath}${sep}${tendersName}${sep}${category.title.trim()}${sep}${newName.trim()}`;
 
                                             // Trigger rename (fire and forget)
-                                            renameFolder(oldPath, newPath, { provider, projectId }).catch(e => console.error("Auto-rename failed", e));
+                                            renameFolder(oldPath, newPath, { provider, projectId }).catch((e) => {
+                                                void logIncident({
+                                                    severity: "error",
+                                                    source: "renderer",
+                                                    category: "storage",
+                                                    code: "CONTACT_AUTO_RENAME_FOLDER_FAILED",
+                                                    message: `Automatické přejmenování složky po změně dodavatele selhalo: ${e instanceof Error ? e.message : String(e)}`,
+                                                    stack: e instanceof Error ? e.stack : null,
+                                                    context: {
+                                                        action: "rename_folder",
+                                                        operation: "contacts.auto_rename_folder",
+                                                        provider: provider ?? null,
+                                                        project_id: projectId,
+                                                        category_id: catId,
+                                                        folder_path: oldPath,
+                                                        target_path: newPath,
+                                                        entity_id: variables.id,
+                                                        entity_type: "subcontractor",
+                                                        reason: e instanceof Error ? e.message : String(e),
+                                                        action_status: "error",
+                                                    },
+                                                });
+                                            });
                                         }
                                     }
                                 }

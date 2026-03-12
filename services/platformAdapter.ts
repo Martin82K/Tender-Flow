@@ -70,23 +70,25 @@ export const fileSystemAdapter = {
     /**
      * Open a file in native application
      */
-    async openFile(filePath: string): Promise<void> {
+    async openFile(filePath: string): Promise<{ success: boolean; error?: string }> {
         if (isDesktop && window.electronAPI) {
             return window.electronAPI.fs.openFile(filePath);
         }
         // Web: try to open as URL
         window.open(filePath, '_blank');
+        return { success: true };
     },
 
     /**
      * Show file in system file explorer
      */
-    async openInExplorer(folderPath: string): Promise<void> {
+    async openInExplorer(folderPath: string): Promise<{ success: boolean; error?: string }> {
         if (isDesktop && window.electronAPI) {
             return window.electronAPI.fs.openInExplorer(folderPath);
         }
         // Web: not possible
         console.warn('Cannot open explorer on web.');
+        return { success: false, error: 'Cannot open explorer on web.' };
     },
 
     /**

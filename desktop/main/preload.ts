@@ -58,10 +58,10 @@ const electronAPI: ElectronAPI = {
         writeFile: (filePath: string, data: Buffer | string): Promise<void> =>
             invokeTyped('fs:writeFile', filePath, data),
 
-        openInExplorer: (path: string): Promise<void> =>
+        openInExplorer: (path: string): Promise<{ success: boolean; error?: string }> =>
             invokeTyped('fs:openInExplorer', path),
 
-        openFile: (filePath: string): Promise<void> =>
+        openFile: (filePath: string): Promise<{ success: boolean; error?: string }> =>
             invokeTyped('fs:openFile', filePath),
 
         createFolder: (folderPath: string): Promise<{ success: boolean; error?: string }> =>

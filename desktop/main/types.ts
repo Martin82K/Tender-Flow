@@ -39,12 +39,17 @@ export interface FileSystemAPI {
     listFiles: (folderPath: string) => Promise<FileInfo[]>;
     readFile: (filePath: string) => Promise<Buffer>;
     writeFile: (filePath: string, data: Buffer | string) => Promise<void>;
-    openInExplorer: (path: string) => Promise<void>;
-    openFile: (filePath: string) => Promise<void>;
+    openInExplorer: (path: string) => Promise<FileSystemOpenResult>;
+    openFile: (filePath: string) => Promise<FileSystemOpenResult>;
     createFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
     deleteFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
     renameFolder: (oldPath: string, newPath: string) => Promise<{ success: boolean; error?: string }>;
     folderExists: (folderPath: string) => Promise<boolean>;
+}
+
+export interface FileSystemOpenResult {
+    success: boolean;
+    error?: string;
 }
 
 export interface WatcherAPI {

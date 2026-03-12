@@ -45,8 +45,20 @@ describe("IncidentLogsAdmin", () => {
         route: "/login",
         session_id: "SID-1",
         user_id: "user-1",
+        user_email: "uzivatel@example.com",
         organization_id: "org-1",
-        context: { operation: "auth.on_auth_state_change", reason: "invalid_refresh_token" },
+        context: {
+          operation: "auth.on_auth_state_change",
+          reason: "invalid_refresh_token",
+          action: "create_folder",
+          provider: "onedrive",
+          action_status: "error",
+          project_id: "project-1",
+          entity_type: "subcontractor",
+          entity_id: "sub-1",
+          folder_path: "/tmp/source",
+          target_path: "/tmp/target",
+        },
       },
     ]);
     mockState.purgeOldAppIncidentsAdmin.mockResolvedValue(4);
@@ -67,6 +79,29 @@ describe("IncidentLogsAdmin", () => {
     expect(await screen.findByText("Detail incidentu INC-TEST-1")).toBeInTheDocument();
     expect(screen.getByText("Stack trace")).toBeInTheDocument();
     expect(screen.getByText("Kontext (JSON)")).toBeInTheDocument();
+    expect(screen.getAllByText("uzivatel@example.com")).toHaveLength(2);
+    expect(screen.getAllByText("create_folder").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("předá e-mail a akci do filtru vyhledání", async () => {
+    render(<IncidentLogsAdmin />);
+
+    fireEvent.change(screen.getByPlaceholderText("E-mail uživatele"), {
+      target: { value: "uzivatel@example.com" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Akce / kód / text"), {
+      target: { value: "create_folder" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Vyhledat incidenty/i }));
+
+    await waitFor(() => {
+      expect(mockState.getAppIncidentsAdmin).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userEmail: "uzivatel@example.com",
+          actionOrCode: "create_folder",
+        }),
+      );
+    });
   });
 
   it("umožní smazat staré logy po potvrzení", async () => {

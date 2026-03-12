@@ -13,6 +13,7 @@ export interface IncidentContext {
   action?: string | null;
   feature?: string | null;
   operation?: string | null;
+  function_name?: string | null;
   http_status?: number | null;
   retry_count?: number | null;
   provider?: string | null;
@@ -22,6 +23,13 @@ export interface IncidentContext {
   os?: string | null;
   user_id?: string | null;
   organization_id?: string | null;
+  project_id?: string | null;
+  category_id?: string | null;
+  entity_id?: string | null;
+  entity_type?: string | null;
+  folder_path?: string | null;
+  target_path?: string | null;
+  action_status?: string | null;
 }
 
 export interface IncidentEventInput {

@@ -1,5 +1,6 @@
 import { invokeAuthedFunction } from "@/services/functionsClient";
 import { folderExists } from "@/services/fileSystemService";
+import { logIncident } from "@/services/incidentLogger";
 import platformAdapter from "@/services/platformAdapter";
 import {
   getDocHubTenderLinks,
@@ -69,13 +70,34 @@ export const usePipelineDocHubActions = ({
             "[DocHub] Calling fileSystemAdapter.openInExplorer with path:",
             path,
           );
-          await fileSystemAdapter.openInExplorer(path);
-          console.log("[DocHub] openInExplorer completed successfully");
-          return;
+          const result = await fileSystemAdapter.openInExplorer(path);
+          if (result.success) {
+            console.log("[DocHub] openInExplorer completed successfully");
+            return;
+          }
+          throw new Error(result.error || "Nepodařilo se otevřít cestu v průzkumníku.");
         }
 
       } catch (error) {
         console.warn("[DocHub] Open failed, falling back to copy", error);
+        void logIncident({
+          severity: "warn",
+          source: "renderer",
+          category: "storage",
+          code: "DOCHUB_OPEN_PATH_FALLBACK",
+          message: `Otevření DocHub cesty selhalo, přecházím na kopírování: ${error instanceof Error ? error.message : String(error)}`,
+          stack: error instanceof Error ? error.stack : null,
+          context: {
+            action: "open_doc_hub_path",
+            operation: "dochub.open_or_copy_path",
+            provider: projectDetails.docHubProvider ?? null,
+            project_id: projectData.id ?? null,
+            category_id: activeCategory?.id ?? null,
+            folder_path: path,
+            reason: error instanceof Error ? error.message : String(error),
+            action_status: "fallback",
+          },
+        });
       }
     }
 
@@ -115,6 +137,24 @@ export const usePipelineDocHubActions = ({
       window.open(webUrl, "_blank", "noopener,noreferrer");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Neznámá chyba";
+      void logIncident({
+        severity: "error",
+        source: "renderer",
+        category: "network",
+        code: "DOCHUB_BACKEND_LINK_FAILED",
+        message: `Načtení DocHub odkazu selhalo: ${message}`,
+        stack: error instanceof Error ? error.stack : null,
+        context: {
+          action: "open_doc_hub_backend_link",
+          operation: "dochub.open_backend_link",
+          provider: projectData.docHubProvider ?? null,
+          project_id: projectData.id ?? null,
+          category_id: activeCategory?.id ?? null,
+          function_name: "dochub-get-link",
+          reason: message,
+          action_status: "error",
+        },
+      });
       showAlert({ title: "DocHub chyba", message, variant: "danger" });
     }
   };

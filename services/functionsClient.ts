@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { logIncident } from "./incidentLogger";
 
 type InvokeOptions = {
   body?: unknown;
@@ -29,6 +30,45 @@ const getRequiredEnv = (key: "VITE_SUPABASE_URL" | "VITE_SUPABASE_ANON_KEY") => 
   const value = import.meta.env[key];
   if (!value) throw new Error(`Missing env var: ${key}`);
   return value;
+};
+
+const logFunctionInvokeFailure = async (
+  name: string,
+  method: "POST" | "GET",
+  timeoutMs: number,
+  retries: number,
+  error: unknown,
+): Promise<void> => {
+  const message = error instanceof Error ? error.message : String(error);
+  const httpStatus =
+    typeof error === "object" && error !== null && "status" in error
+      ? Number((error as { status?: number }).status) || null
+      : null;
+
+  try {
+    await logIncident({
+      severity: "error",
+      source: "renderer",
+      category: "network",
+      code: "FUNCTION_INVOKE_FAILED",
+      message: `Volání edge funkce ${name} selhalo: ${message}`,
+      stack: error instanceof Error ? error.stack : null,
+      context: {
+        action: "invoke_function",
+        operation: "functions_client.invoke_authed_function",
+        function_name: name,
+        http_status: httpStatus,
+        retry_count: retries,
+        reason: `${message} (timeout ${timeoutMs} ms)`,
+        action_status: "error",
+        entity_type: "supabase_function",
+        entity_id: name,
+        target_path: method,
+      },
+    });
+  } catch {
+    // logging failure must never block function caller
+  }
 };
 
 export const invokeAuthedFunction = async <TResponse>(
@@ -102,6 +142,7 @@ export const invokeAuthedFunction = async <TResponse>(
         await wait(250 * (attempt + 1));
       }
     }
+    await logFunctionInvokeFailure(name, method, timeoutMs, retries, lastError);
     throw lastError instanceof Error ? lastError : new Error("Function IPC call failed");
 
   } else {
@@ -151,6 +192,7 @@ export const invokeAuthedFunction = async <TResponse>(
         await wait(250 * (attempt + 1));
       }
     }
+    await logFunctionInvokeFailure(name, method, timeoutMs, retries, lastError);
     const errorMsg = lastError instanceof Error ? lastError.message : String(lastError);
     console.error(`[Function Error] Failed to fetch ${url}`, lastError);
     throw new Error(`Failed to fetch ${url} (Supabase URL: ${supabaseUrl}). Original error: ${errorMsg}`);

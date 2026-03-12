@@ -98,14 +98,30 @@ export const registerFsHandlers = ({
     await fs.writeFile(filePath, data);
   });
 
-  ipcMain.handle("fs:openInExplorer", async (_, targetPath: string): Promise<void> => {
-    const resolvedTargetPath = await resolvePortableReadPath(targetPath);
-    await shell.openPath(resolvedTargetPath);
+  ipcMain.handle("fs:openInExplorer", async (_, targetPath: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const resolvedTargetPath = await resolvePortableReadPath(targetPath);
+      const result = await shell.openPath(resolvedTargetPath);
+      return result ? { success: false, error: result } : { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
   });
 
-  ipcMain.handle("fs:openFile", async (_, filePath: string): Promise<void> => {
-    const resolvedFilePath = await resolvePortableReadPath(filePath);
-    await shell.openPath(resolvedFilePath);
+  ipcMain.handle("fs:openFile", async (_, filePath: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const resolvedFilePath = await resolvePortableReadPath(filePath);
+      const result = await shell.openPath(resolvedFilePath);
+      return result ? { success: false, error: result } : { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
   });
 
   ipcMain.handle(
