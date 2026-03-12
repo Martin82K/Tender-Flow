@@ -20,6 +20,7 @@ import { SubscriptionSettings } from "@/features/settings/SubscriptionSettings";
 import { OrganizationSettings } from "@/features/settings/OrganizationSettings";
 import { IncidentLogsAdmin } from "@/features/settings/IncidentLogsAdmin";
 import { ComplianceAdmin } from "@/features/settings/ComplianceAdmin";
+import { AdminMfaGuard } from "@/features/settings/AdminMfaGuard";
 
 import { useFeatures } from "@/context/FeatureContext";
 import { FEATURES } from "@/config/features";
@@ -300,9 +301,10 @@ export const Settings: React.FC<SettingsProps> = ({
         )}
 
         {activeTab === "admin" && isAdmin && (
-          <div className="flex flex-col md:flex-row gap-8 animate-fadeIn">
-            <aside className="w-full md:w-64 flex-shrink-0">
-              <nav className="flex flex-col gap-2">
+          <AdminMfaGuard user={user}>
+            <div className="flex flex-col md:flex-row gap-8 animate-fadeIn">
+              <aside className="w-full md:w-64 flex-shrink-0">
+                <nav className="flex flex-col gap-2">
                 <button
                   onClick={() =>
                     updateSettingsUrl({ tab: "admin", subTab: "registration" })
@@ -411,28 +413,29 @@ export const Settings: React.FC<SettingsProps> = ({
                     Compliance
                   </div>
                 </button>
-              </nav>
-            </aside>
+                </nav>
+              </aside>
 
-            <main className="flex-1 min-w-0 overflow-x-hidden">
-              {activeAdminSubTab === "registration" && (
-                <AdminSettings isAdmin={isAdmin} section="registration" />
-              )}
-              {activeAdminSubTab === "users" && (
-                <AdminSettings isAdmin={isAdmin} section="users" />
-              )}
-              {activeAdminSubTab === "subscriptions" && (
-                <AdminSettings isAdmin={isAdmin} section="subscriptions" />
-              )}
-              {activeAdminSubTab === "ai" && (
-                <>
-                  <AISettings isAdmin={isAdmin} />
-                </>
-              )}
-              {activeAdminSubTab === "incidents" && <IncidentLogsAdmin />}
-              {activeAdminSubTab === "compliance" && <ComplianceAdmin />}
-            </main>
-          </div>
+              <main className="flex-1 min-w-0 overflow-x-hidden">
+                {activeAdminSubTab === "registration" && (
+                  <AdminSettings isAdmin={isAdmin} section="registration" />
+                )}
+                {activeAdminSubTab === "users" && (
+                  <AdminSettings isAdmin={isAdmin} section="users" />
+                )}
+                {activeAdminSubTab === "subscriptions" && (
+                  <AdminSettings isAdmin={isAdmin} section="subscriptions" />
+                )}
+                {activeAdminSubTab === "ai" && (
+                  <>
+                    <AISettings isAdmin={isAdmin} />
+                  </>
+                )}
+                {activeAdminSubTab === "incidents" && <IncidentLogsAdmin />}
+                {activeAdminSubTab === "compliance" && <ComplianceAdmin />}
+              </main>
+            </div>
+          </AdminMfaGuard>
         )}
 
         {/* --- USER TAB CONTENT --- */}

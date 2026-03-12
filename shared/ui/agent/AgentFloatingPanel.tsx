@@ -134,7 +134,7 @@ export const AgentFloatingPanel: React.FC<AgentFloatingPanelProps> = ({ runtime 
             setIsSettingsOpen(false);
           }
         }}
-        className="fixed right-5 bottom-6 z-40 inline-flex items-center gap-2.5 rounded-full border border-white/40 bg-white/70 px-5 py-3 text-base font-semibold text-slate-800 shadow-[0_12px_35px_-16px_rgba(15,23,42,0.8)] backdrop-blur-xl transition hover:bg-white/85 dark:border-slate-700/50 dark:bg-slate-900/60 dark:text-slate-100"
+        className="fixed right-[4.75rem] top-4 z-40 inline-flex size-10 items-center justify-center rounded-xl border border-white/40 bg-white/72 text-slate-800 shadow-[0_12px_35px_-16px_rgba(15,23,42,0.8)] backdrop-blur-xl transition hover:bg-white/88 dark:border-slate-700/50 dark:bg-slate-900/68 dark:text-slate-100 max-md:right-5 max-md:top-auto max-md:bottom-6"
         title={isOpen ? "Zavřít Viki" : "Otevřít Viki"}
         aria-label={isOpen ? "Zavřít Viki" : "Otevřít Viki"}
       >
@@ -145,7 +145,6 @@ export const AgentFloatingPanel: React.FC<AgentFloatingPanelProps> = ({ runtime 
           loading="eager"
           decoding="async"
         />
-        Viki
       </button>
 
       <div

@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { hasOptionalCookieConsent } from '@/shared/privacy/cookieConsent';
 
 export interface UsageTenantOption {
   organizationId: string;
@@ -40,6 +41,10 @@ export async function trackFeatureUsage(
   featureKey: string,
   metadata: Record<string, unknown> = {},
 ): Promise<boolean> {
+  if (!hasOptionalCookieConsent()) {
+    return false;
+  }
+
   try {
     const { data, error } = await supabase.rpc('track_feature_usage', {
       feature_key_input: featureKey,

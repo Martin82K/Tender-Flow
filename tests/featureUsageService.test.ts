@@ -4,6 +4,7 @@ import {
   getUsageTenantsAdmin,
   trackFeatureUsage,
 } from '../services/featureUsageService';
+import { clearCookieConsentDecision, setCookieConsentDecision } from '@/shared/privacy/cookieConsent';
 
 const supabaseMocks = vi.hoisted(() => ({
   rpc: vi.fn(),
@@ -18,9 +19,19 @@ vi.mock('../services/supabase', () => ({
 describe('featureUsageService', () => {
   beforeEach(() => {
     supabaseMocks.rpc.mockReset();
+    window.localStorage.clear();
+    clearCookieConsentDecision();
+  });
+
+  it('trackFeatureUsage bez consentu neodesílá analytické RPC', async () => {
+    const result = await trackFeatureUsage('excel_unlocker', { fileSizeBytes: 1234 });
+
+    expect(result).toBe(false);
+    expect(supabaseMocks.rpc).not.toHaveBeenCalled();
   });
 
   it('trackFeatureUsage volá správné RPC parametry', async () => {
+    setCookieConsentDecision('accepted_all');
     supabaseMocks.rpc.mockResolvedValue({ data: true, error: null });
 
     const result = await trackFeatureUsage('excel_unlocker', { fileSizeBytes: 1234 });
@@ -33,6 +44,7 @@ describe('featureUsageService', () => {
   });
 
   it('trackFeatureUsage při chybě nepropaguje výjimku a vrátí false', async () => {
+    setCookieConsentDecision('accepted_all');
     supabaseMocks.rpc.mockResolvedValue({ data: null, error: new Error('fail') });
 
     await expect(trackFeatureUsage('excel_unlocker')).resolves.toBe(false);

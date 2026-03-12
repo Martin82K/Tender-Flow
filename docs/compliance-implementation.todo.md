@@ -18,7 +18,9 @@ Poslední aktualizace: 12. března 2026
 - [x] 2026-03-12: přidán admin DSR export JSON a anonymizace nad profily, kontakty a personálními poli projektů
 - [x] 2026-03-12: přidána editace retention policies, compliance purge trigger a timeline tabulky pro DSR/breach eventy
 - [x] 2026-03-12: přidán základní editor subprocessor registry se zápisem a admin auditem
-- [ ] Další krok: doplnit MFA enforcement, blokaci non-essential analytics podle consentu a hlubší DSR/breach workflow
+- [x] 2026-03-12: přidán admin MFA guard s TOTP enrollment flow a AAL2 ověřením session pro admin sekci
+- [x] 2026-03-12: nepovinná usage analytika je centrálně blokovaná bez souhlasu cookies
+- [ ] Další krok: doplnit hlubší DSR/breach workflow, ROPA evidenci a vazbu legal textů na interní registry
 
 ## Přehled priorit
 
@@ -29,9 +31,9 @@ Poslední aktualizace: 12. března 2026
 - [ ] Přidat DSR workflow pro access/export/delete
 
 ### P1
-- [ ] Vynutit MFA pro admin účty
+- [x] Vynutit MFA pro admin účty
 - [ ] Přidat subprocessor registry a ROPA evidenci
-- [ ] Přidat cookie consent vrstvu
+- [x] Přidat cookie consent vrstvu
 
 ### P2
 - [ ] Napojit veřejné legal stránky na interní compliance registry
@@ -91,9 +93,9 @@ Dopad do struktury: nový audit subsystem
 ### 5. MFA / silné ověřování
 - [x] Desktop biometrické odemknutí existuje
 - [x] Supabase MFA konfigurační sekce je připravená
-- [ ] Vynutit MFA pro admin účty
-- [ ] Přidat enrolment a enforcement flow
-- [ ] Oddělit komfortní biometriku od compliance MFA
+- [x] Vynutit MFA pro admin účty
+- [x] Přidat enrolment a enforcement flow
+- [x] Oddělit komfortní biometriku od compliance MFA
 Stav: částečně
 Priorita: kritická
 Dopad do kódu: střední až vyšší
@@ -139,8 +141,8 @@ Dopad do struktury: nový compliance modul + backend endpointy/RPC
 - [x] Veřejná cookie policy stránka existuje
 - [x] Přidat cookie lištu / consent manager
 - [x] Ukládat preference souhlasů
-- [ ] Blokovat non-essential cookies a analytics do udělení souhlasu
-Stav: částečně
+- [x] Blokovat non-essential cookies a analytics do udělení souhlasu
+Stav: implementováno se zbývající vazbou na případné další trackery
 Priorita: vysoká
 Dopad do kódu: střední
 Dopad do struktury: nový public/privacy modul + consent utilita
@@ -198,7 +200,7 @@ Dopad do struktury: nový interní compliance registry modul
 - [x] Přidat admin-only SQL funkce pro DSR export a anonymizaci
 
 ### C. Auth a access governance
-- [ ] Doplnit skutečné MFA enforcement
+- [x] Doplnit skutečné MFA enforcement
 - [ ] Přidat admin access review report
 - [ ] Auditovat změny rolí, login type a subscription/admin zásahy
 
@@ -224,7 +226,7 @@ Dopad do struktury: nový interní compliance registry modul
 - [x] Integrační test admin -> DSR export -> audit
 - [x] Integrační test admin -> DSR delete/anonymize
 - [ ] Integrační test runtime incident -> breach case workflow
-- [ ] Integrační test MFA enforcement pro admina
+- [x] Integrační test MFA enforcement pro admina
 - [ ] SQL/RPC testy RLS pro compliance tabulky
 - [-] SQL/RPC testy purge jobů
 - [ ] SQL/RPC testy ochrany breach a audit tabulek

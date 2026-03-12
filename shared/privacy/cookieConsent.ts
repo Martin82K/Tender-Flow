@@ -18,3 +18,6 @@ export const clearCookieConsentDecision = (): void => {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(COOKIE_CONSENT_KEY);
 };
+
+export const hasOptionalCookieConsent = (): boolean =>
+  getCookieConsentDecision() === "accepted_all";

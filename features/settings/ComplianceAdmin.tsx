@@ -512,8 +512,8 @@ export const ComplianceAdmin: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700/40 dark:bg-slate-900/80">
+      <div className="grid grid-cols-1 2xl:grid-cols-2 gap-6">
+        <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700/40 dark:bg-slate-900/80">
           <h3 className="text-base font-bold text-slate-900 dark:text-white">
             Retence dat
           </h3>
@@ -584,12 +584,12 @@ export const ComplianceAdmin: React.FC = () => {
           </h3>
         <div className="mt-4 space-y-3">
           <div className="rounded-xl border border-dashed border-slate-300 p-4 dark:border-slate-700/50">
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-[140px_1fr_180px_auto]">
+            <div className="grid grid-cols-1 gap-3 xl:grid-cols-[140px_minmax(0,1fr)_180px_auto]">
               <select
                 aria-label="Typ DSR požadavku"
                 value={newDsrType}
                 onChange={(e) => setNewDsrType(e.target.value as DataSubjectRequest["requestType"])}
-                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
               >
                 <option value="access">Přístup</option>
                 <option value="export">Export</option>
@@ -602,14 +602,14 @@ export const ComplianceAdmin: React.FC = () => {
                 value={newDsrLabel}
                 onChange={(e) => setNewDsrLabel(e.target.value)}
                 placeholder="Např. Export dat kontaktní osoby"
-                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
               />
               <input
                 aria-label="Termín DSR požadavku"
                 type="date"
                 value={newDsrDueAt}
                 onChange={(e) => setNewDsrDueAt(e.target.value)}
-                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
               />
               <button
                 onClick={() => void handleCreateDsr()}
@@ -663,26 +663,26 @@ export const ComplianceAdmin: React.FC = () => {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700/40 dark:bg-slate-900/80">
+        <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700/40 dark:bg-slate-900/80">
           <h3 className="text-base font-bold text-slate-900 dark:text-white">
             Breach register
           </h3>
           <div className="mt-4 space-y-3">
             <div className="rounded-xl border border-dashed border-slate-300 p-4 dark:border-slate-700/50">
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_140px_180px_auto]">
+              <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_140px_180px_auto]">
                 <input
                   aria-label="Název breach case"
                   type="text"
                   value={newBreachTitle}
                   onChange={(e) => setNewBreachTitle(e.target.value)}
                   placeholder="Např. Podezření na neoprávněný export"
-                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                  className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
                 />
                 <select
                   aria-label="Riziko breach case"
                   value={newBreachRisk}
                   onChange={(e) => setNewBreachRisk(e.target.value as BreachCase["riskLevel"])}
-                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                  className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
                 >
                   <option value="low">Nízké</option>
                   <option value="medium">Střední</option>
@@ -694,7 +694,7 @@ export const ComplianceAdmin: React.FC = () => {
                   value={newBreachIncidentId}
                   onChange={(e) => setNewBreachIncidentId(e.target.value)}
                   placeholder="Incident ID (volitelné)"
-                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                  className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
                 />
                 <button
                   onClick={() => void handleCreateBreach()}
@@ -746,20 +746,20 @@ export const ComplianceAdmin: React.FC = () => {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700/40 dark:bg-slate-900/80">
+        <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700/40 dark:bg-slate-900/80">
           <h3 className="text-base font-bold text-slate-900 dark:text-white">
             Subprocessors
           </h3>
           <div className="mt-4 space-y-3">
             <div className="rounded-xl border border-dashed border-slate-300 p-4 dark:border-slate-700/50">
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-[1.1fr_120px_1.2fr_120px_auto]">
+              <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1.1fr)_120px_minmax(0,1.2fr)_120px_auto]">
                 <input
                   aria-label="Název subprocessoru"
                   type="text"
                   value={newSubprocessorName}
                   onChange={(e) => setNewSubprocessorName(e.target.value)}
                   placeholder="Např. Supabase"
-                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                  className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
                 />
                 <input
                   aria-label="Region subprocessoru"
@@ -767,7 +767,7 @@ export const ComplianceAdmin: React.FC = () => {
                   value={newSubprocessorRegion}
                   onChange={(e) => setNewSubprocessorRegion(e.target.value)}
                   placeholder="EU"
-                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                  className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
                 />
                 <input
                   aria-label="Účel subprocessoru"
@@ -775,7 +775,7 @@ export const ComplianceAdmin: React.FC = () => {
                   value={newSubprocessorPurpose}
                   onChange={(e) => setNewSubprocessorPurpose(e.target.value)}
                   placeholder="Hosting, e-mailing, analytika"
-                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                  className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
                 />
                 <input
                   aria-label="Přenosový mechanismus subprocessoru"
@@ -783,7 +783,7 @@ export const ComplianceAdmin: React.FC = () => {
                   value={newSubprocessorTransfer}
                   onChange={(e) => setNewSubprocessorTransfer(e.target.value)}
                   placeholder="SCC"
-                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                  className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
                 />
                 <button
                   onClick={() => void handleCreateSubprocessor()}

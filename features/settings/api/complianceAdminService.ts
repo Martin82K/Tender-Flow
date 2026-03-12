@@ -270,32 +270,34 @@ const normalizeSubprocessors = (rows: unknown): SubprocessorRecord[] => {
 
 export const getComplianceOverviewAdmin = async (): Promise<ComplianceOverview> => {
   try {
-    const [
-      checklistResult,
-      retentionResult,
-      dsrResult,
-      breachResult,
-      subprocessorsResult,
-    ] = await Promise.all([
-      dbAdapter.from("compliance_checklist_items").select("*").order("priority").order("title"),
-      dbAdapter
-        .from("compliance_retention_policies")
-        .select("*")
-        .order("retention_days", { ascending: false }),
-      dbAdapter.from("data_subject_requests").select("*").order("due_at"),
-      dbAdapter.from("breach_cases").select("*").order("created_at", { ascending: false }),
-      dbAdapter.from("subprocessors").select("*").order("name"),
-    ]);
+    const checklistResult = await dbAdapter
+      .from("compliance_checklist_items")
+      .select("*")
+      .order("priority")
+      .order("title");
+
+    if (checklistResult.error) {
+      throw checklistResult.error;
+    }
+
+    const retentionResult = await dbAdapter
+      .from("compliance_retention_policies")
+      .select("*")
+      .order("retention_days", { ascending: false });
+    const dsrResult = await dbAdapter.from("data_subject_requests").select("*").order("due_at");
+    const breachResult = await dbAdapter
+      .from("breach_cases")
+      .select("*")
+      .order("created_at", { ascending: false });
+    const subprocessorsResult = await dbAdapter.from("subprocessors").select("*").order("name");
 
     if (
-      checklistResult.error ||
       retentionResult.error ||
       dsrResult.error ||
       breachResult.error ||
       subprocessorsResult.error
     ) {
       throw (
-        checklistResult.error ||
         retentionResult.error ||
         dsrResult.error ||
         breachResult.error ||
