@@ -11,9 +11,8 @@ export const LegalTerms: React.FC = () => {
       <section>
         <h2 className="text-white text-lg font-semibold">1. Provozovatel</h2>
         <p className="mt-2">
-          Provozovatelem služby je Martin Kalkuš, IČO: 74907026, místo
-          podnikání: Karlovy Vary. Kontaktní e-mail:
-          martinkalkus@icloud.com.
+          Provozovatelem služby je Martin Kalkuš, IČO: 74907026. Kontaktní
+          e-mail: martinkalkus [zavináč] icloud [tečka] com.
         </p>
       </section>
 

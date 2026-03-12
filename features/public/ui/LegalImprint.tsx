@@ -16,15 +16,13 @@ export const LegalImprint: React.FC = () => {
           Fyzická osoba podnikající (OSVČ)
           <br />
           IČO: 74907026
-          <br />
-          Místo podnikání: Karlovy Vary
         </p>
       </section>
 
       <section>
         <h2 className="text-white text-lg font-semibold">Kontakt</h2>
         <p className="mt-2">
-          E-mail: martinkalkus@icloud.com
+          E-mail: martinkalkus [zavináč] icloud [tečka] com
         </p>
       </section>
 

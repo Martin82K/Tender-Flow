@@ -11,9 +11,8 @@ export const LegalPrivacy: React.FC = () => {
       <section>
         <h2 className="text-white text-lg font-semibold">1. Správce</h2>
         <p className="mt-2">
-          Správcem osobních údajů je Martin Kalkuš, IČO: 74907026, místo
-          podnikání: Karlovy Vary. Kontaktní e-mail:
-          martinkalkus@icloud.com.
+          Správcem osobních údajů je Martin Kalkuš, IČO: 74907026. Kontaktní
+          e-mail: martinkalkus [zavináč] icloud [tečka] com.
         </p>
       </section>
 
@@ -170,8 +169,9 @@ export const LegalPrivacy: React.FC = () => {
           zákonnost předchozího zpracování.
         </p>
         <p className="mt-2">
-          Žádost je možné zaslat na martinkalkus@icloud.com. Subjekt údajů má
-          současně právo podat stížnost u Úřadu pro ochranu osobních údajů.
+          Žádost je možné zaslat na adresu martinkalkus [zavináč] icloud
+          [tečka] com. Subjekt údajů má současně právo podat stížnost u Úřadu
+          pro ochranu osobních údajů.
         </p>
       </section>
 

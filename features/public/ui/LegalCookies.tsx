@@ -75,9 +75,10 @@ export const LegalCookies: React.FC = () => {
           6. Kontakt a změny těchto zásad
         </h2>
         <p className="mt-2">
-          V případě dotazů k používání cookies nás kontaktujte na
-          martinkalkus@icloud.com. Tyto zásady můžeme průběžně aktualizovat a
-          aktuální verze je vždy zveřejněna na této stránce.
+          V případě dotazů k používání cookies nás kontaktujte na adrese
+          martinkalkus [zavináč] icloud [tečka] com. Tyto zásady můžeme
+          průběžně aktualizovat a aktuální verze je vždy zveřejněna na této
+          stránce.
         </p>
       </section>
     </LegalPageLayout>
