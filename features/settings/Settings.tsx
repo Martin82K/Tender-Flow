@@ -19,6 +19,7 @@ import { ExcelIndexerSettings } from "@/features/settings/ExcelIndexerSettings";
 import { SubscriptionSettings } from "@/features/settings/SubscriptionSettings";
 import { OrganizationSettings } from "@/features/settings/OrganizationSettings";
 import { IncidentLogsAdmin } from "@/features/settings/IncidentLogsAdmin";
+import { ComplianceAdmin } from "@/features/settings/ComplianceAdmin";
 
 import { useFeatures } from "@/context/FeatureContext";
 import { FEATURES } from "@/config/features";
@@ -71,7 +72,8 @@ export const Settings: React.FC<SettingsProps> = ({
     | "users"
     | "subscriptions"
     | "ai"
-    | "incidents";
+    | "incidents"
+    | "compliance";
 
   // -------------------------------------------------------------------------
   // Routing Logic
@@ -104,7 +106,8 @@ export const Settings: React.FC<SettingsProps> = ({
         subTabParam === "users" ||
         subTabParam === "subscriptions" ||
         subTabParam === "ai" ||
-        subTabParam === "incidents"
+        subTabParam === "incidents" ||
+        subTabParam === "compliance"
           ? subTabParam
           : null;
     }
@@ -138,6 +141,7 @@ export const Settings: React.FC<SettingsProps> = ({
         settingsRoute.subTab === "subscriptions" ||
         settingsRoute.subTab === "ai" ||
         settingsRoute.subTab === "incidents" ||
+        settingsRoute.subTab === "compliance" ||
         settingsRoute.subTab === "organization"
       ) {
         return settingsRoute.subTab;
@@ -389,6 +393,24 @@ export const Settings: React.FC<SettingsProps> = ({
                     Incidenty
                   </div>
                 </button>
+
+                <button
+                  onClick={() =>
+                    updateSettingsUrl({ tab: "admin", subTab: "compliance" })
+                  }
+                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                    activeAdminSubTab === "compliance"
+                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[20px]">
+                      policy
+                    </span>
+                    Compliance
+                  </div>
+                </button>
               </nav>
             </aside>
 
@@ -408,6 +430,7 @@ export const Settings: React.FC<SettingsProps> = ({
                 </>
               )}
               {activeAdminSubTab === "incidents" && <IncidentLogsAdmin />}
+              {activeAdminSubTab === "compliance" && <ComplianceAdmin />}
             </main>
           </div>
         )}

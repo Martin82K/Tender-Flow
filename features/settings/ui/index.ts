@@ -1,6 +1,7 @@
 export { AISettings } from "../AISettings";
 export { AdminSettings } from "../AdminSettings";
 export { BiometricSettings } from "../BiometricSettings";
+export { ComplianceAdmin } from "../ComplianceAdmin";
 export { EmailTestPanel } from "../EmailTestPanel";
 export { ExcelIndexerSettings } from "../ExcelIndexerSettings";
 export { ExcelMergerProSettings } from "../ExcelMergerProSettings";

@@ -1,4 +1,5 @@
 import { APP_VERSION } from "@/config/version";
+import { sanitizeLogText } from "@/shared/security/logSanitizer";
 import type {
   FatalIncidentNotice,
   IncidentContext,
@@ -87,16 +88,8 @@ const getPlatformLabel = (): "desktop" | "web" => (isDesktop ? "desktop" : "web"
 const getOsLabel = (): string =>
   platformAdapter.platform?.os ? String(platformAdapter.platform.os) : "web";
 
-const sanitizeText = (value: unknown, maxLen: number): string => {
-  const raw = String(value ?? "");
-  const masked = raw
-    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[redacted-email]")
-    .replace(/Bearer\s+[A-Za-z0-9._\-+/=]+/gi, "Bearer [redacted-token]")
-    .replace(/\b[A-Za-z0-9-_]{20,}\.[A-Za-z0-9-_]{20,}\.[A-Za-z0-9-_]{20,}\b/g, "[redacted-jwt]")
-    .replace(/(authorization\s*[:=]\s*)([^\s,}]+)/gi, "$1[redacted-token]")
-    .replace(/(apikey\s*[:=]\s*)([^\s,}]+)/gi, "$1[redacted-token]");
-  return masked.length <= maxLen ? masked : `${masked.slice(0, maxLen)}…`;
-};
+const sanitizeText = (value: unknown, maxLen: number): string =>
+  sanitizeLogText(value, maxLen);
 
 const sanitizeCode = (value: unknown): string =>
   sanitizeText(value ?? "UNKNOWN", MAX_CODE_LENGTH).replace(/\s+/g, "_").toUpperCase();

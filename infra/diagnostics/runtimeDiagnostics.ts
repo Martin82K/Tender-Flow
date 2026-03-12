@@ -1,4 +1,8 @@
 import { isDesktop, platformAdapter } from "@/services/platformAdapter";
+import {
+  SECRET_KEY_PATTERN,
+  sanitizeLogText,
+} from "@/shared/security/logSanitizer";
 
 type DiagnosticLevel = "debug" | "info" | "warn" | "error";
 
@@ -47,8 +51,6 @@ const CONSOLE_PREFIX_ALLOWLIST = [
   "[Router]",
   "[AuthGate]",
 ];
-const SECRET_KEY_PATTERN = /(token|password|secret|authorization|cookie|apikey|api_key|refresh|bearer)/i;
-
 let events: RuntimeDiagnosticEvent[] = [];
 let seq = 0;
 let initialized = false;
@@ -99,12 +101,7 @@ const sanitizeValue = (value: unknown, keyHint = ""): unknown => {
   if (value === null || value === undefined) return value;
   if (SECRET_KEY_PATTERN.test(keyHint)) return "[redacted]";
   if (typeof value === "string") {
-    return safeString(
-      value
-        .replace(/Bearer\s+[A-Za-z0-9._\-+/=]+/gi, "Bearer [redacted-token]")
-        .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/gi, "[redacted-email]")
-        .replace(/\b[A-Za-z0-9-_]{20,}\.[A-Za-z0-9-_]{20,}\.[A-Za-z0-9-_]{20,}\b/g, "[redacted-jwt]"),
-    );
+    return safeString(sanitizeLogText(value, MAX_STRING_LEN));
   }
   if (typeof value === "number" || typeof value === "boolean") return value;
   if (value instanceof Error) {
@@ -363,4 +360,3 @@ declare global {
     };
   }
 }
-

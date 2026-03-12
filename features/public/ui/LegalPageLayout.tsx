@@ -33,11 +33,6 @@ export const LegalPageLayout: React.FC<LegalPageLayoutProps> = ({
             <p className="text-xs text-white/50">
               Poslední aktualizace: {updatedAt}
             </p>
-            <div className="mt-2 rounded-xl border border-orange-500/20 bg-orange-500/10 px-4 py-3 text-xs text-orange-100/90">
-              Máte-li dotaz k tomuto dokumentu nebo potřebujete uplatnit své
-              právo či požadavek, použijte prosím kontaktní e-mail uvedený na
-              této stránce.
-            </div>
           </div>
 
           <div className="mt-8 space-y-6 text-sm md:text-base text-white/70 leading-relaxed">
