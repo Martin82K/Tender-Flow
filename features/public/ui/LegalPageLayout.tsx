@@ -34,8 +34,9 @@ export const LegalPageLayout: React.FC<LegalPageLayoutProps> = ({
               Poslední aktualizace: {updatedAt}
             </p>
             <div className="mt-2 rounded-xl border border-orange-500/20 bg-orange-500/10 px-4 py-3 text-xs text-orange-100/90">
-              Tento dokument je návrh a vyžaduje právní revizi a doplnění
-              firemních údajů.
+              Máte-li dotaz k tomuto dokumentu nebo potřebujete uplatnit své
+              právo či požadavek, použijte prosím kontaktní e-mail uvedený na
+              této stránce.
             </div>
           </div>
 

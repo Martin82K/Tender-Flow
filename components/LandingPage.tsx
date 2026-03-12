@@ -867,6 +867,12 @@ export const LandingPage: React.FC = () => {
               Cookies
             </Link>
             <Link
+              to="/dpa"
+              className="hover:text-white transition-colors duration-300"
+            >
+              DPA
+            </Link>
+            <Link
               to="/imprint"
               className="hover:text-white transition-colors duration-300"
             >
