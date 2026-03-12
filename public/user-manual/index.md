@@ -721,21 +721,7 @@ Aplikace Tender Flow nabízí pokročilé funkce umělé inteligence pro automat
 - **🗺️ Doplnění regionů u kontaktů**: Hromadné doplnění regionů na základě adresy pomocí AI
 - **📊 AI analýza v přehledech**: Automatická analýza projekty s grafy a reporty (dle nastavení)
 
-### Správa AI klíčů (Admin)
-
-Administrátoři spravují AI klíče výhradně na backendu přes Supabase Secrets.
-
-**Umístění:** Supabase Dashboard → Project Settings → Edge Functions Secrets
-
-#### Bezpečnostní pravidla klíčů
-
-1. Klíče se čtou pouze na serveru (`Deno.env`) ve functions (`ai-agent`, `ai-proxy`, `ai-voice`).
-2. Klíče se nikdy neposílají z klienta a neukládají se do databáze ani `localStorage`.
-3. Klíče ani jejich části se nezobrazují v UI a nelogují se.
-
-> ⚠️ **DŮLEŽITÉ**: Pokud klíč chybí, AI endpoint vrátí řízenou konfigurační chybu. Nejprve nastavte secret a znovu nasaďte function.
-
-#### Přizpůsobení AI promptů
+### Přizpůsobení AI promptů (Admin)
 
 Admin může upravit systémové prompty pro ovlivnění chování AI:
 

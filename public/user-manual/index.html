@@ -575,7 +575,7 @@
 <div class="section"><a class="sectionTitle" href="#organizace-clenstvi-a-role-2">🏢 Organizace (členství a role)</a></div>
 <div class="section"><a class="sectionTitle" href="#incident-logy-admin">🛰️ Incident logy (Admin)</a></div>
 <div class="section"><a class="sectionTitle" href="#import-a-synchronizace-kontaktu">🔄 Import a synchronizace kontaktů</a></div>
-<div class="section"><a class="sectionTitle" href="#ai-funkce">🤖 AI funkce</a><div class="sub"><a href="#zakladni-ai-funkce">Základní AI funkce</a><a href="#sprava-ai-klicu-admin">Správa AI klíčů (Admin)</a><a href="#ai-testovani-admin">AI testování (Admin)</a></div></div>
+<div class="section"><a class="sectionTitle" href="#ai-funkce">🤖 AI funkce</a><div class="sub"><a href="#zakladni-ai-funkce">Základní AI funkce</a><a href="#prizpusobeni-ai-promptu-admin">Přizpůsobení AI promptů (Admin)</a><a href="#ai-testovani-admin">AI testování (Admin)</a></div></div>
 <div class="section"><a class="sectionTitle" href="#caste-otazky">Časté otázky</a><div class="sub"><a href="#neotevre-se-emailovy-klient">Neotevře se emailový klient</a><a href="#nektere-volby-nevidim">Některé volby nevidím</a><a href="#excel-merger-pro-pise-funkce-neni-dostupna">Excel Merger PRO píše „Funkce není dostupná“</a><a href="#kde-si-mohu-stahnout-desktop-aplikaci">Kde si mohu stáhnout desktop aplikaci?</a><a href="#proc-se-mi-na-macos-neinstaluje-update-automaticky">Proč se mi na macOS neinstaluje update automaticky?</a></div></div>
 <div class="section"><a class="sectionTitle" href="#licence-prava-a-ochrana-dat">Licence, práva a ochrana dat</a></div></nav>
       </aside>
@@ -1292,19 +1292,7 @@
 <li><strong>🗺️ Doplnění regionů u kontaktů</strong>: Hromadné doplnění regionů na základě adresy pomocí AI</li>
 <li><strong>📊 AI analýza v přehledech</strong>: Automatická analýza projekty s grafy a reporty (dle nastavení)</li>
 </ul>
-<h3 id="sprava-ai-klicu-admin">Správa AI klíčů (Admin)</h3>
-<p>Administrátoři spravují AI klíče výhradně na backendu přes Supabase Secrets.</p>
-<p><strong>Umístění:</strong> Supabase Dashboard → Project Settings → Edge Functions Secrets</p>
-<h4 id="bezpecnostni-pravidla-klicu">Bezpečnostní pravidla klíčů</h4>
-<ol>
-<li>Klíče se čtou pouze na serveru (<code>Deno.env</code>) ve functions (<code>ai-agent</code>, <code>ai-proxy</code>, <code>ai-voice</code>).</li>
-<li>Klíče se nikdy neposílají z klienta a neukládají se do databáze ani <code>localStorage</code>.</li>
-<li>Klíče ani jejich části se nezobrazují v UI a nelogují se.</li>
-</ol>
-<blockquote>
-<p>⚠️ <strong>DŮLEŽITÉ</strong>: Pokud klíč chybí, AI endpoint vrátí řízenou konfigurační chybu. Nejprve nastavte secret a znovu nasaďte function.</p>
-</blockquote>
-<h4 id="prizpusobeni-ai-promptu">Přizpůsobení AI promptů</h4>
+<h3 id="prizpusobeni-ai-promptu-admin">Přizpůsobení AI promptů (Admin)</h3>
 <p>Admin může upravit systémové prompty pro ovlivnění chování AI:</p>
 <ol>
 <li><p><strong>Prompt pro grafy</strong>:</p>
