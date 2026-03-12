@@ -9,7 +9,11 @@ describe("desktop CSP", () => {
     expect(csp).toContain("https://api.stripe.com");
     expect(csp).toContain("https://js.stripe.com");
     expect(csp).toContain("https://r.stripe.com");
+    expect(csp).toContain("https://m.stripe.com");
+    expect(csp).toContain("https://q.stripe.com");
     expect(csp).toContain("https://m.stripe.network");
+    expect(csp).toContain("https://*.stripe.com");
+    expect(csp).toContain("https://*.stripe.network");
   });
 
   it("keeps production policy without unsafe-eval", () => {

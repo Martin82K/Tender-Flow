@@ -12,7 +12,11 @@ export const buildDesktopCsp = (isDev: boolean): string => {
         'https://api.stripe.com',
         'https://js.stripe.com',
         'https://r.stripe.com',
+        'https://m.stripe.com',
+        'https://q.stripe.com',
         'https://m.stripe.network',
+        'https://*.stripe.com',
+        'https://*.stripe.network',
         'https://fonts.googleapis.com',
         'https://fonts.gstatic.com',
     ].join(' ');
