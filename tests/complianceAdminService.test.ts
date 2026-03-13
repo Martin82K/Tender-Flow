@@ -46,6 +46,7 @@ describe("complianceAdminService", () => {
 
   it("vrátí fallback data při chybě čtení", async () => {
     state.query.order.mockResolvedValue({ data: null, error: new Error("fail") });
+    state.rpc.mockResolvedValue({ data: null, error: new Error("fail") });
 
     const { getComplianceOverviewAdmin } = await import(
       "@/features/settings/api/complianceAdminService"
@@ -60,6 +61,7 @@ describe("complianceAdminService", () => {
     expect(result.breachCaseEvents.length).toBeGreaterThan(0);
     expect(result.subprocessors.length).toBeGreaterThan(0);
     expect(result.processingActivities.length).toBeGreaterThan(0);
+    expect(result.accessReviewUsers).toEqual([]);
   });
 
   it("normalizuje data z databáze", async () => {
@@ -134,7 +136,57 @@ describe("complianceAdminService", () => {
           retention_policy_id: "retention-1",
         },
       ],
+      processing_activity_subprocessors: [
+        {
+          processing_activity_id: "ropa-1",
+          subprocessor_id: "sub-1",
+        },
+      ],
     };
+
+    state.rpc.mockResolvedValue({
+      data: {
+        users: [
+          {
+            user_id: "user-1",
+            email: "admin@example.com",
+            display_name: "Admin User",
+            app_role_id: "priprava",
+            app_role_label: "Přípravář",
+            org_roles: ["owner"],
+            last_sign_in: "2026-03-01T10:00:00.000Z",
+            risk_flags: ["privileged_access"],
+          },
+        ],
+        audit_entries: [
+          {
+            id: "audit-1",
+            event_type: "user_role_changed",
+            actor_email: "boss@example.com",
+            target_user_email: "admin@example.com",
+            target_role_id: "priprava",
+            permission_key: null,
+            old_value: "member",
+            new_value: "priprava",
+            summary: "Role změněna",
+            created_at: "2026-03-12T11:00:00.000Z",
+          },
+        ],
+        review_reports: [
+          {
+            id: "review-1",
+            review_scope: "all_admin_access",
+            summary: "Měsíční review",
+            reviewed_by_email: "boss@example.com",
+            total_users: 12,
+            admin_users: 3,
+            stale_users: 1,
+            created_at: "2026-03-12T12:00:00.000Z",
+          },
+        ],
+      },
+      error: null,
+    });
 
     state.from.mockImplementation((table: string) => {
       let orderCalls = 0;
@@ -194,6 +246,19 @@ describe("complianceAdminService", () => {
       activityName: "Správa kontaktů",
       legalBasis: "plnění smlouvy",
       retentionPolicyId: "retention-1",
+      linkedSubprocessorIds: ["sub-1"],
+    });
+    expect(result.accessReviewUsers[0]).toMatchObject({
+      email: "admin@example.com",
+      appRoleId: "priprava",
+    });
+    expect(result.accessAuditEntries[0]).toMatchObject({
+      eventType: "user_role_changed",
+      actorEmail: "boss@example.com",
+    });
+    expect(result.accessReviewReports[0]).toMatchObject({
+      summary: "Měsíční review",
+      adminUsers: 3,
     });
   });
 
@@ -545,11 +610,15 @@ describe("complianceAdminService", () => {
 
   it("umí uložit činnost zpracování a zapsat audit", async () => {
     const upsertMock = vi.fn().mockResolvedValue({ error: null });
+    const linkUpsertMock = vi.fn().mockResolvedValue({ error: null });
     const insertMock = vi.fn().mockResolvedValue({ error: null });
 
     state.from.mockImplementation((table: string) => {
       if (table === "processing_activities") {
         return { upsert: upsertMock };
+      }
+      if (table === "processing_activity_subprocessors") {
+        return { upsert: linkUpsertMock };
       }
       return { insert: insertMock };
     });
@@ -565,6 +634,7 @@ describe("complianceAdminService", () => {
       legalBasis: "plnění smlouvy",
       dataCategories: ["jméno", "e-mail"],
       retentionPolicyId: "retention-1",
+      linkedSubprocessorIds: ["sub-1"],
       actor: "martin",
     });
 
@@ -586,5 +656,81 @@ describe("complianceAdminService", () => {
       target_id: "ropa-1",
       summary: "Uložena činnost zpracování Správa kontaktů",
     });
+    expect(linkUpsertMock).toHaveBeenCalledWith(
+      [
+        {
+          processing_activity_id: "ropa-1",
+          subprocessor_id: "sub-1",
+        },
+      ],
+      { onConflict: "processing_activity_id,subprocessor_id" },
+    );
+  });
+
+  it("umí uložit access review report a zapsat audit", async () => {
+    state.rpc.mockResolvedValue({
+      data: "review-2",
+      error: null,
+    });
+    const insertMock = vi.fn().mockResolvedValue({ error: null });
+    state.from.mockImplementation(() => ({ insert: insertMock }));
+
+    const { createAccessReviewReportAdmin } = await import(
+      "@/features/settings/api/complianceAdminService"
+    );
+
+    const result = await createAccessReviewReportAdmin({
+      summary: "Kontrola admin přístupů",
+      actor: "martin",
+    });
+
+    expect(state.rpc).toHaveBeenCalledWith("create_access_review_report_admin", {
+      review_scope_input: "all_admin_access",
+      summary_input: "Kontrola admin přístupů",
+    });
+    expect(result).toBe("review-2");
+    expect(insertMock).toHaveBeenCalledWith({
+      actor: "martin",
+      action: "create_access_review_report",
+      target_type: "access_review",
+      target_id: "review-2",
+      summary: "Vytvořen access review report: Kontrola admin přístupů",
+    });
+  });
+
+  it("umí sestavit export podkladů pro ÚOOÚ z breach případu", async () => {
+    const { buildBreachAuthorityReportAdmin } = await import(
+      "@/features/settings/api/complianceAdminService"
+    );
+
+    const result = buildBreachAuthorityReportAdmin({
+      breachCase: {
+        id: "BREACH-1",
+        title: "Podezření na neoprávněný export",
+        status: "assessment",
+        riskLevel: "high",
+        linkedIncidentId: "INC-1",
+        assessmentSummary: "Probíhá právní posouzení a containment.",
+        authorityNotifiedAt: null,
+        dataSubjectsNotifiedAt: null,
+        createdAt: "2026-03-12T09:00:00.000Z",
+      },
+      events: [
+        {
+          id: "evt-1",
+          breachCaseId: "BREACH-1",
+          eventType: "created",
+          summary: "Případ založen.",
+          actor: "admin",
+          createdAt: "2026-03-12T09:10:00.000Z",
+        },
+      ],
+    });
+
+    expect(result.fileName).toBe("uoou_podklady_BREACH-1.md");
+    expect(result.content).toContain("# Podklady pro ÚOOÚ");
+    expect(result.content).toContain("ID případu: BREACH-1");
+    expect(result.content).toContain("Probíhá právní posouzení a containment.");
+    expect(result.content).toContain("Případ založen.");
   });
 });

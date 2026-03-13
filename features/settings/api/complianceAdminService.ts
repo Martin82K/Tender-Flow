@@ -1,5 +1,8 @@
 import { dbAdapter } from "@/services/dbAdapter";
 import type {
+  AccessAuditEntry,
+  AccessReviewReport,
+  AccessReviewUser,
   BreachCase,
   BreachCaseEvent,
   ComplianceChecklistItem,
@@ -17,6 +20,9 @@ export interface ComplianceOverview {
   breachCaseEvents: BreachCaseEvent[];
   subprocessors: SubprocessorRecord[];
   processingActivities: ProcessingActivityRecord[];
+  accessReviewUsers: AccessReviewUser[];
+  accessAuditEntries: AccessAuditEntry[];
+  accessReviewReports: AccessReviewReport[];
 }
 
 export interface AdminAuditEvent {
@@ -48,6 +54,12 @@ export interface ComplianceRetentionPurgeResult {
   dsr_events_deleted: number;
   breach_events_deleted: number;
   completed_at: string;
+}
+
+export interface BreachAuthorityReportResult {
+  fileName: string;
+  mimeType: string;
+  content: string;
 }
 
 const defaultChecklistItems: ComplianceChecklistItem[] = [
@@ -200,8 +212,13 @@ const defaultProcessingActivities: ProcessingActivityRecord[] = [
     legalBasis: "n/a",
     dataCategories: ["n/a"],
     retentionPolicyId: null,
+    linkedSubprocessorIds: [],
   },
 ];
+
+const defaultAccessReviewUsers: AccessReviewUser[] = [];
+const defaultAccessAuditEntries: AccessAuditEntry[] = [];
+const defaultAccessReviewReports: AccessReviewReport[] = [];
 
 const normalizeChecklistItems = (rows: unknown): ComplianceChecklistItem[] => {
   if (!Array.isArray(rows) || rows.length === 0) return defaultChecklistItems;
@@ -332,8 +349,25 @@ const normalizeSubprocessors = (rows: unknown): SubprocessorRecord[] => {
   });
 };
 
-const normalizeProcessingActivities = (rows: unknown): ProcessingActivityRecord[] => {
+const normalizeProcessingActivities = (
+  rows: unknown,
+  links: unknown,
+): ProcessingActivityRecord[] => {
   if (!Array.isArray(rows) || rows.length === 0) return defaultProcessingActivities;
+
+  const linksByActivity = new Map<string, string[]>();
+  if (Array.isArray(links)) {
+    for (const row of links) {
+      const item = row as Record<string, unknown>;
+      const activityId = String(item.processing_activity_id || "");
+      const subprocessorId = String(item.subprocessor_id || "");
+      if (!activityId || !subprocessorId) continue;
+      const existing = linksByActivity.get(activityId) ?? [];
+      existing.push(subprocessorId);
+      linksByActivity.set(activityId, existing);
+    }
+  }
+
   return rows.map((row, index) => {
     const item = row as Record<string, unknown>;
     const dataCategories = Array.isArray(item.data_categories)
@@ -352,6 +386,78 @@ const normalizeProcessingActivities = (rows: unknown): ProcessingActivityRecord[
         item.retention_policy_id === null || item.retention_policy_id === undefined
           ? null
           : String(item.retention_policy_id),
+      linkedSubprocessorIds: linksByActivity.get(String(item.id || `processing-activity-${index}`)) ?? [],
+    };
+  });
+};
+
+const normalizeAccessReviewUsers = (rows: unknown): AccessReviewUser[] => {
+  if (!Array.isArray(rows) || rows.length === 0) return defaultAccessReviewUsers;
+  return rows.map((row, index) => {
+    const item = row as Record<string, unknown>;
+    return {
+      userId: String(item.user_id || `access-user-${index}`),
+      email: String(item.email || ""),
+      displayName: String(item.display_name || ""),
+      appRoleId:
+        item.app_role_id === null || item.app_role_id === undefined ? null : String(item.app_role_id),
+      appRoleLabel:
+        item.app_role_label === null || item.app_role_label === undefined
+          ? null
+          : String(item.app_role_label),
+      orgRoles: Array.isArray(item.org_roles) ? item.org_roles.map((value) => String(value)) : [],
+      lastSignIn:
+        item.last_sign_in === null || item.last_sign_in === undefined ? null : String(item.last_sign_in),
+      riskFlags: Array.isArray(item.risk_flags) ? item.risk_flags.map((value) => String(value)) : [],
+    };
+  });
+};
+
+const normalizeAccessAuditEntries = (rows: unknown): AccessAuditEntry[] => {
+  if (!Array.isArray(rows) || rows.length === 0) return defaultAccessAuditEntries;
+  return rows.map((row, index) => {
+    const item = row as Record<string, unknown>;
+    return {
+      id: String(item.id || `access-audit-${index}`),
+      eventType: String(item.event_type || "unknown"),
+      actorEmail:
+        item.actor_email === null || item.actor_email === undefined ? null : String(item.actor_email),
+      targetUserEmail:
+        item.target_user_email === null || item.target_user_email === undefined
+          ? null
+          : String(item.target_user_email),
+      targetRoleId:
+        item.target_role_id === null || item.target_role_id === undefined
+          ? null
+          : String(item.target_role_id),
+      permissionKey:
+        item.permission_key === null || item.permission_key === undefined
+          ? null
+          : String(item.permission_key),
+      oldValue: item.old_value === null || item.old_value === undefined ? null : String(item.old_value),
+      newValue: item.new_value === null || item.new_value === undefined ? null : String(item.new_value),
+      summary: String(item.summary || ""),
+      createdAt: String(item.created_at || new Date().toISOString()),
+    };
+  });
+};
+
+const normalizeAccessReviewReports = (rows: unknown): AccessReviewReport[] => {
+  if (!Array.isArray(rows) || rows.length === 0) return defaultAccessReviewReports;
+  return rows.map((row, index) => {
+    const item = row as Record<string, unknown>;
+    return {
+      id: String(item.id || `access-review-${index}`),
+      reviewScope: String(item.review_scope || "all_admin_access"),
+      summary: String(item.summary || ""),
+      reviewedByEmail:
+        item.reviewed_by_email === null || item.reviewed_by_email === undefined
+          ? null
+          : String(item.reviewed_by_email),
+      totalUsers: Number(item.total_users || 0),
+      adminUsers: Number(item.admin_users || 0),
+      staleUsers: Number(item.stale_users || 0),
+      createdAt: String(item.created_at || new Date().toISOString()),
     };
   });
 };
@@ -386,6 +492,15 @@ export const getComplianceOverviewAdmin = async (): Promise<ComplianceOverview> 
       .from("processing_activities")
       .select("*")
       .order("activity_name");
+    const processingActivityLinksResult = await dbAdapter
+      .from("processing_activity_subprocessors")
+      .select("*")
+      .order("processing_activity_id");
+    const accessReviewResult = await dbAdapter.rpc<{
+      users: unknown[];
+      audit_entries: unknown[];
+      review_reports: unknown[];
+    }>("get_access_review_overview_admin");
 
     if (
       retentionResult.error ||
@@ -393,7 +508,9 @@ export const getComplianceOverviewAdmin = async (): Promise<ComplianceOverview> 
       breachResult.error ||
       breachEventsResult.error ||
       subprocessorsResult.error ||
-      processingActivitiesResult.error
+      processingActivitiesResult.error ||
+      processingActivityLinksResult.error ||
+      accessReviewResult.error
     ) {
       throw (
         retentionResult.error ||
@@ -401,9 +518,17 @@ export const getComplianceOverviewAdmin = async (): Promise<ComplianceOverview> 
         breachResult.error ||
         breachEventsResult.error ||
         subprocessorsResult.error ||
-        processingActivitiesResult.error
+        processingActivitiesResult.error ||
+        processingActivityLinksResult.error ||
+        accessReviewResult.error
       );
     }
+
+    const accessReviewData = accessReviewResult.data ?? {
+      users: [],
+      audit_entries: [],
+      review_reports: [],
+    };
 
     return {
       checklistItems: normalizeChecklistItems(checklistResult.data),
@@ -412,7 +537,13 @@ export const getComplianceOverviewAdmin = async (): Promise<ComplianceOverview> 
       breachCases: normalizeBreachCases(breachResult.data),
       breachCaseEvents: normalizeBreachCaseEvents(breachEventsResult.data),
       subprocessors: normalizeSubprocessors(subprocessorsResult.data),
-      processingActivities: normalizeProcessingActivities(processingActivitiesResult.data),
+      processingActivities: normalizeProcessingActivities(
+        processingActivitiesResult.data,
+        processingActivityLinksResult.data,
+      ),
+      accessReviewUsers: normalizeAccessReviewUsers(accessReviewData.users),
+      accessAuditEntries: normalizeAccessAuditEntries(accessReviewData.audit_entries),
+      accessReviewReports: normalizeAccessReviewReports(accessReviewData.review_reports),
     };
   } catch {
     return {
@@ -423,6 +554,9 @@ export const getComplianceOverviewAdmin = async (): Promise<ComplianceOverview> 
       breachCaseEvents: defaultBreachCaseEvents,
       subprocessors: defaultSubprocessors,
       processingActivities: defaultProcessingActivities,
+      accessReviewUsers: defaultAccessReviewUsers,
+      accessAuditEntries: defaultAccessAuditEntries,
+      accessReviewReports: defaultAccessReviewReports,
     };
   }
 };
@@ -808,6 +942,7 @@ export const saveProcessingActivityAdmin = async (input: {
   legalBasis: string;
   dataCategories: string[];
   retentionPolicyId?: string | null;
+  linkedSubprocessorIds?: string[];
   notes?: string;
   actor?: string;
 }): Promise<void> => {
@@ -826,6 +961,19 @@ export const saveProcessingActivityAdmin = async (input: {
   );
 
   if (error) throw error;
+
+  const linkedSubprocessorIds = Array.from(new Set(input.linkedSubprocessorIds ?? []));
+  if (linkedSubprocessorIds.length > 0) {
+    const { error: linkError } = await dbAdapter.from("processing_activity_subprocessors").upsert(
+      linkedSubprocessorIds.map((subprocessorId) => ({
+        processing_activity_id: input.id,
+        subprocessor_id: subprocessorId,
+      })),
+      { onConflict: "processing_activity_id,subprocessor_id" },
+    );
+
+    if (linkError) throw linkError;
+  }
 
   await writeAdminAuditEvent({
     actor: input.actor ?? "admin",
@@ -851,3 +999,69 @@ export const runComplianceRetentionPurgeAdmin =
       completed_at: new Date().toISOString(),
     }) as ComplianceRetentionPurgeResult;
   };
+
+export const createAccessReviewReportAdmin = async (input: {
+  reviewScope?: string;
+  summary: string;
+  actor?: string;
+}): Promise<string> => {
+  const { data, error } = await dbAdapter.rpc<string>("create_access_review_report_admin", {
+    review_scope_input: input.reviewScope ?? "all_admin_access",
+    summary_input: input.summary,
+  });
+
+  if (error) throw error;
+
+  await writeAdminAuditEvent({
+    actor: input.actor ?? "admin",
+    action: "create_access_review_report",
+    targetType: "access_review",
+    targetId: String(data ?? "access-review"),
+    summary: `Vytvořen access review report: ${input.summary || "bez poznámky"}`,
+  });
+
+  return String(data ?? "");
+};
+
+export const buildBreachAuthorityReportAdmin = (input: {
+  breachCase: BreachCase;
+  events: BreachCaseEvent[];
+}): BreachAuthorityReportResult => {
+  const createdAt = input.breachCase.createdAt || new Date().toISOString();
+  const deadlineAt = new Date(new Date(createdAt).getTime() + 72 * 60 * 60 * 1000).toISOString();
+  const eventLines = input.events
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+    .map(
+      (event) =>
+        `- ${event.createdAt} | ${event.eventType} | ${event.actor}: ${event.summary}`,
+    );
+
+  const content = [
+    "# Podklady pro ÚOOÚ",
+    "",
+    `ID případu: ${input.breachCase.id}`,
+    `Název: ${input.breachCase.title}`,
+    `Stav: ${input.breachCase.status}`,
+    `Riziko: ${input.breachCase.riskLevel}`,
+    `Vytvořeno: ${createdAt}`,
+    `72h deadline: ${deadlineAt}`,
+    `Navázaný incident: ${input.breachCase.linkedIncidentId ?? "neuvedeno"}`,
+    `Hlášení ÚOOÚ: ${input.breachCase.authorityNotifiedAt ?? "nezapsáno"}`,
+    `Informování subjektů: ${input.breachCase.dataSubjectsNotifiedAt ?? "nezapsáno"}`,
+    "",
+    "## Shrnutí posouzení",
+    input.breachCase.assessmentSummary || "Zatím nebylo doplněno.",
+    "",
+    "## Timeline kroků",
+    ...(eventLines.length > 0 ? eventLines : ["- Zatím bez zapsaných kroků"]),
+    "",
+    "## Poznámka",
+    "Tento export je interní pracovní podklad pro přípravu oznámení a auditní doložení postupu.",
+  ].join("\n");
+
+  return {
+    fileName: `uoou_podklady_${input.breachCase.id}.md`,
+    mimeType: "text/markdown;charset=utf-8",
+    content,
+  };
+};

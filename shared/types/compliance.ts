@@ -61,4 +61,40 @@ export interface ProcessingActivityRecord {
   legalBasis: string;
   dataCategories: string[];
   retentionPolicyId: string | null;
+  linkedSubprocessorIds: string[];
+}
+
+export interface AccessReviewUser {
+  userId: string;
+  email: string;
+  displayName: string;
+  appRoleId: string | null;
+  appRoleLabel: string | null;
+  orgRoles: string[];
+  lastSignIn: string | null;
+  riskFlags: string[];
+}
+
+export interface AccessAuditEntry {
+  id: string;
+  eventType: string;
+  actorEmail: string | null;
+  targetUserEmail: string | null;
+  targetRoleId: string | null;
+  permissionKey: string | null;
+  oldValue: string | null;
+  newValue: string | null;
+  summary: string;
+  createdAt: string;
+}
+
+export interface AccessReviewReport {
+  id: string;
+  reviewScope: string;
+  summary: string;
+  reviewedByEmail: string | null;
+  totalUsers: number;
+  adminUsers: number;
+  staleUsers: number;
+  createdAt: string;
 }

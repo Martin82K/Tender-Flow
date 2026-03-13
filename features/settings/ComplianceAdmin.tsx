@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useUI } from "@/context/UIContext";
 import {
   addBreachCaseTimelineEventAdmin,
+  buildBreachAuthorityReportAdmin,
+  createAccessReviewReportAdmin,
   createBreachCaseAdmin,
   createDataSubjectRequestAdmin,
   exportDataSubjectAdmin,
@@ -111,6 +113,9 @@ export const ComplianceAdmin: React.FC = () => {
   );
   const [newProcessingActivityCategories, setNewProcessingActivityCategories] = useState("");
   const [newProcessingActivityRetentionId, setNewProcessingActivityRetentionId] = useState("");
+  const [newProcessingActivitySubprocessorIds, setNewProcessingActivitySubprocessorIds] = useState<string[]>([]);
+  const [newAccessReviewSummary, setNewAccessReviewSummary] = useState("");
+  const [isSavingAccessReview, setIsSavingAccessReview] = useState(false);
 
   const loadOverview = async () => {
     setIsLoading(true);
@@ -149,6 +154,9 @@ export const ComplianceAdmin: React.FC = () => {
   const breachCaseEvents = overview?.breachCaseEvents ?? [];
   const subprocessors = overview?.subprocessors ?? [];
   const processingActivities = overview?.processingActivities ?? [];
+  const accessReviewUsers = overview?.accessReviewUsers ?? [];
+  const accessAuditEntries = overview?.accessAuditEntries ?? [];
+  const accessReviewReports = overview?.accessReviewReports ?? [];
 
   const hasRealSubprocessors = useMemo(
     () => subprocessors.some((record) => record.id !== "subprocessors-missing"),
@@ -365,12 +373,14 @@ export const ComplianceAdmin: React.FC = () => {
         legalBasis,
         dataCategories,
         retentionPolicyId: newProcessingActivityRetentionId || null,
+        linkedSubprocessorIds: newProcessingActivitySubprocessorIds,
       });
       setNewProcessingActivityName("");
       setNewProcessingActivityPurpose("");
       setNewProcessingActivityLegalBasis("oprávněný zájem");
       setNewProcessingActivityCategories("");
       setNewProcessingActivityRetentionId("");
+      setNewProcessingActivitySubprocessorIds([]);
       await loadOverview();
       showAlert({
         title: "Uloženo",
@@ -385,6 +395,32 @@ export const ComplianceAdmin: React.FC = () => {
       });
     } finally {
       setIsSavingProcessingActivity(false);
+    }
+  };
+
+  const handleCreateAccessReview = async () => {
+    const summary = newAccessReviewSummary.trim();
+
+    setIsSavingAccessReview(true);
+    try {
+      await createAccessReviewReportAdmin({
+        summary,
+      });
+      setNewAccessReviewSummary("");
+      await loadOverview();
+      showAlert({
+        title: "Review uložena",
+        message: "Snapshot přístupů byl zapsán do evidence access review.",
+        variant: "success",
+      });
+    } catch (error) {
+      showAlert({
+        title: "Uložení selhalo",
+        message: `Access review se nepodařilo uložit: ${String((error as Error)?.message || error)}`,
+        variant: "danger",
+      });
+    } finally {
+      setIsSavingAccessReview(false);
     }
   };
 
@@ -558,6 +594,34 @@ export const ComplianceAdmin: React.FC = () => {
     }
   };
 
+  const handleDownloadBreachAuthorityReport = (breach: BreachCase) => {
+    try {
+      const report = buildBreachAuthorityReportAdmin({
+        breachCase: breach,
+        events: breachCaseEvents.filter((event) => event.breachCaseId === breach.id),
+      });
+      const blob = new Blob([report.content], { type: report.mimeType });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = report.fileName;
+      link.click();
+      URL.revokeObjectURL(url);
+
+      showAlert({
+        title: "Podklady připraveny",
+        message: "Stáhl se pracovní podklad pro ÚOOÚ v Markdown formátu.",
+        variant: "success",
+      });
+    } catch (error) {
+      showAlert({
+        title: "Export selhal",
+        message: `Podklady pro ÚOOÚ se nepodařilo připravit: ${String((error as Error)?.message || error)}`,
+        variant: "danger",
+      });
+    }
+  };
+
   const summary = useMemo(
     () =>
       checklistItems.reduce(
@@ -568,6 +632,22 @@ export const ComplianceAdmin: React.FC = () => {
         { implemented: 0, partial: 0, missing: 0 },
       ),
     [checklistItems],
+  );
+
+  const subprocessorNameById = useMemo(
+    () =>
+      new Map(
+        subprocessors.map((record) => [record.id, record.name] as const),
+      ),
+    [subprocessors],
+  );
+
+  const retentionLabelById = useMemo(
+    () =>
+      new Map(
+        retentionPolicies.map((policy) => [policy.id, policy.category] as const),
+      ),
+    [retentionPolicies],
   );
 
   return (
@@ -987,6 +1067,12 @@ export const ComplianceAdmin: React.FC = () => {
                       ? "Subjekty zapsány"
                       : "Zapsat informování subjektů"}
                   </button>
+                  <button
+                    onClick={() => handleDownloadBreachAuthorityReport(breach)}
+                    className="rounded-lg border border-emerald-300 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
+                  >
+                    Stáhnout podklady pro ÚOOÚ
+                  </button>
                 </div>
                 <div className="mt-4 space-y-3 rounded-xl border border-slate-200/80 p-3 dark:border-slate-700/50">
                   <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -1173,6 +1259,25 @@ export const ComplianceAdmin: React.FC = () => {
                     </option>
                   ))}
                 </select>
+                <select
+                  aria-label="Navázané subprocessory činnosti zpracování"
+                  multiple
+                  value={newProcessingActivitySubprocessorIds}
+                  onChange={(e) =>
+                    setNewProcessingActivitySubprocessorIds(
+                      Array.from(e.target.selectedOptions, (option) => option.value),
+                    )
+                  }
+                  className="min-h-28 min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                >
+                  {subprocessors
+                    .filter((record) => record.id !== "subprocessors-missing")
+                    .map((record) => (
+                      <option key={record.id} value={record.id}>
+                        {record.name} ({record.region})
+                      </option>
+                    ))}
+                </select>
                 <button
                   onClick={() => void handleCreateProcessingActivity()}
                   disabled={isSavingProcessingActivity}
@@ -1205,12 +1310,168 @@ export const ComplianceAdmin: React.FC = () => {
                 </div>
                 <div className="mt-1 text-xs text-slate-500">
                   {record.retentionPolicyId
-                    ? `Navázaná retence: ${record.retentionPolicyId}`
+                    ? `Navázaná retence: ${retentionLabelById.get(record.retentionPolicyId) || record.retentionPolicyId}`
                     : "Retence zatím není navázaná"}
+                </div>
+                <div className="mt-1 text-xs text-slate-500">
+                  {record.linkedSubprocessorIds.length > 0
+                    ? `Subprocessors: ${record.linkedSubprocessorIds
+                        .map((id) => subprocessorNameById.get(id) || id)
+                        .join(", ")}`
+                    : "Subprocessors zatím nejsou navázané"}
                 </div>
                 <div className="mt-2 text-xs text-slate-500">
                   Tento záznam jen dokumentuje činnost zpracování. Nemění ani nemaže žádná
                   produkční data.
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700/40 dark:bg-slate-900/80">
+          <h3 className="text-base font-bold text-slate-900 dark:text-white">
+            Access review a audit oprávnění
+          </h3>
+          <p className="mt-2 text-sm text-slate-500">
+            Přehled privilegovaných účtů, změn rolí a pravidelných kontrol přístupů. Tato sekce jen
+            eviduje a vyhodnocuje přístupy, nic nemaže ani automaticky nepřepisuje.
+          </p>
+
+          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+            <div className="rounded-xl border border-slate-200 p-4 dark:border-slate-700/50">
+              <div className="text-xs uppercase tracking-wide text-slate-500">Účty</div>
+              <div className="mt-2 text-2xl font-black text-slate-900 dark:text-white">
+                {accessReviewUsers.length}
+              </div>
+            </div>
+            <div className="rounded-xl border border-slate-200 p-4 dark:border-slate-700/50">
+              <div className="text-xs uppercase tracking-wide text-slate-500">Rizikové účty</div>
+              <div className="mt-2 text-2xl font-black text-amber-600 dark:text-amber-300">
+                {accessReviewUsers.filter((user) => user.riskFlags.length > 0).length}
+              </div>
+            </div>
+            <div className="rounded-xl border border-slate-200 p-4 dark:border-slate-700/50">
+              <div className="text-xs uppercase tracking-wide text-slate-500">Audit změn</div>
+              <div className="mt-2 text-2xl font-black text-cyan-600 dark:text-cyan-300">
+                {accessAuditEntries.length}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-xl border border-dashed border-slate-300 p-4 dark:border-slate-700/50">
+            <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_auto]">
+              <input
+                aria-label="Shrnutí access review"
+                type="text"
+                value={newAccessReviewSummary}
+                onChange={(e) => setNewAccessReviewSummary(e.target.value)}
+                placeholder="Např. měsíční kontrola admin přístupů a neaktivních účtů"
+                className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+              />
+              <button
+                onClick={() => void handleCreateAccessReview()}
+                disabled={isSavingAccessReview}
+                className="rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-50"
+              >
+                {isSavingAccessReview ? "Ukládám…" : "Uložit review snapshot"}
+              </button>
+            </div>
+            <p className="mt-2 text-xs text-slate-500">
+              Snapshot uloží počet účtů, privilegovaných přístupů a neaktivních účtů k určitému
+              datu jako důkaz pravidelné kontroly.
+            </p>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+              Rizikové nebo privilegované účty
+            </h4>
+            {accessReviewUsers
+              .filter((user) => user.riskFlags.length > 0)
+              .slice(0, 8)
+              .map((user) => (
+                <div
+                  key={user.userId}
+                  className="rounded-xl border border-slate-200 p-4 dark:border-slate-700/50"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                        {user.displayName || user.email}
+                      </div>
+                      <div className="text-xs text-slate-500">{user.email}</div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {user.riskFlags.map((flag) => (
+                        <span
+                          key={`${user.userId}-${flag}`}
+                          className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-700 dark:bg-amber-500/20 dark:text-amber-300"
+                        >
+                          {flag === "stale_account"
+                            ? "Neaktivní účet"
+                            : flag === "privileged_access"
+                              ? "Privilegovaný přístup"
+                              : flag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mt-2 text-xs text-slate-500">
+                    Aplikační role: {user.appRoleLabel || user.appRoleId || "bez role"} • Org role:{" "}
+                    {user.orgRoles.length > 0 ? user.orgRoles.join(", ") : "žádná"} • Poslední
+                    přihlášení: {formatDateTime(user.lastSignIn)}
+                  </div>
+                </div>
+              ))}
+          </div>
+
+          <div className="mt-4 space-y-3">
+            <h4 className="text-sm font-bold text-slate-900 dark:text-white">Poslední změny práv</h4>
+            {accessAuditEntries.slice(0, 8).map((entry) => (
+              <div
+                key={entry.id}
+                className="rounded-xl border border-slate-200 p-4 dark:border-slate-700/50"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                    {entry.summary}
+                  </div>
+                  <div className="text-xs text-slate-500">{formatDateTime(entry.createdAt)}</div>
+                </div>
+                <div className="mt-2 text-xs text-slate-500">
+                  Aktér: {entry.actorEmail || "system"} • Cíl: {entry.targetUserEmail || entry.targetRoleId || "n/a"}
+                </div>
+                {(entry.permissionKey || entry.oldValue || entry.newValue) ? (
+                  <div className="mt-1 text-xs text-slate-500">
+                    {entry.permissionKey ? `Permission: ${entry.permissionKey} • ` : ""}
+                    {entry.oldValue ? `původně ${entry.oldValue} • ` : ""}
+                    {entry.newValue ? `nově ${entry.newValue}` : ""}
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-4 space-y-3">
+            <h4 className="text-sm font-bold text-slate-900 dark:text-white">Poslední review snapshoty</h4>
+            {accessReviewReports.slice(0, 5).map((report) => (
+              <div
+                key={report.id}
+                className="rounded-xl border border-slate-200 p-4 dark:border-slate-700/50"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                    {report.summary || "Bez poznámky"}
+                  </div>
+                  <div className="text-xs text-slate-500">{formatDateTime(report.createdAt)}</div>
+                </div>
+                <div className="mt-2 text-xs text-slate-500">
+                  Scope: {report.reviewScope} • Reviewer: {report.reviewedByEmail || "admin"}
+                </div>
+                <div className="mt-1 text-xs text-slate-500">
+                  Účty: {report.totalUsers} • Privilegované: {report.adminUsers} • Neaktivní:{" "}
+                  {report.staleUsers}
                 </div>
               </div>
             ))}

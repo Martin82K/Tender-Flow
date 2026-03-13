@@ -23,6 +23,9 @@ Poslední aktualizace: 12. března 2026
 - [x] 2026-03-12: compliance admin převeden do bezpečného režimu bez mazání dat z databáze; výmaz/purge akce jsou jen evidenční a vysvětlené v UI
 - [x] 2026-03-12: přidán první ROPA registr činností zpracování do compliance adminu včetně migrace, evidence právního titulu a vazby na retenci
 - [x] 2026-03-12: rozšířen breach workflow o 72h timeline, posouzení případu a evidenci notifikací vůči ÚOOÚ a subjektům bez mazání dat
+- [x] 2026-03-13: přidán access review report, audit změn rolí a oprávnění a snapshot pravidelné kontroly přístupů
+- [x] 2026-03-13: přidán export pracovních podkladů pro ÚOOÚ z breach evidence a timeline
+- [x] 2026-03-13: provedeno provázání ROPA záznamů na retention policy a subprocessors včetně nové spojovací tabulky
 - [ ] Další krok: doplnit hlubší DSR/breach workflow, ROPA evidenci a vazbu legal textů na interní registry
 
 ## Přehled priorit
@@ -85,10 +88,10 @@ Dopad do struktury: případně nový compliance report view
 - [x] Více RLS hardening migrací existuje
 - [x] Admin-only incident logy existují
 - [x] Organization role management existuje
-- [ ] Zavést centrální audit trail změn rolí a oprávnění
-- [ ] Přidat přehled access review
-- [ ] Přidat evidenci pravidelné kontroly přístupů
-Stav: částečně
+- [x] Zavést centrální audit trail změn rolí a oprávnění
+- [x] Přidat přehled access review
+- [x] Přidat evidenci pravidelné kontroly přístupů
+Stav: implementováno se zbývajícím dopracováním detailů
 Priorita: vysoká
 Dopad do kódu: střední
 Dopad do struktury: nový audit subsystem
@@ -158,7 +161,7 @@ Dopad do struktury: nový public/privacy modul + consent utilita
 - [-] Přidat klasifikaci rizika a dotčených údajů
 - [x] Přidat timeline 72h procesu
 - [x] Přidat evidenci hlášení ÚOOÚ a informování subjektů
-- [ ] Přidat export/print podklady pro ÚOOÚ
+- [x] Přidat export/print podklady pro ÚOOÚ
 Stav: částečně
 Priorita: kritická
 Dopad do kódu: vysoký
@@ -166,8 +169,8 @@ Dopad do struktury: nový compliance backend model + admin UI
 
 ### 11. ROPA / záznamy o činnostech zpracování
 - [x] Přidat strukturovaný registr processing activities
-- [-] Provázat účely, kategorie dat, retention a subprocessors
-Stav: částečně
+- [x] Provázat účely, kategorie dat, retention a subprocessors
+Stav: implementováno se zbývajícím dopracováním detailů
 Priorita: vysoká
 Dopad do kódu: střední
 Dopad do struktury: nový compliance datastore
@@ -207,8 +210,8 @@ Dopad do struktury: nový interní compliance registry modul
 
 ### C. Auth a access governance
 - [x] Doplnit skutečné MFA enforcement
-- [ ] Přidat admin access review report
-- [ ] Auditovat změny rolí, login type a subscription/admin zásahy
+- [x] Přidat admin access review report
+- [-] Auditovat změny rolí, login type a subscription/admin zásahy
 
 ### D. Logging a privacy by default
 - [x] Sjednotit sanitizaci do sdílené utility
