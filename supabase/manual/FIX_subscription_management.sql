@@ -1,5 +1,9 @@
--- Fix script: Run this in Supabase Dashboard SQL Editor
--- This fixes the remaining parts of the subscription_management migration
+-- Manual SQL archive: historical fix script kept only for reference.
+-- IMPORTANT:
+-- This file is intentionally stored outside supabase/migrations, because it is
+-- not a timestamped migration and Supabase CLI would otherwise try to parse it.
+-- The active subscription functions are already covered by later timestamped
+-- migrations in this repository.
 
 -- Drop existing function first to avoid parameter default conflicts
 DROP FUNCTION IF EXISTS public.get_user_subscription_tier(UUID);

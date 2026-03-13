@@ -10,6 +10,7 @@ const mockState = vi.hoisted(() => ({
   createBreachCaseAdmin: vi.fn(),
   updateBreachCaseStatusAdmin: vi.fn(),
   saveBreachAssessmentAdmin: vi.fn(),
+  saveBreachClassificationAdmin: vi.fn(),
   addBreachCaseTimelineEventAdmin: vi.fn(),
   markBreachNotificationAdmin: vi.fn(),
   buildBreachAuthorityReportAdmin: vi.fn(),
@@ -31,6 +32,7 @@ vi.mock("@/features/settings/api/complianceAdminService", () => ({
   createBreachCaseAdmin: mockState.createBreachCaseAdmin,
   updateBreachCaseStatusAdmin: mockState.updateBreachCaseStatusAdmin,
   saveBreachAssessmentAdmin: mockState.saveBreachAssessmentAdmin,
+  saveBreachClassificationAdmin: mockState.saveBreachClassificationAdmin,
   addBreachCaseTimelineEventAdmin: mockState.addBreachCaseTimelineEventAdmin,
   markBreachNotificationAdmin: mockState.markBreachNotificationAdmin,
   buildBreachAuthorityReportAdmin: mockState.buildBreachAuthorityReportAdmin,
@@ -94,6 +96,10 @@ describe("ComplianceAdmin", () => {
         riskLevel: "high",
         linkedIncidentId: null,
         assessmentSummary: "Prvotní vyhodnocení dopadu.",
+        affectedDataCategories: ["jméno", "e-mail"],
+        affectedSubjectTypes: ["kontaktní osoby"],
+        estimatedSubjectCount: 12,
+        notificationRationale: "Existuje pravděpodobné riziko pro dotčené osoby, proto běží příprava hlášení.",
         authorityNotifiedAt: null,
         dataSubjectsNotifiedAt: null,
         createdAt: "2026-03-12T09:00:00.000Z",
@@ -177,6 +183,7 @@ describe("ComplianceAdmin", () => {
     mockState.createBreachCaseAdmin.mockResolvedValue(undefined);
     mockState.updateBreachCaseStatusAdmin.mockResolvedValue(undefined);
     mockState.saveBreachAssessmentAdmin.mockResolvedValue(undefined);
+    mockState.saveBreachClassificationAdmin.mockResolvedValue(undefined);
     mockState.addBreachCaseTimelineEventAdmin.mockResolvedValue(undefined);
     mockState.markBreachNotificationAdmin.mockResolvedValue(undefined);
     mockState.buildBreachAuthorityReportAdmin.mockReturnValue({
@@ -285,6 +292,37 @@ describe("ComplianceAdmin", () => {
       expect(mockState.saveBreachAssessmentAdmin).toHaveBeenCalledWith({
         id: "breach-1",
         assessmentSummary: "Rozsah potvrzen, běží právní posouzení a containment.",
+      });
+    });
+  });
+
+  it("umožní uložit breach klasifikaci", async () => {
+    render(<ComplianceAdmin />);
+
+    fireEvent.change(await screen.findByLabelText("Kategorie údajů breach-1"), {
+      target: { value: "jméno, e-mail, telefon" },
+    });
+    fireEvent.change(screen.getByLabelText("Typy subjektů breach-1"), {
+      target: { value: "zákazníci, kontaktní osoby" },
+    });
+    fireEvent.change(screen.getByLabelText("Odhad subjektů breach-1"), {
+      target: { value: "25" },
+    });
+    fireEvent.change(screen.getByLabelText("Důvod hlášení breach-1"), {
+      target: {
+        value: "Incident má dopad na běžné kontaktní údaje a existuje pravděpodobné riziko neoprávněného přístupu.",
+      },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Uložit klasifikaci" }));
+
+    await waitFor(() => {
+      expect(mockState.saveBreachClassificationAdmin).toHaveBeenCalledWith({
+        id: "breach-1",
+        affectedDataCategories: ["jméno", "e-mail", "telefon"],
+        affectedSubjectTypes: ["zákazníci", "kontaktní osoby"],
+        estimatedSubjectCount: 25,
+        notificationRationale:
+          "Incident má dopad na běžné kontaktní údaje a existuje pravděpodobné riziko neoprávněného přístupu.",
       });
     });
   });

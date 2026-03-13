@@ -9,6 +9,7 @@ import {
   exportDataSubjectAdmin,
   getComplianceOverviewAdmin,
   markBreachNotificationAdmin,
+  saveBreachClassificationAdmin,
   saveComplianceRetentionPolicyAdmin,
   saveBreachAssessmentAdmin,
   saveProcessingActivityAdmin,
@@ -94,8 +95,13 @@ export const ComplianceAdmin: React.FC = () => {
   const [newBreachRisk, setNewBreachRisk] = useState<BreachCase["riskLevel"]>("medium");
   const [newBreachIncidentId, setNewBreachIncidentId] = useState("");
   const [breachAssessmentDrafts, setBreachAssessmentDrafts] = useState<Record<string, string>>({});
+  const [breachDataCategoriesDrafts, setBreachDataCategoriesDrafts] = useState<Record<string, string>>({});
+  const [breachSubjectTypesDrafts, setBreachSubjectTypesDrafts] = useState<Record<string, string>>({});
+  const [breachEstimatedCountDrafts, setBreachEstimatedCountDrafts] = useState<Record<string, string>>({});
+  const [breachRationaleDrafts, setBreachRationaleDrafts] = useState<Record<string, string>>({});
   const [breachTimelineDrafts, setBreachTimelineDrafts] = useState<Record<string, string>>({});
   const [savingBreachAssessmentId, setSavingBreachAssessmentId] = useState<string | null>(null);
+  const [savingBreachClassificationId, setSavingBreachClassificationId] = useState<string | null>(null);
   const [savingBreachTimelineId, setSavingBreachTimelineId] = useState<string | null>(null);
   const [markingBreachNotification, setMarkingBreachNotification] = useState<string | null>(null);
   const [retentionDrafts, setRetentionDrafts] = useState<Record<string, number>>({});
@@ -525,6 +531,65 @@ export const ComplianceAdmin: React.FC = () => {
       });
     } finally {
       setSavingBreachAssessmentId(null);
+    }
+  };
+
+  const handleSaveBreachClassification = async (breach: BreachCase) => {
+    const affectedDataCategories = (breachDataCategoriesDrafts[breach.id] ??
+      breach.affectedDataCategories.join(", "))
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean);
+    const affectedSubjectTypes = (breachSubjectTypesDrafts[breach.id] ??
+      breach.affectedSubjectTypes.join(", "))
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean);
+    const estimatedValue = breachEstimatedCountDrafts[breach.id];
+    const estimatedSubjectCount =
+      estimatedValue === undefined || estimatedValue.trim() === ""
+        ? breach.estimatedSubjectCount
+        : Number(estimatedValue);
+    const notificationRationale = (
+      breachRationaleDrafts[breach.id] ?? breach.notificationRationale
+    ).trim();
+
+    if (affectedDataCategories.length === 0 || affectedSubjectTypes.length === 0 || !notificationRationale) {
+      showAlert({
+        title: "Chybí klasifikace",
+        message:
+          "Vyplňte dotčené kategorie údajů, typy subjektů a důvod hlášení nebo nehlášení.",
+        variant: "danger",
+      });
+      return;
+    }
+
+    setSavingBreachClassificationId(breach.id);
+    try {
+      await saveBreachClassificationAdmin({
+        id: breach.id,
+        affectedDataCategories,
+        affectedSubjectTypes,
+        estimatedSubjectCount:
+          typeof estimatedSubjectCount === "number" && !Number.isNaN(estimatedSubjectCount)
+            ? estimatedSubjectCount
+            : null,
+        notificationRationale,
+      });
+      await loadOverview();
+      showAlert({
+        title: "Klasifikace uložena",
+        message: "Dotčené údaje, subjekty a důvod hlášení byly zapsány do evidence.",
+        variant: "success",
+      });
+    } catch (error) {
+      showAlert({
+        title: "Uložení selhalo",
+        message: `Klasifikaci se nepodařilo uložit: ${String((error as Error)?.message || error)}`,
+        variant: "danger",
+      });
+    } finally {
+      setSavingBreachClassificationId(null);
     }
   };
 
@@ -1010,6 +1075,11 @@ export const ComplianceAdmin: React.FC = () => {
                   ÚOOÚ: {formatDateTime(breach.authorityNotifiedAt)} • Subjekty:{" "}
                   {formatDateTime(breach.dataSubjectsNotifiedAt)}
                 </div>
+                <div className="mt-2 text-xs text-slate-500">
+                  Dotčené údaje: {breach.affectedDataCategories.join(", ") || "neuvedeno"} •
+                  Subjekty: {breach.affectedSubjectTypes.join(", ") || "neuvedeno"} • Odhad:{" "}
+                  {breach.estimatedSubjectCount ?? "neuvedeno"}
+                </div>
                 {breach.status !== "closed" && (
                   <button
                     onClick={() => void handleAdvanceBreachStatus(breach)}
@@ -1025,6 +1095,59 @@ export const ComplianceAdmin: React.FC = () => {
                     ]}
                   </button>
                 )}
+                <div className="mt-4 space-y-3 rounded-xl border border-slate-200/80 p-3 dark:border-slate-700/50">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Klasifikace dopadu
+                  </div>
+                  <input
+                    aria-label={`Kategorie údajů ${breach.id}`}
+                    type="text"
+                    value={breachDataCategoriesDrafts[breach.id] ?? breach.affectedDataCategories.join(", ")}
+                    onChange={(e) =>
+                      setBreachDataCategoriesDrafts((prev) => ({ ...prev, [breach.id]: e.target.value }))
+                    }
+                    placeholder="Např. jméno, e-mail, telefon"
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                  />
+                  <input
+                    aria-label={`Typy subjektů ${breach.id}`}
+                    type="text"
+                    value={breachSubjectTypesDrafts[breach.id] ?? breach.affectedSubjectTypes.join(", ")}
+                    onChange={(e) =>
+                      setBreachSubjectTypesDrafts((prev) => ({ ...prev, [breach.id]: e.target.value }))
+                    }
+                    placeholder="Např. zákazníci, kontaktní osoby, zaměstnanci"
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                  />
+                  <input
+                    aria-label={`Odhad subjektů ${breach.id}`}
+                    type="number"
+                    min={0}
+                    value={breachEstimatedCountDrafts[breach.id] ?? String(breach.estimatedSubjectCount ?? "")}
+                    onChange={(e) =>
+                      setBreachEstimatedCountDrafts((prev) => ({ ...prev, [breach.id]: e.target.value }))
+                    }
+                    placeholder="Např. 25"
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                  />
+                  <textarea
+                    aria-label={`Důvod hlášení ${breach.id}`}
+                    value={breachRationaleDrafts[breach.id] ?? breach.notificationRationale}
+                    onChange={(e) =>
+                      setBreachRationaleDrafts((prev) => ({ ...prev, [breach.id]: e.target.value }))
+                    }
+                    rows={3}
+                    placeholder="Stručně vysvětlete, proč se případ hlásí nebo nehlásí, a jaké je riziko."
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                  />
+                  <button
+                    onClick={() => void handleSaveBreachClassification(breach)}
+                    disabled={savingBreachClassificationId === breach.id}
+                    className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+                  >
+                    {savingBreachClassificationId === breach.id ? "Ukládám…" : "Uložit klasifikaci"}
+                  </button>
+                </div>
                 <div className="mt-4 space-y-3 rounded-xl border border-slate-200/80 p-3 dark:border-slate-700/50">
                   <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                     Posouzení případu

@@ -1,6 +1,6 @@
 # Compliance implementace Tender Flow
 
-Poslední aktualizace: 12. března 2026
+Poslední aktualizace: 13. března 2026
 
 ## Jak s tím pracovat
 - `[x]` = hotovo
@@ -26,7 +26,8 @@ Poslední aktualizace: 12. března 2026
 - [x] 2026-03-13: přidán access review report, audit změn rolí a oprávnění a snapshot pravidelné kontroly přístupů
 - [x] 2026-03-13: přidán export pracovních podkladů pro ÚOOÚ z breach evidence a timeline
 - [x] 2026-03-13: provedeno provázání ROPA záznamů na retention policy a subprocessors včetně nové spojovací tabulky
-- [ ] Další krok: doplnit hlubší DSR/breach workflow, ROPA evidenci a vazbu legal textů na interní registry
+- [x] 2026-03-13: doplněna breach klasifikace pro dotčené údaje, typy subjektů, odhad rozsahu a důvod hlášení nebo nehlášení
+- [ ] Další krok: doplnit DSR minimum a vazbu legal textů na interní registry
 
 ## Přehled priorit
 
@@ -158,11 +159,11 @@ Dopad do struktury: nový public/privacy modul + consent utilita
 ### 10. Breach register a GDPR incident workflow
 - [x] Technické incidenty se sbírají
 - [x] Přidat datový model breach case
-- [-] Přidat klasifikaci rizika a dotčených údajů
+- [x] Přidat klasifikaci rizika a dotčených údajů
 - [x] Přidat timeline 72h procesu
 - [x] Přidat evidenci hlášení ÚOOÚ a informování subjektů
 - [x] Přidat export/print podklady pro ÚOOÚ
-Stav: částečně
+Stav: implementováno se zbývajícím provozním doplněním
 Priorita: kritická
 Dopad do kódu: vysoký
 Dopad do struktury: nový compliance backend model + admin UI

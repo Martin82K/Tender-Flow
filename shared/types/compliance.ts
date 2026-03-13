@@ -32,6 +32,10 @@ export interface BreachCase {
   riskLevel: "low" | "medium" | "high";
   linkedIncidentId: string | null;
   assessmentSummary: string;
+  affectedDataCategories: string[];
+  affectedSubjectTypes: string[];
+  estimatedSubjectCount: number | null;
+  notificationRationale: string;
   authorityNotifiedAt: string | null;
   dataSubjectsNotifiedAt: string | null;
   createdAt: string;

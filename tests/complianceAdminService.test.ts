@@ -102,6 +102,11 @@ describe("complianceAdminService", () => {
           risk_level: "high",
           linked_incident_id: "INC-1",
           assessment_summary: "Probíhá posouzení.",
+          affected_data_categories: ["jméno", "e-mail"],
+          affected_subject_types: ["kontaktní osoby", "zákazníci"],
+          estimated_subject_count: 14,
+          notification_rationale:
+            "Riziko neoprávněného přístupu je pravděpodobné, proto je připravené hlášení.",
           authority_notified_at: "2026-03-12T12:00:00.000Z",
           data_subjects_notified_at: null,
           created_at: "2026-03-12T09:00:00.000Z",
@@ -232,6 +237,11 @@ describe("complianceAdminService", () => {
       riskLevel: "high",
       linkedIncidentId: "INC-1",
       assessmentSummary: "Probíhá posouzení.",
+      affectedDataCategories: ["jméno", "e-mail"],
+      affectedSubjectTypes: ["kontaktní osoby", "zákazníci"],
+      estimatedSubjectCount: 14,
+      notificationRationale:
+        "Riziko neoprávněného přístupu je pravděpodobné, proto je připravené hlášení.",
       authorityNotifiedAt: "2026-03-12T12:00:00.000Z",
     });
     expect(result.breachCaseEvents[0]).toMatchObject({
@@ -371,6 +381,60 @@ describe("complianceAdminService", () => {
       breach_case_id: "BREACH-1",
       event_type: "assessment_saved",
       summary: "Rozsah potvrzen a běží containment.",
+      actor: "martin",
+    });
+  });
+
+  it("umí uložit breach klasifikaci a timeline event", async () => {
+    const updateQuery = {
+      update: vi.fn(),
+      eq: vi.fn(),
+    };
+    updateQuery.update.mockReturnValue(updateQuery);
+    updateQuery.eq.mockResolvedValue({ error: null });
+    const insertMock = vi.fn().mockResolvedValue({ error: null });
+
+    state.from.mockImplementation((table: string) => {
+      if (table === "breach_cases") return updateQuery;
+      return { insert: insertMock };
+    });
+
+    const { saveBreachClassificationAdmin } = await import(
+      "@/features/settings/api/complianceAdminService"
+    );
+
+    await saveBreachClassificationAdmin({
+      id: "BREACH-1",
+      affectedDataCategories: ["jméno", "e-mail", "telefon"],
+      affectedSubjectTypes: ["zákazníci", "kontaktní osoby"],
+      estimatedSubjectCount: 25,
+      notificationRationale:
+        "Riziko neoprávněného přístupu je pravděpodobné a vyžaduje právní rozhodnutí.",
+      actor: "martin",
+    });
+
+    expect(updateQuery.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        affected_data_categories: ["jméno", "e-mail", "telefon"],
+        affected_subject_types: ["zákazníci", "kontaktní osoby"],
+        estimated_subject_count: 25,
+        notification_rationale:
+          "Riziko neoprávněného přístupu je pravděpodobné a vyžaduje právní rozhodnutí.",
+      }),
+    );
+    expect(updateQuery.eq).toHaveBeenCalledWith("id", "BREACH-1");
+    expect(insertMock).toHaveBeenNthCalledWith(1, {
+      actor: "martin",
+      action: "save_breach_classification",
+      target_type: "breach_case",
+      target_id: "BREACH-1",
+      summary: "Uložena klasifikace breach case BREACH-1",
+    });
+    expect(insertMock).toHaveBeenNthCalledWith(2, {
+      breach_case_id: "BREACH-1",
+      event_type: "classification_saved",
+      summary:
+        "Kategorie dat: jméno, e-mail, telefon • Subjekty: zákazníci, kontaktní osoby • Odhad: 25",
       actor: "martin",
     });
   });
@@ -711,6 +775,11 @@ describe("complianceAdminService", () => {
         riskLevel: "high",
         linkedIncidentId: "INC-1",
         assessmentSummary: "Probíhá právní posouzení a containment.",
+        affectedDataCategories: ["jméno", "e-mail"],
+        affectedSubjectTypes: ["kontaktní osoby"],
+        estimatedSubjectCount: 12,
+        notificationRationale:
+          "Existuje pravděpodobné riziko pro dotčené osoby, proto je připravené hlášení.",
         authorityNotifiedAt: null,
         dataSubjectsNotifiedAt: null,
         createdAt: "2026-03-12T09:00:00.000Z",
@@ -730,6 +799,13 @@ describe("complianceAdminService", () => {
     expect(result.fileName).toBe("uoou_podklady_BREACH-1.md");
     expect(result.content).toContain("# Podklady pro ÚOOÚ");
     expect(result.content).toContain("ID případu: BREACH-1");
+    expect(result.content).toContain("## Klasifikace");
+    expect(result.content).toContain("Dotčené kategorie údajů: jméno, e-mail");
+    expect(result.content).toContain("Dotčené subjekty: kontaktní osoby");
+    expect(result.content).toContain("Odhad počtu subjektů: 12");
+    expect(result.content).toContain(
+      "Důvod hlášení / nehlášení: Existuje pravděpodobné riziko pro dotčené osoby, proto je připravené hlášení.",
+    );
     expect(result.content).toContain("Probíhá právní posouzení a containment.");
     expect(result.content).toContain("Případ založen.");
   });

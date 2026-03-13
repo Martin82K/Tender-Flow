@@ -177,6 +177,10 @@ const defaultBreachCases: BreachCase[] = [
     riskLevel: "high",
     linkedIncidentId: null,
     assessmentSummary: "Zatím chybí workflow pro formální posouzení a 72h evidenci.",
+    affectedDataCategories: ["n/a"],
+    affectedSubjectTypes: ["n/a"],
+    estimatedSubjectCount: null,
+    notificationRationale: "Zatím není doplněné rozhodnutí o hlášení nebo nehlášení.",
     authorityNotifiedAt: null,
     dataSubjectsNotifiedAt: null,
     createdAt: "2026-03-12T09:00:00.000Z",
@@ -307,6 +311,21 @@ const normalizeBreachCases = (rows: unknown): BreachCase[] => {
           ? null
           : String(item.linked_incident_id),
       assessmentSummary: String(item.assessment_summary || ""),
+      affectedDataCategories: Array.isArray(item.affected_data_categories)
+        ? item.affected_data_categories.map((value) => String(value))
+        : typeof item.affected_data_categories === "string" && item.affected_data_categories.length > 0
+          ? item.affected_data_categories.split(",").map((value) => value.trim()).filter(Boolean)
+          : [],
+      affectedSubjectTypes: Array.isArray(item.affected_subject_types)
+        ? item.affected_subject_types.map((value) => String(value))
+        : typeof item.affected_subject_types === "string" && item.affected_subject_types.length > 0
+          ? item.affected_subject_types.split(",").map((value) => value.trim()).filter(Boolean)
+          : [],
+      estimatedSubjectCount:
+        item.estimated_subject_count === null || item.estimated_subject_count === undefined
+          ? null
+          : Number(item.estimated_subject_count),
+      notificationRationale: String(item.notification_rationale || ""),
       authorityNotifiedAt:
         item.authority_notified_at === null || item.authority_notified_at === undefined
           ? null
@@ -672,6 +691,10 @@ export const createBreachCaseAdmin = async (input: {
     risk_level: input.riskLevel,
     linked_incident_id: input.linkedIncidentId ?? null,
     assessment_summary: "",
+    affected_data_categories: [],
+    affected_subject_types: [],
+    estimated_subject_count: null,
+    notification_rationale: "",
     authority_notified_at: null,
     data_subjects_notified_at: null,
   });
@@ -746,6 +769,42 @@ export const saveBreachAssessmentAdmin = async (input: {
     breachCaseId: input.id,
     eventType: "assessment_saved",
     summary: input.assessmentSummary,
+    actor: input.actor,
+  });
+};
+
+export const saveBreachClassificationAdmin = async (input: {
+  id: string;
+  affectedDataCategories: string[];
+  affectedSubjectTypes: string[];
+  estimatedSubjectCount: number | null;
+  notificationRationale: string;
+  actor?: string;
+}): Promise<void> => {
+  const { error } = await dbAdapter
+    .from("breach_cases")
+    .update({
+      affected_data_categories: input.affectedDataCategories,
+      affected_subject_types: input.affectedSubjectTypes,
+      estimated_subject_count: input.estimatedSubjectCount,
+      notification_rationale: input.notificationRationale,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", input.id);
+
+  if (error) throw error;
+
+  await writeAdminAuditEvent({
+    actor: input.actor ?? "admin",
+    action: "save_breach_classification",
+    targetType: "breach_case",
+    targetId: input.id,
+    summary: `Uložena klasifikace breach case ${input.id}`,
+  });
+  await writeBreachCaseEvent({
+    breachCaseId: input.id,
+    eventType: "classification_saved",
+    summary: `Kategorie dat: ${input.affectedDataCategories.join(", ") || "neuvedeno"} • Subjekty: ${input.affectedSubjectTypes.join(", ") || "neuvedeno"} • Odhad: ${input.estimatedSubjectCount ?? "neuvedeno"}`,
     actor: input.actor,
   });
 };
@@ -1048,6 +1107,12 @@ export const buildBreachAuthorityReportAdmin = (input: {
     `Navázaný incident: ${input.breachCase.linkedIncidentId ?? "neuvedeno"}`,
     `Hlášení ÚOOÚ: ${input.breachCase.authorityNotifiedAt ?? "nezapsáno"}`,
     `Informování subjektů: ${input.breachCase.dataSubjectsNotifiedAt ?? "nezapsáno"}`,
+    "",
+    "## Klasifikace",
+    `Dotčené kategorie údajů: ${input.breachCase.affectedDataCategories.join(", ") || "neuvedeno"}`,
+    `Dotčené subjekty: ${input.breachCase.affectedSubjectTypes.join(", ") || "neuvedeno"}`,
+    `Odhad počtu subjektů: ${input.breachCase.estimatedSubjectCount ?? "neuvedeno"}`,
+    `Důvod hlášení / nehlášení: ${input.breachCase.notificationRationale || "neuvedeno"}`,
     "",
     "## Shrnutí posouzení",
     input.breachCase.assessmentSummary || "Zatím nebylo doplněno.",
