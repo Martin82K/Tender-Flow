@@ -1,4 +1,5 @@
 import React from "react";
+import { COMPLIANCE_PUBLIC_UPDATED_AT } from "@/shared/compliance/complianceRegistryBootstrap";
 import { LegalPageLayout } from "./LegalPageLayout";
 
 export const LegalCookies: React.FC = () => {
@@ -6,7 +7,7 @@ export const LegalCookies: React.FC = () => {
     <LegalPageLayout
       title="Zásady používání cookies"
       lead="Tyto zásady vysvětlují, jaké cookies a podobné technologie můžeme používat na webu a v souvisejících částech služby Tender Flow."
-      updatedAt="12. března 2026"
+      updatedAt={COMPLIANCE_PUBLIC_UPDATED_AT}
     >
       <section>
         <h2 className="text-white text-lg font-semibold">1. Co jsou cookies</h2>
@@ -29,7 +30,7 @@ export const LegalCookies: React.FC = () => {
         <ul className="mt-3 list-disc space-y-2 pl-5">
           <li>nezbytné cookies pro přihlášení, zabezpečení a správné fungování služby,</li>
           <li>funkční cookies pro zapamatování voleb a preferencí uživatele,</li>
-          <li>analytické cookies pro měření návštěvnosti, výkonu a stability.</li>
+          <li>analytické cookies pro měření návštěvnosti, výkonu a stability, které zapínáme až po souhlasu.</li>
         </ul>
       </section>
 
@@ -42,6 +43,10 @@ export const LegalCookies: React.FC = () => {
           bezpečném a funkčním provozu služby. Ostatní cookies používáme pouze
           tehdy, pokud to vyžadují právní předpisy a pokud k tomu byl udělen
           odpovídající souhlas.
+        </p>
+        <p className="mt-2">
+          V aktuální implementaci Tender Flow jsou nepovinné analytické cookies a usage analytika
+          blokované až do udělení souhlasu přes cookie lištu.
         </p>
       </section>
 

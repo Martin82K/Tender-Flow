@@ -9,6 +9,7 @@ const mockState = vi.hoisted(() => ({
   updateDataSubjectRequestStatusAdmin: vi.fn(),
   createBreachCaseAdmin: vi.fn(),
   updateBreachCaseStatusAdmin: vi.fn(),
+  saveDataSubjectRequestHandlingAdmin: vi.fn(),
   saveBreachAssessmentAdmin: vi.fn(),
   saveBreachClassificationAdmin: vi.fn(),
   addBreachCaseTimelineEventAdmin: vi.fn(),
@@ -31,6 +32,7 @@ vi.mock("@/features/settings/api/complianceAdminService", () => ({
   updateDataSubjectRequestStatusAdmin: mockState.updateDataSubjectRequestStatusAdmin,
   createBreachCaseAdmin: mockState.createBreachCaseAdmin,
   updateBreachCaseStatusAdmin: mockState.updateBreachCaseStatusAdmin,
+  saveDataSubjectRequestHandlingAdmin: mockState.saveDataSubjectRequestHandlingAdmin,
   saveBreachAssessmentAdmin: mockState.saveBreachAssessmentAdmin,
   saveBreachClassificationAdmin: mockState.saveBreachClassificationAdmin,
   addBreachCaseTimelineEventAdmin: mockState.addBreachCaseTimelineEventAdmin,
@@ -84,6 +86,10 @@ describe("ComplianceAdmin", () => {
         id: "dsr-1",
         requestType: "export",
         subjectLabel: "Export osobních údajů",
+        requesterLabel: "Jan Novák",
+        intakeChannel: "email",
+        verificationStatus: "verified",
+        resolutionSummary: "Čeká na přípravu exportu a kontrolu rozsahu údajů.",
         status: "new",
         dueAt: "2026-03-19",
       },
@@ -182,6 +188,7 @@ describe("ComplianceAdmin", () => {
     mockState.updateDataSubjectRequestStatusAdmin.mockResolvedValue(undefined);
     mockState.createBreachCaseAdmin.mockResolvedValue(undefined);
     mockState.updateBreachCaseStatusAdmin.mockResolvedValue(undefined);
+    mockState.saveDataSubjectRequestHandlingAdmin.mockResolvedValue(undefined);
     mockState.saveBreachAssessmentAdmin.mockResolvedValue(undefined);
     mockState.saveBreachClassificationAdmin.mockResolvedValue(undefined);
     mockState.addBreachCaseTimelineEventAdmin.mockResolvedValue(undefined);
@@ -250,6 +257,9 @@ describe("ComplianceAdmin", () => {
     fireEvent.change(screen.getByLabelText("Popis DSR požadavku"), {
       target: { value: "Export kontaktu" },
     });
+    fireEvent.change(screen.getByLabelText("Žadatel DSR požadavku"), {
+      target: { value: "Jan Novák" },
+    });
     fireEvent.change(screen.getByLabelText("Termín DSR požadavku"), {
       target: { value: "2026-03-20" },
     });
@@ -260,9 +270,40 @@ describe("ComplianceAdmin", () => {
         expect.objectContaining({
           requestType: "export",
           subjectLabel: "Export kontaktu",
+          requesterLabel: "Jan Novák",
+          intakeChannel: "email",
+          verificationStatus: "not_required",
           dueAt: "2026-03-20",
         }),
       );
+    });
+  });
+
+  it("umožní uložit evidenci vyřízení DSR", async () => {
+    render(<ComplianceAdmin />);
+
+    fireEvent.change(await screen.findByLabelText("Žadatel dsr-1"), {
+      target: { value: "Jana Nováková" },
+    });
+    fireEvent.change(screen.getByLabelText("Kanál dsr-1"), {
+      target: { value: "support" },
+    });
+    fireEvent.change(screen.getByLabelText("Ověření dsr-1"), {
+      target: { value: "verified" },
+    });
+    fireEvent.change(screen.getByLabelText("Shrnutí vyřízení dsr-1"), {
+      target: { value: "Export připraven a čeká na bezpečné předání žadateli." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Uložit evidenci vyřízení" }));
+
+    await waitFor(() => {
+      expect(mockState.saveDataSubjectRequestHandlingAdmin).toHaveBeenCalledWith({
+        id: "dsr-1",
+        requesterLabel: "Jana Nováková",
+        intakeChannel: "support",
+        verificationStatus: "verified",
+        resolutionSummary: "Export připraven a čeká na bezpečné předání žadateli.",
+      });
     });
   });
 

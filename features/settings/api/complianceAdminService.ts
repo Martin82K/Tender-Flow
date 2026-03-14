@@ -1,4 +1,9 @@
 import { dbAdapter } from "@/services/dbAdapter";
+import {
+  complianceBootstrapProcessingActivities,
+  complianceBootstrapRetentionPolicies,
+  complianceBootstrapSubprocessors,
+} from "@/shared/compliance/complianceRegistryBootstrap";
 import type {
   AccessAuditEntry,
   AccessReviewReport,
@@ -128,35 +133,17 @@ const defaultChecklistItems: ComplianceChecklistItem[] = [
   },
 ];
 
-const defaultRetentionPolicies: RetentionPolicy[] = [
-  {
-    id: "incident-logs",
-    category: "Incident logy",
-    purpose: "Diagnostika a bezpečnostní dohled",
-    retentionDays: 60,
-    status: "implemented",
-  },
-  {
-    id: "runtime-diagnostics",
-    category: "Runtime diagnostics",
-    purpose: "Krátkodobá lokální diagnostika klienta",
-    retentionDays: 0,
-    status: "partial",
-  },
-  {
-    id: "contacts-projects",
-    category: "Kontakty a projektová data",
-    purpose: "Obchodní a realizační agenda",
-    retentionDays: 0,
-    status: "missing",
-  },
-];
+const defaultRetentionPolicies: RetentionPolicy[] = complianceBootstrapRetentionPolicies;
 
 const defaultDsrQueue: DataSubjectRequest[] = [
   {
     id: "DSR-BOOTSTRAP-1",
     requestType: "export",
     subjectLabel: "Připravit centrální export osobních údajů",
+    requesterLabel: "Zatím neurčeno",
+    intakeChannel: "internal",
+    verificationStatus: "not_required",
+    resolutionSummary: "Doplnit provozní pravidla pro export a doložení identity žadatele.",
     status: "new",
     dueAt: "2026-03-19",
   },
@@ -164,6 +151,10 @@ const defaultDsrQueue: DataSubjectRequest[] = [
     id: "DSR-BOOTSTRAP-2",
     requestType: "erasure",
     subjectLabel: "Navrhnout delete/anonymize orchestraci",
+    requesterLabel: "Zatím neurčeno",
+    intakeChannel: "internal",
+    verificationStatus: "not_required",
+    resolutionSummary: "Výmaz zůstává evidenční; produkční mazání není z UI povolené.",
     status: "in_progress",
     dueAt: "2026-03-22",
   },
@@ -198,27 +189,9 @@ const defaultBreachCaseEvents: BreachCaseEvent[] = [
   },
 ];
 
-const defaultSubprocessors: SubprocessorRecord[] = [
-  {
-    id: "subprocessors-missing",
-    name: "Registry zatím není zaveden",
-    region: "n/a",
-    purpose: "Doplnit v další fázi",
-    transferMechanism: "n/a",
-  },
-];
+const defaultSubprocessors: SubprocessorRecord[] = complianceBootstrapSubprocessors;
 
-const defaultProcessingActivities: ProcessingActivityRecord[] = [
-  {
-    id: "processing-activities-missing",
-    activityName: "Registr činností zatím není doplněn",
-    purpose: "Doplnit v další fázi",
-    legalBasis: "n/a",
-    dataCategories: ["n/a"],
-    retentionPolicyId: null,
-    linkedSubprocessorIds: [],
-  },
-];
+const defaultProcessingActivities: ProcessingActivityRecord[] = complianceBootstrapProcessingActivities;
 
 const defaultAccessReviewUsers: AccessReviewUser[] = [];
 const defaultAccessAuditEntries: AccessAuditEntry[] = [];
@@ -279,6 +252,22 @@ const normalizeDsrQueue = (rows: unknown): DataSubjectRequest[] => {
       id: String(item.id || `dsr-${index}`),
       requestType,
       subjectLabel: String(item.subject_label || "Požadavek subjektu"),
+      requesterLabel: String(item.requester_label || "Neuvedeno"),
+      intakeChannel:
+        item.intake_channel === "email" ||
+        item.intake_channel === "form" ||
+        item.intake_channel === "phone" ||
+        item.intake_channel === "support" ||
+        item.intake_channel === "internal"
+          ? item.intake_channel
+          : "email",
+      verificationStatus:
+        item.verification_status === "pending" ||
+        item.verification_status === "verified" ||
+        item.verification_status === "not_required"
+          ? item.verification_status
+          : "pending",
+      resolutionSummary: String(item.resolution_summary || ""),
       status,
       dueAt: String(item.due_at || ""),
     };
@@ -622,6 +611,10 @@ export const createDataSubjectRequestAdmin = async (input: {
   id: string;
   requestType: DataSubjectRequest["requestType"];
   subjectLabel: string;
+  requesterLabel?: string;
+  intakeChannel?: DataSubjectRequest["intakeChannel"];
+  verificationStatus?: DataSubjectRequest["verificationStatus"];
+  resolutionSummary?: string;
   dueAt: string;
   actor?: string;
 }): Promise<void> => {
@@ -629,6 +622,10 @@ export const createDataSubjectRequestAdmin = async (input: {
     id: input.id,
     request_type: input.requestType,
     subject_label: input.subjectLabel,
+    requester_label: input.requesterLabel ?? "",
+    intake_channel: input.intakeChannel ?? "email",
+    verification_status: input.verificationStatus ?? "pending",
+    resolution_summary: input.resolutionSummary ?? "",
     status: "new",
     due_at: input.dueAt,
   });
@@ -646,6 +643,42 @@ export const createDataSubjectRequestAdmin = async (input: {
     requestId: input.id,
     eventType: "created",
     summary: `Požadavek založen jako ${input.requestType}`,
+    actor: input.actor,
+  });
+};
+
+export const saveDataSubjectRequestHandlingAdmin = async (input: {
+  id: string;
+  requesterLabel: string;
+  intakeChannel: DataSubjectRequest["intakeChannel"];
+  verificationStatus: DataSubjectRequest["verificationStatus"];
+  resolutionSummary: string;
+  actor?: string;
+}): Promise<void> => {
+  const { error } = await dbAdapter
+    .from("data_subject_requests")
+    .update({
+      requester_label: input.requesterLabel,
+      intake_channel: input.intakeChannel,
+      verification_status: input.verificationStatus,
+      resolution_summary: input.resolutionSummary,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", input.id);
+
+  if (error) throw error;
+
+  await writeAdminAuditEvent({
+    actor: input.actor ?? "admin",
+    action: "save_dsr_handling",
+    targetType: "data_subject_request",
+    targetId: input.id,
+    summary: `Doplněna evidence vyřízení DSR requestu ${input.id}`,
+  });
+  await writeDataSubjectRequestEvent({
+    requestId: input.id,
+    eventType: "handling_saved",
+    summary: `Kanál: ${input.intakeChannel} • Ověření: ${input.verificationStatus} • Žadatel: ${input.requesterLabel}`,
     actor: input.actor,
   });
 };

@@ -90,6 +90,10 @@ describe("complianceAdminService", () => {
           id: "dsr-1",
           request_type: "export",
           subject_label: "Export subjektu",
+          requester_label: "Jan Novak",
+          intake_channel: "email",
+          verification_status: "verified",
+          resolution_summary: "Export je připraven k bezpečnému předání.",
           status: "completed",
           due_at: "2026-03-30",
         },
@@ -230,6 +234,10 @@ describe("complianceAdminService", () => {
     });
     expect(result.dsrQueue[0]).toMatchObject({
       requestType: "export",
+      requesterLabel: "Jan Novak",
+      intakeChannel: "email",
+      verificationStatus: "verified",
+      resolutionSummary: "Export je připraven k bezpečnému předání.",
       status: "completed",
     });
     expect(result.breachCases[0]).toMatchObject({
@@ -290,6 +298,10 @@ describe("complianceAdminService", () => {
       id: "DSR-1",
       requestType: "export",
       subjectLabel: "Export kontaktu",
+      requesterLabel: "Jan Novak",
+      intakeChannel: "email",
+      verificationStatus: "verified",
+      resolutionSummary: "Prijat e-mailem, identita overena.",
       dueAt: "2026-03-19",
       actor: "martin",
     });
@@ -298,6 +310,10 @@ describe("complianceAdminService", () => {
       id: "DSR-1",
       request_type: "export",
       subject_label: "Export kontaktu",
+      requester_label: "Jan Novak",
+      intake_channel: "email",
+      verification_status: "verified",
+      resolution_summary: "Prijat e-mailem, identita overena.",
       status: "new",
       due_at: "2026-03-19",
     });
@@ -307,6 +323,57 @@ describe("complianceAdminService", () => {
       target_type: "data_subject_request",
       target_id: "DSR-1",
       summary: "Vytvořen DSR request export pro Export kontaktu",
+    });
+  });
+
+  it("umí uložit evidenci vyřízení DSR a zapsat audit", async () => {
+    const updateQuery = {
+      update: vi.fn(),
+      eq: vi.fn(),
+    };
+    updateQuery.update.mockReturnValue(updateQuery);
+    updateQuery.eq.mockResolvedValue({ error: null });
+    const insertMock = vi.fn().mockResolvedValue({ error: null });
+
+    state.from.mockImplementation((table: string) => {
+      if (table === "data_subject_requests") return updateQuery;
+      return { insert: insertMock };
+    });
+
+    const { saveDataSubjectRequestHandlingAdmin } = await import(
+      "@/features/settings/api/complianceAdminService"
+    );
+
+    await saveDataSubjectRequestHandlingAdmin({
+      id: "DSR-1",
+      requesterLabel: "Jan Novak",
+      intakeChannel: "support",
+      verificationStatus: "verified",
+      resolutionSummary: "Export pripraven a predan bezpecnym kanalem.",
+      actor: "martin",
+    });
+
+    expect(updateQuery.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requester_label: "Jan Novak",
+        intake_channel: "support",
+        verification_status: "verified",
+        resolution_summary: "Export pripraven a predan bezpecnym kanalem.",
+      }),
+    );
+    expect(updateQuery.eq).toHaveBeenCalledWith("id", "DSR-1");
+    expect(insertMock).toHaveBeenNthCalledWith(1, {
+      actor: "martin",
+      action: "save_dsr_handling",
+      target_type: "data_subject_request",
+      target_id: "DSR-1",
+      summary: "Doplněna evidence vyřízení DSR requestu DSR-1",
+    });
+    expect(insertMock).toHaveBeenNthCalledWith(2, {
+      request_id: "DSR-1",
+      event_type: "handling_saved",
+      summary: "Kanál: support • Ověření: verified • Žadatel: Jan Novak",
+      actor: "martin",
     });
   });
 

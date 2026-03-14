@@ -1,6 +1,6 @@
 # Compliance implementace Tender Flow
 
-Poslední aktualizace: 13. března 2026
+Poslední aktualizace: 14. března 2026
 
 ## Jak s tím pracovat
 - `[x]` = hotovo
@@ -27,23 +27,26 @@ Poslední aktualizace: 13. března 2026
 - [x] 2026-03-13: přidán export pracovních podkladů pro ÚOOÚ z breach evidence a timeline
 - [x] 2026-03-13: provedeno provázání ROPA záznamů na retention policy a subprocessors včetně nové spojovací tabulky
 - [x] 2026-03-13: doplněna breach klasifikace pro dotčené údaje, typy subjektů, odhad rozsahu a důvod hlášení nebo nehlášení
-- [ ] Další krok: doplnit DSR minimum a vazbu legal textů na interní registry
+- [x] 2026-03-14: DSR workflow rozšířeno o evidenci žadatele, kanálu přijetí, ověření identity a shrnutí vyřízení bez mazání dat
+- [x] 2026-03-14: legal texty napojeny na stejný registry model jako interní compliance admin
+- [x] 2026-03-14: na remote nasazeny DSR evidence a seed reálných compliance registry dat
+- [ ] Další krok: finální gap check a dokončení zbývajících provozních kroků mimo kód
 
 ## Přehled priorit
 
 ### P0
 - [ ] Zavést jednotnou log policy a audit citlivých akcí
-- [ ] Přidat breach register a GDPR incident workflow
+- [x] Přidat breach register a GDPR incident workflow
 - [ ] Přidat retention matrix a první purge joby mimo incidenty
 - [ ] Přidat DSR workflow pro access/export/delete
 
 ### P1
 - [x] Vynutit MFA pro admin účty
-- [ ] Přidat subprocessor registry a ROPA evidenci
+- [x] Přidat subprocessor registry a ROPA evidenci
 - [x] Přidat cookie consent vrstvu
 
 ### P2
-- [ ] Napojit veřejné legal stránky na interní compliance registry
+- [x] Napojit veřejné legal stránky na interní compliance registry
 
 ## Sekce a stav
 
@@ -51,9 +54,9 @@ Poslední aktualizace: 13. března 2026
 - [x] Privacy, Cookies, Terms a DPA stránky existují
 - [x] Legal routing existuje
 - [x] Testy renderu legal dokumentů existují
-- [ ] Napojit texty na skutečně implementované retention mechanismy
-- [ ] Doplnit konkrétní subprocessors a reálné retenční doby
-Stav: implementováno se zbývajícím dopracováním
+- [x] Napojit texty na skutečně implementované retention mechanismy
+- [x] Doplnit konkrétní subprocessors a reálné retenční doby
+Stav: implementováno
 Priorita: střední
 Dopad do kódu: malý
 Dopad do struktury: bez zásadní změny
@@ -66,7 +69,7 @@ Dopad do struktury: bez zásadní změny
 - [x] Incident DB tabulka, RPC a retention purge existují
 - [x] Testy loggeru a incident admin UI existují
 - [ ] Oddělit runtime incident od GDPR breach případu
-- [ ] Přidat breach register a právní klasifikaci incidentu
+- [x] Přidat breach register a právní klasifikaci incidentu
 - [ ] Přidat severity policy a eskalační workflow
 Stav: implementováno se zásadními mezerami pro compliance
 Priorita: kritická
@@ -103,7 +106,7 @@ Dopad do struktury: nový audit subsystem
 - [x] Vynutit MFA pro admin účty
 - [x] Přidat enrolment a enforcement flow
 - [x] Oddělit komfortní biometriku od compliance MFA
-Stav: částečně
+Stav: implementováno pro admin compliance minimum
 Priorita: kritická
 Dopad do kódu: střední až vyšší
 Dopad do struktury: rozšíření auth a settings
@@ -141,6 +144,7 @@ Dopad do struktury: nový compliance/retention modul
 [ ] Přidat delete/anonymize orchestraci přes tabulky
 [x] Admin UI nyní eviduje požadavky na výmaz bez spuštění mazání nebo anonymizace dat
 [x] Auditovat requesty a SLA
+[x] Evidovat žadatele, kanál přijetí, ověření identity a shrnutí vyřízení
 Stav: částečně
 Priorita: kritická
 Dopad do kódu: vysoký
@@ -178,9 +182,9 @@ Dopad do struktury: nový compliance datastore
 
 ### 12. Vendor / subprocessor registry
 - [x] DPA text obecně subprocessory připouští
-- [-] Přidat konkrétní seznam dodavatelů, regionů, účelů a SCC statusů
-- [ ] Provázat registry s legal stránkami a interním auditem
-Stav: částečně
+- [x] Přidat konkrétní seznam dodavatelů, regionů, účelů a SCC statusů
+- [x] Provázat registry s legal stránkami a interním auditem
+Stav: implementováno se zbývajícím doplněním reálných provozních detailů
 Priorita: vysoká
 Dopad do kódu: malý až střední
 Dopad do struktury: nový interní compliance registry modul
@@ -191,8 +195,8 @@ Dopad do struktury: nový interní compliance registry modul
 - [x] Přidat nový modul mimo freeze roots
 - [x] Compliance dashboard
 - [x] Retention policy admin
-- [ ] DSR request queue
-- [ ] Breach register
+- [x] DSR request queue
+- [x] Breach register
 - [x] Subprocessor registry
 - [x] Compliance status checklist
 - [x] Přidat public interfaces: `ComplianceChecklistItem`, `RetentionPolicy`, `DataSubjectRequest`, `BreachCase`, `SubprocessorRecord`
@@ -224,7 +228,7 @@ Dopad do struktury: nový interní compliance registry modul
 - [x] Přidat stránku „Breach register“
 - [x] Přidat stránku „Retence dat“
 - [x] Přidat stránku „Compliance checklist“
-- [ ] Převést veřejné legal stránky na výstup nad interními registry
+- [x] Převést veřejné legal stránky na výstup nad interními registry
 
 ## Test checklist
 - [x] Jednotkové testy sanitizace logů a audit payloadů

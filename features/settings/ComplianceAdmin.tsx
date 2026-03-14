@@ -9,6 +9,7 @@ import {
   exportDataSubjectAdmin,
   getComplianceOverviewAdmin,
   markBreachNotificationAdmin,
+  saveDataSubjectRequestHandlingAdmin,
   saveBreachClassificationAdmin,
   saveComplianceRetentionPolicyAdmin,
   saveBreachAssessmentAdmin,
@@ -60,6 +61,20 @@ const requestStatusLabel: Record<DataSubjectRequest["status"], string> = {
   completed: "Hotovo",
 };
 
+const requestChannelLabel: Record<DataSubjectRequest["intakeChannel"], string> = {
+  email: "E-mail",
+  form: "Formulář",
+  phone: "Telefon",
+  support: "Support",
+  internal: "Interní",
+};
+
+const requestVerificationLabel: Record<DataSubjectRequest["verificationStatus"], string> = {
+  pending: "Čeká na ověření",
+  verified: "Ověřeno",
+  not_required: "Není potřeba",
+};
+
 const breachStatusLabel: Record<BreachCase["status"], string> = {
   triage: "Triage",
   assessment: "Posouzení",
@@ -90,7 +105,14 @@ export const ComplianceAdmin: React.FC = () => {
   const [isSavingBreach, setIsSavingBreach] = useState(false);
   const [newDsrType, setNewDsrType] = useState<DataSubjectRequest["requestType"]>("export");
   const [newDsrLabel, setNewDsrLabel] = useState("");
+  const [newDsrRequesterLabel, setNewDsrRequesterLabel] = useState("");
+  const [newDsrChannel, setNewDsrChannel] = useState<DataSubjectRequest["intakeChannel"]>("email");
   const [newDsrDueAt, setNewDsrDueAt] = useState("");
+  const [dsrRequesterDrafts, setDsrRequesterDrafts] = useState<Record<string, string>>({});
+  const [dsrChannelDrafts, setDsrChannelDrafts] = useState<Record<string, DataSubjectRequest["intakeChannel"]>>({});
+  const [dsrVerificationDrafts, setDsrVerificationDrafts] = useState<Record<string, DataSubjectRequest["verificationStatus"]>>({});
+  const [dsrResolutionDrafts, setDsrResolutionDrafts] = useState<Record<string, string>>({});
+  const [savingDsrHandlingId, setSavingDsrHandlingId] = useState<string | null>(null);
   const [newBreachTitle, setNewBreachTitle] = useState("");
   const [newBreachRisk, setNewBreachRisk] = useState<BreachCase["riskLevel"]>("medium");
   const [newBreachIncidentId, setNewBreachIncidentId] = useState("");
@@ -174,10 +196,10 @@ export const ComplianceAdmin: React.FC = () => {
   );
 
   const handleCreateDsr = async () => {
-    if (!newDsrLabel.trim() || !newDsrDueAt) {
+    if (!newDsrLabel.trim() || !newDsrRequesterLabel.trim() || !newDsrDueAt) {
       showAlert({
         title: "Chybí údaje",
-        message: "Vyplňte popis požadavku a termín.",
+        message: "Vyplňte popis požadavku, jméno žadatele a termín.",
         variant: "danger",
       });
       return;
@@ -189,9 +211,15 @@ export const ComplianceAdmin: React.FC = () => {
         id: `DSR-${Date.now()}`,
         requestType: newDsrType,
         subjectLabel: newDsrLabel.trim(),
+        requesterLabel: newDsrRequesterLabel.trim(),
+        intakeChannel: newDsrChannel,
+        verificationStatus: newDsrType === "erasure" ? "pending" : "not_required",
+        resolutionSummary: "",
         dueAt: newDsrDueAt,
       });
       setNewDsrLabel("");
+      setNewDsrRequesterLabel("");
+      setNewDsrChannel("email");
       setNewDsrDueAt("");
       await loadOverview();
       showAlert({
@@ -207,6 +235,56 @@ export const ComplianceAdmin: React.FC = () => {
       });
     } finally {
       setIsSavingDsr(false);
+    }
+  };
+
+  const handleSaveDsrHandling = async (request: DataSubjectRequest) => {
+    const requesterLabel = (dsrRequesterDrafts[request.id] ?? request.requesterLabel).trim();
+    const intakeChannel = dsrChannelDrafts[request.id] ?? request.intakeChannel;
+    const verificationStatus = dsrVerificationDrafts[request.id] ?? request.verificationStatus;
+    const resolutionSummary = (dsrResolutionDrafts[request.id] ?? request.resolutionSummary).trim();
+
+    if (!requesterLabel) {
+      showAlert({
+        title: "Chybí žadatel",
+        message: "Doplňte, kdo požadavek podal, aby byla evidence doložitelná.",
+        variant: "danger",
+      });
+      return;
+    }
+
+    if (request.status === "completed" && !resolutionSummary) {
+      showAlert({
+        title: "Chybí výsledek",
+        message: "Před uzavřením požadavku doplňte stručné shrnutí, jak byl vyřízen.",
+        variant: "danger",
+      });
+      return;
+    }
+
+    setSavingDsrHandlingId(request.id);
+    try {
+      await saveDataSubjectRequestHandlingAdmin({
+        id: request.id,
+        requesterLabel,
+        intakeChannel,
+        verificationStatus,
+        resolutionSummary,
+      });
+      await loadOverview();
+      showAlert({
+        title: "Evidence vyřízení uložena",
+        message: "DSR záznam má doplněného žadatele, kanál a výsledek vyřízení.",
+        variant: "success",
+      });
+    } catch (error) {
+      showAlert({
+        title: "Uložení selhalo",
+        message: `DSR evidenci se nepodařilo uložit: ${String((error as Error)?.message || error)}`,
+        variant: "danger",
+      });
+    } finally {
+      setSavingDsrHandlingId(null);
     }
   };
 
@@ -888,7 +966,7 @@ export const ComplianceAdmin: React.FC = () => {
         </p>
         <div className="mt-4 space-y-3">
           <div className="rounded-xl border border-dashed border-slate-300 p-4 dark:border-slate-700/50">
-            <div className="grid grid-cols-1 gap-3 xl:grid-cols-[140px_minmax(0,1fr)_180px_auto]">
+            <div className="grid grid-cols-1 gap-3 2xl:grid-cols-[140px_minmax(0,1fr)_minmax(0,220px)_180px_auto]">
               <select
                 aria-label="Typ DSR požadavku"
                 value={newDsrType}
@@ -909,20 +987,43 @@ export const ComplianceAdmin: React.FC = () => {
                 className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
               />
               <input
+                aria-label="Žadatel DSR požadavku"
+                type="text"
+                value={newDsrRequesterLabel}
+                onChange={(e) => setNewDsrRequesterLabel(e.target.value)}
+                placeholder="Např. Jan Novák / kontakt klienta"
+                className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+              />
+              <input
                 aria-label="Termín DSR požadavku"
                 type="date"
                 value={newDsrDueAt}
                 onChange={(e) => setNewDsrDueAt(e.target.value)}
                 className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
               />
+              <select
+                aria-label="Kanál DSR požadavku"
+                value={newDsrChannel}
+                onChange={(e) => setNewDsrChannel(e.target.value as DataSubjectRequest["intakeChannel"])}
+                className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white 2xl:col-start-3 2xl:row-start-2"
+              >
+                <option value="email">E-mail</option>
+                <option value="form">Formulář</option>
+                <option value="phone">Telefon</option>
+                <option value="support">Support</option>
+                <option value="internal">Interní</option>
+              </select>
               <button
                 onClick={() => void handleCreateDsr()}
                 disabled={isSavingDsr}
-                className="rounded-lg bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-cyan-500 disabled:opacity-50"
+                className="rounded-lg bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-cyan-500 disabled:opacity-50 2xl:row-span-2"
               >
                 {isSavingDsr ? "Ukládám…" : "Přidat"}
               </button>
             </div>
+            <p className="mt-3 text-xs text-slate-500">
+              Žadatel, kanál přijetí a ověření identity pomáhají doložit, že byl požadavek přijat a vyřízen řízeným způsobem.
+            </p>
           </div>
           {dsrQueue.map((request) => (
               <div
@@ -941,8 +1042,78 @@ export const ComplianceAdmin: React.FC = () => {
                   {request.id} • termín {request.dueAt}
                 </div>
                 <div className="mt-2 text-xs text-slate-500">
+                  Žadatel: {request.requesterLabel} • Kanál: {requestChannelLabel[request.intakeChannel]} •
+                  Ověření: {requestVerificationLabel[request.verificationStatus]}
+                </div>
+                <div className="mt-2 text-xs text-slate-500">
                   Export stáhne podklady k ručnímu vyřízení požadavku. Tlačítko pro výmaz zde pouze
                   eviduje záměr a nespouští žádný zásah do databáze.
+                </div>
+                <div className="mt-4 space-y-3 rounded-xl border border-slate-200/80 p-3 dark:border-slate-700/50">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Evidence vyřízení
+                  </div>
+                  <input
+                    aria-label={`Žadatel ${request.id}`}
+                    type="text"
+                    value={dsrRequesterDrafts[request.id] ?? request.requesterLabel}
+                    onChange={(e) =>
+                      setDsrRequesterDrafts((prev) => ({ ...prev, [request.id]: e.target.value }))
+                    }
+                    placeholder="Kdo požadavek podal"
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                  />
+                  <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                    <select
+                      aria-label={`Kanál ${request.id}`}
+                      value={dsrChannelDrafts[request.id] ?? request.intakeChannel}
+                      onChange={(e) =>
+                        setDsrChannelDrafts((prev) => ({
+                          ...prev,
+                          [request.id]: e.target.value as DataSubjectRequest["intakeChannel"],
+                        }))
+                      }
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                    >
+                      <option value="email">E-mail</option>
+                      <option value="form">Formulář</option>
+                      <option value="phone">Telefon</option>
+                      <option value="support">Support</option>
+                      <option value="internal">Interní</option>
+                    </select>
+                    <select
+                      aria-label={`Ověření ${request.id}`}
+                      value={dsrVerificationDrafts[request.id] ?? request.verificationStatus}
+                      onChange={(e) =>
+                        setDsrVerificationDrafts((prev) => ({
+                          ...prev,
+                          [request.id]: e.target.value as DataSubjectRequest["verificationStatus"],
+                        }))
+                      }
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                    >
+                      <option value="pending">Čeká na ověření</option>
+                      <option value="verified">Ověřeno</option>
+                      <option value="not_required">Není potřeba</option>
+                    </select>
+                  </div>
+                  <textarea
+                    aria-label={`Shrnutí vyřízení ${request.id}`}
+                    value={dsrResolutionDrafts[request.id] ?? request.resolutionSummary}
+                    onChange={(e) =>
+                      setDsrResolutionDrafts((prev) => ({ ...prev, [request.id]: e.target.value }))
+                    }
+                    rows={3}
+                    placeholder="Stručně zapište, jak byl požadavek vyřízen nebo proč ještě čeká."
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                  />
+                  <button
+                    onClick={() => void handleSaveDsrHandling(request)}
+                    disabled={savingDsrHandlingId === request.id}
+                    className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+                  >
+                    {savingDsrHandlingId === request.id ? "Ukládám…" : "Uložit evidenci vyřízení"}
+                  </button>
                 </div>
                 {request.status !== "completed" && (
                   <div className="mt-3 flex flex-wrap gap-2">

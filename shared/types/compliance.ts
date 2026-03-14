@@ -21,6 +21,10 @@ export interface DataSubjectRequest {
   id: string;
   requestType: "access" | "export" | "rectification" | "erasure";
   subjectLabel: string;
+  requesterLabel: string;
+  intakeChannel: "email" | "form" | "phone" | "support" | "internal";
+  verificationStatus: "pending" | "verified" | "not_required";
+  resolutionSummary: string;
   status: "new" | "in_progress" | "completed";
   dueAt: string;
 }

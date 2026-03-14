@@ -62,11 +62,15 @@ describe("legal documents", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole("heading", {
-        name: "10. Práva subjektů údajů",
+        name: "11. Práva subjektů údajů",
       }),
     ).toBeInTheDocument();
     expect(screen.getByText(/Úřadu pro ochranu osobních údajů/i)).toBeInTheDocument();
     expect(screen.getByText(/pouze po minimální dobu vyžadovanou právními předpisy/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Supabase/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Stripe/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/OpenAI/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Správa uživatelských účtů a organizací/i).length).toBeGreaterThan(0);
   });
 
   it("renders detailed cookies sections", () => {
@@ -86,6 +90,7 @@ describe("legal documents", () => {
       }),
     ).toBeInTheDocument();
     expect(screen.getByText(/cookie lišty/i)).toBeInTheDocument();
+    expect(screen.getByText(/blokované až do udělení souhlasu/i)).toBeInTheDocument();
   });
 
   it("renders dpa sections", () => {
@@ -105,5 +110,7 @@ describe("legal documents", () => {
       }),
     ).toBeInTheDocument();
     expect(screen.getByText(/Data Processing Agreement/i)).toBeInTheDocument();
+    expect(screen.getByText(/Databáze, autentizace, storage a backend služby/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Správa uživatelských účtů a organizací/i).length).toBeGreaterThan(0);
   });
 });

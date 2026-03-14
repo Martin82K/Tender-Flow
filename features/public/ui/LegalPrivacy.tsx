@@ -1,4 +1,11 @@
 import React from "react";
+import {
+  COMPLIANCE_PUBLIC_UPDATED_AT,
+  complianceBootstrapProcessingActivities,
+  complianceBootstrapRetentionPolicies,
+  complianceBootstrapSubprocessors,
+  getBootstrapSubprocessorsForActivity,
+} from "@/shared/compliance/complianceRegistryBootstrap";
 import { LegalPageLayout } from "./LegalPageLayout";
 
 export const LegalPrivacy: React.FC = () => {
@@ -6,7 +13,7 @@ export const LegalPrivacy: React.FC = () => {
     <LegalPageLayout
       title="Zásady ochrany osobních údajů"
       lead="Tento dokument popisuje, jak v rámci služby Tender Flow zpracováváme osobní údaje, z jakých důvodů tak činíme a jaká práva mohou subjekty údajů uplatnit."
-      updatedAt="12. března 2026"
+      updatedAt={COMPLIANCE_PUBLIC_UPDATED_AT}
     >
       <section>
         <h2 className="text-white text-lg font-semibold">1. Správce</h2>
@@ -108,6 +115,14 @@ export const LegalPrivacy: React.FC = () => {
           o to, aby byli vázáni odpovídajícími smluvními a bezpečnostními
           závazky.
         </p>
+        <ul className="mt-3 list-disc space-y-2 pl-5">
+          {complianceBootstrapSubprocessors.map((subprocessor) => (
+            <li key={subprocessor.id}>
+              <strong>{subprocessor.name}</strong>: {subprocessor.purpose} ({subprocessor.region},
+              přenosový mechanismus: {subprocessor.transferMechanism})
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section>
@@ -144,11 +159,40 @@ export const LegalPrivacy: React.FC = () => {
           případě nutné delší uchování za účelem obrany nebo uplatnění právních
           nároků.
         </p>
+        <ul className="mt-3 list-disc space-y-2 pl-5">
+          {complianceBootstrapRetentionPolicies.map((policy) => (
+            <li key={policy.id}>
+              <strong>{policy.category}</strong>: {policy.purpose}{" "}
+              {policy.retentionDays > 0 ? `(${policy.retentionDays} dní)` : "(retence se řídí konkrétním účelem)"}
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section>
         <h2 className="text-white text-lg font-semibold">
-          9. Zabezpečení a minimalizace
+          9. Přehled hlavních činností zpracování
+        </h2>
+        <p className="mt-2">
+          Níže uvádíme zkrácený veřejný přehled hlavních činností zpracování, který vychází z interního
+          registru ROPA vedeného pro Tender Flow.
+        </p>
+        <ul className="mt-3 list-disc space-y-2 pl-5">
+          {complianceBootstrapProcessingActivities.map((activity) => (
+            <li key={activity.id}>
+              <strong>{activity.activityName}</strong>: {activity.purpose}. Právní titul: {activity.legalBasis}. Kategorie údajů:{" "}
+              {activity.dataCategories.join(", ")}. Subprocesoři:{" "}
+              {getBootstrapSubprocessorsForActivity(activity)
+                .map((subprocessor) => subprocessor.name)
+                .join(", ") || "bez subprocesorů"}.
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section>
+        <h2 className="text-white text-lg font-semibold">
+          10. Zabezpečení a minimalizace
         </h2>
         <p className="mt-2">
           Přijímáme přiměřená technická a organizační opatření na ochranu osobních
@@ -160,7 +204,7 @@ export const LegalPrivacy: React.FC = () => {
 
       <section>
         <h2 className="text-white text-lg font-semibold">
-          10. Práva subjektů údajů
+          11. Práva subjektů údajů
         </h2>
         <p className="mt-2">
           Uživatelé mají právo na přístup, opravu, výmaz, omezení zpracování,
@@ -177,7 +221,7 @@ export const LegalPrivacy: React.FC = () => {
 
       <section>
         <h2 className="text-white text-lg font-semibold">
-          11. Cookies, logy a provozní analytika
+          12. Cookies, logy a provozní analytika
         </h2>
         <p className="mt-2">
           V rámci provozu webu a aplikace můžeme používat cookies a podobné
@@ -193,7 +237,7 @@ export const LegalPrivacy: React.FC = () => {
 
       <section>
         <h2 className="text-white text-lg font-semibold">
-          12. Změny těchto zásad
+          13. Změny těchto zásad
         </h2>
         <p className="mt-2">
           Tyto zásady můžeme průběžně aktualizovat, zejména při změně služby,

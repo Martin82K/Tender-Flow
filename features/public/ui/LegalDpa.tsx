@@ -1,4 +1,10 @@
 import React from "react";
+import {
+  COMPLIANCE_PUBLIC_UPDATED_AT,
+  complianceBootstrapProcessingActivities,
+  complianceBootstrapSubprocessors,
+  getBootstrapSubprocessorsForActivity,
+} from "@/shared/compliance/complianceRegistryBootstrap";
 import { LegalPageLayout } from "./LegalPageLayout";
 
 export const LegalDpa: React.FC = () => {
@@ -6,7 +12,7 @@ export const LegalDpa: React.FC = () => {
     <LegalPageLayout
       title="Zpracovatelská doložka (DPA)"
       lead="Tento dokument upravuje podmínky zpracování osobních údajů, pokud Tender Flow vystupuje vůči zákazníkovi jako zpracovatel."
-      updatedAt="12. března 2026"
+      updatedAt={COMPLIANCE_PUBLIC_UPDATED_AT}
     >
       <section>
         <h2 className="text-white text-lg font-semibold">
@@ -66,6 +72,13 @@ export const LegalDpa: React.FC = () => {
           kontaktní osoby obchodních partnerů, dodavatelé, subdodavatelé nebo
           jiné fyzické osoby související s projekty a výběrovými řízeními.
         </p>
+        <ul className="mt-3 list-disc space-y-2 pl-5">
+          {complianceBootstrapProcessingActivities.map((activity) => (
+            <li key={activity.id}>
+              <strong>{activity.activityName}</strong>: {activity.dataCategories.join(", ")}
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section>
@@ -108,6 +121,13 @@ export const LegalDpa: React.FC = () => {
           odpovídající smluvní povinností chránit osobní údaje alespoň v
           rozsahu srovnatelném s touto doložkou.
         </p>
+        <ul className="mt-3 list-disc space-y-2 pl-5">
+          {complianceBootstrapSubprocessors.map((subprocessor) => (
+            <li key={subprocessor.id}>
+              <strong>{subprocessor.name}</strong>: {subprocessor.purpose} ({subprocessor.region})
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section>
@@ -139,6 +159,15 @@ export const LegalDpa: React.FC = () => {
           technické logy a zálohy, které jsou drženy pouze po nezbytně nutnou
           dobu odpovídající provozu a zabezpečení služby.
         </p>
+        <ul className="mt-3 list-disc space-y-2 pl-5">
+          {complianceBootstrapProcessingActivities.map((activity) => (
+            <li key={activity.id}>
+              <strong>{activity.activityName}</strong>: {getBootstrapSubprocessorsForActivity(activity)
+                .map((subprocessor) => subprocessor.name)
+                .join(", ") || "bez subprocesorů"}
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section>
