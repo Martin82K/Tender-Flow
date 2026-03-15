@@ -83,6 +83,7 @@ export const LegalPrivacy: React.FC = () => {
           <li>plnění právních povinností, zejména v oblasti účetnictví a daní,</li>
           <li>oprávněný zájem na zabezpečení služby, prevenci zneužití a řešení incidentů,</li>
           <li>oprávněný zájem na základní provozní analytice a zlepšování stability,</li>
+          <li>oprávněný zájem na evidenci a správě pracovních B2B kontaktů dodavatelů a subdodavatelů pro poptávky, tendry a realizaci zakázek, případně pokyn zákazníka, pokud jsou tyto údaje do služby vloženy zákazníkem v rámci jeho vlastních procesů,</li>
           <li>souhlas, pokud je vyžadován pro konkrétní typ zpracování nebo cookies.</li>
         </ul>
       </section>
@@ -97,6 +98,13 @@ export const LegalPrivacy: React.FC = () => {
           V omezeném rozsahu mohou být údaje do systému vloženy také
           oprávněným uživatelem, například při správě týmu, kontaktů nebo
           projektových dat.
+        </p>
+        <p className="mt-2">
+          U pracovních kontaktů dodavatelů a subdodavatelů mohou být zdrojem také
+          veřejně dostupné firemní weby, profesní prezentace nebo přímá obchodní
+          komunikace. Takové údaje používáme pouze v rozsahu přiměřeném
+          legitimnímu obchodnímu a provoznímu účelu a neslouží k plošnému
+          marketingovému profilování.
         </p>
       </section>
 
@@ -199,6 +207,13 @@ export const LegalPrivacy: React.FC = () => {
           údajů před neoprávněným přístupem, ztrátou, změnou nebo zneužitím.
           Rozsah zpracování se snažíme omezovat na údaje, které jsou skutečně
           potřebné pro konkrétní účel.
+        </p>
+        <p className="mt-2">
+          U databází kontaktů dodavatelů a subdodavatelů preferujeme pracovní
+          B2B údaje, například jméno, pracovní e-mail, pracovní telefon,
+          společnost a pracovní zařazení. Soukromé kontaktní údaje nebo citlivé
+          kategorie údajů do tohoto workflow nepatří, pokud k tomu není zvláštní
+          zákonný důvod.
         </p>
       </section>
 

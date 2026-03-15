@@ -130,10 +130,18 @@ export const complianceBootstrapProcessingActivities: ProcessingActivityRecord[]
   },
   {
     id: "ropa-crm-projects",
-    activityName: "CRM agenda, kontakty a projektová příprava",
-    purpose: "Evidence kontaktů, projektů, komunikace a podkladů k tendrům",
-    legalBasis: "plnění smlouvy",
-    dataCategories: ["jméno", "e-mail", "telefon", "firma", "projektové poznámky"],
+    activityName: "CRM agenda, pracovní B2B kontakty a projektová příprava",
+    purpose:
+      "Evidence pracovních kontaktů dodavatelů a subdodavatelů, projektů, komunikace a podkladů k tendrům a realizaci",
+    legalBasis: "oprávněný zájem / pokyn zákazníka",
+    dataCategories: [
+      "jméno",
+      "pracovní e-mail",
+      "pracovní telefon",
+      "firma",
+      "pracovní nebo obchodní zařazení",
+      "projektové poznámky",
+    ],
     retentionPolicyId: "contacts-projects",
     linkedSubprocessorIds: ["subprocessor-supabase"],
   },
@@ -184,7 +192,7 @@ export const complianceBootstrapCrmRetentionReviews: CrmRetentionReview[] = [
     retentionPolicyId: "contacts-projects",
     reviewStatus: "planned",
     manualWorkflowSummary:
-      "Ruční review kontaktů a firem bez aktivní vazby na běžící zakázky. Před případnou anonymizací zkontrolovat obchodní historii a otevřené smlouvy.",
+      "Ruční review pracovních B2B kontaktů a firem bez aktivní vazby na běžící zakázky. Evidovat se mají jen kontakty relevantní pro obchodní nebo realizační účel; před případnou anonymizací vždy ověřit obchodní historii, otevřené smlouvy a to, zda nejde o stále používaný veřejný pracovní kontakt.",
     nextReviewAt: "2026-04-15",
   },
   {

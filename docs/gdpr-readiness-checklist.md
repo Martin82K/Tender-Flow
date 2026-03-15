@@ -48,9 +48,9 @@ Stále ale zbývá několik bodů, bez kterých není poctivé označit stav jak
 - [ ] Retence mimo compliance registry není ještě dotažená napříč hlavními CRM daty a zálohami, i když hlavní CRM, dokumentové a exportní domény už mají manuální retenční review workflow a runtime telemetry i krátkodobé provozní domény mají reálné cleanup napojení.
 
 ### Doporučené doplnění
-- [ ] Přidat testy na RLS a ochranu compliance tabulek.
-- [ ] Přidat integrační test napojení runtime incidentu na breach case workflow.
-- [ ] Dopsat finální systematický security/compliance přehled do adminu.
+- [x] Přidat testy na RLS a ochranu compliance tabulek.
+- [x] Přidat integrační test napojení runtime incidentu na breach case workflow.
+- [x] Dopsat finální systematický security/compliance přehled do adminu.
 
 ## 3. Zbývá mimo kód
 
@@ -84,7 +84,7 @@ Tyto body jsou nutné pro poctivé `GDPR ready`, ale nevyřeší je samotná imp
 - Chybí poslední provozní a právní vrstva mimo kód.
 
 ## 5. Doporučené poslední kroky
-1. Dokončit poslední technické mezery v DSR a log policy.
+1. Dokončit poslední technické mezery v retenci a log policy.
 2. Finalizovat interní směrnice a smluvní dokumentaci.
 3. Udělat krátkou právní validaci veřejných textů a procesů.
 4. Po tomto kroku označit stav jako `GDPR ready`.

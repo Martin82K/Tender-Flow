@@ -1,4 +1,5 @@
 import { dbAdapter } from "@/services/dbAdapter";
+import type { IncidentAdminItem } from "@/services/incidentAdminService";
 import {
   complianceBootstrapCrmRetentionReviews,
   complianceBootstrapProcessingActivities,
@@ -75,6 +76,12 @@ export interface BreachAuthorityReportResult {
   content: string;
 }
 
+export interface CreateBreachCaseFromIncidentInput {
+  incident: IncidentAdminItem;
+  breachCaseId: string;
+  actor?: string;
+}
+
 const defaultChecklistItems: ComplianceChecklistItem[] = [
   {
     id: "log-policy",
@@ -90,8 +97,8 @@ const defaultChecklistItems: ComplianceChecklistItem[] = [
     area: "Incidenty",
     title: "Breach register",
     description:
-      "Chybí oddělený workflow pro GDPR breach a právní klasifikaci incidentu.",
-    status: "missing",
+      "Runtime incident lze odděleně převést na GDPR breach case s právní klasifikací, timeline a exportem podkladů.",
+    status: "implemented",
     priority: "P0",
   },
   {
@@ -135,8 +142,8 @@ const defaultChecklistItems: ComplianceChecklistItem[] = [
     area: "Souhlasy",
     title: "Cookie consent vrstva",
     description:
-      "Cookie policy stránka existuje, ale chybí reálný consent manager.",
-    status: "missing",
+      "Cookie consent manager a blokace nepovinné analytiky jsou zavedené v produkčním flow.",
+    status: "implemented",
     priority: "P1",
   },
 ];
@@ -205,7 +212,44 @@ const defaultCrmRetentionReviews: CrmRetentionReview[] = complianceBootstrapCrmR
 const defaultAccessReviewUsers: AccessReviewUser[] = [];
 const defaultAccessAuditEntries: AccessAuditEntry[] = [];
 const defaultAccessReviewReports: AccessReviewReport[] = [];
-const missingComplianceResources = new Set<string>();
+const MISSING_COMPLIANCE_RESOURCES_STORAGE_KEY = "tender-flow:missing-compliance-resources";
+
+const readMissingComplianceResources = (): Set<string> => {
+  if (typeof window === "undefined") {
+    return new Set<string>();
+  }
+
+  try {
+    const rawValue = window.localStorage.getItem(MISSING_COMPLIANCE_RESOURCES_STORAGE_KEY);
+    if (!rawValue) {
+      return new Set<string>();
+    }
+
+    const parsedValue = JSON.parse(rawValue);
+    return Array.isArray(parsedValue)
+      ? new Set(parsedValue.filter((value): value is string => typeof value === "string"))
+      : new Set<string>();
+  } catch {
+    return new Set<string>();
+  }
+};
+
+const missingComplianceResources = readMissingComplianceResources();
+
+const persistMissingComplianceResources = (): void => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(
+      MISSING_COMPLIANCE_RESOURCES_STORAGE_KEY,
+      JSON.stringify([...missingComplianceResources]),
+    );
+  } catch {
+    // Local storage může být nedostupné, fallback zůstává jen v paměti session.
+  }
+};
 
 const getErrorMessage = (error: unknown): string => {
   if (error instanceof Error) return error.message;
@@ -250,6 +294,7 @@ const loadResourceOrDefault = async <T>(
   if (result.error) {
     if (isMissingSupabaseResourceError(result.error)) {
       missingComplianceResources.add(resourceKey);
+      persistMissingComplianceResources();
       return fallback;
     }
     throw result.error;
@@ -623,7 +668,7 @@ export const getComplianceOverviewAdmin = async (): Promise<ComplianceOverview> 
     const accessReviewData = await loadResourceOrDefault(
       "rpc:get_access_review_overview_admin",
       () =>
-        dbAdapter.rpcRest<{
+        dbAdapter.rpc<{
           users: unknown[];
           audit_entries: unknown[];
           review_reports: unknown[];
@@ -844,6 +889,42 @@ export const createBreachCaseAdmin = async (input: {
     breachCaseId: input.id,
     eventType: "created",
     summary: "Breach case založen",
+    actor: input.actor,
+  });
+};
+
+export const createBreachCaseFromIncidentAdmin = async (
+  input: CreateBreachCaseFromIncidentInput,
+): Promise<void> => {
+  const incident = input.incident;
+  const incidentLabel = incident.incident_id || incident.id;
+  const title = `${incident.severity.toUpperCase()} incident ${incidentLabel}: ${incident.code || incident.category}`;
+  const initialAssessment = [
+    `Zdrojový incident: ${incidentLabel}`,
+    `Kategorie: ${incident.category}`,
+    `Kód: ${incident.code || "neuvedeno"}`,
+    `Platforma: ${incident.platform || "neuvedeno"}`,
+    `Route: ${incident.route || "neuvedeno"}`,
+    `Zpráva: ${incident.message || "neuvedeno"}`,
+  ].join("\n");
+
+  await createBreachCaseAdmin({
+    id: input.breachCaseId,
+    title,
+    riskLevel: incident.severity === "error" ? "high" : incident.severity === "warn" ? "medium" : "low",
+    linkedIncidentId: incidentLabel,
+    actor: input.actor,
+  });
+
+  await saveBreachAssessmentAdmin({
+    id: input.breachCaseId,
+    assessmentSummary: initialAssessment,
+    actor: input.actor,
+  });
+
+  await addBreachCaseTimelineEventAdmin({
+    breachCaseId: input.breachCaseId,
+    summary: `Breach case založen z runtime incidentu ${incidentLabel}. Další právní posouzení musí potvrdit, zda jde o GDPR breach a zda vzniká oznamovací povinnost.`,
     actor: input.actor,
   });
 };

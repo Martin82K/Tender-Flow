@@ -38,7 +38,9 @@ Poslední aktualizace: 15. března 2026
 - [x] 2026-03-15: manuální retention review registr rozšířen i na dokumentové domény, exportní artefakty a zálohové blokátory bez zavedení automatického mazání
 - [x] 2026-03-15: dočištěny další service logy pro URL shortener, dokumenty, user management, e-mail a auth session cleanup; edge function klient už neloguje raw response texty ani celé error objekty
 - [x] 2026-03-15: odstraněny hlučné produkční debug logy z subscription tier resolution a edge function klienta, aby runtime diagnostics nezaplňovaly konzoli interními průběhovými výpisy
-- [ ] Další krok: finální gap check a dokončení zbývajících provozních kroků mimo kód
+- [x] 2026-03-15: doplněny statické testy RLS/policies pro compliance migrace a servisní test převodu runtime incidentu na breach workflow
+- [x] 2026-03-15: do admin compliance panelu doplněn systematický security/compliance summary blok s access review a otevřenými riziky
+- [ ] Další krok: dokončit zbývající provozní kroky mimo kód a sjednotit právní/organizační vrstvu
 
 ## Přehled priorit
 
@@ -76,7 +78,7 @@ Dopad do struktury: bez zásadní změny
 - [x] Admin UI incidentů existuje
 - [x] Incident DB tabulka, RPC a retention purge existují
 - [x] Testy loggeru a incident admin UI existují
-- [ ] Oddělit runtime incident od GDPR breach případu
+- [x] Oddělit runtime incident od GDPR breach případu
 - [x] Přidat breach register a právní klasifikaci incidentu
 - [ ] Přidat severity policy a eskalační workflow
 Stav: implementováno se zásadními mezerami pro compliance
@@ -89,7 +91,7 @@ Dopad do struktury: nový compliance modul pro breach management
 - [x] CORS allowlist konfigurace existuje
 - [x] Testy security headers existují
 - [x] Token rotation a auth rate limits v Supabase configu existují
-- [ ] Přidat systematický compliance přehled těchto opatření do admin UI
+- [x] Přidat systematický compliance přehled těchto opatření do admin UI
 Stav: implementováno
 Priorita: střední
 Dopad do kódu: malý
@@ -175,6 +177,7 @@ Dopad do struktury: nový public/privacy modul + consent utilita
 - [x] Přidat timeline 72h procesu
 - [x] Přidat evidenci hlášení ÚOOÚ a informování subjektů
 - [x] Přidat export/print podklady pro ÚOOÚ
+- [x] Přidat servisní bridge z runtime incidentu do breach workflow
 Stav: implementováno se zbývajícím provozním doplněním
 Priorita: kritická
 Dopad do kódu: vysoký
@@ -247,11 +250,11 @@ Dopad do struktury: nový interní compliance registry modul
 - [x] Jednotkové testy create/update service vrstvy pro compliance workflow
 - [x] Integrační test admin -> DSR export -> audit
 - [x] Integrační test admin -> DSR delete/anonymize
-- [ ] Integrační test runtime incident -> breach case workflow
+- [x] Integrační test runtime incident -> breach case workflow
 - [x] Integrační test MFA enforcement pro admina
-- [ ] SQL/RPC testy RLS pro compliance tabulky
+- [x] SQL/RPC testy RLS pro compliance tabulky
 - [-] SQL/RPC testy purge jobů
-- [ ] SQL/RPC testy ochrany breach a audit tabulek
+- [x] SQL/RPC testy ochrany breach a audit tabulek
 - [x] UI test nových compliance obrazovek
 - [x] UI test cookie banneru
 - [-] Regresní průchod incident loggeru, legal dokumentů, security headers a auth recovery

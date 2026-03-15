@@ -1087,6 +1087,24 @@ export const ComplianceAdmin: React.FC = () => {
     [checklistItems],
   );
 
+  const complianceHighlights = useMemo(() => {
+    const openBreachCases = breachCases.filter((item) => item.status !== "closed").length;
+    const unresolvedDsr = dsrQueue.filter((item) => item.status !== "completed").length;
+    const retentionGaps = retentionPolicies.filter((item) => item.status !== "implemented").length;
+    const latestAccessReview =
+      accessReviewReports.length > 0
+        ? [...accessReviewReports].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
+        : null;
+
+    return {
+      openBreachCases,
+      unresolvedDsr,
+      retentionGaps,
+      latestAccessReview,
+      privilegedUsers: accessReviewUsers.filter((item) => item.riskFlags.length > 0).length,
+    };
+  }, [accessReviewReports, accessReviewUsers, breachCases, dsrQueue, retentionPolicies]);
+
   const subprocessorNameById = useMemo(
     () =>
       new Map(
@@ -1156,6 +1174,71 @@ export const ComplianceAdmin: React.FC = () => {
           <div className="mt-2 text-3xl font-black text-rose-800 dark:text-rose-200">
             {summary.missing}
           </div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700/40 dark:bg-slate-900/80">
+        <h3 className="text-base font-bold text-slate-900 dark:text-white">
+          Security a compliance přehled
+        </h3>
+        <p className="mt-2 text-sm text-slate-500">
+          Krátký operativní pohled na otevřená rizika, governance a auditovatelnost GDPR vrstev.
+        </p>
+        <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-4">
+          <div className="rounded-xl border border-slate-200 p-4 dark:border-slate-700/50">
+            <div className="text-xs font-bold uppercase tracking-wide text-slate-500">
+              Otevřené breach případy
+            </div>
+            <div className="mt-2 text-2xl font-black text-slate-900 dark:text-white">
+              {complianceHighlights.openBreachCases}
+            </div>
+            <p className="mt-1 text-xs text-slate-500">
+              Právně nedořešené nebo neuzavřené bezpečnostní incidenty s dopadem do osobních údajů.
+            </p>
+          </div>
+          <div className="rounded-xl border border-slate-200 p-4 dark:border-slate-700/50">
+            <div className="text-xs font-bold uppercase tracking-wide text-slate-500">
+              Otevřené DSR
+            </div>
+            <div className="mt-2 text-2xl font-black text-slate-900 dark:text-white">
+              {complianceHighlights.unresolvedDsr}
+            </div>
+            <p className="mt-1 text-xs text-slate-500">
+              Požadavky subjektů údajů, které ještě nejsou provozně uzavřené.
+            </p>
+          </div>
+          <div className="rounded-xl border border-slate-200 p-4 dark:border-slate-700/50">
+            <div className="text-xs font-bold uppercase tracking-wide text-slate-500">
+              Retenční mezery
+            </div>
+            <div className="mt-2 text-2xl font-black text-slate-900 dark:text-white">
+              {complianceHighlights.retentionGaps}
+            </div>
+            <p className="mt-1 text-xs text-slate-500">
+              Politiky nebo domény, kde ještě není retence plně implementovaná.
+            </p>
+          </div>
+          <div className="rounded-xl border border-slate-200 p-4 dark:border-slate-700/50">
+            <div className="text-xs font-bold uppercase tracking-wide text-slate-500">
+              Privilegované účty
+            </div>
+            <div className="mt-2 text-2xl font-black text-slate-900 dark:text-white">
+              {complianceHighlights.privilegedUsers}
+            </div>
+            <p className="mt-1 text-xs text-slate-500">
+              Uživatelé s rizikovými příznaky v access review přehledu.
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 rounded-xl border border-dashed border-slate-300 p-4 text-sm text-slate-600 dark:border-slate-700/50 dark:text-slate-300">
+          <div className="font-semibold text-slate-900 dark:text-white">
+            Poslední access review
+          </div>
+          <p className="mt-2">
+            {complianceHighlights.latestAccessReview
+              ? `${formatDateTime(complianceHighlights.latestAccessReview.createdAt)} • ${complianceHighlights.latestAccessReview.summary} • admin účty: ${complianceHighlights.latestAccessReview.adminUsers}/${complianceHighlights.latestAccessReview.totalUsers}`
+              : "Zatím není evidovaný žádný access review report."}
+          </p>
         </div>
       </div>
 

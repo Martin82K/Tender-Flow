@@ -909,11 +909,14 @@ Osobní údaje zpracováváme pouze v rozsahu, který je nezbytný pro konkrétn
 - plnění právních povinností, zejména v oblasti účetnictví a daní,
 - oprávněný zájem na zabezpečení služby, prevenci zneužití a řešení incidentů,
 - oprávněný zájem na základní provozní analytice a zlepšování stability,
+- oprávněný zájem na evidenci a správě pracovních B2B kontaktů dodavatelů a subdodavatelů pro poptávky, tendry a realizaci zakázek, případně pokyn zákazníka, pokud jsou tyto údaje do služby vloženy zákazníkem v rámci jeho vlastních procesů,
 - souhlas, pokud je vyžadován pro konkrétní typ zpracování nebo cookies.
 
 #### 5. Zdroje osobních údajů
 
 Osobní údaje získáváme především přímo od subjektu údajů při registraci, objednávce, komunikaci s podporou nebo používání služby. V omezeném rozsahu mohou být údaje do systému vloženy také oprávněným uživatelem, například při správě týmu, kontaktů nebo projektových dat.
+
+U pracovních kontaktů dodavatelů a subdodavatelů mohou být zdrojem také veřejně dostupné firemní weby, profesní prezentace nebo přímá obchodní komunikace. Takové údaje používáme pouze v rozsahu přiměřeném legitimnímu obchodnímu a provoznímu účelu a neslouží k plošnému marketingovému profilování.
 
 #### 6. Příjemci a zpracovatelé
 
@@ -938,6 +941,8 @@ Nestanovujeme delší obecné retenční lhůty, než jaké jsou nezbytné pro d
 #### 9. Zabezpečení a minimalizace
 
 Přijímáme přiměřená technická a organizační opatření na ochranu osobních údajů před neoprávněným přístupem, ztrátou, změnou nebo zneužitím. Rozsah zpracování se snažíme omezovat na údaje, které jsou skutečně potřebné pro konkrétní účel.
+
+U databází kontaktů dodavatelů a subdodavatelů preferujeme pracovní B2B údaje, například jméno, pracovní e-mail, pracovní telefon, společnost a pracovní zařazení. Soukromé kontaktní údaje nebo citlivé kategorie údajů do tohoto workflow nepatří, pokud k tomu není zvláštní zákonný důvod.
 
 #### 10. Práva subjektů údajů
 

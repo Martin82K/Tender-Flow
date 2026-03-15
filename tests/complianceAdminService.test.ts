@@ -37,6 +37,7 @@ describe("complianceAdminService", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
+    window.localStorage.clear();
     state.query.select.mockReturnValue(state.query);
     state.query.order.mockReturnValue(state.query);
     state.query.insert.mockResolvedValue({ error: null });
@@ -44,7 +45,7 @@ describe("complianceAdminService", () => {
     state.query.upsert.mockResolvedValue({ error: null });
     state.query.eq.mockResolvedValue({ error: null });
     state.rpc.mockReset();
-    state.rpcRest.mockResolvedValue({
+    state.rpc.mockResolvedValue({
       data: {
         users: [],
         audit_entries: [],
@@ -184,7 +185,7 @@ describe("complianceAdminService", () => {
       ],
     };
 
-    state.rpcRest.mockResolvedValue({
+    state.rpc.mockResolvedValue({
       data: {
         users: [
           {
@@ -360,7 +361,7 @@ describe("complianceAdminService", () => {
       processing_activity_subprocessors: [],
     };
 
-    state.rpcRest.mockResolvedValue({
+    state.rpc.mockResolvedValue({
       data: null,
       error: {
         code: "PGRST202",
@@ -430,7 +431,7 @@ describe("complianceAdminService", () => {
   it("po zjištění chybějícího resource ho v jedné session už znovu nevolá", async () => {
     const tableCalls: Record<string, number> = {};
 
-    state.rpcRest.mockResolvedValue({
+    state.rpc.mockResolvedValue({
       data: null,
       error: {
         code: "PGRST202",
@@ -474,7 +475,22 @@ describe("complianceAdminService", () => {
     await getComplianceOverviewAdmin();
 
     expect(tableCalls.compliance_crm_retention_reviews).toBe(1);
-    expect(state.rpcRest).toHaveBeenCalledTimes(1);
+    expect(state.rpc).toHaveBeenCalledTimes(1);
+  });
+
+  it("po reloadu znovu nevolá resource, který je uložený jako chybějící v localStorage", async () => {
+    window.localStorage.setItem(
+      "tender-flow:missing-compliance-resources",
+      JSON.stringify(["rpc:get_access_review_overview_admin"]),
+    );
+
+    const { getComplianceOverviewAdmin } = await import(
+      "@/features/settings/api/complianceAdminService"
+    );
+
+    await getComplianceOverviewAdmin();
+
+    expect(state.rpc).not.toHaveBeenCalled();
   });
 
   it("umí vytvořit DSR požadavek a audit záznam", async () => {

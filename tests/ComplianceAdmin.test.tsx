@@ -263,6 +263,9 @@ describe("ComplianceAdmin", () => {
       screen.getByRole("heading", { name: "Compliance checklist" }),
     ).toBeInTheDocument();
     expect(
+      screen.getByRole("heading", { name: "Security a compliance přehled" }),
+    ).toBeInTheDocument();
+    expect(
       screen.getByRole("heading", { name: "Retence dat" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "DSR fronta" })).toBeInTheDocument();
@@ -278,7 +281,9 @@ describe("ComplianceAdmin", () => {
     expect(screen.getByText(/Projekty a projektové poznámky/i)).toBeInTheDocument();
     expect(screen.getByText(/Generované exporty a dočasné soubory/i)).toBeInTheDocument();
     expect(screen.getByText(/Případ založen/i)).toBeInTheDocument();
-    expect(screen.getByText(/Měsíční kontrola přístupů/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Měsíční kontrola přístupů/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Otevřené breach případy/i)).toBeInTheDocument();
+    expect(screen.getByText(/Poslední access review/i)).toBeInTheDocument();
   });
 
   it("umožní vytvořit DSR požadavek", async () => {
