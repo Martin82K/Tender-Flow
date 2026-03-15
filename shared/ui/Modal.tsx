@@ -10,6 +10,7 @@ interface ModalProps {
   footer?: React.ReactNode;
   size?: "sm" | "md" | "lg" | "xl" | "2xl" | "full";
   persistent?: boolean;
+  showCloseButton?: boolean;
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -21,6 +22,7 @@ export const Modal: React.FC<ModalProps> = ({
   footer,
   size = "md",
   persistent = false,
+  showCloseButton = true,
 }) => {
   const overlayRef = useRef<HTMLDivElement>(null);
 
@@ -86,13 +88,15 @@ export const Modal: React.FC<ModalProps> = ({
           </div>
         )}
 
-        <button
-          onClick={onClose}
-          className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground"
-        >
-          <span className="material-symbols-outlined text-lg">close</span>
-          <span className="sr-only">Close</span>
-        </button>
+        {showCloseButton ? (
+          <button
+            onClick={onClose}
+            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground"
+          >
+            <span className="material-symbols-outlined text-lg">close</span>
+            <span className="sr-only">Close</span>
+          </button>
+        ) : null}
       </div>
     </div>,
     document.body,

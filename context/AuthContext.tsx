@@ -7,7 +7,7 @@ import React, {
   ReactNode,
   useRef,
 } from "react";
-import { User } from "../types";
+import { LegalAcceptanceInput, User } from "../types";
 import { authService } from "../services/authService";
 import {
   isDemoSession,
@@ -27,7 +27,13 @@ interface AuthContextType {
   user: User | null;
   login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   loginWithBiometric: () => Promise<boolean>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  register: (
+    name: string,
+    email: string,
+    password: string,
+    legalAcceptance: LegalAcceptanceInput,
+  ) => Promise<void>;
+  acceptLegalDocuments: (input: LegalAcceptanceInput) => Promise<void>;
   updatePreferences: (preferences: any) => Promise<void>;
   logout: () => Promise<void>;
   loginAsDemo: () => void;
@@ -620,12 +626,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     }
   };
 
-  const register = async (name: string, email: string, password: string) => {
+  const register = async (
+    name: string,
+    email: string,
+    password: string,
+    legalAcceptance: LegalAcceptanceInput,
+  ) => {
     try {
-      const user = await authService.register(name, email, password);
+      const user = await authService.register(name, email, password, legalAcceptance);
       setUser(user);
     } catch (error) {
       console.error("Registration failed", error);
+      throw error;
+    }
+  };
+
+  const acceptLegalDocuments = async (input: LegalAcceptanceInput) => {
+    try {
+      const updatedUser = await authService.acceptLegalDocuments(input);
+      setUser(updatedUser);
+    } catch (error) {
+      console.error("Legal acceptance update failed", error);
       throw error;
     }
   };
@@ -693,6 +714,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         login,
         loginWithBiometric,
         register,
+        acceptLegalDocuments,
         updatePreferences,
         logout,
         loginAsDemo,

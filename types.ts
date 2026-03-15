@@ -235,6 +235,18 @@ export interface UserPreferences {
   signature?: string; // HTML compatible signature
 }
 
+export interface LegalAcceptance {
+  termsVersion: string | null;
+  termsAcceptedAt: string | null;
+  privacyVersion: string | null;
+  privacyAcceptedAt: string | null;
+}
+
+export interface LegalAcceptanceInput {
+  termsVersion: string;
+  privacyVersion: string;
+}
+
 export type SubscriptionTier = "free" | "starter" | "pro" | "enterprise" | "admin";
 // Note: For new code, prefer importing SubscriptionTierId from config/subscriptionTiers.ts
 
@@ -287,6 +299,7 @@ export interface User {
   organizationId?: string;
   organizationType?: 'personal' | 'business';
   organizationName?: string;
+  legalAcceptance?: LegalAcceptance;
 }
 
 export interface Template {

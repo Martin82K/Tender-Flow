@@ -1,4 +1,5 @@
 import React from "react";
+import { CURRENT_TERMS_UPDATED_AT_LABEL } from "@/shared/legal/legalDocumentVersions";
 import { LegalPageLayout } from "./LegalPageLayout";
 
 export const LegalTerms: React.FC = () => {
@@ -6,7 +7,7 @@ export const LegalTerms: React.FC = () => {
     <LegalPageLayout
       title="Podmínky užívání služby Tender Flow"
       lead="Tyto podmínky upravují přístup ke službě Tender Flow, její používání a základní pravidla smluvního vztahu mezi provozovatelem a uživatelem."
-      updatedAt="12. března 2026"
+      updatedAt={CURRENT_TERMS_UPDATED_AT_LABEL}
     >
       <section>
         <h2 className="text-white text-lg font-semibold">1. Provozovatel</h2>

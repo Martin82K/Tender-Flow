@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { waitFor } from "@testing-library/react";
+import {
+  CURRENT_PRIVACY_VERSION,
+  CURRENT_TERMS_VERSION,
+} from "@/shared/legal/legalDocumentVersions";
 
 const mockState = vi.hoisted(() => ({
   getStoredAuthSessionRaw: vi.fn(),
@@ -13,6 +17,7 @@ let subscriptionOverride: string | null = null;
 let organizationId: string | null = null;
 let organizationTier: string | null = null;
 let userSettingsPreferences: any = null;
+let legalAcceptanceRow: any = null;
 
 vi.mock("../services/supabase", () => ({
   supabase: {
@@ -52,6 +57,13 @@ describe("authService session hydration", () => {
       primaryColor: "#607AFB",
       backgroundColor: "#f5f6f8",
     };
+    legalAcceptanceRow = {
+      subscription_tier_override: subscriptionOverride,
+      terms_version: null,
+      terms_accepted_at: null,
+      privacy_version: null,
+      privacy_accepted_at: null,
+    };
 
     mockState.getStoredAuthSessionRaw.mockReturnValue(null);
     mockState.authGetSession.mockResolvedValue({ data: { session: null } });
@@ -90,7 +102,7 @@ describe("authService session hydration", () => {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               maybeSingle: vi.fn().mockResolvedValue({
-                data: { subscription_tier_override: subscriptionOverride },
+                data: legalAcceptanceRow,
                 error: null,
               }),
             }),
@@ -140,6 +152,13 @@ describe("authService session hydration", () => {
     subscriptionOverride = "starter";
     organizationId = "org-1";
     organizationTier = "enterprise";
+    legalAcceptanceRow = {
+      subscription_tier_override: "starter",
+      terms_version: null,
+      terms_accepted_at: null,
+      privacy_version: null,
+      privacy_accepted_at: null,
+    };
 
     const user = await authService.getUserFromSession(makeSession(), {
       skipUserCache: true,
@@ -152,6 +171,13 @@ describe("authService session hydration", () => {
     subscriptionOverride = null;
     organizationId = "org-1";
     organizationTier = "starter";
+    legalAcceptanceRow = {
+      subscription_tier_override: null,
+      terms_version: null,
+      terms_accepted_at: null,
+      privacy_version: null,
+      privacy_accepted_at: null,
+    };
 
     const user = await authService.getUserFromSession(makeSession(), {
       skipUserCache: true,
@@ -171,6 +197,12 @@ describe("authService session hydration", () => {
           name: "Cached User",
           role: "user",
           subscriptionTier: "free",
+          legalAcceptance: {
+            termsVersion: CURRENT_TERMS_VERSION,
+            termsAcceptedAt: "2026-03-15T11:00:00.000Z",
+            privacyVersion: CURRENT_PRIVACY_VERSION,
+            privacyAcceptedAt: "2026-03-15T11:00:00.000Z",
+          },
           preferences: {
             theme: "system",
             primaryColor: "#607AFB",
@@ -180,6 +212,13 @@ describe("authService session hydration", () => {
       })
     );
     subscriptionOverride = "pro";
+    legalAcceptanceRow = {
+      subscription_tier_override: subscriptionOverride,
+      terms_version: CURRENT_TERMS_VERSION,
+      terms_accepted_at: "2026-03-15T11:00:00.000Z",
+      privacy_version: CURRENT_PRIVACY_VERSION,
+      privacy_accepted_at: "2026-03-15T11:00:00.000Z",
+    };
 
     const onBackgroundRefresh = vi.fn();
     const user = await authService.getUserFromSession(makeSession(), {
@@ -195,6 +234,27 @@ describe("authService session hydration", () => {
 
     const cached = JSON.parse(localStorage.getItem("crm-user-cache") || "{}");
     expect(cached.user.subscriptionTier).toBe("pro");
+  });
+
+  it("načte verze a timestampy právních dokumentů z user_profiles", async () => {
+    legalAcceptanceRow = {
+      subscription_tier_override: null,
+      terms_version: CURRENT_TERMS_VERSION,
+      terms_accepted_at: "2026-03-15T10:30:00.000Z",
+      privacy_version: CURRENT_PRIVACY_VERSION,
+      privacy_accepted_at: "2026-03-15T10:31:00.000Z",
+    };
+
+    const user = await authService.getUserFromSession(makeSession(), {
+      skipUserCache: true,
+    });
+
+    expect(user?.legalAcceptance).toEqual({
+      termsVersion: CURRENT_TERMS_VERSION,
+      termsAcceptedAt: "2026-03-15T10:30:00.000Z",
+      privacyVersion: CURRENT_PRIVACY_VERSION,
+      privacyAcceptedAt: "2026-03-15T10:31:00.000Z",
+    });
   });
 
   it("ignoruje nevalidní tier v localStorage cache", () => {

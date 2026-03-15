@@ -5,6 +5,7 @@ import { PublicHeader } from "@/features/public/ui/PublicHeader";
 import { AuthCard } from "./AuthCard";
 import { Link, navigate } from "@/shared/routing/router";
 import { authService } from "@/services/authService";
+import { getCurrentLegalAcceptanceInput } from "@/shared/legal/legalDocumentVersions";
 
 export const RegisterPage: React.FC = () => {
   const { register, loginAsDemo } = useAuth();
@@ -12,6 +13,8 @@ export const RegisterPage: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [registrationStatus, setRegistrationStatus] = useState<{
@@ -34,7 +37,10 @@ export const RegisterPage: React.FC = () => {
     setLoading(true);
     try {
       if (password !== confirmPassword) throw new Error("Hesla se neshodují");
-      await register(name, email, password);
+      if (!termsAccepted || !privacyAccepted) {
+        throw new Error("Pro registraci musíš potvrdit podmínky používání i zásady ochrany osobních údajů.");
+      }
+      await register(name, email, password, getCurrentLegalAcceptanceInput());
       navigate("/app", { replace: true });
     } catch (err: any) {
       setError(err?.message || "Nastala chyba");
@@ -90,6 +96,40 @@ export const RegisterPage: React.FC = () => {
             required
           />
 
+          <label className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/80">
+            <input
+              type="checkbox"
+              checked={termsAccepted}
+              onChange={(e) => setTermsAccepted(e.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-white/30 bg-transparent text-orange-500 focus:ring-orange-500"
+              required
+            />
+            <span>
+              Souhlasím s{" "}
+              <a href="/terms" target="_blank" rel="noreferrer" className="text-orange-300 underline underline-offset-2 hover:text-orange-200">
+                podmínkami používání
+              </a>
+              .
+            </span>
+          </label>
+
+          <label className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/80">
+            <input
+              type="checkbox"
+              checked={privacyAccepted}
+              onChange={(e) => setPrivacyAccepted(e.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-white/30 bg-transparent text-orange-500 focus:ring-orange-500"
+              required
+            />
+            <span>
+              Potvrzuji seznámení se{" "}
+              <a href="/privacy" target="_blank" rel="noreferrer" className="text-orange-300 underline underline-offset-2 hover:text-orange-200">
+                zásadami ochrany osobních údajů
+              </a>
+              {" "}a informacemi o zpracování osobních údajů podle GDPR.
+            </span>
+          </label>
+
           {error ? (
             <div className="text-red-400 text-sm text-center bg-red-500/10 py-2 rounded-lg border border-red-500/20">
               {error}
@@ -126,4 +166,3 @@ export const RegisterPage: React.FC = () => {
     </PublicLayout>
   );
 };
-

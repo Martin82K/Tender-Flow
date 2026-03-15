@@ -36,6 +36,8 @@ import {
   UrlShortener,
 } from "@app/views/LazyViews";
 import { getLegalPage } from "@app/views/LegalPageRouter";
+import { LegalAcceptanceModal } from "@/features/auth/ui/LegalAcceptanceModal";
+import { requiresLegalAcceptance } from "@/shared/legal/legalDocumentVersions";
 
 export const AppContent: React.FC = () => {
   const {
@@ -44,6 +46,7 @@ export const AppContent: React.FC = () => {
     isLoading: authLoading,
     logout,
     updatePreferences,
+    acceptLegalDocuments,
   } = useAuth();
   const { showUiModal, uiModal, closeUiModal } = useUI();
   const { pathname, search } = useLocation();
@@ -55,6 +58,7 @@ export const AppContent: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>("dashboard");
   const [activeProjectTab, setActiveProjectTab] = useState<string>("overview");
   const [activePipelineCategoryId, setActivePipelineCategoryId] = useState<string | null>(null);
+  const [isLegalAcceptanceSaving, setIsLegalAcceptanceSaving] = useState(false);
 
   useRouteStateSync({
     isAuthenticated,
@@ -337,6 +341,20 @@ export const AppContent: React.FC = () => {
     isAdmin: state.isAdmin,
   };
 
+  const shouldRequireLegalAcceptance = requiresLegalAcceptance(user);
+
+  const handleAcceptLegalDocuments = async (input: {
+    termsVersion: string;
+    privacyVersion: string;
+  }) => {
+    setIsLegalAcceptanceSaving(true);
+    try {
+      await acceptLegalDocuments(input);
+    } finally {
+      setIsLegalAcceptanceSaving(false);
+    }
+  };
+
   return (
     <>
       <MainLayout
@@ -359,6 +377,11 @@ export const AppContent: React.FC = () => {
 
         {isDesktop && <UpdateBanner />}
       </MainLayout>
+      <LegalAcceptanceModal
+        isOpen={shouldRequireLegalAcceptance}
+        isSubmitting={isLegalAcceptanceSaving}
+        onAccept={handleAcceptLegalDocuments}
+      />
       <AgentFloatingPanel runtime={agentRuntime} />
     </>
   );

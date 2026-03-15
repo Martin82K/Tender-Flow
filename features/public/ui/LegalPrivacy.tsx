@@ -1,11 +1,11 @@
 import React from "react";
 import {
-  COMPLIANCE_PUBLIC_UPDATED_AT,
   complianceBootstrapProcessingActivities,
   complianceBootstrapRetentionPolicies,
   complianceBootstrapSubprocessors,
   getBootstrapSubprocessorsForActivity,
 } from "@/shared/compliance/complianceRegistryBootstrap";
+import { CURRENT_PRIVACY_UPDATED_AT_LABEL } from "@/shared/legal/legalDocumentVersions";
 import { LegalPageLayout } from "./LegalPageLayout";
 
 export const LegalPrivacy: React.FC = () => {
@@ -13,7 +13,7 @@ export const LegalPrivacy: React.FC = () => {
     <LegalPageLayout
       title="Zásady ochrany osobních údajů"
       lead="Tento dokument popisuje, jak v rámci služby Tender Flow zpracováváme osobní údaje, z jakých důvodů tak činíme a jaká práva mohou subjekty údajů uplatnit."
-      updatedAt={COMPLIANCE_PUBLIC_UPDATED_AT}
+      updatedAt={CURRENT_PRIVACY_UPDATED_AT_LABEL}
     >
       <section>
         <h2 className="text-white text-lg font-semibold">1. Správce</h2>

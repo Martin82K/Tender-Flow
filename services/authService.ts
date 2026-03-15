@@ -1,8 +1,13 @@
 import { getStoredAuthSessionRaw, supabase } from './supabase';
 import { invokePublicFunction } from './functionsClient';
-import { SubscriptionTier, User } from '../types';
+import { LegalAcceptanceInput, SubscriptionTier, User } from '../types';
 import { isValidTierId } from '../config/subscriptionTiers';
 import { summarizeErrorForLog } from '@/shared/security/logSanitizer';
+import {
+    CURRENT_PRIVACY_VERSION,
+    CURRENT_TERMS_VERSION,
+    hasAcceptedCurrentLegalDocuments,
+} from '@/shared/legal/legalDocumentVersions';
 
 const DEFAULT_PREFERENCES = {
     theme: 'system',
@@ -116,6 +121,10 @@ const getCachedUserData = (): User | null => {
     }
 };
 
+const isUserCacheTrustedForLegalAcceptance = (user: User): boolean => {
+    return hasAcceptedCurrentLegalDocuments(user.legalAcceptance);
+};
+
 // Clear user cache on logout
 const clearUserCache = (): void => {
     try {
@@ -178,7 +187,12 @@ export const authService = {
         };
     },
 
-    register: async (name: string, email: string, password: string): Promise<User> => {
+    register: async (
+        name: string,
+        email: string,
+        password: string,
+        legalAcceptance: LegalAcceptanceInput,
+    ): Promise<User> => {
         // Check registration settings before allowing signup
         const canRegister = await authService.checkRegistrationAllowed(email);
         if (!canRegister.allowed) {
@@ -200,6 +214,7 @@ export const authService = {
 
         // Prefer session returned by sign-up (when email confirmation is disabled).
         if (data.session) {
+            await authService.acceptLegalDocuments(legalAcceptance, { session: data.session });
             const user = await authService.getUserFromSession(data.session, { skipUserCache: true });
             if (user) return user;
         }
@@ -399,6 +414,42 @@ export const authService = {
         if (error) throw error;
     },
 
+    acceptLegalDocuments: async (
+        input: LegalAcceptanceInput,
+        options: { session?: any } = {},
+    ): Promise<User> => {
+        if (
+            input.termsVersion !== CURRENT_TERMS_VERSION ||
+            input.privacyVersion !== CURRENT_PRIVACY_VERSION
+        ) {
+            throw new Error('Neplatná verze právních dokumentů. Obnov stránku a potvrď aktuální verzi.');
+        }
+
+        const { error } = await supabase.rpc('accept_current_legal_documents', {
+            p_terms_version: input.termsVersion,
+            p_privacy_version: input.privacyVersion,
+        });
+
+        if (error) {
+            console.error('[authService] acceptLegalDocuments failed:', summarizeErrorForLog(error));
+            throw error;
+        }
+
+        if (options.session?.user) {
+            const updatedFromSession = await authService.getUserFromSession(options.session, {
+                skipUserCache: true,
+            });
+            if (updatedFromSession) return updatedFromSession;
+        }
+
+        const updatedUser = await authService.getCurrentUser({ skipUserCache: true });
+        if (!updatedUser) {
+            throw new Error('Nepodařilo se znovu načíst uživatele po potvrzení právních dokumentů.');
+        }
+
+        return updatedUser;
+    },
+
     // New function to get user data from an existing session (avoids extra API call)
     getUserFromSession: async (
         session: any,
@@ -418,7 +469,12 @@ export const authService = {
         const sessionUserId = session.user.id;
 
         // If we have cached data for this user, use it while refreshing in background
-        if (!skipUserCache && cachedUser && cachedUser.id === sessionUserId) {
+        if (
+            !skipUserCache &&
+            cachedUser &&
+            cachedUser.id === sessionUserId &&
+            isUserCacheTrustedForLegalAcceptance(cachedUser)
+        ) {
             console.log('[authService] getUserFromSession: Using cached user data for fast startup');
 
             // Refresh in background (fire and forget)
@@ -541,7 +597,9 @@ export const authService = {
                     Promise.resolve(
                         supabase
                             .from('user_profiles')
-                            .select('subscription_tier_override')
+                            .select(
+                                'subscription_tier_override, terms_version, terms_accepted_at, privacy_version, privacy_accepted_at'
+                            )
                             .eq('user_id', session.user.id)
                             .maybeSingle()
                     ),
@@ -550,7 +608,7 @@ export const authService = {
                 );
                 const { data, error } = res as any;
                 if (error) return null;
-                return data?.subscription_tier_override || null;
+                return data ?? null;
             } catch (e) {
                 console.warn('[authService] Could not fetch subscription override', e);
                 return null;
@@ -558,7 +616,7 @@ export const authService = {
         })();
 
         // Await Batch 1
-        const [profile, settings, subscriptionOverride] = await Promise.all([
+        const [profile, settings, userProfile] = await Promise.all([
             profilePromise,
             settingsPromise,
             overridePromise
@@ -598,8 +656,8 @@ export const authService = {
         let organizationName: string | undefined;
 
         // Apply override if present
-        if (subscriptionOverride) {
-            const override = normalizeSubscriptionTier(subscriptionOverride);
+        if (userProfile?.subscription_tier_override) {
+            const override = normalizeSubscriptionTier(userProfile.subscription_tier_override);
             if (override) {
                 subscriptionTier = override;
             }
@@ -627,7 +685,7 @@ export const authService = {
                     organizationName = org.name;
 
                     // Only apply org tier if no user-specific override
-                    if (!subscriptionOverride && org.subscription_tier) {
+                    if (!userProfile?.subscription_tier_override && org.subscription_tier) {
                         const tier = normalizeSubscriptionTier(org.subscription_tier);
                         if (tier) {
                             subscriptionTier = tier;
@@ -660,7 +718,13 @@ export const authService = {
             preferences: finalPreferences,
             organizationId: organizationId || undefined,
             organizationType,
-            organizationName
+            organizationName,
+            legalAcceptance: {
+                termsVersion: userProfile?.terms_version ?? null,
+                termsAcceptedAt: userProfile?.terms_accepted_at ?? null,
+                privacyVersion: userProfile?.privacy_version ?? null,
+                privacyAcceptedAt: userProfile?.privacy_accepted_at ?? null,
+            },
         };
     },
 
