@@ -205,6 +205,58 @@ const defaultCrmRetentionReviews: CrmRetentionReview[] = complianceBootstrapCrmR
 const defaultAccessReviewUsers: AccessReviewUser[] = [];
 const defaultAccessAuditEntries: AccessAuditEntry[] = [];
 const defaultAccessReviewReports: AccessReviewReport[] = [];
+const missingComplianceResources = new Set<string>();
+
+const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  if (error && typeof error === "object" && "message" in error) {
+    return String((error as { message?: unknown }).message ?? "");
+  }
+  return "";
+};
+
+const getErrorCode = (error: unknown): string => {
+  if (error && typeof error === "object" && "code" in error) {
+    return String((error as { code?: unknown }).code ?? "");
+  }
+  return "";
+};
+
+const isMissingSupabaseResourceError = (error: unknown): boolean => {
+  const code = getErrorCode(error).toUpperCase();
+  const message = getErrorMessage(error).toLowerCase();
+
+  return (
+    code === "PGRST202" ||
+    code === "PGRST205" ||
+    message.includes("could not find the function") ||
+    message.includes("could not find the table") ||
+    message.includes("relation") && message.includes("does not exist")
+  );
+};
+
+const loadResourceOrDefault = async <T>(
+  resourceKey: string,
+  loader: () => Promise<{ data: T | null; error: unknown }>,
+  fallback: T,
+): Promise<T> => {
+  if (missingComplianceResources.has(resourceKey)) {
+    return fallback;
+  }
+
+  const result = await loader();
+
+  if (result.error) {
+    if (isMissingSupabaseResourceError(result.error)) {
+      missingComplianceResources.add(resourceKey);
+      return fallback;
+    }
+    throw result.error;
+  }
+
+  return (result.data ?? fallback) as T;
+};
 
 const normalizeChecklistItems = (rows: unknown): ComplianceChecklistItem[] => {
   if (!Array.isArray(rows) || rows.length === 0) return defaultChecklistItems;
@@ -506,90 +558,95 @@ const normalizeAccessReviewReports = (rows: unknown): AccessReviewReport[] => {
 
 export const getComplianceOverviewAdmin = async (): Promise<ComplianceOverview> => {
   try {
-    const checklistResult = await dbAdapter
-      .from("compliance_checklist_items")
-      .select("*")
-      .order("priority")
-      .order("title");
-
-    if (checklistResult.error) {
-      throw checklistResult.error;
-    }
-
-    const retentionResult = await dbAdapter
-      .from("compliance_retention_policies")
-      .select("*")
-      .order("retention_days", { ascending: false });
-    const dsrResult = await dbAdapter.from("data_subject_requests").select("*").order("due_at");
-    const breachResult = await dbAdapter
-      .from("breach_cases")
-      .select("*")
-      .order("created_at", { ascending: false });
-    const breachEventsResult = await dbAdapter
-      .from("breach_case_events")
-      .select("*")
-      .order("created_at", { ascending: false });
-    const subprocessorsResult = await dbAdapter.from("subprocessors").select("*").order("name");
-    const processingActivitiesResult = await dbAdapter
-      .from("processing_activities")
-      .select("*")
-      .order("activity_name");
-    const processingActivityLinksResult = await dbAdapter
-      .from("processing_activity_subprocessors")
-      .select("*")
-      .order("processing_activity_id");
-    const crmRetentionReviewsResult = await dbAdapter
-      .from("compliance_crm_retention_reviews")
-      .select("*")
-      .order("domain_label");
-    const accessReviewResult = await dbAdapter.rpc<{
-      users: unknown[];
-      audit_entries: unknown[];
-      review_reports: unknown[];
-    }>("get_access_review_overview_admin");
-
-    if (
-      retentionResult.error ||
-      dsrResult.error ||
-      breachResult.error ||
-      breachEventsResult.error ||
-      subprocessorsResult.error ||
-      processingActivitiesResult.error ||
-      processingActivityLinksResult.error ||
-      crmRetentionReviewsResult.error ||
-      accessReviewResult.error
-    ) {
-      throw (
-        retentionResult.error ||
-        dsrResult.error ||
-        breachResult.error ||
-        breachEventsResult.error ||
-        subprocessorsResult.error ||
-        processingActivitiesResult.error ||
-        processingActivityLinksResult.error ||
-        crmRetentionReviewsResult.error ||
-        accessReviewResult.error
-      );
-    }
-
-    const accessReviewData = accessReviewResult.data ?? {
-      users: [],
-      audit_entries: [],
-      review_reports: [],
-    };
+    const checklistRows = await loadResourceOrDefault(
+      "table:compliance_checklist_items",
+      () =>
+        dbAdapter
+          .from("compliance_checklist_items")
+          .select("*")
+          .order("priority")
+          .order("title"),
+      defaultChecklistItems,
+    );
+    const retentionRows = await loadResourceOrDefault(
+      "table:compliance_retention_policies",
+      () =>
+        dbAdapter
+          .from("compliance_retention_policies")
+          .select("*")
+          .order("retention_days", { ascending: false }),
+      defaultRetentionPolicies,
+    );
+    const dsrRows = await loadResourceOrDefault(
+      "table:data_subject_requests",
+      () => dbAdapter.from("data_subject_requests").select("*").order("due_at"),
+      defaultDsrQueue,
+    );
+    const breachRows = await loadResourceOrDefault(
+      "table:breach_cases",
+      () =>
+        dbAdapter
+          .from("breach_cases")
+          .select("*")
+          .order("created_at", { ascending: false }),
+      defaultBreachCases,
+    );
+    const breachEventRows = await loadResourceOrDefault(
+      "table:breach_case_events",
+      () =>
+        dbAdapter
+          .from("breach_case_events")
+          .select("*")
+          .order("created_at", { ascending: false }),
+      defaultBreachCaseEvents,
+    );
+    const subprocessorRows = await loadResourceOrDefault(
+      "table:subprocessors",
+      () => dbAdapter.from("subprocessors").select("*").order("name"),
+      defaultSubprocessors,
+    );
+    const processingActivityRows = await loadResourceOrDefault(
+      "table:processing_activities",
+      () => dbAdapter.from("processing_activities").select("*").order("activity_name"),
+      defaultProcessingActivities,
+    );
+    const processingActivityLinkRows = await loadResourceOrDefault(
+      "table:processing_activity_subprocessors",
+      () => dbAdapter.from("processing_activity_subprocessors").select("*").order("processing_activity_id"),
+      [] as unknown[],
+    );
+    const crmRetentionReviewRows = await loadResourceOrDefault(
+      "table:compliance_crm_retention_reviews",
+      () => dbAdapter.from("compliance_crm_retention_reviews").select("*").order("domain_label"),
+      defaultCrmRetentionReviews,
+    );
+    const accessReviewData = await loadResourceOrDefault(
+      "rpc:get_access_review_overview_admin",
+      () =>
+        dbAdapter.rpcRest<{
+          users: unknown[];
+          audit_entries: unknown[];
+          review_reports: unknown[];
+        }>("get_access_review_overview_admin"),
+      {
+        users: [],
+        audit_entries: [],
+        review_reports: [],
+      },
+    );
 
     return {
-      checklistItems: normalizeChecklistItems(checklistResult.data),
-      retentionPolicies: normalizeRetentionPolicies(retentionResult.data),
-      dsrQueue: normalizeDsrQueue(dsrResult.data),
-      breachCases: normalizeBreachCases(breachResult.data),
-      breachCaseEvents: normalizeBreachCaseEvents(breachEventsResult.data),
-      subprocessors: normalizeSubprocessors(subprocessorsResult.data),
+      checklistItems: normalizeChecklistItems(checklistRows),
+      retentionPolicies: normalizeRetentionPolicies(retentionRows),
+      dsrQueue: normalizeDsrQueue(dsrRows),
+      breachCases: normalizeBreachCases(breachRows),
+      breachCaseEvents: normalizeBreachCaseEvents(breachEventRows),
+      subprocessors: normalizeSubprocessors(subprocessorRows),
       processingActivities: normalizeProcessingActivities(
-        processingActivitiesResult.data,
-        processingActivityLinksResult.data,
+        processingActivityRows,
+        processingActivityLinkRows,
       ),
-      crmRetentionReviews: normalizeCrmRetentionReviews(crmRetentionReviewsResult.data),
+      crmRetentionReviews: normalizeCrmRetentionReviews(crmRetentionReviewRows),
       accessReviewUsers: normalizeAccessReviewUsers(accessReviewData.users),
       accessAuditEntries: normalizeAccessAuditEntries(accessReviewData.audit_entries),
       accessReviewReports: normalizeAccessReviewReports(accessReviewData.review_reports),

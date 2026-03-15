@@ -20,6 +20,7 @@ const state = vi.hoisted(() => {
   return {
     from: vi.fn(() => query),
     rpc: vi.fn(),
+    rpcRest: vi.fn(),
     query,
   };
 });
@@ -28,6 +29,7 @@ vi.mock("@/services/dbAdapter", () => ({
   dbAdapter: {
     from: state.from,
     rpc: state.rpc,
+    rpcRest: state.rpcRest,
   },
 }));
 
@@ -42,6 +44,14 @@ describe("complianceAdminService", () => {
     state.query.upsert.mockResolvedValue({ error: null });
     state.query.eq.mockResolvedValue({ error: null });
     state.rpc.mockReset();
+    state.rpcRest.mockResolvedValue({
+      data: {
+        users: [],
+        audit_entries: [],
+        review_reports: [],
+      },
+      error: null,
+    });
   });
 
   it("vrátí fallback data při chybě čtení", async () => {
@@ -174,7 +184,7 @@ describe("complianceAdminService", () => {
       ],
     };
 
-    state.rpc.mockResolvedValue({
+    state.rpcRest.mockResolvedValue({
       data: {
         users: [
           {
@@ -311,6 +321,160 @@ describe("complianceAdminService", () => {
       summary: "Měsíční review",
       adminUsers: 3,
     });
+  });
+
+  it("při chybějící volitelné tabulce a RPC vrátí fallback jen pro dané sekce", async () => {
+    const rowsByTable: Record<string, unknown[]> = {
+      compliance_checklist_items: [
+        {
+          id: "item-1",
+          area: "Test",
+          title: "Checklist položka",
+          description: "Popis",
+          status: "implemented",
+          priority: "P1",
+        },
+      ],
+      compliance_retention_policies: [
+        {
+          id: "retention-1",
+          category: "Kontakty",
+          purpose: "CRM",
+          retention_days: 30,
+          status: "partial",
+        },
+      ],
+      data_subject_requests: [],
+      breach_cases: [
+        {
+          id: "breach-1",
+          title: "Breach",
+          status: "assessment",
+          risk_level: "high",
+          created_at: "2026-03-12T09:00:00.000Z",
+        },
+      ],
+      breach_case_events: [],
+      subprocessors: [],
+      processing_activities: [],
+      processing_activity_subprocessors: [],
+    };
+
+    state.rpcRest.mockResolvedValue({
+      data: null,
+      error: {
+        code: "PGRST202",
+        message: "Could not find the function public.get_access_review_overview_admin",
+      },
+    });
+
+    state.from.mockImplementation((table: string) => {
+      let orderCalls = 0;
+      const query = {
+        select: vi.fn(),
+        order: vi.fn(),
+      };
+      query.select.mockReturnValue(query);
+      query.order.mockImplementation(() => {
+        orderCalls += 1;
+        if (table === "compliance_checklist_items" && orderCalls === 1) {
+          return query;
+        }
+        if (table === "compliance_crm_retention_reviews") {
+          return Promise.resolve({
+            data: null,
+            error: {
+              code: "PGRST205",
+              message: "Could not find the table public.compliance_crm_retention_reviews",
+            },
+          });
+        }
+        return Promise.resolve({
+          data: rowsByTable[table] ?? [],
+          error: null,
+        });
+      });
+      return query;
+    });
+
+    const { getComplianceOverviewAdmin } = await import(
+      "@/features/settings/api/complianceAdminService"
+    );
+
+    const result = await getComplianceOverviewAdmin();
+
+    expect(result.checklistItems).toEqual([
+      expect.objectContaining({
+        id: "item-1",
+        title: "Checklist položka",
+      }),
+    ]);
+    expect(result.retentionPolicies).toEqual([
+      expect.objectContaining({
+        id: "retention-1",
+        category: "Kontakty",
+      }),
+    ]);
+    expect(result.breachCases).toEqual([
+      expect.objectContaining({
+        id: "breach-1",
+        title: "Breach",
+      }),
+    ]);
+    expect(result.crmRetentionReviews.length).toBeGreaterThan(0);
+    expect(result.accessReviewUsers).toEqual([]);
+    expect(result.accessAuditEntries).toEqual([]);
+    expect(result.accessReviewReports).toEqual([]);
+  });
+
+  it("po zjištění chybějícího resource ho v jedné session už znovu nevolá", async () => {
+    const tableCalls: Record<string, number> = {};
+
+    state.rpcRest.mockResolvedValue({
+      data: null,
+      error: {
+        code: "PGRST202",
+        message: "Could not find the function public.get_access_review_overview_admin",
+      },
+    });
+
+    state.from.mockImplementation((table: string) => {
+      tableCalls[table] = (tableCalls[table] ?? 0) + 1;
+
+      let orderCalls = 0;
+      const query = {
+        select: vi.fn(),
+        order: vi.fn(),
+      };
+      query.select.mockReturnValue(query);
+      query.order.mockImplementation(() => {
+        orderCalls += 1;
+        if (table === "compliance_checklist_items" && orderCalls === 1) {
+          return query;
+        }
+        if (table === "compliance_crm_retention_reviews") {
+          return Promise.resolve({
+            data: null,
+            error: {
+              code: "PGRST205",
+              message: "Could not find the table public.compliance_crm_retention_reviews",
+            },
+          });
+        }
+        return Promise.resolve({ data: [], error: null });
+      });
+      return query;
+    });
+
+    const { getComplianceOverviewAdmin } = await import(
+      "@/features/settings/api/complianceAdminService"
+    );
+
+    await getComplianceOverviewAdmin();
+    await getComplianceOverviewAdmin();
+
+    expect(tableCalls.compliance_crm_retention_reviews).toBe(1);
+    expect(state.rpcRest).toHaveBeenCalledTimes(1);
   });
 
   it("umí vytvořit DSR požadavek a audit záznam", async () => {
