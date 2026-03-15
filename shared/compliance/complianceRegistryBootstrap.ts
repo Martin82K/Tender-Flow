@@ -71,6 +71,27 @@ export const complianceBootstrapRetentionPolicies: RetentionPolicy[] = [
     retentionDays: 180,
     status: "implemented",
   },
+  {
+    id: "document-storage",
+    category: "Nahrané dokumenty a DocHub vazby",
+    purpose: "Uživatelské dokumenty, odkazy na dokumentové struktury a související metadata",
+    retentionDays: 1095,
+    status: "partial",
+  },
+  {
+    id: "generated-exports",
+    category: "Generované exporty a dočasné artefakty",
+    purpose: "Dočasné exportní soubory, JSON/PDF/XLSX artefakty a lokální přechodné výstupy",
+    retentionDays: 30,
+    status: "partial",
+  },
+  {
+    id: "backup-artifacts",
+    category: "Zálohy a archivní artefakty",
+    purpose: "Ruční zálohy, archivní kopie a dlouhodobě držené exportní snapshoty mimo hlavní runtime",
+    retentionDays: 30,
+    status: "partial",
+  },
 ];
 
 export const complianceBootstrapSubprocessors: SubprocessorRecord[] = [
@@ -195,6 +216,46 @@ export const complianceBootstrapCrmRetentionReviews: CrmRetentionReview[] = [
     manualWorkflowSummary:
       "Ruční review plánovacích dat navázaných na uzavřené nebo zrušené zakázky. Automatické mazání je vypnuté, zůstává jen evidenční plán ručního postupu.",
     nextReviewAt: "2026-04-15",
+  },
+  {
+    id: "crm-retention-dochub-links",
+    domainKey: "dochub_project_folders",
+    domainLabel: "DocHub projektové složky a vazby na dokumenty",
+    retentionPolicyId: "document-storage",
+    reviewStatus: "planned",
+    manualWorkflowSummary:
+      "Ruční retenční review vazeb na externí dokumentová úložiště po archivaci nebo smazání projektu. Automatické odpojování je vypnuté, nejdřív se má ověřit, zda dokumenty nejsou stále potřeba pro smluvní nebo realizační účely.",
+    nextReviewAt: "2026-04-20",
+  },
+  {
+    id: "crm-retention-uploaded-documents",
+    domainKey: "uploaded_documents",
+    domainLabel: "Nahrané dokumenty v úložišti",
+    retentionPolicyId: "document-storage",
+    reviewStatus: "planned",
+    manualWorkflowSummary:
+      "Ruční kontrola nahraných dokumentů a jejich vazby na aktivní zakázky. Bez automatického mazání; po retenční lhůtě má následovat ruční rozhodnutí nad konkrétní složkou nebo projektem.",
+    nextReviewAt: "2026-04-20",
+  },
+  {
+    id: "crm-retention-generated-exports",
+    domainKey: "generated_exports",
+    domainLabel: "Generované exporty a dočasné soubory",
+    retentionPolicyId: "generated-exports",
+    reviewStatus: "planned",
+    manualWorkflowSummary:
+      "Ruční review exportních artefaktů vytvářených při DSR, reportingu a kancelářských exportech. Cílem je omezit dlouhodobé držení kopií mimo hlavní datový model, ale mazání zůstává výhradně ruční.",
+    nextReviewAt: "2026-03-31",
+  },
+  {
+    id: "crm-retention-backup-artifacts",
+    domainKey: "backup_artifacts",
+    domainLabel: "Zálohy a archivní artefakty mimo hlavní runtime",
+    retentionPolicyId: "backup-artifacts",
+    reviewStatus: "blocked",
+    manualWorkflowSummary:
+      "Ruční retenční plán je připraven, ale finální rozhodování blokuje chybějící provozní směrnice k zálohám a obnově. Bez jejich schválení se žádné mazání ani rotace automaticky nespouští.",
+    nextReviewAt: "2026-04-30",
   },
 ];
 

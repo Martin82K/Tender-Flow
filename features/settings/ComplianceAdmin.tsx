@@ -1272,7 +1272,7 @@ export const ComplianceAdmin: React.FC = () => {
           </div>
           <div className="mt-6 rounded-xl border border-dashed border-slate-300 p-4 dark:border-slate-700/50">
             <div className="text-sm font-semibold text-slate-900 dark:text-white">
-              Manuální retenční plány hlavních CRM dat
+              Manuální retenční plány CRM, dokumentů a exportů
             </div>
             <p className="mt-2 text-xs text-slate-500">
               Tato sekce neslouží k automatickému mazání. Eviduje, jak mají být hlavní CRM domény

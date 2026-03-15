@@ -162,6 +162,15 @@ describe("complianceAdminService", () => {
           manual_workflow_summary: "Ruční review po uzavření projektu.",
           next_review_at: "2026-04-01",
         },
+        {
+          id: "crm-ret-2",
+          domain_key: "uploaded_documents",
+          domain_label: "Nahrané dokumenty",
+          retention_policy_id: "document-storage",
+          review_status: "blocked",
+          manual_workflow_summary: "Ruční review dokumentů bez automatického mazání.",
+          next_review_at: "2026-04-20",
+        },
       ],
     };
 
@@ -277,6 +286,12 @@ describe("complianceAdminService", () => {
       domainLabel: "Projekty",
       retentionPolicyId: "retention-1",
       reviewStatus: "planned",
+    });
+    expect(result.crmRetentionReviews[1]).toMatchObject({
+      domainKey: "uploaded_documents",
+      domainLabel: "Nahrané dokumenty",
+      retentionPolicyId: "document-storage",
+      reviewStatus: "blocked",
     });
     expect(result.processingActivities[0]).toMatchObject({
       activityName: "Správa kontaktů",

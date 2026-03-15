@@ -75,4 +75,51 @@ describe("authSessionService.invalidateAuthState", () => {
     expect(clearCredentials).toHaveBeenCalledTimes(1);
     expect(navigate).toHaveBeenCalledTimes(1);
   });
+
+  it("při selhání cleanupu loguje jen sanitizované detaily", async () => {
+    vi.resetModules();
+
+    const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const clearStoredSessionData = vi.fn(() => {
+      throw new Error("Kontakt john@example.com authorization=Bearer abc.def.ghi");
+    });
+    const clearCredentials = vi.fn(async () => {
+      throw new Error("refresh_token=supersecret");
+    });
+    const navigate = vi.fn();
+
+    vi.doMock("../services/supabase", () => ({
+      clearStoredSessionData,
+      getStoredAuthSessionRaw: vi.fn(),
+      setRememberMePreference: vi.fn(),
+      supabase: {
+        auth: {
+          refreshSession: vi.fn(),
+          getSession: vi.fn(),
+        },
+      },
+    }));
+
+    vi.doMock("../services/platformAdapter", () => ({
+      platformAdapter: {
+        session: {
+          clearCredentials,
+        },
+      },
+    }));
+
+    vi.doMock("../shared/routing/router", () => ({
+      navigate,
+    }));
+
+    const { authSessionService } = await import("../services/authSessionService");
+
+    await authSessionService.invalidateAuthState({ navigateToLogin: false, reason: "manual_logout" });
+
+    const loggedPayload = JSON.stringify(consoleWarnSpy.mock.calls.map((call) => call[1]));
+    expect(loggedPayload).toContain("[redacted-email]");
+    expect(loggedPayload).toContain("[redacted-token]");
+    expect(loggedPayload).not.toContain("john@example.com");
+    expect(loggedPayload).not.toContain("supersecret");
+  });
 });

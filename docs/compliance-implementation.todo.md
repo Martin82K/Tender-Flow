@@ -35,6 +35,9 @@ Poslední aktualizace: 15. března 2026
 - [x] 2026-03-15: rozšířena compliance retention runtime o notifikace a password reset tokeny, aby registry lépe odpovídaly reálným krátkodobým datovým doménám
 - [x] 2026-03-15: do compliance retention zapojeny i usage/AI telemetry tabulky, aby produktové a AI eventy neměly neomezenou životnost
 - [x] 2026-03-15: přidán manuální retention review registr pro hlavní CRM data bez automatického mazání, aby šlo řídit projekty, kontakty, smlouvy a sdílení přes auditovatelný workflow
+- [x] 2026-03-15: manuální retention review registr rozšířen i na dokumentové domény, exportní artefakty a zálohové blokátory bez zavedení automatického mazání
+- [x] 2026-03-15: dočištěny další service logy pro URL shortener, dokumenty, user management, e-mail a auth session cleanup; edge function klient už neloguje raw response texty ani celé error objekty
+- [x] 2026-03-15: odstraněny hlučné produkční debug logy z subscription tier resolution a edge function klienta, aby runtime diagnostics nezaplňovaly konzoli interními průběhovými výpisy
 - [ ] Další krok: finální gap check a dokončení zbývajících provozních kroků mimo kód
 
 ## Přehled priorit
@@ -122,7 +125,7 @@ Dopad do struktury: rozšíření auth a settings
 - [x] Část security testů pokrývá redakci
 - [x] Sjednotit sanitizaci do jedné sdílené utility
 - [-] Zakázat raw payload logging v edge funkcích a admin flow
-- [-] Rozšířit coverage na feature usage, AI audit, DocHub logy a exporty
+- [-] Rozšířit coverage na vedlejší moduly, desktop logy, DocHub toky a exporty
 Stav: částečně
 Priorita: kritická
 Dopad do kódu: střední
@@ -225,8 +228,8 @@ Dopad do struktury: nový interní compliance registry modul
 
 ### D. Logging a privacy by default
 - [x] Sjednotit sanitizaci do sdílené utility
-- [ ] Zakázat raw payload logging v edge funkcích a admin flow
-- [ ] Převést feature usage a AI audit na metadata-only logging
+- [-] Zakázat raw payload logging v edge funkcích a admin flow
+- [x] Převést feature usage a AI audit na metadata-only logging
 
 ### E. Produktové workflow
 - [x] Přidat stránku „Požadavky subjektů údajů“

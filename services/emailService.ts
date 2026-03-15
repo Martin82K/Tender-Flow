@@ -1,4 +1,5 @@
 import { invokeAuthedFunction } from "./functionsClient";
+import { summarizeErrorForLog } from "../shared/security/logSanitizer";
 
 interface SendEmailParams {
     to: string | string[];
@@ -32,7 +33,7 @@ export const emailService = {
                 body: params
             });
         } catch (error) {
-            console.error("Failed to send email:", error);
+            console.error("Failed to send email:", summarizeErrorForLog(error));
             throw error;
         }
     },

@@ -6,6 +6,7 @@
 import { supabase } from './supabase';
 import { ShortUrl } from '../types';
 import { invokeAuthedFunction } from './functionsClient';
+import { summarizeErrorForLog } from '../shared/security/logSanitizer';
 
 export interface ShortenResult {
   success: boolean;
@@ -54,7 +55,7 @@ async function shortenWithTinyUrl(url: string): Promise<ShortenResult> {
     }
     throw new Error(response.error || 'Unexpected TinyURL response');
   } catch (error) {
-    console.error('TinyURL error:', error);
+    console.error('TinyURL error:', summarizeErrorForLog(error));
     return {
       success: false,
       originalUrl: url,
@@ -112,7 +113,7 @@ async function shortenWithTfUrl(url: string, userId?: string): Promise<ShortenRe
       provider: 'tfurl'
     };
   } catch (error) {
-    console.error('TF URL error:', error);
+    console.error('TF URL error:', summarizeErrorForLog(error));
     return {
       success: false,
       originalUrl: url,
@@ -149,7 +150,7 @@ export async function shortenUrl(url: string): Promise<ShortenResult> {
       return shortenWithTfUrl(url, user?.id);
     }
   } catch (error) {
-    console.error('Error determining provider:', error);
+    console.error('Error determining provider:', summarizeErrorForLog(error));
     // Fallback to TF URL if anything fails
     return shortenWithTfUrl(url);
   }
@@ -170,13 +171,13 @@ export async function getOriginalUrl(code: string): Promise<{ url: string | null
     if (!data) return { url: null };
 
     supabase.rpc('increment_short_url_clicks', { url_id: code }).then(({ error }) => {
-      if (error) console.error("Failed to increment clicks:", error);
+      if (error) console.error("Failed to increment clicks:", summarizeErrorForLog(error));
     });
 
     return { url: data.original_url };
 
   } catch (error) {
-    console.error('Error fetching original URL:', error);
+    console.error('Error fetching original URL:', summarizeErrorForLog(error));
     return { url: null, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
@@ -246,7 +247,7 @@ export async function getUserLinks(): Promise<{ links: UserLink[]; error?: strin
 
     return { links };
   } catch (error) {
-    console.error('Error fetching user links:', error);
+    console.error('Error fetching user links:', summarizeErrorForLog(error));
     return { links: [], error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
@@ -271,7 +272,7 @@ export async function getUserLinkStats(): Promise<UserLinkStats> {
 
     return { totalLinks, totalClicks };
   } catch (error) {
-    console.error('Error fetching user link stats:', error);
+    console.error('Error fetching user link stats:', summarizeErrorForLog(error));
     return { totalLinks: 0, totalClicks: 0 };
   }
 }
@@ -289,7 +290,7 @@ export async function deleteShortUrl(code: string): Promise<{ success: boolean; 
     if (error) throw error;
     return { success: true };
   } catch (error) {
-    console.error('Error deleting short URL:', error);
+    console.error('Error deleting short URL:', summarizeErrorForLog(error));
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
@@ -330,7 +331,7 @@ export async function shortenUrlWithAlias(
 
     return { success: true, shortUrl: `${SHORT_URL_BASE}${code}`, code, originalUrl: url, provider: 'tfurl' };
   } catch (error) {
-    console.error('TF URL error:', error);
+    console.error('TF URL error:', summarizeErrorForLog(error));
     return { success: false, originalUrl: url, error: getReadableError(error), provider: 'tfurl' };
   }
 }

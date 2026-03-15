@@ -29,6 +29,7 @@ describe('urlShortenerService server proxy', () => {
     eqMock.mockClear();
     selectMock.mockClear();
     fromMock.mockClear();
+    vi.restoreAllMocks();
   });
 
   it('pro tinyurl provider volá serverovou function url-shorten', async () => {
@@ -72,5 +73,26 @@ describe('urlShortenerService server proxy', () => {
     });
     expect(result.success).toBe(true);
     expect(result.shortUrl).toBe('https://tinyurl.com/no-alias');
+  });
+
+  it('při chybě tinyurl loguje jen sanitizované detaily', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    maybeSingleMock.mockResolvedValue({
+      data: { preferences: { urlShortenerProvider: 'tinyurl' } },
+    });
+
+    invokeAuthedFunctionMock.mockRejectedValue(
+      new Error('URL shortener failed for john@example.com token Bearer abc.def.ghi'),
+    );
+
+    const result = await shortenUrl('https://example.com/secret');
+
+    expect(result.success).toBe(false);
+    const loggedPayload = JSON.stringify(consoleErrorSpy.mock.calls[0]?.[1]);
+    expect(loggedPayload).toContain('[redacted-email]');
+    expect(loggedPayload).toContain('[redacted-token]');
+    expect(loggedPayload).not.toContain('john@example.com');
+    expect(loggedPayload).not.toContain('abc.def.ghi');
   });
 });

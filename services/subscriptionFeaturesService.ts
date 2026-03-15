@@ -124,41 +124,34 @@ export const subscriptionFeaturesService = {
     try {
       const userResult = await supabase.auth.getUser();
       const userId = userResult.data.user?.id;
-      console.log('[subscriptionFeaturesService] getUserSubscriptionTier: checking current user tier');
 
       if (!userId) {
-        console.warn('[subscriptionFeaturesService] getUserSubscriptionTier: No user ID, checking cache');
         const cachedTier = getCachedSubscriptionTier();
         return cachedTier || 'free';
       }
 
       const { data, error } = await supabase.rpc('get_user_subscription_tier', { target_user_id: userId });
-      console.log('[subscriptionFeaturesService] getUserSubscriptionTier: RPC completed');
 
       if (error) {
         console.error('[subscriptionFeaturesService] getUserSubscriptionTier: RPC error =', summarizeErrorForLog(error));
         // Use cached tier on error to prevent downgrade
         const cachedTier = getCachedSubscriptionTier();
         if (cachedTier) {
-          console.log('[subscriptionFeaturesService] Using cached tier due to RPC error');
           return cachedTier;
         }
         return 'free';
       }
 
       const tier = data || 'free';
-      console.log('[subscriptionFeaturesService] getUserSubscriptionTier: returning resolved tier');
       return tier;
     } catch (e) {
       console.error('[subscriptionFeaturesService] getUserSubscriptionTier: exception =', summarizeErrorForLog(e));
       // Use cached tier on exception to prevent downgrade
       const cachedTier = getCachedSubscriptionTier();
       if (cachedTier) {
-        console.log('[subscriptionFeaturesService] Using cached tier due to exception');
         return cachedTier;
       }
       return 'free';
     }
   },
 };
-

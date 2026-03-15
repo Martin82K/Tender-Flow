@@ -153,6 +153,15 @@ describe("ComplianceAdmin", () => {
         manualWorkflowSummary: "Ruční review po uzavření projektu.",
         nextReviewAt: "2026-04-01",
       },
+      {
+        id: "crm-ret-2",
+        domainKey: "generated_exports",
+        domainLabel: "Generované exporty a dočasné soubory",
+        retentionPolicyId: "generated-exports",
+        reviewStatus: "planned",
+        manualWorkflowSummary: "Ruční review exportů bez automatického mazání.",
+        nextReviewAt: "2026-03-31",
+      },
     ],
     accessReviewUsers: [
       {
@@ -267,6 +276,7 @@ describe("ComplianceAdmin", () => {
     expect(screen.getByText(/Správa kontaktů v CRM/i)).toBeInTheDocument();
     expect(screen.getByText(/Subprocessors: Supabase/i)).toBeInTheDocument();
     expect(screen.getByText(/Projekty a projektové poznámky/i)).toBeInTheDocument();
+    expect(screen.getByText(/Generované exporty a dočasné soubory/i)).toBeInTheDocument();
     expect(screen.getByText(/Případ založen/i)).toBeInTheDocument();
     expect(screen.getByText(/Měsíční kontrola přístupů/i)).toBeInTheDocument();
   });
@@ -728,7 +738,7 @@ describe("ComplianceAdmin", () => {
     fireEvent.change(screen.getByLabelText("Workflow CRM retention crm-ret-1"), {
       target: { value: "Ruční retenční review po archivaci projektu a kontrole smluv." },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Uložit retenční plán" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Uložit retenční plán" })[0]);
 
     await waitFor(() => {
       expect(mockState.saveCrmRetentionReviewAdmin).toHaveBeenCalledWith({

@@ -17,6 +17,7 @@ describe('userManagementService.getAllUsers', () => {
   beforeEach(() => {
     supabaseMocks.rpc.mockReset();
     supabaseMocks.from.mockReset();
+    vi.restoreAllMocks();
   });
 
   it('volá get_all_users_admin a deduplikuje uživatele podle user_id', async () => {
@@ -69,5 +70,27 @@ describe('userManagementService.getAllUsers', () => {
     });
 
     await expect(userManagementService.getAllUsers()).rejects.toThrow('Access denied: Admin only');
+  });
+
+  it('při chybě loguje jen sanitizované detaily', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    supabaseMocks.rpc.mockResolvedValue({
+      data: null,
+      error: {
+        message: 'Kontakt john@example.com token Bearer abc.def.ghi',
+        details: 'authorization=supersecret',
+      },
+    });
+
+    await expect(userManagementService.getAllUsers()).rejects.toThrow(
+      'Kontakt john@example.com token Bearer abc.def.ghi',
+    );
+
+    const loggedPayload = JSON.stringify(consoleErrorSpy.mock.calls[0]?.[1]);
+    expect(loggedPayload).toContain('[redacted-email]');
+    expect(loggedPayload).toContain('[redacted-token]');
+    expect(loggedPayload).not.toContain('john@example.com');
+    expect(loggedPayload).not.toContain('supersecret');
   });
 });

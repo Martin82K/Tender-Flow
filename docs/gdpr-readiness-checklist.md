@@ -44,8 +44,8 @@ Stále ale zbývá několik bodů, bez kterých není poctivé označit stav jak
 ### Kritické minimum
 - [x] DSR proces pro `opravu` je dotažený jako samostatný provozně doložitelný workflow.
 - [x] DSR `výmaz` má finální rozhodovací workflow pro bezpečné ruční provedení mimo UI, bez destruktivní automatizace v adminu.
-- [ ] Log policy není dotažená napříč celou aplikací; zbývá odstranit raw payload logging ve zbývajících částech.
-- [ ] Retence mimo compliance registry není ještě dotažená napříč hlavními CRM daty a zálohami, i když hlavní CRM domény už mají manuální retenční review workflow a runtime telemetry i krátkodobé provozní domény mají reálné cleanup napojení.
+- [-] Log policy je z větší části dotažená napříč hlavními service vrstvami; zbývá dočistit další vedlejší moduly a desktop/debug logy mimo kritické GDPR toky.
+- [ ] Retence mimo compliance registry není ještě dotažená napříč hlavními CRM daty a zálohami, i když hlavní CRM, dokumentové a exportní domény už mají manuální retenční review workflow a runtime telemetry i krátkodobé provozní domény mají reálné cleanup napojení.
 
 ### Doporučené doplnění
 - [ ] Přidat testy na RLS a ochranu compliance tabulek.

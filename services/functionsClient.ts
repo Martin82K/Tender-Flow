@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import { logIncident } from "./incidentLogger";
+import { sanitizeLogText, summarizeErrorForLog } from "../shared/security/logSanitizer";
 
 type InvokeOptions = {
   body?: unknown;
@@ -84,8 +85,6 @@ export const invokeAuthedFunction = async <TResponse>(
   const supabaseUrl = getRequiredEnv("VITE_SUPABASE_URL");
   const anonKey = getRequiredEnv("VITE_SUPABASE_ANON_KEY");
 
-  console.log('[Functions] Environment check:', { url: supabaseUrl });
-
   const url = `${supabaseUrl}/functions/v1/${name}`;
   const method = options.method || "POST";
   const retries = Math.max(0, Number.isFinite(options.retries) ? Number(options.retries) : DEFAULT_RETRIES);
@@ -95,13 +94,7 @@ export const invokeAuthedFunction = async <TResponse>(
   // @ts-ignore - electronAPI is injected via preload
   const isDesktop = typeof window !== 'undefined' && window.electronAPI?.platform?.isDesktop;
 
-  console.log('[Functions] Checking environment:', {
-    isDesktop,
-    hasElectronAPI: typeof window !== 'undefined' && !!window.electronAPI
-  });
-
   if (isDesktop) {
-    console.log(`[Functions] Using Desktop IPC Proxy for ${name}`);
     let lastError: unknown = null;
     for (let attempt = 0; attempt <= retries; attempt += 1) {
       try {
@@ -133,7 +126,7 @@ export const invokeAuthedFunction = async <TResponse>(
         try {
           return (res.text ? JSON.parse(res.text) : {}) as TResponse;
         } catch {
-          console.warn('Failed to parse (IPC)', res.text);
+          console.warn('Failed to parse (IPC)', sanitizeLogText(res.text, 200));
           return {} as TResponse;
         }
       } catch (error) {
@@ -147,8 +140,6 @@ export const invokeAuthedFunction = async <TResponse>(
 
   } else {
     // Normal Web Fetch
-    console.log(`[Invoking Function] ${name}`, { url, method });
-
     let lastError: unknown = null;
     for (let attempt = 0; attempt <= retries; attempt += 1) {
       try {
@@ -194,7 +185,7 @@ export const invokeAuthedFunction = async <TResponse>(
     }
     await logFunctionInvokeFailure(name, method, timeoutMs, retries, lastError);
     const errorMsg = lastError instanceof Error ? lastError.message : String(lastError);
-    console.error(`[Function Error] Failed to fetch ${url}`, lastError);
+    console.error(`[Function Error] Failed to fetch ${name}`, summarizeErrorForLog(lastError));
     throw new Error(`Failed to fetch ${url} (Supabase URL: ${supabaseUrl}). Original error: ${errorMsg}`);
   }
 };
@@ -213,7 +204,6 @@ export const invokePublicFunction = async <TResponse>(
   const isDesktop = typeof window !== 'undefined' && window.electronAPI?.platform?.isDesktop;
 
   if (isDesktop) {
-    console.log(`[Functions] Using Desktop IPC Proxy for ${name} (Public)`);
     // @ts-ignore
     const res = await window.electronAPI.net.request(url, {
       method,

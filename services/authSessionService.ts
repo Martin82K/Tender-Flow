@@ -6,6 +6,7 @@ import {
 } from "./supabase";
 import { platformAdapter } from "./platformAdapter";
 import { navigate } from "../shared/routing/router";
+import { summarizeErrorForLog } from "../shared/security/logSanitizer";
 
 export type AuthInvalidationReason =
   | "invalid_refresh_token"
@@ -66,13 +67,13 @@ export const authSessionService = {
       try {
         clearStoredSessionData();
       } catch (error) {
-        console.warn("[authSessionService] Failed to clear local session:", error);
+        console.warn("[authSessionService] Failed to clear local session:", summarizeErrorForLog(error));
       }
 
       try {
         await platformAdapter.session.clearCredentials();
       } catch (error) {
-        console.warn("[authSessionService] Failed to clear secure credentials:", error);
+        console.warn("[authSessionService] Failed to clear secure credentials:", summarizeErrorForLog(error));
       }
 
       if (reason) {

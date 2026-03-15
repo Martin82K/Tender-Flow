@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { summarizeErrorForLog } from '../shared/security/logSanitizer';
 
 // Types
 export interface UserWithProfile {
@@ -66,7 +67,7 @@ export const userManagementService = {
         const { data, error } = await supabase.rpc('get_all_users_admin');
 
         if (error) {
-            console.error('Error fetching users:', error);
+            console.error('Error fetching users:', summarizeErrorForLog(error));
             throw new Error(error.message);
         }
 
@@ -83,7 +84,7 @@ export const userManagementService = {
         });
 
         if (error) {
-            console.error('Error updating user role:', error);
+            console.error('Error updating user role:', summarizeErrorForLog(error));
             throw new Error(error.message);
         }
 
@@ -101,7 +102,7 @@ export const userManagementService = {
         });
 
         if (error) {
-            console.error('Error updating user login type:', error);
+            console.error('Error updating user login type:', summarizeErrorForLog(error));
             throw new Error(error.message);
         }
 
@@ -119,7 +120,7 @@ export const userManagementService = {
         });
 
         if (error) {
-            console.error('Error updating user subscription tier:', error);
+            console.error('Error updating user subscription tier:', summarizeErrorForLog(error));
             throw new Error(error.message);
         }
 
@@ -133,7 +134,7 @@ export const userManagementService = {
         const { data, error } = await supabase.rpc('get_roles_with_permissions');
 
         if (error) {
-            console.error('Error fetching roles:', error);
+            console.error('Error fetching roles:', summarizeErrorForLog(error));
             throw new Error(error.message);
         }
 
@@ -150,7 +151,7 @@ export const userManagementService = {
             .order('sort_order');
 
         if (error) {
-            console.error('Error fetching permission definitions:', error);
+            console.error('Error fetching permission definitions:', summarizeErrorForLog(error));
             throw new Error(error.message);
         }
 
@@ -172,7 +173,7 @@ export const userManagementService = {
         });
 
         if (error) {
-            console.error('Error updating permission:', error);
+            console.error('Error updating permission:', summarizeErrorForLog(error));
             throw new Error(error.message);
         }
 
@@ -189,7 +190,7 @@ export const userManagementService = {
             .order('sort_order');
 
         if (error) {
-            console.error('Error fetching roles:', error);
+            console.error('Error fetching roles:', summarizeErrorForLog(error));
             throw new Error(error.message);
         }
 
@@ -253,7 +254,7 @@ export const userManagementService = {
         });
 
         if (error) {
-            console.error('Error fetching subscription audit log:', error);
+            console.error('Error fetching subscription audit log:', summarizeErrorForLog(error));
             throw new Error(error.message);
         }
 
@@ -267,7 +268,7 @@ export const userManagementService = {
         const { data, error } = await supabase.rpc('get_whitelisted_emails');
 
         if (error) {
-            console.error('Error fetching whitelist:', error);
+            console.error('Error fetching whitelist:', summarizeErrorForLog(error));
             throw new Error(error.message);
         }
 
@@ -285,7 +286,7 @@ export const userManagementService = {
         });
 
         if (error) {
-            console.error('Error adding to whitelist:', error);
+            console.error('Error adding to whitelist:', summarizeErrorForLog(error));
             throw new Error(error.message);
         }
 
@@ -301,7 +302,7 @@ export const userManagementService = {
         });
 
         if (error) {
-            console.error('Error removing from whitelist:', error);
+            console.error('Error removing from whitelist:', summarizeErrorForLog(error));
             throw new Error(error.message);
         }
 
@@ -318,7 +319,7 @@ export const userManagementService = {
         });
 
         if (error) {
-            console.error('Error toggling whitelist status:', error);
+            console.error('Error toggling whitelist status:', summarizeErrorForLog(error));
             throw new Error(error.message);
         }
 

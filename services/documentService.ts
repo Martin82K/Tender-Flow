@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { DemandDocument } from '../types';
 import { isDemoSession } from './demoData';
+import { summarizeErrorForLog } from '../shared/security/logSanitizer';
 
 const BUCKET_NAME = 'demand-documents';
 
@@ -35,7 +36,7 @@ export async function uploadDocument(file: File, categoryId: string): Promise<De
     });
 
   if (error) {
-    console.error('Error uploading document:', error);
+    console.error('Error uploading document:', summarizeErrorForLog(error));
     throw new Error(`Failed to upload document: ${error.message}`);
   }
 
@@ -65,7 +66,7 @@ export async function deleteDocument(filePath: string): Promise<void> {
     .remove([filePath]);
 
   if (error) {
-    console.error('Error deleting document:', error);
+    console.error('Error deleting document:', summarizeErrorForLog(error));
     throw new Error(`Failed to delete document: ${error.message}`);
   }
 }
