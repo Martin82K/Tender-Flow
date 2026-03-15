@@ -50,6 +50,25 @@ describe('featureUsageService', () => {
     await expect(trackFeatureUsage('excel_unlocker')).resolves.toBe(false);
   });
 
+  it('trackFeatureUsage neloguje syrový error objekt', async () => {
+    setCookieConsentDecision('accepted_all');
+    supabaseMocks.rpc.mockResolvedValue({
+      data: null,
+      error: new Error('token Bearer abc.def.ghi user john@example.com'),
+    });
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    await expect(trackFeatureUsage('excel_unlocker')).resolves.toBe(false);
+
+    const serializedCalls = JSON.stringify(warnSpy.mock.calls);
+    expect(serializedCalls).toContain('[redacted-email]');
+    expect(serializedCalls).toContain('[redacted-token]');
+    expect(serializedCalls).not.toContain('john@example.com');
+    expect(serializedCalls).not.toContain('abc.def.ghi');
+
+    warnSpy.mockRestore();
+  });
+
   it('getUsageTenantsAdmin normalizuje data', async () => {
     supabaseMocks.rpc.mockResolvedValue({
       data: [

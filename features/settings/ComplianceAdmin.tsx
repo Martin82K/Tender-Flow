@@ -9,6 +9,7 @@ import {
   exportDataSubjectAdmin,
   getComplianceOverviewAdmin,
   markBreachNotificationAdmin,
+  saveCrmRetentionReviewAdmin,
   saveDataSubjectRequestHandlingAdmin,
   saveBreachClassificationAdmin,
   saveComplianceRetentionPolicyAdmin,
@@ -21,6 +22,7 @@ import {
 import type { ComplianceOverview } from "@/features/settings/api/complianceAdminService";
 import type {
   ComplianceChecklistItem,
+  CrmRetentionReview,
   DataSubjectRequest,
   BreachCase,
   RetentionPolicy,
@@ -200,6 +202,15 @@ const breachStatusLabel: Record<BreachCase["status"], string> = {
   closed: "Uzavřeno",
 };
 
+const crmRetentionReviewStatusLabel: Record<
+  CrmRetentionReview["reviewStatus"],
+  string
+> = {
+  planned: "Plánováno",
+  approved: "Schváleno",
+  blocked: "Blokováno",
+};
+
 const formatDateTime = (value: string | null) => {
   if (!value) return "nezapsáno";
 
@@ -252,6 +263,11 @@ export const ComplianceAdmin: React.FC = () => {
   const [markingBreachNotification, setMarkingBreachNotification] = useState<string | null>(null);
   const [retentionDrafts, setRetentionDrafts] = useState<Record<string, number>>({});
   const [savingRetentionId, setSavingRetentionId] = useState<string | null>(null);
+  const [crmRetentionSummaryDrafts, setCrmRetentionSummaryDrafts] = useState<Record<string, string>>({});
+  const [crmRetentionStatusDrafts, setCrmRetentionStatusDrafts] = useState<Record<string, CrmRetentionReview["reviewStatus"]>>({});
+  const [crmRetentionPolicyDrafts, setCrmRetentionPolicyDrafts] = useState<Record<string, string>>({});
+  const [crmRetentionNextReviewDrafts, setCrmRetentionNextReviewDrafts] = useState<Record<string, string>>({});
+  const [savingCrmRetentionReviewId, setSavingCrmRetentionReviewId] = useState<string | null>(null);
   const [isSavingSubprocessor, setIsSavingSubprocessor] = useState(false);
   const [isSavingProcessingActivity, setIsSavingProcessingActivity] = useState(false);
   const [newSubprocessorName, setNewSubprocessorName] = useState("");
@@ -306,6 +322,7 @@ export const ComplianceAdmin: React.FC = () => {
   const breachCaseEvents = overview?.breachCaseEvents ?? [];
   const subprocessors = overview?.subprocessors ?? [];
   const processingActivities = overview?.processingActivities ?? [];
+  const crmRetentionReviews = overview?.crmRetentionReviews ?? [];
   const accessReviewUsers = overview?.accessReviewUsers ?? [];
   const accessAuditEntries = overview?.accessAuditEntries ?? [];
   const accessReviewReports = overview?.accessReviewReports ?? [];
@@ -630,6 +647,52 @@ export const ComplianceAdmin: React.FC = () => {
         "Compliance admin běží v bezpečném režimu. Z UI se teď nespouští žádné mazání ani purge nad produkční databází.",
       variant: "info",
     });
+  };
+
+  const handleSaveCrmRetentionReview = async (review: CrmRetentionReview) => {
+    const manualWorkflowSummary = (
+      crmRetentionSummaryDrafts[review.id] ?? review.manualWorkflowSummary
+    ).trim();
+    const reviewStatus = crmRetentionStatusDrafts[review.id] ?? review.reviewStatus;
+    const retentionPolicyId = crmRetentionPolicyDrafts[review.id] ?? review.retentionPolicyId ?? "";
+    const nextReviewAt = crmRetentionNextReviewDrafts[review.id] ?? review.nextReviewAt ?? "";
+
+    if (!manualWorkflowSummary) {
+      showAlert({
+        title: "Chybí manuální workflow",
+        message:
+          "Doplňte, jak má ruční retenční kontrola probíhat a proč zatím nemá být nic mazáno automaticky.",
+        variant: "danger",
+      });
+      return;
+    }
+
+    setSavingCrmRetentionReviewId(review.id);
+    try {
+      await saveCrmRetentionReviewAdmin({
+        id: review.id,
+        domainKey: review.domainKey,
+        domainLabel: review.domainLabel,
+        retentionPolicyId: retentionPolicyId || null,
+        reviewStatus,
+        manualWorkflowSummary,
+        nextReviewAt: nextReviewAt || null,
+      });
+      await loadOverview();
+      showAlert({
+        title: "Retenční plán uložen",
+        message: "Manuální retenční workflow pro CRM datovou doménu bylo uloženo bez automatického mazání.",
+        variant: "success",
+      });
+    } catch (error) {
+      showAlert({
+        title: "Uložení selhalo",
+        message: `Retenční plán se nepodařilo uložit: ${String((error as Error)?.message || error)}`,
+        variant: "danger",
+      });
+    } finally {
+      setSavingCrmRetentionReviewId(null);
+    }
   };
 
   const handleCreateSubprocessor = async () => {
@@ -1206,6 +1269,93 @@ export const ComplianceAdmin: React.FC = () => {
                 </div>
               </div>
             ))}
+          </div>
+          <div className="mt-6 rounded-xl border border-dashed border-slate-300 p-4 dark:border-slate-700/50">
+            <div className="text-sm font-semibold text-slate-900 dark:text-white">
+              Manuální retenční plány hlavních CRM dat
+            </div>
+            <p className="mt-2 text-xs text-slate-500">
+              Tato sekce neslouží k automatickému mazání. Eviduje, jak mají být hlavní CRM domény
+              ručně revidovány, podle které retention policy a kdy má proběhnout další kontrola.
+            </p>
+            <div className="mt-4 space-y-3">
+              {crmRetentionReviews.map((review) => (
+                <div
+                  key={review.id}
+                  className="rounded-xl border border-slate-200 p-4 dark:border-slate-700/50"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                        {review.domainLabel}
+                      </div>
+                      <div className="text-xs text-slate-500">{review.domainKey}</div>
+                    </div>
+                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                      {crmRetentionReviewStatusLabel[crmRetentionStatusDrafts[review.id] ?? review.reviewStatus]}
+                    </span>
+                  </div>
+                  <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-3">
+                    <select
+                      aria-label={`Retention policy CRM ${review.id}`}
+                      value={crmRetentionPolicyDrafts[review.id] ?? review.retentionPolicyId ?? ""}
+                      onChange={(e) =>
+                        setCrmRetentionPolicyDrafts((prev) => ({ ...prev, [review.id]: e.target.value }))
+                      }
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                    >
+                      <option value="">Bez vazby na retention policy</option>
+                      {retentionPolicies.map((policy) => (
+                        <option key={policy.id} value={policy.id}>
+                          {policy.category}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      aria-label={`Stav CRM retention ${review.id}`}
+                      value={crmRetentionStatusDrafts[review.id] ?? review.reviewStatus}
+                      onChange={(e) =>
+                        setCrmRetentionStatusDrafts((prev) => ({
+                          ...prev,
+                          [review.id]: e.target.value as CrmRetentionReview["reviewStatus"],
+                        }))
+                      }
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                    >
+                      <option value="planned">Plánováno</option>
+                      <option value="approved">Schváleno</option>
+                      <option value="blocked">Blokováno</option>
+                    </select>
+                    <input
+                      aria-label={`Další review CRM ${review.id}`}
+                      type="date"
+                      value={crmRetentionNextReviewDrafts[review.id] ?? review.nextReviewAt ?? ""}
+                      onChange={(e) =>
+                        setCrmRetentionNextReviewDrafts((prev) => ({ ...prev, [review.id]: e.target.value }))
+                      }
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                    />
+                  </div>
+                  <textarea
+                    aria-label={`Workflow CRM retention ${review.id}`}
+                    value={crmRetentionSummaryDrafts[review.id] ?? review.manualWorkflowSummary}
+                    onChange={(e) =>
+                      setCrmRetentionSummaryDrafts((prev) => ({ ...prev, [review.id]: e.target.value }))
+                    }
+                    rows={3}
+                    placeholder="Popište ruční retenční postup, blokátory a rozhodovací pravidla."
+                    className="mt-3 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                  />
+                  <button
+                    onClick={() => void handleSaveCrmRetentionReview(review)}
+                    disabled={savingCrmRetentionReviewId === review.id}
+                    className="mt-3 rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+                  >
+                    {savingCrmRetentionReviewId === review.id ? "Ukládám…" : "Uložit retenční plán"}
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 

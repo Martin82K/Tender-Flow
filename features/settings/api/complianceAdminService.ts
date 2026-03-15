@@ -1,5 +1,6 @@
 import { dbAdapter } from "@/services/dbAdapter";
 import {
+  complianceBootstrapCrmRetentionReviews,
   complianceBootstrapProcessingActivities,
   complianceBootstrapRetentionPolicies,
   complianceBootstrapSubprocessors,
@@ -11,6 +12,7 @@ import type {
   BreachCase,
   BreachCaseEvent,
   ComplianceChecklistItem,
+  CrmRetentionReview,
   DataSubjectRequest,
   ProcessingActivityRecord,
   RetentionPolicy,
@@ -25,6 +27,7 @@ export interface ComplianceOverview {
   breachCaseEvents: BreachCaseEvent[];
   subprocessors: SubprocessorRecord[];
   processingActivities: ProcessingActivityRecord[];
+  crmRetentionReviews: CrmRetentionReview[];
   accessReviewUsers: AccessReviewUser[];
   accessAuditEntries: AccessAuditEntry[];
   accessReviewReports: AccessReviewReport[];
@@ -58,6 +61,11 @@ export interface ComplianceRetentionPurgeResult {
   admin_audit_deleted: number;
   dsr_events_deleted: number;
   breach_events_deleted: number;
+  notifications_deleted: number;
+  password_reset_tokens_deleted: number;
+  feature_usage_deleted: number;
+  ai_agent_usage_deleted: number;
+  ai_voice_usage_deleted: number;
   completed_at: string;
 }
 
@@ -192,6 +200,7 @@ const defaultBreachCaseEvents: BreachCaseEvent[] = [
 const defaultSubprocessors: SubprocessorRecord[] = complianceBootstrapSubprocessors;
 
 const defaultProcessingActivities: ProcessingActivityRecord[] = complianceBootstrapProcessingActivities;
+const defaultCrmRetentionReviews: CrmRetentionReview[] = complianceBootstrapCrmRetentionReviews;
 
 const defaultAccessReviewUsers: AccessReviewUser[] = [];
 const defaultAccessAuditEntries: AccessAuditEntry[] = [];
@@ -421,6 +430,31 @@ const normalizeAccessReviewUsers = (rows: unknown): AccessReviewUser[] => {
   });
 };
 
+const normalizeCrmRetentionReviews = (rows: unknown): CrmRetentionReview[] => {
+  if (!Array.isArray(rows) || rows.length === 0) return defaultCrmRetentionReviews;
+  return rows.map((row, index) => {
+    const item = row as Record<string, unknown>;
+    return {
+      id: String(item.id || `crm-retention-${index}`),
+      domainKey: String(item.domain_key || `domain-${index}`),
+      domainLabel: String(item.domain_label || "CRM datová doména"),
+      retentionPolicyId:
+        item.retention_policy_id === null || item.retention_policy_id === undefined
+          ? null
+          : String(item.retention_policy_id),
+      reviewStatus:
+        item.review_status === "approved" || item.review_status === "blocked"
+          ? item.review_status
+          : "planned",
+      manualWorkflowSummary: String(item.manual_workflow_summary || ""),
+      nextReviewAt:
+        item.next_review_at === null || item.next_review_at === undefined
+          ? null
+          : String(item.next_review_at),
+    };
+  });
+};
+
 const normalizeAccessAuditEntries = (rows: unknown): AccessAuditEntry[] => {
   if (!Array.isArray(rows) || rows.length === 0) return defaultAccessAuditEntries;
   return rows.map((row, index) => {
@@ -504,6 +538,10 @@ export const getComplianceOverviewAdmin = async (): Promise<ComplianceOverview> 
       .from("processing_activity_subprocessors")
       .select("*")
       .order("processing_activity_id");
+    const crmRetentionReviewsResult = await dbAdapter
+      .from("compliance_crm_retention_reviews")
+      .select("*")
+      .order("domain_label");
     const accessReviewResult = await dbAdapter.rpc<{
       users: unknown[];
       audit_entries: unknown[];
@@ -518,6 +556,7 @@ export const getComplianceOverviewAdmin = async (): Promise<ComplianceOverview> 
       subprocessorsResult.error ||
       processingActivitiesResult.error ||
       processingActivityLinksResult.error ||
+      crmRetentionReviewsResult.error ||
       accessReviewResult.error
     ) {
       throw (
@@ -528,6 +567,7 @@ export const getComplianceOverviewAdmin = async (): Promise<ComplianceOverview> 
         subprocessorsResult.error ||
         processingActivitiesResult.error ||
         processingActivityLinksResult.error ||
+        crmRetentionReviewsResult.error ||
         accessReviewResult.error
       );
     }
@@ -549,6 +589,7 @@ export const getComplianceOverviewAdmin = async (): Promise<ComplianceOverview> 
         processingActivitiesResult.data,
         processingActivityLinksResult.data,
       ),
+      crmRetentionReviews: normalizeCrmRetentionReviews(crmRetentionReviewsResult.data),
       accessReviewUsers: normalizeAccessReviewUsers(accessReviewData.users),
       accessAuditEntries: normalizeAccessAuditEntries(accessReviewData.audit_entries),
       accessReviewReports: normalizeAccessReviewReports(accessReviewData.review_reports),
@@ -562,6 +603,7 @@ export const getComplianceOverviewAdmin = async (): Promise<ComplianceOverview> 
       breachCaseEvents: defaultBreachCaseEvents,
       subprocessors: defaultSubprocessors,
       processingActivities: defaultProcessingActivities,
+      crmRetentionReviews: defaultCrmRetentionReviews,
       accessReviewUsers: defaultAccessReviewUsers,
       accessAuditEntries: defaultAccessAuditEntries,
       accessReviewReports: defaultAccessReviewReports,
@@ -1088,9 +1130,49 @@ export const runComplianceRetentionPurgeAdmin =
       admin_audit_deleted: 0,
       dsr_events_deleted: 0,
       breach_events_deleted: 0,
+      notifications_deleted: 0,
+      password_reset_tokens_deleted: 0,
+      feature_usage_deleted: 0,
+      ai_agent_usage_deleted: 0,
+      ai_voice_usage_deleted: 0,
       completed_at: new Date().toISOString(),
     }) as ComplianceRetentionPurgeResult;
   };
+
+export const saveCrmRetentionReviewAdmin = async (input: {
+  id: string;
+  domainKey: string;
+  domainLabel: string;
+  retentionPolicyId?: string | null;
+  reviewStatus: CrmRetentionReview["reviewStatus"];
+  manualWorkflowSummary: string;
+  nextReviewAt?: string | null;
+  actor?: string;
+}): Promise<void> => {
+  const { error } = await dbAdapter.from("compliance_crm_retention_reviews").upsert(
+    {
+      id: input.id,
+      domain_key: input.domainKey,
+      domain_label: input.domainLabel,
+      retention_policy_id: input.retentionPolicyId ?? null,
+      review_status: input.reviewStatus,
+      manual_workflow_summary: input.manualWorkflowSummary,
+      next_review_at: input.nextReviewAt ?? null,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "id" },
+  );
+
+  if (error) throw error;
+
+  await writeAdminAuditEvent({
+    actor: input.actor ?? "admin",
+    action: "save_crm_retention_review",
+    targetType: "crm_retention_review",
+    targetId: input.id,
+    summary: `Uložen retenční review plán pro ${input.domainLabel}`,
+  });
+};
 
 export const createAccessReviewReportAdmin = async (input: {
   reviewScope?: string;

@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ComplianceAdmin } from "@/features/settings/ComplianceAdmin";
 
-const mockState = vi.hoisted(() => ({
+  const mockState = vi.hoisted(() => ({
   getComplianceOverviewAdmin: vi.fn(),
   createDataSubjectRequestAdmin: vi.fn(),
   updateDataSubjectRequestStatusAdmin: vi.fn(),
@@ -21,6 +21,7 @@ const mockState = vi.hoisted(() => ({
   saveProcessingActivityAdmin: vi.fn(),
   createAccessReviewReportAdmin: vi.fn(),
   saveSubprocessorAdmin: vi.fn(),
+  saveCrmRetentionReviewAdmin: vi.fn(),
   runComplianceRetentionPurgeAdmin: vi.fn(),
   showAlert: vi.fn(),
   showConfirm: vi.fn(),
@@ -43,6 +44,7 @@ vi.mock("@/features/settings/api/complianceAdminService", () => ({
   saveProcessingActivityAdmin: mockState.saveProcessingActivityAdmin,
   createAccessReviewReportAdmin: mockState.createAccessReviewReportAdmin,
   saveSubprocessorAdmin: mockState.saveSubprocessorAdmin,
+  saveCrmRetentionReviewAdmin: mockState.saveCrmRetentionReviewAdmin,
 }));
 
 vi.mock("@/context/UIContext", () => ({
@@ -141,6 +143,17 @@ describe("ComplianceAdmin", () => {
         linkedSubprocessorIds: ["sub-1"],
       },
     ],
+    crmRetentionReviews: [
+      {
+        id: "crm-ret-1",
+        domainKey: "projects",
+        domainLabel: "Projekty a projektové poznámky",
+        retentionPolicyId: "ret-1",
+        reviewStatus: "planned",
+        manualWorkflowSummary: "Ruční review po uzavření projektu.",
+        nextReviewAt: "2026-04-01",
+      },
+    ],
     accessReviewUsers: [
       {
         userId: "user-1",
@@ -216,10 +229,16 @@ describe("ComplianceAdmin", () => {
     mockState.saveProcessingActivityAdmin.mockResolvedValue(undefined);
     mockState.createAccessReviewReportAdmin.mockResolvedValue("review-2");
     mockState.saveSubprocessorAdmin.mockResolvedValue(undefined);
+    mockState.saveCrmRetentionReviewAdmin.mockResolvedValue(undefined);
     mockState.runComplianceRetentionPurgeAdmin.mockResolvedValue({
       admin_audit_deleted: 1,
       dsr_events_deleted: 2,
       breach_events_deleted: 3,
+      notifications_deleted: 4,
+      password_reset_tokens_deleted: 5,
+      feature_usage_deleted: 6,
+      ai_agent_usage_deleted: 7,
+      ai_voice_usage_deleted: 8,
       completed_at: "2026-03-12T10:00:00.000Z",
     });
     mockState.showConfirm.mockResolvedValue(true);
@@ -247,6 +266,7 @@ describe("ComplianceAdmin", () => {
     expect(screen.getAllByText(/Supabase/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/Správa kontaktů v CRM/i)).toBeInTheDocument();
     expect(screen.getByText(/Subprocessors: Supabase/i)).toBeInTheDocument();
+    expect(screen.getByText(/Projekty a projektové poznámky/i)).toBeInTheDocument();
     expect(screen.getByText(/Případ založen/i)).toBeInTheDocument();
     expect(screen.getByText(/Měsíční kontrola přístupů/i)).toBeInTheDocument();
   });
@@ -693,6 +713,33 @@ describe("ComplianceAdmin", () => {
         }),
       );
       expect(mockState.runComplianceRetentionPurgeAdmin).not.toHaveBeenCalled();
+    });
+  });
+
+  it("umožní uložit manuální retenční plán pro CRM data", async () => {
+    render(<ComplianceAdmin />);
+
+    fireEvent.change(await screen.findByLabelText("Stav CRM retention crm-ret-1"), {
+      target: { value: "approved" },
+    });
+    fireEvent.change(screen.getByLabelText("Další review CRM crm-ret-1"), {
+      target: { value: "2026-05-01" },
+    });
+    fireEvent.change(screen.getByLabelText("Workflow CRM retention crm-ret-1"), {
+      target: { value: "Ruční retenční review po archivaci projektu a kontrole smluv." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Uložit retenční plán" }));
+
+    await waitFor(() => {
+      expect(mockState.saveCrmRetentionReviewAdmin).toHaveBeenCalledWith({
+        id: "crm-ret-1",
+        domainKey: "projects",
+        domainLabel: "Projekty a projektové poznámky",
+        retentionPolicyId: "ret-1",
+        reviewStatus: "approved",
+        manualWorkflowSummary: "Ruční retenční review po archivaci projektu a kontrole smluv.",
+        nextReviewAt: "2026-05-01",
+      });
     });
   });
 

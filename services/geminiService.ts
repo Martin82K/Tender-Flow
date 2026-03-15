@@ -1,5 +1,6 @@
 // import { GoogleGenAI } from "@google/genai"; // Removed direct import
 import { invokeAuthedFunction } from "./functionsClient";
+import { sanitizeLogText, summarizeErrorForLog } from "@/shared/security/logSanitizer";
 
 export const getAiSuggestion = async (contextData: string): Promise<string> => {
   try {
@@ -16,7 +17,7 @@ export const getAiSuggestion = async (contextData: string): Promise<string> => {
 
     return result.text || "Could not generate suggestion.";
   } catch (error) {
-    console.error("AI Proxy Error:", error);
+    console.error("AI Proxy Error:", summarizeErrorForLog(error));
     if (error instanceof Error && error.message.includes('Subscription required')) {
       return "Pro tuto funkci je potřeba vyšší tarif (PRO/Enterprise).";
     }
@@ -55,12 +56,15 @@ export const findCompanyRegions = async (contacts: { id: string; company: string
       const parsed = JSON.parse(jsonStr);
       return parsed;
     } catch (e) {
-      console.error("Failed to parse AI response as JSON", text);
+      console.error("Failed to parse AI response as JSON", {
+        length: text.length,
+        preview: sanitizeLogText(text, 120),
+      });
       return {};
     }
 
   } catch (error) {
-    console.error("AI Proxy Error (Region Search):", error);
+    console.error("AI Proxy Error (Region Search):", summarizeErrorForLog(error));
     return {};
   }
 };

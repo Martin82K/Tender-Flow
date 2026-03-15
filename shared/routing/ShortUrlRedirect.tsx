@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { getOriginalUrl } from "../../services/urlShortenerService";
+import { summarizeErrorForLog } from "@/shared/security/logSanitizer";
 
 interface ShortUrlRedirectProps {
   code: string;
@@ -22,7 +23,7 @@ export const ShortUrlRedirect: React.FC<ShortUrlRedirectProps> = ({ code }) => {
         window.location.href = url;
       } else {
         setError("Odkaz nebyl nalezen nebo vypršel.");
-        if (fetchError) console.error("URL resolution error:", fetchError);
+        if (fetchError) console.error("URL resolution error:", summarizeErrorForLog(fetchError));
       }
     };
 

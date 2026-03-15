@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { hasOptionalCookieConsent } from '@/shared/privacy/cookieConsent';
+import { summarizeErrorForLog } from '@/shared/security/logSanitizer';
 
 export interface UsageTenantOption {
   organizationId: string;
@@ -52,13 +53,13 @@ export async function trackFeatureUsage(
     });
 
     if (error) {
-      console.warn('[featureUsageService] trackFeatureUsage failed:', error);
+      console.warn('[featureUsageService] trackFeatureUsage failed:', summarizeErrorForLog(error));
       return false;
     }
 
     return !!data;
   } catch (error) {
-    console.warn('[featureUsageService] trackFeatureUsage exception:', error);
+    console.warn('[featureUsageService] trackFeatureUsage exception:', summarizeErrorForLog(error));
     return false;
   }
 }

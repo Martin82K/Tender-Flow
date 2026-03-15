@@ -1,10 +1,11 @@
 import type {
+  CrmRetentionReview,
   ProcessingActivityRecord,
   RetentionPolicy,
   SubprocessorRecord,
 } from "@/shared/types/compliance";
 
-export const COMPLIANCE_PUBLIC_UPDATED_AT = "14. března 2026";
+export const COMPLIANCE_PUBLIC_UPDATED_AT = "15. března 2026";
 
 export const complianceBootstrapRetentionPolicies: RetentionPolicy[] = [
   {
@@ -33,6 +34,41 @@ export const complianceBootstrapRetentionPolicies: RetentionPolicy[] = [
     category: "Support a provozní požadavky",
     purpose: "Řešení ticketů, incidentů a provozních dotazů",
     retentionDays: 365,
+    status: "implemented",
+  },
+  {
+    id: "notifications",
+    category: "Uživatelské notifikace",
+    purpose: "Krátkodobé produktové notifikace a provozní upozornění v aplikaci",
+    retentionDays: 5,
+    status: "implemented",
+  },
+  {
+    id: "password-reset-tokens",
+    category: "Password reset tokeny",
+    purpose: "Jednorázové tokeny pro reset hesla a související bezpečnostní workflow",
+    retentionDays: 2,
+    status: "implemented",
+  },
+  {
+    id: "feature-usage-events",
+    category: "Feature usage telemetry",
+    purpose: "Agregace využití funkcí po organizacích pro produktové a billing rozhodování",
+    retentionDays: 180,
+    status: "implemented",
+  },
+  {
+    id: "ai-agent-usage-events",
+    category: "AI agent telemetry",
+    purpose: "Provozní a nákladová telemetry AI asistenta včetně tokenů a guard rozhodnutí",
+    retentionDays: 180,
+    status: "implemented",
+  },
+  {
+    id: "ai-voice-usage-events",
+    category: "AI voice telemetry",
+    purpose: "Provozní a nákladová telemetry speech/transcribe funkcí",
+    retentionDays: 180,
     status: "implemented",
   },
 ];
@@ -109,10 +145,62 @@ export const complianceBootstrapProcessingActivities: ProcessingActivityRecord[]
   },
 ];
 
+export const complianceBootstrapCrmRetentionReviews: CrmRetentionReview[] = [
+  {
+    id: "crm-retention-projects",
+    domainKey: "projects",
+    domainLabel: "Projekty a projektové poznámky",
+    retentionPolicyId: "contacts-projects",
+    reviewStatus: "planned",
+    manualWorkflowSummary:
+      "Ruční retenční review nad dokončenými a archivovanými projekty. Bez automatického mazání; nejdřív ověřit smluvní, účetní a realizační důvody pro další držení dat.",
+    nextReviewAt: "2026-04-15",
+  },
+  {
+    id: "crm-retention-subcontractors",
+    domainKey: "subcontractors",
+    domainLabel: "Subdodavatelé a kontaktní osoby",
+    retentionPolicyId: "contacts-projects",
+    reviewStatus: "planned",
+    manualWorkflowSummary:
+      "Ruční review kontaktů a firem bez aktivní vazby na běžící zakázky. Před případnou anonymizací zkontrolovat obchodní historii a otevřené smlouvy.",
+    nextReviewAt: "2026-04-15",
+  },
+  {
+    id: "crm-retention-contracts",
+    domainKey: "contracts",
+    domainLabel: "Smlouvy, dodatky a čerpání",
+    retentionPolicyId: "account-contracts",
+    reviewStatus: "approved",
+    manualWorkflowSummary:
+      "Smluvní a účetní agenda se drží podle zákonné a smluvní retence. Po uplynutí lhůty má následovat ruční právní kontrola před jakýmkoli odstraněním.",
+    nextReviewAt: "2026-06-30",
+  },
+  {
+    id: "crm-retention-project-shares",
+    domainKey: "project_shares",
+    domainLabel: "Sdílení projektů a přístupy třetích stran",
+    retentionPolicyId: "support-requests",
+    reviewStatus: "planned",
+    manualWorkflowSummary:
+      "Ruční kontrola sdílení a přístupů po ukončení spolupráce. Cílem je včas stáhnout neaktivní sdílení bez zásahu do samotného projektu.",
+    nextReviewAt: "2026-04-01",
+  },
+  {
+    id: "crm-retention-tender-plans",
+    domainKey: "tender_plans",
+    domainLabel: "Tender plány a harmonogramy",
+    retentionPolicyId: "contacts-projects",
+    reviewStatus: "planned",
+    manualWorkflowSummary:
+      "Ruční review plánovacích dat navázaných na uzavřené nebo zrušené zakázky. Automatické mazání je vypnuté, zůstává jen evidenční plán ručního postupu.",
+    nextReviewAt: "2026-04-15",
+  },
+];
+
 export const getBootstrapSubprocessorsForActivity = (
   activity: ProcessingActivityRecord,
 ): SubprocessorRecord[] =>
   complianceBootstrapSubprocessors.filter((subprocessor) =>
     activity.linkedSubprocessorIds.includes(subprocessor.id),
   );
-

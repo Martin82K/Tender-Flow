@@ -45,7 +45,7 @@ Stále ale zbývá několik bodů, bez kterých není poctivé označit stav jak
 - [x] DSR proces pro `opravu` je dotažený jako samostatný provozně doložitelný workflow.
 - [x] DSR `výmaz` má finální rozhodovací workflow pro bezpečné ruční provedení mimo UI, bez destruktivní automatizace v adminu.
 - [ ] Log policy není dotažená napříč celou aplikací; zbývá odstranit raw payload logging ve zbývajících částech.
-- [ ] Retence mimo compliance registry není dotažená napříč všemi datovými doménami a zálohami.
+- [ ] Retence mimo compliance registry není ještě dotažená napříč hlavními CRM daty a zálohami, i když hlavní CRM domény už mají manuální retenční review workflow a runtime telemetry i krátkodobé provozní domény mají reálné cleanup napojení.
 
 ### Doporučené doplnění
 - [ ] Přidat testy na RLS a ochranu compliance tabulek.

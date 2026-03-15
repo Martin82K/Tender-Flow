@@ -72,6 +72,16 @@ export interface ProcessingActivityRecord {
   linkedSubprocessorIds: string[];
 }
 
+export interface CrmRetentionReview {
+  id: string;
+  domainKey: string;
+  domainLabel: string;
+  retentionPolicyId: string | null;
+  reviewStatus: "planned" | "approved" | "blocked";
+  manualWorkflowSummary: string;
+  nextReviewAt: string | null;
+}
+
 export interface AccessReviewUser {
   userId: string;
   email: string;

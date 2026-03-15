@@ -61,6 +61,7 @@ describe("complianceAdminService", () => {
     expect(result.breachCaseEvents.length).toBeGreaterThan(0);
     expect(result.subprocessors.length).toBeGreaterThan(0);
     expect(result.processingActivities.length).toBeGreaterThan(0);
+    expect(result.crmRetentionReviews.length).toBeGreaterThan(0);
     expect(result.accessReviewUsers).toEqual([]);
   });
 
@@ -149,6 +150,17 @@ describe("complianceAdminService", () => {
         {
           processing_activity_id: "ropa-1",
           subprocessor_id: "sub-1",
+        },
+      ],
+      compliance_crm_retention_reviews: [
+        {
+          id: "crm-ret-1",
+          domain_key: "projects",
+          domain_label: "Projekty",
+          retention_policy_id: "retention-1",
+          review_status: "planned",
+          manual_workflow_summary: "Ruční review po uzavření projektu.",
+          next_review_at: "2026-04-01",
         },
       ],
     };
@@ -259,6 +271,12 @@ describe("complianceAdminService", () => {
     expect(result.subprocessors[0]).toMatchObject({
       name: "Supabase",
       region: "EU",
+    });
+    expect(result.crmRetentionReviews[0]).toMatchObject({
+      domainKey: "projects",
+      domainLabel: "Projekty",
+      retentionPolicyId: "retention-1",
+      reviewStatus: "planned",
     });
     expect(result.processingActivities[0]).toMatchObject({
       activityName: "Správa kontaktů",
@@ -690,6 +708,11 @@ describe("complianceAdminService", () => {
         admin_audit_deleted: 2,
         dsr_events_deleted: 1,
         breach_events_deleted: 3,
+        notifications_deleted: 4,
+        password_reset_tokens_deleted: 5,
+        feature_usage_deleted: 6,
+        ai_agent_usage_deleted: 7,
+        ai_voice_usage_deleted: 8,
         completed_at: "2026-03-12T10:00:00.000Z",
       },
       error: null,
@@ -703,6 +726,11 @@ describe("complianceAdminService", () => {
 
     expect(state.rpc).toHaveBeenCalledWith("run_compliance_retention_purge_admin");
     expect(result.breach_events_deleted).toBe(3);
+    expect(result.notifications_deleted).toBe(4);
+    expect(result.password_reset_tokens_deleted).toBe(5);
+    expect(result.feature_usage_deleted).toBe(6);
+    expect(result.ai_agent_usage_deleted).toBe(7);
+    expect(result.ai_voice_usage_deleted).toBe(8);
   });
 
   it("umí uložit subprocessor a zapsat audit", async () => {
@@ -826,6 +854,53 @@ describe("complianceAdminService", () => {
       target_type: "access_review",
       target_id: "review-2",
       summary: "Vytvořen access review report: Kontrola admin přístupů",
+    });
+  });
+
+  it("umí uložit CRM retention review plán a zapsat audit", async () => {
+    const upsertMock = vi.fn().mockResolvedValue({ error: null });
+    const insertMock = vi.fn().mockResolvedValue({ error: null });
+
+    state.from.mockImplementation((table: string) => {
+      if (table === "compliance_crm_retention_reviews") {
+        return { upsert: upsertMock };
+      }
+      return { insert: insertMock };
+    });
+
+    const { saveCrmRetentionReviewAdmin } = await import(
+      "@/features/settings/api/complianceAdminService"
+    );
+
+    await saveCrmRetentionReviewAdmin({
+      id: "crm-ret-1",
+      domainKey: "projects",
+      domainLabel: "Projekty",
+      retentionPolicyId: "contacts-projects",
+      reviewStatus: "planned",
+      manualWorkflowSummary: "Ruční review po uzavření projektu.",
+      nextReviewAt: "2026-04-01",
+      actor: "martin",
+    });
+
+    expect(upsertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "crm-ret-1",
+        domain_key: "projects",
+        domain_label: "Projekty",
+        retention_policy_id: "contacts-projects",
+        review_status: "planned",
+        manual_workflow_summary: "Ruční review po uzavření projektu.",
+        next_review_at: "2026-04-01",
+      }),
+      { onConflict: "id" },
+    );
+    expect(insertMock).toHaveBeenCalledWith({
+      actor: "martin",
+      action: "save_crm_retention_review",
+      target_type: "crm_retention_review",
+      target_id: "crm-ret-1",
+      summary: "Uložen retenční review plán pro Projekty",
     });
   });
 

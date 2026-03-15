@@ -31,6 +31,10 @@ Poslední aktualizace: 15. března 2026
 - [x] 2026-03-14: legal texty napojeny na stejný registry model jako interní compliance admin
 - [x] 2026-03-14: na remote nasazeny DSR evidence a seed reálných compliance registry dat
 - [x] 2026-03-15: high-risk logy v auth, query clientu, Supabase header guardu a desktop proxy převedeny na metadata-only / sanitizované výpisy bez raw payloadů a prefixů klíčů
+- [x] 2026-03-15: dočištěny analytics a AI proxy logy, aby při chybách ani parse failu nevypisovaly syrové payloady nebo odpovědi modelu
+- [x] 2026-03-15: rozšířena compliance retention runtime o notifikace a password reset tokeny, aby registry lépe odpovídaly reálným krátkodobým datovým doménám
+- [x] 2026-03-15: do compliance retention zapojeny i usage/AI telemetry tabulky, aby produktové a AI eventy neměly neomezenou životnost
+- [x] 2026-03-15: přidán manuální retention review registr pro hlavní CRM data bez automatického mazání, aby šlo řídit projekty, kontakty, smlouvy a sdílení přes auditovatelný workflow
 - [ ] Další krok: finální gap check a dokončení zbývajících provozních kroků mimo kód
 
 ## Přehled priorit
@@ -118,7 +122,7 @@ Dopad do struktury: rozšíření auth a settings
 - [x] Část security testů pokrývá redakci
 - [x] Sjednotit sanitizaci do jedné sdílené utility
 - [-] Zakázat raw payload logging v edge funkcích a admin flow
-- [ ] Rozšířit coverage na feature usage, AI audit, DocHub logy a exporty
+- [-] Rozšířit coverage na feature usage, AI audit, DocHub logy a exporty
 Stav: částečně
 Priorita: kritická
 Dopad do kódu: střední

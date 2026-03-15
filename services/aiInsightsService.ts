@@ -1,5 +1,6 @@
 
 import { invokeAuthedFunction } from "./functionsClient";
+import { summarizeErrorForLog } from "@/shared/security/logSanitizer";
 
 interface ProjectSummary {
   name: string;
@@ -293,7 +294,7 @@ ${JSON.stringify(projectsSummary, null, 2)}`;
       icon: 'insights'
     }];
   } catch (error) {
-    console.error('AI Proxy error:', error);
+    console.error('AI Proxy error:', summarizeErrorForLog(error));
 
     // Check for subscription error
     if (error instanceof Error && error.message.includes('Subscription required')) {
