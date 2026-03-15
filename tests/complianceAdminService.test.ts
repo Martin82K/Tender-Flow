@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const state = vi.hoisted(() => {
   const query = {
     select: vi.fn(),
+    single: vi.fn(),
     order: vi.fn(),
     insert: vi.fn(),
     update: vi.fn(),
@@ -11,6 +12,7 @@ const state = vi.hoisted(() => {
   };
 
   query.select.mockReturnValue(query);
+  query.single.mockResolvedValue({ data: null, error: null });
   query.order.mockReturnValue(query);
   query.insert.mockResolvedValue({ error: null });
   query.update.mockReturnValue(query);
@@ -39,6 +41,7 @@ describe("complianceAdminService", () => {
     vi.clearAllMocks();
     window.localStorage.clear();
     state.query.select.mockReturnValue(state.query);
+    state.query.single.mockResolvedValue({ data: null, error: null });
     state.query.order.mockReturnValue(state.query);
     state.query.insert.mockResolvedValue({ error: null });
     state.query.update.mockReturnValue(state.query);
@@ -46,11 +49,7 @@ describe("complianceAdminService", () => {
     state.query.eq.mockResolvedValue({ error: null });
     state.rpc.mockReset();
     state.rpc.mockResolvedValue({
-      data: {
-        users: [],
-        audit_entries: [],
-        review_reports: [],
-      },
+      data: [],
       error: null,
     });
   });
@@ -185,47 +184,44 @@ describe("complianceAdminService", () => {
       ],
     };
 
-    state.rpc.mockResolvedValue({
-      data: {
-        users: [
-          {
-            user_id: "user-1",
-            email: "admin@example.com",
-            display_name: "Admin User",
-            app_role_id: "priprava",
-            app_role_label: "Přípravář",
-            org_roles: ["owner"],
-            last_sign_in: "2026-03-01T10:00:00.000Z",
-            risk_flags: ["privileged_access"],
-          },
-        ],
-        audit_entries: [
-          {
-            id: "audit-1",
-            event_type: "user_role_changed",
-            actor_email: "boss@example.com",
-            target_user_email: "admin@example.com",
-            target_role_id: "priprava",
-            permission_key: null,
-            old_value: "member",
-            new_value: "priprava",
-            summary: "Role změněna",
-            created_at: "2026-03-12T11:00:00.000Z",
-          },
-        ],
-        review_reports: [
-          {
-            id: "review-1",
-            review_scope: "all_admin_access",
-            summary: "Měsíční review",
-            reviewed_by_email: "boss@example.com",
-            total_users: 12,
-            admin_users: 3,
-            stale_users: 1,
-            created_at: "2026-03-12T12:00:00.000Z",
-          },
-        ],
+    rowsByTable.role_permission_audit_log = [
+      {
+        id: "audit-1",
+        event_type: "user_role_changed",
+        actor_user_id: "user-1",
+        target_user_id: "user-1",
+        target_role_id: "priprava",
+        permission_key: null,
+        old_value: "member",
+        new_value: "priprava",
+        summary: "Role změněna",
+        created_at: "2026-03-12T11:00:00.000Z",
       },
+    ];
+    rowsByTable.access_review_reports = [
+      {
+        id: "review-1",
+        review_scope: "all_admin_access",
+        summary: "Měsíční review",
+        reviewed_by: "user-1",
+        total_users: 12,
+        admin_users: 3,
+        stale_users: 1,
+        created_at: "2026-03-12T12:00:00.000Z",
+      },
+    ];
+
+    state.rpc.mockResolvedValue({
+      data: [
+        {
+          user_id: "user-1",
+          email: "admin@example.com",
+          display_name: "Admin User",
+          role_id: "priprava",
+          role_label: "Přípravář",
+          last_sign_in: "2026-03-01T10:00:00.000Z",
+        },
+      ],
       error: null,
     });
 
@@ -316,7 +312,7 @@ describe("complianceAdminService", () => {
     });
     expect(result.accessAuditEntries[0]).toMatchObject({
       eventType: "user_role_changed",
-      actorEmail: "boss@example.com",
+      actorEmail: "admin@example.com",
     });
     expect(result.accessReviewReports[0]).toMatchObject({
       summary: "Měsíční review",
@@ -362,11 +358,8 @@ describe("complianceAdminService", () => {
     };
 
     state.rpc.mockResolvedValue({
-      data: null,
-      error: {
-        code: "PGRST202",
-        message: "Could not find the function public.get_access_review_overview_admin",
-      },
+      data: [],
+      error: null,
     });
 
     state.from.mockImplementation((table: string) => {
@@ -432,11 +425,8 @@ describe("complianceAdminService", () => {
     const tableCalls: Record<string, number> = {};
 
     state.rpc.mockResolvedValue({
-      data: null,
-      error: {
-        code: "PGRST202",
-        message: "Could not find the function public.get_access_review_overview_admin",
-      },
+      data: [],
+      error: null,
     });
 
     state.from.mockImplementation((table: string) => {
@@ -475,7 +465,9 @@ describe("complianceAdminService", () => {
     await getComplianceOverviewAdmin();
 
     expect(tableCalls.compliance_crm_retention_reviews).toBe(1);
-    expect(state.rpc).toHaveBeenCalledTimes(1);
+    expect(state.rpc).toHaveBeenCalledTimes(2);
+    expect(state.rpc).toHaveBeenNthCalledWith(1, "get_all_users_admin");
+    expect(state.rpc).toHaveBeenNthCalledWith(2, "get_all_users_admin");
   });
 
   it("po reloadu znovu nevolá resource, který je uložený jako chybějící v localStorage", async () => {
@@ -490,7 +482,152 @@ describe("complianceAdminService", () => {
 
     await getComplianceOverviewAdmin();
 
-    expect(state.rpc).not.toHaveBeenCalled();
+    expect(state.rpc).toHaveBeenCalledTimes(1);
+    expect(state.rpc).toHaveBeenCalledWith("get_all_users_admin");
+  });
+
+  it("HTTP 404 u compliance resource bere jako chybějící tabulku a přepne na fallback", async () => {
+    const tableCalls: Record<string, number> = {};
+
+    state.rpc.mockResolvedValue({
+      data: [],
+      error: null,
+    });
+
+    state.from.mockImplementation((table: string) => {
+      tableCalls[table] = (tableCalls[table] ?? 0) + 1;
+
+      let orderCalls = 0;
+      const query = {
+        select: vi.fn(),
+        order: vi.fn(),
+      };
+      query.select.mockReturnValue(query);
+      query.order.mockImplementation(() => {
+        orderCalls += 1;
+        if (table === "compliance_checklist_items" && orderCalls === 1) {
+          return query;
+        }
+        if (table === "processing_activity_subprocessors") {
+          return Promise.resolve({
+            data: null,
+            error: {
+              status: 404,
+              message: "Not Found",
+            },
+          });
+        }
+        return Promise.resolve({ data: [], error: null });
+      });
+      return query;
+    });
+
+    const { getComplianceOverviewAdmin } = await import(
+      "@/features/settings/api/complianceAdminService"
+    );
+
+    const result = await getComplianceOverviewAdmin();
+    await getComplianceOverviewAdmin();
+
+    expect(result.processingActivities.length).toBeGreaterThanOrEqual(0);
+    expect(tableCalls.processing_activity_subprocessors).toBe(1);
+  });
+
+  it("načte access review přes get_all_users_admin a tabulky bez závislosti na přehledovém RPC", async () => {
+    state.rpc.mockImplementation((fn: string) => {
+      if (fn === "get_all_users_admin") {
+        return Promise.resolve({
+          data: [
+            {
+              user_id: "user-1",
+              email: "admin@example.com",
+              display_name: "Admin",
+              role_id: "priprava",
+              role_label: "Přípravář",
+              last_sign_in: "2026-03-10T10:00:00.000Z",
+            },
+          ],
+          error: null,
+        });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    state.from.mockImplementation((table: string) => {
+      let orderCalls = 0;
+      const query = {
+        select: vi.fn(),
+        order: vi.fn(),
+      };
+      query.select.mockReturnValue(query);
+      query.order.mockImplementation(() => {
+        orderCalls += 1;
+        if (table === "compliance_checklist_items" && orderCalls === 1) {
+          return query;
+        }
+        if (table === "role_permission_audit_log") {
+          return Promise.resolve({
+            data: [
+              {
+                id: "audit-1",
+                event_type: "access_review_completed",
+                actor_user_id: "user-1",
+                target_user_id: null,
+                summary: "Review hotovo",
+                created_at: "2026-03-12T11:00:00.000Z",
+              },
+            ],
+            error: null,
+          });
+        }
+        if (table === "access_review_reports") {
+          return Promise.resolve({
+            data: [
+              {
+                id: "review-1",
+                review_scope: "all_admin_access",
+                summary: "Měsíční review",
+                reviewed_by: "user-1",
+                total_users: 4,
+                admin_users: 1,
+                stale_users: 0,
+                created_at: "2026-03-12T12:00:00.000Z",
+              },
+            ],
+            error: null,
+          });
+        }
+        return Promise.resolve({ data: [], error: null });
+      });
+      return query;
+    });
+
+    const { getComplianceOverviewAdmin } = await import(
+      "@/features/settings/api/complianceAdminService"
+    );
+
+    const result = await getComplianceOverviewAdmin();
+
+    expect(result.accessReviewUsers).toEqual([
+      expect.objectContaining({
+        userId: "user-1",
+        email: "admin@example.com",
+        appRoleId: "priprava",
+      }),
+    ]);
+    expect(result.accessAuditEntries).toEqual([
+      expect.objectContaining({
+        id: "audit-1",
+        actorEmail: "admin@example.com",
+      }),
+    ]);
+    expect(result.accessReviewReports).toEqual([
+      expect.objectContaining({
+        id: "review-1",
+        reviewedByEmail: "admin@example.com",
+      }),
+    ]);
+    expect(state.rpc).toHaveBeenCalledWith("get_all_users_admin");
   });
 
   it("umí vytvořit DSR požadavek a audit záznam", async () => {
@@ -1023,11 +1160,41 @@ describe("complianceAdminService", () => {
 
   it("umí uložit access review report a zapsat audit", async () => {
     state.rpc.mockResolvedValue({
-      data: "review-2",
+      data: [
+        {
+          user_id: "user-1",
+          email: "admin@example.com",
+          display_name: "Admin",
+          role_id: "priprava",
+          role_label: "Přípravář",
+          last_sign_in: "2026-03-10T10:00:00.000Z",
+        },
+        {
+          user_id: "user-2",
+          email: "stale@example.com",
+          display_name: "Stale",
+          role_id: null,
+          role_label: null,
+          last_sign_in: "2025-01-10T10:00:00.000Z",
+        },
+      ],
       error: null,
     });
+    const reportInsertQuery = {
+      insert: vi.fn(),
+      select: vi.fn(),
+      single: vi.fn(),
+    };
+    reportInsertQuery.insert.mockReturnValue(reportInsertQuery);
+    reportInsertQuery.select.mockReturnValue(reportInsertQuery);
+    reportInsertQuery.single.mockResolvedValue({ data: { id: "review-2" }, error: null });
     const insertMock = vi.fn().mockResolvedValue({ error: null });
-    state.from.mockImplementation(() => ({ insert: insertMock }));
+    state.from.mockImplementation((table: string) => {
+      if (table === "access_review_reports") {
+        return reportInsertQuery;
+      }
+      return { insert: insertMock };
+    });
 
     const { createAccessReviewReportAdmin } = await import(
       "@/features/settings/api/complianceAdminService"
@@ -1038,9 +1205,13 @@ describe("complianceAdminService", () => {
       actor: "martin",
     });
 
-    expect(state.rpc).toHaveBeenCalledWith("create_access_review_report_admin", {
-      review_scope_input: "all_admin_access",
-      summary_input: "Kontrola admin přístupů",
+    expect(state.rpc).toHaveBeenCalledWith("get_all_users_admin");
+    expect(reportInsertQuery.insert).toHaveBeenCalledWith({
+      review_scope: "all_admin_access",
+      summary: "Kontrola admin přístupů",
+      total_users: 2,
+      admin_users: 1,
+      stale_users: 1,
     });
     expect(result).toBe("review-2");
     expect(insertMock).toHaveBeenCalledWith({

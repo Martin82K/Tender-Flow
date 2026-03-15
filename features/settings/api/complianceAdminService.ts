@@ -267,15 +267,27 @@ const getErrorCode = (error: unknown): string => {
   return "";
 };
 
+const getErrorStatus = (error: unknown): number | null => {
+  if (error && typeof error === "object" && "status" in error) {
+    const status = Number((error as { status?: unknown }).status);
+    return Number.isFinite(status) ? status : null;
+  }
+  return null;
+};
+
 const isMissingSupabaseResourceError = (error: unknown): boolean => {
   const code = getErrorCode(error).toUpperCase();
   const message = getErrorMessage(error).toLowerCase();
+  const status = getErrorStatus(error);
 
   return (
     code === "PGRST202" ||
     code === "PGRST205" ||
+    status === 404 ||
+    message === "not found" ||
     message.includes("could not find the function") ||
     message.includes("could not find the table") ||
+    message.includes("schema cache") && message.includes("reload") ||
     message.includes("relation") && message.includes("does not exist")
   );
 };
@@ -601,6 +613,141 @@ const normalizeAccessReviewReports = (rows: unknown): AccessReviewReport[] => {
   });
 };
 
+const mapUsersFromGetAllUsersAdmin = (rows: unknown): AccessReviewUser[] => {
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return defaultAccessReviewUsers;
+  }
+
+  return rows.map((row, index) => {
+    const item = row as Record<string, unknown>;
+    const roleId =
+      item.role_id === null || item.role_id === undefined ? null : String(item.role_id);
+    const lastSignIn =
+      item.last_sign_in === null || item.last_sign_in === undefined
+        ? null
+        : String(item.last_sign_in);
+    const riskFlags = [
+      ...(roleId ? ["privileged_access"] : []),
+      ...(lastSignIn &&
+      new Date(lastSignIn).getTime() < Date.now() - 90 * 24 * 60 * 60 * 1000
+        ? ["stale_account"]
+        : []),
+    ];
+
+    return {
+      userId: String(item.user_id || `access-user-${index}`),
+      email: String(item.email || ""),
+      displayName: String(item.display_name || ""),
+      appRoleId: roleId,
+      appRoleLabel:
+        item.role_label === null || item.role_label === undefined ? null : String(item.role_label),
+      orgRoles: [],
+      lastSignIn,
+      riskFlags,
+    };
+  });
+};
+
+const mapAccessAuditEntriesFromTable = (
+  rows: unknown,
+  users: AccessReviewUser[],
+): AccessAuditEntry[] => {
+  if (!Array.isArray(rows) || rows.length === 0) return defaultAccessAuditEntries;
+
+  const emailByUserId = new Map(users.map((user) => [user.userId, user.email] as const));
+
+  return rows.map((row, index) => {
+    const item = row as Record<string, unknown>;
+    const actorUserId =
+      item.actor_user_id === null || item.actor_user_id === undefined
+        ? null
+        : String(item.actor_user_id);
+    const targetUserId =
+      item.target_user_id === null || item.target_user_id === undefined
+        ? null
+        : String(item.target_user_id);
+
+    return {
+      id: String(item.id || `access-audit-${index}`),
+      eventType: String(item.event_type || "unknown"),
+      actorEmail: actorUserId ? emailByUserId.get(actorUserId) ?? null : null,
+      targetUserEmail: targetUserId ? emailByUserId.get(targetUserId) ?? null : null,
+      targetRoleId:
+        item.target_role_id === null || item.target_role_id === undefined
+          ? null
+          : String(item.target_role_id),
+      permissionKey:
+        item.permission_key === null || item.permission_key === undefined
+          ? null
+          : String(item.permission_key),
+      oldValue: item.old_value === null || item.old_value === undefined ? null : String(item.old_value),
+      newValue: item.new_value === null || item.new_value === undefined ? null : String(item.new_value),
+      summary: String(item.summary || ""),
+      createdAt: String(item.created_at || new Date().toISOString()),
+    };
+  });
+};
+
+const mapAccessReviewReportsFromTable = (
+  rows: unknown,
+  users: AccessReviewUser[],
+): AccessReviewReport[] => {
+  if (!Array.isArray(rows) || rows.length === 0) return defaultAccessReviewReports;
+
+  const emailByUserId = new Map(users.map((user) => [user.userId, user.email] as const));
+
+  return rows.map((row, index) => {
+    const item = row as Record<string, unknown>;
+    const reviewedBy =
+      item.reviewed_by === null || item.reviewed_by === undefined ? null : String(item.reviewed_by);
+
+    return {
+      id: String(item.id || `access-review-${index}`),
+      reviewScope: String(item.review_scope || "all_admin_access"),
+      summary: String(item.summary || ""),
+      reviewedByEmail: reviewedBy ? emailByUserId.get(reviewedBy) ?? null : null,
+      totalUsers: Number(item.total_users || 0),
+      adminUsers: Number(item.admin_users || 0),
+      staleUsers: Number(item.stale_users || 0),
+      createdAt: String(item.created_at || new Date().toISOString()),
+    };
+  });
+};
+
+const loadAccessReviewUsersAdmin = async (): Promise<AccessReviewUser[]> => {
+  const userRows = await loadResourceOrDefault(
+    "rpc:get_all_users_admin",
+    () => dbAdapter.rpc<unknown[]>("get_all_users_admin"),
+    [] as unknown[],
+  );
+
+  return mapUsersFromGetAllUsersAdmin(userRows);
+};
+
+const loadAccessReviewOverviewAdmin = async (): Promise<{
+  users: AccessReviewUser[];
+  auditEntries: AccessAuditEntry[];
+  reviewReports: AccessReviewReport[];
+}> => {
+  const users = await loadAccessReviewUsersAdmin();
+  const auditRows = await loadResourceOrDefault(
+    "table:role_permission_audit_log",
+    () => dbAdapter.from("role_permission_audit_log").select("*").order("created_at", { ascending: false }),
+    [] as unknown[],
+  );
+  const reviewRows = await loadResourceOrDefault(
+    "table:access_review_reports",
+    () => dbAdapter.from("access_review_reports").select("*").order("created_at", { ascending: false }),
+    [] as unknown[],
+  );
+
+  return {
+    users,
+    auditEntries: mapAccessAuditEntriesFromTable(auditRows, users),
+    reviewReports: mapAccessReviewReportsFromTable(reviewRows, users),
+  };
+};
+
 export const getComplianceOverviewAdmin = async (): Promise<ComplianceOverview> => {
   try {
     const checklistRows = await loadResourceOrDefault(
@@ -665,20 +812,7 @@ export const getComplianceOverviewAdmin = async (): Promise<ComplianceOverview> 
       () => dbAdapter.from("compliance_crm_retention_reviews").select("*").order("domain_label"),
       defaultCrmRetentionReviews,
     );
-    const accessReviewData = await loadResourceOrDefault(
-      "rpc:get_access_review_overview_admin",
-      () =>
-        dbAdapter.rpc<{
-          users: unknown[];
-          audit_entries: unknown[];
-          review_reports: unknown[];
-        }>("get_access_review_overview_admin"),
-      {
-        users: [],
-        audit_entries: [],
-        review_reports: [],
-      },
-    );
+    const accessReviewData = await loadAccessReviewOverviewAdmin();
 
     return {
       checklistItems: normalizeChecklistItems(checklistRows),
@@ -692,9 +826,9 @@ export const getComplianceOverviewAdmin = async (): Promise<ComplianceOverview> 
         processingActivityLinkRows,
       ),
       crmRetentionReviews: normalizeCrmRetentionReviews(crmRetentionReviewRows),
-      accessReviewUsers: normalizeAccessReviewUsers(accessReviewData.users),
-      accessAuditEntries: normalizeAccessAuditEntries(accessReviewData.audit_entries),
-      accessReviewReports: normalizeAccessReviewReports(accessReviewData.review_reports),
+      accessReviewUsers: accessReviewData.users,
+      accessAuditEntries: accessReviewData.auditEntries,
+      accessReviewReports: accessReviewData.reviewReports,
     };
   } catch {
     return {
@@ -1317,10 +1451,19 @@ export const createAccessReviewReportAdmin = async (input: {
   summary: string;
   actor?: string;
 }): Promise<string> => {
-  const { data, error } = await dbAdapter.rpc<string>("create_access_review_report_admin", {
-    review_scope_input: input.reviewScope ?? "all_admin_access",
-    summary_input: input.summary,
-  });
+  const users = await loadAccessReviewUsersAdmin();
+  const reviewIdQuery = dbAdapter
+    .from("access_review_reports")
+    .insert({
+      review_scope: input.reviewScope ?? "all_admin_access",
+      summary: input.summary,
+      total_users: users.length,
+      admin_users: users.filter((user) => user.riskFlags.includes("privileged_access")).length,
+      stale_users: users.filter((user) => user.riskFlags.includes("stale_account")).length,
+    })
+    .select("id")
+    .single();
+  const { data, error } = await reviewIdQuery;
 
   if (error) throw error;
 
@@ -1328,11 +1471,11 @@ export const createAccessReviewReportAdmin = async (input: {
     actor: input.actor ?? "admin",
     action: "create_access_review_report",
     targetType: "access_review",
-    targetId: String(data ?? "access-review"),
+    targetId: String((data as { id?: unknown } | null)?.id ?? "access-review"),
     summary: `Vytvořen access review report: ${input.summary || "bez poznámky"}`,
   });
 
-  return String(data ?? "");
+  return String((data as { id?: unknown } | null)?.id ?? "");
 };
 
 export const buildBreachAuthorityReportAdmin = (input: {

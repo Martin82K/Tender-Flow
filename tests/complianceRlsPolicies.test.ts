@@ -50,14 +50,54 @@ describe("compliance RLS and admin RPC migrations", () => {
     expect(retentionReviewMigration).toContain("\"compliance_crm_retention_reviews_admin_write\"");
   });
 
+  it("repair migrace dovytvori compliance schema a obnovi PostgREST cache", () => {
+    const repairMigration = readMigration("20260315133000_repair_compliance_schema.sql");
+
+    const protectedTables = [
+      "compliance_checklist_items",
+      "compliance_retention_policies",
+      "data_subject_requests",
+      "breach_cases",
+      "subprocessors",
+      "data_subject_request_events",
+      "breach_case_events",
+      "processing_activities",
+      "processing_activity_subprocessors",
+      "compliance_crm_retention_reviews",
+    ];
+
+    for (const table of protectedTables) {
+      expect(repairMigration).toContain(`CREATE TABLE IF NOT EXISTS public.${table}`);
+      expect(repairMigration).toContain(`ALTER TABLE public.${table} ENABLE ROW LEVEL SECURITY;`);
+      expect(repairMigration).toContain(`"${table}_admin_select"`);
+    }
+
+    expect(repairMigration).toContain("CREATE TABLE IF NOT EXISTS public.admin_audit_events");
+    expect(repairMigration).toContain("CREATE TABLE IF NOT EXISTS public.role_permission_audit_log");
+    expect(repairMigration).toContain("CREATE TABLE IF NOT EXISTS public.access_review_reports");
+    expect(repairMigration).toContain("\"admin_audit_events_admin_select\"");
+    expect(repairMigration).toContain("\"admin_audit_events_admin_insert\"");
+    expect(repairMigration).toContain("\"role_permission_audit_log_admin_select\"");
+    expect(repairMigration).toContain("\"access_review_reports_admin_select\"");
+    expect(repairMigration).toContain("WITH CHECK (public.is_admin())");
+    expect(repairMigration).toContain("CREATE OR REPLACE FUNCTION public.get_access_review_overview_admin()");
+    expect(repairMigration).toContain("CREATE OR REPLACE FUNCTION public.create_access_review_report_admin(");
+    expect(repairMigration).toContain("GRANT EXECUTE ON FUNCTION public.get_access_review_overview_admin() TO authenticated;");
+    expect(repairMigration).toContain("GRANT EXECUTE ON FUNCTION public.create_access_review_report_admin(TEXT, TEXT) TO authenticated;");
+    expect(repairMigration).toContain("PERFORM pg_notify('pgrst', 'reload schema');");
+  });
+
   it("admin RPC funkce jsou explicitně grantnuté authenticated role", () => {
     const accessReview = readMigration("20260313001000_add_access_review_audit.sql");
+    const accessReviewRepair = readMigration("20260315135500_repair_compliance_access_review.sql");
     const dsr = readMigration("20260312232000_add_dsr_export_anonymize.sql");
     const retention = readMigration("20260315103000_expand_compliance_retention_telemetry.sql");
     const incidents = readMigration("20260312110000_expand_app_incident_admin_logging.sql");
 
     expect(accessReview).toContain("GRANT EXECUTE ON FUNCTION public.get_access_review_overview_admin() TO authenticated;");
     expect(accessReview).toContain("GRANT EXECUTE ON FUNCTION public.create_access_review_report_admin(TEXT, TEXT) TO authenticated;");
+    expect(accessReviewRepair).toContain("GRANT EXECUTE ON FUNCTION public.get_access_review_overview_admin() TO authenticated;");
+    expect(accessReviewRepair).toContain("GRANT EXECUTE ON FUNCTION public.create_access_review_report_admin(TEXT, TEXT) TO authenticated;");
     expect(dsr).toContain("GRANT EXECUTE ON FUNCTION public.get_data_subject_export_admin(TEXT) TO authenticated;");
     expect(dsr).toContain("GRANT EXECUTE ON FUNCTION public.anonymize_data_subject_admin(TEXT) TO authenticated;");
     expect(retention).toContain("GRANT EXECUTE ON FUNCTION public.run_compliance_retention_purge_admin() TO authenticated;");

@@ -285,27 +285,39 @@ export const ComplianceAdmin: React.FC = () => {
   const [newAccessReviewSummary, setNewAccessReviewSummary] = useState("");
   const [isSavingAccessReview, setIsSavingAccessReview] = useState(false);
 
-  const loadOverview = async () => {
-    setIsLoading(true);
-    const data = await getComplianceOverviewAdmin();
+  const applyOverview = (data: ComplianceOverview) => {
     setOverview(data);
     setRetentionDrafts(
       Object.fromEntries(data.retentionPolicies.map((policy) => [policy.id, policy.retentionDays])),
     );
-    setIsLoading(false);
+  };
+
+  const loadOverview = async (): Promise<ComplianceOverview | null> => {
+    setIsLoading(true);
+    try {
+      const data = await getComplianceOverviewAdmin();
+      applyOverview(data);
+      return data;
+    } catch {
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
     let cancelled = false;
 
     const load = async () => {
-      const data = await getComplianceOverviewAdmin();
-      if (cancelled) return;
-      setOverview(data);
-      setRetentionDrafts(
-        Object.fromEntries(data.retentionPolicies.map((policy) => [policy.id, policy.retentionDays])),
-      );
-      setIsLoading(false);
+      try {
+        const data = await getComplianceOverviewAdmin();
+        if (cancelled) return;
+        applyOverview(data);
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
     };
 
     void load();

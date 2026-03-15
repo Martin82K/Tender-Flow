@@ -715,6 +715,35 @@ describe("ComplianceAdmin", () => {
     });
   });
 
+  it("po ulozeni retention policy neselze, kdyz nasledny refresh overview spadne", async () => {
+    mockState.getComplianceOverviewAdmin
+      .mockResolvedValueOnce(overviewPayload)
+      .mockRejectedValueOnce(new Error("overview refresh failed"));
+
+    render(<ComplianceAdmin />);
+
+    expect(await screen.findByLabelText("Retence ret-1")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Retence ret-1"), {
+      target: { value: "90" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Uložit" }));
+
+    await waitFor(() => {
+      expect(mockState.saveComplianceRetentionPolicyAdmin).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: "ret-1",
+          retentionDays: 90,
+        }),
+      );
+      expect(mockState.showAlert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: "Retence uložena",
+          variant: "success",
+        }),
+      );
+    });
+  });
+
   it("u retention purge jen zobrazí bezpečnostní informaci a nic nemaže", async () => {
     render(<ComplianceAdmin />);
 
