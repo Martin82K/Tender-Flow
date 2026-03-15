@@ -169,4 +169,20 @@ describe("authService.updateUserPreferences", () => {
       authService.updateUserPreferences({ theme: "dark" })
     ).rejects.toBeTruthy();
   });
+
+  it("neloguje syrové preference payloady do konzole", async () => {
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
+
+    await authService.updateUserPreferences({
+      theme: "dark",
+      supportEmail: "john@example.com",
+      apiKey: "super-secret-token",
+    });
+
+    const serializedCalls = JSON.stringify(logSpy.mock.calls);
+    expect(serializedCalls).not.toContain("john@example.com");
+    expect(serializedCalls).not.toContain("super-secret-token");
+
+    logSpy.mockRestore();
+  });
 });

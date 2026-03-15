@@ -75,6 +75,124 @@ const requestVerificationLabel: Record<DataSubjectRequest["verificationStatus"],
   not_required: "Není potřeba",
 };
 
+type RectificationWorkflowDraft = {
+  requestedFields: string;
+  evidenceSource: string;
+  affectedSystems: string;
+  requesterCommunication: string;
+};
+
+type ErasureWorkflowDraft = {
+  legalAssessment: string;
+  deletionScope: string;
+  blockedSystems: string;
+  manualExecutionOwner: string;
+  requesterCommunication: string;
+};
+
+const RECTIFICATION_SUMMARY_PREFIX = "[RECTIFICATION_WORKFLOW_V1]";
+const ERASURE_SUMMARY_PREFIX = "[ERASURE_WORKFLOW_V1]";
+
+const emptyRectificationWorkflowDraft = (): RectificationWorkflowDraft => ({
+  requestedFields: "",
+  evidenceSource: "",
+  affectedSystems: "",
+  requesterCommunication: "",
+});
+
+const parseRectificationWorkflow = (summary: string): RectificationWorkflowDraft => {
+  if (!summary.startsWith(RECTIFICATION_SUMMARY_PREFIX)) {
+    return emptyRectificationWorkflowDraft();
+  }
+
+  const values = summary
+    .slice(RECTIFICATION_SUMMARY_PREFIX.length)
+    .trim()
+    .split("\n")
+    .reduce<Record<string, string>>((acc, line) => {
+      const [key, ...rest] = line.split(":");
+      if (!key || rest.length === 0) return acc;
+      acc[key.trim()] = rest.join(":").trim();
+      return acc;
+    }, {});
+
+  return {
+    requestedFields: values.requested_fields ?? "",
+    evidenceSource: values.evidence_source ?? "",
+    affectedSystems: values.affected_systems ?? "",
+    requesterCommunication: values.requester_communication ?? "",
+  };
+};
+
+const buildRectificationSummary = (draft: RectificationWorkflowDraft): string =>
+  [
+    RECTIFICATION_SUMMARY_PREFIX,
+    `requested_fields: ${draft.requestedFields.trim()}`,
+    `evidence_source: ${draft.evidenceSource.trim()}`,
+    `affected_systems: ${draft.affectedSystems.trim()}`,
+    `requester_communication: ${draft.requesterCommunication.trim()}`,
+  ].join("\n");
+
+const isRectificationWorkflowComplete = (draft: RectificationWorkflowDraft): boolean =>
+  Boolean(
+    draft.requestedFields.trim() &&
+      draft.evidenceSource.trim() &&
+      draft.affectedSystems.trim() &&
+      draft.requesterCommunication.trim(),
+  );
+
+const emptyErasureWorkflowDraft = (): ErasureWorkflowDraft => ({
+  legalAssessment: "",
+  deletionScope: "",
+  blockedSystems: "",
+  manualExecutionOwner: "",
+  requesterCommunication: "",
+});
+
+const parseErasureWorkflow = (summary: string): ErasureWorkflowDraft => {
+  if (!summary.startsWith(ERASURE_SUMMARY_PREFIX)) {
+    return emptyErasureWorkflowDraft();
+  }
+
+  const values = summary
+    .slice(ERASURE_SUMMARY_PREFIX.length)
+    .trim()
+    .split("\n")
+    .reduce<Record<string, string>>((acc, line) => {
+      const [key, ...rest] = line.split(":");
+      if (!key || rest.length === 0) return acc;
+      acc[key.trim()] = rest.join(":").trim();
+      return acc;
+    }, {});
+
+  return {
+    legalAssessment: values.legal_assessment ?? "",
+    deletionScope: values.deletion_scope ?? "",
+    blockedSystems: values.blocked_systems ?? "",
+    manualExecutionOwner: values.manual_execution_owner ?? "",
+    requesterCommunication: values.requester_communication ?? "",
+  };
+};
+
+const buildErasureSummary = (draft: ErasureWorkflowDraft): string =>
+  [
+    ERASURE_SUMMARY_PREFIX,
+    `legal_assessment: ${draft.legalAssessment.trim()}`,
+    `deletion_scope: ${draft.deletionScope.trim()}`,
+    `blocked_systems: ${draft.blockedSystems.trim()}`,
+    `manual_execution_owner: ${draft.manualExecutionOwner.trim()}`,
+    `requester_communication: ${draft.requesterCommunication.trim()}`,
+  ].join("\n");
+
+const isErasureWorkflowComplete = (draft: ErasureWorkflowDraft): boolean =>
+  Boolean(
+    draft.legalAssessment.trim() &&
+      draft.deletionScope.trim() &&
+      draft.blockedSystems.trim() &&
+      draft.manualExecutionOwner.trim() &&
+      draft.requesterCommunication.trim(),
+  );
+
 const breachStatusLabel: Record<BreachCase["status"], string> = {
   triage: "Triage",
   assessment: "Posouzení",
@@ -112,6 +230,12 @@ export const ComplianceAdmin: React.FC = () => {
   const [dsrChannelDrafts, setDsrChannelDrafts] = useState<Record<string, DataSubjectRequest["intakeChannel"]>>({});
   const [dsrVerificationDrafts, setDsrVerificationDrafts] = useState<Record<string, DataSubjectRequest["verificationStatus"]>>({});
   const [dsrResolutionDrafts, setDsrResolutionDrafts] = useState<Record<string, string>>({});
+  const [dsrRectificationDrafts, setDsrRectificationDrafts] = useState<
+    Record<string, RectificationWorkflowDraft>
+  >({});
+  const [dsrErasureDrafts, setDsrErasureDrafts] = useState<Record<string, ErasureWorkflowDraft>>(
+    {},
+  );
   const [savingDsrHandlingId, setSavingDsrHandlingId] = useState<string | null>(null);
   const [newBreachTitle, setNewBreachTitle] = useState("");
   const [newBreachRisk, setNewBreachRisk] = useState<BreachCase["riskLevel"]>("medium");
@@ -242,12 +366,40 @@ export const ComplianceAdmin: React.FC = () => {
     const requesterLabel = (dsrRequesterDrafts[request.id] ?? request.requesterLabel).trim();
     const intakeChannel = dsrChannelDrafts[request.id] ?? request.intakeChannel;
     const verificationStatus = dsrVerificationDrafts[request.id] ?? request.verificationStatus;
-    const resolutionSummary = (dsrResolutionDrafts[request.id] ?? request.resolutionSummary).trim();
+    const rectificationDraft =
+      dsrRectificationDrafts[request.id] ?? parseRectificationWorkflow(request.resolutionSummary);
+    const erasureDraft = dsrErasureDrafts[request.id] ?? parseErasureWorkflow(request.resolutionSummary);
+    const resolutionSummary =
+      request.requestType === "rectification"
+        ? buildRectificationSummary(rectificationDraft)
+        : request.requestType === "erasure"
+          ? buildErasureSummary(erasureDraft)
+        : (dsrResolutionDrafts[request.id] ?? request.resolutionSummary).trim();
 
     if (!requesterLabel) {
       showAlert({
         title: "Chybí žadatel",
         message: "Doplňte, kdo požadavek podal, aby byla evidence doložitelná.",
+        variant: "danger",
+      });
+      return;
+    }
+
+    if (request.requestType === "rectification" && !isRectificationWorkflowComplete(rectificationDraft)) {
+      showAlert({
+        title: "Chybí workflow opravy",
+        message:
+          "U DSR opravy vyplňte, které údaje se opravují, z jakého podkladu, v jakých systémech a jak bude potvrzeno vyřízení žadateli.",
+        variant: "danger",
+      });
+      return;
+    }
+
+    if (request.requestType === "erasure" && !isErasureWorkflowComplete(erasureDraft)) {
+      showAlert({
+        title: "Chybí rozhodnutí o výmazu",
+        message:
+          "U DSR výmazu vyplňte právní posouzení, rozsah mazání nebo anonymizace, blokované systémy, odpovědnou osobu a komunikaci se žadatelem.",
         variant: "danger",
       });
       return;
@@ -297,6 +449,101 @@ export const ComplianceAdmin: React.FC = () => {
           : "completed";
 
     if (nextStatus === request.status) return;
+
+    if (request.requestType === "rectification" && nextStatus === "completed") {
+      const verificationStatus = dsrVerificationDrafts[request.id] ?? request.verificationStatus;
+      const rectificationDraft =
+        dsrRectificationDrafts[request.id] ?? parseRectificationWorkflow(request.resolutionSummary);
+      const requesterLabel = (dsrRequesterDrafts[request.id] ?? request.requesterLabel).trim();
+      const intakeChannel = dsrChannelDrafts[request.id] ?? request.intakeChannel;
+
+      if (verificationStatus !== "verified") {
+        showAlert({
+          title: "Oprava vyžaduje ověření identity",
+          message:
+            "Před uzavřením DSR opravy musí být žadatel ověřen, aby se předešlo neoprávněné změně osobních údajů.",
+          variant: "danger",
+        });
+        return;
+      }
+
+      if (!isRectificationWorkflowComplete(rectificationDraft)) {
+        showAlert({
+          title: "Workflow opravy není kompletní",
+          message:
+            "Před uzavřením doplňte pole k opravě, zdroj pravdivých údajů, zasažené systémy a potvrzení komunikace se žadatelem.",
+          variant: "danger",
+        });
+        return;
+      }
+
+      setSavingDsrHandlingId(request.id);
+      try {
+        await saveDataSubjectRequestHandlingAdmin({
+          id: request.id,
+          requesterLabel,
+          intakeChannel,
+          verificationStatus,
+          resolutionSummary: buildRectificationSummary(rectificationDraft),
+        });
+      } catch (error) {
+        showAlert({
+          title: "Uložení workflow selhalo",
+          message: `Nepodařilo se uložit evidenci opravy: ${String((error as Error)?.message || error)}`,
+          variant: "danger",
+        });
+        setSavingDsrHandlingId(null);
+        return;
+      }
+      setSavingDsrHandlingId(null);
+    }
+
+    if (request.requestType === "erasure" && nextStatus === "completed") {
+      const verificationStatus = dsrVerificationDrafts[request.id] ?? request.verificationStatus;
+      const erasureDraft = dsrErasureDrafts[request.id] ?? parseErasureWorkflow(request.resolutionSummary);
+      const requesterLabel = (dsrRequesterDrafts[request.id] ?? request.requesterLabel).trim();
+      const intakeChannel = dsrChannelDrafts[request.id] ?? request.intakeChannel;
+
+      if (verificationStatus !== "verified") {
+        showAlert({
+          title: "Výmaz vyžaduje ověření identity",
+          message:
+            "Před uzavřením DSR výmazu musí být žadatel ověřen, aby nevzniklo riziko neoprávněného zásahu do cizích údajů.",
+          variant: "danger",
+        });
+        return;
+      }
+
+      if (!isErasureWorkflowComplete(erasureDraft)) {
+        showAlert({
+          title: "Workflow výmazu není kompletní",
+          message:
+            "Před uzavřením doplňte právní posouzení, scope ručního zásahu, zablokované systémy, odpovědnou osobu a komunikaci se žadatelem.",
+          variant: "danger",
+        });
+        return;
+      }
+
+      setSavingDsrHandlingId(request.id);
+      try {
+        await saveDataSubjectRequestHandlingAdmin({
+          id: request.id,
+          requesterLabel,
+          intakeChannel,
+          verificationStatus,
+          resolutionSummary: buildErasureSummary(erasureDraft),
+        });
+      } catch (error) {
+        showAlert({
+          title: "Uložení workflow selhalo",
+          message: `Nepodařilo se uložit evidenci výmazu: ${String((error as Error)?.message || error)}`,
+          variant: "danger",
+        });
+        setSavingDsrHandlingId(null);
+        return;
+      }
+      setSavingDsrHandlingId(null);
+    }
 
     try {
       await updateDataSubjectRequestStatusAdmin({
@@ -793,6 +1040,12 @@ export const ComplianceAdmin: React.FC = () => {
     [retentionPolicies],
   );
 
+  const getRectificationDraft = (request: DataSubjectRequest): RectificationWorkflowDraft =>
+    dsrRectificationDrafts[request.id] ?? parseRectificationWorkflow(request.resolutionSummary);
+
+  const getErasureDraft = (request: DataSubjectRequest): ErasureWorkflowDraft =>
+    dsrErasureDrafts[request.id] ?? parseErasureWorkflow(request.resolutionSummary);
+
   return (
     <section className="space-y-6">
       <div className="pb-4 border-b border-slate-200 dark:border-slate-800 flex flex-col gap-1">
@@ -1049,6 +1302,20 @@ export const ComplianceAdmin: React.FC = () => {
                   Export stáhne podklady k ručnímu vyřízení požadavku. Tlačítko pro výmaz zde pouze
                   eviduje záměr a nespouští žádný zásah do databáze.
                 </div>
+                {request.requestType === "rectification" && (
+                  <div className="mt-3 rounded-xl border border-cyan-200 bg-cyan-50 p-3 text-xs text-cyan-900 dark:border-cyan-500/30 dark:bg-cyan-500/10 dark:text-cyan-100">
+                    Workflow opravy drží změny mimo automatiku: nejdřív ověř identitu, potom
+                    dolož zdroj správných údajů, zapiš všechny systémy k ruční aktualizaci a až
+                    poté uzavři požadavek jako hotový.
+                  </div>
+                )}
+                {request.requestType === "erasure" && (
+                  <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+                    Workflow výmazu zůstává nedestruktivní: nejdřív ověř identitu, právně posuď,
+                    co opravdu smí být smazáno nebo anonymizováno, zapiš blokované systémy a
+                    odpovědnou osobu a teprve potom uzavři evidenci pro ruční provedení mimo UI.
+                  </div>
+                )}
                 <div className="mt-4 space-y-3 rounded-xl border border-slate-200/80 p-3 dark:border-slate-700/50">
                   <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                     Evidence vyřízení
@@ -1097,16 +1364,168 @@ export const ComplianceAdmin: React.FC = () => {
                       <option value="not_required">Není potřeba</option>
                     </select>
                   </div>
-                  <textarea
-                    aria-label={`Shrnutí vyřízení ${request.id}`}
-                    value={dsrResolutionDrafts[request.id] ?? request.resolutionSummary}
-                    onChange={(e) =>
-                      setDsrResolutionDrafts((prev) => ({ ...prev, [request.id]: e.target.value }))
-                    }
-                    rows={3}
-                    placeholder="Stručně zapište, jak byl požadavek vyřízen nebo proč ještě čeká."
-                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
-                  />
+                  {request.requestType === "rectification" ? (
+                    <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                      <input
+                        aria-label={`Pole k opravě ${request.id}`}
+                        type="text"
+                        value={getRectificationDraft(request).requestedFields}
+                        onChange={(e) =>
+                          setDsrRectificationDrafts((prev) => ({
+                            ...prev,
+                            [request.id]: {
+                              ...getRectificationDraft(request),
+                              requestedFields: e.target.value,
+                            },
+                          }))
+                        }
+                        placeholder="Např. jméno, e-mail, telefon"
+                        className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                      />
+                      <input
+                        aria-label={`Zdroj opravy ${request.id}`}
+                        type="text"
+                        value={getRectificationDraft(request).evidenceSource}
+                        onChange={(e) =>
+                          setDsrRectificationDrafts((prev) => ({
+                            ...prev,
+                            [request.id]: {
+                              ...getRectificationDraft(request),
+                              evidenceSource: e.target.value,
+                            },
+                          }))
+                        }
+                        placeholder="Např. potvrzený e-mail žadatele nebo smlouva"
+                        className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                      />
+                      <input
+                        aria-label={`Zasažené systémy ${request.id}`}
+                        type="text"
+                        value={getRectificationDraft(request).affectedSystems}
+                        onChange={(e) =>
+                          setDsrRectificationDrafts((prev) => ({
+                            ...prev,
+                            [request.id]: {
+                              ...getRectificationDraft(request),
+                              affectedSystems: e.target.value,
+                            },
+                          }))
+                        }
+                        placeholder="Např. CRM, exporty, fakturace"
+                        className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                      />
+                      <textarea
+                        aria-label={`Komunikace se žadatelem ${request.id}`}
+                        value={getRectificationDraft(request).requesterCommunication}
+                        onChange={(e) =>
+                          setDsrRectificationDrafts((prev) => ({
+                            ...prev,
+                            [request.id]: {
+                              ...getRectificationDraft(request),
+                              requesterCommunication: e.target.value,
+                            },
+                          }))
+                        }
+                        rows={3}
+                        placeholder="Jak a kdy bude žadateli potvrzeno, že oprava proběhla."
+                        className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white xl:col-span-2"
+                      />
+                    </div>
+                  ) : request.requestType === "erasure" ? (
+                    <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                      <input
+                        aria-label={`Právní posouzení výmazu ${request.id}`}
+                        type="text"
+                        value={getErasureDraft(request).legalAssessment}
+                        onChange={(e) =>
+                          setDsrErasureDrafts((prev) => ({
+                            ...prev,
+                            [request.id]: {
+                              ...getErasureDraft(request),
+                              legalAssessment: e.target.value,
+                            },
+                          }))
+                        }
+                        placeholder="Např. bez zákonné retenční překážky"
+                        className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                      />
+                      <input
+                        aria-label={`Rozsah výmazu ${request.id}`}
+                        type="text"
+                        value={getErasureDraft(request).deletionScope}
+                        onChange={(e) =>
+                          setDsrErasureDrafts((prev) => ({
+                            ...prev,
+                            [request.id]: {
+                              ...getErasureDraft(request),
+                              deletionScope: e.target.value,
+                            },
+                          }))
+                        }
+                        placeholder="Např. anonymizace kontaktu a poznámek"
+                        className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                      />
+                      <input
+                        aria-label={`Blokované systémy ${request.id}`}
+                        type="text"
+                        value={getErasureDraft(request).blockedSystems}
+                        onChange={(e) =>
+                          setDsrErasureDrafts((prev) => ({
+                            ...prev,
+                            [request.id]: {
+                              ...getErasureDraft(request),
+                              blockedSystems: e.target.value,
+                            },
+                          }))
+                        }
+                        placeholder="Např. účetnictví do konce retenční lhůty"
+                        className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                      />
+                      <input
+                        aria-label={`Odpovědná osoba výmazu ${request.id}`}
+                        type="text"
+                        value={getErasureDraft(request).manualExecutionOwner}
+                        onChange={(e) =>
+                          setDsrErasureDrafts((prev) => ({
+                            ...prev,
+                            [request.id]: {
+                              ...getErasureDraft(request),
+                              manualExecutionOwner: e.target.value,
+                            },
+                          }))
+                        }
+                        placeholder="Např. compliance admin / support lead"
+                        className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                      />
+                      <textarea
+                        aria-label={`Komunikace k výmazu ${request.id}`}
+                        value={getErasureDraft(request).requesterCommunication}
+                        onChange={(e) =>
+                          setDsrErasureDrafts((prev) => ({
+                            ...prev,
+                            [request.id]: {
+                              ...getErasureDraft(request),
+                              requesterCommunication: e.target.value,
+                            },
+                          }))
+                        }
+                        rows={3}
+                        placeholder="Jak a kdy bude žadateli potvrzen rozsah výmazu nebo důvod omezení."
+                        className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white xl:col-span-2"
+                      />
+                    </div>
+                  ) : (
+                    <textarea
+                      aria-label={`Shrnutí vyřízení ${request.id}`}
+                      value={dsrResolutionDrafts[request.id] ?? request.resolutionSummary}
+                      onChange={(e) =>
+                        setDsrResolutionDrafts((prev) => ({ ...prev, [request.id]: e.target.value }))
+                      }
+                      rows={3}
+                      placeholder="Stručně zapište, jak byl požadavek vyřízen nebo proč ještě čeká."
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                    />
+                  )}
                   <button
                     onClick={() => void handleSaveDsrHandling(request)}
                     disabled={savingDsrHandlingId === request.id}
@@ -1134,7 +1553,9 @@ export const ComplianceAdmin: React.FC = () => {
                         showAlert({
                           title: "Mazání je vypnuté",
                           message:
-                            "Požadavek na výmaz se v tomto panelu pouze eviduje. Žádná anonymizace ani mazání databázových dat se teď z UI nespouští.",
+                            request.requestType === "erasure"
+                              ? "Požadavek na výmaz se v tomto panelu pouze připraví k ručnímu provedení. Žádná anonymizace ani mazání databázových dat se teď z UI nespouští."
+                              : "Požadavek na výmaz se v tomto panelu pouze eviduje. Žádná anonymizace ani mazání databázových dat se teď z UI nespouští.",
                           variant: "info",
                         })
                       }

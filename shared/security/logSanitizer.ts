@@ -26,3 +26,40 @@ export const sanitizeLogText = (value: unknown, maxLen: number): string => {
   if (redacted.length <= maxLen) return redacted;
   return `${redacted.slice(0, maxLen)}…`;
 };
+
+export const sanitizeLogValue = (value: unknown, depth = 0): unknown => {
+  if (value === null || value === undefined) return value;
+  if (typeof value === "string") return sanitizeLogText(value, 200);
+  if (typeof value === "number" || typeof value === "boolean") return value;
+  if (depth >= 2) return "[truncated]";
+
+  if (Array.isArray(value)) {
+    return value.slice(0, 10).map((item) => sanitizeLogValue(item, depth + 1));
+  }
+
+  if (typeof value === "object") {
+    const output: Record<string, unknown> = {};
+    for (const [key, entry] of Object.entries(value as Record<string, unknown>).slice(0, 15)) {
+      output[key] = SECRET_KEY_PATTERN.test(key)
+        ? "[redacted]"
+        : sanitizeLogValue(entry, depth + 1);
+    }
+    return output;
+  }
+
+  return sanitizeLogText(String(value), 200);
+};
+
+export const summarizeErrorForLog = (error: unknown): unknown => {
+  if (error instanceof Error) {
+    return {
+      name: sanitizeLogText(error.name, 80),
+      message: sanitizeLogText(error.message, 300),
+      stack: error.stack ? sanitizeLogText(error.stack, 500) : undefined,
+      code: "code" in error ? sanitizeLogValue((error as { code?: unknown }).code) : undefined,
+      status: "status" in error ? sanitizeLogValue((error as { status?: unknown }).status) : undefined,
+    };
+  }
+
+  return sanitizeLogValue(error);
+};

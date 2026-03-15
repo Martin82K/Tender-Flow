@@ -4,6 +4,20 @@ interface NetHandlerDependencies {
   isAllowedProxyUrl: (parsed: URL) => boolean;
 }
 
+const sanitizeProxyError = (error: unknown): Record<string, unknown> => {
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+      code: "code" in error ? (error as { code?: unknown }).code ?? null : null,
+    };
+  }
+
+  return {
+    message: String(error),
+  };
+};
+
 export const registerNetHandlers = ({ isAllowedProxyUrl }: NetHandlerDependencies): void => {
   ipcMain.handle("net:request", async (_, url: string, options?: any) => {
     try {
@@ -18,7 +32,6 @@ export const registerNetHandlers = ({ isAllowedProxyUrl }: NetHandlerDependencie
         const hasAuth = !!options.headers.Authorization;
         const hasKey = !!options.headers.apikey;
         console.log(`[Proxy] Request Headers Check - Auth: ${hasAuth}, Key: ${hasKey}`);
-        if (hasKey) console.log(`[Proxy] Key prefix: ${options.headers.apikey.substring(0, 5)}...`);
       }
 
       const { net } = require("electron");
@@ -40,13 +53,7 @@ export const registerNetHandlers = ({ isAllowedProxyUrl }: NetHandlerDependencie
         headers,
       };
     } catch (error: any) {
-      console.error("[Proxy] Error fetching URL via proxy:", error);
-      console.error("[Proxy] Error Details:", {
-        message: error.message,
-        code: error.code,
-        cause: error.cause,
-        stack: error.stack,
-      });
+      console.error("[Proxy] Error fetching URL via proxy:", sanitizeProxyError(error));
       throw error;
     }
   });

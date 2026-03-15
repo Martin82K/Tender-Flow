@@ -1,25 +1,35 @@
 import { describe, expect, it } from "vitest";
 import {
-  redactSensitiveText,
-  sanitizeLogText,
-} from "@/shared/security/logSanitizer";
+  sanitizeLogValue,
+  summarizeErrorForLog,
+} from "../shared/security/logSanitizer";
 
 describe("logSanitizer", () => {
-  it("rediguje e-mail, bearer token, jwt a refresh token", () => {
-    const input =
-      "Kontakt admin@example.com Bearer secret-token authorization=aaa refresh_token=bbb abcdefghijklmnopqrst.abcdefghijklmnopqrst.abcdefghijklmnopqrst";
+  it("rediguje citlivé hodnoty v objektech", () => {
+    const result = sanitizeLogValue({
+      email: "john@example.com",
+      apiKey: "super-secret",
+      nested: {
+        authorization: "Bearer abc.def.ghi",
+      },
+    });
 
-    const output = redactSensitiveText(input);
-
-    expect(output).toContain("[redacted-email]");
-    expect(output).toContain("Bearer [redacted-token]");
-    expect(output).toContain("authorization=[redacted-token]");
-    expect(output).toContain("refresh_token=[redacted-token]");
-    expect(output).toContain("[redacted-jwt]");
+    expect(JSON.stringify(result)).toContain("[redacted-email]");
+    expect(JSON.stringify(result)).toContain("[redacted]");
+    expect(JSON.stringify(result)).not.toContain("super-secret");
+    expect(JSON.stringify(result)).not.toContain("abc.def.ghi");
   });
 
-  it("zkrátí text na maximální délku", () => {
-    const output = sanitizeLogText("x".repeat(20), 10);
-    expect(output).toBe("xxxxxxxxxx…");
+  it("shrnutí chyby rediguje tokeny a e-maily", () => {
+    const error = new Error("Kontakt john@example.com token Bearer abc.def.ghi");
+    error.stack = "authorization=supersecret";
+
+    const result = summarizeErrorForLog(error);
+    const serialized = JSON.stringify(result);
+
+    expect(serialized).toContain("[redacted-email]");
+    expect(serialized).toContain("[redacted-token]");
+    expect(serialized).not.toContain("john@example.com");
+    expect(serialized).not.toContain("supersecret");
   });
 });

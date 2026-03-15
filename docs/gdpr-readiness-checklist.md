@@ -1,6 +1,6 @@
 # GDPR Readiness Checklist
 
-Poslední aktualizace: 14. března 2026
+Poslední aktualizace: 15. března 2026
 
 ## Shrnutí
 Tender Flow je po technické stránce velmi blízko praktickému `GDPR minimum ready` stavu. Hlavní compliance registry, breach workflow, DSR evidence, MFA enforcement, cookie consent a veřejné právní texty jsou zavedené a navázané na společný datový model.
@@ -42,8 +42,8 @@ Stále ale zbývá několik bodů, bez kterých není poctivé označit stav jak
 ## 2. Zbývá v kódu
 
 ### Kritické minimum
-- [ ] DSR proces pro `opravu` ještě není dotažený jako samostatný provozně doložitelný workflow.
-- [ ] DSR `výmaz` je stále pouze evidenční a neexistuje finální rozhodovací workflow pro bezpečné ruční provedení mimo UI.
+- [x] DSR proces pro `opravu` je dotažený jako samostatný provozně doložitelný workflow.
+- [x] DSR `výmaz` má finální rozhodovací workflow pro bezpečné ruční provedení mimo UI, bez destruktivní automatizace v adminu.
 - [ ] Log policy není dotažená napříč celou aplikací; zbývá odstranit raw payload logging ve zbývajících částech.
 - [ ] Retence mimo compliance registry není dotažená napříč všemi datovými doménami a zálohami.
 

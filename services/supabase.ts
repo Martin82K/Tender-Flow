@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { summarizeErrorForLog } from '@/shared/security/logSanitizer';
 
 // ========================================================================
 // HEADERS SAFETY PATCH
@@ -188,7 +189,7 @@ XMLHttpRequest.prototype.setRequestHeader = function (name: string, value: strin
   }
   // Check for empty or whitespace-only Authorization headers (corrupted tokens)
   if (name.toLowerCase() === 'authorization' && (!value.trim() || value.trim() === 'Bearer' || value.trim() === 'Bearer null' || value.trim() === 'Bearer undefined')) {
-    console.warn(`[XHR] Skipping corrupted Authorization header: "${value}"`);
+    console.warn('[XHR] Skipping corrupted Authorization header');
     return;
   }
   return originalXHRSetRequestHeader.call(this, name, value);
@@ -235,7 +236,7 @@ const triggerAuthRecovery = async (): Promise<void> => {
       reason: 'auth_fetch_errors',
     });
   } catch (error) {
-    console.error('[Supabase] Failed to trigger centralized auth recovery:', error);
+    console.error('[Supabase] Failed to trigger centralized auth recovery:', summarizeErrorForLog(error));
   }
 };
 

@@ -1,6 +1,7 @@
 import { QueryClient } from "@tanstack/react-query";
 import { authSessionService } from "./authSessionService";
 import { logIncident } from "./incidentLogger";
+import { summarizeErrorForLog } from "@/shared/security/logSanitizer";
 
 /**
  * Check if an error is likely an auth/session error
@@ -30,7 +31,7 @@ const handleQueryError = (error: unknown) => {
     if (isAuthError(error)) {
         const message = String((error as any)?.message || error);
         authErrorCount++;
-        console.warn(`[QueryClient] Auth error detected (${authErrorCount}/${MAX_AUTH_ERRORS_BEFORE_LOGOUT}):`, error);
+        console.warn(`[QueryClient] Auth error detected (${authErrorCount}/${MAX_AUTH_ERRORS_BEFORE_LOGOUT}):`, summarizeErrorForLog(error));
         void logIncident({
             severity: "warn",
             source: "react-query",

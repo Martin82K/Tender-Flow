@@ -1,6 +1,6 @@
 # Compliance implementace Tender Flow
 
-Poslední aktualizace: 14. března 2026
+Poslední aktualizace: 15. března 2026
 
 ## Jak s tím pracovat
 - `[x]` = hotovo
@@ -30,6 +30,7 @@ Poslední aktualizace: 14. března 2026
 - [x] 2026-03-14: DSR workflow rozšířeno o evidenci žadatele, kanálu přijetí, ověření identity a shrnutí vyřízení bez mazání dat
 - [x] 2026-03-14: legal texty napojeny na stejný registry model jako interní compliance admin
 - [x] 2026-03-14: na remote nasazeny DSR evidence a seed reálných compliance registry dat
+- [x] 2026-03-15: high-risk logy v auth, query clientu, Supabase header guardu a desktop proxy převedeny na metadata-only / sanitizované výpisy bez raw payloadů a prefixů klíčů
 - [ ] Další krok: finální gap check a dokončení zbývajících provozních kroků mimo kód
 
 ## Přehled priorit
@@ -115,8 +116,8 @@ Dopad do struktury: rozšíření auth a settings
 - [x] Incident logger sanitizuje citlivé hodnoty
 - [x] Runtime diagnostics maskují tajemství
 - [x] Část security testů pokrývá redakci
-- [ ] Sjednotit sanitizaci do jedné sdílené utility
-- [ ] Zakázat raw payload logging v edge funkcích a admin flow
+- [x] Sjednotit sanitizaci do jedné sdílené utility
+- [-] Zakázat raw payload logging v edge funkcích a admin flow
 - [ ] Rozšířit coverage na feature usage, AI audit, DocHub logy a exporty
 Stav: částečně
 Priorita: kritická

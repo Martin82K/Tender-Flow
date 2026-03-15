@@ -2,6 +2,7 @@ import { getStoredAuthSessionRaw, supabase } from './supabase';
 import { invokePublicFunction } from './functionsClient';
 import { SubscriptionTier, User } from '../types';
 import { isValidTierId } from '../config/subscriptionTiers';
+import { summarizeErrorForLog } from '@/shared/security/logSanitizer';
 
 const DEFAULT_PREFERENCES = {
     theme: 'system',
@@ -702,7 +703,9 @@ export const authService = {
     },
 
     updateUserPreferences: async (preferences: any): Promise<User> => {
-        console.log('[authService] updateUserPreferences: Starting with preferences:', preferences);
+        console.log('[authService] updateUserPreferences: Starting', {
+            preferenceKeys: Object.keys(preferences ?? {}),
+        });
         const user = await authService.getCurrentUser({ skipUserCache: true });
         if (!user) {
             console.error('[authService] updateUserPreferences: No user logged in');
@@ -714,8 +717,10 @@ export const authService = {
             ...preferences
         };
 
-        console.log('[authService] updateUserPreferences: Merged preferences:', newPreferences);
-        console.log('[authService] updateUserPreferences: Upserting to user_settings for user_id:', user.id);
+        console.log('[authService] updateUserPreferences: Merged', {
+            preferenceKeys: Object.keys(newPreferences ?? {}),
+        });
+        console.log('[authService] updateUserPreferences: Upserting to user_settings');
 
         // Upsert to user_settings
         const { error, data } = await supabase
@@ -728,13 +733,14 @@ export const authService = {
             .select();
 
         if (error) {
-            console.error('[authService] updateUserPreferences: Failed to save preferences to DB:', error);
-            console.error('[authService] updateUserPreferences: Error details:', JSON.stringify(error, null, 2));
+            console.error('[authService] updateUserPreferences: Failed to save preferences to DB:', summarizeErrorForLog(error));
             throw error;
         }
 
         console.log('[authService] updateUserPreferences: Preferences saved successfully');
-        console.log('[authService] updateUserPreferences: Upsert result:', data);
+        console.log('[authService] updateUserPreferences: Upsert completed', {
+            rows: Array.isArray(data) ? data.length : 0,
+        });
 
         const updatedUser = {
             ...user,

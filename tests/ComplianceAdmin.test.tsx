@@ -307,6 +307,175 @@ describe("ComplianceAdmin", () => {
     });
   });
 
+  it("u DSR opravy ukládá samostatný workflow s povinnými kroky", async () => {
+    mockState.getComplianceOverviewAdmin.mockResolvedValue({
+      ...overviewPayload,
+      dsrQueue: [
+        {
+          id: "dsr-rect-1",
+          requestType: "rectification",
+          subjectLabel: "Oprava kontaktních údajů",
+          requesterLabel: "Jan Novák",
+          intakeChannel: "email",
+          verificationStatus: "pending",
+          resolutionSummary: "",
+          status: "in_progress",
+          dueAt: "2026-03-20",
+        },
+      ],
+    });
+
+    render(<ComplianceAdmin />);
+
+    fireEvent.change(await screen.findByLabelText("Ověření dsr-rect-1"), {
+      target: { value: "verified" },
+    });
+    fireEvent.change(screen.getByLabelText("Pole k opravě dsr-rect-1"), {
+      target: { value: "jméno, e-mail" },
+    });
+    fireEvent.change(screen.getByLabelText("Zdroj opravy dsr-rect-1"), {
+      target: { value: "potvrzený e-mail klienta" },
+    });
+    fireEvent.change(screen.getByLabelText("Zasažené systémy dsr-rect-1"), {
+      target: { value: "CRM, export kontaktů" },
+    });
+    fireEvent.change(screen.getByLabelText("Komunikace se žadatelem dsr-rect-1"), {
+      target: { value: "Potvrzení po ruční aktualizaci odešleme e-mailem." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Uložit evidenci vyřízení" }));
+
+    await waitFor(() => {
+      expect(mockState.saveDataSubjectRequestHandlingAdmin).toHaveBeenCalledWith({
+        id: "dsr-rect-1",
+        requesterLabel: "Jan Novák",
+        intakeChannel: "email",
+        verificationStatus: "verified",
+        resolutionSummary: expect.stringContaining("[RECTIFICATION_WORKFLOW_V1]"),
+      });
+    });
+  });
+
+  it("nedovolí uzavřít DSR opravu bez ověření identity a kompletní evidence", async () => {
+    mockState.getComplianceOverviewAdmin.mockResolvedValue({
+      ...overviewPayload,
+      dsrQueue: [
+        {
+          id: "dsr-rect-2",
+          requestType: "rectification",
+          subjectLabel: "Oprava kontaktních údajů",
+          requesterLabel: "Jan Novák",
+          intakeChannel: "email",
+          verificationStatus: "pending",
+          resolutionSummary: "",
+          status: "in_progress",
+          dueAt: "2026-03-20",
+        },
+      ],
+    });
+
+    render(<ComplianceAdmin />);
+
+    expect(await screen.findByText(/Oprava kontaktních údajů/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Posunout na Hotovo/i }));
+
+    await waitFor(() => {
+      expect(mockState.showAlert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: "Oprava vyžaduje ověření identity",
+          variant: "danger",
+        }),
+      );
+      expect(mockState.updateDataSubjectRequestStatusAdmin).not.toHaveBeenCalled();
+    });
+  });
+
+  it("u DSR výmazu ukládá rozhodovací workflow bez spuštění mazání", async () => {
+    mockState.getComplianceOverviewAdmin.mockResolvedValue({
+      ...overviewPayload,
+      dsrQueue: [
+        {
+          id: "dsr-erase-1",
+          requestType: "erasure",
+          subjectLabel: "Výmaz kontaktní osoby",
+          requesterLabel: "Jan Novák",
+          intakeChannel: "email",
+          verificationStatus: "pending",
+          resolutionSummary: "",
+          status: "in_progress",
+          dueAt: "2026-03-20",
+        },
+      ],
+    });
+
+    render(<ComplianceAdmin />);
+
+    fireEvent.change(await screen.findByLabelText("Ověření dsr-erase-1"), {
+      target: { value: "verified" },
+    });
+    fireEvent.change(screen.getByLabelText("Právní posouzení výmazu dsr-erase-1"), {
+      target: { value: "bez retenční překážky" },
+    });
+    fireEvent.change(screen.getByLabelText("Rozsah výmazu dsr-erase-1"), {
+      target: { value: "anonymizace kontaktu a poznámek" },
+    });
+    fireEvent.change(screen.getByLabelText("Blokované systémy dsr-erase-1"), {
+      target: { value: "účetnictví do konce zákonné lhůty" },
+    });
+    fireEvent.change(screen.getByLabelText("Odpovědná osoba výmazu dsr-erase-1"), {
+      target: { value: "compliance admin" },
+    });
+    fireEvent.change(screen.getByLabelText("Komunikace k výmazu dsr-erase-1"), {
+      target: { value: "Žadateli odešleme potvrzení o rozsahu ručního zásahu." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Uložit evidenci vyřízení" }));
+
+    await waitFor(() => {
+      expect(mockState.saveDataSubjectRequestHandlingAdmin).toHaveBeenCalledWith({
+        id: "dsr-erase-1",
+        requesterLabel: "Jan Novák",
+        intakeChannel: "email",
+        verificationStatus: "verified",
+        resolutionSummary: expect.stringContaining("[ERASURE_WORKFLOW_V1]"),
+      });
+      expect(mockState.anonymizeDataSubjectAdmin).not.toHaveBeenCalled();
+    });
+  });
+
+  it("nedovolí uzavřít DSR výmaz bez ověření identity a kompletního rozhodnutí", async () => {
+    mockState.getComplianceOverviewAdmin.mockResolvedValue({
+      ...overviewPayload,
+      dsrQueue: [
+        {
+          id: "dsr-erase-2",
+          requestType: "erasure",
+          subjectLabel: "Výmaz kontaktní osoby",
+          requesterLabel: "Jan Novák",
+          intakeChannel: "email",
+          verificationStatus: "pending",
+          resolutionSummary: "",
+          status: "in_progress",
+          dueAt: "2026-03-20",
+        },
+      ],
+    });
+
+    render(<ComplianceAdmin />);
+
+    expect(await screen.findByText(/Výmaz kontaktní osoby/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Posunout na Hotovo/i }));
+
+    await waitFor(() => {
+      expect(mockState.showAlert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: "Výmaz vyžaduje ověření identity",
+          variant: "danger",
+        }),
+      );
+      expect(mockState.updateDataSubjectRequestStatusAdmin).not.toHaveBeenCalled();
+      expect(mockState.anonymizeDataSubjectAdmin).not.toHaveBeenCalled();
+    });
+  });
+
   it("umožní posunout stav breach case", async () => {
     render(<ComplianceAdmin />);
 

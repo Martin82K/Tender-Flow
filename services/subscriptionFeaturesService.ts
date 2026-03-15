@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { getCachedSubscriptionTier } from './authService';
 import { SubscriptionFeature, SubscriptionTier, SubscriptionTierFeatureFlag } from '../types';
+import { summarizeErrorForLog } from '@/shared/security/logSanitizer';
 
 export const subscriptionFeaturesService = {
   listFeatures: async (): Promise<SubscriptionFeature[]> => {
@@ -123,7 +124,7 @@ export const subscriptionFeaturesService = {
     try {
       const userResult = await supabase.auth.getUser();
       const userId = userResult.data.user?.id;
-      console.log('[subscriptionFeaturesService] getUserSubscriptionTier: userId =', userId);
+      console.log('[subscriptionFeaturesService] getUserSubscriptionTier: checking current user tier');
 
       if (!userId) {
         console.warn('[subscriptionFeaturesService] getUserSubscriptionTier: No user ID, checking cache');
@@ -132,33 +133,32 @@ export const subscriptionFeaturesService = {
       }
 
       const { data, error } = await supabase.rpc('get_user_subscription_tier', { target_user_id: userId });
-      console.log('[subscriptionFeaturesService] getUserSubscriptionTier: RPC result =', { data, error });
+      console.log('[subscriptionFeaturesService] getUserSubscriptionTier: RPC completed');
 
       if (error) {
-        console.error('[subscriptionFeaturesService] getUserSubscriptionTier: RPC error =', error);
+        console.error('[subscriptionFeaturesService] getUserSubscriptionTier: RPC error =', summarizeErrorForLog(error));
         // Use cached tier on error to prevent downgrade
         const cachedTier = getCachedSubscriptionTier();
         if (cachedTier) {
-          console.log('[subscriptionFeaturesService] Using cached tier due to RPC error:', cachedTier);
+          console.log('[subscriptionFeaturesService] Using cached tier due to RPC error');
           return cachedTier;
         }
         return 'free';
       }
 
       const tier = data || 'free';
-      console.log('[subscriptionFeaturesService] getUserSubscriptionTier: returning tier =', tier);
+      console.log('[subscriptionFeaturesService] getUserSubscriptionTier: returning resolved tier');
       return tier;
     } catch (e) {
-      console.error('[subscriptionFeaturesService] getUserSubscriptionTier: exception =', e);
+      console.error('[subscriptionFeaturesService] getUserSubscriptionTier: exception =', summarizeErrorForLog(e));
       // Use cached tier on exception to prevent downgrade
       const cachedTier = getCachedSubscriptionTier();
       if (cachedTier) {
-        console.log('[subscriptionFeaturesService] Using cached tier due to exception:', cachedTier);
+        console.log('[subscriptionFeaturesService] Using cached tier due to exception');
         return cachedTier;
       }
       return 'free';
     }
   },
 };
-
 
