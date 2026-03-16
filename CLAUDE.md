@@ -4,263 +4,191 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Tender Flow** is a full-stack CRM application for construction tender and project management, available as both a web application and Electron desktop app. The application helps manage projects, subcontractors/contacts, bidding pipelines, and document workflows.
+**Tender Flow** is a full-stack CRM application for construction tender and project management, available as both a web application and Electron desktop app. It manages projects, subcontractors/contacts, bidding pipelines, and document workflows.
 
 **Tech Stack:**
-- Frontend: React 19 + TypeScript, Vite, Tailwind CSS
-- Backend: Supabase (PostgreSQL), Vercel (hosting)
+- Frontend: React 19 + TypeScript, Vite, Tailwind CSS v4
+- Backend: Supabase (PostgreSQL with RLS), Vercel (hosting)
 - Desktop: Electron 40
+- Python services: Flask APIs for Excel merge/unlock tools (proxied via Vite on port 5001)
+- AI: Google Gemini for insights and contract extraction
 
 ## Development Commands
 
-### Web Development
 ```bash
-npm run dev              # Start dev server on port 3000
+# Web
+npm run dev              # Start dev server (port 3000)
 npm run build            # Production build
-npm run preview          # Preview production build
+npm run start            # Production Express server
+
+# Testing
+npm test                 # Watch mode
+npm run test:run         # Run once
+npm run test:coverage    # With coverage
+npm test -- path/to/test.test.tsx  # Single test
+
+# Desktop (Electron)
+npm run desktop:dev      # Dev mode (starts Vite + Electron)
+npm run desktop:build    # Build for current platform
+npm run desktop:build:mac / npm run desktop:build:win
+
+# Architecture validation
+npm run check:boundaries       # Validate import boundaries between modules
+npm run check:legacy-structure # Check for violations of legacy freeze
+
+# Version management (syncs package.json + config/version.ts)
+npm run version:patch / version:minor / version:major
+
+# Supabase
+npx supabase start / db push / functions deploy <name>
 ```
 
-### Desktop (Electron) Development
-```bash
-npm run desktop:install  # Install Electron dependencies
-npm run desktop:compile  # Compile Electron TypeScript
-npm run desktop:dev      # Run Electron app in dev mode
-npm run desktop:build    # Build desktop app for current platform
-npm run desktop:build:mac  # Build for macOS
-npm run desktop:build:win  # Build for Windows
+## Directory Structure & Architecture
+
+The project does NOT use a `src/` directory. Code lives at the project root in a modular architecture:
+
+```
+app/              # Application shell, entry points, views
+  AppShell.tsx    # Root component (wraps AppProviders → AppContent)
+  AppContent.tsx  # Main router/view switcher
+  views/          # Lazy-loaded view components
+  hooks/          # App-level hooks (route sync, loading recovery)
+
+features/         # Feature modules (feature-sliced design)
+  agent/          # AI agent integration
+  auth/           # Authentication UI, legal acceptance
+  contacts/       # Contact management
+  projects/       # Project management
+  public/         # Public pages (landing, cookie consent)
+  settings/       # Settings feature
+  subscription/   # Subscription management
+  tools/          # Tool features
+
+shared/           # Shared cross-cutting concerns
+  routing/        # Router, route utils, RequireFeature
+  ui/             # Shared UI components (agent panel, overview, projects)
+  types/          # Shared type definitions (incidents, agent)
+  legal/          # Legal document versioning
+  compliance/     # Compliance features
+  security/       # Security utilities
+  privacy/        # Privacy features
+  contracts/      # Contract utilities
+  dochub/         # DocHub utilities
+
+infra/            # Infrastructure layer
+  diagnostics/    # Runtime diagnostics, monitoring
+  auth/           # Auth infrastructure
+  excel-tools/    # Excel tool infrastructure
+  projects/       # Project infrastructure
+
+components/       # Legacy components (being migrated to features/)
+hooks/            # Global hooks (useAppData, useDesktop, useTheme, etc.)
+  queries/        # React Query hooks
+  mutations/      # React Query mutation hooks
+services/         # Service layer (40+ services)
+context/          # React contexts (AuthContext, UIContext, FeatureContext)
+config/           # App configuration (features, tiers, version, navigation)
+utils/            # Utility functions
+desktop/          # Electron main process, IPC handlers, desktop services
+server_py/        # Python APIs (excel_merge_tool, excel_unlock_api)
+supabase/         # Migrations, edge functions, shared utilities
+tests/            # Vitest test files
 ```
 
-### Testing
-```bash
-npm test                 # Run tests in watch mode
-npm run test:run         # Run tests once
-npm run test:coverage    # Run tests with coverage
+### Path Aliases (tsconfig + vite)
+
+```
+@/*         → ./*          (project root)
+@app/*      → ./app/*
+@features/* → ./features/*
+@shared/*   → ./shared/*
+@infra/*    → ./infra/*
 ```
 
-### Version Management
-```bash
-npm run version:patch    # Bump patch version (1.1.5 → 1.1.6)
-npm run version:minor    # Bump minor version (1.1.5 → 1.2.0)
-npm run version:major    # Bump major version (1.1.5 → 2.0.0)
-```
+## Application Entry & Routing
 
-Version bumps automatically sync across package.json and config/version.ts.
+**Entry:** `index.tsx` → `App.tsx` (re-exports `AppShell`) → `app/AppShell.tsx` → `AppProviders` → `app/AppContent.tsx`
 
-### Supabase
-```bash
-npx supabase start         # Start local Supabase stack
-npx supabase db push       # Push migrations to remote
-npx supabase functions deploy <function-name>  # Deploy edge function
-npm run deploy:stripe-webhook   # Deploy Stripe webhook function
-npm run deploy:stripe-sync      # Deploy Stripe sync function
-```
+**Startup:** `index.tsx` initializes `runtimeDiagnostics` and `incidentGlobalHandlers` before React mount.
 
-### Other
-```bash
-npm run build:user-manual  # Build user manual documentation
-npm run release:prepare    # Prepare release artifacts
-```
+**Routing:** Custom client-side router in `shared/routing/`:
+- `router.tsx` — `useLocation()`, `navigate()`
+- `routeUtils.ts` — `buildAppUrl()` for constructing URLs
+- URL pattern: `/app/{view}?projectId=...&tab=...&categoryId=...`
+- Views are lazy-loaded via `app/views/LazyViews.tsx`
 
-## Architecture Overview
+**Views** (defined as `View` type in `types.ts`): dashboard, project, contacts, settings, project-management, project-overview, url-shortener
 
-### Application Entry & Routing
+**Project tabs** (defined as `ProjectTab` type): overview, tender-plan, pipeline, schedule, documents, contracts
 
-**Main Entry:** `index.tsx` → `App.tsx` → `AppProviders` (context wrappers) → `AppContent`
+## State Management
 
-**Routing:** Custom client-side router in `components/routing/`:
-- `router.tsx` - Core routing primitives (useLocation, navigate)
-- `routeUtils.ts` - URL building/parsing for app routes
-- Routes are synced to URL, with pattern: `/app/{view}?projectId=...&tab=...&categoryId=...`
+**`useAppData`** (`hooks/useAppData.ts`) — Centralized data hook providing `state` and `actions` for all CRUD operations on projects, contacts, project details, statuses.
 
-**Views:** Defined in `types.ts` as `View` type:
-- `dashboard` - Main overview
-- `project` - Project detail (with tabs: overview, tender-plan, pipeline, schedule, documents, contracts)
-- `contacts` - Contact management
-- `settings` - User settings
-- `project-management` - Project CRUD
-- `project-overview` - Advanced reporting
-- `url-shortener` - URL shortening tool
+**React Query** (`@tanstack/react-query`) — Server state management:
+- Query hooks in `hooks/queries/`
+- Mutation hooks in `hooks/mutations/`
+- Query client in `services/queryClient.ts`
 
-### State Management
+**Contexts:** `AuthContext` (auth, session, preferences), `UIContext` (modals, notifications), `FeatureContext` (feature flags by subscription tier)
 
-**Primary Data Hook:** `useAppData` (hooks/useAppData.ts)
-- Centralized state for projects, contacts, project details, statuses
-- Loads initial data from Supabase on mount
-- Provides `state` and `actions` for all CRUD operations
-- Uses React Query for server state management
-
-**Context Providers:**
-- `AuthContext` - User authentication, session, preferences
-- `UIContext` - Modal state, notifications
-- `FeatureContext` - Feature flags based on subscription tier
-
-**Desktop State:** `useDesktop` hook - Electron-specific features (welcome screen, folder selection, updates)
-
-### Data Model
+## Data Model
 
 Core types in `types.ts`:
 
-**Project Hierarchy:**
 ```
 Project
 ├── ProjectDetails (metadata, financials, documents)
-│   └── DemandCategory[] (tender categories)
-│       └── Bid[] (subcontractor bids per category)
+│   └── DemandCategory[] (tender line items)
+│       └── Bid[] (subcontractor offers per category)
 ├── TenderPlanItem[] (schedule items)
-└── DocumentLink[] (multi-link document management)
+└── DocumentLink[] (multi-link documents)
+
+Subcontractor → ContactPerson[] (companies with contacts)
+StatusConfig (dynamic status labels/colors)
+User (role: admin/user/demo, subscriptionTier, organizationId)
 ```
 
-**Contacts/Subcontractors:**
-- `Subcontractor` - Company with contacts, specialization, status
-- `ContactPerson` - Individual contact within company
-- `StatusConfig` - Dynamic status labels/colors
+## Feature Flags & Subscriptions
 
-**User & Subscriptions:**
-- `User` - with role (admin/user/demo) and subscriptionTier
-- Subscription tiers: demo, free, pro, enterprise, admin
-- Feature flags defined in `config/features.ts`, checked with `RequireFeature` component
+Subscription tiers: `free`, `starter`, `pro`, `enterprise`, `admin` (defined in `config/subscriptionTiers.ts`)
 
-### Services Layer
-
-**Key Services (services/ directory):**
-- `supabase.ts` - Supabase client initialization
-- `authService.ts` - Authentication operations
-- `projectService.ts` - Project CRUD
-- `documentService.ts` - Document management
-- `emailService.ts` - Email generation (mailto/eml)
-- `inquiryService.ts` - Tender inquiry email generation
-- `templateService.ts` - Email template management
-- `subscriptionFeaturesService.ts` - Feature flag checks
-- `fileSystemService.ts` - Desktop filesystem operations
-- `excelMergerService.ts` - Excel merge tool integration
-- `urlShortenerService.ts` - URL shortening (TinyURL)
-- `geminiService.ts` - AI-powered insights using Google Gemini
-
-**Platform Abstraction:**
-- `platformAdapter.ts` - Detects web vs desktop environment
-- `toolsAdapter.ts` - Adapts tool integrations based on platform
-
-### Component Structure
-
-**Layout Components:**
-- `MainLayout` - Authenticated app shell (sidebar, header, content)
-- `AuthLayout` - Login/register wrapper
-- `PublicLayout` - Public pages (landing)
-
-**Major Feature Components:**
-- `Dashboard` - Project cards and overview
-- `ProjectLayout` - Project detail container with tabs
-- `ProjectManager` - Project CRUD interface
-- `Contacts` - Contact/subcontractor management
-- `Settings` - User preferences, statuses, admin tools
-- `Pipeline` / `pipelineComponents/` - Kanban-style bid tracking
-- `ProjectDocuments` / `documents/` - Document links, templates, price lists, DocHub integration
-- `TenderPlan` - Schedule/timeline management
-
-**UI Components (components/ui/):**
-- Reusable primitives: Button, Input, Modal, Card, Badge
-- `SkeletonLoader` - Loading states
-
-### Backend & Serverless
-
-**Supabase:**
-- PostgreSQL database with Row-Level Security (RLS)
-- Real-time subscriptions not currently used extensively
-- Schema managed via migrations in `supabase/migrations/`
-- Edge Functions in `supabase/functions/` (DocHub OAuth, MCP endpoints, Excel merge)
-- Shared utilities in `supabase/functions/_shared/`
-
-### Desktop (Electron) Architecture
-
-**Structure:**
-- `desktop/main/main.ts` - Electron main process
-- `desktop/main/preload.ts` - Preload script (exposes `window.electronAPI`)
-- `desktop/main/ipc/` - IPC handlers for desktop features
-- `desktop/main/services/` - Desktop-only services (filesystem, updates)
-
-**Desktop Features:**
-- Auto-updates via electron-updater (GitHub releases)
-- Local filesystem access for DocHub
-- Project folder selection and file organization
-
-**Build Output:**
-- `desktop/dist/` - Compiled TypeScript (main process)
-- `dist/` - Vite build (renderer)
-- `dist-electron/` - Final Electron app packages
-
-### DocHub Integration
-
-**DocHub** is a document management module for organizing project files in cloud storage (Google Drive, OneDrive) or local filesystem.
-
-**Key Concepts:**
-- Projects can enable DocHub with a root folder link
-- Auto-create feature generates standardized folder structure
-- Structure versioning (currently v1) for future migrations
-- Providers: gdrive, onedrive, local
-- Reconciliation: Syncs existing folders with expected structure
-
-**Related Files:**
-- `useDocHubIntegration.ts` - Main DocHub hook
-- `components/projectLayoutComponents/documents/` - DocHub UI components
-
-### Feature Flags & Subscriptions
-
-Feature access is controlled by subscription tiers:
-- Feature definitions: `config/features.ts`
-- Tier definitions: `config/subscriptionTiers.ts`
-- Check feature access: `useFeature` hook or `<RequireFeature>` component
-- Server-side checks: `subscriptionFeaturesService.ts`
-
-**Example:**
+Feature definitions in `config/features.ts`. Gate UI with:
 ```tsx
 <RequireFeature feature={FEATURES.MODULE_PROJECTS}>
-  <ProjectLayout {...props} />
+  <Component />
 </RequireFeature>
 ```
+Or use `useFeature` hook. Server-side checks in `subscriptionFeaturesService.ts`.
 
-## Configuration Files
+## Desktop (Electron)
 
-- `vite.config.ts` - Vite build config, proxies for Python backend
-- `vitest.config.ts` - Test configuration
-- `tsconfig.json` - TypeScript config with path alias `@/*`
-- `desktop/electron-builder.yml` - Electron packaging config
-- `.env.local` - Local environment variables (GEMINI_API_KEY, etc.) - not committed
+- `desktop/main/main.ts` — Main process
+- `desktop/main/preload.ts` — Exposes `window.electronAPI`
+- `desktop/main/ipc/` — IPC handlers (modular)
+- `desktop/main/services/` — biometricAuth, mcpServer, pythonRunner, folderWatcher, secureStorage, auto-updates
+- Desktop detection: `isDesktop` from `useDesktop` hook or `platformAdapter`
+- Build flag: `ELECTRON_BUILD=true` sets base path to `./`
 
-## Testing
+## DocHub Integration
 
-Tests use Vitest + Testing Library:
-- Test files: `**/*.{test,spec}.{ts,tsx}`
-- Setup: `tests/setup.ts`
-- Run individual test: `npm test -- path/to/test.test.tsx`
-
-## Code Patterns
-
-**Data Fetching:**
-- Use React Query (`@tanstack/react-query`) for server state
-- Query hooks in `hooks/queries/`, mutation hooks in `hooks/mutations/`
-- Query client configured in `services/queryClient.ts`
-
-**Forms & User Input:**
-- Controlled components with local state
-- Validation typically inline
-- Tailwind CSS for styling (Tailwind v4)
-
-**Error Handling:**
-- UI modals via `useUI` context
-- Loading states in `useAppData`
-- Toast notifications for async operations
-
-**TypeScript:**
-- Path alias `@/*` maps to project root
-- All major types in `types.ts`
-- Additional type definitions in service files
+Document management module for organizing project files in Google Drive, OneDrive, or local filesystem:
+- Projects enable DocHub with a root folder link
+- Auto-create generates standardized folder structure (versioned, currently v1)
+- Providers: gdrive, onedrive, local
+- Key hook: `useDocHubIntegration.ts`
+- UI in `components/projectLayoutComponents/documents/`
 
 ## Important Conventions
 
 - **Views** are top-level app sections, **tabs** are within a project view
 - **Categories** (DemandCategory) represent tender line items, **bids** are subcontractor offers per category
-- Always use `navigate` from `components/routing/router` for client-side navigation
-- Use `buildAppUrl` from `routeUtils` to construct app URLs programmatically
-- Desktop-specific code should check `isDesktop` from `useDesktop` or `platformAdapter`
-- Feature-gated code should use `RequireFeature` component or `useFeature` hook
-- Version bumping must use npm scripts to keep version.ts in sync
+- Always use `navigate` from `shared/routing/router` for navigation
+- Use `buildAppUrl` from `shared/routing/routeUtils` to construct URLs
+- Feature-gated code uses `RequireFeature` component or `useFeature` hook
+- Version bumping must use npm scripts to keep `config/version.ts` in sync
+- Architecture boundaries are enforced — run `npm run check:boundaries` to validate
+- UI strings are in Czech (the app's target language)
+- Environment variables use `VITE_` or `TINY_URL_` prefix for client access
+- Test files go in `tests/` directory (not co-located), pattern: `tests/**/*.test.{ts,tsx}`
+- Vitest uses jsdom environment with `tests/setup.ts` for setup
