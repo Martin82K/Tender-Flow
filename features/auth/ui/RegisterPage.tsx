@@ -6,8 +6,11 @@ import { AuthCard } from "./AuthCard";
 import { Link, navigate } from "@/shared/routing/router";
 import { authService } from "@/services/authService";
 import { getCurrentLegalAcceptanceInput } from "@/shared/legal/legalDocumentVersions";
+import { getLegalDocumentUrl } from "@/shared/legal/legalDocumentLinks";
 
 export const RegisterPage: React.FC = () => {
+  const termsUrl = getLegalDocumentUrl("/terms");
+  const privacyUrl = getLegalDocumentUrl("/privacy");
   const { register, loginAsDemo } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -106,7 +109,7 @@ export const RegisterPage: React.FC = () => {
             />
             <span>
               Souhlasím s{" "}
-              <a href="/terms" target="_blank" rel="noreferrer" className="text-orange-300 underline underline-offset-2 hover:text-orange-200">
+              <a href={termsUrl} target="_blank" rel="noreferrer" className="text-orange-300 underline underline-offset-2 hover:text-orange-200">
                 podmínkami používání
               </a>
               .
@@ -123,7 +126,7 @@ export const RegisterPage: React.FC = () => {
             />
             <span>
               Potvrzuji seznámení se{" "}
-              <a href="/privacy" target="_blank" rel="noreferrer" className="text-orange-300 underline underline-offset-2 hover:text-orange-200">
+              <a href={privacyUrl} target="_blank" rel="noreferrer" className="text-orange-300 underline underline-offset-2 hover:text-orange-200">
                 zásadami ochrany osobních údajů
               </a>
               {" "}a informacemi o zpracování osobních údajů podle GDPR.

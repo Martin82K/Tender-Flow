@@ -1,6 +1,7 @@
 import React, { useId, useState } from "react";
 import { Modal } from "@/shared/ui/Modal";
 import { getCurrentLegalAcceptanceInput } from "@/shared/legal/legalDocumentVersions";
+import { getLegalDocumentUrl } from "@/shared/legal/legalDocumentLinks";
 
 interface LegalAcceptanceModalProps {
   isOpen: boolean;
@@ -13,6 +14,8 @@ export const LegalAcceptanceModal: React.FC<LegalAcceptanceModalProps> = ({
   isSubmitting,
   onAccept,
 }) => {
+  const termsUrl = getLegalDocumentUrl("/terms");
+  const privacyUrl = getLegalDocumentUrl("/privacy");
   const [termsChecked, setTermsChecked] = useState(false);
   const [privacyChecked, setPrivacyChecked] = useState(false);
   const [error, setError] = useState("");
@@ -62,7 +65,7 @@ export const LegalAcceptanceModal: React.FC<LegalAcceptanceModalProps> = ({
           <ul className="space-y-2">
             <li>
               <a
-                href="/terms"
+                href={termsUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="font-medium text-orange-600 underline underline-offset-2 dark:text-orange-400"
@@ -72,7 +75,7 @@ export const LegalAcceptanceModal: React.FC<LegalAcceptanceModalProps> = ({
             </li>
             <li>
               <a
-                href="/privacy"
+                href={privacyUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="font-medium text-orange-600 underline underline-offset-2 dark:text-orange-400"
