@@ -2,7 +2,7 @@
 
 Tato příručka popisuje práci v aplikaci Tender Flow pro řízení staveb, výběrových řízení a subdodavatelů.
 
-Verze příručky: **1.8** • Datum: **2026‑02‑28** • Aplikace: **v1.4.0**
+Verze příručky: **1.9** • Datum: **2026‑03‑16** • Aplikace: **v1.4.3**
 
 <p class="manualLogoWrap">
   <img class="manualLogo" src="./assets/logo.png" alt="Tender Flow logo" />
@@ -46,9 +46,34 @@ Verze příručky: **1.8** • Datum: **2026‑02‑28** • Aplikace: **v1.4.0*
 
 ## 🎉 Novinky (poslední změny)
 
-<span class="version-badge">📱 v1.4.0</span> <span class="version-badge">📖 Verze příručky 1.8</span>
+<span class="version-badge">📱 v1.4.3</span> <span class="version-badge">📖 Verze příručky 1.9</span>
 
 Verzi aplikace najdete vlevo dole v sidebaru.
+
+### v1.4.3
+
+- **Oprava právních odkazů v desktopu**: odkazy na právní dokumenty (Podmínky, Ochrana údajů, Cookies, DPA, Imprint) nyní fungují správně i v desktop verzi.
+- **Stabilita desktop releasu**: opraven workflow pro publikaci desktop buildů.
+- **Windows Hello**: opravy typů pro biometrické přihlášení přes Windows Hello.
+
+### v1.4.2
+
+- **GDPR retence dat**: implementována automatická retence provozních logů i CRM dat dle nastavené doby uchovávání.
+- **Compliance kontroly**: ověření souladu s EU předpisy, provázání ROPA (záznamy o zpracování) s retenčními politikami.
+- **Souhlas s podmínkami**: uživatel musí aktivně potvrdit aktuální znění podmínek užívání před pokračováním v aplikaci.
+- **Opravy**: odstranění 404 chyb při ověřování přístupu (`get_access_review`).
+
+### v1.4.1
+
+- **Viki (AI asistent)**: nový konverzační asistent s vlastní znalostní bází, dokumentací a rozšířenou bublinou v UI. Přístup k Viki je řízen dle úrovně předplatného.
+- **Hlasový výstup Viki**: podpora TTS s volbou ženského hlasu.
+- **OpenAI provider**: v nastavení AI přibyla možnost výběru OpenAI jako poskytovatele.
+- **Generátor smluvních protokolů**: nový nástroj pro generování protokolů ke smlouvám (předávací, kontrolní apod.).
+- **Tenant logo**: organizace si může nastavit vlastní logo zobrazené v aplikaci.
+- **DPA stránka a retence**: přidána veřejná stránka zpracovatelské doložky a nastavení retenčních politik.
+- **Rozšířené logování incidentů**: detailnější záznamy v administrátorské sekci incidentů.
+- **Bezpečnost**: CSP builder pro desktop, rozšíření CSP o Stripe domény, RLS pro interní billing tabulky a audit nasazení klíčů.
+- **Opravy**: editace základních údajů stavby, odstranění textu Glass režim, separace klientského kontextu stavby.
 
 ### v1.4.0
 
