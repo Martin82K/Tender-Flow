@@ -26,6 +26,10 @@ import {
   getTemplateLinksForInquiryKindModel,
   htmlToPlainText,
 } from "./pipelineModel";
+import {
+  persistBidStatusChange,
+  updateBidStatusInMemory,
+} from "./pipelineBidStatusModel";
 
 interface ShowAlertArgs {
   title: string;
@@ -38,6 +42,7 @@ interface UsePipelineCommunicationActionsInput {
   bids: Record<string, Bid[]>;
   projectDetails: ProjectDetails;
   emailClientMode?: string;
+  userRole?: string;
   updateBidsInternal: (
     updater: (prev: Record<string, Bid[]>) => Record<string, Bid[]>,
   ) => void;
@@ -54,11 +59,48 @@ export const usePipelineCommunicationActions = ({
   bids,
   projectDetails,
   emailClientMode,
+  userRole,
   updateBidsInternal,
   setIsExportMenuOpen,
   showAlert,
   runDocHubFallbackForCategory,
 }: UsePipelineCommunicationActionsInput) => {
+  const persistSentStatusForBid = async (bidId: string) => {
+    if (!activeCategory) {
+      return false;
+    }
+
+    const { error } = await persistBidStatusChange({
+      bidId,
+      targetStatus: "sent",
+      userRole,
+      projectDataId: projectDetails.id,
+      bidsByCategory: bids,
+      activeCategoryId: activeCategory.id,
+    });
+
+    if (error) {
+      console.error("Error persisting bid sent status after inquiry generation:", {
+        bidId,
+        categoryId: activeCategory.id,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      showAlert({
+        title: "Chyba uložení stavu",
+        message:
+          "Email se otevřel, ale nepodařilo se uložit stav jako odesláno. Obnovte prosím data a zkuste akci znovu.",
+        variant: "danger",
+      });
+      return false;
+    }
+
+    updateBidsInternal((prev) =>
+      updateBidStatusInMemory(prev, activeCategory.id, bidId, "sent"),
+    );
+    void runDocHubFallbackForCategory(activeCategory.id, "inquiry-sent");
+    return true;
+  };
+
   const generateInquiryFromTemplateKind = async (
     bid: Bid,
     kind: PipelineInquiryGenerationKind,
@@ -134,17 +176,7 @@ export const usePipelineCommunicationActions = ({
       } else {
         downloadEmlFile(bid.email || "", subject, htmlBody);
       }
-
-      updateBidsInternal((prev) => {
-        const categoryBids = [...(prev[activeCategory.id] || [])];
-        const index = categoryBids.findIndex((item) => item.id === bid.id);
-        if (index > -1) {
-          categoryBids[index] = { ...categoryBids[index], status: "sent" };
-          return { ...prev, [activeCategory.id]: categoryBids };
-        }
-        return prev;
-      });
-      void runDocHubFallbackForCategory(activeCategory.id, "inquiry-sent");
+      await persistSentStatusForBid(bid.id);
       return;
     }
 
@@ -152,18 +184,7 @@ export const usePipelineCommunicationActions = ({
     console.log("[Pipeline] Sending inquiry via mailto:", mailtoLink);
     platformAdapter.shell.openExternal(mailtoLink);
 
-    setTimeout(() => {
-      updateBidsInternal((prev) => {
-        const categoryBids = [...(prev[activeCategory.id] || [])];
-        const index = categoryBids.findIndex((item) => item.id === bid.id);
-        if (index > -1) {
-          categoryBids[index] = { ...categoryBids[index], status: "sent" };
-          return { ...prev, [activeCategory.id]: categoryBids };
-        }
-        return prev;
-      });
-      void runDocHubFallbackForCategory(activeCategory.id, "inquiry-sent");
-    }, 100);
+    await persistSentStatusForBid(bid.id);
   };
 
   const handleGenerateInquiry = async (bid: Bid) => {

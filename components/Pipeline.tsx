@@ -288,6 +288,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
     bids,
     projectDetails,
     emailClientMode: user?.preferences?.emailClientMode,
+    userRole: user?.role,
     updateBidsInternal,
     setIsExportMenuOpen,
     showAlert,
