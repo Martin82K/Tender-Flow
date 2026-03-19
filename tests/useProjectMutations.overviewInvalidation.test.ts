@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   useAddCategoryMutation,
   useAddProjectMutation,
+  useCloneTenderToRealizationMutation,
   useArchiveProjectMutation,
   useDeleteCategoryMutation,
   useDeleteProjectMutation,
@@ -15,6 +16,7 @@ import { OVERVIEW_TENANT_DATA_KEY } from "../hooks/queries/useOverviewTenantData
 
 const mocks = vi.hoisted(() => ({
   fromMock: vi.fn(),
+  rpcRestMock: vi.fn(),
   invokeAuthedFunctionMock: vi.fn(),
   ensureStructureMock: vi.fn(),
   getDemoDataMock: vi.fn(),
@@ -24,6 +26,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("../services/dbAdapter", () => ({
   dbAdapter: {
     from: mocks.fromMock,
+    rpcRest: mocks.rpcRestMock,
   },
 }));
 
@@ -107,6 +110,7 @@ describe("useProjectMutations -> overview cache invalidation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.fromMock.mockImplementation(() => createFromResult());
+    mocks.rpcRestMock.mockResolvedValue({ data: [{ project_id: "realization-1" }], error: null });
     mocks.invokeAuthedFunctionMock.mockResolvedValue(undefined);
     mocks.ensureStructureMock.mockResolvedValue({ success: true });
     mocks.getDemoDataMock.mockReturnValue(null);
@@ -150,6 +154,23 @@ describe("useProjectMutations -> overview cache invalidation", () => {
       });
     });
 
+    expectOverviewInvalidation(invalidateSpy);
+  });
+
+  it("invaliduje overview cache po klonování soutěže do realizace", async () => {
+    const { wrapper, invalidateSpy } = createWrapper();
+    const { result } = renderHook(() => useCloneTenderToRealizationMutation(), {
+      wrapper,
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync("p-1");
+    });
+
+    expect(mocks.rpcRestMock).toHaveBeenCalledWith(
+      "clone_tender_project_to_realization",
+      { project_id_input: "p-1" },
+    );
     expectOverviewInvalidation(invalidateSpy);
   });
 

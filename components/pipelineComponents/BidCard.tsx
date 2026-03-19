@@ -28,6 +28,15 @@ export const BidCard: React.FC<BidCardProps> = ({
   onGenerateMaterialInquiry,
   onOpenDocHubFolder,
 }) => {
+  const selectedRoundPrice =
+    bid.selectionRound !== undefined && bid.selectionRound !== null
+      ? bid.priceHistory?.[bid.selectionRound]
+      : undefined;
+  const displayedPrice =
+    bid.price && bid.price !== "-" && bid.price !== "?"
+      ? bid.price
+      : selectedRoundPrice;
+
   return (
     <div
       draggable
@@ -78,9 +87,9 @@ export const BidCard: React.FC<BidCardProps> = ({
             </button>
           )}
         </div>
-        {bid.price && bid.price !== "-" && bid.price !== "?" && (
+        {displayedPrice && displayedPrice !== "-" && displayedPrice !== "?" && (
           <span className="text-xs font-bold bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-lg border border-emerald-500/30">
-            {bid.price}
+            {displayedPrice}
           </span>
         )}
       </div>
@@ -103,7 +112,7 @@ export const BidCard: React.FC<BidCardProps> = ({
           </div>
         )}
         {/* Price History */}
-        {bid.priceHistory && Object.keys(bid.priceHistory).length > 1 && (
+        {bid.priceHistory && Object.keys(bid.priceHistory).length > 0 && (
           <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700/50">
             {Object.entries(bid.priceHistory)
               .sort(([a], [b]) => Number(a) - Number(b))
