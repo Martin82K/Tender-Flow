@@ -10,6 +10,7 @@ import { Bid } from "../../types";
 export interface BidCardProps {
   bid: Bid;
   onClick?: () => void;
+  onDoubleClick?: (bid: Bid) => void;
   onDragStart: (e: React.DragEvent, bidId: string) => void;
   onEdit: (bid: Bid) => void;
   onDelete?: (bidId: string) => void;
@@ -21,6 +22,7 @@ export interface BidCardProps {
 export const BidCard: React.FC<BidCardProps> = ({
   bid,
   onClick,
+  onDoubleClick,
   onDragStart,
   onEdit,
   onDelete,
@@ -42,6 +44,7 @@ export const BidCard: React.FC<BidCardProps> = ({
       draggable
       onDragStart={(e) => onDragStart(e, bid.id)}
       onClick={onClick}
+      onDoubleClick={() => onDoubleClick?.(bid)}
       className="bg-white dark:bg-slate-900/80 backdrop-blur-xl rounded-xl shadow-sm dark:shadow-lg p-4 border border-slate-200 dark:border-slate-700/40 hover:shadow-md dark:hover:shadow-xl hover:border-emerald-500/30 transition-all cursor-grab active:cursor-grabbing group"
     >
       <div className="flex justify-between items-start mb-3">

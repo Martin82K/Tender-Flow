@@ -55,4 +55,21 @@ describe("BidCard", () => {
     expect(screen.getAllByText("1 250 000 Kč")).toHaveLength(2);
     expect(screen.getByText("Soutěž:")).toBeInTheDocument();
   });
+
+  it("otevre editaci pri dvojkliku na kartu", () => {
+    const onDoubleClick = vi.fn();
+
+    const { container } = render(
+      <BidCard
+        bid={baseBid}
+        onDragStart={vi.fn()}
+        onEdit={vi.fn()}
+        onDoubleClick={onDoubleClick}
+      />,
+    );
+
+    fireEvent.doubleClick(container.firstChild as HTMLElement);
+
+    expect(onDoubleClick).toHaveBeenCalledWith(baseBid);
+  });
 });

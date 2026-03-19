@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { Pipeline } from "../components/Pipeline";
 import type { Bid, DemandCategory, ProjectDetails } from "../types";
@@ -55,6 +55,22 @@ const baseBid: Bid = {
   email: "acme@example.com",
 };
 
+const offerBid: Bid = {
+  id: "bid-2",
+  subcontractorId: "sup-2",
+  companyName: "Barkotex",
+  contactPerson: "Petr Polanecký",
+  status: "offer",
+  email: "polanecky@barkotex.cz",
+  phone: "727 985 457",
+  price: "77 000 Kč",
+  selectionRound: 0,
+  priceHistory: {
+    0: "77 000 Kč",
+    1: "77 000 Kč",
+  },
+};
+
 const createCategory = (
   overrides: Partial<DemandCategory> = {},
 ): DemandCategory => ({
@@ -84,12 +100,41 @@ const createProjectDetails = (category: DemandCategory): ProjectDetails => ({
   docHubStructureV1: {},
 });
 
+const createProjectDetailsWithBids = (
+  category: DemandCategory,
+  categoryBids: Bid[],
+): ProjectDetails => ({
+  id: "project-1",
+  title: "Projekt A",
+  location: "Praha",
+  finishDate: "2026-12-31",
+  siteManager: "Vedoucí",
+  categories: [category],
+  bids: { [category.id]: categoryBids },
+  docHubEnabled: false,
+  docHubRootLink: "",
+  docHubProvider: null,
+  docHubStatus: "disconnected",
+  docHubStructureV1: {},
+});
+
 const renderPipeline = (category: DemandCategory) =>
   render(
     <Pipeline
       projectId="project-1"
       projectDetails={createProjectDetails(category)}
       bids={{ [category.id]: [baseBid] }}
+      contacts={[]}
+      initialOpenCategoryId={category.id}
+    />,
+  );
+
+const renderPipelineWithBids = (category: DemandCategory, categoryBids: Bid[]) =>
+  render(
+    <Pipeline
+      projectId="project-1"
+      projectDetails={createProjectDetailsWithBids(category, categoryBids)}
+      bids={{ [category.id]: categoryBids }}
       contacts={[]}
       initialOpenCategoryId={category.id}
     />,
@@ -118,5 +163,16 @@ describe("Pipeline category summary", () => {
     expect(await screen.findByText("Cena SOD:")).toBeInTheDocument();
     expect(screen.getByText("Interní plán:")).toBeInTheDocument();
     expect(screen.getAllByText("0 Kč")).toHaveLength(2);
+  });
+
+  it("otevre modal Upravit nabídku pri dvojkliku na kartu subdodavatele v kanbanu", async () => {
+    renderPipelineWithBids(createCategory(), [offerBid]);
+
+    const bidCardTitle = await screen.findByText("Barkotex");
+    fireEvent.doubleClick(bidCardTitle.closest("div[draggable='true']") as HTMLElement);
+
+    expect(await screen.findByText("Upravit nabídku")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Petr Polanecký")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("polanecky@barkotex.cz")).toBeInTheDocument();
   });
 });
