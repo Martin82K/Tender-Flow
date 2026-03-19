@@ -1,0 +1,2943 @@
+From 7e96029901d3866febb0183644fae2beaaf32b6e Mon Sep 17 00:00:00 2001
+From: Martin <martinkalkus82@gmail.com>
+Date: Thu, 19 Mar 2026 13:36:30 +0100
+Subject: [PATCH 1/3] chore: bump version to 1.4.5
+
+---
+ config/version.ts | 2 +-
+ package-lock.json | 4 ++--
+ package.json      | 2 +-
+ 3 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/config/version.ts b/config/version.ts
+index ad6d092..bb80ccc 100644
+--- a/config/version.ts
++++ b/config/version.ts
+@@ -1 +1 @@
+-export const APP_VERSION = "1.4.4";
++export const APP_VERSION = "1.4.5";
+diff --git a/package-lock.json b/package-lock.json
+index cfb8e4c..6c17325 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,12 +1,12 @@
+ {
+   "name": "tender-flow",
+-  "version": "1.4.4",
++  "version": "1.4.5",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+       "name": "tender-flow",
+-      "version": "1.4.4",
++      "version": "1.4.5",
+       "dependencies": {
+         "@google/genai": "^1.30.0",
+         "@google/generative-ai": "^0.24.1",
+diff --git a/package.json b/package.json
+index 9da0f39..f0b587f 100644
+--- a/package.json
++++ b/package.json
+@@ -1,7 +1,7 @@
+ {
+   "name": "tender-flow",
+   "private": true,
+-  "version": "1.4.4",
++  "version": "1.4.5",
+   "type": "module",
+   "main": "desktop/dist/main.js",
+   "scripts": {
+-- 
+2.53.0
+
+
+From 3d93b84887ec6ea6c4511ea84a8626a56a796749 Mon Sep 17 00:00:00 2001
+From: Martin <martinkalkus82@gmail.com>
+Date: Thu, 19 Mar 2026 14:23:47 +0100
+Subject: [PATCH 2/3] =?UTF-8?q?vytvo=C5=99en=C3=AD=20realizace=20ze=20sout?=
+ =?UTF-8?q?=C4=9B=C5=BEe?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ app/AppContent.tsx                            |  12 +
+ components/pipelineComponents/BidCard.tsx     |  15 +-
+ .../pipelineComponents/EditBidModal.tsx       |  14 +-
+ .../ProjectDocuments.tsx                      |  23 +
+ features/projects/ProjectManager.tsx          |  62 +++
+ features/projects/api/index.ts                |   2 +
+ features/projects/api/projectCloneApi.ts      |  58 +++
+ hooks/mutations/useProjectMutations.ts        | 128 ++++++
+ hooks/useAppData.ts                           |   7 +
+ shared/routing/routeUtils.ts                  |   2 +
+ ...0319120000_clone_tender_to_realization.sql | 399 ++++++++++++++++++
+ ...fix_clone_tender_to_realization_compat.sql | 399 ++++++++++++++++++
+ ...er_to_realization_ambiguous_project_id.sql | 399 ++++++++++++++++++
+ ..._set_clone_tender_selection_round_zero.sql | 399 ++++++++++++++++++
+ tests/BidCard.test.tsx                        |  18 +
+ ...ProjectManager.cloneToRealization.test.tsx | 113 +++++
+ tests/projectCloneApi.test.ts                 |  44 ++
+ tests/projectCloneMigration.test.ts           |  55 +++
+ tests/routeUtils.documentsSubTab.test.ts      |  14 +
+ ...jectMutations.overviewInvalidation.test.ts |  21 +
+ 20 files changed, 2178 insertions(+), 6 deletions(-)
+ create mode 100644 features/projects/api/projectCloneApi.ts
+ create mode 100644 supabase/migrations/20260319120000_clone_tender_to_realization.sql
+ create mode 100644 supabase/migrations/20260319142000_fix_clone_tender_to_realization_compat.sql
+ create mode 100644 supabase/migrations/20260319144500_fix_clone_tender_to_realization_ambiguous_project_id.sql
+ create mode 100644 supabase/migrations/20260319152000_set_clone_tender_selection_round_zero.sql
+ create mode 100644 tests/ProjectManager.cloneToRealization.test.tsx
+ create mode 100644 tests/projectCloneApi.test.ts
+ create mode 100644 tests/projectCloneMigration.test.ts
+ create mode 100644 tests/routeUtils.documentsSubTab.test.ts
+
+diff --git a/app/AppContent.tsx b/app/AppContent.tsx
+index da90b36..42cc9cb 100644
+--- a/app/AppContent.tsx
++++ b/app/AppContent.tsx
+@@ -294,6 +294,18 @@ export const AppContent: React.FC = () => {
+             projects={state.projects}
+             onAddProject={actions.handleAddProject}
+             onDeleteProject={actions.handleDeleteProject}
++            onCloneTenderToRealization={async (projectId) => {
++              const result = await actions.handleCloneTenderToRealization(projectId);
++              actions.setSelectedProjectId(result.projectId);
++              navigate(
++                buildAppUrl("project", {
++                  projectId: result.projectId,
++                  tab: "documents",
++                  documentsSubTab: "dochub",
++                }),
++              );
++              return result;
++            }}
+             onArchiveProject={actions.handleArchiveProject}
+           />
+         );
+diff --git a/components/pipelineComponents/BidCard.tsx b/components/pipelineComponents/BidCard.tsx
+index 1166f06..ac9c12c 100644
+--- a/components/pipelineComponents/BidCard.tsx
++++ b/components/pipelineComponents/BidCard.tsx
+@@ -28,6 +28,15 @@ export const BidCard: React.FC<BidCardProps> = ({
+   onGenerateMaterialInquiry,
+   onOpenDocHubFolder,
+ }) => {
++  const selectedRoundPrice =
++    bid.selectionRound !== undefined && bid.selectionRound !== null
++      ? bid.priceHistory?.[bid.selectionRound]
++      : undefined;
++  const displayedPrice =
++    bid.price && bid.price !== "-" && bid.price !== "?"
++      ? bid.price
++      : selectedRoundPrice;
++
+   return (
+     <div
+       draggable
+@@ -78,9 +87,9 @@ export const BidCard: React.FC<BidCardProps> = ({
+             </button>
+           )}
+         </div>
+-        {bid.price && bid.price !== "-" && bid.price !== "?" && (
++        {displayedPrice && displayedPrice !== "-" && displayedPrice !== "?" && (
+           <span className="text-xs font-bold bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-lg border border-emerald-500/30">
+-            {bid.price}
++            {displayedPrice}
+           </span>
+         )}
+       </div>
+@@ -103,7 +112,7 @@ export const BidCard: React.FC<BidCardProps> = ({
+           </div>
+         )}
+         {/* Price History */}
+-        {bid.priceHistory && Object.keys(bid.priceHistory).length > 1 && (
++        {bid.priceHistory && Object.keys(bid.priceHistory).length > 0 && (
+           <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700/50">
+             {Object.entries(bid.priceHistory)
+               .sort(([a], [b]) => Number(a) - Number(b))
+diff --git a/components/pipelineComponents/EditBidModal.tsx b/components/pipelineComponents/EditBidModal.tsx
+index c85b578..203b4e2 100644
+--- a/components/pipelineComponents/EditBidModal.tsx
++++ b/components/pipelineComponents/EditBidModal.tsx
+@@ -18,13 +18,21 @@ export interface EditBidModalProps {
+ }
+ 
+ export const EditBidModal: React.FC<EditBidModalProps> = ({ bid, onClose, onSave, subcontractor, statuses = [], onUpdateSubcontractor }) => {
+-    const [form, setForm] = useState({ ...bid });
++    const selectedRoundPrice =
++        bid.selectionRound !== undefined && bid.selectionRound !== null
++            ? bid.priceHistory?.[bid.selectionRound]
++            : undefined;
++    const initialResolvedPrice =
++        bid.price && bid.price !== "?" && bid.price !== "-"
++            ? bid.price
++            : selectedRoundPrice || bid.price;
++    const [form, setForm] = useState({ ...bid, price: initialResolvedPrice });
+     // Local state for contact person selection (if using dropdown)
+     const [selectedContactId, setSelectedContactId] = useState<string>("");
+ 
+     const [priceDisplay, setPriceDisplay] = useState(
+-        bid.price && bid.price !== "?" && bid.price !== "-"
+-            ? formatInputNumber(parseFormattedNumber(bid.price.replace(/[^\d\s,.-]/g, '')))
++        initialResolvedPrice && initialResolvedPrice !== "?" && initialResolvedPrice !== "-"
++            ? formatInputNumber(parseFormattedNumber(initialResolvedPrice.replace(/[^\d\s,.-]/g, '')))
+             : ""
+     );
+ 
+diff --git a/components/projectLayoutComponents/ProjectDocuments.tsx b/components/projectLayoutComponents/ProjectDocuments.tsx
+index 38f608d..923a992 100644
+--- a/components/projectLayoutComponents/ProjectDocuments.tsx
++++ b/components/projectLayoutComponents/ProjectDocuments.tsx
+@@ -22,6 +22,7 @@ import { TemplatesSection } from "./documents/TemplatesSection";
+ import { PriceListsSection } from "./documents/PriceListsSection";
+ import { useFeatures } from "../../context/FeatureContext";
+ import { FEATURES } from "../../config/features";
++import { useLocation } from "../../shared/routing/router";
+ 
+ // --- Helper Functions ---
+ const parseMoney = (valueStr: string): number => {
+@@ -68,6 +69,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
+   const [isEditingDocs, setIsEditingDocs] = useState(false);
+   const [isEditingLetter, setIsEditingLetter] = useState(false);
+   const [documentsSubTab, setDocumentsSubTab] = useState<DocumentsSubTab>("pd");
++  const { search } = useLocation();
+   const { hasFeature } = useFeatures();
+   const canDocHub = hasFeature(FEATURES.DOC_HUB);
+   const canTemplates =
+@@ -150,6 +152,15 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
+   const [templateManagerInitialId, setTemplateManagerInitialId] = useState<
+     string | null
+   >(null);
++  const routeDocumentsSubTab = (() => {
++    const value = new URLSearchParams(search).get("documentsSubTab");
++    return value === "pd" || value === "templates" || value === "dochub" || value === "ceniky"
++      ? value
++      : null;
++  })();
++  const shouldHighlightDocHubSetup =
++    routeDocumentsSubTab === "dochub" &&
++    !project.docHubRootLink?.trim();
+ 
+   const extractTemplateId = (link: string | null | undefined) => {
+     if (!link) return null;
+@@ -177,6 +188,12 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
+     }
+   }, [availableSubTabs, documentsSubTab]);
+ 
++  useEffect(() => {
++    if (!routeDocumentsSubTab) return;
++    if (!availableSubTabs.includes(routeDocumentsSubTab)) return;
++    setDocumentsSubTab(routeDocumentsSubTab);
++  }, [availableSubTabs, routeDocumentsSubTab]);
++
+   useEffect(() => {
+     setPriceListLinkValue(project.priceListLink || "");
+   }, [project.priceListLink, isEditingPriceList]);
+@@ -435,6 +452,12 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
+             {/* DocHub Section (Wizard) */}
+             {documentsSubTab === "dochub" && canDocHub && (
+               <div className="space-y-6">
++                {shouldHighlightDocHubSetup && (
++                  <div className="rounded-xl border border-emerald-300/60 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100">
++                    Nová realizační stavba potřebuje vlastní realizační složku. Dokončete prosím napojení Složkomatu níže.
++                  </div>
++                )}
++
+                 <DocHubStatusCard
+                   state={docHub.state}
+                   actions={docHub.actions}
+diff --git a/features/projects/ProjectManager.tsx b/features/projects/ProjectManager.tsx
+index afc60a2..f67183c 100644
+--- a/features/projects/ProjectManager.tsx
++++ b/features/projects/ProjectManager.tsx
+@@ -14,6 +14,7 @@ interface ProjectManagerProps {
+     projects: Project[];
+     onAddProject: (project: Project) => void;
+     onDeleteProject: (id: string) => void;
++    onCloneTenderToRealization: (id: string) => Promise<{ projectId: string }>;
+     onArchiveProject: (id: string) => void;
+ }
+ 
+@@ -94,6 +95,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
+     projects,
+     onAddProject,
+     onDeleteProject,
++    onCloneTenderToRealization,
+     onArchiveProject
+ }) => {
+     const { user } = useAuth();
+@@ -115,6 +117,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
+     // Edit State
+     const [editingProject, setEditingProject] = useState<{ id: string; name: string; location: string; status: ProjectStatus } | null>(null);
+     const [isSavingEdit, setIsSavingEdit] = useState(false);
++    const [cloningProjectId, setCloningProjectId] = useState<string | null>(null);
+ 
+     // Sharing State
+     const [sharingProjectId, setSharingProjectId] = useState<string | null>(null);
+@@ -444,6 +447,52 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
+         }
+     };
+ 
++    const handleCloneProjectClick = (project: Project) => {
++        setConfirmModal({
++            isOpen: true,
++            title: 'Přepnout do realizace',
++            message: `Vytvoří se nová stavba v realizaci jako kopie projektu "${project.name}". Původní soutěž zůstane beze změny. Pokračovat?`,
++            confirmLabel: 'Vytvořit realizaci',
++            variant: 'info',
++            onConfirm: () => executeCloneProject(project),
++        });
++    };
++
++    const executeCloneProject = async (project: Project) => {
++        closeConfirmModal();
++
++        if (isProjectLimitReached) {
++            setAlertModal({
++                isOpen: true,
++                title: 'Limit tarifu Free',
++                message: 'Tarif Free umožňuje pouze 1 aktivní stavbu. Pro další stavby prosím upgradujte plán nebo stávající stavbu archivujte.',
++                variant: 'info',
++            });
++            return;
++        }
++
++        setCloningProjectId(project.id);
++        try {
++            await onCloneTenderToRealization(project.id);
++            setAlertModal({
++                isOpen: true,
++                title: 'Realizace vytvořena',
++                message: 'Byla vytvořena nová realizační stavba a otevřena v záložce Dokumenty.',
++                variant: 'success',
++            });
++        } catch (error) {
++            console.error('Error cloning project to realization:', error);
++            setAlertModal({
++                isOpen: true,
++                title: 'Chyba',
++                message: error instanceof Error ? error.message : 'Nepodařilo se vytvořit realizační kopii projektu.',
++                variant: 'error',
++            });
++        } finally {
++            setCloningProjectId(null);
++        }
++    };
++
+     return (
+         <div className="flex flex-col h-full bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen overflow-y-auto">
+             <Header title="Správa Staveb" subtitle="Vytváření, archivace a sdílení projektů" />
+@@ -597,6 +646,19 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
+                                         </button>
+                                     )}
+ 
++                                    {project.status === 'tender' && (!project.ownerId || project.ownerId === user?.id) && (
++                                        <button
++                                            onClick={() => handleCloneProjectClick(project)}
++                                            disabled={cloningProjectId === project.id}
++                                            className="p-2 text-slate-500 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
++                                            title="Přepnout do realizace"
++                                        >
++                                            <span className={`material-symbols-outlined text-[20px] ${cloningProjectId === project.id ? 'animate-spin' : ''}`}>
++                                                {cloningProjectId === project.id ? 'sync' : 'published_with_changes'}
++                                            </span>
++                                        </button>
++                                    )}
++
+                                     <button
+                                         onClick={() => onArchiveProject(project.id)}
+                                         className="p-2 text-slate-500 hover:text-amber-400 hover:bg-amber-500/10 rounded-lg transition-colors"
+diff --git a/features/projects/api/index.ts b/features/projects/api/index.ts
+index cdba365..e4ff5da 100644
+--- a/features/projects/api/index.ts
++++ b/features/projects/api/index.ts
+@@ -1,10 +1,12 @@
+ export { projectService } from "@/services/projectService";
+ export * from "./pipelineApi";
++export * from "./projectCloneApi";
+ export * from "./projectScheduleApi";
+ export * from "./tenderPlanApi";
+ export * from "./generateContractProtocol";
+ export {
+   useAddProjectMutation,
++  useCloneTenderToRealizationMutation,
+   useDeleteProjectMutation,
+   useArchiveProjectMutation,
+   useUpdateProjectDetailsMutation,
+diff --git a/features/projects/api/projectCloneApi.ts b/features/projects/api/projectCloneApi.ts
+new file mode 100644
+index 0000000..2a855cc
+--- /dev/null
++++ b/features/projects/api/projectCloneApi.ts
+@@ -0,0 +1,58 @@
++import { dbAdapter } from "@/services/dbAdapter";
++
++export interface CloneTenderToRealizationResult {
++  projectId: string;
++}
++
++const buildCloneProjectErrorMessage = (error: unknown): string => {
++  const message =
++    typeof error === "object" && error && "message" in error
++      ? String(error.message)
++      : "";
++  const code =
++    typeof error === "object" && error && "code" in error
++      ? String(error.code)
++      : "";
++
++  const normalized = `${code} ${message}`.toLowerCase();
++  const missingRpc =
++    normalized.includes("clone_tender_project_to_realization") &&
++    (
++      normalized.includes("schema cache") ||
++      normalized.includes("could not find the function") ||
++      normalized.includes("404")
++    );
++
++  if (missingRpc) {
++    return "V databázi chybí nová RPC funkce pro přepnutí soutěže do realizace. Je potřeba aplikovat migraci `20260319120000_clone_tender_to_realization.sql` a obnovit schema cache Supabase.";
++  }
++
++  if (message.trim().length > 0) {
++    return message;
++  }
++
++  return "Nepodařilo se vytvořit realizační kopii projektu.";
++};
++
++export const cloneTenderToRealization = async (
++  projectId: string,
++): Promise<CloneTenderToRealizationResult> => {
++  const { data, error } = await dbAdapter.rpcRest<
++    Array<{ project_id?: string; cloned_project_id?: string }> | { project_id?: string; cloned_project_id?: string }
++  >("clone_tender_project_to_realization", {
++    project_id_input: projectId,
++  });
++
++  if (error) {
++    throw new Error(buildCloneProjectErrorMessage(error));
++  }
++
++  const row = Array.isArray(data) ? data[0] : data;
++  const clonedProjectId = (row?.cloned_project_id || row?.project_id || "").trim();
++
++  if (!clonedProjectId) {
++    throw new Error("Server nevrátil ID nově vytvořeného projektu.");
++  }
++
++  return { projectId: clonedProjectId };
++};
+diff --git a/hooks/mutations/useProjectMutations.ts b/hooks/mutations/useProjectMutations.ts
+index d7382f7..c71fed6 100644
+--- a/hooks/mutations/useProjectMutations.ts
++++ b/hooks/mutations/useProjectMutations.ts
+@@ -9,6 +9,7 @@ import { getDemoData, saveDemoData } from "../../services/demoData";
+ import { invokeAuthedFunction } from "../../services/functionsClient";
+ import { ensureStructure } from "../../services/fileSystemService";
+ import { buildHierarchyTree, resolveDocHubStructureV1 } from "../../utils/docHub";
++import { cloneTenderToRealization } from "@/features/projects/api/projectCloneApi";
+ 
+ // Helper for DocHub Sync
+ const syncDocHubCategory = async (projectId: string, action: "upsert" | "archive", categoryId: string, categoryTitle?: string) => {
+@@ -104,6 +105,133 @@ export const useDeleteProjectMutation = () => {
+     });
+ };
+ 
++const extractEffectiveBidDisplayPrice = (bid: any): string | null => {
++    if (typeof bid?.price === "string" && bid.price.trim() && bid.price !== "?" && bid.price !== "-") {
++        return bid.price;
++    }
++
++    const priceHistory = bid?.priceHistory;
++    if (!priceHistory || typeof priceHistory !== "object") {
++        return null;
++    }
++
++    const sortedEntries = Object.entries(priceHistory)
++        .map(([round, value]) => ({
++            round: Number.parseInt(round, 10),
++            value: typeof value === "string" ? value.trim() : "",
++        }))
++        .filter((entry) => Number.isFinite(entry.round) && entry.value.length > 0)
++        .sort((a, b) => b.round - a.round);
++
++    return sortedEntries[0]?.value || null;
++};
++
++export const useCloneTenderToRealizationMutation = () => {
++    const queryClient = useQueryClient();
++    const { user } = useAuth();
++
++    return useMutation({
++        mutationFn: async (projectId: string) => {
++            if (user?.role === "demo") {
++                const demoData = getDemoData();
++                const sourceProject = demoData?.projects.find((project) => project.id === projectId);
++                const sourceDetails = demoData?.projectDetails?.[projectId];
++
++                if (!demoData || !sourceProject || !sourceDetails) {
++                    throw new Error("Zdrojový demo projekt nebyl nalezen.");
++                }
++
++                if (sourceProject.status !== "tender") {
++                    throw new Error("Klonovat do realizace lze pouze projekt ve stavu soutěž.");
++                }
++
++                const clonedProjectId = crypto.randomUUID();
++                const clonedCategories = (sourceDetails.categories || []).map((category) => ({
++                    ...structuredClone(category),
++                    id: crypto.randomUUID(),
++                    deadline: undefined,
++                    realizationStart: undefined,
++                    realizationEnd: undefined,
++                }));
++                const categoryIdMap = new Map(
++                    (sourceDetails.categories || []).map((category, index) => [category.id, clonedCategories[index]?.id]),
++                );
++
++                const clonedBids = Object.fromEntries(
++                    clonedCategories.map((category) => {
++                        const sourceCategoryId = [...categoryIdMap.entries()].find(([, newId]) => newId === category.id)?.[0];
++                        const sourceCategoryBids = sourceCategoryId
++                            ? (sourceDetails.bids?.[sourceCategoryId] || [])
++                            : [];
++                        const nextBids = sourceCategoryBids
++                            .map((bid) => {
++                                const effectivePrice = extractEffectiveBidDisplayPrice(bid);
++                                if (!effectivePrice) return null;
++
++                                return {
++                                    ...structuredClone(bid),
++                                    id: crypto.randomUUID(),
++                                    status: "contacted" as const,
++                                    price: "?",
++                                    priceHistory: { 0: effectivePrice },
++                                    selectionRound: 0,
++                                    updateDate: undefined,
++                                    contracted: false,
++                                    notes: undefined,
++                                };
++                            })
++                            .filter(Boolean);
++
++                        return [category.id, nextBids];
++                    }).filter(([, bids]) => Array.isArray(bids) && bids.length > 0),
++                );
++
++                const clonedProject: Project = {
++                    ...structuredClone(sourceProject),
++                    id: clonedProjectId,
++                    status: "realization",
++                };
++
++                const clonedDetails: ProjectDetails = {
++                    ...structuredClone(sourceDetails),
++                    id: clonedProjectId,
++                    title: sourceDetails.title,
++                    status: "realization",
++                    categories: clonedCategories,
++                    bids: clonedBids,
++                    docHubRootLink: "",
++                    docHubRootId: null,
++                    docHubRootName: null,
++                    docHubDriveId: null,
++                    docHubSiteId: null,
++                    docHubRootWebUrl: null,
++                    docHubStatus: "disconnected",
++                    docHubLastError: null,
++                    docHubAutoCreateEnabled: false,
++                    docHubAutoCreateLastRunAt: null,
++                    docHubAutoCreateLastError: null,
++                    docHubSettings: null,
++                };
++
++                demoData.projects = [clonedProject, ...demoData.projects];
++                demoData.projectDetails[clonedProjectId] = clonedDetails;
++                saveDemoData(demoData);
++
++                return { projectId: clonedProjectId };
++            }
++
++            return cloneTenderToRealization(projectId);
++        },
++        onSettled: async (_data, _error) => {
++            await Promise.all([
++                queryClient.invalidateQueries({ queryKey: PROJECT_KEYS.list() }),
++                queryClient.invalidateQueries({ queryKey: PROJECT_DETAILS_KEYS.all }),
++                queryClient.invalidateQueries({ queryKey: OVERVIEW_TENANT_DATA_KEY }),
++            ]);
++        },
++    });
++};
++
+ export const useArchiveProjectMutation = () => {
+     const queryClient = useQueryClient();
+     const { user } = useAuth();
+diff --git a/hooks/useAppData.ts b/hooks/useAppData.ts
+index fa62f1e..39de4a4 100644
+--- a/hooks/useAppData.ts
++++ b/hooks/useAppData.ts
+@@ -7,6 +7,7 @@ import { useContactStatusesQuery, STATUS_KEYS } from "./queries/useContactStatus
+ import { useAllProjectDetailsQuery, PROJECT_DETAILS_KEYS } from "./queries/useProjectDetailsQuery";
+ import {
+     useAddProjectMutation,
++    useCloneTenderToRealizationMutation,
+     useDeleteProjectMutation,
+     useArchiveProjectMutation,
+     useUpdateProjectDetailsMutation,
+@@ -59,6 +60,7 @@ export const useAppData = (showUiModal: (props: any) => void) => {
+     // Mutations
+     const addProjectMutation = useAddProjectMutation();
+     const deleteProjectMutation = useDeleteProjectMutation();
++    const cloneTenderToRealizationMutation = useCloneTenderToRealizationMutation();
+     const archiveProjectMutation = useArchiveProjectMutation();
+     const updateProjectDetailsMutation = useUpdateProjectDetailsMutation();
+     const addCategoryMutation = useAddCategoryMutation();
+@@ -88,6 +90,10 @@ export const useAppData = (showUiModal: (props: any) => void) => {
+         if (selectedProjectId === id) setSelectedProjectId(null);
+     };
+ 
++    const handleCloneTenderToRealization = async (id: string) => {
++        return cloneTenderToRealizationMutation.mutateAsync(id);
++    };
++
+     const handleArchiveProject = async (id: string) => {
+         const project = projects.find(p => p.id === id);
+         if (project) {
+@@ -258,6 +264,7 @@ export const useAppData = (showUiModal: (props: any) => void) => {
+ 
+             handleAddProject,
+             handleDeleteProject,
++            handleCloneTenderToRealization,
+             handleArchiveProject,
+             handleUpdateProjectDetails,
+ 
+diff --git a/shared/routing/routeUtils.ts b/shared/routing/routeUtils.ts
+index 169eff1..9fa1f18 100644
+--- a/shared/routing/routeUtils.ts
++++ b/shared/routing/routeUtils.ts
+@@ -18,6 +18,7 @@ export const buildAppUrl = (
+         projectId?: string;
+         tab?: ProjectTab;
+         categoryId?: string | null;
++        documentsSubTab?: "pd" | "templates" | "dochub" | "ceniky";
+         settingsTab?: 'user' | 'admin';
+         settingsSubTab?: 'profile' | 'contacts' | 'excelUnlocker' | 'excelMerger' | 'urlShortener' | 'registration' | 'users' | 'subscriptions' | 'ai' | 'incidents' | 'tools';
+     }
+@@ -45,6 +46,7 @@ export const buildAppUrl = (
+             const params = new URLSearchParams();
+             if (opts.tab) params.set("tab", opts.tab);
+             if (opts.categoryId) params.set("categoryId", opts.categoryId);
++            if (opts.documentsSubTab) params.set("documentsSubTab", opts.documentsSubTab);
+             const qs = params.toString();
+             return `${APP_BASE}/project/${encodeURIComponent(opts.projectId)}${qs ? `?${qs}` : ""}`;
+         }
+diff --git a/supabase/migrations/20260319120000_clone_tender_to_realization.sql b/supabase/migrations/20260319120000_clone_tender_to_realization.sql
+new file mode 100644
+index 0000000..7b81f0d
+--- /dev/null
++++ b/supabase/migrations/20260319120000_clone_tender_to_realization.sql
+@@ -0,0 +1,399 @@
++-- Migration: clone_tender_to_realization
++-- Description: Secure RPC to atomically clone a tender project into realization
++
++CREATE OR REPLACE FUNCTION public.clone_tender_project_to_realization(project_id_input VARCHAR)
++RETURNS TABLE(cloned_project_id VARCHAR)
++LANGUAGE plpgsql
++SECURITY DEFINER
++SET search_path = public
++AS $$
++DECLARE
++  v_user_id UUID := auth.uid();
++  v_source_project public.projects%ROWTYPE;
++  v_new_project_id VARCHAR(36) := gen_random_uuid()::text;
++  v_new_category_id VARCHAR(36);
++  v_new_tender_plan_id VARCHAR(36);
++  v_new_amendment_id VARCHAR(36);
++  v_new_bid_id VARCHAR(36);
++  v_old_category_id VARCHAR(36);
++  v_category_id_column TEXT;
++  v_effective_price_display TEXT;
++  v_effective_price_history JSONB;
++  v_source_category RECORD;
++  v_source_plan RECORD;
++  v_source_amendment RECORD;
++  v_source_bid RECORD;
++  v_has_column BOOLEAN;
++BEGIN
++  IF v_user_id IS NULL THEN
++    RAISE EXCEPTION 'Uživatel není přihlášen.';
++  END IF;
++
++  SELECT p.*
++  INTO v_source_project
++  FROM public.projects p
++  WHERE p.id = project_id_input;
++
++  IF NOT FOUND THEN
++    RAISE EXCEPTION 'Zdrojový projekt neexistuje.';
++  END IF;
++
++  IF v_source_project.status IS DISTINCT FROM 'tender' THEN
++    RAISE EXCEPTION 'Klonovat do realizace lze pouze projekt ve stavu tender.';
++  END IF;
++
++  IF NOT (
++    v_source_project.owner_id = v_user_id
++    OR v_source_project.owner_id IS NULL
++    OR EXISTS (
++      SELECT 1
++      FROM public.project_shares ps
++      WHERE ps.project_id = v_source_project.id
++        AND ps.user_id = v_user_id
++        AND ps.permission = 'edit'
++    )
++  ) THEN
++    RAISE EXCEPTION 'Nemáte oprávnění klonovat tento projekt.';
++  END IF;
++
++  INSERT INTO public.projects (
++    id,
++    name,
++    location,
++    status,
++    owner_id,
++    organization_id,
++    is_demo,
++    investor,
++    technical_supervisor,
++    finish_date,
++    site_manager,
++    construction_manager,
++    construction_technician,
++    planned_cost
++  )
++  SELECT
++    v_new_project_id,
++    p.name,
++    p.location,
++    'realization',
++    p.owner_id,
++    p.organization_id,
++    COALESCE(p.is_demo, false),
++    p.investor,
++    p.technical_supervisor,
++    p.finish_date,
++    p.site_manager,
++    p.construction_manager,
++    p.construction_technician,
++    p.planned_cost
++  FROM public.projects p
++  WHERE p.id = v_source_project.id;
++
++  FOR v_source_plan IN
++    SELECT column_name
++    FROM information_schema.columns
++    WHERE table_schema = 'public'
++      AND table_name = 'projects'
++      AND column_name IN (
++        'documentation_link',
++        'document_links',
++        'inquiry_letter_link',
++        'material_inquiry_template_link',
++        'losers_email_template_link',
++        'price_list_link',
++        'dochub_enabled',
++        'dochub_provider',
++        'dochub_mode',
++        'dochub_structure_v1',
++        'dochub_structure_version',
++        'dochub_settings'
++      )
++  LOOP
++    EXECUTE format(
++      'UPDATE public.projects target
++       SET %1$I = source.%1$I
++       FROM public.projects source
++       WHERE target.id = $1
++         AND source.id = $2',
++      v_source_plan.column_name
++    )
++    USING v_new_project_id, v_source_project.id;
++  END LOOP;
++
++  FOR v_source_plan IN
++    SELECT column_name
++    FROM information_schema.columns
++    WHERE table_schema = 'public'
++      AND table_name = 'projects'
++      AND column_name IN (
++        'dochub_root_link',
++        'dochub_root_id',
++        'dochub_root_name',
++        'dochub_drive_id',
++        'dochub_site_id',
++        'dochub_root_web_url',
++        'dochub_last_error',
++        'dochub_autocreate_last_run_at',
++        'dochub_autocreate_last_error'
++      )
++  LOOP
++    EXECUTE format(
++      'UPDATE public.projects SET %I = NULL WHERE id = $1',
++      v_source_plan.column_name
++    )
++    USING v_new_project_id;
++  END LOOP;
++
++  SELECT EXISTS (
++    SELECT 1
++    FROM information_schema.columns
++    WHERE table_schema = 'public'
++      AND table_name = 'projects'
++      AND column_name = 'dochub_status'
++  )
++  INTO v_has_column;
++  IF v_has_column THEN
++    UPDATE public.projects
++    SET dochub_status = 'disconnected'
++    WHERE id = v_new_project_id;
++  END IF;
++
++  SELECT EXISTS (
++    SELECT 1
++    FROM information_schema.columns
++    WHERE table_schema = 'public'
++      AND table_name = 'projects'
++      AND column_name = 'dochub_autocreate_enabled'
++  )
++  INTO v_has_column;
++  IF v_has_column THEN
++    UPDATE public.projects
++    SET dochub_autocreate_enabled = false
++    WHERE id = v_new_project_id;
++  END IF;
++
++  INSERT INTO public.project_contracts (
++    project_id,
++    maturity_days,
++    warranty_months,
++    retention_terms,
++    site_facilities_percent,
++    insurance_percent
++  )
++  SELECT
++    v_new_project_id,
++    pc.maturity_days,
++    pc.warranty_months,
++    pc.retention_terms,
++    pc.site_facilities_percent,
++    pc.insurance_percent
++  FROM public.project_contracts pc
++  WHERE pc.project_id = v_source_project.id;
++
++  INSERT INTO public.project_investor_financials (project_id, sod_price)
++  SELECT v_new_project_id, pif.sod_price
++  FROM public.project_investor_financials pif
++  WHERE pif.project_id = v_source_project.id;
++
++  FOR v_source_amendment IN
++    SELECT pa.*
++    FROM public.project_amendments pa
++    WHERE pa.project_id = v_source_project.id
++    ORDER BY pa.created_at, pa.id
++  LOOP
++    v_new_amendment_id := gen_random_uuid()::text;
++    INSERT INTO public.project_amendments (id, project_id, label, price)
++    VALUES (v_new_amendment_id, v_new_project_id, v_source_amendment.label, v_source_amendment.price);
++  END LOOP;
++
++  CREATE TEMP TABLE tmp_cloned_categories (
++    old_category_id VARCHAR(36) PRIMARY KEY,
++    new_category_id VARCHAR(36) NOT NULL
++  ) ON COMMIT DROP;
++
++  FOR v_source_category IN
++    SELECT dc.*
++    FROM public.demand_categories dc
++    WHERE dc.project_id = v_source_project.id
++    ORDER BY dc.created_at, dc.id
++  LOOP
++    v_new_category_id := gen_random_uuid()::text;
++
++    INSERT INTO public.demand_categories (
++      id,
++      project_id,
++      title,
++      budget_display,
++      sod_budget,
++      plan_budget,
++      status,
++      description,
++      deadline,
++      realization_start,
++      realization_end,
++      work_items
++    )
++    VALUES (
++      v_new_category_id,
++      v_new_project_id,
++      v_source_category.title,
++      v_source_category.budget_display,
++      v_source_category.sod_budget,
++      v_source_category.plan_budget,
++      v_source_category.status,
++      v_source_category.description,
++      NULL,
++      NULL,
++      NULL,
++      v_source_category.work_items
++    );
++
++    INSERT INTO tmp_cloned_categories (old_category_id, new_category_id)
++    VALUES (v_source_category.id, v_new_category_id);
++  END LOOP;
++
++  FOR v_source_plan IN
++    SELECT tp.*
++    FROM public.tender_plans tp
++    WHERE tp.project_id = v_source_project.id
++    ORDER BY tp.created_at, tp.id
++  LOOP
++    v_new_tender_plan_id := gen_random_uuid()::text;
++
++    INSERT INTO public.tender_plans (
++      id,
++      project_id,
++      name,
++      date_from,
++      date_to,
++      category_id
++    )
++    VALUES (
++      v_new_tender_plan_id,
++      v_new_project_id,
++      v_source_plan.name,
++      NULL,
++      NULL,
++      (
++        SELECT tcc.new_category_id
++        FROM tmp_cloned_categories tcc
++        WHERE tcc.old_category_id = v_source_plan.category_id
++      )
++    );
++  END LOOP;
++
++  SELECT
++    CASE
++      WHEN EXISTS (
++        SELECT 1
++        FROM information_schema.columns
++        WHERE table_schema = 'public'
++          AND table_name = 'bids'
++          AND column_name = 'demand_category_id'
++      ) THEN 'demand_category_id'
++      ELSE 'category_id'
++    END
++  INTO v_category_id_column;
++
++  FOR v_source_category IN
++    SELECT tcc.old_category_id, tcc.new_category_id
++    FROM tmp_cloned_categories tcc
++  LOOP
++    v_old_category_id := v_source_category.old_category_id;
++    v_new_category_id := v_source_category.new_category_id;
++
++    FOR v_source_bid IN EXECUTE format(
++      'SELECT b.id, b.subcontractor_id, b.company_name, b.contact_person, b.email, b.phone, b.price, b.price_display, b.price_history
++       FROM public.bids b
++       WHERE b.%I = $1
++       ORDER BY b.created_at, b.id',
++      v_category_id_column
++    )
++    USING v_old_category_id
++    LOOP
++      v_effective_price_display := NULL;
++
++      IF COALESCE(v_source_bid.price, 0) > 0 THEN
++        v_effective_price_display := NULLIF(BTRIM(COALESCE(v_source_bid.price_display, '')), '');
++      END IF;
++
++      IF v_effective_price_display IS NULL AND v_source_bid.price_history IS NOT NULL THEN
++        SELECT NULLIF(BTRIM(value), '')
++        INTO v_effective_price_display
++        FROM jsonb_each_text(v_source_bid.price_history)
++        ORDER BY CASE WHEN key ~ '^\d+$' THEN key::INT ELSE -1 END DESC, key DESC
++        LIMIT 1;
++      END IF;
++
++      IF v_effective_price_display IS NULL THEN
++        CONTINUE;
++      END IF;
++
++      v_effective_price_history := jsonb_build_object('0', v_effective_price_display);
++      v_new_bid_id := gen_random_uuid()::text;
++
++      EXECUTE format(
++        'INSERT INTO public.bids (
++          id,
++          %I,
++          subcontractor_id,
++          company_name,
++          contact_person,
++          email,
++          phone,
++          price,
++          price_display,
++          price_history,
++          notes,
++          status,
++          update_date,
++          selection_round,
++          contracted
++        ) VALUES (
++          $1,
++          $2,
++          $3,
++          $4,
++          $5,
++          $6,
++          $7,
++          NULL,
++          ''?'',
++          $8,
++          NULL,
++          ''contacted'',
++          NULL,
++          0,
++          false
++        )',
++        v_category_id_column
++      )
++      USING
++        v_new_bid_id,
++        v_new_category_id,
++        v_source_bid.subcontractor_id,
++        v_source_bid.company_name,
++        v_source_bid.contact_person,
++        v_source_bid.email,
++        v_source_bid.phone,
++        v_effective_price_history;
++    END LOOP;
++  END LOOP;
++
++  INSERT INTO public.project_shares (project_id, user_id, permission)
++  SELECT
++    v_new_project_id,
++    ps.user_id,
++    ps.permission
++  FROM public.project_shares ps
++  WHERE ps.project_id = v_source_project.id
++  ON CONFLICT (project_id, user_id) DO NOTHING;
++
++  RETURN QUERY SELECT v_new_project_id;
++END;
++$$;
++
++GRANT EXECUTE ON FUNCTION public.clone_tender_project_to_realization(VARCHAR) TO authenticated;
++
++NOTIFY pgrst, 'reload schema';
+diff --git a/supabase/migrations/20260319142000_fix_clone_tender_to_realization_compat.sql b/supabase/migrations/20260319142000_fix_clone_tender_to_realization_compat.sql
+new file mode 100644
+index 0000000..04d0505
+--- /dev/null
++++ b/supabase/migrations/20260319142000_fix_clone_tender_to_realization_compat.sql
+@@ -0,0 +1,399 @@
++-- Migration: fix_clone_tender_to_realization_compat
++-- Description: Recreate clone RPC with compatibility for instances missing newer optional project columns
++
++CREATE OR REPLACE FUNCTION public.clone_tender_project_to_realization(project_id_input VARCHAR)
++RETURNS TABLE(cloned_project_id VARCHAR)
++LANGUAGE plpgsql
++SECURITY DEFINER
++SET search_path = public
++AS $$
++DECLARE
++  v_user_id UUID := auth.uid();
++  v_source_project public.projects%ROWTYPE;
++  v_new_project_id VARCHAR(36) := gen_random_uuid()::text;
++  v_new_category_id VARCHAR(36);
++  v_new_tender_plan_id VARCHAR(36);
++  v_new_amendment_id VARCHAR(36);
++  v_new_bid_id VARCHAR(36);
++  v_old_category_id VARCHAR(36);
++  v_category_id_column TEXT;
++  v_effective_price_display TEXT;
++  v_effective_price_history JSONB;
++  v_source_category RECORD;
++  v_source_plan RECORD;
++  v_source_amendment RECORD;
++  v_source_bid RECORD;
++  v_has_column BOOLEAN;
++BEGIN
++  IF v_user_id IS NULL THEN
++    RAISE EXCEPTION 'Uživatel není přihlášen.';
++  END IF;
++
++  SELECT p.*
++  INTO v_source_project
++  FROM public.projects p
++  WHERE p.id = project_id_input;
++
++  IF NOT FOUND THEN
++    RAISE EXCEPTION 'Zdrojový projekt neexistuje.';
++  END IF;
++
++  IF v_source_project.status IS DISTINCT FROM 'tender' THEN
++    RAISE EXCEPTION 'Klonovat do realizace lze pouze projekt ve stavu tender.';
++  END IF;
++
++  IF NOT (
++    v_source_project.owner_id = v_user_id
++    OR v_source_project.owner_id IS NULL
++    OR EXISTS (
++      SELECT 1
++      FROM public.project_shares ps
++      WHERE ps.project_id = v_source_project.id
++        AND ps.user_id = v_user_id
++        AND ps.permission = 'edit'
++    )
++  ) THEN
++    RAISE EXCEPTION 'Nemáte oprávnění klonovat tento projekt.';
++  END IF;
++
++  INSERT INTO public.projects (
++    id,
++    name,
++    location,
++    status,
++    owner_id,
++    organization_id,
++    is_demo,
++    investor,
++    technical_supervisor,
++    finish_date,
++    site_manager,
++    construction_manager,
++    construction_technician,
++    planned_cost
++  )
++  SELECT
++    v_new_project_id,
++    p.name,
++    p.location,
++    'realization',
++    p.owner_id,
++    p.organization_id,
++    COALESCE(p.is_demo, false),
++    p.investor,
++    p.technical_supervisor,
++    p.finish_date,
++    p.site_manager,
++    p.construction_manager,
++    p.construction_technician,
++    p.planned_cost
++  FROM public.projects p
++  WHERE p.id = v_source_project.id;
++
++  FOR v_source_plan IN
++    SELECT column_name
++    FROM information_schema.columns
++    WHERE table_schema = 'public'
++      AND table_name = 'projects'
++      AND column_name IN (
++        'documentation_link',
++        'document_links',
++        'inquiry_letter_link',
++        'material_inquiry_template_link',
++        'losers_email_template_link',
++        'price_list_link',
++        'dochub_enabled',
++        'dochub_provider',
++        'dochub_mode',
++        'dochub_structure_v1',
++        'dochub_structure_version',
++        'dochub_settings'
++      )
++  LOOP
++    EXECUTE format(
++      'UPDATE public.projects target
++       SET %1$I = source.%1$I
++       FROM public.projects source
++       WHERE target.id = $1
++         AND source.id = $2',
++      v_source_plan.column_name
++    )
++    USING v_new_project_id, v_source_project.id;
++  END LOOP;
++
++  FOR v_source_plan IN
++    SELECT column_name
++    FROM information_schema.columns
++    WHERE table_schema = 'public'
++      AND table_name = 'projects'
++      AND column_name IN (
++        'dochub_root_link',
++        'dochub_root_id',
++        'dochub_root_name',
++        'dochub_drive_id',
++        'dochub_site_id',
++        'dochub_root_web_url',
++        'dochub_last_error',
++        'dochub_autocreate_last_run_at',
++        'dochub_autocreate_last_error'
++      )
++  LOOP
++    EXECUTE format(
++      'UPDATE public.projects SET %I = NULL WHERE id = $1',
++      v_source_plan.column_name
++    )
++    USING v_new_project_id;
++  END LOOP;
++
++  SELECT EXISTS (
++    SELECT 1
++    FROM information_schema.columns
++    WHERE table_schema = 'public'
++      AND table_name = 'projects'
++      AND column_name = 'dochub_status'
++  )
++  INTO v_has_column;
++  IF v_has_column THEN
++    UPDATE public.projects
++    SET dochub_status = 'disconnected'
++    WHERE id = v_new_project_id;
++  END IF;
++
++  SELECT EXISTS (
++    SELECT 1
++    FROM information_schema.columns
++    WHERE table_schema = 'public'
++      AND table_name = 'projects'
++      AND column_name = 'dochub_autocreate_enabled'
++  )
++  INTO v_has_column;
++  IF v_has_column THEN
++    UPDATE public.projects
++    SET dochub_autocreate_enabled = false
++    WHERE id = v_new_project_id;
++  END IF;
++
++  INSERT INTO public.project_contracts (
++    project_id,
++    maturity_days,
++    warranty_months,
++    retention_terms,
++    site_facilities_percent,
++    insurance_percent
++  )
++  SELECT
++    v_new_project_id,
++    pc.maturity_days,
++    pc.warranty_months,
++    pc.retention_terms,
++    pc.site_facilities_percent,
++    pc.insurance_percent
++  FROM public.project_contracts pc
++  WHERE pc.project_id = v_source_project.id;
++
++  INSERT INTO public.project_investor_financials (project_id, sod_price)
++  SELECT v_new_project_id, pif.sod_price
++  FROM public.project_investor_financials pif
++  WHERE pif.project_id = v_source_project.id;
++
++  FOR v_source_amendment IN
++    SELECT pa.*
++    FROM public.project_amendments pa
++    WHERE pa.project_id = v_source_project.id
++    ORDER BY pa.created_at, pa.id
++  LOOP
++    v_new_amendment_id := gen_random_uuid()::text;
++    INSERT INTO public.project_amendments (id, project_id, label, price)
++    VALUES (v_new_amendment_id, v_new_project_id, v_source_amendment.label, v_source_amendment.price);
++  END LOOP;
++
++  CREATE TEMP TABLE tmp_cloned_categories (
++    old_category_id VARCHAR(36) PRIMARY KEY,
++    new_category_id VARCHAR(36) NOT NULL
++  ) ON COMMIT DROP;
++
++  FOR v_source_category IN
++    SELECT dc.*
++    FROM public.demand_categories dc
++    WHERE dc.project_id = v_source_project.id
++    ORDER BY dc.created_at, dc.id
++  LOOP
++    v_new_category_id := gen_random_uuid()::text;
++
++    INSERT INTO public.demand_categories (
++      id,
++      project_id,
++      title,
++      budget_display,
++      sod_budget,
++      plan_budget,
++      status,
++      description,
++      deadline,
++      realization_start,
++      realization_end,
++      work_items
++    )
++    VALUES (
++      v_new_category_id,
++      v_new_project_id,
++      v_source_category.title,
++      v_source_category.budget_display,
++      v_source_category.sod_budget,
++      v_source_category.plan_budget,
++      v_source_category.status,
++      v_source_category.description,
++      NULL,
++      NULL,
++      NULL,
++      v_source_category.work_items
++    );
++
++    INSERT INTO tmp_cloned_categories (old_category_id, new_category_id)
++    VALUES (v_source_category.id, v_new_category_id);
++  END LOOP;
++
++  FOR v_source_plan IN
++    SELECT tp.*
++    FROM public.tender_plans tp
++    WHERE tp.project_id = v_source_project.id
++    ORDER BY tp.created_at, tp.id
++  LOOP
++    v_new_tender_plan_id := gen_random_uuid()::text;
++
++    INSERT INTO public.tender_plans (
++      id,
++      project_id,
++      name,
++      date_from,
++      date_to,
++      category_id
++    )
++    VALUES (
++      v_new_tender_plan_id,
++      v_new_project_id,
++      v_source_plan.name,
++      NULL,
++      NULL,
++      (
++        SELECT tcc.new_category_id
++        FROM tmp_cloned_categories tcc
++        WHERE tcc.old_category_id = v_source_plan.category_id
++      )
++    );
++  END LOOP;
++
++  SELECT
++    CASE
++      WHEN EXISTS (
++        SELECT 1
++        FROM information_schema.columns
++        WHERE table_schema = 'public'
++          AND table_name = 'bids'
++          AND column_name = 'demand_category_id'
++      ) THEN 'demand_category_id'
++      ELSE 'category_id'
++    END
++  INTO v_category_id_column;
++
++  FOR v_source_category IN
++    SELECT tcc.old_category_id, tcc.new_category_id
++    FROM tmp_cloned_categories tcc
++  LOOP
++    v_old_category_id := v_source_category.old_category_id;
++    v_new_category_id := v_source_category.new_category_id;
++
++    FOR v_source_bid IN EXECUTE format(
++      'SELECT b.id, b.subcontractor_id, b.company_name, b.contact_person, b.email, b.phone, b.price, b.price_display, b.price_history
++       FROM public.bids b
++       WHERE b.%I = $1
++       ORDER BY b.created_at, b.id',
++      v_category_id_column
++    )
++    USING v_old_category_id
++    LOOP
++      v_effective_price_display := NULL;
++
++      IF COALESCE(v_source_bid.price, 0) > 0 THEN
++        v_effective_price_display := NULLIF(BTRIM(COALESCE(v_source_bid.price_display, '')), '');
++      END IF;
++
++      IF v_effective_price_display IS NULL AND v_source_bid.price_history IS NOT NULL THEN
++        SELECT NULLIF(BTRIM(value), '')
++        INTO v_effective_price_display
++        FROM jsonb_each_text(v_source_bid.price_history)
++        ORDER BY CASE WHEN key ~ '^\d+$' THEN key::INT ELSE -1 END DESC, key DESC
++        LIMIT 1;
++      END IF;
++
++      IF v_effective_price_display IS NULL THEN
++        CONTINUE;
++      END IF;
++
++      v_effective_price_history := jsonb_build_object('0', v_effective_price_display);
++      v_new_bid_id := gen_random_uuid()::text;
++
++      EXECUTE format(
++        'INSERT INTO public.bids (
++          id,
++          %I,
++          subcontractor_id,
++          company_name,
++          contact_person,
++          email,
++          phone,
++          price,
++          price_display,
++          price_history,
++          notes,
++          status,
++          update_date,
++          selection_round,
++          contracted
++        ) VALUES (
++          $1,
++          $2,
++          $3,
++          $4,
++          $5,
++          $6,
++          $7,
++          NULL,
++          ''?'',
++          $8,
++          NULL,
++          ''contacted'',
++          NULL,
++          0,
++          false
++        )',
++        v_category_id_column
++      )
++      USING
++        v_new_bid_id,
++        v_new_category_id,
++        v_source_bid.subcontractor_id,
++        v_source_bid.company_name,
++        v_source_bid.contact_person,
++        v_source_bid.email,
++        v_source_bid.phone,
++        v_effective_price_history;
++    END LOOP;
++  END LOOP;
++
++  INSERT INTO public.project_shares (project_id, user_id, permission)
++  SELECT
++    v_new_project_id,
++    ps.user_id,
++    ps.permission
++  FROM public.project_shares ps
++  WHERE ps.project_id = v_source_project.id
++  ON CONFLICT (project_id, user_id) DO NOTHING;
++
++  RETURN QUERY SELECT v_new_project_id;
++END;
++$$;
++
++GRANT EXECUTE ON FUNCTION public.clone_tender_project_to_realization(VARCHAR) TO authenticated;
++
++NOTIFY pgrst, 'reload schema';
+diff --git a/supabase/migrations/20260319144500_fix_clone_tender_to_realization_ambiguous_project_id.sql b/supabase/migrations/20260319144500_fix_clone_tender_to_realization_ambiguous_project_id.sql
+new file mode 100644
+index 0000000..31aaa46
+--- /dev/null
++++ b/supabase/migrations/20260319144500_fix_clone_tender_to_realization_ambiguous_project_id.sql
+@@ -0,0 +1,399 @@
++-- Migration: fix_clone_tender_to_realization_ambiguous_project_id
++-- Description: Recreate clone RPC with non-conflicting return column name
++
++CREATE OR REPLACE FUNCTION public.clone_tender_project_to_realization(project_id_input VARCHAR)
++RETURNS TABLE(cloned_project_id VARCHAR)
++LANGUAGE plpgsql
++SECURITY DEFINER
++SET search_path = public
++AS $$
++DECLARE
++  v_user_id UUID := auth.uid();
++  v_source_project public.projects%ROWTYPE;
++  v_new_project_id VARCHAR(36) := gen_random_uuid()::text;
++  v_new_category_id VARCHAR(36);
++  v_new_tender_plan_id VARCHAR(36);
++  v_new_amendment_id VARCHAR(36);
++  v_new_bid_id VARCHAR(36);
++  v_old_category_id VARCHAR(36);
++  v_category_id_column TEXT;
++  v_effective_price_display TEXT;
++  v_effective_price_history JSONB;
++  v_source_category RECORD;
++  v_source_plan RECORD;
++  v_source_amendment RECORD;
++  v_source_bid RECORD;
++  v_has_column BOOLEAN;
++BEGIN
++  IF v_user_id IS NULL THEN
++    RAISE EXCEPTION 'Uživatel není přihlášen.';
++  END IF;
++
++  SELECT p.*
++  INTO v_source_project
++  FROM public.projects p
++  WHERE p.id = project_id_input;
++
++  IF NOT FOUND THEN
++    RAISE EXCEPTION 'Zdrojový projekt neexistuje.';
++  END IF;
++
++  IF v_source_project.status IS DISTINCT FROM 'tender' THEN
++    RAISE EXCEPTION 'Klonovat do realizace lze pouze projekt ve stavu tender.';
++  END IF;
++
++  IF NOT (
++    v_source_project.owner_id = v_user_id
++    OR v_source_project.owner_id IS NULL
++    OR EXISTS (
++      SELECT 1
++      FROM public.project_shares ps
++      WHERE ps.project_id = v_source_project.id
++        AND ps.user_id = v_user_id
++        AND ps.permission = 'edit'
++    )
++  ) THEN
++    RAISE EXCEPTION 'Nemáte oprávnění klonovat tento projekt.';
++  END IF;
++
++  INSERT INTO public.projects (
++    id,
++    name,
++    location,
++    status,
++    owner_id,
++    organization_id,
++    is_demo,
++    investor,
++    technical_supervisor,
++    finish_date,
++    site_manager,
++    construction_manager,
++    construction_technician,
++    planned_cost
++  )
++  SELECT
++    v_new_project_id,
++    p.name,
++    p.location,
++    'realization',
++    p.owner_id,
++    p.organization_id,
++    COALESCE(p.is_demo, false),
++    p.investor,
++    p.technical_supervisor,
++    p.finish_date,
++    p.site_manager,
++    p.construction_manager,
++    p.construction_technician,
++    p.planned_cost
++  FROM public.projects p
++  WHERE p.id = v_source_project.id;
++
++  FOR v_source_plan IN
++    SELECT column_name
++    FROM information_schema.columns
++    WHERE table_schema = 'public'
++      AND table_name = 'projects'
++      AND column_name IN (
++        'documentation_link',
++        'document_links',
++        'inquiry_letter_link',
++        'material_inquiry_template_link',
++        'losers_email_template_link',
++        'price_list_link',
++        'dochub_enabled',
++        'dochub_provider',
++        'dochub_mode',
++        'dochub_structure_v1',
++        'dochub_structure_version',
++        'dochub_settings'
++      )
++  LOOP
++    EXECUTE format(
++      'UPDATE public.projects target
++       SET %1$I = source.%1$I
++       FROM public.projects source
++       WHERE target.id = $1
++         AND source.id = $2',
++      v_source_plan.column_name
++    )
++    USING v_new_project_id, v_source_project.id;
++  END LOOP;
++
++  FOR v_source_plan IN
++    SELECT column_name
++    FROM information_schema.columns
++    WHERE table_schema = 'public'
++      AND table_name = 'projects'
++      AND column_name IN (
++        'dochub_root_link',
++        'dochub_root_id',
++        'dochub_root_name',
++        'dochub_drive_id',
++        'dochub_site_id',
++        'dochub_root_web_url',
++        'dochub_last_error',
++        'dochub_autocreate_last_run_at',
++        'dochub_autocreate_last_error'
++      )
++  LOOP
++    EXECUTE format(
++      'UPDATE public.projects SET %I = NULL WHERE id = $1',
++      v_source_plan.column_name
++    )
++    USING v_new_project_id;
++  END LOOP;
++
++  SELECT EXISTS (
++    SELECT 1
++    FROM information_schema.columns
++    WHERE table_schema = 'public'
++      AND table_name = 'projects'
++      AND column_name = 'dochub_status'
++  )
++  INTO v_has_column;
++  IF v_has_column THEN
++    UPDATE public.projects
++    SET dochub_status = 'disconnected'
++    WHERE id = v_new_project_id;
++  END IF;
++
++  SELECT EXISTS (
++    SELECT 1
++    FROM information_schema.columns
++    WHERE table_schema = 'public'
++      AND table_name = 'projects'
++      AND column_name = 'dochub_autocreate_enabled'
++  )
++  INTO v_has_column;
++  IF v_has_column THEN
++    UPDATE public.projects
++    SET dochub_autocreate_enabled = false
++    WHERE id = v_new_project_id;
++  END IF;
++
++  INSERT INTO public.project_contracts (
++    project_id,
++    maturity_days,
++    warranty_months,
++    retention_terms,
++    site_facilities_percent,
++    insurance_percent
++  )
++  SELECT
++    v_new_project_id,
++    pc.maturity_days,
++    pc.warranty_months,
++    pc.retention_terms,
++    pc.site_facilities_percent,
++    pc.insurance_percent
++  FROM public.project_contracts pc
++  WHERE pc.project_id = v_source_project.id;
++
++  INSERT INTO public.project_investor_financials (project_id, sod_price)
++  SELECT v_new_project_id, pif.sod_price
++  FROM public.project_investor_financials pif
++  WHERE pif.project_id = v_source_project.id;
++
++  FOR v_source_amendment IN
++    SELECT pa.*
++    FROM public.project_amendments pa
++    WHERE pa.project_id = v_source_project.id
++    ORDER BY pa.created_at, pa.id
++  LOOP
++    v_new_amendment_id := gen_random_uuid()::text;
++    INSERT INTO public.project_amendments (id, project_id, label, price)
++    VALUES (v_new_amendment_id, v_new_project_id, v_source_amendment.label, v_source_amendment.price);
++  END LOOP;
++
++  CREATE TEMP TABLE tmp_cloned_categories (
++    old_category_id VARCHAR(36) PRIMARY KEY,
++    new_category_id VARCHAR(36) NOT NULL
++  ) ON COMMIT DROP;
++
++  FOR v_source_category IN
++    SELECT dc.*
++    FROM public.demand_categories dc
++    WHERE dc.project_id = v_source_project.id
++    ORDER BY dc.created_at, dc.id
++  LOOP
++    v_new_category_id := gen_random_uuid()::text;
++
++    INSERT INTO public.demand_categories (
++      id,
++      project_id,
++      title,
++      budget_display,
++      sod_budget,
++      plan_budget,
++      status,
++      description,
++      deadline,
++      realization_start,
++      realization_end,
++      work_items
++    )
++    VALUES (
++      v_new_category_id,
++      v_new_project_id,
++      v_source_category.title,
++      v_source_category.budget_display,
++      v_source_category.sod_budget,
++      v_source_category.plan_budget,
++      v_source_category.status,
++      v_source_category.description,
++      NULL,
++      NULL,
++      NULL,
++      v_source_category.work_items
++    );
++
++    INSERT INTO tmp_cloned_categories (old_category_id, new_category_id)
++    VALUES (v_source_category.id, v_new_category_id);
++  END LOOP;
++
++  FOR v_source_plan IN
++    SELECT tp.*
++    FROM public.tender_plans tp
++    WHERE tp.project_id = v_source_project.id
++    ORDER BY tp.created_at, tp.id
++  LOOP
++    v_new_tender_plan_id := gen_random_uuid()::text;
++
++    INSERT INTO public.tender_plans (
++      id,
++      project_id,
++      name,
++      date_from,
++      date_to,
++      category_id
++    )
++    VALUES (
++      v_new_tender_plan_id,
++      v_new_project_id,
++      v_source_plan.name,
++      NULL,
++      NULL,
++      (
++        SELECT tcc.new_category_id
++        FROM tmp_cloned_categories tcc
++        WHERE tcc.old_category_id = v_source_plan.category_id
++      )
++    );
++  END LOOP;
++
++  SELECT
++    CASE
++      WHEN EXISTS (
++        SELECT 1
++        FROM information_schema.columns
++        WHERE table_schema = 'public'
++          AND table_name = 'bids'
++          AND column_name = 'demand_category_id'
++      ) THEN 'demand_category_id'
++      ELSE 'category_id'
++    END
++  INTO v_category_id_column;
++
++  FOR v_source_category IN
++    SELECT tcc.old_category_id, tcc.new_category_id
++    FROM tmp_cloned_categories tcc
++  LOOP
++    v_old_category_id := v_source_category.old_category_id;
++    v_new_category_id := v_source_category.new_category_id;
++
++    FOR v_source_bid IN EXECUTE format(
++      'SELECT b.id, b.subcontractor_id, b.company_name, b.contact_person, b.email, b.phone, b.price, b.price_display, b.price_history
++       FROM public.bids b
++       WHERE b.%I = $1
++       ORDER BY b.created_at, b.id',
++      v_category_id_column
++    )
++    USING v_old_category_id
++    LOOP
++      v_effective_price_display := NULL;
++
++      IF COALESCE(v_source_bid.price, 0) > 0 THEN
++        v_effective_price_display := NULLIF(BTRIM(COALESCE(v_source_bid.price_display, '')), '');
++      END IF;
++
++      IF v_effective_price_display IS NULL AND v_source_bid.price_history IS NOT NULL THEN
++        SELECT NULLIF(BTRIM(value), '')
++        INTO v_effective_price_display
++        FROM jsonb_each_text(v_source_bid.price_history)
++        ORDER BY CASE WHEN key ~ '^\d+$' THEN key::INT ELSE -1 END DESC, key DESC
++        LIMIT 1;
++      END IF;
++
++      IF v_effective_price_display IS NULL THEN
++        CONTINUE;
++      END IF;
++
++      v_effective_price_history := jsonb_build_object('0', v_effective_price_display);
++      v_new_bid_id := gen_random_uuid()::text;
++
++      EXECUTE format(
++        'INSERT INTO public.bids (
++          id,
++          %I,
++          subcontractor_id,
++          company_name,
++          contact_person,
++          email,
++          phone,
++          price,
++          price_display,
++          price_history,
++          notes,
++          status,
++          update_date,
++          selection_round,
++          contracted
++        ) VALUES (
++          $1,
++          $2,
++          $3,
++          $4,
++          $5,
++          $6,
++          $7,
++          NULL,
++          ''?'',
++          $8,
++          NULL,
++          ''contacted'',
++          NULL,
++          0,
++          false
++        )',
++        v_category_id_column
++      )
++      USING
++        v_new_bid_id,
++        v_new_category_id,
++        v_source_bid.subcontractor_id,
++        v_source_bid.company_name,
++        v_source_bid.contact_person,
++        v_source_bid.email,
++        v_source_bid.phone,
++        v_effective_price_history;
++    END LOOP;
++  END LOOP;
++
++  INSERT INTO public.project_shares (project_id, user_id, permission)
++  SELECT
++    v_new_project_id,
++    ps.user_id,
++    ps.permission
++  FROM public.project_shares ps
++  WHERE ps.project_id = v_source_project.id
++  ON CONFLICT (project_id, user_id) DO NOTHING;
++
++  RETURN QUERY SELECT v_new_project_id;
++END;
++$$;
++
++GRANT EXECUTE ON FUNCTION public.clone_tender_project_to_realization(VARCHAR) TO authenticated;
++
++NOTIFY pgrst, 'reload schema';
+diff --git a/supabase/migrations/20260319152000_set_clone_tender_selection_round_zero.sql b/supabase/migrations/20260319152000_set_clone_tender_selection_round_zero.sql
+new file mode 100644
+index 0000000..e5b35d7
+--- /dev/null
++++ b/supabase/migrations/20260319152000_set_clone_tender_selection_round_zero.sql
+@@ -0,0 +1,399 @@
++-- Migration: set_clone_tender_selection_round_zero
++-- Description: Recreate clone RPC so copied realization bids open with selection_round = 0 (Soutěž)
++
++CREATE OR REPLACE FUNCTION public.clone_tender_project_to_realization(project_id_input VARCHAR)
++RETURNS TABLE(cloned_project_id VARCHAR)
++LANGUAGE plpgsql
++SECURITY DEFINER
++SET search_path = public
++AS $$
++DECLARE
++  v_user_id UUID := auth.uid();
++  v_source_project public.projects%ROWTYPE;
++  v_new_project_id VARCHAR(36) := gen_random_uuid()::text;
++  v_new_category_id VARCHAR(36);
++  v_new_tender_plan_id VARCHAR(36);
++  v_new_amendment_id VARCHAR(36);
++  v_new_bid_id VARCHAR(36);
++  v_old_category_id VARCHAR(36);
++  v_category_id_column TEXT;
++  v_effective_price_display TEXT;
++  v_effective_price_history JSONB;
++  v_source_category RECORD;
++  v_source_plan RECORD;
++  v_source_amendment RECORD;
++  v_source_bid RECORD;
++  v_has_column BOOLEAN;
++BEGIN
++  IF v_user_id IS NULL THEN
++    RAISE EXCEPTION 'Uživatel není přihlášen.';
++  END IF;
++
++  SELECT p.*
++  INTO v_source_project
++  FROM public.projects p
++  WHERE p.id = project_id_input;
++
++  IF NOT FOUND THEN
++    RAISE EXCEPTION 'Zdrojový projekt neexistuje.';
++  END IF;
++
++  IF v_source_project.status IS DISTINCT FROM 'tender' THEN
++    RAISE EXCEPTION 'Klonovat do realizace lze pouze projekt ve stavu tender.';
++  END IF;
++
++  IF NOT (
++    v_source_project.owner_id = v_user_id
++    OR v_source_project.owner_id IS NULL
++    OR EXISTS (
++      SELECT 1
++      FROM public.project_shares ps
++      WHERE ps.project_id = v_source_project.id
++        AND ps.user_id = v_user_id
++        AND ps.permission = 'edit'
++    )
++  ) THEN
++    RAISE EXCEPTION 'Nemáte oprávnění klonovat tento projekt.';
++  END IF;
++
++  INSERT INTO public.projects (
++    id,
++    name,
++    location,
++    status,
++    owner_id,
++    organization_id,
++    is_demo,
++    investor,
++    technical_supervisor,
++    finish_date,
++    site_manager,
++    construction_manager,
++    construction_technician,
++    planned_cost
++  )
++  SELECT
++    v_new_project_id,
++    p.name,
++    p.location,
++    'realization',
++    p.owner_id,
++    p.organization_id,
++    COALESCE(p.is_demo, false),
++    p.investor,
++    p.technical_supervisor,
++    p.finish_date,
++    p.site_manager,
++    p.construction_manager,
++    p.construction_technician,
++    p.planned_cost
++  FROM public.projects p
++  WHERE p.id = v_source_project.id;
++
++  FOR v_source_plan IN
++    SELECT column_name
++    FROM information_schema.columns
++    WHERE table_schema = 'public'
++      AND table_name = 'projects'
++      AND column_name IN (
++        'documentation_link',
++        'document_links',
++        'inquiry_letter_link',
++        'material_inquiry_template_link',
++        'losers_email_template_link',
++        'price_list_link',
++        'dochub_enabled',
++        'dochub_provider',
++        'dochub_mode',
++        'dochub_structure_v1',
++        'dochub_structure_version',
++        'dochub_settings'
++      )
++  LOOP
++    EXECUTE format(
++      'UPDATE public.projects target
++       SET %1$I = source.%1$I
++       FROM public.projects source
++       WHERE target.id = $1
++         AND source.id = $2',
++      v_source_plan.column_name
++    )
++    USING v_new_project_id, v_source_project.id;
++  END LOOP;
++
++  FOR v_source_plan IN
++    SELECT column_name
++    FROM information_schema.columns
++    WHERE table_schema = 'public'
++      AND table_name = 'projects'
++      AND column_name IN (
++        'dochub_root_link',
++        'dochub_root_id',
++        'dochub_root_name',
++        'dochub_drive_id',
++        'dochub_site_id',
++        'dochub_root_web_url',
++        'dochub_last_error',
++        'dochub_autocreate_last_run_at',
++        'dochub_autocreate_last_error'
++      )
++  LOOP
++    EXECUTE format(
++      'UPDATE public.projects SET %I = NULL WHERE id = $1',
++      v_source_plan.column_name
++    )
++    USING v_new_project_id;
++  END LOOP;
++
++  SELECT EXISTS (
++    SELECT 1
++    FROM information_schema.columns
++    WHERE table_schema = 'public'
++      AND table_name = 'projects'
++      AND column_name = 'dochub_status'
++  )
++  INTO v_has_column;
++  IF v_has_column THEN
++    UPDATE public.projects
++    SET dochub_status = 'disconnected'
++    WHERE id = v_new_project_id;
++  END IF;
++
++  SELECT EXISTS (
++    SELECT 1
++    FROM information_schema.columns
++    WHERE table_schema = 'public'
++      AND table_name = 'projects'
++      AND column_name = 'dochub_autocreate_enabled'
++  )
++  INTO v_has_column;
++  IF v_has_column THEN
++    UPDATE public.projects
++    SET dochub_autocreate_enabled = false
++    WHERE id = v_new_project_id;
++  END IF;
++
++  INSERT INTO public.project_contracts (
++    project_id,
++    maturity_days,
++    warranty_months,
++    retention_terms,
++    site_facilities_percent,
++    insurance_percent
++  )
++  SELECT
++    v_new_project_id,
++    pc.maturity_days,
++    pc.warranty_months,
++    pc.retention_terms,
++    pc.site_facilities_percent,
++    pc.insurance_percent
++  FROM public.project_contracts pc
++  WHERE pc.project_id = v_source_project.id;
++
++  INSERT INTO public.project_investor_financials (project_id, sod_price)
++  SELECT v_new_project_id, pif.sod_price
++  FROM public.project_investor_financials pif
++  WHERE pif.project_id = v_source_project.id;
++
++  FOR v_source_amendment IN
++    SELECT pa.*
++    FROM public.project_amendments pa
++    WHERE pa.project_id = v_source_project.id
++    ORDER BY pa.created_at, pa.id
++  LOOP
++    v_new_amendment_id := gen_random_uuid()::text;
++    INSERT INTO public.project_amendments (id, project_id, label, price)
++    VALUES (v_new_amendment_id, v_new_project_id, v_source_amendment.label, v_source_amendment.price);
++  END LOOP;
++
++  CREATE TEMP TABLE tmp_cloned_categories (
++    old_category_id VARCHAR(36) PRIMARY KEY,
++    new_category_id VARCHAR(36) NOT NULL
++  ) ON COMMIT DROP;
++
++  FOR v_source_category IN
++    SELECT dc.*
++    FROM public.demand_categories dc
++    WHERE dc.project_id = v_source_project.id
++    ORDER BY dc.created_at, dc.id
++  LOOP
++    v_new_category_id := gen_random_uuid()::text;
++
++    INSERT INTO public.demand_categories (
++      id,
++      project_id,
++      title,
++      budget_display,
++      sod_budget,
++      plan_budget,
++      status,
++      description,
++      deadline,
++      realization_start,
++      realization_end,
++      work_items
++    )
++    VALUES (
++      v_new_category_id,
++      v_new_project_id,
++      v_source_category.title,
++      v_source_category.budget_display,
++      v_source_category.sod_budget,
++      v_source_category.plan_budget,
++      v_source_category.status,
++      v_source_category.description,
++      NULL,
++      NULL,
++      NULL,
++      v_source_category.work_items
++    );
++
++    INSERT INTO tmp_cloned_categories (old_category_id, new_category_id)
++    VALUES (v_source_category.id, v_new_category_id);
++  END LOOP;
++
++  FOR v_source_plan IN
++    SELECT tp.*
++    FROM public.tender_plans tp
++    WHERE tp.project_id = v_source_project.id
++    ORDER BY tp.created_at, tp.id
++  LOOP
++    v_new_tender_plan_id := gen_random_uuid()::text;
++
++    INSERT INTO public.tender_plans (
++      id,
++      project_id,
++      name,
++      date_from,
++      date_to,
++      category_id
++    )
++    VALUES (
++      v_new_tender_plan_id,
++      v_new_project_id,
++      v_source_plan.name,
++      NULL,
++      NULL,
++      (
++        SELECT tcc.new_category_id
++        FROM tmp_cloned_categories tcc
++        WHERE tcc.old_category_id = v_source_plan.category_id
++      )
++    );
++  END LOOP;
++
++  SELECT
++    CASE
++      WHEN EXISTS (
++        SELECT 1
++        FROM information_schema.columns
++        WHERE table_schema = 'public'
++          AND table_name = 'bids'
++          AND column_name = 'demand_category_id'
++      ) THEN 'demand_category_id'
++      ELSE 'category_id'
++    END
++  INTO v_category_id_column;
++
++  FOR v_source_category IN
++    SELECT tcc.old_category_id, tcc.new_category_id
++    FROM tmp_cloned_categories tcc
++  LOOP
++    v_old_category_id := v_source_category.old_category_id;
++    v_new_category_id := v_source_category.new_category_id;
++
++    FOR v_source_bid IN EXECUTE format(
++      'SELECT b.id, b.subcontractor_id, b.company_name, b.contact_person, b.email, b.phone, b.price, b.price_display, b.price_history
++       FROM public.bids b
++       WHERE b.%I = $1
++       ORDER BY b.created_at, b.id',
++      v_category_id_column
++    )
++    USING v_old_category_id
++    LOOP
++      v_effective_price_display := NULL;
++
++      IF COALESCE(v_source_bid.price, 0) > 0 THEN
++        v_effective_price_display := NULLIF(BTRIM(COALESCE(v_source_bid.price_display, '')), '');
++      END IF;
++
++      IF v_effective_price_display IS NULL AND v_source_bid.price_history IS NOT NULL THEN
++        SELECT NULLIF(BTRIM(value), '')
++        INTO v_effective_price_display
++        FROM jsonb_each_text(v_source_bid.price_history)
++        ORDER BY CASE WHEN key ~ '^\d+$' THEN key::INT ELSE -1 END DESC, key DESC
++        LIMIT 1;
++      END IF;
++
++      IF v_effective_price_display IS NULL THEN
++        CONTINUE;
++      END IF;
++
++      v_effective_price_history := jsonb_build_object('0', v_effective_price_display);
++      v_new_bid_id := gen_random_uuid()::text;
++
++      EXECUTE format(
++        'INSERT INTO public.bids (
++          id,
++          %I,
++          subcontractor_id,
++          company_name,
++          contact_person,
++          email,
++          phone,
++          price,
++          price_display,
++          price_history,
++          notes,
++          status,
++          update_date,
++          selection_round,
++          contracted
++        ) VALUES (
++          $1,
++          $2,
++          $3,
++          $4,
++          $5,
++          $6,
++          $7,
++          NULL,
++          ''?'',
++          $8,
++          NULL,
++          ''contacted'',
++          NULL,
++          0,
++          false
++        )',
++        v_category_id_column
++      )
++      USING
++        v_new_bid_id,
++        v_new_category_id,
++        v_source_bid.subcontractor_id,
++        v_source_bid.company_name,
++        v_source_bid.contact_person,
++        v_source_bid.email,
++        v_source_bid.phone,
++        v_effective_price_history;
++    END LOOP;
++  END LOOP;
++
++  INSERT INTO public.project_shares (project_id, user_id, permission)
++  SELECT
++    v_new_project_id,
++    ps.user_id,
++    ps.permission
++  FROM public.project_shares ps
++  WHERE ps.project_id = v_source_project.id
++  ON CONFLICT (project_id, user_id) DO NOTHING;
++
++  RETURN QUERY SELECT v_new_project_id;
++END;
++$$;
++
++GRANT EXECUTE ON FUNCTION public.clone_tender_project_to_realization(VARCHAR) TO authenticated;
++
++NOTIFY pgrst, 'reload schema';
+diff --git a/tests/BidCard.test.tsx b/tests/BidCard.test.tsx
+index c0cec63..4a39a8a 100644
+--- a/tests/BidCard.test.tsx
++++ b/tests/BidCard.test.tsx
+@@ -37,4 +37,22 @@ describe("BidCard", () => {
+     expect(onGenerateInquiry).toHaveBeenCalledWith(baseBid);
+     expect(onGenerateMaterialInquiry).toHaveBeenCalledWith(baseBid);
+   });
++
++  it("zobrazuje soutěžní cenu z vybraného kola i když aktuální price je otazník", () => {
++    render(
++      <BidCard
++        bid={{
++          ...baseBid,
++          price: "?",
++          selectionRound: 0,
++          priceHistory: { 0: "1 250 000 Kč" },
++        }}
++        onDragStart={vi.fn()}
++        onEdit={vi.fn()}
++      />,
++    );
++
++    expect(screen.getAllByText("1 250 000 Kč")).toHaveLength(2);
++    expect(screen.getByText("Soutěž:")).toBeInTheDocument();
++  });
+ });
+diff --git a/tests/ProjectManager.cloneToRealization.test.tsx b/tests/ProjectManager.cloneToRealization.test.tsx
+new file mode 100644
+index 0000000..e11f4a1
+--- /dev/null
++++ b/tests/ProjectManager.cloneToRealization.test.tsx
+@@ -0,0 +1,113 @@
++import React from "react";
++import { fireEvent, render, screen, waitFor } from "@testing-library/react";
++import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
++import { beforeEach, describe, expect, it, vi } from "vitest";
++import { ProjectManager } from "@/features/projects/ProjectManager";
++import type { Project } from "@/types";
++
++const mocks = vi.hoisted(() => ({
++  updateProjectMock: vi.fn(),
++  onCloneMock: vi.fn(),
++}));
++
++vi.mock("@/context/AuthContext", () => ({
++  useAuth: () => ({
++    user: { id: "user-1" },
++  }),
++}));
++
++vi.mock("@/context/FeatureContext", () => ({
++  useFeatures: () => ({
++    currentPlan: "pro",
++    isLoading: false,
++  }),
++}));
++
++vi.mock("@/services/projectService", () => ({
++  projectService: {
++    updateProject: mocks.updateProjectMock,
++    getProjectShares: vi.fn(),
++    shareProject: vi.fn(),
++    removeShare: vi.fn(),
++    updateSharePermission: vi.fn(),
++  },
++}));
++
++const renderProjectManager = (projects: Project[]) => {
++  const queryClient = new QueryClient({
++    defaultOptions: {
++      queries: { retry: false },
++      mutations: { retry: false },
++    },
++  });
++
++  return render(
++    <QueryClientProvider client={queryClient}>
++      <ProjectManager
++        projects={projects}
++        onAddProject={vi.fn()}
++        onDeleteProject={vi.fn()}
++        onCloneTenderToRealization={mocks.onCloneMock}
++        onArchiveProject={vi.fn()}
++      />
++    </QueryClientProvider>,
++  );
++};
++
++describe("ProjectManager clone to realization", () => {
++  beforeEach(() => {
++    vi.clearAllMocks();
++    localStorage.clear();
++    mocks.onCloneMock.mockResolvedValue({ projectId: "realization-1" });
++  });
++
++  it("zobrazí tlačítko jen pro aktivní soutěž", () => {
++    renderProjectManager([
++      {
++        id: "tender-1",
++        name: "Soutěž A",
++        location: "Praha",
++        status: "tender",
++        ownerId: "user-1",
++      },
++      {
++        id: "real-1",
++        name: "Realizace B",
++        location: "Brno",
++        status: "realization",
++        ownerId: "user-1",
++      },
++      {
++        id: "arch-1",
++        name: "Archiv C",
++        location: "Plzeň",
++        status: "archived",
++        ownerId: "user-1",
++      },
++    ]);
++
++    expect(screen.getByTitle("Přepnout do realizace")).toBeInTheDocument();
++    expect(screen.queryAllByTitle("Přepnout do realizace")).toHaveLength(1);
++  });
++
++  it("po potvrzení zavolá klonovací akci", async () => {
++    renderProjectManager([
++      {
++        id: "tender-1",
++        name: "Soutěž A",
++        location: "Praha",
++        status: "tender",
++        ownerId: "user-1",
++      },
++    ]);
++
++    fireEvent.click(screen.getByTitle("Přepnout do realizace"));
++    expect(screen.getByText("Přepnout do realizace")).toBeInTheDocument();
++
++    fireEvent.click(screen.getByRole("button", { name: "Vytvořit realizaci" }));
++
++    await waitFor(() => {
++      expect(mocks.onCloneMock).toHaveBeenCalledWith("tender-1");
++    });
++  });
++});
+diff --git a/tests/projectCloneApi.test.ts b/tests/projectCloneApi.test.ts
+new file mode 100644
+index 0000000..665090c
+--- /dev/null
++++ b/tests/projectCloneApi.test.ts
+@@ -0,0 +1,44 @@
++import { beforeEach, describe, expect, it, vi } from "vitest";
++import { cloneTenderToRealization } from "@/features/projects/api/projectCloneApi";
++
++const mocks = vi.hoisted(() => ({
++  rpcRestMock: vi.fn(),
++}));
++
++vi.mock("@/services/dbAdapter", () => ({
++  dbAdapter: {
++    rpcRest: mocks.rpcRestMock,
++  },
++}));
++
++describe("projectCloneApi", () => {
++  beforeEach(() => {
++    vi.clearAllMocks();
++  });
++
++  it("vrátí projectId při úspěšném klonování", async () => {
++    mocks.rpcRestMock.mockResolvedValue({
++      data: [{ cloned_project_id: "realization-1" }],
++      error: null,
++    });
++
++    await expect(cloneTenderToRealization("tender-1")).resolves.toEqual({
++      projectId: "realization-1",
++    });
++  });
++
++  it("mapuje chybějící RPC na srozumitelnou hlášku o migraci", async () => {
++    mocks.rpcRestMock.mockResolvedValue({
++      data: null,
++      error: {
++        code: "HTTP_404",
++        message:
++          "Could not find the function public.clone_tender_project_to_realization(project_id_input) in the schema cache",
++      },
++    });
++
++    await expect(cloneTenderToRealization("tender-1")).rejects.toThrow(
++      "V databázi chybí nová RPC funkce pro přepnutí soutěže do realizace.",
++    );
++  });
++});
+diff --git a/tests/projectCloneMigration.test.ts b/tests/projectCloneMigration.test.ts
+new file mode 100644
+index 0000000..8484eea
+--- /dev/null
++++ b/tests/projectCloneMigration.test.ts
+@@ -0,0 +1,55 @@
++import fs from "fs";
++import path from "path";
++import { describe, expect, it } from "vitest";
++
++const ROOT = process.cwd();
++const migrationName = "20260319120000_clone_tender_to_realization.sql";
++const migration = fs.readFileSync(
++  path.join(ROOT, "supabase/migrations", migrationName),
++  "utf8",
++);
++const compatibilityMigration = fs.readFileSync(
++  path.join(
++    ROOT,
++    "supabase/migrations",
++    "20260319142000_fix_clone_tender_to_realization_compat.sql",
++  ),
++  "utf8",
++);
++
++describe("clone_tender_project_to_realization migration", () => {
++  it("chrání RPC přes auth, status a edit oprávnění", () => {
++    expect(migration).toContain("SECURITY DEFINER");
++    expect(migration).toContain("auth.uid()");
++    expect(migration).toContain("Zdrojový projekt neexistuje.");
++    expect(migration).toContain("v_source_project.status IS DISTINCT FROM 'tender'");
++    expect(migration).toContain("project_shares ps");
++    expect(migration).toContain("ps.permission = 'edit'");
++    expect(migration).toContain("GRANT EXECUTE ON FUNCTION public.clone_tender_project_to_realization(VARCHAR) TO authenticated;");
++  });
++
++  it("nulují se dochub vazby a kopírují se sdílení", () => {
++    expect(migration).toContain("dochub_root_link");
++    expect(migration).toContain("'disconnected'");
++    expect(migration).toContain("dochub_autocreate_enabled");
++    expect(migration).toContain("INSERT INTO public.project_shares");
++    expect(migration).toContain("ON CONFLICT (project_id, user_id) DO NOTHING");
++  });
++
++  it("pipeline v realizaci startuje čistě, ale se soutěžní cenou v round 0", () => {
++    expect(migration).toContain("jsonb_build_object('0', v_effective_price_display)");
++    expect(migration).toContain("'contacted'");
++    expect(migration).toContain("price_display");
++    expect(migration).toContain("selection_round");
++    expect(migration).toContain("contracted");
++    expect(migration).toContain("'?'");
++  });
++
++  it("compatibility migrace skládá project kopii jen nad existujícími sloupci", () => {
++    expect(compatibilityMigration).toContain("information_schema.columns");
++    expect(compatibilityMigration).toContain("'price_list_link'");
++    expect(compatibilityMigration).toContain("'dochub_settings'");
++    expect(compatibilityMigration).toContain("SET dochub_status = 'disconnected'");
++    expect(compatibilityMigration).toContain("SET dochub_autocreate_enabled = false");
++  });
++});
+diff --git a/tests/routeUtils.documentsSubTab.test.ts b/tests/routeUtils.documentsSubTab.test.ts
+new file mode 100644
+index 0000000..908ff1f
+--- /dev/null
++++ b/tests/routeUtils.documentsSubTab.test.ts
+@@ -0,0 +1,14 @@
++import { describe, expect, it } from "vitest";
++import { buildAppUrl } from "@/shared/routing/routeUtils";
++
++describe("buildAppUrl documentsSubTab", () => {
++  it("přidá documentsSubTab do URL projektu", () => {
++    expect(
++      buildAppUrl("project", {
++        projectId: "project-1",
++        tab: "documents",
++        documentsSubTab: "dochub",
++      }),
++    ).toBe("/app/project/project-1?tab=documents&documentsSubTab=dochub");
++  });
++});
+diff --git a/tests/useProjectMutations.overviewInvalidation.test.ts b/tests/useProjectMutations.overviewInvalidation.test.ts
+index 278aaa2..06730ff 100644
+--- a/tests/useProjectMutations.overviewInvalidation.test.ts
++++ b/tests/useProjectMutations.overviewInvalidation.test.ts
+@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
+ import {
+   useAddCategoryMutation,
+   useAddProjectMutation,
++  useCloneTenderToRealizationMutation,
+   useArchiveProjectMutation,
+   useDeleteCategoryMutation,
+   useDeleteProjectMutation,
+@@ -15,6 +16,7 @@ import { OVERVIEW_TENANT_DATA_KEY } from "../hooks/queries/useOverviewTenantData
+ 
+ const mocks = vi.hoisted(() => ({
+   fromMock: vi.fn(),
++  rpcRestMock: vi.fn(),
+   invokeAuthedFunctionMock: vi.fn(),
+   ensureStructureMock: vi.fn(),
+   getDemoDataMock: vi.fn(),
+@@ -24,6 +26,7 @@ const mocks = vi.hoisted(() => ({
+ vi.mock("../services/dbAdapter", () => ({
+   dbAdapter: {
+     from: mocks.fromMock,
++    rpcRest: mocks.rpcRestMock,
+   },
+ }));
+ 
+@@ -107,6 +110,7 @@ describe("useProjectMutations -> overview cache invalidation", () => {
+   beforeEach(() => {
+     vi.clearAllMocks();
+     mocks.fromMock.mockImplementation(() => createFromResult());
++    mocks.rpcRestMock.mockResolvedValue({ data: [{ project_id: "realization-1" }], error: null });
+     mocks.invokeAuthedFunctionMock.mockResolvedValue(undefined);
+     mocks.ensureStructureMock.mockResolvedValue({ success: true });
+     mocks.getDemoDataMock.mockReturnValue(null);
+@@ -153,6 +157,23 @@ describe("useProjectMutations -> overview cache invalidation", () => {
+     expectOverviewInvalidation(invalidateSpy);
+   });
+ 
++  it("invaliduje overview cache po klonování soutěže do realizace", async () => {
++    const { wrapper, invalidateSpy } = createWrapper();
++    const { result } = renderHook(() => useCloneTenderToRealizationMutation(), {
++      wrapper,
++    });
++
++    await act(async () => {
++      await result.current.mutateAsync("p-1");
++    });
++
++    expect(mocks.rpcRestMock).toHaveBeenCalledWith(
++      "clone_tender_project_to_realization",
++      { project_id_input: "p-1" },
++    );
++    expectOverviewInvalidation(invalidateSpy);
++  });
++
+   it("invaliduje overview cache po update detailu projektu", async () => {
+     const { wrapper, invalidateSpy } = createWrapper();
+     const { result } = renderHook(() => useUpdateProjectDetailsMutation(), {
+-- 
+2.53.0
+
+
+From 3f85663823fabc707ea9e8c895f2f73ba28335fc Mon Sep 17 00:00:00 2001
+From: Martin <martinkalkus82@gmail.com>
+Date: Thu, 19 Mar 2026 14:45:14 +0100
+Subject: [PATCH 3/3] preserve project status when restoring from archive
+
+---
+ hooks/mutations/useProjectMutations.ts        | 70 +++++++++++++++++--
+ hooks/queries/useProjectDetailsQuery.ts       |  3 +-
+ hooks/queries/useProjectsQuery.ts             |  3 +-
+ hooks/useAppData.ts                           |  7 +-
+ services/projectService.ts                    |  3 +-
+ ...erve_project_status_on_archive_restore.sql | 18 +++++
+ ...jectMutations.overviewInvalidation.test.ts | 60 +++++++++++++++-
+ types.ts                                      |  3 +
+ 8 files changed, 154 insertions(+), 13 deletions(-)
+ create mode 100644 supabase/migrations/20260319170000_preserve_project_status_on_archive_restore.sql
+
+diff --git a/hooks/mutations/useProjectMutations.ts b/hooks/mutations/useProjectMutations.ts
+index c71fed6..602f670 100644
+--- a/hooks/mutations/useProjectMutations.ts
++++ b/hooks/mutations/useProjectMutations.ts
+@@ -1,6 +1,6 @@
+ import { useMutation, useQueryClient } from "@tanstack/react-query";
+ import { dbAdapter } from "../../services/dbAdapter";
+-import { Project, ProjectDetails, DemandCategory } from "../../types";
++import { ActiveProjectStatus, Project, ProjectDetails, DemandCategory, ProjectStatus } from "../../types";
+ import { useAuth } from "../../context/AuthContext";
+ import { PROJECT_KEYS } from "../queries/useProjectsQuery";
+ import { PROJECT_DETAILS_KEYS } from "../queries/useProjectDetailsQuery";
+@@ -22,6 +22,34 @@ const syncDocHubCategory = async (projectId: string, action: "upsert" | "archive
+     }
+ };
+ 
++type ArchiveProjectMutationInput = {
++    id: string;
++    currentStatus: ProjectStatus;
++    archivedOriginalStatus?: ActiveProjectStatus | null;
++};
++
++type ArchiveProjectUpdate = {
++    targetStatus: ProjectStatus;
++    archivedOriginalStatus: ActiveProjectStatus | null;
++};
++
++export const resolveArchiveProjectUpdate = ({
++    currentStatus,
++    archivedOriginalStatus,
++}: Omit<ArchiveProjectMutationInput, "id">): ArchiveProjectUpdate => {
++    if (currentStatus === "archived") {
++        return {
++            targetStatus: archivedOriginalStatus ?? "realization",
++            archivedOriginalStatus: null,
++        };
++    }
++
++    return {
++        targetStatus: "archived",
++        archivedOriginalStatus: currentStatus,
++    };
++};
++
+ export const useAddProjectMutation = () => {
+     const queryClient = useQueryClient();
+     const { user } = useAuth();
+@@ -237,25 +265,53 @@ export const useArchiveProjectMutation = () => {
+     const { user } = useAuth();
+ 
+     return useMutation({
+-        mutationFn: async ({ id, newStatus }: { id: string; newStatus: "realization" | "archived" }) => {
++        mutationFn: async ({ id, currentStatus, archivedOriginalStatus }: ArchiveProjectMutationInput) => {
++            const nextState = resolveArchiveProjectUpdate({ currentStatus, archivedOriginalStatus });
++
+             if (user?.role === "demo") {
+                 const demoData = getDemoData();
+                 if (demoData) {
+-                    demoData.projects = demoData.projects.map(p => p.id === id ? { ...p, status: newStatus } : p);
+-                    if (demoData.projectDetails[id]) demoData.projectDetails[id].status = newStatus;
++                    demoData.projects = demoData.projects.map((p) =>
++                        p.id === id
++                            ? {
++                                ...p,
++                                status: nextState.targetStatus,
++                                archivedOriginalStatus: nextState.archivedOriginalStatus,
++                            }
++                            : p
++                    );
++                    if (demoData.projectDetails[id]) {
++                        demoData.projectDetails[id].status = nextState.targetStatus;
++                        demoData.projectDetails[id].archivedOriginalStatus = nextState.archivedOriginalStatus;
++                    }
+                     saveDemoData(demoData);
+                 }
+                 return;
+             }
+ 
+-            const { error } = await dbAdapter.from("projects").update({ status: newStatus }).eq("id", id);
++            const { error } = await dbAdapter
++                .from("projects")
++                .update({
++                    status: nextState.targetStatus,
++                    archived_original_status: nextState.archivedOriginalStatus,
++                })
++                .eq("id", id);
+             if (error) throw error;
+         },
+-        onMutate: async ({ id, newStatus }) => {
++        onMutate: async ({ id, currentStatus, archivedOriginalStatus }) => {
++            const nextState = resolveArchiveProjectUpdate({ currentStatus, archivedOriginalStatus });
+             await queryClient.cancelQueries({ queryKey: PROJECT_KEYS.list() });
+             const previousProjects = queryClient.getQueryData<Project[]>(PROJECT_KEYS.list());
+             queryClient.setQueryData<Project[]>(PROJECT_KEYS.list(), (old) =>
+-                (old || []).map(p => p.id === id ? { ...p, status: newStatus } : p)
++                (old || []).map((p) =>
++                    p.id === id
++                        ? {
++                            ...p,
++                            status: nextState.targetStatus,
++                            archivedOriginalStatus: nextState.archivedOriginalStatus,
++                        }
++                        : p
++                )
+             );
+             return { previousProjects };
+         },
+diff --git a/hooks/queries/useProjectDetailsQuery.ts b/hooks/queries/useProjectDetailsQuery.ts
+index 47e577a..52e6241 100644
+--- a/hooks/queries/useProjectDetailsQuery.ts
++++ b/hooks/queries/useProjectDetailsQuery.ts
+@@ -1,7 +1,7 @@
+ import { useQuery, useQueries, UseQueryOptions } from "@tanstack/react-query";
+ import { dbAdapter } from "../../services/dbAdapter";
+ import { withRetry, withTimeout } from "../../utils/helpers";
+-import { Project, ProjectDetails, DemandCategory, Bid } from "../../types";
++import { ActiveProjectStatus, Project, ProjectDetails, DemandCategory, Bid } from "../../types";
+ import { isDemoSession, DEMO_PROJECT_DETAILS, DEMO_PROJECT } from "../../services/demoData";
+ 
+ export const PROJECT_DETAILS_KEYS = {
+@@ -116,6 +116,7 @@ const fetchProjectDetails = async (projectId: string): Promise<ProjectDetails> =
+         id: project.id,
+         title: project.name,
+         status: project.status || "realization",
++        archivedOriginalStatus: (project.archived_original_status as ActiveProjectStatus | null) ?? null,
+         investor: project.investor || "",
+         technicalSupervisor: project.technical_supervisor || "",
+         location: project.location || "",
+diff --git a/hooks/queries/useProjectsQuery.ts b/hooks/queries/useProjectsQuery.ts
+index 6854946..ee50e9f 100644
+--- a/hooks/queries/useProjectsQuery.ts
++++ b/hooks/queries/useProjectsQuery.ts
+@@ -1,7 +1,7 @@
+ import { useQuery } from "@tanstack/react-query";
+ import { dbAdapter } from "../../services/dbAdapter";
+ import { withRetry, withTimeout } from "../../utils/helpers";
+-import { Project } from "../../types";
++import { ActiveProjectStatus, Project } from "../../types";
+ import { useAuth } from "../../context/AuthContext";
+ import { getDemoData, DEMO_PROJECT } from "../../services/demoData";
+ 
+@@ -68,6 +68,7 @@ export const useProjectsQuery = () => {
+                     name: p.name,
+                     location: p.location || "",
+                     status: p.status || "realization",
++                    archivedOriginalStatus: (p.archived_original_status as ActiveProjectStatus | null) ?? null,
+                     isDemo: p.is_demo,
+                     ownerId: p.owner_id,
+                     ownerEmail: meta?.owner,
+diff --git a/hooks/useAppData.ts b/hooks/useAppData.ts
+index 39de4a4..128bc0a 100644
+--- a/hooks/useAppData.ts
++++ b/hooks/useAppData.ts
+@@ -97,8 +97,11 @@ export const useAppData = (showUiModal: (props: any) => void) => {
+     const handleArchiveProject = async (id: string) => {
+         const project = projects.find(p => p.id === id);
+         if (project) {
+-            const newStatus = project.status === 'archived' ? 'realization' : 'archived';
+-            await archiveProjectMutation.mutateAsync({ id, newStatus });
++            await archiveProjectMutation.mutateAsync({
++                id,
++                currentStatus: project.status,
++                archivedOriginalStatus: project.archivedOriginalStatus ?? null,
++            });
+         }
+     };
+ 
+diff --git a/services/projectService.ts b/services/projectService.ts
+index 68e4bfe..e1276b4 100644
+--- a/services/projectService.ts
++++ b/services/projectService.ts
+@@ -1,5 +1,5 @@
+ import { supabase } from "./supabase";
+-import { Project } from "../types";
++import { ActiveProjectStatus, Project } from "../types";
+ import { isDemoSession, DEMO_PROJECT } from "./demoData";
+ 
+ export const projectService = {
+@@ -22,6 +22,7 @@ export const projectService = {
+       name: p.name,
+       location: p.location || "",
+       status: p.status || "realization",
++      archivedOriginalStatus: (p.archived_original_status as ActiveProjectStatus | null) ?? null,
+       ownerId: p.owner_id, // Need to add to type if not exists
+       isDemo: p.is_demo,
+     }));
+diff --git a/supabase/migrations/20260319170000_preserve_project_status_on_archive_restore.sql b/supabase/migrations/20260319170000_preserve_project_status_on_archive_restore.sql
+new file mode 100644
+index 0000000..fc7cac9
+--- /dev/null
++++ b/supabase/migrations/20260319170000_preserve_project_status_on_archive_restore.sql
+@@ -0,0 +1,18 @@
++ALTER TABLE public.projects
++  ADD COLUMN IF NOT EXISTS archived_original_status VARCHAR(50);
++
++DO $$
++BEGIN
++  IF NOT EXISTS (
++    SELECT 1
++    FROM pg_constraint
++    WHERE conname = 'projects_archived_original_status_check'
++  ) THEN
++    ALTER TABLE public.projects
++      ADD CONSTRAINT projects_archived_original_status_check
++      CHECK (
++        archived_original_status IS NULL
++        OR archived_original_status IN ('tender', 'realization')
++      );
++  END IF;
++END $$;
+diff --git a/tests/useProjectMutations.overviewInvalidation.test.ts b/tests/useProjectMutations.overviewInvalidation.test.ts
+index 06730ff..bc7c618 100644
+--- a/tests/useProjectMutations.overviewInvalidation.test.ts
++++ b/tests/useProjectMutations.overviewInvalidation.test.ts
+@@ -3,6 +3,7 @@ import { act, renderHook } from "@testing-library/react";
+ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+ import { beforeEach, describe, expect, it, vi } from "vitest";
+ import {
++  resolveArchiveProjectUpdate,
+   useAddCategoryMutation,
+   useAddProjectMutation,
+   useCloneTenderToRealizationMutation,
+@@ -150,13 +151,56 @@ describe("useProjectMutations -> overview cache invalidation", () => {
+     await act(async () => {
+       await result.current.mutateAsync({
+         id: "p-1",
+-        newStatus: "archived",
++        currentStatus: "tender",
++        archivedOriginalStatus: null,
+       });
+     });
+ 
+     expectOverviewInvalidation(invalidateSpy);
+   });
+ 
++  it("při archivaci ukládá původní aktivní status projektu", async () => {
++    const fromResult = createFromResult();
++    mocks.fromMock.mockReturnValueOnce(fromResult);
++
++    const { wrapper } = createWrapper();
++    const { result } = renderHook(() => useArchiveProjectMutation(), { wrapper });
++
++    await act(async () => {
++      await result.current.mutateAsync({
++        id: "p-archive",
++        currentStatus: "tender",
++        archivedOriginalStatus: null,
++      });
++    });
++
++    expect(fromResult.update).toHaveBeenCalledWith({
++      status: "archived",
++      archived_original_status: "tender",
++    });
++  });
++
++  it("při obnově z archivu vrací uložený původní status", async () => {
++    const fromResult = createFromResult();
++    mocks.fromMock.mockReturnValueOnce(fromResult);
++
++    const { wrapper } = createWrapper();
++    const { result } = renderHook(() => useArchiveProjectMutation(), { wrapper });
++
++    await act(async () => {
++      await result.current.mutateAsync({
++        id: "p-restore",
++        currentStatus: "archived",
++        archivedOriginalStatus: "tender",
++      });
++    });
++
++    expect(fromResult.update).toHaveBeenCalledWith({
++      status: "tender",
++      archived_original_status: null,
++    });
++  });
++
+   it("invaliduje overview cache po klonování soutěže do realizace", async () => {
+     const { wrapper, invalidateSpy } = createWrapper();
+     const { result } = renderHook(() => useCloneTenderToRealizationMutation(), {
+@@ -252,3 +296,17 @@ describe("useProjectMutations -> overview cache invalidation", () => {
+     expectOverviewInvalidation(invalidateSpy);
+   });
+ });
++
++describe("resolveArchiveProjectUpdate", () => {
++  it("při obnově bez uloženého statusu bezpečně fallbackne na realizaci", () => {
++    expect(
++      resolveArchiveProjectUpdate({
++        currentStatus: "archived",
++        archivedOriginalStatus: null,
++      }),
++    ).toEqual({
++      targetStatus: "realization",
++      archivedOriginalStatus: null,
++    });
++  });
++});
+diff --git a/types.ts b/types.ts
+index 6236ef4..a91c792 100644
+--- a/types.ts
++++ b/types.ts
+@@ -129,12 +129,14 @@ export interface ChartData {
+ }
+ 
+ export type ProjectStatus = "tender" | "realization" | "archived";
++export type ActiveProjectStatus = Exclude<ProjectStatus, "archived">;
+ 
+ export interface Project {
+   id: string;
+   name: string;
+   location: string;
+   status: ProjectStatus;
++  archivedOriginalStatus?: ActiveProjectStatus | null;
+   isDemo?: boolean;
+   ownerId?: string;
+   ownerEmail?: string;
+@@ -174,6 +176,7 @@ export interface ProjectDetails {
+   id?: string; // Optional linkage
+   title: string;
+   status?: ProjectStatus; // Added specific status field
++  archivedOriginalStatus?: ActiveProjectStatus | null;
+ 
+   // Editable General Info
+   investor?: string; // Investor
+-- 
+2.53.0
+
