@@ -7,6 +7,7 @@ import { useContactStatusesQuery, STATUS_KEYS } from "./queries/useContactStatus
 import { useAllProjectDetailsQuery, PROJECT_DETAILS_KEYS } from "./queries/useProjectDetailsQuery";
 import {
     useAddProjectMutation,
+    useCloneTenderToRealizationMutation,
     useDeleteProjectMutation,
     useArchiveProjectMutation,
     useUpdateProjectDetailsMutation,
@@ -59,6 +60,7 @@ export const useAppData = (showUiModal: (props: any) => void) => {
     // Mutations
     const addProjectMutation = useAddProjectMutation();
     const deleteProjectMutation = useDeleteProjectMutation();
+    const cloneTenderToRealizationMutation = useCloneTenderToRealizationMutation();
     const archiveProjectMutation = useArchiveProjectMutation();
     const updateProjectDetailsMutation = useUpdateProjectDetailsMutation();
     const addCategoryMutation = useAddCategoryMutation();
@@ -86,6 +88,10 @@ export const useAppData = (showUiModal: (props: any) => void) => {
     const handleDeleteProject = async (id: string) => {
         await deleteProjectMutation.mutateAsync(id);
         if (selectedProjectId === id) setSelectedProjectId(null);
+    };
+
+    const handleCloneTenderToRealization = async (id: string) => {
+        return cloneTenderToRealizationMutation.mutateAsync(id);
     };
 
     const handleArchiveProject = async (id: string) => {
@@ -258,6 +264,7 @@ export const useAppData = (showUiModal: (props: any) => void) => {
 
             handleAddProject,
             handleDeleteProject,
+            handleCloneTenderToRealization,
             handleArchiveProject,
             handleUpdateProjectDetails,
 

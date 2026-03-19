@@ -37,4 +37,22 @@ describe("BidCard", () => {
     expect(onGenerateInquiry).toHaveBeenCalledWith(baseBid);
     expect(onGenerateMaterialInquiry).toHaveBeenCalledWith(baseBid);
   });
+
+  it("zobrazuje soutěžní cenu z vybraného kola i když aktuální price je otazník", () => {
+    render(
+      <BidCard
+        bid={{
+          ...baseBid,
+          price: "?",
+          selectionRound: 0,
+          priceHistory: { 0: "1 250 000 Kč" },
+        }}
+        onDragStart={vi.fn()}
+        onEdit={vi.fn()}
+      />,
+    );
+
+    expect(screen.getAllByText("1 250 000 Kč")).toHaveLength(2);
+    expect(screen.getByText("Soutěž:")).toBeInTheDocument();
+  });
 });
