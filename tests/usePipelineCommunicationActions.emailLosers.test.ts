@@ -1,6 +1,37 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const platformMock = vi.hoisted(() => ({
+  openTempFile: vi.fn(),
+}));
+
+const profileServiceMock = vi.hoisted(() => ({
+  getProfile: vi.fn(),
+}));
+
+const organizationServiceMock = vi.hoisted(() => ({
+  getOrganizationEmailBranding: vi.fn(),
+}));
+
+vi.mock("@/services/platformAdapter", () => ({
+  __esModule: true,
+  default: {
+    isDesktop: false,
+    shell: {
+      openTempFile: platformMock.openTempFile,
+    },
+  },
+}));
+
+vi.mock("@/services/userProfileService", () => ({
+  userProfileService: profileServiceMock,
+}));
+
+vi.mock("@/services/organizationService", () => ({
+  organizationService: organizationServiceMock,
+}));
+
 import { usePipelineCommunicationActions } from "../features/projects/model/usePipelineCommunicationActions";
-import type { Bid, DemandCategory, ProjectDetails } from "../types";
+import type { Bid, DemandCategory, ProjectDetails, User } from "../types";
 
 const createProjectDetails = (
   overrides: Partial<ProjectDetails> = {},
@@ -25,16 +56,37 @@ const createCategory = (): DemandCategory =>
     subcontractorCount: 0,
   }) as DemandCategory;
 
+const currentUser: User = {
+  id: "user-1",
+  name: "Martin Kalkuš",
+  email: "kalkus@baustav.cz",
+  role: "user",
+  organizationId: "org-1",
+};
+
 describe("usePipelineCommunicationActions.handleEmailLosers", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    Object.defineProperty(window, "location", {
-      writable: true,
-      value: { href: "" },
+    profileServiceMock.getProfile.mockResolvedValue({
+      displayName: "Martin Kalkuš",
+      signatureName: "Martin Kalkuš",
+      signatureRole: "technik přípravy staveb",
+      signaturePhone: "+420 353 561 325",
+      signaturePhoneSecondary: "+420 777 300 042",
+      signatureEmail: "kalkus@baustav.cz",
+      signatureGreeting: "S pozdravem",
+    });
+    organizationServiceMock.getOrganizationEmailBranding.mockResolvedValue({
+      emailLogoPath: "organizations/org-1/email-logo.png",
+      emailLogoUrl: "https://cdn.example/email-logo.png",
+      companyName: "BAU-STAV a.s.",
+      companyAddress: "Loketská 344/12",
+      companyMeta: "IČ: 147 05 877",
+      disclaimerHtml: "<p>Disclaimer</p>",
     });
   });
 
-  it("builds mailto with encoded BCC separated by semicolon", async () => {
+  it("builds EML draft with encoded BCC list and signature", async () => {
     const activeCategory = createCategory();
     const bids: Record<string, Bid[]> = {
       [activeCategory.id]: [
@@ -64,6 +116,7 @@ describe("usePipelineCommunicationActions.handleEmailLosers", () => {
       activeCategory,
       bids,
       projectDetails: createProjectDetails(),
+      currentUser,
       updateBidsInternal: vi.fn(),
       setIsExportMenuOpen: vi.fn(),
       showAlert,
@@ -72,11 +125,20 @@ describe("usePipelineCommunicationActions.handleEmailLosers", () => {
 
     await actions.handleEmailLosers();
 
-    expect(window.location.href).toContain("mailto:?bcc=a%40x.cz%3Bb%40x.cz");
+    expect(platformMock.openTempFile).toHaveBeenCalledTimes(1);
+    const [content, filename] = platformMock.openTempFile.mock.calls[0];
+    const htmlPartBase64 = content.split("\r\n").findLast((line: string) =>
+      /^[A-Za-z0-9+/=]+$/.test(line),
+    );
+    const decodedHtml = htmlPartBase64 ? atob(htmlPartBase64) : "";
+    expect(filename).toMatch(/^Nevybrani_/);
+    expect(content).toContain("Bcc: a@x.cz;b@x.cz");
+    expect(decodedHtml).toContain("kalkus@baustav.cz");
+    expect(decodedHtml).toContain("BAU-STAV a.s.");
     expect(showAlert).not.toHaveBeenCalled();
   });
 
-  it("does not navigate when there are no loser emails", async () => {
+  it("does not generate draft when there are no loser emails", async () => {
     const activeCategory = createCategory();
     const bids: Record<string, Bid[]> = {
       [activeCategory.id]: [
@@ -97,6 +159,7 @@ describe("usePipelineCommunicationActions.handleEmailLosers", () => {
       activeCategory,
       bids,
       projectDetails: createProjectDetails(),
+      currentUser,
       updateBidsInternal: vi.fn(),
       setIsExportMenuOpen: vi.fn(),
       showAlert,
@@ -105,7 +168,7 @@ describe("usePipelineCommunicationActions.handleEmailLosers", () => {
 
     await actions.handleEmailLosers();
 
-    expect(window.location.href).toBe("");
+    expect(platformMock.openTempFile).not.toHaveBeenCalled();
     expect(showAlert).toHaveBeenCalledWith(
       expect.objectContaining({
         message: "Žádný z nevybraných účastníků nemá uvedený email.",

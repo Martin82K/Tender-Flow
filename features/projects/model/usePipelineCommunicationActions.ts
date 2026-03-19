@@ -3,6 +3,7 @@ import {
   downloadEmlFile,
   generateEmlContent,
 } from "@/services/inquiryService";
+import { organizationService } from "@/services/organizationService";
 import {
   exportToXLSX,
   exportToMarkdown,
@@ -12,9 +13,14 @@ import {
   getTemplateById,
   getDefaultTemplate,
 } from "@/services/templateService";
+import { userProfileService } from "@/services/userProfileService";
+import {
+  appendSignatureToTemplate,
+  buildEmailSignature,
+} from "@/shared/email/signature";
 import { processTemplate } from "@/utils/templateUtils";
 import platformAdapter from "@/services/platformAdapter";
-import type { Bid, DemandCategory, ProjectDetails } from "@/types";
+import type { Bid, DemandCategory, ProjectDetails, User } from "@/types";
 import type { PipelineInquiryGenerationKind } from "./pipelineModel";
 import {
   buildBccRecipientList,
@@ -43,6 +49,7 @@ interface UsePipelineCommunicationActionsInput {
   projectDetails: ProjectDetails;
   emailClientMode?: string;
   userRole?: string;
+  currentUser?: User | null;
   updateBidsInternal: (
     updater: (prev: Record<string, Bid[]>) => Record<string, Bid[]>,
   ) => void;
@@ -60,6 +67,7 @@ export const usePipelineCommunicationActions = ({
   projectDetails,
   emailClientMode,
   userRole,
+  currentUser,
   updateBidsInternal,
   setIsExportMenuOpen,
   showAlert,
@@ -101,6 +109,43 @@ export const usePipelineCommunicationActions = ({
     return true;
   };
 
+  const getEmailSignature = async () => {
+    if (!currentUser?.id) {
+      return buildEmailSignature({
+        profile: null,
+        branding: null,
+      });
+    }
+
+    const [profile, branding] = await Promise.all([
+      userProfileService.getProfile(currentUser.id),
+      currentUser.organizationId
+        ? organizationService.getOrganizationEmailBranding(
+            currentUser.organizationId,
+            {
+              expiresInSeconds: 1800,
+            },
+          )
+        : Promise.resolve(null),
+    ]);
+
+    return buildEmailSignature({
+      profile: {
+        ...profile,
+        signatureEmail: profile.signatureEmail || currentUser.email || null,
+        signatureName:
+          profile.signatureName || profile.displayName || currentUser.name || null,
+      },
+      branding,
+    });
+  };
+
+  const wrapHtmlEmailBody = (rawBody: string): string => {
+    const hasHtmlMarkup = /<[a-z][\s\S]*>/i.test(rawBody);
+    const normalizedBody = hasHtmlMarkup ? rawBody : rawBody.replace(/\n/g, "<br>");
+    return `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;color:#333333;">${normalizedBody}</body></html>`;
+  };
+
   const generateInquiryFromTemplateKind = async (
     bid: Bid,
     kind: PipelineInquiryGenerationKind,
@@ -139,29 +184,38 @@ export const usePipelineCommunicationActions = ({
       projectDetails,
       activeCategory,
     );
+    const signature = await getEmailSignature();
     let body = "";
     let htmlBody = "";
 
     if (mode === "eml") {
-      const rawBody = processTemplate(
+      const contentWithSignaturePlaceholder = appendSignatureToTemplate(
         template.content,
+        "{PODPIS_UZIVATELE}",
+        { format: "html" },
+      );
+      const rawBody = processTemplate(
+        contentWithSignaturePlaceholder,
         projectDetails,
         activeCategory,
         "html",
+        signature.html,
       );
-      htmlBody = rawBody.replace(/\n/g, "<br>");
-      htmlBody = `<!DOCTYPE html><html><body style="font-family: Arial, sans-serif; color: #333;">${htmlBody}</body></html>`;
+      htmlBody = wrapHtmlEmailBody(rawBody);
     } else {
-      const processedBody = processTemplate(
+      const contentWithSignaturePlaceholder = appendSignatureToTemplate(
         template.content,
+        "{PODPIS_UZIVATELE}",
+        { format: "text" },
+      );
+      const processedBody = processTemplate(
+        contentWithSignaturePlaceholder,
         projectDetails,
         activeCategory,
         "text",
+        signature.text,
       );
-      body = processedBody
-        .replace(/<br\s*\/?>/gi, "\n")
-        .replace(/<[^>]+>/g, "")
-        .replace(/&nbsp;/g, " ");
+      body = htmlToPlainText(processedBody);
     }
 
     if (mode === "eml") {
@@ -253,8 +307,12 @@ export const usePipelineCommunicationActions = ({
       projectDetails.title,
       activeCategory.title,
     );
+    const signature = await getEmailSignature();
     let subject = draft.subject;
-    let body = draft.body;
+    let htmlBody = draft.body
+      .split("\n\n")
+      .map((paragraph) => `<p>${paragraph.replace(/\n/g, "<br>")}</p>`)
+      .join("");
 
     const templateLink = projectDetails.losersEmailTemplateLink || "";
     if (templateLink.startsWith("template:")) {
@@ -267,16 +325,45 @@ export const usePipelineCommunicationActions = ({
           activeCategory,
         );
         const processed = processTemplate(
-          template.content,
+          appendSignatureToTemplate(template.content, "{PODPIS_UZIVATELE}", {
+            format: "html",
+          }),
           projectDetails,
           activeCategory,
+          "html",
+          signature.html,
         );
-        body = htmlToPlainText(processed);
+        htmlBody = processed;
       }
     }
 
     const bccList = buildBccRecipientList(emails);
-    window.location.href = `mailto:?bcc=${encodeURIComponent(bccList)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    const processedHtmlBody = processTemplate(
+      appendSignatureToTemplate(htmlBody, "{PODPIS_UZIVATELE}", {
+        format: "html",
+      }),
+      projectDetails,
+      activeCategory,
+      "html",
+      signature.html,
+    );
+    const wrappedHtmlBody = wrapHtmlEmailBody(processedHtmlBody);
+
+    if (platformAdapter.isDesktop) {
+      const emlContent = generateEmlContent("", subject, wrappedHtmlBody, {
+        bcc: bccList,
+      });
+      const filename = `Nevybrani_${Date.now()}.eml`;
+      console.log("[Pipeline] Opening losers EML on desktop:", filename);
+      platformAdapter.shell.openTempFile(emlContent, filename);
+      return;
+    }
+
+    const emlContent = generateEmlContent("", subject, wrappedHtmlBody, {
+      bcc: bccList,
+    });
+    const filename = `Nevybrani_${Date.now()}.eml`;
+    platformAdapter.shell.openTempFile(emlContent, filename);
   };
 
   return {

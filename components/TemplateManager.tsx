@@ -279,6 +279,9 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
 
                 {/* Main Content */}
                 <div className="flex-1 flex flex-col bg-slate-50 dark:bg-slate-900 overflow-hidden">
+                    <div className="px-6 py-3 border-b border-slate-200 dark:border-slate-800 bg-amber-50/80 dark:bg-amber-500/5 text-xs text-slate-600 dark:text-slate-300">
+                        Proměnná <code>{'{PODPIS_UZIVATELE}'}</code> vloží plný podpis uživatele včetně e-mailového brandingu organizace. Pokud ji do šablony nevložíte ručně, systém podpis přidá automaticky na konec e-mailu.
+                    </div>
                     {selectedTemplate ? (
                         <>
                             {/* Toolbar */}

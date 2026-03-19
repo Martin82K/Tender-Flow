@@ -238,6 +238,25 @@ export interface UserPreferences {
   signature?: string; // HTML compatible signature
 }
 
+export interface UserEmailSignatureProfile {
+  displayName: string | null;
+  signatureName: string | null;
+  signatureRole: string | null;
+  signaturePhone: string | null;
+  signaturePhoneSecondary: string | null;
+  signatureEmail: string | null;
+  signatureGreeting: string | null;
+}
+
+export interface OrganizationEmailBranding {
+  emailLogoPath: string | null;
+  emailLogoUrl?: string | null;
+  companyName: string | null;
+  companyAddress: string | null;
+  companyMeta: string | null;
+  disclaimerHtml: string | null;
+}
+
 export interface LegalAcceptance {
   termsVersion: string | null;
   termsAcceptedAt: string | null;
