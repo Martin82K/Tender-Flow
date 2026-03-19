@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { dbAdapter } from "../../services/dbAdapter";
 import { withRetry, withTimeout } from "../../utils/helpers";
-import { Project } from "../../types";
+import { ActiveProjectStatus, Project } from "../../types";
 import { useAuth } from "../../context/AuthContext";
 import { getDemoData, DEMO_PROJECT } from "../../services/demoData";
 
@@ -68,6 +68,7 @@ export const useProjectsQuery = () => {
                     name: p.name,
                     location: p.location || "",
                     status: p.status || "realization",
+                    archivedOriginalStatus: (p.archived_original_status as ActiveProjectStatus | null) ?? null,
                     isDemo: p.is_demo,
                     ownerId: p.owner_id,
                     ownerEmail: meta?.owner,

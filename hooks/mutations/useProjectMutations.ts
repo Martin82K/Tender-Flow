@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { dbAdapter } from "../../services/dbAdapter";
-import { Project, ProjectDetails, DemandCategory } from "../../types";
+import { ActiveProjectStatus, Project, ProjectDetails, DemandCategory, ProjectStatus } from "../../types";
 import { useAuth } from "../../context/AuthContext";
 import { PROJECT_KEYS } from "../queries/useProjectsQuery";
 import { PROJECT_DETAILS_KEYS } from "../queries/useProjectDetailsQuery";
@@ -20,6 +20,34 @@ const syncDocHubCategory = async (projectId: string, action: "upsert" | "archive
     } catch (e) {
         console.error("DocHub sync failed", e);
     }
+};
+
+type ArchiveProjectMutationInput = {
+    id: string;
+    currentStatus: ProjectStatus;
+    archivedOriginalStatus?: ActiveProjectStatus | null;
+};
+
+type ArchiveProjectUpdate = {
+    targetStatus: ProjectStatus;
+    archivedOriginalStatus: ActiveProjectStatus | null;
+};
+
+export const resolveArchiveProjectUpdate = ({
+    currentStatus,
+    archivedOriginalStatus,
+}: Omit<ArchiveProjectMutationInput, "id">): ArchiveProjectUpdate => {
+    if (currentStatus === "archived") {
+        return {
+            targetStatus: archivedOriginalStatus ?? "realization",
+            archivedOriginalStatus: null,
+        };
+    }
+
+    return {
+        targetStatus: "archived",
+        archivedOriginalStatus: currentStatus,
+    };
 };
 
 export const useAddProjectMutation = () => {
@@ -237,25 +265,53 @@ export const useArchiveProjectMutation = () => {
     const { user } = useAuth();
 
     return useMutation({
-        mutationFn: async ({ id, newStatus }: { id: string; newStatus: "realization" | "archived" }) => {
+        mutationFn: async ({ id, currentStatus, archivedOriginalStatus }: ArchiveProjectMutationInput) => {
+            const nextState = resolveArchiveProjectUpdate({ currentStatus, archivedOriginalStatus });
+
             if (user?.role === "demo") {
                 const demoData = getDemoData();
                 if (demoData) {
-                    demoData.projects = demoData.projects.map(p => p.id === id ? { ...p, status: newStatus } : p);
-                    if (demoData.projectDetails[id]) demoData.projectDetails[id].status = newStatus;
+                    demoData.projects = demoData.projects.map((p) =>
+                        p.id === id
+                            ? {
+                                ...p,
+                                status: nextState.targetStatus,
+                                archivedOriginalStatus: nextState.archivedOriginalStatus,
+                            }
+                            : p
+                    );
+                    if (demoData.projectDetails[id]) {
+                        demoData.projectDetails[id].status = nextState.targetStatus;
+                        demoData.projectDetails[id].archivedOriginalStatus = nextState.archivedOriginalStatus;
+                    }
                     saveDemoData(demoData);
                 }
                 return;
             }
 
-            const { error } = await dbAdapter.from("projects").update({ status: newStatus }).eq("id", id);
+            const { error } = await dbAdapter
+                .from("projects")
+                .update({
+                    status: nextState.targetStatus,
+                    archived_original_status: nextState.archivedOriginalStatus,
+                })
+                .eq("id", id);
             if (error) throw error;
         },
-        onMutate: async ({ id, newStatus }) => {
+        onMutate: async ({ id, currentStatus, archivedOriginalStatus }) => {
+            const nextState = resolveArchiveProjectUpdate({ currentStatus, archivedOriginalStatus });
             await queryClient.cancelQueries({ queryKey: PROJECT_KEYS.list() });
             const previousProjects = queryClient.getQueryData<Project[]>(PROJECT_KEYS.list());
             queryClient.setQueryData<Project[]>(PROJECT_KEYS.list(), (old) =>
-                (old || []).map(p => p.id === id ? { ...p, status: newStatus } : p)
+                (old || []).map((p) =>
+                    p.id === id
+                        ? {
+                            ...p,
+                            status: nextState.targetStatus,
+                            archivedOriginalStatus: nextState.archivedOriginalStatus,
+                        }
+                        : p
+                )
             );
             return { previousProjects };
         },

@@ -129,12 +129,14 @@ export interface ChartData {
 }
 
 export type ProjectStatus = "tender" | "realization" | "archived";
+export type ActiveProjectStatus = Exclude<ProjectStatus, "archived">;
 
 export interface Project {
   id: string;
   name: string;
   location: string;
   status: ProjectStatus;
+  archivedOriginalStatus?: ActiveProjectStatus | null;
   isDemo?: boolean;
   ownerId?: string;
   ownerEmail?: string;
@@ -174,6 +176,7 @@ export interface ProjectDetails {
   id?: string; // Optional linkage
   title: string;
   status?: ProjectStatus; // Added specific status field
+  archivedOriginalStatus?: ActiveProjectStatus | null;
 
   // Editable General Info
   investor?: string; // Investor

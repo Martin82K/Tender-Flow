@@ -3,6 +3,7 @@ import { act, renderHook } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  resolveArchiveProjectUpdate,
   useAddCategoryMutation,
   useAddProjectMutation,
   useCloneTenderToRealizationMutation,
@@ -150,11 +151,54 @@ describe("useProjectMutations -> overview cache invalidation", () => {
     await act(async () => {
       await result.current.mutateAsync({
         id: "p-1",
-        newStatus: "archived",
+        currentStatus: "tender",
+        archivedOriginalStatus: null,
       });
     });
 
     expectOverviewInvalidation(invalidateSpy);
+  });
+
+  it("při archivaci ukládá původní aktivní status projektu", async () => {
+    const fromResult = createFromResult();
+    mocks.fromMock.mockReturnValueOnce(fromResult);
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useArchiveProjectMutation(), { wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        id: "p-archive",
+        currentStatus: "tender",
+        archivedOriginalStatus: null,
+      });
+    });
+
+    expect(fromResult.update).toHaveBeenCalledWith({
+      status: "archived",
+      archived_original_status: "tender",
+    });
+  });
+
+  it("při obnově z archivu vrací uložený původní status", async () => {
+    const fromResult = createFromResult();
+    mocks.fromMock.mockReturnValueOnce(fromResult);
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useArchiveProjectMutation(), { wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        id: "p-restore",
+        currentStatus: "archived",
+        archivedOriginalStatus: "tender",
+      });
+    });
+
+    expect(fromResult.update).toHaveBeenCalledWith({
+      status: "tender",
+      archived_original_status: null,
+    });
   });
 
   it("invaliduje overview cache po klonování soutěže do realizace", async () => {
@@ -250,5 +294,19 @@ describe("useProjectMutations -> overview cache invalidation", () => {
     });
 
     expectOverviewInvalidation(invalidateSpy);
+  });
+});
+
+describe("resolveArchiveProjectUpdate", () => {
+  it("při obnově bez uloženého statusu bezpečně fallbackne na realizaci", () => {
+    expect(
+      resolveArchiveProjectUpdate({
+        currentStatus: "archived",
+        archivedOriginalStatus: null,
+      }),
+    ).toEqual({
+      targetStatus: "realization",
+      archivedOriginalStatus: null,
+    });
   });
 });

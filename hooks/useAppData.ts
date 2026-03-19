@@ -97,8 +97,11 @@ export const useAppData = (showUiModal: (props: any) => void) => {
     const handleArchiveProject = async (id: string) => {
         const project = projects.find(p => p.id === id);
         if (project) {
-            const newStatus = project.status === 'archived' ? 'realization' : 'archived';
-            await archiveProjectMutation.mutateAsync({ id, newStatus });
+            await archiveProjectMutation.mutateAsync({
+                id,
+                currentStatus: project.status,
+                archivedOriginalStatus: project.archivedOriginalStatus ?? null,
+            });
         }
     };
 
