@@ -29,7 +29,15 @@ export const LegalAcceptanceModal: React.FC<LegalAcceptanceModalProps> = ({
     }
 
     setError("");
-    await onAccept(getCurrentLegalAcceptanceInput());
+    try {
+      await onAccept(getCurrentLegalAcceptanceInput());
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : "Nepodařilo se uložit potvrzení dokumentů.";
+      setError(message);
+    }
   };
 
   return (

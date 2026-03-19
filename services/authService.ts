@@ -425,6 +425,15 @@ export const authService = {
             throw new Error('Neplatná verze právních dokumentů. Obnov stránku a potvrď aktuální verzi.');
         }
 
+        const activeSession =
+            options.session?.user
+                ? options.session
+                : (await supabase.auth.getSession()).data.session;
+
+        if (!activeSession?.user) {
+            throw new Error("Přihlášení vypršelo. Přihlaste se prosím znovu.");
+        }
+
         const { error } = await supabase.rpc('accept_current_legal_documents', {
             p_terms_version: input.termsVersion,
             p_privacy_version: input.privacyVersion,
@@ -435,8 +444,8 @@ export const authService = {
             throw error;
         }
 
-        if (options.session?.user) {
-            const updatedFromSession = await authService.getUserFromSession(options.session, {
+        if (activeSession?.user) {
+            const updatedFromSession = await authService.getUserFromSession(activeSession, {
                 skipUserCache: true,
             });
             if (updatedFromSession) return updatedFromSession;
