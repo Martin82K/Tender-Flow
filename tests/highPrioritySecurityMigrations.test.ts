@@ -55,4 +55,13 @@ describe("high priority security hardening migrations", () => {
     expect(migration).toContain("public.is_org_member(organization_id)");
     expect(migration).not.toContain("owner_id IS NULL");
   });
+
+  it("subcontractor RLS už neotevírá kontakty každému členu organizace bez explicitního oprávnění", () => {
+    const migration = readMigration("20260320183000_harden_subcontractors_rls.sql");
+
+    expect(migration).toContain('CREATE POLICY "Subcontractors visible to owner or org"');
+    expect(migration).toContain("organization_id = ANY(public.get_my_org_ids())");
+    expect(migration).not.toContain("owner_id IS NULL");
+    expect(migration).toContain('DROP POLICY IF EXISTS "Users can view own or public subcontractors" ON public.subcontractors;');
+  });
 });

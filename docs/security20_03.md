@@ -111,7 +111,7 @@ Pracovní backlog a auditní deník k nálezům z reportu `codex-security-findin
 - `todo-07` `Short URL redirects allow arbitrary schemes causing stored XSS`
 - `todo-08` `Ownerless project RLS exposes contract/financial data` `done`
 - `todo-09` `Projects RLS makes NULL-owner rows globally readable/editable` `done`
-- `todo-10` `Overly permissive RLS policies expose all subcontractors`
+- `todo-10` `Overly permissive RLS policies expose all subcontractors` `done`
 
 ### Dokončené high priority položky
 
@@ -174,10 +174,21 @@ Pracovní backlog a auditní deník k nálezům z reportu `codex-security-findin
   - `NULL-owner` projekt už není globálně čitelný ani editovatelný pro libovolného přihlášeného uživatele
   - tenantové projekty bez ownera zůstávají dostupné jen členům stejné organizace, sdíleným uživatelům nebo přes demo flow tam, kde to dává smysl
 
+#### `todo-10` Overly permissive RLS policies expose all subcontractors
+
+- Stav: `done`
+- Implementováno:
+  - `20260320183000_harden_subcontractors_rls.sql`
+  - odstraněny legacy/public subcontractor politiky s implicitním `NULL-owner` chováním
+  - SELECT/INSERT/UPDATE/DELETE zůstávají sdílené v rámci celé organizace přes `organization_id = ANY(public.get_my_org_ids())`
+  - přístup už ale není veřejný mimo tenant a není otevřený přes `owner_id IS NULL`
+- Funkční dopad:
+  - každý člen organizace může dál číst a spravovat společnou databázi kontaktů své organizace
+  - kontakty už nejsou vystavené mimo tenant přes příliš permissive/public RLS
+
 ## Doporučené další kroky
 
 - dokončit recovery plán pro Baustav incident na základě auditních snapshotů
-- řešit `todo-10`, protože dál zasahuje tenant autorizaci
 - následně `todo-03`, `todo-06`, `todo-07` a `todo-05`
 
 ## Minimální gate před merge
