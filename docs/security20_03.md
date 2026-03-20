@@ -103,9 +103,9 @@ Pracovní backlog a auditní deník k nálezům z reportu `codex-security-findin
 ## Navazující backlog `high`
 
 - `todo-01` `AI memory endpoint skips project-level authorization checks`
-- `todo-02` `Org join requests allow email spoofing to target any org`
+- `todo-02` `Org join requests allow email spoofing to target any org` `done`
 - `todo-03` `Command injection via macOS docx conversion IPC handler`
-- `todo-04` `Authenticated users can modify any subscription via RPC grants`
+- `todo-04` `Authenticated users can modify any subscription via RPC grants` `done`
 - `todo-05` `Public RLS policy exposes all short_urls entries`
 - `todo-06` `Electron IPC exposes unrestricted filesystem access`
 - `todo-07` `Short URL redirects allow arbitrary schemes causing stored XSS`
@@ -113,11 +113,36 @@ Pracovní backlog a auditní deník k nálezům z reportu `codex-security-findin
 - `todo-09` `Projects RLS makes NULL-owner rows globally readable/editable`
 - `todo-10` `Overly permissive RLS policies expose all subcontractors`
 
+### Dokončené high priority položky
+
+#### `todo-02` Org join requests allow email spoofing to target any org
+
+- Stav: `done`
+- Implementováno:
+  - `20260320170000_harden_org_join_and_subscription_rpc.sql`
+  - server důvěřuje jen emailu přihlášeného uživatele z auth kontextu
+  - insert policy navíc validuje shodu emailu a domény organizace
+- Funkční dopad:
+  - běžný join request flow zůstává
+  - podvržení cizího emailu už neprojde
+
+#### `todo-04` Authenticated users can modify any subscription via RPC grants
+
+- Stav: `done`
+- Implementováno:
+  - `20260320170000_harden_org_join_and_subscription_rpc.sql`
+  - `start_user_trial` a `activate_subscription` už nejsou dostupné pro běžné `authenticated`
+  - `cancel_subscription()` a `reactivate_subscription()` zůstaly jako self-service bez cizího `user_id`
+- Funkční dopad:
+  - běžný uživatel si dál může zrušit nebo obnovit vlastní subscription
+  - běžný uživatel už nemůže obcházet billing/admin flow pro aktivaci tarifu
+
 ## Doporučené další kroky
 
 - dokončit recovery plán pro Baustav incident na základě auditních snapshotů
-- začít `todo-02` a `todo-04`, protože jsou nejblíž kritickým auth/RPC problémům
-- potom řešit `todo-01` a `todo-08` až `todo-10`, protože dál zasahují tenant autorizaci
+- začít `todo-01`, protože dál zasahuje projektovou autorizaci přes service role
+- potom řešit `todo-08` až `todo-10`, protože dál zasahují tenant autorizaci
+- následně `todo-03`, `todo-06`, `todo-07` a `todo-05`
 
 ## Minimální gate před merge
 
