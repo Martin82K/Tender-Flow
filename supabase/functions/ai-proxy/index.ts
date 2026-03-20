@@ -150,6 +150,36 @@ const memoryDocumentToMarkdown = (document: AgentProjectMemoryDocument): string 
     return [...header, ...sectionBlocks].join("\n").trimEnd() + "\n";
 };
 
+const canAccessProjectMemory = async (
+    service: ReturnType<typeof createClient>,
+    projectId: string,
+    organizationId: string,
+    userId: string,
+    requiredPermission: "view" | "edit",
+): Promise<boolean> => {
+    const { data: project, error: projectError } = await service
+        .from("projects")
+        .select("id, owner_id, organization_id")
+        .eq("id", projectId)
+        .eq("organization_id", organizationId)
+        .maybeSingle();
+
+    if (projectError || !project) return false;
+    if (project.owner_id === userId) return true;
+
+    const permissions = requiredPermission === "edit" ? ["edit"] : ["view", "edit"];
+    const { data: share, error: shareError } = await service
+        .from("project_shares")
+        .select("permission")
+        .eq("project_id", projectId)
+        .eq("user_id", userId)
+        .in("permission", permissions)
+        .maybeSingle();
+
+    if (shareError) return false;
+    return !!share;
+};
+
 // Native Deno.serve (more robust)
 Deno.serve(async (req) => {
     // Handle CORS preflight request
@@ -317,6 +347,21 @@ Deno.serve(async (req) => {
                 return new Response(
                     JSON.stringify({ error: "Organization context not found" }),
                     { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                );
+            }
+
+            const hasProjectAccess = await canAccessProjectMemory(
+                service,
+                projectId,
+                orgMember.organization_id,
+                user.id,
+                action === "memory-save" ? "edit" : "view",
+            );
+
+            if (!hasProjectAccess) {
+                return new Response(
+                    JSON.stringify({ error: "Forbidden" }),
+                    { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
                 );
             }
 
