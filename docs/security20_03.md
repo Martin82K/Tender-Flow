@@ -204,10 +204,14 @@ Pracovní backlog a auditní deník k nálezům z reportu `codex-security-findin
 
 - Stav: `done`
 - Implementováno:
+  - PR/commit fix: `85022dc` (`enforce project access for ai memory`, ekvivalent původního patch návrhu)
   - `supabase/functions/ai-proxy/index.ts`
   - `supabase/functions/ai-proxy/memoryAccess.ts`
   - `tests/aiProxy.memoryAccess.test.ts`
-  - `memory-load` a `memory-save` nově validují přístup ke konkrétnímu projektu přes RLS nad tabulkou `projects`
+  - `tests/aiProxy.memoryGuard.test.ts`
+  - `memory-load` a `memory-save` nově validují přístup ke konkrétnímu projektu přes RLS nad tabulkou `projects` + `project_shares`
+  - rozhodovací body: `memory-load` vyžaduje `view|edit`, `memory-save` vyžaduje `edit`, při neúspěchu se vrací `403`
+  - guard test hlídá, že `resolveAuthorizedProjectMemoryContext(...)` běží před `service.storage.download/upload`
   - storage cesta se nově skládá z `organization_id` autorizovaného projektu, ne z první nalezené organizace uživatele
 - Funkční dopad:
   - uživatel bez přístupu ke zvolenému projektu nedokáže číst ani zapisovat Viki memory přes podvržené `projectId`

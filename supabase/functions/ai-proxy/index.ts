@@ -316,7 +316,12 @@ Deno.serve(async (req) => {
                 );
             }
 
-            const projectAccess = await resolveAuthorizedProjectMemoryContext(authed, projectId);
+            const projectAccess = await resolveAuthorizedProjectMemoryContext(
+                authed,
+                projectId,
+                user.id,
+                action === "memory-save" ? "edit" : "view",
+            );
             if (!projectAccess.ok) {
                 const error = projectAccess.error === "PROJECT_ORGANIZATION_MISSING"
                     ? "Project organization context not found"
