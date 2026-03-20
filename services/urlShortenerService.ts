@@ -210,15 +210,12 @@ export async function shortenUrl(url: string): Promise<ShortenResult> {
 export async function getOriginalUrl(code: string): Promise<{ url: string | null; error?: string }> {
   try {
     const { data, error } = await supabase
-      .from('short_urls')
-      .select('original_url')
-      .eq('id', code)
-      .single();
+      .rpc('get_short_url_target', { url_id: code });
 
     if (error) throw error;
     if (!data) return { url: null };
 
-    const safeUrl = normalizeSafeShortRedirectUrl(data.original_url);
+    const safeUrl = normalizeSafeShortRedirectUrl(data);
     if (!safeUrl) {
       return { url: null, error: "Unsafe redirect target blocked" };
     }

@@ -64,4 +64,16 @@ describe("high priority security hardening migrations", () => {
     expect(migration).not.toContain("owner_id IS NULL");
     expect(migration).toContain('DROP POLICY IF EXISTS "Users can view own or public subcontractors" ON public.subcontractors;');
   });
+
+  it("short_urls RLS už nevystavuje všechny odkazy veřejně a redirect jede přes bezpečný resolver", () => {
+    const migration = readMigration("20260320190000_harden_short_urls_rls.sql");
+
+    expect(migration).toContain('DROP POLICY IF EXISTS "Everyone can read short URLs" ON public.short_urls;');
+    expect(migration).toContain('CREATE POLICY "Users can read own short URLs"');
+    expect(migration).toContain("USING (created_by = auth.uid())");
+    expect(migration).toContain("CREATE OR REPLACE FUNCTION public.get_short_url_target(url_id text)");
+    expect(migration).toContain("SECURITY DEFINER");
+    expect(migration).toContain("url_id !~ '^[A-Za-z0-9_-]+$'");
+    expect(migration).toContain("GRANT EXECUTE ON FUNCTION public.get_short_url_target(text) TO anon, authenticated, service_role;");
+  });
 });

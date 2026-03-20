@@ -106,7 +106,7 @@ Pracovní backlog a auditní deník k nálezům z reportu `codex-security-findin
 - `todo-02` `Org join requests allow email spoofing to target any org` `done`
 - `todo-03` `Command injection via macOS docx conversion IPC handler` `done`
 - `todo-04` `Authenticated users can modify any subscription via RPC grants` `done`
-- `todo-05` `Public RLS policy exposes all short_urls entries`
+- `todo-05` `Public RLS policy exposes all short_urls entries` `done`
 - `todo-06` `Electron IPC exposes unrestricted filesystem access` `done`
 - `todo-07` `Short URL redirects allow arbitrary schemes causing stored XSS` `done`
 - `todo-08` `Ownerless project RLS exposes contract/financial data` `done`
@@ -167,6 +167,22 @@ Pracovní backlog a auditní deník k nálezům z reportu `codex-security-findin
 - Funkční dopad:
   - short URL už nelze použít pro stored XSS přes nebezpečné URI schéma
   - validní HTTP(S) redirect flow zůstává kompatibilní
+
+#### `todo-05` Public RLS policy exposes all short_urls entries
+
+- Stav: `done`
+- Implementováno:
+  - `supabase/migrations/20260320190000_harden_short_urls_rls.sql`
+  - `services/urlShortenerService.ts`
+  - `tests/highPrioritySecurityMigrations.test.ts`
+  - `tests/urlShortenerSecurity.test.ts`
+  - odstraněna public SELECT policy `"Everyone can read short URLs"` nad `short_urls`
+  - přidána owner-only SELECT policy pro správu vlastních odkazů
+  - pro veřejný redirect přidána úzká `SECURITY DEFINER` RPC `public.get_short_url_target(url_id text)` s validací aliasu
+  - klientský redirect flow (`getOriginalUrl`) nově čte cíl přes RPC resolver místo přímého SELECTu tabulky
+- Funkční dopad:
+  - tabulka `short_urls` už není veřejně enumerable přes RLS
+  - veřejné přesměrování podle kódu zůstává funkční bez zpřístupnění celé tabulky
 
 #### `todo-01` AI memory endpoint skips project-level authorization checks
 
@@ -231,7 +247,7 @@ Pracovní backlog a auditní deník k nálezům z reportu `codex-security-findin
 ## Doporučené další kroky
 
 - dokončit recovery plán pro Baustav incident na základě auditních snapshotů
-- následně `todo-05`
+- high-priority sada `todo-01` až `todo-10` je dokončená
 
 ## Minimální gate před merge
 

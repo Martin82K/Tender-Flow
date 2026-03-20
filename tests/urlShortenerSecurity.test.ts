@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const state = vi.hoisted(() => ({
-  singleResult: { data: null as { original_url: string } | null, error: null as unknown },
+  rpcResult: { data: null as string | null, error: null as unknown },
   rpc: vi.fn(),
   authGetUser: vi.fn(async () => ({ data: { user: { id: "user-1" } } })),
   invokeAuthedFunction: vi.fn(),
@@ -19,12 +19,16 @@ vi.mock("@/services/supabase", () => ({
     from: () => ({
       select: () => ({
         eq: () => ({
-          single: async () => state.singleResult,
           maybeSingle: async () => ({ data: null }),
         }),
       }),
     }),
-    rpc: (...args: unknown[]) => state.rpc(...args),
+    rpc: (fn: string, args: unknown) => {
+      if (fn === "get_short_url_target") {
+        return Promise.resolve(state.rpcResult);
+      }
+      return state.rpc(fn, args);
+    },
   },
 }));
 
@@ -37,7 +41,7 @@ import {
 
 describe("urlShortenerService security", () => {
   beforeEach(() => {
-    state.singleResult = { data: null, error: null };
+    state.rpcResult = { data: null, error: null };
     state.rpc.mockReset();
     state.authGetUser.mockClear();
     state.invokeAuthedFunction.mockReset();
@@ -63,8 +67,8 @@ describe("urlShortenerService security", () => {
   });
 
   it("getOriginalUrl blokuje unsafe redirect target a neinkrementuje kliky", async () => {
-    state.singleResult = {
-      data: { original_url: "javascript:alert(1)" },
+    state.rpcResult = {
+      data: "javascript:alert(1)",
       error: null,
     };
 
