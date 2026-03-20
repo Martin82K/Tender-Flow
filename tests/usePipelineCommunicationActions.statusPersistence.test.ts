@@ -216,7 +216,7 @@ describe("usePipelineCommunicationActions status persistence", () => {
     );
     const [, , htmlBody] = mockGenerateEmlContent.mock.calls[0];
     expect(htmlBody).toContain("<p>posílám poptávku.</p>");
-    expect(htmlBody).toContain("<div class=\"signature\">");
+    expect(htmlBody).toContain("S pozdravem");
     expect(htmlBody).not.toContain("</p><br><p>");
   });
 

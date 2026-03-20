@@ -72,6 +72,12 @@ const currentUser: User = {
   organizationId: "org-1",
 };
 
+const decodeBase64Utf8 = (value: string): string => {
+  const binary = atob(value);
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+};
+
 describe("usePipelineCommunicationActions.handleEmailLosers", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -91,8 +97,8 @@ describe("usePipelineCommunicationActions.handleEmailLosers", () => {
       companyAddress: "Loketská 344/12",
       companyMeta: "IČ: 147 05 877",
       disclaimerHtml: "<p>Disclaimer</p>",
-    mockGetTemplateById.mockResolvedValue(undefined);
     });
+    mockGetTemplateById.mockResolvedValue(undefined);
   });
 
   it("builds EML draft with encoded BCC list and signature", async () => {
@@ -139,7 +145,7 @@ describe("usePipelineCommunicationActions.handleEmailLosers", () => {
     const htmlPartBase64 = content.split("\r\n").findLast((line: string) =>
       /^[A-Za-z0-9+/=]+$/.test(line),
     );
-    const decodedHtml = htmlPartBase64 ? atob(htmlPartBase64) : "";
+    const decodedHtml = htmlPartBase64 ? decodeBase64Utf8(htmlPartBase64) : "";
     expect(filename).toMatch(/^Nevybrani_/);
     expect(content).toContain("Bcc: a@x.cz;b@x.cz");
     expect(decodedHtml).toContain("kalkus@baustav.cz");
@@ -194,7 +200,7 @@ describe("usePipelineCommunicationActions.handleEmailLosers", () => {
     const htmlPartBase64 = content.split("\r\n").findLast((line: string) =>
       /^[A-Za-z0-9+/=]+$/.test(line),
     );
-    const decodedHtml = htmlPartBase64 ? atob(htmlPartBase64) : "";
+    const decodedHtml = htmlPartBase64 ? decodeBase64Utf8(htmlPartBase64) : "";
 
     expect(decodedHtml).toContain("<p>Dobrý den,</p>");
     expect(decodedHtml).toContain("<p>děkujeme za nabídku.</p>");
