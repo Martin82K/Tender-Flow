@@ -108,7 +108,7 @@ Pracovní backlog a auditní deník k nálezům z reportu `codex-security-findin
 - `todo-04` `Authenticated users can modify any subscription via RPC grants` `done`
 - `todo-05` `Public RLS policy exposes all short_urls entries`
 - `todo-06` `Electron IPC exposes unrestricted filesystem access` `done`
-- `todo-07` `Short URL redirects allow arbitrary schemes causing stored XSS`
+- `todo-07` `Short URL redirects allow arbitrary schemes causing stored XSS` `done`
 - `todo-08` `Ownerless project RLS exposes contract/financial data` `done`
 - `todo-09` `Projects RLS makes NULL-owner rows globally readable/editable` `done`
 - `todo-10` `Overly permissive RLS policies expose all subcontractors` `done`
@@ -152,6 +152,21 @@ Pracovní backlog a auditní deník k nálezům z reportu `codex-security-findin
 - Funkční dopad:
   - renderer už nemůže přes IPC číst/zapisovat libovolné cesty mimo bezpečný scope
   - běžné desktop flow (OneDrive/home/tmp/userData) zůstává funkční
+
+#### `todo-07` Short URL redirects allow arbitrary schemes causing stored XSS
+
+- Stav: `done`
+- Implementováno:
+  - `services/urlShortenerService.ts`
+  - `shared/routing/ShortUrlRedirect.tsx`
+  - `tests/urlShortenerSecurity.test.ts`
+  - URL shortener nově centralizovaně validuje cílové URL přes `normalizeSafeShortRedirectUrl`
+  - povoleny jsou pouze `http:` a `https:`; ostatní schémata (`javascript:`, `data:`, `file:` atd.) jsou blokována
+  - validace běží při vytváření short URL i při resolve redirectu
+  - pro unsafe cíl se neprovádí redirect ani increment kliků
+- Funkční dopad:
+  - short URL už nelze použít pro stored XSS přes nebezpečné URI schéma
+  - validní HTTP(S) redirect flow zůstává kompatibilní
 
 #### `todo-01` AI memory endpoint skips project-level authorization checks
 
@@ -216,7 +231,7 @@ Pracovní backlog a auditní deník k nálezům z reportu `codex-security-findin
 ## Doporučené další kroky
 
 - dokončit recovery plán pro Baustav incident na základě auditních snapshotů
-- následně `todo-03`, `todo-06`, `todo-07` a `todo-05`
+- následně `todo-05`
 
 ## Minimální gate před merge
 
