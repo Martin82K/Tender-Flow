@@ -37,4 +37,13 @@ describe("high priority security hardening migrations", () => {
     expect(migration).not.toContain("CREATE OR REPLACE FUNCTION public.cancel_subscription(p_user_id UUID");
     expect(migration).not.toContain("CREATE OR REPLACE FUNCTION public.reactivate_subscription(p_user_id UUID");
   });
+
+  it("citlivá smluvní a finanční data už nejsou čitelná přes ownerless projekt fallback", () => {
+    const migration = readMigration("20260320173000_harden_ownerless_sensitive_project_data_rls.sql");
+
+    expect(migration).toContain('ALTER TABLE public.project_investor_financials ENABLE ROW LEVEL SECURITY;');
+    expect(migration).toContain('ALTER TABLE public.contracts ENABLE ROW LEVEL SECURITY;');
+    expect(migration).toContain('ALTER TABLE public.contract_markdown_versions ENABLE ROW LEVEL SECURITY;');
+    expect(migration).not.toContain("owner_id IS NULL");
+  });
 });

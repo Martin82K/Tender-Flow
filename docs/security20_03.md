@@ -109,7 +109,7 @@ Pracovní backlog a auditní deník k nálezům z reportu `codex-security-findin
 - `todo-05` `Public RLS policy exposes all short_urls entries`
 - `todo-06` `Electron IPC exposes unrestricted filesystem access`
 - `todo-07` `Short URL redirects allow arbitrary schemes causing stored XSS`
-- `todo-08` `Ownerless project RLS exposes contract/financial data`
+- `todo-08` `Ownerless project RLS exposes contract/financial data` `done`
 - `todo-09` `Projects RLS makes NULL-owner rows globally readable/editable`
 - `todo-10` `Overly permissive RLS policies expose all subcontractors`
 
@@ -150,11 +150,22 @@ Pracovní backlog a auditní deník k nálezům z reportu `codex-security-findin
   - běžný uživatel si dál může zrušit nebo obnovit vlastní subscription
   - běžný uživatel už nemůže obcházet billing/admin flow pro aktivaci tarifu
 
+#### `todo-08` Ownerless project RLS exposes contract/financial data
+
+- Stav: `done`
+- Implementováno:
+  - `20260320173000_harden_ownerless_sensitive_project_data_rls.sql`
+  - odstraněn `owner_id IS NULL` fallback z RLS politik pro `project_contracts`, `project_investor_financials`, `project_amendments`
+  - odstraněn `owner_id IS NULL` fallback z RLS politik pro `contracts`, `contract_amendments`, `contract_drawdowns`, `contract_markdown_versions`
+  - přidány guard testy v `tests/ownerlessSensitiveProjectDataRls.test.ts` a `tests/highPrioritySecurityMigrations.test.ts`
+- Funkční dopad:
+  - orphan/legacy projekt už automaticky neotevře smlouvy, dodatky, drawdowny ani investor financials komukoli přihlášenému
+  - přístup k citlivým datům zůstává jen ownerovi nebo explicitně sdílenému uživateli podle typu oprávnění
+
 ## Doporučené další kroky
 
 - dokončit recovery plán pro Baustav incident na základě auditních snapshotů
-- začít `todo-01`, protože dál zasahuje projektovou autorizaci přes service role
-- potom řešit `todo-08` až `todo-10`, protože dál zasahují tenant autorizaci
+- řešit `todo-09` a `todo-10`, protože dál zasahují tenant autorizaci
 - následně `todo-03`, `todo-06`, `todo-07` a `todo-05`
 
 ## Minimální gate před merge
