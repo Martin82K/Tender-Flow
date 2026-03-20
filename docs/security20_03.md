@@ -104,10 +104,10 @@ Pracovní backlog a auditní deník k nálezům z reportu `codex-security-findin
 
 - `todo-01` `AI memory endpoint skips project-level authorization checks` `done`
 - `todo-02` `Org join requests allow email spoofing to target any org` `done`
-- `todo-03` `Command injection via macOS docx conversion IPC handler`
+- `todo-03` `Command injection via macOS docx conversion IPC handler` `done`
 - `todo-04` `Authenticated users can modify any subscription via RPC grants` `done`
 - `todo-05` `Public RLS policy exposes all short_urls entries`
-- `todo-06` `Electron IPC exposes unrestricted filesystem access`
+- `todo-06` `Electron IPC exposes unrestricted filesystem access` `done`
 - `todo-07` `Short URL redirects allow arbitrary schemes causing stored XSS`
 - `todo-08` `Ownerless project RLS exposes contract/financial data` `done`
 - `todo-09` `Projects RLS makes NULL-owner rows globally readable/editable` `done`
@@ -125,6 +125,33 @@ Pracovní backlog a auditní deník k nálezům z reportu `codex-security-findin
 - Funkční dopad:
   - běžný join request flow zůstává
   - podvržení cizího emailu už neprojde
+
+#### `todo-03` Command injection via macOS docx conversion IPC handler
+
+- Stav: `done`
+- Implementováno:
+  - `desktop/main/ipc/modules/docxConversion.ts`
+  - `desktop/main/ipc/handlers.ts`
+  - `tests/docxConversion.test.ts`
+  - konverze na macOS už nepoužívá shell command string přes `exec`, ale `execFile` s argumentovým polem
+  - název výstupního souboru je sanitizovaný pro bezpečný temp output
+- Funkční dopad:
+  - injekční payload ve vstupní cestě už není vykonatelný jako shell příkaz
+  - `shell:convertToDocx` flow zůstává funkčně kompatibilní
+
+#### `todo-06` Electron IPC exposes unrestricted filesystem access
+
+- Stav: `done`
+- Implementováno:
+  - `desktop/main/ipc/modules/fsHandlers.ts`
+  - `tests/fsHandlers.test.ts`
+  - všechny `fs:*` handlery teď validují cílové cesty přes centrální path guard
+  - guard povoluje jen cesty uvnitř `home`, `userData` a `tmp` roots
+  - čtení navíc používá `realpath` (symlink-safe kontrola proti escape mimo povolené rooty)
+  - zápis ověřuje nejbližší existující parent přes `realpath`, aby nešlo zapisovat mimo povolený scope
+- Funkční dopad:
+  - renderer už nemůže přes IPC číst/zapisovat libovolné cesty mimo bezpečný scope
+  - běžné desktop flow (OneDrive/home/tmp/userData) zůstává funkční
 
 #### `todo-01` AI memory endpoint skips project-level authorization checks
 
