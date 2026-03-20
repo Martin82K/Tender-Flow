@@ -6,7 +6,7 @@ Pracovní backlog a auditní deník k nálezům z reportu `codex-security-findin
 
 ### 1. Admin privilegia přes `subscription_tier_override`
 
-- Stav: `phase1_done`
+- Stav: `done`
 - Riziko: běžný uživatel si může přes zapisovatelný profil vytvořit admin oprávnění.
 - Dotčené cesty:
   - `supabase/migrations/20260206100000_fix_subscription_save_comprehensive.sql`
@@ -19,22 +19,25 @@ Pracovní backlog a auditní deník k nálezům z reportu `codex-security-findin
 - Dvoufázový rollout:
   - Fáze 1: `platform_admins`, nové `is_admin()`, migrace legacy adminů, guardy na `user_profiles`
   - Fáze 2: odstranit nouzový email fallback a prověřit všechny admin RPC/policies
+- Implementováno:
+  - `20260320150000_harden_platform_admin_and_org_security.sql`
+  - `20260320153000_finalize_platform_admin_phase2.sql`
+  - klient už neodvozuje admin stav z emailu
 - Testy:
   - guard test na absenci vazby `subscription_tier_override -> is_admin`
   - guard test na ochranu citlivých sloupců v `user_profiles`
   - admin RPC nadále fungují proti novému `is_admin()`
 - Otevřené otázky:
-  - provést kontrolu všech reálných admin účtů po nasazení `20260320153000_finalize_platform_admin_phase2.sql`
   - zda vystavit explicitní admin claim i do klientského profilu
 
 ### Stav fáze 2
 
-- Připraveno v migraci `20260320153000_finalize_platform_admin_phase2.sql`
+- Nasazeno v migraci `20260320153000_finalize_platform_admin_phase2.sql`
 - Klient už neodvozuje admin stav z emailu, ale z `platform_admins`
 
 ### 2. Baustav migrace a tenant izolace
 
-- Stav: `in_progress`
+- Stav: `mitigated_recovery_pending`
 - Riziko: hromadný přesun kontaktů a hard-coded membership míchají tenant data a oprávnění.
 - Dotčené cesty:
   - `supabase/migrations/20251205000300_03_data_migration.sql`
@@ -48,6 +51,10 @@ Pracovní backlog a auditní deník k nálezům z reportu `codex-security-findin
 - Dvoufázový rollout:
   - Fáze 1: neutralizace historických migrací v repu, auditní tabulky, strict policies
   - Fáze 2: recovery skript jen tam, kde je bezpečně dohledatelný původ dat; jinak karanténa/manual review
+- Implementováno:
+  - historické destruktivní migrace jsou v repu neutralizované pro nové environmenty
+  - auditní snapshot tabulky jsou vytvořené
+  - strict subcontractor policies jsou obnovené
 - Testy:
   - guard test na no-op historických migrací
   - guard test na auditní snapshot tabulky
@@ -58,7 +65,7 @@ Pracovní backlog a auditní deník k nálezům z reportu `codex-security-findin
 
 ### 3. `get_or_create_user_organization` bez auth kontrol
 
-- Stav: `in_progress`
+- Stav: `done`
 - Riziko: klient může podvrhnout `user_id` nebo `email` a získat členství v cizím tenantovi.
 - Dotčené cesty:
   - `supabase/migrations/20260104230000_auto_organization_for_solo_users.sql`
@@ -70,6 +77,10 @@ Pracovní backlog a auditní deník k nálezům z reportu `codex-security-findin
 - Dvoufázový rollout:
   - Fáze 1: interní funkce + veřejný wrapper + revoke interního EXECUTE
   - Fáze 2: audit všech míst, kde se organizace tvoří nebo joinují podle email domény
+- Implementováno:
+  - veřejný wrapper používá jen auth kontext
+  - interní bootstrap funkce není grantnutá `authenticated`
+  - trigger a signup flow zůstaly kompatibilní
 - Testy:
   - guard test na oddělení interní a veřejné funkce
   - guard test na kontrolu `p_user_id` a `p_email` proti auth identitě
@@ -77,18 +88,36 @@ Pracovní backlog a auditní deník k nálezům z reportu `codex-security-findin
 - Otevřené otázky:
   - zda pro domain join vynutit potvrzený email před přidáním do existující business organizace
 
+## Hotfixy po hardeningu
+
+### UI: správa předplatného v admin tabulce
+
+- Stav: `done`
+- Problém: subscription sloupec byl v admin tabulce prakticky neviditelný kvůli příliš širokému layoutu.
+- Implementováno:
+  - kompaktnější tabulka v `components/UserManagement.tsx`
+  - regresní test v `tests/UserManagement.test.tsx`
+- Testy:
+  - `tests/UserManagement.test.tsx`
+
 ## Navazující backlog `high`
 
-- `AI memory endpoint skips project-level authorization checks`
-- `Org join requests allow email spoofing to target any org`
-- `Command injection via macOS docx conversion IPC handler`
-- `Authenticated users can modify any subscription via RPC grants`
-- `Public RLS policy exposes all short_urls entries`
-- `Electron IPC exposes unrestricted filesystem access`
-- `Short URL redirects allow arbitrary schemes causing stored XSS`
-- `Ownerless project RLS exposes contract/financial data`
-- `Projects RLS makes NULL-owner rows globally readable/editable`
-- `Overly permissive RLS policies expose all subcontractors`
+- `todo-01` `AI memory endpoint skips project-level authorization checks`
+- `todo-02` `Org join requests allow email spoofing to target any org`
+- `todo-03` `Command injection via macOS docx conversion IPC handler`
+- `todo-04` `Authenticated users can modify any subscription via RPC grants`
+- `todo-05` `Public RLS policy exposes all short_urls entries`
+- `todo-06` `Electron IPC exposes unrestricted filesystem access`
+- `todo-07` `Short URL redirects allow arbitrary schemes causing stored XSS`
+- `todo-08` `Ownerless project RLS exposes contract/financial data`
+- `todo-09` `Projects RLS makes NULL-owner rows globally readable/editable`
+- `todo-10` `Overly permissive RLS policies expose all subcontractors`
+
+## Doporučené další kroky
+
+- dokončit recovery plán pro Baustav incident na základě auditních snapshotů
+- začít `todo-02` a `todo-04`, protože jsou nejblíž kritickým auth/RPC problémům
+- potom řešit `todo-01` a `todo-08` až `todo-10`, protože dál zasahují tenant autorizaci
 
 ## Minimální gate před merge
 
