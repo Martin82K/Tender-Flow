@@ -184,6 +184,22 @@ Pracovní backlog a auditní deník k nálezům z reportu `codex-security-findin
   - tabulka `short_urls` už není veřejně enumerable přes RLS
   - veřejné přesměrování podle kódu zůstává funkční bez zpřístupnění celé tabulky
 
+## Dodatečný hotfix po validaci
+
+### Projects: org-wide viditelnost zobrazovala cizí stavby bez explicitního share
+
+- Stav: `done`
+- Implementováno:
+  - `20260320194000_restore_project_owner_share_visibility.sql`
+  - `hooks/queries/useProjectsQuery.ts`
+  - `tests/highPrioritySecurityMigrations.test.ts`
+  - projects SELECT/UPDATE/DELETE vráceny na `owner + explicit share (+ demo)` bez org-wide fallbacku
+  - `get_projects_metadata`, `get_project_shares`, `get_project_shares_v2` sjednoceny na stejnou access logiku
+  - UI query má navíc fail-closed filtr: renderer zobrazí jen projekty ownera, explicitně sdílené projekty a demo
+- Funkční dopad:
+  - uživatel nevidí cizí stavby jen proto, že je ve stejné organizaci
+  - spolupráce přes explicitní sdílení projektu zůstává zachovaná
+
 #### `todo-01` AI memory endpoint skips project-level authorization checks
 
 - Stav: `done`

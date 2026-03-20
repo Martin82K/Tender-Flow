@@ -76,4 +76,19 @@ describe("high priority security hardening migrations", () => {
     expect(migration).toContain("url_id !~ '^[A-Za-z0-9_-]+$'");
     expect(migration).toContain("GRANT EXECUTE ON FUNCTION public.get_short_url_target(text) TO anon, authenticated, service_role;");
   });
+
+  it("projects visibility hotfix vrací přístup na owner/share/demo bez org-wide fallbacku", () => {
+    const migration = readMigration("20260320194000_restore_project_owner_share_visibility.sql");
+
+    expect(migration).toContain('CREATE POLICY "Projects visible to owner, explicit shares, or public demo"');
+    expect(migration).toContain('CREATE POLICY "Projects update for owner or shared editor"');
+    expect(migration).toContain('CREATE POLICY "Projects delete for owner only"');
+    expect(migration).toContain("public.is_project_shared_with_user(id, auth.uid())");
+    expect(migration).toContain("public.has_project_share_permission(id, auth.uid(), 'edit')");
+    expect(migration).not.toContain("OR (organization_id IS NOT NULL AND public.is_org_member(organization_id))");
+    expect(migration).toContain("CREATE OR REPLACE FUNCTION public.get_projects_metadata()");
+    expect(migration).toContain("CREATE OR REPLACE FUNCTION public.get_project_shares(project_id_input TEXT)");
+    expect(migration).toContain("CREATE OR REPLACE FUNCTION public.get_project_shares_v2(project_id_input TEXT)");
+    expect(migration).not.toContain("p.organization_id IS NOT NULL AND public.is_org_member(p.organization_id)");
+  });
 });
