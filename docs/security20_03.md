@@ -102,7 +102,7 @@ Pracovní backlog a auditní deník k nálezům z reportu `codex-security-findin
 
 ## Navazující backlog `high`
 
-- `todo-01` `AI memory endpoint skips project-level authorization checks`
+- `todo-01` `AI memory endpoint skips project-level authorization checks` `done`
 - `todo-02` `Org join requests allow email spoofing to target any org` `done`
 - `todo-03` `Command injection via macOS docx conversion IPC handler`
 - `todo-04` `Authenticated users can modify any subscription via RPC grants` `done`
@@ -125,6 +125,19 @@ Pracovní backlog a auditní deník k nálezům z reportu `codex-security-findin
 - Funkční dopad:
   - běžný join request flow zůstává
   - podvržení cizího emailu už neprojde
+
+#### `todo-01` AI memory endpoint skips project-level authorization checks
+
+- Stav: `done`
+- Implementováno:
+  - `supabase/functions/ai-proxy/index.ts`
+  - `supabase/functions/ai-proxy/memoryAccess.ts`
+  - `tests/aiProxy.memoryAccess.test.ts`
+  - `memory-load` a `memory-save` nově validují přístup ke konkrétnímu projektu přes RLS nad tabulkou `projects`
+  - storage cesta se nově skládá z `organization_id` autorizovaného projektu, ne z první nalezené organizace uživatele
+- Funkční dopad:
+  - uživatel bez přístupu ke zvolenému projektu nedokáže číst ani zapisovat Viki memory přes podvržené `projectId`
+  - tenant scope pro storage zůstává svázaný s projektem, takže nehrozí křížový přístup mezi projekty/organizacemi přes odhadnutou cestu
 
 #### `todo-04` Authenticated users can modify any subscription via RPC grants
 
