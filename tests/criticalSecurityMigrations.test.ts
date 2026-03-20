@@ -36,6 +36,14 @@ describe("critical security hardening migrations", () => {
     expect(migration).toContain("Seeded from legacy admin email allowlist");
   });
 
+  it("ve fázi 2 odstraňuje email fallback z is_admin", () => {
+    const migration = readMigration("20260320153000_finalize_platform_admin_phase2.sql");
+
+    expect(migration).toContain("RETURN public.is_platform_admin(auth.uid());");
+    expect(migration).not.toContain("auth.jwt() ->> 'email'");
+    expect(migration).toContain("legacy email fallback removed");
+  });
+
   it("odstraňuje admin vazbu ze subscription override a chrání citlivé profilové sloupce", () => {
     const migration = readMigration("20260320150000_harden_platform_admin_and_org_security.sql");
 

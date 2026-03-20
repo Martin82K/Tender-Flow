@@ -6,7 +6,7 @@ Pracovní backlog a auditní deník k nálezům z reportu `codex-security-findin
 
 ### 1. Admin privilegia přes `subscription_tier_override`
 
-- Stav: `in_progress`
+- Stav: `phase1_done`
 - Riziko: běžný uživatel si může přes zapisovatelný profil vytvořit admin oprávnění.
 - Dotčené cesty:
   - `supabase/migrations/20260206100000_fix_subscription_save_comprehensive.sql`
@@ -24,8 +24,13 @@ Pracovní backlog a auditní deník k nálezům z reportu `codex-security-findin
   - guard test na ochranu citlivých sloupců v `user_profiles`
   - admin RPC nadále fungují proti novému `is_admin()`
 - Otevřené otázky:
-  - kdy odstranit bootstrap email fallback po ověření provozu
+  - provést kontrolu všech reálných admin účtů po nasazení `20260320153000_finalize_platform_admin_phase2.sql`
   - zda vystavit explicitní admin claim i do klientského profilu
+
+### Stav fáze 2
+
+- Připraveno v migraci `20260320153000_finalize_platform_admin_phase2.sql`
+- Klient už neodvozuje admin stav z emailu, ale z `platform_admins`
 
 ### 2. Baustav migrace a tenant izolace
 
