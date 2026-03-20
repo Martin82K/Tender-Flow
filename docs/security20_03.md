@@ -110,7 +110,7 @@ Pracovní backlog a auditní deník k nálezům z reportu `codex-security-findin
 - `todo-06` `Electron IPC exposes unrestricted filesystem access`
 - `todo-07` `Short URL redirects allow arbitrary schemes causing stored XSS`
 - `todo-08` `Ownerless project RLS exposes contract/financial data` `done`
-- `todo-09` `Projects RLS makes NULL-owner rows globally readable/editable`
+- `todo-09` `Projects RLS makes NULL-owner rows globally readable/editable` `done`
 - `todo-10` `Overly permissive RLS policies expose all subcontractors`
 
 ### Dokončené high priority položky
@@ -162,10 +162,22 @@ Pracovní backlog a auditní deník k nálezům z reportu `codex-security-findin
   - orphan/legacy projekt už automaticky neotevře smlouvy, dodatky, drawdowny ani investor financials komukoli přihlášenému
   - přístup k citlivým datům zůstává jen ownerovi nebo explicitně sdílenému uživateli podle typu oprávnění
 
+#### `todo-09` Projects RLS makes NULL-owner rows globally readable/editable
+
+- Stav: `done`
+- Implementováno:
+  - `20260320180000_harden_projects_null_owner_rls.sql`
+  - odstraněn `owner_id IS NULL` fallback z `projects` SELECT/INSERT/UPDATE/DELETE politik
+  - `get_projects_metadata()`, `get_project_shares()` a `get_project_shares_v2()` nově používají stejnou access logiku bez public `NULL-owner` výjimky
+  - orphan projekty jsou nově vázané na tenant přes `organization_id`, explicitní share nebo demo režim
+- Funkční dopad:
+  - `NULL-owner` projekt už není globálně čitelný ani editovatelný pro libovolného přihlášeného uživatele
+  - tenantové projekty bez ownera zůstávají dostupné jen členům stejné organizace, sdíleným uživatelům nebo přes demo flow tam, kde to dává smysl
+
 ## Doporučené další kroky
 
 - dokončit recovery plán pro Baustav incident na základě auditních snapshotů
-- řešit `todo-09` a `todo-10`, protože dál zasahují tenant autorizaci
+- řešit `todo-10`, protože dál zasahuje tenant autorizaci
 - následně `todo-03`, `todo-06`, `todo-07` a `todo-05`
 
 ## Minimální gate před merge

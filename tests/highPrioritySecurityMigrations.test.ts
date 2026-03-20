@@ -46,4 +46,13 @@ describe("high priority security hardening migrations", () => {
     expect(migration).toContain('ALTER TABLE public.contract_markdown_versions ENABLE ROW LEVEL SECURITY;');
     expect(migration).not.toContain("owner_id IS NULL");
   });
+
+  it("projects RLS už nedělá z NULL-owner řádků globálně čitelné nebo editovatelné projekty", () => {
+    const migration = readMigration("20260320180000_harden_projects_null_owner_rls.sql");
+
+    expect(migration).toContain('CREATE POLICY "Projects visible to owner, org members, shared users, or public demo"');
+    expect(migration).toContain('CREATE POLICY "Projects update for owner, org member, or shared editor"');
+    expect(migration).toContain("public.is_org_member(organization_id)");
+    expect(migration).not.toContain("owner_id IS NULL");
+  });
 });
