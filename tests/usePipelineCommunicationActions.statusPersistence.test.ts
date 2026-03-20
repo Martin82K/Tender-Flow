@@ -176,6 +176,50 @@ describe("usePipelineCommunicationActions status persistence", () => {
     expect(updateBidsInternal).toHaveBeenCalledTimes(1);
   });
 
+  it("v EML režimu zachová HTML strukturu šablony a podpisu bez globálního br převodu", async () => {
+    mockPlatformAdapter.isDesktop = true;
+    mockGetDefaultTemplate.mockResolvedValue({
+      id: "tpl-html",
+      name: "HTML",
+      subject: "Poptávka {KATEGORIE_NAZEV}",
+      content:
+        "<p>Dobrý den,</p>\n<p>posílám poptávku.</p>\n{PODPIS_UZIVATELE}",
+      isDefault: true,
+      lastModified: "2026-03-19",
+    });
+
+    const activeCategory = createCategory();
+    const bid = createBid();
+    const bids: Record<string, Bid[]> = { [activeCategory.id]: [bid] };
+
+    const actions = usePipelineCommunicationActions({
+      activeCategory,
+      bids,
+      projectDetails: createProjectDetails({
+        siteManager:
+          "<div class=\"signature\"><p>S pozdravem</p><p><strong>Vedouci</strong></p></div>",
+      }),
+      emailClientMode: "mailto",
+      userRole: "admin",
+      updateBidsInternal: vi.fn((updater) => updater(bids)),
+      setIsExportMenuOpen: vi.fn(),
+      showAlert: vi.fn(),
+      runDocHubFallbackForCategory: vi.fn(),
+    });
+
+    await actions.handleGenerateInquiry(bid);
+
+    expect(mockGenerateEmlContent).toHaveBeenCalledWith(
+      bid.email,
+      expect.any(String),
+      expect.stringContaining("<p>Dobrý den,</p>"),
+    );
+    const [, , htmlBody] = mockGenerateEmlContent.mock.calls[0];
+    expect(htmlBody).toContain("<p>posílám poptávku.</p>");
+    expect(htmlBody).toContain("<div class=\"signature\">");
+    expect(htmlBody).not.toContain("</p><br><p>");
+  });
+
   it("při chybě persistence nenechá lokální stav falešně na sent", async () => {
     mockPersistBidStatusChange.mockResolvedValue({
       error: new Error("db failure"),

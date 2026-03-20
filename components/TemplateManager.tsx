@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import DOMPurify from 'dompurify';
 import { Template, ProjectDetails } from '../types';
-import { TEMPLATE_VARIABLES, getPreviewData, processTemplate } from '../utils/templateUtils';
+import { TEMPLATE_VARIABLES, getPreviewData, processTemplate, renderTemplateHtml } from '../utils/templateUtils';
 import { getTemplates, saveTemplate, deleteTemplate as serviceDeleteTemplate } from '../services/templateService';
 import { ConfirmationModal } from './ConfirmationModal';
 
@@ -490,10 +490,10 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
                                                 className="prose dark:prose-invert max-w-none"
                                                 dangerouslySetInnerHTML={{
                                                     __html: sanitizeTemplateHtml(
-                                                        (previewMode
+                                                        renderTemplateHtml(previewMode
                                                             ? processTemplate(selectedTemplate.content, previewData)
                                                             : selectedTemplate.content
-                                                        ).replace(/\n/g, '<br/>')
+                                                        )
                                                     )
                                                 }}
                                             />

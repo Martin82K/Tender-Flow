@@ -33,6 +33,14 @@ vi.mock("@/services/organizationService", () => ({
 import { usePipelineCommunicationActions } from "../features/projects/model/usePipelineCommunicationActions";
 import type { Bid, DemandCategory, ProjectDetails, User } from "../types";
 
+const { mockGetTemplateById } = vi.hoisted(() => ({
+  mockGetTemplateById: vi.fn(),
+}));
+
+vi.mock("../services/templateService", () => ({
+  getTemplateById: mockGetTemplateById,
+}));
+
 const createProjectDetails = (
   overrides: Partial<ProjectDetails> = {},
 ): ProjectDetails =>
@@ -83,6 +91,7 @@ describe("usePipelineCommunicationActions.handleEmailLosers", () => {
       companyAddress: "Loketská 344/12",
       companyMeta: "IČ: 147 05 877",
       disclaimerHtml: "<p>Disclaimer</p>",
+    mockGetTemplateById.mockResolvedValue(undefined);
     });
   });
 
@@ -135,6 +144,62 @@ describe("usePipelineCommunicationActions.handleEmailLosers", () => {
     expect(content).toContain("Bcc: a@x.cz;b@x.cz");
     expect(decodedHtml).toContain("kalkus@baustav.cz");
     expect(decodedHtml).toContain("BAU-STAV a.s.");
+    expect(showAlert).not.toHaveBeenCalled();
+  });
+
+  it("zachová HTML podpis v EML draftu bez rozbití blokových tagů", async () => {
+    const activeCategory = createCategory();
+    const bids: Record<string, Bid[]> = {
+      [activeCategory.id]: [
+        {
+          id: "1",
+          subcontractorId: "s1",
+          companyName: "A",
+          contactPerson: "Kontakt A",
+          email: "a@x.cz",
+          price: "1000",
+          status: "offer",
+        },
+      ],
+    };
+
+    mockGetTemplateById.mockResolvedValue({
+      id: "tpl-1",
+      name: "Losers",
+      subject: "Výsledek {KATEGORIE_NAZEV}",
+      content:
+        "<p>Dobrý den,</p>\n<p>děkujeme za nabídku.</p>\n{PODPIS_UZIVATELE}",
+      isDefault: false,
+      lastModified: "2026-03-20",
+    });
+
+    const showAlert = vi.fn();
+    const actions = usePipelineCommunicationActions({
+      activeCategory,
+      bids,
+      projectDetails: createProjectDetails({
+        losersEmailTemplateLink: "template:tpl-1",
+      }),
+      currentUser,
+      updateBidsInternal: vi.fn(),
+      setIsExportMenuOpen: vi.fn(),
+      showAlert,
+      runDocHubFallbackForCategory: vi.fn(),
+    });
+
+    await actions.handleEmailLosers();
+
+    expect(platformMock.openTempFile).toHaveBeenCalledTimes(1);
+    const [content] = platformMock.openTempFile.mock.calls[0];
+    const htmlPartBase64 = content.split("\r\n").findLast((line: string) =>
+      /^[A-Za-z0-9+/=]+$/.test(line),
+    );
+    const decodedHtml = htmlPartBase64 ? atob(htmlPartBase64) : "";
+
+    expect(decodedHtml).toContain("<p>Dobrý den,</p>");
+    expect(decodedHtml).toContain("<p>děkujeme za nabídku.</p>");
+    expect(decodedHtml).toContain("Martin Kalkuš");
+    expect(decodedHtml).not.toContain("</p><br><p>");
     expect(showAlert).not.toHaveBeenCalled();
   });
 
