@@ -5,6 +5,7 @@
  */
 import ExcelJS from 'exceljs';
 import { HeaderMapping } from './excelMergerTypes';
+import { supabase } from './supabase';
 
 export class ExcelService {
   /**
@@ -280,10 +281,15 @@ export class ExcelService {
     onProgressUpdate?: (progress: number) => void
   ): Promise<Blob> {
     const supabaseUrl = (import.meta as any)?.env?.VITE_SUPABASE_URL;
-    const supabaseAnonKey = (import.meta as any)?.env?.VITE_SUPABASE_ANON_KEY;
+    const { data } = await supabase.auth.getSession();
+    const accessToken = data.session?.access_token;
 
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!supabaseUrl) {
       throw new Error('Supabase configuration missing');
+    }
+
+    if (!accessToken) {
+      throw new Error('Pro použití cloudového sloučení musíte být přihlášeni.');
     }
 
     onProgress?.('Připravuji soubor k odeslání...');
@@ -299,7 +305,7 @@ export class ExcelService {
     const response = await fetch(`${supabaseUrl}/functions/v1/excel-merge`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'Authorization': `Bearer ${accessToken}`,
       },
       body: formData,
     });
