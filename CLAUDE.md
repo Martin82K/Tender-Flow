@@ -192,3 +192,33 @@ Document management module for organizing project files in Google Drive, OneDriv
 - Environment variables use `VITE_` or `TINY_URL_` prefix for client access
 - Test files go in `tests/` directory (not co-located), pattern: `tests/**/*.test.{ts,tsx}`
 - Vitest uses jsdom environment with `tests/setup.ts` for setup
+
+## AF Integration
+
+### MCP Tools (pro Agentic Flow)
+- tf_list_projects (READ)
+- tf_list_tenders (READ)
+- tf_list_contacts (READ)
+- tf_get_project_detail (READ)
+- tf_get_schedule (READ)
+- tf_get_tender_plan (READ)
+- tf_create_bid (WRITE)
+
+### Event Types
+- com.tenderflow.demand.created
+- com.tenderflow.document.uploaded
+
+### Forbidden Actions
+- DELETE any record
+- UPDATE existing bids
+
+## Attachment Rules
+### Source Priority
+- filesystem
+### Folder Structure
+- {project_id}/documents/
+- {project_id}/offers/
+
+## Business Rules
+- Nabidka musi byt odeslana do 14 dnu od vytvoreni poptavky
+- Maximum 5 dodavatelu na jednu poptavkovou kategorii

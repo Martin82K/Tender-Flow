@@ -27,4 +27,19 @@ describe("inquiryService security", () => {
     expect(headers).not.toContain("\nX-Test:");
     expect(headers).not.toContain("\nbcc:");
   });
+
+  it("sanitizuje BCC hlavičku v EML", () => {
+    const eml = generateEmlContent(
+      "safe@example.com",
+      "Poptávka",
+      "<p>Body</p>",
+      {
+        bcc: "a@example.com\r\nbcc:attacker@example.com",
+      },
+    );
+
+    const headers = eml.split("\r\n").slice(0, 4).join("\r\n");
+    expect(headers).toContain("Bcc: a@example.combcc:attacker@example.com");
+    expect(headers).not.toContain("\nbcc:");
+  });
 });

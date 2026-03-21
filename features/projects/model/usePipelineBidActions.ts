@@ -1,12 +1,10 @@
 import type { Bid, BidStatus, DemandCategory } from "@/types";
 import type { DragEvent } from "react";
-import { getDemoData, saveDemoData } from "@/services/demoData";
 import { parseFormattedNumber } from "@/utils/formatters";
 import {
   deleteBid,
   updateBid,
   updateBidContracted,
-  updateBidStatus,
 } from "@/features/projects/api";
 import {
   deleteFolder,
@@ -15,6 +13,10 @@ import {
   getDocHubTenderLinks,
   resolveDocHubStructureV1,
 } from "@/utils/docHub";
+import {
+  persistBidStatusChange,
+  updateBidStatusInMemory,
+} from "./pipelineBidStatusModel";
 
 interface UsePipelineBidActionsInput {
   activeCategory: DemandCategory | null;
@@ -58,47 +60,23 @@ export const usePipelineBidActions = ({
     if (!activeCategory || !bidId) return;
 
     updateBidsInternal((prev) => {
-      const categoryBids = [...(prev[activeCategory.id] || [])];
-      const bidIndex = categoryBids.findIndex((b) => b.id === bidId);
-
-      if (bidIndex > -1 && categoryBids[bidIndex].status !== targetStatus) {
-        categoryBids[bidIndex] = {
-          ...categoryBids[bidIndex],
-          status: targetStatus,
-        };
-        return { ...prev, [activeCategory.id]: categoryBids };
-      }
-      return prev;
+      return updateBidStatusInMemory(
+        prev,
+        activeCategory.id,
+        bidId,
+        targetStatus,
+      );
     });
 
     try {
-      if (userRole === "demo") {
-        const demoData = getDemoData();
-        if (demoData && demoData.projectDetails[projectDataId]) {
-          const projectBids = demoData.projectDetails[projectDataId].bids || {};
-          let categoryId = "";
-          for (const [catId, catBids] of Object.entries(projectBids)) {
-            if ((catBids as Bid[]).some((bid) => bid.id === bidId)) {
-              categoryId = catId;
-              break;
-            }
-          }
-
-          if (categoryId) {
-            const categoryBids = projectBids[categoryId] || [];
-            const index = categoryBids.findIndex((bid: Bid) => bid.id === bidId);
-            if (index > -1) {
-              categoryBids[index].status = targetStatus;
-              projectBids[categoryId] = categoryBids;
-              demoData.projectDetails[projectDataId].bids = projectBids;
-              saveDemoData(demoData);
-            }
-          }
-        }
-        return;
-      }
-
-      const { error } = await updateBidStatus(bidId, targetStatus);
+      const { error } = await persistBidStatusChange({
+        bidId,
+        targetStatus,
+        userRole,
+        projectDataId,
+        bidsByCategory: bids,
+        activeCategoryId: activeCategory.id,
+      });
 
       if (error) {
         console.error("Error updating bid status:", error);

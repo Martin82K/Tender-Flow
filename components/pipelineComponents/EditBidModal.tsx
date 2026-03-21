@@ -18,13 +18,21 @@ export interface EditBidModalProps {
 }
 
 export const EditBidModal: React.FC<EditBidModalProps> = ({ bid, onClose, onSave, subcontractor, statuses = [], onUpdateSubcontractor }) => {
-    const [form, setForm] = useState({ ...bid });
+    const selectedRoundPrice =
+        bid.selectionRound !== undefined && bid.selectionRound !== null
+            ? bid.priceHistory?.[bid.selectionRound]
+            : undefined;
+    const initialResolvedPrice =
+        bid.price && bid.price !== "?" && bid.price !== "-"
+            ? bid.price
+            : selectedRoundPrice || bid.price;
+    const [form, setForm] = useState({ ...bid, price: initialResolvedPrice });
     // Local state for contact person selection (if using dropdown)
     const [selectedContactId, setSelectedContactId] = useState<string>("");
 
     const [priceDisplay, setPriceDisplay] = useState(
-        bid.price && bid.price !== "?" && bid.price !== "-"
-            ? formatInputNumber(parseFormattedNumber(bid.price.replace(/[^\d\s,.-]/g, '')))
+        initialResolvedPrice && initialResolvedPrice !== "?" && initialResolvedPrice !== "-"
+            ? formatInputNumber(parseFormattedNumber(initialResolvedPrice.replace(/[^\d\s,.-]/g, '')))
             : ""
     );
 
