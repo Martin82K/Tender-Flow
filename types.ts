@@ -129,12 +129,14 @@ export interface ChartData {
 }
 
 export type ProjectStatus = "tender" | "realization" | "archived";
+export type ActiveProjectStatus = Exclude<ProjectStatus, "archived">;
 
 export interface Project {
   id: string;
   name: string;
   location: string;
   status: ProjectStatus;
+  archivedOriginalStatus?: ActiveProjectStatus | null;
   isDemo?: boolean;
   ownerId?: string;
   ownerEmail?: string;
@@ -174,6 +176,7 @@ export interface ProjectDetails {
   id?: string; // Optional linkage
   title: string;
   status?: ProjectStatus; // Added specific status field
+  archivedOriginalStatus?: ActiveProjectStatus | null;
 
   // Editable General Info
   investor?: string; // Investor
@@ -233,6 +236,25 @@ export interface UserPreferences {
   urlShortenerProvider?: "tinyurl" | "tfurl"; // Service provider for URL shortening
   autoShortenProjectDocs?: boolean; // Auto-shorten Project Documents links
   signature?: string; // HTML compatible signature
+}
+
+export interface UserEmailSignatureProfile {
+  displayName: string | null;
+  signatureName: string | null;
+  signatureRole: string | null;
+  signaturePhone: string | null;
+  signaturePhoneSecondary: string | null;
+  signatureEmail: string | null;
+  signatureGreeting: string | null;
+}
+
+export interface OrganizationEmailBranding {
+  emailLogoPath: string | null;
+  emailLogoUrl?: string | null;
+  companyName: string | null;
+  companyAddress: string | null;
+  companyMeta: string | null;
+  disclaimerHtml: string | null;
 }
 
 export interface LegalAcceptance {

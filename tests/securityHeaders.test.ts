@@ -14,14 +14,14 @@ describe('securityHeaders config', () => {
     expect(config.frameAncestors).toBe("'self'");
   });
 
-  it('v development režimu defaultně povolí all origins kvůli lokálnímu vývoji', () => {
+  it('v development režimu má bezpečný frame-ancestors default', () => {
     const config = createSecurityHeadersConfig({
       NODE_ENV: 'development',
     } as NodeJS.ProcessEnv);
 
     expect(config.allowAllOrigins).toBe(true);
     expect(config.allowedOrigins).toEqual(['*']);
-    expect(config.frameAncestors).toBe('*');
+    expect(config.frameAncestors).toBe("'self'");
   });
 
   it('podporuje explicitní allowlist včetně wildcard patternů', () => {

@@ -6,6 +6,11 @@ export type OrganizationSummary = {
   member_role: "owner" | "admin" | "member";
   domain_whitelist: string[] | null;
   logo_path?: string | null;
+  email_logo_path?: string | null;
+  email_signature_company_name?: string | null;
+  email_signature_company_address?: string | null;
+  email_signature_company_meta?: string | null;
+  email_signature_disclaimer_html?: string | null;
 };
 
 export type OrganizationMember = {
@@ -67,7 +72,20 @@ const normalizeBrandingStorageError = (message: string): string => {
   if (lower.includes("invalid logo path")) {
     return "Neplatná cesta loga v DB validaci. Nahrajte prosím znovu aktuální SQL fix pro funkci `set_organization_logo_path` (regex `logo\\.(png|jpg|jpeg|webp|svg)`).";
   }
+  if (lower.includes("invalid email logo path")) {
+    return "Neplatná cesta e-mailového loga v DB validaci. Nahrajte prosím aktuální SQL fix pro funkci `set_organization_email_logo_path`.";
+  }
   return message;
+};
+
+const getOrganizationById = async (orgId: string): Promise<OrganizationSummary | null> => {
+  if (!orgId) return null;
+
+  const { data, error } = await supabase.rpc("get_my_organizations");
+  if (error) throw new Error(error.message);
+
+  const organizations = (data || []) as OrganizationSummary[];
+  return organizations.find((item) => item.organization_id === orgId) || null;
 };
 
 const pickEarlierMemberJoin = (
@@ -214,12 +232,7 @@ export const organizationService = {
     options?: { expiresInSeconds?: number },
   ): Promise<string | null> => {
     if (!orgId) return null;
-
-    const { data, error } = await supabase.rpc("get_my_organizations");
-    if (error) throw new Error(error.message);
-
-    const organizations = (data || []) as OrganizationSummary[];
-    const org = organizations.find((item) => item.organization_id === orgId);
+    const org = await getOrganizationById(orgId);
     if (!org?.logo_path) return null;
 
     const expiresInSeconds = Math.min(
@@ -282,12 +295,7 @@ export const organizationService = {
 
   removeOrganizationLogo: async (orgId: string): Promise<void> => {
     if (!orgId) throw new Error("Chybí organizace.");
-
-    const { data, error } = await supabase.rpc("get_my_organizations");
-    if (error) throw new Error(error.message);
-
-    const organizations = (data || []) as OrganizationSummary[];
-    const org = organizations.find((item) => item.organization_id === orgId);
+    const org = await getOrganizationById(orgId);
     const existingPath = org?.logo_path || null;
 
     if (existingPath) {
@@ -305,6 +313,136 @@ export const organizationService = {
     });
     if (updateError) {
       throw new Error(updateError.message);
+    }
+  },
+
+  getOrganizationEmailBranding: async (
+    orgId: string,
+    options?: { expiresInSeconds?: number },
+  ) => {
+    const org = await getOrganizationById(orgId);
+    if (!org) return null;
+
+    let emailLogoUrl: string | null = null;
+    if (org.email_logo_path) {
+      const expiresInSeconds = Math.min(
+        Math.max(options?.expiresInSeconds ?? 3600, 60),
+        24 * 3600,
+      );
+      const { data: signedData, error: signedError } = await supabase.storage
+        .from(BRANDING_BUCKET)
+        .createSignedUrl(org.email_logo_path, expiresInSeconds);
+
+      if (signedError) {
+        throw new Error(normalizeBrandingStorageError(signedError.message));
+      }
+
+      emailLogoUrl = signedData?.signedUrl || null;
+    }
+
+    return {
+      emailLogoPath: org.email_logo_path || null,
+      emailLogoUrl,
+      companyName: org.email_signature_company_name || null,
+      companyAddress: org.email_signature_company_address || null,
+      companyMeta: org.email_signature_company_meta || null,
+      disclaimerHtml: org.email_signature_disclaimer_html || null,
+    };
+  },
+
+  uploadOrganizationEmailLogo: async (
+    orgId: string,
+    file: File,
+  ): Promise<{ logoPath: string; logoUrl: string | null }> => {
+    if (!orgId) throw new Error("Chybí organizace.");
+    if (!file) throw new Error("Nebyl vybrán soubor.");
+    if (file.size > MAX_LOGO_BYTES) {
+      throw new Error("Logo je příliš velké. Maximální velikost je 2 MB.");
+    }
+    if (!ALLOWED_LOGO_MIME_TYPES.includes(file.type as (typeof ALLOWED_LOGO_MIME_TYPES)[number])) {
+      throw new Error("Nepodporovaný formát loga. Povolené: PNG, JPG, WEBP, SVG.");
+    }
+
+    const extension = guessExtensionFromMime(file.type);
+    const logoPath = `organizations/${orgId}/email-logo.${extension}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from(BRANDING_BUCKET)
+      .upload(logoPath, file, {
+        upsert: true,
+        cacheControl: "3600",
+        contentType: file.type,
+      });
+
+    if (uploadError) {
+      throw new Error(normalizeBrandingStorageError(uploadError.message));
+    }
+
+    const { error: updateError } = await supabase.rpc(
+      "set_organization_email_logo_path",
+      {
+        org_id_input: orgId,
+        email_logo_path_input: logoPath,
+      },
+    );
+    if (updateError) {
+      throw new Error(updateError.message);
+    }
+
+    const branding = await organizationService.getOrganizationEmailBranding(orgId);
+    return {
+      logoPath,
+      logoUrl: branding?.emailLogoUrl || null,
+    };
+  },
+
+  removeOrganizationEmailLogo: async (orgId: string): Promise<void> => {
+    if (!orgId) throw new Error("Chybí organizace.");
+    const org = await getOrganizationById(orgId);
+    const existingPath = org?.email_logo_path || null;
+
+    if (existingPath) {
+      const { error: removeError } = await supabase.storage
+        .from(BRANDING_BUCKET)
+        .remove([existingPath]);
+      if (removeError) {
+        throw new Error(normalizeBrandingStorageError(removeError.message));
+      }
+    }
+
+    const { error: updateError } = await supabase.rpc(
+      "set_organization_email_logo_path",
+      {
+        org_id_input: orgId,
+        email_logo_path_input: null,
+      },
+    );
+    if (updateError) {
+      throw new Error(updateError.message);
+    }
+  },
+
+  saveOrganizationEmailBranding: async (
+    orgId: string,
+    input: {
+      companyName: string | null;
+      companyAddress: string | null;
+      companyMeta: string | null;
+      disclaimerHtml: string | null;
+    },
+  ): Promise<void> => {
+    if (!orgId) throw new Error("Chybí organizace.");
+
+    const { error } = await supabase.rpc("set_organization_email_branding", {
+      org_id_input: orgId,
+      company_name_input: input.companyName,
+      company_address_input: input.companyAddress,
+      company_meta_input: input.companyMeta,
+      disclaimer_html_input: input.disclaimerHtml,
+    });
+
+    if (error) {
+      throw new Error(error.message);
     }
   },
 };

@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { AgentRuntimeSnapshot } from "@shared/types/agent";
 import { deepProjectBriefingSkill } from "@features/agent/skills/deepProjectBriefingSkill";
 
-const buildRuntime = (selectedProjectId: string | null = "p-42"): AgentRuntimeSnapshot => ({
+const buildRuntime = (
+  selectedProjectId: string | null = "p-42",
+  audience: AgentRuntimeSnapshot["audience"] = "internal",
+): AgentRuntimeSnapshot => ({
   pathname: "/app/project/p-42",
   search: "?tab=overview",
   currentView: "project",
@@ -100,7 +103,7 @@ const buildRuntime = (selectedProjectId: string | null = "p-42"): AgentRuntimeSn
       status: "available",
     },
   ],
-  audience: "internal",
+  audience,
   contextScopes: ["project", "pipeline", "contacts", "memory", "manual"],
   contextPolicyVersion: "v1-strict-allowlist",
   organizationId: "org-1",
@@ -143,6 +146,23 @@ describe("deepProjectBriefingSkill", () => {
     expect(result.reply).toContain("### Rizika");
     expect(result.reply).toContain("### Datová stopa reportu");
     expect(result.reply).toContain("Město Aš");
+  });
+
+  it("v klientskem rezimu nevraci interni plan a planovany naklad", async () => {
+    const result = await deepProjectBriefingSkill.run({
+      userMessage: "udělej detailní briefing projektu",
+      runtime: buildRuntime("p-42", "client"),
+      conversation: [],
+    });
+
+    expect(result.reply).toContain("Hrubá odchylka interního plánu není v klientském režimu dostupná.");
+    expect(result.reply).not.toContain("Interní plán kategorií");
+    expect(result.reply).not.toContain("Interní plánovaný náklad projektu");
+    expect(result.reply).not.toContain("Součet odchylek kategorií");
+    expect(result.reply).not.toContain("Top rozpočtové odchylky (abs)");
+    expect(result.reply).not.toContain("Rozpočtové riziko (negativní odchylka plan vs SOD)");
+    expect(result.reply).not.toContain("| Kategorie | Stav | Deadline | Realizace od | Realizace do | Nabídky | Plán | SOD | Odchylka |");
+    expect(result.reply).toContain("| Kategorie | Stav | Deadline | Realizace od | Realizace do | Nabídky |");
   });
 
   it("bez aktivniho projektu vraci bezpecnou hlasku", async () => {

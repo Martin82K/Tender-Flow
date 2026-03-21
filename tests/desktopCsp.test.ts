@@ -20,6 +20,9 @@ describe("desktop CSP", () => {
     const csp = buildDesktopCsp(false);
 
     expect(csp).not.toContain("'unsafe-eval'");
-    expect(csp).toContain("default-src 'self' 'unsafe-inline' https: data: blob:");
+    expect(csp).toContain("default-src 'self'");
+    expect(csp).toContain("script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com");
+    expect(csp).toContain("object-src 'none'");
+    expect(csp).toContain("frame-ancestors 'none'");
   });
 });

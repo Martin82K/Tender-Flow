@@ -94,7 +94,7 @@ function createWindow(): void {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
             nodeIntegration: false,
-            sandbox: false, // Disabled to allow fetch requests on Windows
+            sandbox: true,
             webSecurity: !isDev, // Disable web security in dev mode for easier testing
         },
         titleBarStyle: 'hiddenInset', // macOS native feel

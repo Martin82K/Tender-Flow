@@ -22,6 +22,8 @@ import { TemplatesSection } from "./documents/TemplatesSection";
 import { PriceListsSection } from "./documents/PriceListsSection";
 import { useFeatures } from "../../context/FeatureContext";
 import { FEATURES } from "../../config/features";
+import { useLocation } from "../../shared/routing/router";
+import { isProbablyUrl } from "../../utils/docHub";
 
 // --- Helper Functions ---
 const parseMoney = (valueStr: string): number => {
@@ -68,6 +70,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
   const [isEditingDocs, setIsEditingDocs] = useState(false);
   const [isEditingLetter, setIsEditingLetter] = useState(false);
   const [documentsSubTab, setDocumentsSubTab] = useState<DocumentsSubTab>("pd");
+  const { search } = useLocation();
   const { hasFeature } = useFeatures();
   const canDocHub = hasFeature(FEATURES.DOC_HUB);
   const canTemplates =
@@ -150,6 +153,15 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
   const [templateManagerInitialId, setTemplateManagerInitialId] = useState<
     string | null
   >(null);
+  const routeDocumentsSubTab = (() => {
+    const value = new URLSearchParams(search).get("documentsSubTab");
+    return value === "pd" || value === "templates" || value === "dochub" || value === "ceniky"
+      ? value
+      : null;
+  })();
+  const shouldHighlightDocHubSetup =
+    routeDocumentsSubTab === "dochub" &&
+    !project.docHubRootLink?.trim();
 
   const extractTemplateId = (link: string | null | undefined) => {
     if (!link) return null;
@@ -176,6 +188,12 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
       setDocumentsSubTab("pd");
     }
   }, [availableSubTabs, documentsSubTab]);
+
+  useEffect(() => {
+    if (!routeDocumentsSubTab) return;
+    if (!availableSubTabs.includes(routeDocumentsSubTab)) return;
+    setDocumentsSubTab(routeDocumentsSubTab);
+  }, [availableSubTabs, routeDocumentsSubTab]);
 
   useEffect(() => {
     setPriceListLinkValue(project.priceListLink || "");
@@ -227,7 +245,17 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
   };
 
   const handleSavePriceList = () => {
-    onUpdate({ priceListLink: priceListLinkValue });
+    const trimmedValue = priceListLinkValue.trim();
+    if (trimmedValue && !isProbablyUrl(trimmedValue)) {
+      showModal({
+        title: "Neplatný odkaz",
+        message: "Použijte prosím odkaz začínající na http:// nebo https://.",
+        variant: "danger",
+      });
+      return;
+    }
+
+    onUpdate({ priceListLink: trimmedValue });
     setIsEditingPriceList(false);
   };
 
@@ -435,6 +463,12 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
             {/* DocHub Section (Wizard) */}
             {documentsSubTab === "dochub" && canDocHub && (
               <div className="space-y-6">
+                {shouldHighlightDocHubSetup && (
+                  <div className="rounded-xl border border-emerald-300/60 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100">
+                    Nová realizační stavba potřebuje vlastní realizační složku. Dokončete prosím napojení Složkomatu níže.
+                  </div>
+                )}
+
                 <DocHubStatusCard
                   state={docHub.state}
                   actions={docHub.actions}
