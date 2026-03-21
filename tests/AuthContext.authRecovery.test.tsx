@@ -39,6 +39,7 @@ const setup = async (options: SetupOptions) => {
     ),
     invalidateAuthState: vi.fn().mockResolvedValue(undefined),
     navigate: vi.fn(),
+    queryClientClear: vi.fn(),
     subscribe: vi.fn((listener: (snapshot: { event: string; session: any }) => void) => {
       mockState.authListener = listener;
       return vi.fn();
@@ -95,6 +96,17 @@ const setup = async (options: SetupOptions) => {
     navigate: mockState.navigate,
   }));
 
+  vi.doMock("../services/queryClient", () => ({
+    queryClient: {
+      clear: mockState.queryClientClear,
+    },
+  }));
+
+  vi.doMock("@/services/incidentLogger", () => ({
+    logIncident: vi.fn(),
+    setIncidentContext: vi.fn(),
+  }));
+
   vi.doMock("@infra/auth/authSessionStore", () => ({
     authSessionStore: {
       start: vi.fn(),
@@ -106,11 +118,14 @@ const setup = async (options: SetupOptions) => {
   const { AuthProvider, useAuth } = await import("../context/AuthContext");
 
   const Probe: React.FC = () => {
-    const { isLoading, isAuthenticated } = useAuth();
+    const { isLoading, isAuthenticated, logout } = useAuth();
     return (
       <div>
         <div data-testid="loading">{String(isLoading)}</div>
         <div data-testid="authenticated">{String(isAuthenticated)}</div>
+        <button type="button" onClick={() => void logout()}>
+          logout
+        </button>
       </div>
     );
   };
@@ -165,6 +180,34 @@ describe("AuthContext auth recovery", () => {
     expect(mockState.getCurrentUser).not.toHaveBeenCalled();
     expect(mockState.invalidateAuthState).not.toHaveBeenCalled();
     expect(screen.getByTestId("authenticated").textContent).toBe("false");
+  });
+
+
+  it("desktop logout clears react-query cache before navigate", async () => {
+    const mockState = await setup({
+      isDesktop: true,
+      credentials: null,
+      biometricEnabled: false,
+      currentUser: null,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("loading").textContent).toBe("false");
+    });
+
+    await act(async () => {
+      screen.getByRole("button", { name: "logout" }).click();
+    });
+
+    await waitFor(() => {
+      expect(mockState.invalidateAuthState).toHaveBeenCalledWith({
+        navigateToLogin: false,
+        reason: "manual_logout",
+      });
+    });
+
+    expect(mockState.queryClientClear).toHaveBeenCalledTimes(1);
+    expect(mockState.navigate).toHaveBeenCalledWith("/login", { replace: true });
   });
 
   it("SIGNED_OUT event neaktivuje retry loop", async () => {
