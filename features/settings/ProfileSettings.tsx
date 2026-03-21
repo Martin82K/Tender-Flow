@@ -16,6 +16,8 @@ import { useElectronUpdater } from "@/hooks/useElectronUpdater";
 import { organizationService } from "../../services/organizationService";
 import { formatOrgRequestStatus } from "../../utils/organizationUtils";
 import { userProfileService } from "../../services/userProfileService";
+import { buildEmailSignature } from "@/shared/email/signature";
+import type { UserEmailSignatureProfile } from "@/types";
 
 interface ProfileSettingsProps {
   theme: "light" | "dark" | "system";
@@ -58,11 +60,20 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
   // Display Name State
   const [displayName, setDisplayName] = useState("");
   const [isSavingDisplayName, setIsSavingDisplayName] = useState(false);
+  const [signatureProfile, setSignatureProfile] = useState<UserEmailSignatureProfile>({
+    displayName: "",
+    signatureName: "",
+    signatureRole: "",
+    signaturePhone: "",
+    signaturePhoneSecondary: "",
+    signatureEmail: "",
+    signatureGreeting: "S pozdravem",
+  });
 
   // Load display name on mount
   useEffect(() => {
     if (user?.id) {
-      loadDisplayName();
+      loadProfile();
     }
   }, [user?.id]);
 
@@ -107,12 +118,21 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
     }
   };
 
-  const loadDisplayName = async () => {
+  const loadProfile = async () => {
     try {
-      const value = await userProfileService.getDisplayName(user.id);
-      setDisplayName(value || "");
+      const profile = await userProfileService.getProfile(user.id);
+      setDisplayName(profile.displayName || "");
+      setSignatureProfile({
+        displayName: profile.displayName || "",
+        signatureName: profile.signatureName || "",
+        signatureRole: profile.signatureRole || "",
+        signaturePhone: profile.signaturePhone || "",
+        signaturePhoneSecondary: profile.signaturePhoneSecondary || "",
+        signatureEmail: profile.signatureEmail || user?.email || "",
+        signatureGreeting: profile.signatureGreeting || "S pozdravem",
+      });
     } catch (error) {
-      console.error("Error loading display name:", error);
+      console.error("Error loading profile:", error);
     }
   };
 
@@ -128,11 +148,19 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
 
     setIsSavingDisplayName(true);
     try {
-      await userProfileService.saveDisplayName(user.id, displayName || null);
+      await userProfileService.saveProfile(user.id, {
+        displayName: displayName || null,
+        signatureName: signatureProfile.signatureName || null,
+        signatureRole: signatureProfile.signatureRole || null,
+        signaturePhone: signatureProfile.signaturePhone || null,
+        signaturePhoneSecondary: signatureProfile.signaturePhoneSecondary || null,
+        signatureEmail: signatureProfile.signatureEmail || user.email || null,
+        signatureGreeting: signatureProfile.signatureGreeting || null,
+      });
 
       showAlert({
         title: "Hotovo",
-        message: "Zobrazované jméno bylo uloženo.",
+        message: "Profil a podpis do e-mailu byly uloženy.",
         variant: "success",
       });
     } catch (error: any) {
@@ -147,6 +175,19 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
       setIsSavingDisplayName(false);
     }
   };
+
+  const emailSignaturePreview = buildEmailSignature({
+    profile: {
+      displayName: displayName || null,
+      signatureName: signatureProfile.signatureName || null,
+      signatureRole: signatureProfile.signatureRole || null,
+      signaturePhone: signatureProfile.signaturePhone || null,
+      signaturePhoneSecondary: signatureProfile.signaturePhoneSecondary || null,
+      signatureEmail: signatureProfile.signatureEmail || user?.email || null,
+      signatureGreeting: signatureProfile.signatureGreeting || null,
+    },
+    branding: null,
+  });
 
   const handleDeleteAllContacts = async () => {
     if (contacts.length === 0) {
@@ -356,6 +397,145 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                 <p className="text-[11px] text-slate-500">
                   Zobrazuje se u projektů a komentářů.
                 </p>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-800/70 bg-slate-50/60 dark:bg-slate-950/40 p-4 space-y-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                    Podpis do e-mailu
+                  </h3>
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    Vyplníte své osobní údaje. Firemní logo a patička se doplní z nastavení organizace.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      Úvod
+                    </label>
+                    <input
+                      type="text"
+                      value={signatureProfile.signatureGreeting || ""}
+                      onChange={(e) =>
+                        setSignatureProfile((prev) => ({
+                          ...prev,
+                          signatureGreeting: e.target.value,
+                        }))
+                      }
+                      placeholder="S pozdravem"
+                      className="w-full rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 px-3.5 py-2 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/30 outline-none transition-all"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      Jméno v podpisu
+                    </label>
+                    <input
+                      type="text"
+                      value={signatureProfile.signatureName || ""}
+                      onChange={(e) =>
+                        setSignatureProfile((prev) => ({
+                          ...prev,
+                          signatureName: e.target.value,
+                        }))
+                      }
+                      placeholder="Martin Kalkuš"
+                      className="w-full rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 px-3.5 py-2 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/30 outline-none transition-all"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      Pozice
+                    </label>
+                    <input
+                      type="text"
+                      value={signatureProfile.signatureRole || ""}
+                      onChange={(e) =>
+                        setSignatureProfile((prev) => ({
+                          ...prev,
+                          signatureRole: e.target.value,
+                        }))
+                      }
+                      placeholder="technik přípravy staveb"
+                      className="w-full rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 px-3.5 py-2 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/30 outline-none transition-all"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      E-mail
+                    </label>
+                    <input
+                      type="email"
+                      value={signatureProfile.signatureEmail || ""}
+                      onChange={(e) =>
+                        setSignatureProfile((prev) => ({
+                          ...prev,
+                          signatureEmail: e.target.value,
+                        }))
+                      }
+                      placeholder={user?.email || "vas@email.cz"}
+                      className="w-full rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 px-3.5 py-2 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/30 outline-none transition-all"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      Telefon
+                    </label>
+                    <input
+                      type="text"
+                      value={signatureProfile.signaturePhone || ""}
+                      onChange={(e) =>
+                        setSignatureProfile((prev) => ({
+                          ...prev,
+                          signaturePhone: e.target.value,
+                        }))
+                      }
+                      placeholder="+420 123 456 789"
+                      className="w-full rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 px-3.5 py-2 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/30 outline-none transition-all"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      Telefon 2
+                    </label>
+                    <input
+                      type="text"
+                      value={signatureProfile.signaturePhoneSecondary || ""}
+                      onChange={(e) =>
+                        setSignatureProfile((prev) => ({
+                          ...prev,
+                          signaturePhoneSecondary: e.target.value,
+                        }))
+                      }
+                      placeholder="+420 777 300 042"
+                      className="w-full rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 px-3.5 py-2 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/30 outline-none transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    Náhled osobní části
+                  </div>
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/70 p-4">
+                    {emailSignaturePreview.hasContent ? (
+                      <div
+                        className="text-sm text-slate-900 dark:text-white [&_a]:text-slate-900 [&_a]:underline"
+                        dangerouslySetInnerHTML={{ __html: emailSignaturePreview.html }}
+                      />
+                    ) : (
+                      <div className="text-sm text-slate-500">
+                        Vyplňte údaje podpisu pro zobrazení náhledu.
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-100 dark:border-slate-800/50">

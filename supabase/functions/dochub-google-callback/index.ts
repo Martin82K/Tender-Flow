@@ -133,6 +133,30 @@ Deno.serve(async (req) => {
       return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "state_not_found"));
     }
 
+    const { data: project, error: projectAccessError } = await service
+      .from("projects")
+      .select("id, owner_id")
+      .eq("id", stateRow.project_id)
+      .maybeSingle();
+    if (projectAccessError || !project) {
+      await service.from("dochub_oauth_states").delete().eq("id", stateRow.id);
+      return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "forbidden_project"));
+    }
+
+    if (project.owner_id !== stateRow.user_id) {
+      const { data: share } = await service
+        .from("project_shares")
+        .select("id")
+        .eq("project_id", stateRow.project_id)
+        .eq("user_id", stateRow.user_id)
+        .eq("permission", "edit")
+        .maybeSingle();
+      if (!share) {
+        await service.from("dochub_oauth_states").delete().eq("id", stateRow.id);
+        return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "forbidden_project"));
+      }
+    }
+
     const clientId = Deno.env.get("GOOGLE_OAUTH_CLIENT_ID") || "";
     const clientSecret = Deno.env.get("GOOGLE_OAUTH_CLIENT_SECRET") || "";
     const redirectUri = Deno.env.get("GOOGLE_OAUTH_REDIRECT_URI") || "";

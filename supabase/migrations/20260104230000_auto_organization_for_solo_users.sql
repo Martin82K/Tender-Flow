@@ -67,13 +67,37 @@ DECLARE
     v_org_id UUID;
     v_domain TEXT;
     v_org_name TEXT;
+    v_caller_uid UUID;
+    v_verified_email TEXT;
+    v_effective_email TEXT;
 BEGIN
     -- Validate input
     IF p_user_id IS NULL OR p_email IS NULL OR p_email = '' THEN
         RAISE EXCEPTION 'user_id and email are required';
     END IF;
 
-    v_domain := lower(split_part(p_email, '@', 2));
+    -- For user-invoked RPC calls, enforce that callers can only create/read orgs for themselves
+    v_caller_uid := auth.uid();
+    IF v_caller_uid IS NOT NULL AND v_caller_uid <> p_user_id THEN
+        RAISE EXCEPTION 'unauthorized user context';
+    END IF;
+
+    -- Always validate email against auth.users and use the verified value for domain decisions
+    SELECT email INTO v_verified_email
+    FROM auth.users
+    WHERE id = p_user_id;
+
+    IF v_verified_email IS NULL THEN
+        RAISE EXCEPTION 'user email not found';
+    END IF;
+
+    IF lower(v_verified_email) <> lower(p_email) THEN
+        RAISE EXCEPTION 'email mismatch for user';
+    END IF;
+
+    v_effective_email := lower(v_verified_email);
+
+    v_domain := split_part(v_effective_email, '@', 2);
     
     -- First, check if user already has an organization membership
     SELECT organization_id INTO v_org_id
@@ -86,9 +110,9 @@ BEGIN
     END IF;
     
     -- Check if it's a free email provider
-    IF public.is_free_email_provider(p_email) THEN
+    IF public.is_free_email_provider(v_effective_email) THEN
         -- Create personal organization for this user
-        v_org_name := COALESCE(NULLIF(TRIM(p_display_name), ''), split_part(p_email, '@', 1));
+        v_org_name := COALESCE(NULLIF(TRIM(p_display_name), ''), split_part(v_effective_email, '@', 1));
         
         INSERT INTO public.organizations (name, type, owner_user_id, subscription_tier)
         VALUES (v_org_name, 'personal', p_user_id, 'free')

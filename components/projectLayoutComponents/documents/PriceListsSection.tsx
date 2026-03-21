@@ -1,6 +1,12 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { ProjectDetails } from '../../../types';
 import { isProbablyUrl } from '../../../utils/docHub';
+
+const getSafeExternalUrl = (value: string | undefined): string | null => {
+    const trimmed = value?.trim();
+    if (!trimmed || !isProbablyUrl(trimmed)) return null;
+    return trimmed;
+};
 
 interface PriceListsSectionProps {
     project: ProjectDetails;
@@ -25,14 +31,16 @@ export const PriceListsSection: React.FC<PriceListsSectionProps> = ({
     docHubCenikyLink,
     showModal
 }) => {
+    const safePriceListUrl = getSafeExternalUrl(project.priceListLink);
+
     return (
         <div className="space-y-4">
-            <div className={`rounded-xl p-6 border transition-colors ${!!project.priceListLink ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30' : 'bg-slate-50 dark:bg-slate-950/30 border-slate-200 dark:border-slate-700/40'}`}>
+            <div className={`rounded-xl p-6 border transition-colors ${!!safePriceListUrl ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30' : 'bg-slate-50 dark:bg-slate-950/30 border-slate-200 dark:border-slate-700/40'}`}>
                 <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-2">
                         <span className="material-symbols-outlined text-slate-400">payments</span>
                         <h3 className="font-semibold text-slate-900 dark:text-white">Ceníky</h3>
-                        {!!project.priceListLink && (
+                        {!!safePriceListUrl && (
                             <span className="ml-2 px-2.5 py-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase rounded-lg border border-emerald-500/30">
                                 Nastaveno
                             </span>
@@ -65,10 +73,10 @@ export const PriceListsSection: React.FC<PriceListsSectionProps> = ({
 
                 {!isEditing ? (
                     <div>
-                        {!!project.priceListLink ? (
+                        {!!safePriceListUrl ? (
                             <div className="space-y-3">
                                 <a
-                                    href={project.priceListLink}
+                                    href={safePriceListUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="block p-4 bg-white dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50 hover:border-emerald-500/30 hover:shadow-md dark:hover:bg-slate-700/50 transition-all group"
@@ -77,7 +85,7 @@ export const PriceListsSection: React.FC<PriceListsSectionProps> = ({
                                         <div className="flex items-center gap-3 flex-1 min-w-0">
                                             <span className="material-symbols-outlined text-emerald-600 dark:text-emerald-400">inventory_2</span>
                                             <span className="text-sm font-medium text-slate-900 dark:text-white truncate">
-                                                {project.priceListLink}
+                                                {safePriceListUrl}
                                             </span>
                                         </div>
                                         <span className="material-symbols-outlined text-slate-500 group-hover:text-emerald-400 transition-colors">open_in_new</span>

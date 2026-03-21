@@ -27,7 +27,7 @@ describe("subscriptionFeaturesService.getUserSubscriptionTier", () => {
     mocks.getCachedSubscriptionTier.mockReturnValue(null);
   });
 
-  it("bez uživatele vrátí cached tier bez debug logů", async () => {
+  it("bez uživatele fail-closed vrátí free tier bez debug logů", async () => {
     const consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
     const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
@@ -38,12 +38,12 @@ describe("subscriptionFeaturesService.getUserSubscriptionTier", () => {
 
     const tier = await subscriptionFeaturesService.getUserSubscriptionTier();
 
-    expect(tier).toBe("admin");
+    expect(tier).toBe("free");
     expect(consoleLogSpy).not.toHaveBeenCalled();
     expect(consoleWarnSpy).not.toHaveBeenCalled();
   });
 
-  it("při RPC chybě vrátí cached tier a loguje jen sanitizovanou chybu", async () => {
+  it("při RPC chybě fail-closed vrátí free tier a loguje jen sanitizovanou chybu", async () => {
     const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     mocks.getUser.mockResolvedValue({ data: { user: { id: "user-1" } } });
@@ -60,7 +60,7 @@ describe("subscriptionFeaturesService.getUserSubscriptionTier", () => {
 
     const tier = await subscriptionFeaturesService.getUserSubscriptionTier();
 
-    expect(tier).toBe("pro");
+    expect(tier).toBe("free");
     const loggedPayload = JSON.stringify(consoleErrorSpy.mock.calls[0]?.[1]);
     expect(loggedPayload).toContain("[redacted-email]");
     expect(loggedPayload).toContain("[redacted-token]");
