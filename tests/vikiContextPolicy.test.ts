@@ -111,6 +111,12 @@ describe("viki context policy", () => {
     expect(guarded.text).toBe("Tuto informaci v klientském režimu nemohu sdílet.");
   });
 
+  it("guard blokuje interní finanční KPI fráze v klientské odpovědi", () => {
+    const guarded = guardClientFacingOutput("| Interní plánovaný náklad projektu | 800 000 Kč |");
+    expect(guarded.blocked).toBe(true);
+    expect(guarded.text).toBe("Tuto informaci v klientském režimu nemohu sdílet.");
+  });
+
   it("guard blokuje admin obsah pro ne-admin uživatele", () => {
     const guarded = guardRoleRestrictedOutput("Administrace: správu uživatelů najdeš v nastavení.", runtimeBase);
     expect(guarded.blocked).toBe(true);
