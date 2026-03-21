@@ -37,7 +37,7 @@ export const createSecurityHeadersConfig = (env = process.env) => {
     allowAllOrigins: effectiveOrigins.includes('*'),
     allowedOrigins: effectiveOrigins,
     allowedOriginMatchers: effectiveOrigins.map((origin) => buildOriginMatcher(origin)),
-    frameAncestors: env.CSP_FRAME_ANCESTORS || (nodeEnv === 'production' ? "'self'" : '*'),
+    frameAncestors: env.CSP_FRAME_ANCESTORS || "'self'",
     allowedMethods: env.CORS_ALLOW_METHODS || DEFAULT_ALLOWED_METHODS,
     allowedHeaders: env.CORS_ALLOW_HEADERS || DEFAULT_ALLOWED_HEADERS,
   };
@@ -53,8 +53,7 @@ export const createSecurityHeadersMiddleware = (config = createSecurityHeadersCo
   return (req, res, next) => {
     const requestOrigin = req.headers.origin;
 
-    // We intentionally keep embedding configurable by CSP and remove legacy X-Frame-Options.
-    res.removeHeader('X-Frame-Options');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
     res.setHeader('Content-Security-Policy', `frame-ancestors ${config.frameAncestors}`);
     res.setHeader('Access-Control-Allow-Methods', config.allowedMethods);
     res.setHeader('Access-Control-Allow-Headers', config.allowedHeaders);
