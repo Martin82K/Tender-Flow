@@ -10,7 +10,10 @@ import { parseAppRoute } from "../../shared/routing/routeUtils";
 import { renameFolder } from '../../services/fileSystemService';
 import { logIncident } from "../../services/incidentLogger";
 import { ProjectDetails } from '../../types';
-import { validateSubcontractorCompanyName } from "../../shared/dochub/subcontractorNameRules";
+import {
+    sanitizeSubcontractorCompanyName,
+    validateSubcontractorCompanyName,
+} from "../../shared/dochub/subcontractorNameRules";
 
 const getInvalidCompanyNameMessage = (companyName: string, reason?: string): string => {
     const base = `Neplatny nazev firmy "${companyName}".`;
@@ -23,6 +26,9 @@ export const assertValidSubcontractorCompanyNameOrThrow = (companyName: string):
         throw new Error(getInvalidCompanyNameMessage(companyName, validation.reason));
     }
 };
+
+const toDocHubFolderSegment = (name: string): string =>
+    sanitizeSubcontractorCompanyName(name.trim()).sanitized;
 
 export const useAddContactMutation = () => {
     const queryClient = useQueryClient();
@@ -170,8 +176,8 @@ export const useUpdateContactMutation = () => {
                                     if (category && rootPath) {
                                         // Tender Flow Desktop only for now
                                         if (provider === 'onedrive') {
-                                            const oldPath = `${rootPath}${sep}${tendersName}${sep}${category.title.trim()}${sep}${oldName.trim()}`;
-                                            const newPath = `${rootPath}${sep}${tendersName}${sep}${category.title.trim()}${sep}${newName.trim()}`;
+                                            const oldPath = `${rootPath}${sep}${tendersName}${sep}${category.title.trim()}${sep}${toDocHubFolderSegment(oldName)}`;
+                                            const newPath = `${rootPath}${sep}${tendersName}${sep}${category.title.trim()}${sep}${toDocHubFolderSegment(newName)}`;
 
                                             // Trigger rename (fire and forget)
                                             renameFolder(oldPath, newPath, { provider, projectId }).catch((e) => {

@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { dbAdapter } from "../../services/dbAdapter";
-import { Project, ProjectDetails, DemandCategory } from "../../types";
+import { ActiveProjectStatus, Project, ProjectDetails, DemandCategory, ProjectStatus } from "../../types";
 import { useAuth } from "../../context/AuthContext";
 import { PROJECT_KEYS } from "../queries/useProjectsQuery";
 import { PROJECT_DETAILS_KEYS } from "../queries/useProjectDetailsQuery";
@@ -9,6 +9,7 @@ import { getDemoData, saveDemoData } from "../../services/demoData";
 import { invokeAuthedFunction } from "../../services/functionsClient";
 import { ensureStructure } from "../../services/fileSystemService";
 import { buildHierarchyTree, isProbablyUrl, resolveDocHubStructureV1 } from "../../utils/docHub";
+import { cloneTenderToRealization } from "@/features/projects/api/projectCloneApi";
 
 // Helper for DocHub Sync
 const syncDocHubCategory = async (projectId: string, action: "upsert" | "archive", categoryId: string, categoryTitle?: string) => {
@@ -19,6 +20,34 @@ const syncDocHubCategory = async (projectId: string, action: "upsert" | "archive
     } catch (e) {
         console.error("DocHub sync failed", e);
     }
+};
+
+type ArchiveProjectMutationInput = {
+    id: string;
+    currentStatus: ProjectStatus;
+    archivedOriginalStatus?: ActiveProjectStatus | null;
+};
+
+type ArchiveProjectUpdate = {
+    targetStatus: ProjectStatus;
+    archivedOriginalStatus: ActiveProjectStatus | null;
+};
+
+export const resolveArchiveProjectUpdate = ({
+    currentStatus,
+    archivedOriginalStatus,
+}: Omit<ArchiveProjectMutationInput, "id">): ArchiveProjectUpdate => {
+    if (currentStatus === "archived") {
+        return {
+            targetStatus: archivedOriginalStatus ?? "realization",
+            archivedOriginalStatus: null,
+        };
+    }
+
+    return {
+        targetStatus: "archived",
+        archivedOriginalStatus: currentStatus,
+    };
 };
 
 export const useAddProjectMutation = () => {
@@ -104,30 +133,185 @@ export const useDeleteProjectMutation = () => {
     });
 };
 
+const extractEffectiveBidDisplayPrice = (bid: any): string | null => {
+    if (typeof bid?.price === "string" && bid.price.trim() && bid.price !== "?" && bid.price !== "-") {
+        return bid.price;
+    }
+
+    const priceHistory = bid?.priceHistory;
+    if (!priceHistory || typeof priceHistory !== "object") {
+        return null;
+    }
+
+    const sortedEntries = Object.entries(priceHistory)
+        .map(([round, value]) => ({
+            round: Number.parseInt(round, 10),
+            value: typeof value === "string" ? value.trim() : "",
+        }))
+        .filter((entry) => Number.isFinite(entry.round) && entry.value.length > 0)
+        .sort((a, b) => b.round - a.round);
+
+    return sortedEntries[0]?.value || null;
+};
+
+export const useCloneTenderToRealizationMutation = () => {
+    const queryClient = useQueryClient();
+    const { user } = useAuth();
+
+    return useMutation({
+        mutationFn: async (projectId: string) => {
+            if (user?.role === "demo") {
+                const demoData = getDemoData();
+                const sourceProject = demoData?.projects.find((project) => project.id === projectId);
+                const sourceDetails = demoData?.projectDetails?.[projectId];
+
+                if (!demoData || !sourceProject || !sourceDetails) {
+                    throw new Error("Zdrojový demo projekt nebyl nalezen.");
+                }
+
+                if (sourceProject.status !== "tender") {
+                    throw new Error("Klonovat do realizace lze pouze projekt ve stavu soutěž.");
+                }
+
+                const clonedProjectId = crypto.randomUUID();
+                const clonedCategories = (sourceDetails.categories || []).map((category) => ({
+                    ...structuredClone(category),
+                    id: crypto.randomUUID(),
+                    deadline: undefined,
+                    realizationStart: undefined,
+                    realizationEnd: undefined,
+                }));
+                const categoryIdMap = new Map(
+                    (sourceDetails.categories || []).map((category, index) => [category.id, clonedCategories[index]?.id]),
+                );
+
+                const clonedBids = Object.fromEntries(
+                    clonedCategories.map((category) => {
+                        const sourceCategoryId = [...categoryIdMap.entries()].find(([, newId]) => newId === category.id)?.[0];
+                        const sourceCategoryBids = sourceCategoryId
+                            ? (sourceDetails.bids?.[sourceCategoryId] || [])
+                            : [];
+                        const nextBids = sourceCategoryBids
+                            .map((bid) => {
+                                const effectivePrice = extractEffectiveBidDisplayPrice(bid);
+                                if (!effectivePrice) return null;
+
+                                return {
+                                    ...structuredClone(bid),
+                                    id: crypto.randomUUID(),
+                                    status: "contacted" as const,
+                                    price: "?",
+                                    priceHistory: { 0: effectivePrice },
+                                    selectionRound: 0,
+                                    updateDate: undefined,
+                                    contracted: false,
+                                    notes: undefined,
+                                };
+                            })
+                            .filter(Boolean);
+
+                        return [category.id, nextBids];
+                    }).filter(([, bids]) => Array.isArray(bids) && bids.length > 0),
+                );
+
+                const clonedProject: Project = {
+                    ...structuredClone(sourceProject),
+                    id: clonedProjectId,
+                    status: "realization",
+                };
+
+                const clonedDetails: ProjectDetails = {
+                    ...structuredClone(sourceDetails),
+                    id: clonedProjectId,
+                    title: sourceDetails.title,
+                    status: "realization",
+                    categories: clonedCategories,
+                    bids: clonedBids,
+                    docHubRootLink: "",
+                    docHubRootId: null,
+                    docHubRootName: null,
+                    docHubDriveId: null,
+                    docHubSiteId: null,
+                    docHubRootWebUrl: null,
+                    docHubStatus: "disconnected",
+                    docHubLastError: null,
+                    docHubAutoCreateEnabled: false,
+                    docHubAutoCreateLastRunAt: null,
+                    docHubAutoCreateLastError: null,
+                    docHubSettings: null,
+                };
+
+                demoData.projects = [clonedProject, ...demoData.projects];
+                demoData.projectDetails[clonedProjectId] = clonedDetails;
+                saveDemoData(demoData);
+
+                return { projectId: clonedProjectId };
+            }
+
+            return cloneTenderToRealization(projectId);
+        },
+        onSettled: async (_data, _error) => {
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: PROJECT_KEYS.list() }),
+                queryClient.invalidateQueries({ queryKey: PROJECT_DETAILS_KEYS.all }),
+                queryClient.invalidateQueries({ queryKey: OVERVIEW_TENANT_DATA_KEY }),
+            ]);
+        },
+    });
+};
+
 export const useArchiveProjectMutation = () => {
     const queryClient = useQueryClient();
     const { user } = useAuth();
 
     return useMutation({
-        mutationFn: async ({ id, newStatus }: { id: string; newStatus: "realization" | "archived" }) => {
+        mutationFn: async ({ id, currentStatus, archivedOriginalStatus }: ArchiveProjectMutationInput) => {
+            const nextState = resolveArchiveProjectUpdate({ currentStatus, archivedOriginalStatus });
+
             if (user?.role === "demo") {
                 const demoData = getDemoData();
                 if (demoData) {
-                    demoData.projects = demoData.projects.map(p => p.id === id ? { ...p, status: newStatus } : p);
-                    if (demoData.projectDetails[id]) demoData.projectDetails[id].status = newStatus;
+                    demoData.projects = demoData.projects.map((p) =>
+                        p.id === id
+                            ? {
+                                ...p,
+                                status: nextState.targetStatus,
+                                archivedOriginalStatus: nextState.archivedOriginalStatus,
+                            }
+                            : p
+                    );
+                    if (demoData.projectDetails[id]) {
+                        demoData.projectDetails[id].status = nextState.targetStatus;
+                        demoData.projectDetails[id].archivedOriginalStatus = nextState.archivedOriginalStatus;
+                    }
                     saveDemoData(demoData);
                 }
                 return;
             }
 
-            const { error } = await dbAdapter.from("projects").update({ status: newStatus }).eq("id", id);
+            const { error } = await dbAdapter
+                .from("projects")
+                .update({
+                    status: nextState.targetStatus,
+                    archived_original_status: nextState.archivedOriginalStatus,
+                })
+                .eq("id", id);
             if (error) throw error;
         },
-        onMutate: async ({ id, newStatus }) => {
+        onMutate: async ({ id, currentStatus, archivedOriginalStatus }) => {
+            const nextState = resolveArchiveProjectUpdate({ currentStatus, archivedOriginalStatus });
             await queryClient.cancelQueries({ queryKey: PROJECT_KEYS.list() });
             const previousProjects = queryClient.getQueryData<Project[]>(PROJECT_KEYS.list());
             queryClient.setQueryData<Project[]>(PROJECT_KEYS.list(), (old) =>
-                (old || []).map(p => p.id === id ? { ...p, status: newStatus } : p)
+                (old || []).map((p) =>
+                    p.id === id
+                        ? {
+                            ...p,
+                            status: nextState.targetStatus,
+                            archivedOriginalStatus: nextState.archivedOriginalStatus,
+                        }
+                        : p
+                )
             );
             return { previousProjects };
         },

@@ -50,4 +50,17 @@ describe('organizationService.getOrganizationJoinRequests', () => {
       'structure of query does not match function result type',
     );
   });
+
+  it('requestOrgJoinByEmail posílá email do RPC kvůli UX, server ho ale musí ověřit proti auth identitě', async () => {
+    supabaseMocks.rpc.mockResolvedValue({
+      data: true,
+      error: null,
+    });
+
+    await organizationService.requestOrgJoinByEmail('user@example.com');
+
+    expect(supabaseMocks.rpc).toHaveBeenCalledWith('request_org_join_by_email', {
+      email_input: 'user@example.com',
+    });
+  });
 });
