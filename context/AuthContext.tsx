@@ -19,6 +19,7 @@ import { isDesktop, platformAdapter } from "../services/platformAdapter";
 import {
   authSessionService,
 } from "../services/authSessionService";
+import { queryClient } from "../services/queryClient";
 import { logIncident, setIncidentContext } from "@/services/incidentLogger";
 import { navigate } from "../shared/routing/router";
 import { authSessionStore } from "@infra/auth/authSessionStore";
@@ -703,6 +704,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         reason: "manual_logout",
       });
       setUser(null);
+      queryClient.clear();
       if (isDesktop) {
         navigate("/login", { replace: true });
       } else {
