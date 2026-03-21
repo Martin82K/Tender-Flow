@@ -1,6 +1,6 @@
--- Migration: overview_tenant_rpc
--- Date: 2026-02-04
--- Description: Tenant-wide overview data for "Přehledy" only (RPC)
+-- Migration: harden_overview_tenant_rpc_subcontractor_join
+-- Date: 2026-03-21
+-- Description: Prevent tenant overview RPC from resolving subcontractor contacts across tenants.
 
 CREATE OR REPLACE FUNCTION public.get_overview_tenant_data()
 RETURNS JSONB
@@ -59,7 +59,12 @@ BEGIN
       ) AS bids,
       COUNT(*) AS bid_count
     FROM bids_raw b
-    LEFT JOIN public.subcontractors s ON s.id = b.subcontractor_id
+    LEFT JOIN public.subcontractors s
+      ON s.id = b.subcontractor_id
+      AND (
+        s.organization_id = ANY(org_ids)
+        OR s.owner_id = auth.uid()
+      )
     GROUP BY b.demand_category_id
   ),
   categories_by_project AS (
