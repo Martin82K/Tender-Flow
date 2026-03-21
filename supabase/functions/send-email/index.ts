@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 
 interface EmailRequest {
@@ -13,6 +14,8 @@ interface EmailRequest {
 }
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 // Default sender if not specified. Ideally configured in env, fallback to a placeholder.
 const DEFAULT_FROM =
   Deno.env.get("DEFAULT_EMAIL_FROM") || "Tender Flow <noreply@tenderflow.cz>";
@@ -31,10 +34,32 @@ serve(async (req) => {
       throw new Error("Missing Authorization header");
     }
 
-    // Validate JWT (basic check that header exists and looks like Bearer)
-    // In a real scenario, we might want to use supabase-js to getUser(),
-    // but for now, we trust the gateway verified the JWT or we do a quick check.
-    // For tighter security, we should use createClient and getUser.
+    if (!authHeader.startsWith("Bearer ")) {
+      throw new Error("Invalid Authorization header format");
+    }
+
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      throw new Error("Missing Supabase configuration");
+    }
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: {
+        headers: {
+          Authorization: authHeader,
+        },
+      },
+    });
+
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData.user) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
 
     // 2. Parse Request Body
     const { to, subject, data, template }: {
