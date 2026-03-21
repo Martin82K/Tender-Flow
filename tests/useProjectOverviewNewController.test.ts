@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { ProjectDetails } from "../types";
 import { useProjectOverviewNewController } from "../features/projects/model/useProjectOverviewNewController";
 
-const buildProject = (): ProjectDetails => ({
+const buildProject = (overrides: Partial<ProjectDetails> = {}): ProjectDetails => ({
   id: "project-1",
   title: "Projekt 1",
   investor: "Původní investor",
@@ -15,12 +15,13 @@ const buildProject = (): ProjectDetails => ({
   constructionTechnician: "Původní CT",
   plannedCost: 1000000,
   categories: [],
+  ...overrides,
 });
 
 describe("useProjectOverviewNewController", () => {
-  it("nepřepíše infoForm během aktivní editace při změně reference project", () => {
+  it("reinitializes infoForm when project identity changes during active edit", () => {
     const onUpdate = vi.fn();
-    const initialProject = buildProject();
+    const projectA = buildProject();
 
     const { result, rerender } = renderHook(
       ({ project }) =>
@@ -30,33 +31,29 @@ describe("useProjectOverviewNewController", () => {
           searchQuery: "",
         }),
       {
-        initialProps: { project: initialProject },
+        initialProps: { project: projectA },
       },
     );
 
     act(() => {
       result.current.setEditingInfo(true);
-    });
-
-    act(() => {
       result.current.setInfoForm((prev) => ({
         ...prev,
-        investor: "Nový investor",
+        investor: "Edited investor A",
         location: "Brno",
-        finishDate: "2027-01-15",
-        siteManager: "Nový stavbyvedoucí",
       }));
     });
 
-    rerender({
-      project: {
-        ...initialProject,
-      },
+    const projectB = buildProject({
+      id: "project-2",
+      investor: "Investor B",
+      location: "Ostrava",
     });
 
-    expect(result.current.infoForm.investor).toBe("Nový investor");
-    expect(result.current.infoForm.location).toBe("Brno");
-    expect(result.current.infoForm.finishDate).toBe("2027-01-15");
-    expect(result.current.infoForm.siteManager).toBe("Nový stavbyvedoucí");
+    rerender({ project: projectB });
+
+    expect(result.current.editingInfo).toBe(false);
+    expect(result.current.infoForm.investor).toBe("Investor B");
+    expect(result.current.infoForm.location).toBe("Ostrava");
   });
 });
