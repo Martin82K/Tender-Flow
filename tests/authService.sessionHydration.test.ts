@@ -188,6 +188,33 @@ describe("authService session hydration", () => {
     expect(user?.subscriptionTier).toBe("starter");
   });
 
+  it("při chybějícím override i organization tier neobnoví stale cached tier", async () => {
+    localStorage.setItem(
+      "crm-subscription-tier-cache",
+      JSON.stringify({
+        tier: "pro",
+        timestamp: Date.now(),
+      }),
+    );
+
+    subscriptionOverride = null;
+    organizationId = null;
+    organizationTier = null;
+    legalAcceptanceRow = {
+      subscription_tier_override: null,
+      terms_version: null,
+      terms_accepted_at: null,
+      privacy_version: null,
+      privacy_accepted_at: null,
+    };
+
+    const user = await authService.getUserFromSession(makeSession(), {
+      skipUserCache: true,
+    });
+
+    expect(user?.subscriptionTier).toBe("free");
+  });
+
   it("při cache-first vrátí cache, ale background refresh propaguje čerstvý tier", async () => {
     localStorage.setItem(
       "crm-user-cache",

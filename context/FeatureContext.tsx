@@ -59,13 +59,13 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
       lastRefreshRef.current = Date.now();
     } catch (error) {
       console.error('[FeatureContext] Failed to load features from backend:', error);
-      // On error, keep current plan instead of reverting to free
-      // This prevents transient network errors from downgrading users
-      console.warn('[FeatureContext] Keeping current plan due to error:', currentPlan);
+      // Fail closed on backend errors to prevent stale or spoofed feature access.
+      setEnabledFeatures([]);
+      setCurrentPlan('free');
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, user, currentPlan]);
+  }, [isAuthenticated, user]);
 
   // Fetch features when auth state changes
   useEffect(() => {
