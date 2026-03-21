@@ -293,29 +293,29 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
             </span>
           </div>
         ) : (
-          <div className="table-responsive">
-            <table className="w-full min-w-[800px]">
+          <div className="table-responsive overflow-x-auto">
+            <table className="w-full min-w-[1120px]">
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-700/50">
-                  <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
+                  <th className="whitespace-nowrap text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
                     Email
                   </th>
-                  <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
+                  <th className="whitespace-nowrap text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
                     Jméno
                   </th>
-                  <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
+                  <th className="whitespace-nowrap text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
                     Doména
                   </th>
-                  <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
+                  <th className="whitespace-nowrap text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
                     Role
                   </th>
-                  <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
+                  <th className="whitespace-nowrap text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
                     Přihlášení
                   </th>
-                  <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
+                  <th className="whitespace-nowrap text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
                     Předplatné
                   </th>
-                  <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
+                  <th className="whitespace-nowrap text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
                     Registrace
                   </th>
                 </tr>

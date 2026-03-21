@@ -4,9 +4,11 @@
  * Extracted from Pipeline.tsx for better modularity.
  */
 
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { DemandCategory } from "../../types";
 import { formatMoney } from "../../utils/formatters";
+
+const CLICK_DELAY_MS = 220;
 
 export interface CategoryCardProps {
   category: DemandCategory;
@@ -15,6 +17,7 @@ export interface CategoryCardProps {
   contractedCount: number;
   sodBidsCount: number;
   onClick: () => void;
+  onDoubleClick?: (category: DemandCategory) => void;
   onEdit?: (category: DemandCategory) => void;
   onDelete?: (categoryId: string) => void;
   onToggleComplete?: (category: DemandCategory) => void;
@@ -41,10 +44,41 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
   contractedCount,
   sodBidsCount,
   onClick,
+  onDoubleClick,
   onEdit,
   onDelete,
   onToggleComplete,
 }) => {
+  const clickTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (clickTimeoutRef.current !== null) {
+        window.clearTimeout(clickTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleSingleClick = () => {
+    if (clickTimeoutRef.current !== null) {
+      window.clearTimeout(clickTimeoutRef.current);
+    }
+
+    clickTimeoutRef.current = window.setTimeout(() => {
+      clickTimeoutRef.current = null;
+      onClick();
+    }, CLICK_DELAY_MS);
+  };
+
+  const handleDoubleClick = () => {
+    if (clickTimeoutRef.current !== null) {
+      window.clearTimeout(clickTimeoutRef.current);
+      clickTimeoutRef.current = null;
+    }
+
+    onDoubleClick?.(category);
+  };
+
   const status =
     category.status === "sod"
       ? "sod"
@@ -58,7 +92,8 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
     <div
       role="button"
       tabIndex={0}
-      onClick={onClick}
+      onClick={handleSingleClick}
+      onDoubleClick={handleDoubleClick}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
