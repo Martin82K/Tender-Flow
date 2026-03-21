@@ -38,8 +38,7 @@ export const buildDefaultLosersEmailDraft = (
     `Vážený obchodní partnere,\n\n` +
     `děkujeme za Vaši nabídku v rámci výběrového řízení na zakázku "${projectTitle}" - ${categoryTitle}.\n\n` +
     `Po pečlivém zvážení všech nabídek jsme se rozhodli pokračovat s jiným dodavatelem.\n\n` +
-    `Věříme, že budeme mít možnost spolupracovat na dalších projektech v budoucnosti.\n\n` +
-    `S pozdravem`;
+    `Věříme, že budeme mít možnost spolupracovat na dalších projektech v budoucnosti.`;
 
   return { subject, body };
 };

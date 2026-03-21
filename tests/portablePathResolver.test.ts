@@ -117,6 +117,24 @@ describe('resolvePortablePath', () => {
     expect(resolved).toBe(expectedWriteTarget);
   });
 
+  it('does not remap paths that contain traversal after OneDrive anchor', async () => {
+    const sharedPath =
+      'C:\\Users\\marti\\OneDrive - BAU-STAV a.s\\Bazen - pracovni\\..\\..\\AppData';
+
+    const resolved = await resolvePortablePath(sharedPath, {
+      mode: 'read',
+      homeDir: 'C:\\Users\\petr',
+      deps: createMockDeps({
+        existingDirs: ['C:\\Users\\petr\\OneDrive - BAU-STAV a.s'],
+        homeDirsByPath: {
+          [normalize('C:\\Users\\petr')]: ['OneDrive - BAU-STAV a.s'],
+        },
+      }),
+    });
+
+    expect(resolved).toBe(sharedPath);
+  });
+
   it('does not remap non-OneDrive paths', async () => {
     const regularPath = 'C:\\Data\\Projects\\Bazen\\_TF';
 

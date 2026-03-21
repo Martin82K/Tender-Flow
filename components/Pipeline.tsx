@@ -288,6 +288,8 @@ export const Pipeline: React.FC<PipelineProps> = ({
     bids,
     projectDetails,
     emailClientMode: user?.preferences?.emailClientMode,
+    userRole: user?.role,
+    currentUser: user,
     updateBidsInternal,
     setIsExportMenuOpen,
     showAlert,
@@ -546,6 +548,30 @@ export const Pipeline: React.FC<PipelineProps> = ({
           </button>
         </Header>
 
+        <div className="px-6 pt-4">
+          <div className="overflow-x-auto">
+            <div className="flex min-w-max items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
+              <span className="font-semibold text-slate-900 dark:text-white">
+                {activeCategory.title}
+              </span>
+              <span className="text-slate-300 dark:text-slate-700">|</span>
+              <span className="font-medium text-slate-500 dark:text-slate-400">
+                Cena SOD:
+              </span>
+              <span className="font-semibold text-slate-900 dark:text-white">
+                {formatMoney(activeCategory.sodBudget ?? 0)}
+              </span>
+              <span className="text-slate-300 dark:text-slate-700">|</span>
+              <span className="font-medium text-slate-500 dark:text-slate-400">
+                Interní plán:
+              </span>
+              <span className="font-semibold text-slate-900 dark:text-white">
+                {formatMoney(activeCategory.planBudget ?? 0)}
+              </span>
+            </div>
+          </div>
+        </div>
+
         {/* Document List Section */}
         {activeCategory.documents && activeCategory.documents.length > 0 && (
           <div className="px-6 pt-4">
@@ -603,6 +629,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   key={bid.id}
                   bid={bid}
                   onDragStart={handleDragStart}
+                  onDoubleClick={setEditingBid}
                   onEdit={setEditingBid}
                   onDelete={handleDeleteBidRequest}
                   onGenerateInquiry={handleGenerateInquiry}
@@ -633,6 +660,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   key={bid.id}
                   bid={bid}
                   onDragStart={handleDragStart}
+                  onDoubleClick={setEditingBid}
                   onEdit={setEditingBid}
                   onDelete={handleDeleteBidRequest}
                   onOpenDocHubFolder={
@@ -660,6 +688,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   key={bid.id}
                   bid={bid}
                   onDragStart={handleDragStart}
+                  onDoubleClick={setEditingBid}
                   onEdit={setEditingBid}
                   onDelete={handleDeleteBidRequest}
                   onOpenDocHubFolder={
@@ -682,6 +711,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   key={bid.id}
                   bid={bid}
                   onDragStart={handleDragStart}
+                  onDoubleClick={setEditingBid}
                   onEdit={setEditingBid}
                   onDelete={handleDeleteBidRequest}
                   onOpenDocHubFolder={
@@ -740,6 +770,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   <BidCard
                     bid={bid}
                     onDragStart={handleDragStart}
+                    onDoubleClick={setEditingBid}
                     onEdit={setEditingBid}
                     onDelete={handleDeleteBid}
                     onOpenDocHubFolder={
@@ -762,6 +793,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   key={bid.id}
                   bid={bid}
                   onDragStart={handleDragStart}
+                  onDoubleClick={setEditingBid}
                   onEdit={setEditingBid}
                   onDelete={handleDeleteBid}
                   onOpenDocHubFolder={

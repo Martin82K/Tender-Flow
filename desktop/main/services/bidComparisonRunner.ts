@@ -99,6 +99,31 @@ const toTimestamp = (date = new Date()): string => {
   return `${yyyy}${mm}${dd}_${hh}${min}${ss}`;
 };
 
+const DEFAULT_OUTPUT_BASE_NAME = 'porovnani_nabidek';
+
+const sanitizeOutputBaseName = (rawOutputBaseName?: string): string => {
+  const trimmed = (rawOutputBaseName || '').trim();
+  const candidate = trimmed || DEFAULT_OUTPUT_BASE_NAME;
+
+  if (candidate !== path.basename(candidate) || /[\\/]/.test(candidate)) {
+    throw new Error('Neplatný název výstupu. Použijte pouze název souboru bez cesty.');
+  }
+
+  return candidate;
+};
+
+const ensurePathWithinRoot = (rootPath: string, targetPath: string): string => {
+  const resolvedRoot = path.resolve(rootPath);
+  const resolvedTarget = path.resolve(targetPath);
+  const relative = path.relative(resolvedRoot, resolvedTarget);
+
+  if (relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative))) {
+    return resolvedTarget;
+  }
+
+  throw new Error('Neplatná cílová cesta výstupu.');
+};
+
 const collectExcelFiles = async (root: string): Promise<Array<{ absolutePath: string; relativePath: string; size: number; mtimeMs: number }>> => {
   const output: Array<{ absolutePath: string; relativePath: string; size: number; mtimeMs: number }> = [];
 
@@ -374,11 +399,17 @@ export class BidComparisonRunner {
 
       ensureNotCancelled();
 
-      const outputBase = (input.outputBaseName || 'porovnani_nabidek').trim() || 'porovnani_nabidek';
+      const outputBase = sanitizeOutputBaseName(input.outputBaseName);
       const archiveFileName = `${outputBase}_${toTimestamp()}.xlsx`;
       const latestFileName = `${outputBase}_latest.xlsx`;
-      const outputPath = path.join(job.tenderFolderPath, archiveFileName);
-      const latestPath = path.join(job.tenderFolderPath, latestFileName);
+      const outputPath = ensurePathWithinRoot(
+        job.tenderFolderPath,
+        path.join(job.tenderFolderPath, archiveFileName),
+      );
+      const latestPath = ensurePathWithinRoot(
+        job.tenderFolderPath,
+        path.join(job.tenderFolderPath, latestFileName),
+      );
 
       await fs.writeFile(outputPath, result.outputBuffer);
       await fs.writeFile(latestPath, result.outputBuffer);

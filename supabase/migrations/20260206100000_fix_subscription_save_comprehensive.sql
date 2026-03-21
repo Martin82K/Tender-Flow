@@ -143,7 +143,6 @@ SECURITY DEFINER
 STABLE
 AS $$
 DECLARE
-    v_user_tier TEXT;
     v_email TEXT;
 BEGIN
     -- Get user email
@@ -151,15 +150,6 @@ BEGIN
     
     -- Check known admin emails
     IF v_email IN ('martinkalkus82@gmail.com', 'kalkus@baustav.cz') THEN
-        RETURN true;
-    END IF;
-    
-    -- Check subscription tier override for admin
-    SELECT subscription_tier_override INTO v_user_tier
-    FROM public.user_profiles
-    WHERE user_id = auth.uid();
-    
-    IF v_user_tier = 'admin' THEN
         RETURN true;
     END IF;
     

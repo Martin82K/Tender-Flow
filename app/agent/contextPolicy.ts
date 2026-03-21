@@ -11,6 +11,8 @@ const CLIENT_BLOCKLIST_PATTERNS: RegExp[] = [
   /\bhodnocen[íi]\s+dodavatel/i,
   /\bmar[žz]e\b/i,
   /\bintern[íi]\s+rozpo[čc]t/i,
+  /\bintern[íi]\s+pl[aá]n/i,
+  /\bintern[íi]\s+pl[aá]novan[ýy]\s+n[aá]klad/i,
 ];
 const ROLE_RESTRICTED_PATTERNS: RegExp[] = [
   /\badmin(istrace)?\b/i,
