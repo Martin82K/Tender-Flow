@@ -14,7 +14,9 @@ Součástí backendu je i endpoint pro merge listů (ExcelMerger Pro) pro zachov
 
 `pip install -r requirements.txt`
 
-3) Spusťte server:
+3) Nastavte API klíč a spusťte server:
+
+`export EXCEL_UNLOCK_API_KEY="zvolte-silny-klic"`
 
 `python app.py`
 
@@ -25,12 +27,13 @@ Server poběží na `http://localhost:5000`.
 ### `POST /unlock`
 
 - `multipart/form-data`
+- hlavička: `X-Excel-Unlock-Key: <EXCEL_UNLOCK_API_KEY>` (alternativně `Authorization: Bearer <EXCEL_UNLOCK_API_KEY>`)
 - pole: `file` (`.xlsx`)
 - odpověď: `.xlsx` soubor `*-odemceno.xlsx`
 
 Příklad (curl):
 
-`curl -F "file=@./input.xlsx" http://localhost:5000/unlock --output odemceno.xlsx`
+`curl -H "X-Excel-Unlock-Key: $EXCEL_UNLOCK_API_KEY" -F "file=@./input.xlsx" http://localhost:5000/unlock --output odemceno.xlsx`
 
 ## Konfigurace frontendu
 

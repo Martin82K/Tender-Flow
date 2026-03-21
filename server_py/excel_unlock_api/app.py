@@ -15,12 +15,14 @@ app = Flask(__name__)
 # Allow larger uploads (adjust as needed)
 app.config["MAX_CONTENT_LENGTH"] = 150 * 1024 * 1024  # 150MB
 
+EXCEL_UNLOCK_API_KEY = os.environ.get("EXCEL_UNLOCK_API_KEY", "")
+
 
 @app.after_request
 def add_cors_headers(response):
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Methods"] = "GET,POST,OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization,X-Excel-Unlock-Key"
     return response
 
 
@@ -29,10 +31,33 @@ def health():
     return {"ok": True}
 
 
+def has_valid_api_key() -> bool:
+    if not EXCEL_UNLOCK_API_KEY:
+        return False
+
+    request_key = request.headers.get("X-Excel-Unlock-Key", "")
+    auth_header = request.headers.get("Authorization", "")
+
+    if request_key == EXCEL_UNLOCK_API_KEY:
+        return True
+
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:]
+        return token == EXCEL_UNLOCK_API_KEY
+
+    return False
+
+
 @app.post("/unlock")
 def unlock_excel():
     if request.method == "OPTIONS":
         return "", 204
+
+    if not EXCEL_UNLOCK_API_KEY:
+        return "Chyba: EXCEL_UNLOCK_API_KEY není nakonfigurovaný", 503
+
+    if not has_valid_api_key():
+        return "Chyba: Neautorizovaný přístup", 401
 
     if "file" not in request.files:
         return "Chyba: Žádný soubor nebyl nahrán", 400
