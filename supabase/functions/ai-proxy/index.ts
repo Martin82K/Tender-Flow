@@ -1,6 +1,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { getFirstEnvSecret } from "../_shared/env.ts";
+import { resolveAuthorizedProjectMemoryContext } from "./memoryAccess.ts";
 
 // CORS headers
 const corsHeaders = {
@@ -197,7 +198,7 @@ Deno.serve(async (req) => {
         const createServiceClient = () => createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } });
 
         // Verify token directly against Auth API
-        const apikey = req.headers.get("apikey") || Deno.env.get("SUPABASE_ANON_KEY") || "";
+        const apikey = (req.headers.get("apikey") || Deno.env.get("SUPABASE_ANON_KEY") || "").trim();
         const authRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
             headers: {
                 apikey,
@@ -212,6 +213,15 @@ Deno.serve(async (req) => {
             );
         }
         const user = await authRes.json();
+        const authed = createClient(supabaseUrl, apikey, {
+            auth: { persistSession: false },
+            global: {
+                headers: {
+                    apikey,
+                    Authorization: authHeader,
+                },
+            },
+        });
 
         // 3. Parse request body before access control so Viki-specific actions can
         // follow ai_viki feature flags instead of generic tier gating.
@@ -306,21 +316,25 @@ Deno.serve(async (req) => {
                 );
             }
 
-            const { data: orgMember, error: orgError } = await service
-                .from("organization_members")
-                .select("organization_id")
-                .eq("user_id", user.id)
-                .limit(1)
-                .maybeSingle();
+            const projectAccess = await resolveAuthorizedProjectMemoryContext(
+                authed,
+                projectId,
+                user.id,
+                action === "memory-save" ? "edit" : "view",
+            );
+            if (!projectAccess.ok) {
+                const error = projectAccess.error === "PROJECT_ORGANIZATION_MISSING"
+                    ? "Project organization context not found"
+                    : "No access to project";
+                const status = projectAccess.error === "PROJECT_ORGANIZATION_MISSING" ? 400 : 403;
 
-            if (orgError || !orgMember?.organization_id) {
                 return new Response(
-                    JSON.stringify({ error: "Organization context not found" }),
-                    { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                    JSON.stringify({ error }),
+                    { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
                 );
             }
 
-            const storagePath = `org/${orgMember.organization_id}/projects/${projectId}/viki-memory.md`;
+            const storagePath = `org/${projectAccess.value.organizationId}/projects/${projectAccess.value.projectId}/viki-memory.md`;
 
             if (action === "memory-load") {
                 const { data: fileData, error: fileError } = await service.storage

@@ -1,6 +1,9 @@
 -- Migration: data_migration_and_demo
--- Description: Assigns existing users to organizations, sets up Demo project, and migrates legacy data
+-- Description: Assigns existing users to organizations and sets up Demo project.
 -- Date: 2025-12-05
+-- Security note (2026-03-20): historical cross-tenant mass reassignment of
+-- projects/subcontractors was removed. Existing databases are remediated by a
+-- dedicated hardening migration; fresh environments must never replay that data rewrite.
 
 DO $$
 DECLARE
@@ -20,16 +23,7 @@ BEGIN
             ON CONFLICT (organization_id, user_id) DO NOTHING;
         END LOOP;
         
-        -- Also assign existing subcontractors to Baustav organization so they are shared
-        UPDATE public.subcontractors
-        SET organization_id = baustav_id
-        WHERE organization_id IS NULL AND owner_id IS NULL;
-
-        -- Assign existing projects to Baustav organization (optional, but good for team visibility)
-        -- Only if they are not demo projects
-        UPDATE public.projects
-        SET organization_id = baustav_id
-        WHERE organization_id IS NULL AND owner_id IS NULL AND (is_demo IS NULL OR is_demo = false);
+        RAISE NOTICE 'Skipping legacy mass reassignment of subcontractors/projects to Baustav.';
         
     END IF;
 

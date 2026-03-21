@@ -294,6 +294,18 @@ export const AppContent: React.FC = () => {
             projects={state.projects}
             onAddProject={actions.handleAddProject}
             onDeleteProject={actions.handleDeleteProject}
+            onCloneTenderToRealization={async (projectId) => {
+              const result = await actions.handleCloneTenderToRealization(projectId);
+              actions.setSelectedProjectId(result.projectId);
+              navigate(
+                buildAppUrl("project", {
+                  projectId: result.projectId,
+                  tab: "documents",
+                  documentsSubTab: "dochub",
+                }),
+              );
+              return result;
+            }}
             onArchiveProject={actions.handleArchiveProject}
           />
         );

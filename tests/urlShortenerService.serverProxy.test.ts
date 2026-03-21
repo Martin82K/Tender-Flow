@@ -47,7 +47,7 @@ describe('urlShortenerService server proxy', () => {
     const result = await shortenUrl('https://example.com');
 
     expect(invokeAuthedFunctionMock).toHaveBeenCalledWith('url-shorten', {
-      body: { url: 'https://example.com' },
+      body: { url: 'https://example.com/' },
     });
     expect(result.success).toBe(true);
     expect(result.provider).toBe('tinyurl');
@@ -69,7 +69,7 @@ describe('urlShortenerService server proxy', () => {
     const result = await shortenUrlWithAlias('https://example.org');
 
     expect(invokeAuthedFunctionMock).toHaveBeenCalledWith('url-shorten', {
-      body: { url: 'https://example.org' },
+      body: { url: 'https://example.org/' },
     });
     expect(result.success).toBe(true);
     expect(result.shortUrl).toBe('https://tinyurl.com/no-alias');

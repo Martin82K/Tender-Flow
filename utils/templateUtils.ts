@@ -1,3 +1,4 @@
+import DOMPurify from 'dompurify';
 import { ProjectDetails, DemandCategory, Bid } from '../types';
 
 export interface TemplateVariable {
@@ -35,6 +36,96 @@ export const TEMPLATE_VARIABLES: TemplateVariable[] = [
     { code: '{PODPIS_UZIVATELE}', description: 'Váš podpis (z nastavení)', category: 'Contact' },
 ];
 
+const HTML_TAG_PATTERN = /<\/?[a-z][\s\S]*>/i;
+
+const SIGNATURE_ALLOWED_TAGS = [
+    'a',
+    'b',
+    'br',
+    'div',
+    'em',
+    'i',
+    'img',
+    'li',
+    'ol',
+    'p',
+    'span',
+    'strong',
+    'u',
+    'ul',
+];
+
+const SIGNATURE_ALLOWED_ATTR = [
+    'alt',
+    'class',
+    'height',
+    'href',
+    'rel',
+    'src',
+    'style',
+    'target',
+    'title',
+    'width',
+];
+
+export const isHtmlContent = (value: string): boolean => HTML_TAG_PATTERN.test(value);
+
+export const sanitizeSignatureHtml = (signature: string): string =>
+    DOMPurify.sanitize(signature, {
+        ALLOWED_TAGS: SIGNATURE_ALLOWED_TAGS,
+        ALLOWED_ATTR: SIGNATURE_ALLOWED_ATTR,
+        ALLOW_DATA_ATTR: false,
+        FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form'],
+        FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onmouseenter', 'onmouseleave'],
+    });
+
+const htmlToText = (value: string): string =>
+    value
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/p>/gi, '\n\n')
+        .replace(/<\/div>/gi, '\n')
+        .replace(/<li[^>]*>/gi, '• ')
+        .replace(/<\/li>/gi, '\n')
+        .replace(/<\/ul>/gi, '\n')
+        .replace(/<\/ol>/gi, '\n')
+        .replace(/<[^>]+>/g, '')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+
+export const formatSignature = (
+    signature: string,
+    format: 'text' | 'html',
+): string => {
+    if (format === 'html') {
+        return isHtmlContent(signature)
+            ? sanitizeSignatureHtml(signature)
+            : signature.replace(/\n/g, '<br>');
+    }
+
+    return isHtmlContent(signature) ? htmlToText(sanitizeSignatureHtml(signature)) : signature;
+};
+
+export const renderTemplateHtml = (content: string): string => {
+    if (!content.includes('\n')) {
+        return content;
+    }
+
+    return content
+        .split(/(<[^>]+>)/g)
+        .map((segment) => {
+            if (!segment || segment.startsWith('<')) {
+                return segment;
+            }
+
+            return segment.trim() === '' ? segment : segment.replace(/\n/g, '<br>');
+        })
+        .join('');
+};
+
 export const getPreviewData = (project?: ProjectDetails, category?: DemandCategory, format: 'text' | 'html' = 'text', userSignature?: string) => {
     const today = new Date().toLocaleDateString('cs-CZ');
 
@@ -51,16 +142,7 @@ export const getPreviewData = (project?: ProjectDetails, category?: DemandCatego
             : 'Dle dohody';
 
         const signature = userSignature || project.siteManager || 'S pozdravem Tým';
-
-        // Auto-detect HTML: if it contains tags like <p, <div, <br, <span, <a, assume it's HTML.
-        const isHtmlSignature = /<[a-z][\s\S]*>/i.test(signature);
-
-        // If HTML format requested:
-        // - If signature IS HTML, leave it alone (user provided HTML source)
-        // - If signature is NOT HTML, convert newlines to <br>
-        const formattedSignature = format === 'html'
-            ? (isHtmlSignature ? signature : signature.replace(/\n/g, '<br>'))
-            : signature;
+        const formattedSignature = formatSignature(signature, format);
 
         return {
             '{NAZEV_STAVBY}': project.title || 'Můj Projekt',
@@ -157,7 +239,7 @@ export const processTemplate = (template: string, projectOrData: ProjectDetails 
     let data: Record<string, string>;
 
     // Check if projectOrData is strict ProjectDetails (has 'id', 'title' etc) or just a Record
-    if ('title' in projectOrData && 'investor' in projectOrData) {
+    if ('title' in projectOrData && 'categories' in projectOrData) {
         // It's ProjectDetails
         data = getPreviewData(projectOrData as ProjectDetails, category, format, userSignature);
     } else {
@@ -166,7 +248,7 @@ export const processTemplate = (template: string, projectOrData: ProjectDetails 
         // If extra variables are needed here, we assume they are already in the map.
         // But if userSignature is passed and not in map, we could inject it?
         if (userSignature && !data['{PODPIS_UZIVATELE}']) {
-            data['{PODPIS_UZIVATELE}'] = format === 'html' ? userSignature.replace(/\n/g, '<br>') : userSignature;
+            data['{PODPIS_UZIVATELE}'] = formatSignature(userSignature, format);
         }
     }
 

@@ -82,14 +82,19 @@ export function downloadEmlFile(
 export function generateEmlContent(
   to: string,
   subject: string,
-  htmlBody: string
+  htmlBody: string,
+  options?: {
+    bcc?: string;
+  }
 ): string {
   const safeTo = sanitizeEmailRecipient(to);
+  const safeBcc = sanitizeEmailRecipient(options?.bcc || "");
   const safeSubject = stripCrLf(subject);
   const boundary = "boundary_string_123456789";
 
   const emlContent = [
     `To: ${safeTo}`,
+    ...(safeBcc ? [`Bcc: ${safeBcc}`] : []),
     `Subject: =?utf-8?B?${btoa(unescape(encodeURIComponent(safeSubject)))}?=`,
     "X-Unsent: 1",
     "MIME-Version: 1.0",

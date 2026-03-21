@@ -18,6 +18,7 @@ export const buildAppUrl = (
         projectId?: string;
         tab?: ProjectTab;
         categoryId?: string | null;
+        documentsSubTab?: "pd" | "templates" | "dochub" | "ceniky";
         settingsTab?: 'user' | 'admin';
         settingsSubTab?: 'profile' | 'contacts' | 'excelUnlocker' | 'excelMerger' | 'urlShortener' | 'registration' | 'users' | 'subscriptions' | 'ai' | 'incidents' | 'tools';
     }
@@ -45,6 +46,7 @@ export const buildAppUrl = (
             const params = new URLSearchParams();
             if (opts.tab) params.set("tab", opts.tab);
             if (opts.categoryId) params.set("categoryId", opts.categoryId);
+            if (opts.documentsSubTab) params.set("documentsSubTab", opts.documentsSubTab);
             const qs = params.toString();
             return `${APP_BASE}/project/${encodeURIComponent(opts.projectId)}${qs ? `?${qs}` : ""}`;
         }

@@ -293,29 +293,29 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
             </span>
           </div>
         ) : (
-          <div className="table-responsive">
-            <table className="w-full min-w-[800px]">
+          <div className="table-responsive overflow-x-auto">
+            <table className="w-full min-w-[720px] table-fixed">
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-700/50">
-                  <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
+                  <th className="w-[220px] text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
                     Email
                   </th>
-                  <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
+                  <th className="w-[110px] text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
                     Jméno
                   </th>
-                  <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
+                  <th className="w-[95px] text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
                     Doména
                   </th>
-                  <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
+                  <th className="w-[120px] text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
                     Role
                   </th>
-                  <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
+                  <th className="w-[132px] text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
                     Přihlášení
                   </th>
-                  <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
+                  <th className="w-[150px] text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
                     Předplatné
                   </th>
-                  <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
+                  <th className="w-[86px] text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2 hidden xl:table-cell">
                     Registrace
                   </th>
                 </tr>
@@ -341,18 +341,18 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
                           <div className="size-8 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-500 flex items-center justify-center text-white text-xs font-bold">
                             {user.email.charAt(0).toUpperCase()}
                           </div>
-                          <span className="text-sm text-slate-900 dark:text-white">
+                          <span className="text-sm text-slate-900 dark:text-white truncate">
                             {user.email}
                           </span>
                         </div>
                       </td>
                       <td className="py-3 px-2">
-                        <span className="text-sm text-slate-700 dark:text-slate-300">
+                        <span className="block text-sm text-slate-700 dark:text-slate-300 truncate">
                           {user.display_name || "-"}
                         </span>
                       </td>
                       <td className="py-3 px-2">
-                        <span className="text-xs bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 px-2 py-1 rounded border border-slate-200 dark:border-slate-600/50">
+                        <span className="inline-block max-w-full truncate text-xs bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 px-2 py-1 rounded border border-slate-200 dark:border-slate-600/50">
                           @{user.email.split("@")[1]}
                         </span>
                       </td>
@@ -364,7 +364,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
                               handleRoleChange(user.user_id, e.target.value)
                             }
                             disabled={updatingUserId === user.user_id}
-                            className="rounded-lg bg-white dark:bg-slate-700/50 border border-slate-300 dark:border-slate-600/50 px-2 py-1.5 text-sm text-slate-900 dark:text-white focus:border-cyan-500/50 focus:outline-none disabled:opacity-50 min-w-[140px]"
+                            className="w-full rounded-lg bg-white dark:bg-slate-700/50 border border-slate-300 dark:border-slate-600/50 px-2 py-1.5 text-sm text-slate-900 dark:text-white focus:border-cyan-500/50 focus:outline-none disabled:opacity-50 min-w-0"
                           >
                             <option value="">Bez role</option>
                             {availableRoles.map((role) => (
@@ -391,7 +391,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
                               )
                             }
                             disabled={updatingLoginTypeUserId === user.user_id}
-                            className="rounded-lg bg-white dark:bg-slate-700/50 border border-slate-300 dark:border-slate-600/50 px-2 py-1.5 text-sm text-slate-900 dark:text-white focus:border-cyan-500/50 focus:outline-none disabled:opacity-50 min-w-[160px]"
+                            className="w-full rounded-lg bg-white dark:bg-slate-700/50 border border-slate-300 dark:border-slate-600/50 px-2 py-1.5 text-sm text-slate-900 dark:text-white focus:border-cyan-500/50 focus:outline-none disabled:opacity-50 min-w-0"
                           >
                             <option value="">{`Auto (${(
                               user.auth_provider || "email"
@@ -410,7 +410,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
                         </div>
                       </td>
                       <td className="py-3 px-2">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
                           {/* Manual override badge */}
                           {user.subscription_tier_override && (
                             <span
@@ -434,7 +434,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
                               disabled={
                                 updatingSubscriptionUserId === user.user_id
                               }
-                              className={`rounded-lg px-2 py-1.5 text-sm focus:outline-none disabled:opacity-50 min-w-[140px] ${user.subscription_tier_override
+                              className={`w-full rounded-lg px-2 py-1.5 text-sm focus:outline-none disabled:opacity-50 min-w-0 ${user.subscription_tier_override
                                   ? "bg-amber-500/10 border-amber-500/40 text-amber-200 dark:text-amber-300"
                                   : "bg-white dark:bg-slate-700/50 border-slate-300 dark:border-slate-600/50 text-slate-900 dark:text-white"
                                 } border focus:border-cyan-500/50`}
@@ -456,7 +456,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
                           </div>
                         </div>
                       </td>
-                      <td className="py-3 px-2">
+                      <td className="py-3 px-2 hidden xl:table-cell">
                         <span className="text-xs text-slate-500">
                           {new Date(user.created_at).toLocaleDateString(
                             "cs-CZ"

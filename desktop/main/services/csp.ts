@@ -1,7 +1,29 @@
 export const buildDesktopCsp = (isDev: boolean): string => {
-    const defaultSrc = isDev
-        ? "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:"
-        : "default-src 'self' 'unsafe-inline' https: data: blob:";
+    const scriptSrc = [
+        "'self'",
+        "'unsafe-inline'",
+        ...(isDev ? ["'unsafe-eval'"] : []),
+        'https://cdn.tailwindcss.com',
+    ].join(' ');
+
+    const styleSrc = [
+        "'self'",
+        "'unsafe-inline'",
+        'https://fonts.googleapis.com',
+    ].join(' ');
+
+    const fontSrc = [
+        "'self'",
+        'https://fonts.gstatic.com',
+        'data:',
+    ].join(' ');
+
+    const imgSrc = [
+        "'self'",
+        'data:',
+        'blob:',
+        'https:',
+    ].join(' ');
 
     const connectSrc = [
         "'self'",
@@ -21,5 +43,15 @@ export const buildDesktopCsp = (isDev: boolean): string => {
         'https://fonts.gstatic.com',
     ].join(' ');
 
-    return `${defaultSrc}; connect-src ${connectSrc};`;
+    return [
+        "default-src 'self'",
+        `script-src ${scriptSrc}`,
+        `style-src ${styleSrc}`,
+        `font-src ${fontSrc}`,
+        `img-src ${imgSrc}`,
+        `connect-src ${connectSrc}`,
+        "object-src 'none'",
+        "base-uri 'self'",
+        "frame-ancestors 'none'",
+    ].join('; ');
 };
