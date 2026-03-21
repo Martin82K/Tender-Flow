@@ -104,6 +104,32 @@ describe("exportService contract summaries", () => {
     expect(rows.at(-1)?.[0]).toBe("Exportováno z Tender Flow");
   });
 
+
+
+  it("sanitizuje nebezpečné prefixy v textových buňkách XLSX", async () => {
+    await exportContractSummariesToXlsx(
+      [
+        {
+          ...contracts[0],
+          contractNumber: '=HYPERLINK("http://attacker")',
+          vendorName: '@malicious',
+          paymentTerms: '-2 dny',
+        },
+      ],
+      {
+        organizationName: "Tender Flow Demo",
+        projectName: "Projekt A",
+      },
+    );
+
+    const workbook = writeFileMock.mock.calls[0][0] as XLSX.WorkBook;
+    const sheet = workbook.Sheets["Smlouvy"];
+
+    expect(sheet["A6"]?.v).toBe("'=HYPERLINK(\"http://attacker\")");
+    expect(sheet["B6"]?.v).toBe("'@malicious");
+    expect(sheet["G6"]?.v).toBe("'-2 dny");
+  });
+
   it("vytvoří PDF s hlavičkou projektu a patičkou Tender Flow", async () => {
     await exportContractSummariesToPdf(contracts, {
       organizationName: "Tender Flow Demo",
