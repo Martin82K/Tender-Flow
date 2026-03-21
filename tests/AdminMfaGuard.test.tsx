@@ -141,7 +141,7 @@ describe("AdminMfaGuard", () => {
     expect(await screen.findByText("Admin obsah")).toBeInTheDocument();
   });
 
-  it("při chybě renderu QR přepne na inline fallback", async () => {
+  it("při chybě renderu QR zobrazí bezpečný textový fallback bez inline SVG", async () => {
     mockState.getAdminMfaStatus.mockResolvedValue({
       required: true,
       currentLevel: "aal1",
@@ -167,6 +167,9 @@ describe("AdminMfaGuard", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Založit TOTP faktor" }));
     fireEvent.error(await screen.findByRole("img", { name: "QR kód pro admin MFA" }));
 
-    expect(await screen.findByLabelText("QR kód pro admin MFA fallback")).toBeInTheDocument();
+    const fallback = await screen.findByLabelText("QR kód pro admin MFA fallback");
+    expect(fallback).toBeInTheDocument();
+    expect(fallback).toHaveTextContent("Nepodařilo se zobrazit QR kód. Pro aktivaci použijte záložní secret níže.");
+    expect(fallback.querySelector("svg")).toBeNull();
   });
 });
