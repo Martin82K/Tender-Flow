@@ -34,7 +34,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
   useEffect(() => {
     logRuntimeEvent("auth-gate", "route_decision", {
       pathname,
-      search,
+      search: search ? "[redacted]" : "",
       isDesktop,
       shouldRenderDesktopLogin,
       redirectTo,
