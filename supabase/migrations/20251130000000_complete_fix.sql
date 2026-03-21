@@ -25,6 +25,14 @@ INSERT INTO public.subcontractor_statuses (id, label, color) VALUES
 ON CONFLICT (id) DO NOTHING;
 -- 3. Verify RLS policies are correct
 -- Drop and recreate to ensure they're correct
+ALTER TABLE public.subcontractors ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE public.subcontractors
+ADD COLUMN IF NOT EXISTS owner_id UUID REFERENCES auth.users(id);
+
+ALTER TABLE public.subcontractors
+ALTER COLUMN owner_id SET DEFAULT auth.uid();
+
 DROP POLICY IF EXISTS "Enable read access for authenticated users" ON public.subcontractors;
 DROP POLICY IF EXISTS "Enable insert access for authenticated users" ON public.subcontractors;
 DROP POLICY IF EXISTS "Enable update access for authenticated users" ON public.subcontractors;
@@ -33,19 +41,20 @@ DROP POLICY IF EXISTS "Enable delete access for authenticated users" ON public.s
 CREATE POLICY "Enable read access for authenticated users"
 ON public.subcontractors FOR SELECT
 TO authenticated
-USING (true);
+USING (owner_id = auth.uid());
 CREATE POLICY "Enable insert access for authenticated users"
 ON public.subcontractors FOR INSERT
 TO authenticated
-WITH CHECK (true);
+WITH CHECK (owner_id = auth.uid());
 CREATE POLICY "Enable update access for authenticated users"
 ON public.subcontractors FOR UPDATE
 TO authenticated
-USING (true);
+USING (owner_id = auth.uid())
+WITH CHECK (owner_id = auth.uid());
 CREATE POLICY "Enable delete access for authenticated users"
 ON public.subcontractors FOR DELETE
 TO authenticated
-USING (true);
+USING (owner_id = auth.uid());
 -- 4. Verify table structure
 -- This will show you the current structure
 SELECT column_name, data_type, is_nullable
