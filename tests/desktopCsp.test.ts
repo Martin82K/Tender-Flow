@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildDesktopCsp } from "../desktop/main/services/csp";
+import { buildDesktopCsp, shouldInjectDesktopCsp } from "../desktop/main/services/csp";
 
 describe("desktop CSP", () => {
   it("allows Stripe domains required by Elements telemetry, script loading and iframe rendering", () => {
@@ -30,5 +30,15 @@ describe("desktop CSP", () => {
     expect(csp).toContain("frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://*.stripe.com");
     expect(csp).toContain("object-src 'none'");
     expect(csp).toContain("frame-ancestors 'none'");
+  });
+
+  it("injects desktop CSP only for app-owned renderer responses", () => {
+    expect(shouldInjectDesktopCsp("http://localhost:3000/", true)).toBe(true);
+    expect(shouldInjectDesktopCsp("http://127.0.0.1:3000/@vite/client", true)).toBe(true);
+    expect(shouldInjectDesktopCsp("file:///Applications/TenderFlow.app/index.html", false)).toBe(true);
+
+    expect(shouldInjectDesktopCsp("https://js.stripe.com/v3", true)).toBe(false);
+    expect(shouldInjectDesktopCsp("https://api.stripe.com/v1/elements/sessions", true)).toBe(false);
+    expect(shouldInjectDesktopCsp("https://example.supabase.co/rest/v1/projects", true)).toBe(false);
   });
 });

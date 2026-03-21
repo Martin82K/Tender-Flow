@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import { registerIpcHandlers } from './ipc/handlers';
 import { getAutoUpdaterService } from './services/autoUpdater';
 import { startMcpServer } from './services/mcpServer';
-import { buildDesktopCsp } from './services/csp';
+import { buildDesktopCsp, shouldInjectDesktopCsp } from './services/csp';
 import { buildMainWindowWebPreferences } from './services/windowSecurity';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
@@ -64,6 +64,13 @@ function createWindow(): void {
 
     // Set CSP for desktop renderer (stricter in production)
     defaultSession.webRequest.onHeadersReceived((details, callback) => {
+        if (!shouldInjectDesktopCsp(details.url, isDev)) {
+            callback({
+                responseHeaders: details.responseHeaders,
+            });
+            return;
+        }
+
         const csp = buildDesktopCsp(isDev);
         callback({
             responseHeaders: {

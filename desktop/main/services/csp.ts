@@ -1,3 +1,8 @@
+const DESKTOP_DEV_CSP_HOSTS = new Set([
+    'localhost:3000',
+    '127.0.0.1:3000',
+]);
+
 export const buildDesktopCsp = (isDev: boolean): string => {
     const scriptSrc = [
         "'self'",
@@ -65,4 +70,21 @@ export const buildDesktopCsp = (isDev: boolean): string => {
         "base-uri 'self'",
         "frame-ancestors 'none'",
     ].join('; ');
+};
+
+export const shouldInjectDesktopCsp = (requestUrl: string, isDev: boolean): boolean => {
+    try {
+        const parsed = new URL(requestUrl);
+        if (parsed.protocol === 'file:') {
+            return true;
+        }
+
+        if (!isDev) {
+            return false;
+        }
+
+        return parsed.protocol === 'http:' && DESKTOP_DEV_CSP_HOSTS.has(parsed.host);
+    } catch {
+        return requestUrl.startsWith('file://');
+    }
 };
