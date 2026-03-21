@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
+import { getProjectAccessCheck } from "./projectAccess.ts";
 
 type AgentActionRisk = "read" | "write" | "delete";
 type AgentPolicyDecision = "auto_execute" | "require_confirmation" | "denied";
@@ -286,10 +287,12 @@ const getProjectIdFromArgs = (
 const loadProjectForTenant = async (service: ReturnType<typeof createServiceClient>, args: {
   projectId: string;
   organizationId: string;
+  userId: string;
+  requiredAccess?: "read" | "edit";
 }) => {
   const { data, error } = await service
     .from("projects")
-    .select("id,name,status,location,organization_id")
+    .select("id,name,status,location,organization_id,owner_id,is_demo")
     .eq("id", args.projectId)
     .eq("organization_id", args.organizationId)
     .maybeSingle();
@@ -298,12 +301,31 @@ const loadProjectForTenant = async (service: ReturnType<typeof createServiceClie
     throw new Error("Projekt nebyl nalezen nebo neni v pristupu organizace.");
   }
 
+  const ownerId = normalizeString((data as { owner_id?: unknown }).owner_id, 120);
+  const isDemo = Boolean((data as { is_demo?: unknown }).is_demo);
+  const accessCheck = getProjectAccessCheck({
+    ownerId: ownerId || null,
+    userId: args.userId,
+    isDemo,
+    projectId: args.projectId,
+    requiredAccess: args.requiredAccess,
+  });
+
+  if (accessCheck) {
+    const { data: hasAccess, error: accessError } = await service.rpc(accessCheck.rpcName, accessCheck.rpcArgs);
+    if (accessError || !hasAccess) {
+      throw new Error(accessCheck.deniedMessage);
+    }
+  }
+
   return data as {
     id: string;
     name: string;
     status: string;
     location: string | null;
     organization_id: string;
+    owner_id: string | null;
+    is_demo: boolean | null;
   };
 };
 
@@ -325,6 +347,7 @@ const runTool = async (args: {
   toolArgs: Record<string, unknown>;
   service: ReturnType<typeof createServiceClient>;
   organizationId: string;
+  userId: string;
   fallbackProjectId: string | null;
 }): Promise<{ text: string; payload?: Record<string, unknown> }> => {
   const projectId = getProjectIdFromArgs(args.toolArgs, args.fallbackProjectId);
@@ -335,6 +358,7 @@ const runTool = async (args: {
     const project = await loadProjectForTenant(args.service, {
       projectId,
       organizationId: args.organizationId,
+      userId: args.userId,
     });
     const categories = await loadCategoriesForProject(args.service, projectId);
 
@@ -365,6 +389,7 @@ const runTool = async (args: {
     await loadProjectForTenant(args.service, {
       projectId,
       organizationId: args.organizationId,
+      userId: args.userId,
     });
 
     const minAbsoluteDiff = Number(args.toolArgs.minAbsoluteDiff || 100_000);
@@ -414,6 +439,8 @@ const runTool = async (args: {
     await loadProjectForTenant(args.service, {
       projectId,
       organizationId: args.organizationId,
+      userId: args.userId,
+      requiredAccess: "edit",
     });
 
     const { error } = await args.service
@@ -882,6 +909,7 @@ Deno.serve(async (req) => {
         toolArgs: toolCall.args,
         service,
         organizationId: orgMember.organization_id,
+        userId: user.id,
         fallbackProjectId: normalizeString(body.runtime?.selectedProjectId, 120) || null,
       });
 

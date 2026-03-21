@@ -10,9 +10,6 @@ import { useLocation } from "@/shared/routing/router";
 import { userProfileService } from "../services/userProfileService";
 
 import { APP_VERSION } from "../config/version";
-
-// Admin role configuration (must match App.tsx)
-const ADMIN_EMAILS = ["martinkalkus82@gmail.com", "kalkus@baustav.cz"];
 const PROJECT_TABS: {
   id: ProjectTab;
   label: string;
@@ -44,11 +41,10 @@ const PROJECT_TABS: {
 
 // Helper function to get display role
 const getUserRole = (
-  email: string | undefined,
   defaultRole?: string,
 ): string => {
-  if (!email) return defaultRole || "User";
-  if (ADMIN_EMAILS.includes(email)) return "Admin";
+  if (defaultRole === "admin") return "Admin";
+  if (defaultRole === "user") return "User";
   return defaultRole || "User";
 };
 
@@ -742,7 +738,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     {displayName || user?.email?.split("@")[0] || "User"}
                   </p>
                   <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter truncate">
-                    {getUserRole(user?.email, user?.role)}
+                    {getUserRole(user?.role)}
                   </p>
                 </div>
                 <button

@@ -44,6 +44,9 @@ const normalizeKey = (value: string, pathOps: PathOps): string => {
 const splitPathSegments = (targetPath: string): string[] =>
   targetPath.split(/[\\/]+/).filter(Boolean);
 
+const hasTraversalSegment = (segments: string[]): boolean =>
+  segments.some((segment) => segment === '..');
+
 const findOneDriveAnchorIndex = (segments: string[]): number =>
   segments.findIndex((segment) => ONEDRIVE_SEGMENT_RE.test(segment));
 
@@ -186,6 +189,10 @@ export const resolvePortablePath = async (
 
   const anchorSegment = segments[anchorIndex];
   const suffixSegments = segments.slice(anchorIndex + 1);
+
+  if (hasTraversalSegment(suffixSegments)) {
+    return fromPath;
+  }
 
   const env = options.env || process.env;
   const candidateBases = await collectCandidateBases(
