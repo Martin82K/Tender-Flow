@@ -18,6 +18,25 @@ export interface ShortenResult {
 }
 
 const SHORT_URL_BASE = window.location.origin + '/s/';
+const ALLOWED_SHORT_URL_PROTOCOLS = new Set(["http:", "https:"]);
+
+export const normalizeSafeShortRedirectUrl = (value: string): string | null => {
+  const trimmed = typeof value === "string" ? value.trim() : "";
+  if (!trimmed) return null;
+
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    return null;
+  }
+
+  if (!ALLOWED_SHORT_URL_PROTOCOLS.has(parsed.protocol)) {
+    return null;
+  }
+
+  return parsed.toString();
+};
 
 /**
  * Generates a random short code (6 chars)
@@ -35,6 +54,16 @@ function generateShortCode(length: number = 6): string {
  * Shortens a URL using TinyURL API
  */
 async function shortenWithTinyUrl(url: string): Promise<ShortenResult> {
+  const normalizedUrl = normalizeSafeShortRedirectUrl(url);
+  if (!normalizedUrl) {
+    return {
+      success: false,
+      originalUrl: url,
+      error: "Neplatná cílová URL. Povolené jsou pouze http/https odkazy.",
+      provider: "tinyurl",
+    };
+  }
+
   try {
     const response = await invokeAuthedFunction<{
       success: boolean;
@@ -43,13 +72,13 @@ async function shortenWithTinyUrl(url: string): Promise<ShortenResult> {
       provider?: 'tinyurl';
       error?: string;
     }>('url-shorten', {
-      body: { url },
+      body: { url: normalizedUrl },
     });
     if (response.success && response.shortUrl) {
       return {
         success: true,
         shortUrl: response.shortUrl,
-        originalUrl: url,
+        originalUrl: normalizedUrl,
         provider: 'tinyurl'
       };
     }
@@ -58,7 +87,7 @@ async function shortenWithTinyUrl(url: string): Promise<ShortenResult> {
     console.error('TinyURL error:', summarizeErrorForLog(error));
     return {
       success: false,
-      originalUrl: url,
+      originalUrl: normalizedUrl,
       error: error instanceof Error ? error.message : 'Unknown error',
       provider: 'tinyurl'
     };
@@ -69,13 +98,23 @@ async function shortenWithTinyUrl(url: string): Promise<ShortenResult> {
  * Shortens a URL using Supabase (TF URL)
  */
 async function shortenWithTfUrl(url: string, userId?: string): Promise<ShortenResult> {
+  const normalizedUrl = normalizeSafeShortRedirectUrl(url);
+  if (!normalizedUrl) {
+    return {
+      success: false,
+      originalUrl: url,
+      error: "Neplatná cílová URL. Povolené jsou pouze http/https odkazy.",
+      provider: "tfurl",
+    };
+  }
+
   // Check if it's already a TF URL
-  if (url.startsWith(SHORT_URL_BASE)) {
+  if (normalizedUrl.startsWith(SHORT_URL_BASE)) {
     return {
       success: true,
-      shortUrl: url,
-      code: url.replace(SHORT_URL_BASE, ''),
-      originalUrl: url,
+      shortUrl: normalizedUrl,
+      code: normalizedUrl.replace(SHORT_URL_BASE, ''),
+      originalUrl: normalizedUrl,
       provider: 'tfurl'
     };
   }
@@ -98,7 +137,7 @@ async function shortenWithTfUrl(url: string, userId?: string): Promise<ShortenRe
       .from('short_urls')
       .insert({
         id: code,
-        original_url: url,
+        original_url: normalizedUrl,
         created_by: userId,
         clicks: 0
       });
@@ -109,14 +148,14 @@ async function shortenWithTfUrl(url: string, userId?: string): Promise<ShortenRe
       success: true,
       shortUrl: `${SHORT_URL_BASE}${code}`,
       code: code,
-      originalUrl: url,
+      originalUrl: normalizedUrl,
       provider: 'tfurl'
     };
   } catch (error) {
     console.error('TF URL error:', summarizeErrorForLog(error));
     return {
       success: false,
-      originalUrl: url,
+      originalUrl: normalizedUrl,
       error: error instanceof Error ? error.message : 'Unknown error',
       provider: 'tfurl'
     };
@@ -127,6 +166,15 @@ async function shortenWithTfUrl(url: string, userId?: string): Promise<ShortenRe
  * Main shorten function that respects user preference
  */
 export async function shortenUrl(url: string): Promise<ShortenResult> {
+  const normalizedUrl = normalizeSafeShortRedirectUrl(url);
+  if (!normalizedUrl) {
+    return {
+      success: false,
+      originalUrl: url,
+      error: "Neplatná cílová URL. Povolené jsou pouze http/https odkazy.",
+    };
+  }
+
   try {
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -145,14 +193,14 @@ export async function shortenUrl(url: string): Promise<ShortenResult> {
     }
 
     if (provider === 'tinyurl') {
-      return shortenWithTinyUrl(url);
+      return shortenWithTinyUrl(normalizedUrl);
     } else {
-      return shortenWithTfUrl(url, user?.id);
+      return shortenWithTfUrl(normalizedUrl, user?.id);
     }
   } catch (error) {
     console.error('Error determining provider:', summarizeErrorForLog(error));
     // Fallback to TF URL if anything fails
-    return shortenWithTfUrl(url);
+    return shortenWithTfUrl(normalizedUrl);
   }
 }
 
@@ -162,19 +210,21 @@ export async function shortenUrl(url: string): Promise<ShortenResult> {
 export async function getOriginalUrl(code: string): Promise<{ url: string | null; error?: string }> {
   try {
     const { data, error } = await supabase
-      .from('short_urls')
-      .select('original_url')
-      .eq('id', code)
-      .single();
+      .rpc('get_short_url_target', { url_id: code });
 
     if (error) throw error;
     if (!data) return { url: null };
+
+    const safeUrl = normalizeSafeShortRedirectUrl(data);
+    if (!safeUrl) {
+      return { url: null, error: "Unsafe redirect target blocked" };
+    }
 
     supabase.rpc('increment_short_url_clicks', { url_id: code }).then(({ error }) => {
       if (error) console.error("Failed to increment clicks:", summarizeErrorForLog(error));
     });
 
-    return { url: data.original_url };
+    return { url: safeUrl };
 
   } catch (error) {
     console.error('Error fetching original URL:', summarizeErrorForLog(error));
@@ -302,36 +352,45 @@ export async function shortenUrlWithAlias(
   url: string,
   customAlias?: string
 ): Promise<ShortenResult> {
+  const normalizedUrl = normalizeSafeShortRedirectUrl(url);
+  if (!normalizedUrl) {
+    return {
+      success: false,
+      originalUrl: url,
+      error: "Neplatná cílová URL. Povolené jsou pouze http/https odkazy.",
+    };
+  }
+
   try {
     if (!customAlias) {
-      return shortenUrl(url);
+      return shortenUrl(normalizedUrl);
     }
 
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!/^[a-zA-Z0-9_-]+$/.test(customAlias)) {
-      return { success: false, originalUrl: url, error: 'Alias může obsahovat pouze písmena, čísla, pomlčky a podtržítka' };
+      return { success: false, originalUrl: normalizedUrl, error: 'Alias může obsahovat pouze písmena, čísla, pomlčky a podtržítka' };
     }
     if (customAlias.length < 3 || customAlias.length > 20) {
-      return { success: false, originalUrl: url, error: 'Alias musí mít 3-20 znaků' };
+      return { success: false, originalUrl: normalizedUrl, error: 'Alias musí mít 3-20 znaků' };
     }
 
     const { data } = await supabase.from('short_urls').select('id').eq('id', customAlias).single();
     if (data) {
-      return { success: false, originalUrl: url, error: 'Tento alias už je používán' };
+      return { success: false, originalUrl: normalizedUrl, error: 'Tento alias už je používán' };
     }
 
     const code = customAlias || generateShortCode();
 
     const { error } = await supabase
       .from('short_urls')
-      .insert({ id: code, original_url: url, created_by: user?.id, clicks: 0 });
+      .insert({ id: code, original_url: normalizedUrl, created_by: user?.id, clicks: 0 });
 
     if (error) throw error;
 
-    return { success: true, shortUrl: `${SHORT_URL_BASE}${code}`, code, originalUrl: url, provider: 'tfurl' };
+    return { success: true, shortUrl: `${SHORT_URL_BASE}${code}`, code, originalUrl: normalizedUrl, provider: 'tfurl' };
   } catch (error) {
     console.error('TF URL error:', summarizeErrorForLog(error));
-    return { success: false, originalUrl: url, error: getReadableError(error), provider: 'tfurl' };
+    return { success: false, originalUrl: normalizedUrl, error: getReadableError(error), provider: 'tfurl' };
   }
 }

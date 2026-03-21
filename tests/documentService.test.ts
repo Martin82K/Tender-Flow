@@ -2,11 +2,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const uploadMock = vi.fn();
 const removeMock = vi.fn();
-const getPublicUrlMock = vi.fn();
+const createSignedUrlMock = vi.fn();
 const fromMock = vi.fn(() => ({
   upload: uploadMock,
   remove: removeMock,
-  getPublicUrl: getPublicUrlMock,
+  createSignedUrl: createSignedUrlMock,
 }));
 const isDemoSessionMock = vi.fn(() => false);
 
@@ -26,7 +26,7 @@ describe('documentService', () => {
   beforeEach(() => {
     uploadMock.mockReset();
     removeMock.mockReset();
-    getPublicUrlMock.mockReset();
+    createSignedUrlMock.mockReset();
     fromMock.mockClear();
     isDemoSessionMock.mockReset();
     isDemoSessionMock.mockReturnValue(false);
@@ -54,5 +54,29 @@ describe('documentService', () => {
     expect(loggedPayload).toContain('[redacted-token]');
     expect(loggedPayload).not.toContain('john@example.com');
     expect(loggedPayload).not.toContain('secret-token');
+  });
+
+  it('po uploadu ukládá interní storage cestu místo veřejné URL', async () => {
+    uploadMock.mockResolvedValue({ data: { path: 'ok' }, error: null });
+
+    const { uploadDocument } = await import('../services/documentService');
+
+    const file = new File(['demo'], 'offer.pdf', { type: 'application/pdf' });
+    const document = await uploadDocument(file, 'category-1');
+
+    expect(document.url).toMatch(/^category-1\//);
+    expect(document.url).not.toContain('/storage/v1/object/public/');
+  });
+
+  it('getDocumentUrl vrací podepsanou URL pro interní storage cestu', async () => {
+    createSignedUrlMock.mockResolvedValue({
+      data: { signedUrl: 'https://example.supabase.co/storage/v1/object/sign/demand-documents/private.pdf?token=abc' },
+      error: null,
+    });
+
+    const { getDocumentUrl } = await import('../services/documentService');
+
+    await expect(getDocumentUrl('category-1/private.pdf')).resolves.toContain('/object/sign/');
+    expect(createSignedUrlMock).toHaveBeenCalledWith('category-1/private.pdf', 900);
   });
 });

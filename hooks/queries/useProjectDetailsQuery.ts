@@ -1,7 +1,7 @@
 import { useQuery, useQueries, UseQueryOptions } from "@tanstack/react-query";
 import { dbAdapter } from "../../services/dbAdapter";
 import { withRetry, withTimeout } from "../../utils/helpers";
-import { Project, ProjectDetails, DemandCategory, Bid } from "../../types";
+import { ActiveProjectStatus, Project, ProjectDetails, DemandCategory, Bid } from "../../types";
 import { isDemoSession, DEMO_PROJECT_DETAILS, DEMO_PROJECT } from "../../services/demoData";
 
 export const PROJECT_DETAILS_KEYS = {
@@ -116,6 +116,7 @@ const fetchProjectDetails = async (projectId: string): Promise<ProjectDetails> =
         id: project.id,
         title: project.name,
         status: project.status || "realization",
+        archivedOriginalStatus: (project.archived_original_status as ActiveProjectStatus | null) ?? null,
         investor: project.investor || "",
         technicalSupervisor: project.technical_supervisor || "",
         location: project.location || "",

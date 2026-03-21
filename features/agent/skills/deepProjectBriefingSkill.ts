@@ -169,6 +169,7 @@ export const deepProjectBriefingSkill: AgentSkill = {
   },
   run: (input) => {
     const active = getActiveProjectContext(input.runtime);
+    const isClientAudience = input.runtime.audience === "client";
 
     if (!active) {
       return {
@@ -220,6 +221,10 @@ export const deepProjectBriefingSkill: AgentSkill = {
         const diff = toNumber(item.sodBudget) - toNumber(item.planBudget);
         const diffLabel = `${diff >= 0 ? "+" : "-"}${formatCurrency(Math.abs(diff))}`;
 
+        if (isClientAudience) {
+          return `| ${esc(item.title)} | ${statusLabel[item.status] || item.status} | ${item.deadline || "-"} | ${item.realizationStart || "-"} | ${item.realizationEnd || "-"} | ${bidsCount} |`;
+        }
+
         return `| ${esc(item.title)} | ${statusLabel[item.status] || item.status} | ${item.deadline || "-"} | ${item.realizationStart || "-"} | ${item.realizationEnd || "-"} | ${bidsCount} | ${formatCurrency(toNumber(item.planBudget))} | ${formatCurrency(toNumber(item.sodBudget))} | ${diffLabel} |`;
       })
       .join("\n");
@@ -243,10 +248,12 @@ export const deepProjectBriefingSkill: AgentSkill = {
     const riskLines = [
       `- Termínové riziko (<=21 dní, otevřené): **${deadlineRisk.length}** kategorií`,
       `- Obchodní riziko (otevřená kategorie bez nabídky): **${noBidRisk.length}** kategorií`,
-      `- Rozpočtové riziko (negativní odchylka plan vs SOD): **${negativeBudgetRisk.length}** kategorií`,
+      ...(isClientAudience
+        ? []
+        : [`- Rozpočtové riziko (negativní odchylka plan vs SOD): **${negativeBudgetRisk.length}** kategorií`]),
     ];
 
-    if (topBudgetRisks.length > 0) {
+    if (!isClientAudience && topBudgetRisks.length > 0) {
       riskLines.push("- Největší negativní odchylky:");
       topBudgetRisks.forEach((item, index) => {
         if (item.diff >= 0) return;
@@ -270,15 +277,21 @@ export const deepProjectBriefingSkill: AgentSkill = {
       `- Stavební technik: **${details.constructionTechnician || "neuvedeno"}**`,
       `- Kategorie: **${categories.length}** (otevřeno ${openCategories.length}, uzavřeno ${closedCategories.length})`,
       `- Nabídky celkem: **${bidStats.allBids.length}**`,
-      `- Hrubá odchylka (SOD vs interní plán kategorií): **${delta >= 0 ? "+" : "-"}${formatCurrency(Math.abs(delta))}** (${ratio(sodSum, Math.max(planSum, 1))})`,
+      isClientAudience
+        ? "- Hrubá odchylka interního plánu není v klientském režimu dostupná."
+        : `- Hrubá odchylka (SOD vs interní plán kategorií): **${delta >= 0 ? "+" : "-"}${formatCurrency(Math.abs(delta))}** (${ratio(sodSum, Math.max(planSum, 1))})`,
       "",
       "### KPI přehled",
       "| KPI | Hodnota |",
       "|---|---:|",
-      `| Interní plán kategorií | ${formatCurrency(planSum)} |`,
+      ...(isClientAudience ? [] : [`| Interní plán kategorií | ${formatCurrency(planSum)} |`]),
       `| SOD kategorií | ${formatCurrency(sodSum)} |`,
-      `| Odchylka SOD vs plán | ${delta >= 0 ? "+" : "-"}${formatCurrency(Math.abs(delta))} |`,
-      `| Interní plánovaný náklad projektu | ${formatCurrency(internalPlannedCost)} |`,
+      ...(isClientAudience
+        ? []
+        : [`| Odchylka SOD vs plán | ${delta >= 0 ? "+" : "-"}${formatCurrency(Math.abs(delta))} |`]),
+      ...(isClientAudience
+        ? []
+        : [`| Interní plánovaný náklad projektu | ${formatCurrency(internalPlannedCost)} |`]),
       `| Investor SOD base | ${formatCurrency(investorBase)} |`,
       `| Investor dodatky | ${formatCurrency(investorAmendments)} (${additionsCount}x) |`,
       `| Investor current | ${formatCurrency(investorCurrent)} |`,
@@ -290,14 +303,17 @@ export const deepProjectBriefingSkill: AgentSkill = {
       "Kategorie podle stavu",
       buildStatusChart(categories),
       "",
-      "Top rozpočtové odchylky (abs)",
-      buildDiffChart(categories),
+      ...(isClientAudience ? [] : ["Top rozpočtové odchylky (abs)", buildDiffChart(categories)]),
       "```",
       "",
       "### Kategorie a ekonomika (detail)",
-      "| Kategorie | Stav | Deadline | Realizace od | Realizace do | Nabídky | Plán | SOD | Odchylka |",
-      "|---|---|---|---|---|---:|---:|---:|---:|",
-      categoriesTable || "| - | - | - | - | - | 0 | 0 Kč | 0 Kč | 0 Kč |",
+      ...(isClientAudience
+        ? ["| Kategorie | Stav | Deadline | Realizace od | Realizace do | Nabídky |", "|---|---|---|---|---|---:|"]
+        : [
+            "| Kategorie | Stav | Deadline | Realizace od | Realizace do | Nabídky | Plán | SOD | Odchylka |",
+            "|---|---|---|---|---|---:|---:|---:|---:|",
+          ]),
+      categoriesTable || (isClientAudience ? "| - | - | - | - | - | 0 |" : "| - | - | - | - | - | 0 | 0 Kč | 0 Kč | 0 Kč |"),
       "",
       "### Nabídky (detail)",
       "| Stav nabídky | Počet |",
@@ -319,7 +335,9 @@ export const deepProjectBriefingSkill: AgentSkill = {
       "1. U kategorií s negativní odchylkou potvrdit příčinu (scope change vs cenová eskalace vs odhad).",
       "2. U otevřených kategorií bez nabídek okamžitě navýšit akviziční aktivitu dodavatelů.",
       "3. U kategorií s blízkým deadlinem vyžádat denní checkpoint do uzavření VŘ.",
-      "4. Porovnat investor current (`SOD + dodatky`) s interním plánovaným nákladem projektu.",
+      isClientAudience
+        ? "4. Potvrdit s investorem rozsah dodatků a jejich dopad do harmonogramu i ceny."
+        : "4. Porovnat investor current (`SOD + dodatky`) s interním plánovaným nákladem projektu.",
       "",
       "### Datová stopa reportu",
       `- Audience: ${input.runtime.audience}`,
@@ -328,8 +346,14 @@ export const deepProjectBriefingSkill: AgentSkill = {
       `- Kontakty v runtime: ${input.runtime.contacts.length}`,
       `- Kategorie v reportu: ${categories.length}`,
       `- Bids zohledněno: ${bidStats.allBids.length}`,
-      `- Součet odchylek kategorií: ${delta >= 0 ? "+" : "-"}${formatCurrency(Math.abs(delta))}`,
-      `- Doplňková kontrola (sum odchylek): ${sumAmendments(categories) >= 0 ? "+" : "-"}${formatCurrency(Math.abs(sumAmendments(categories)))}`,
+      ...(isClientAudience
+        ? []
+        : [`- Součet odchylek kategorií: ${delta >= 0 ? "+" : "-"}${formatCurrency(Math.abs(delta))}`]),
+      ...(isClientAudience
+        ? []
+        : [
+            `- Doplňková kontrola (sum odchylek): ${sumAmendments(categories) >= 0 ? "+" : "-"}${formatCurrency(Math.abs(sumAmendments(categories)))}`,
+          ]),
       `- Kontext policy: ${input.runtime.contextPolicyVersion}`,
     ];
 

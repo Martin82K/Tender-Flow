@@ -232,15 +232,27 @@ body {
 .table-responsive {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  -ms-overflow-style: auto;
+  scrollbar-width: thin;
   margin-left: -1rem;
   margin-right: -1rem;
   padding-left: 1rem;
   padding-right: 1rem;
 }
 
+.table-responsive::-webkit-scrollbar {
+  display: block;
+  height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.45);
+  border-radius: 999px;
+}
+
 @media (min-width: 768px) {
   .table-responsive {
-    overflow-x: visible;
+    overflow-x: auto;
     margin-left: 0;
     margin-right: 0;
     padding-left: 0;

@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { PriceListsSection } from '../components/projectLayoutComponents/documents/PriceListsSection';
 import { ProjectDetails } from '../types';
@@ -27,6 +27,18 @@ describe('PriceListsSection', () => {
         expect(screen.getByText('Ceníky')).toBeInTheDocument();
         expect(screen.getByText('https://pricelist.com')).toBeInTheDocument();
         expect(screen.getByText('Nastaveno')).toBeInTheDocument();
+    });
+
+    it('does not render unsafe javascript price list link', () => {
+        render(
+            <PriceListsSection
+                {...defaultProps}
+                project={{ ...mockProject, priceListLink: 'javascript:alert(1)' } as ProjectDetails}
+            />,
+        );
+
+        expect(screen.queryByRole('link')).not.toBeInTheDocument();
+        expect(screen.queryByText('Nastaveno')).not.toBeInTheDocument();
     });
 
     it('renders editing mode correctly', () => {

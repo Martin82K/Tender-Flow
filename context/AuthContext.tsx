@@ -647,6 +647,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       setUser(updatedUser);
     } catch (error) {
       console.error("Legal acceptance update failed", error);
+      const message = String((error as any)?.message || "").toLowerCase();
+      const code = String((error as any)?.code || "");
+      const isAuthExpired =
+        code === "P0001" ||
+        message.includes("not authenticated") ||
+        message.includes("přihlášení vypršelo");
+
+      if (isAuthExpired) {
+        await authSessionService.invalidateAuthState({
+          navigateToLogin: true,
+          reason: "invalid_refresh_token",
+        });
+        setUser(null);
+      }
       throw error;
     }
   };
