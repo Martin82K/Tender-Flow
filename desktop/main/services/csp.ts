@@ -4,6 +4,8 @@ export const buildDesktopCsp = (isDev: boolean): string => {
         "'unsafe-inline'",
         ...(isDev ? ["'unsafe-eval'"] : []),
         'https://cdn.tailwindcss.com',
+        'https://js.stripe.com',
+        'https://*.stripe.com',
     ].join(' ');
 
     const styleSrc = [
@@ -43,13 +45,22 @@ export const buildDesktopCsp = (isDev: boolean): string => {
         'https://fonts.gstatic.com',
     ].join(' ');
 
+    const frameSrc = [
+        "'self'",
+        'https://js.stripe.com',
+        'https://hooks.stripe.com',
+        'https://*.stripe.com',
+    ].join(' ');
+
     return [
         "default-src 'self'",
         `script-src ${scriptSrc}`,
+        `script-src-elem ${scriptSrc}`,
         `style-src ${styleSrc}`,
         `font-src ${fontSrc}`,
         `img-src ${imgSrc}`,
         `connect-src ${connectSrc}`,
+        `frame-src ${frameSrc}`,
         "object-src 'none'",
         "base-uri 'self'",
         "frame-ancestors 'none'",

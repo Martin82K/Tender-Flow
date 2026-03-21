@@ -5,6 +5,7 @@ import { registerIpcHandlers } from './ipc/handlers';
 import { getAutoUpdaterService } from './services/autoUpdater';
 import { startMcpServer } from './services/mcpServer';
 import { buildDesktopCsp } from './services/csp';
+import { buildMainWindowWebPreferences } from './services/windowSecurity';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {
@@ -90,13 +91,7 @@ function createWindow(): void {
                 return undefined; // Fallback to no icon to prevent crash
             }
         })(),
-        webPreferences: {
-            preload: path.join(__dirname, 'preload.js'),
-            contextIsolation: true,
-            nodeIntegration: false,
-            sandbox: true,
-            webSecurity: !isDev, // Disable web security in dev mode for easier testing
-        },
+        webPreferences: buildMainWindowWebPreferences(path.join(__dirname, 'preload.js')),
         titleBarStyle: 'hiddenInset', // macOS native feel
         trafficLightPosition: { x: 15, y: 15 },
         show: false, // Show when ready
