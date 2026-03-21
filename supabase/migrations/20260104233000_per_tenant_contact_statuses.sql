@@ -204,5 +204,5 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 8. Grant permissions
-GRANT EXECUTE ON FUNCTION public.create_default_contact_statuses TO authenticated;
+REVOKE EXECUTE ON FUNCTION public.create_default_contact_statuses FROM authenticated;
 GRANT EXECUTE ON FUNCTION public.create_default_contact_statuses TO service_role;
