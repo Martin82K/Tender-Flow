@@ -169,6 +169,7 @@ export const deepProjectBriefingSkill: AgentSkill = {
   },
   run: (input) => {
     const active = getActiveProjectContext(input.runtime);
+    const isClientAudience = input.runtime.audience === "client";
 
     if (!active) {
       return {
@@ -270,15 +271,21 @@ export const deepProjectBriefingSkill: AgentSkill = {
       `- Stavební technik: **${details.constructionTechnician || "neuvedeno"}**`,
       `- Kategorie: **${categories.length}** (otevřeno ${openCategories.length}, uzavřeno ${closedCategories.length})`,
       `- Nabídky celkem: **${bidStats.allBids.length}**`,
-      `- Hrubá odchylka (SOD vs interní plán kategorií): **${delta >= 0 ? "+" : "-"}${formatCurrency(Math.abs(delta))}** (${ratio(sodSum, Math.max(planSum, 1))})`,
+      isClientAudience
+        ? "- Hrubá odchylka interního plánu není v klientském režimu dostupná."
+        : `- Hrubá odchylka (SOD vs interní plán kategorií): **${delta >= 0 ? "+" : "-"}${formatCurrency(Math.abs(delta))}** (${ratio(sodSum, Math.max(planSum, 1))})`,
       "",
       "### KPI přehled",
       "| KPI | Hodnota |",
       "|---|---:|",
-      `| Interní plán kategorií | ${formatCurrency(planSum)} |`,
+      ...(isClientAudience ? [] : [`| Interní plán kategorií | ${formatCurrency(planSum)} |`]),
       `| SOD kategorií | ${formatCurrency(sodSum)} |`,
-      `| Odchylka SOD vs plán | ${delta >= 0 ? "+" : "-"}${formatCurrency(Math.abs(delta))} |`,
-      `| Interní plánovaný náklad projektu | ${formatCurrency(internalPlannedCost)} |`,
+      ...(isClientAudience
+        ? []
+        : [`| Odchylka SOD vs plán | ${delta >= 0 ? "+" : "-"}${formatCurrency(Math.abs(delta))} |`]),
+      ...(isClientAudience
+        ? []
+        : [`| Interní plánovaný náklad projektu | ${formatCurrency(internalPlannedCost)} |`]),
       `| Investor SOD base | ${formatCurrency(investorBase)} |`,
       `| Investor dodatky | ${formatCurrency(investorAmendments)} (${additionsCount}x) |`,
       `| Investor current | ${formatCurrency(investorCurrent)} |`,
@@ -319,7 +326,9 @@ export const deepProjectBriefingSkill: AgentSkill = {
       "1. U kategorií s negativní odchylkou potvrdit příčinu (scope change vs cenová eskalace vs odhad).",
       "2. U otevřených kategorií bez nabídek okamžitě navýšit akviziční aktivitu dodavatelů.",
       "3. U kategorií s blízkým deadlinem vyžádat denní checkpoint do uzavření VŘ.",
-      "4. Porovnat investor current (`SOD + dodatky`) s interním plánovaným nákladem projektu.",
+      isClientAudience
+        ? "4. Potvrdit s investorem rozsah dodatků a jejich dopad do harmonogramu i ceny."
+        : "4. Porovnat investor current (`SOD + dodatky`) s interním plánovaným nákladem projektu.",
       "",
       "### Datová stopa reportu",
       `- Audience: ${input.runtime.audience}`,
@@ -328,8 +337,14 @@ export const deepProjectBriefingSkill: AgentSkill = {
       `- Kontakty v runtime: ${input.runtime.contacts.length}`,
       `- Kategorie v reportu: ${categories.length}`,
       `- Bids zohledněno: ${bidStats.allBids.length}`,
-      `- Součet odchylek kategorií: ${delta >= 0 ? "+" : "-"}${formatCurrency(Math.abs(delta))}`,
-      `- Doplňková kontrola (sum odchylek): ${sumAmendments(categories) >= 0 ? "+" : "-"}${formatCurrency(Math.abs(sumAmendments(categories)))}`,
+      ...(isClientAudience
+        ? []
+        : [`- Součet odchylek kategorií: ${delta >= 0 ? "+" : "-"}${formatCurrency(Math.abs(delta))}`]),
+      ...(isClientAudience
+        ? []
+        : [
+            `- Doplňková kontrola (sum odchylek): ${sumAmendments(categories) >= 0 ? "+" : "-"}${formatCurrency(Math.abs(sumAmendments(categories)))}`,
+          ]),
       `- Kontext policy: ${input.runtime.contextPolicyVersion}`,
     ];
 
