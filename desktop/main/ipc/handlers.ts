@@ -14,6 +14,7 @@ import { registerOAuthHandlers } from './modules/oauthHandlers';
 import { registerSessionHandlers } from './modules/sessionHandlers';
 import { registerWatcherHandlers } from './modules/watcherHandlers';
 import { getAutoUpdaterService } from '../services/autoUpdater';
+import { convertToDocx } from './modules/docxConversion';
 
 // Services (singleton instances)
 const storageService = new SecureStorageService();
@@ -371,49 +372,12 @@ export function registerIpcHandlers(): void {
 
     ipcMain.handle('shell:convertToDocx', async (_, inputPath: string): Promise<{ success: boolean; outputPath?: string; error?: string }> => {
         console.log('[Shell] convertToDocx called for:', inputPath);
-        
-        if (process.platform !== 'darwin') {
-            return { success: false, error: 'Conversion is only supported on macOS' };
+        const result = await convertToDocx(inputPath);
+        if (result.success) {
+            console.log('[Shell] Conversion successful ->', result.outputPath);
+        } else {
+            console.error('[Shell] Conversion failed:', result.error);
         }
-
-        if (typeof inputPath !== 'string' || inputPath.trim().length === 0) {
-            return { success: false, error: 'Invalid input path' };
-        }
-
-        const { execFile } = require('child_process');
-        const util = require('util');
-        const execFileAsync = util.promisify(execFile);
-        const os = require('os');
-        const path = require('path');
-
-        try {
-            const normalizedInputPath = path.resolve(inputPath);
-            if (path.extname(normalizedInputPath).toLowerCase() !== '.doc') {
-                return { success: false, error: 'Only .doc files are supported for conversion' };
-            }
-
-            await fs.access(normalizedInputPath);
-
-            // Generate temp output path
-            const tempDir = os.tmpdir();
-            const filename = path.basename(normalizedInputPath, path.extname(normalizedInputPath)); // strip .doc
-            const outputPath = path.join(tempDir, `${filename}_${Date.now()}.docx`);
-
-            // Use macOS textutil
-            // textutil -convert docx source.doc -output target.docx
-            const args = ['-convert', 'docx', normalizedInputPath, '-output', outputPath];
-            console.log('[Shell] Running command: textutil', args);
-
-            await execFileAsync('textutil', args);
-            
-            // Verify file exists
-            await fs.access(outputPath);
-            console.log('[Shell] Conversion successful ->', outputPath);
-
-            return { success: true, outputPath };
-        } catch (error) {
-            console.error('[Shell] Conversion failed:', error);
-            return { success: false, error: error instanceof Error ? error.message : String(error) };
-        }
+        return result;
     });
 }
