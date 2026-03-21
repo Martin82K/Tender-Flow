@@ -376,24 +376,35 @@ export function registerIpcHandlers(): void {
             return { success: false, error: 'Conversion is only supported on macOS' };
         }
 
-        const { exec } = require('child_process');
+        if (typeof inputPath !== 'string' || inputPath.trim().length === 0) {
+            return { success: false, error: 'Invalid input path' };
+        }
+
+        const { execFile } = require('child_process');
         const util = require('util');
-        const execAsync = util.promisify(exec);
+        const execFileAsync = util.promisify(execFile);
         const os = require('os');
         const path = require('path');
 
         try {
+            const normalizedInputPath = path.resolve(inputPath);
+            if (path.extname(normalizedInputPath).toLowerCase() !== '.doc') {
+                return { success: false, error: 'Only .doc files are supported for conversion' };
+            }
+
+            await fs.access(normalizedInputPath);
+
             // Generate temp output path
             const tempDir = os.tmpdir();
-            const filename = path.basename(inputPath, path.extname(inputPath)); // strip .doc
+            const filename = path.basename(normalizedInputPath, path.extname(normalizedInputPath)); // strip .doc
             const outputPath = path.join(tempDir, `${filename}_${Date.now()}.docx`);
 
             // Use macOS textutil
             // textutil -convert docx source.doc -output target.docx
-            const command = `textutil -convert docx "${inputPath}" -output "${outputPath}"`;
-            console.log('[Shell] Running command:', command);
+            const args = ['-convert', 'docx', normalizedInputPath, '-output', outputPath];
+            console.log('[Shell] Running command: textutil', args);
 
-            await execAsync(command);
+            await execFileAsync('textutil', args);
             
             // Verify file exists
             await fs.access(outputPath);
