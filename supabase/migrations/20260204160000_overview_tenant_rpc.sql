@@ -59,7 +59,12 @@ BEGIN
       ) AS bids,
       COUNT(*) AS bid_count
     FROM bids_raw b
-    LEFT JOIN public.subcontractors s ON s.id = b.subcontractor_id
+    LEFT JOIN public.subcontractors s
+      ON s.id = b.subcontractor_id
+      AND (
+        s.organization_id = ANY(org_ids)
+        OR s.owner_id = auth.uid()
+      )
     GROUP BY b.demand_category_id
   ),
   categories_by_project AS (
