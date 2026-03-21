@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ContractDetails, InvestorFinancials, ProjectDetails } from "@/types";
 import {
   buildDemandTableData,
@@ -61,6 +61,9 @@ export const useProjectOverviewNewController = ({
   userId,
   searchQuery,
 }: UseProjectOverviewNewControllerInput) => {
+  const projectIdentity = project.id || `${project.title}:${project.location}`;
+  const previousProjectIdentityRef = useRef(projectIdentity);
+
   const contract = project.contract;
   const investor = project.investorFinancials || DEFAULT_INVESTOR;
   const plannedCost = project.plannedCost || 0;
@@ -115,6 +118,31 @@ export const useProjectOverviewNewController = ({
   }, [visibleColumns, isLoaded, userId]);
 
   useEffect(() => {
+    const projectChanged = previousProjectIdentityRef.current !== projectIdentity;
+
+    if (projectChanged) {
+      previousProjectIdentityRef.current = projectIdentity;
+      setEditingInfo(false);
+      setEditingContract(false);
+      setEditingInvestor(false);
+      setEditingInternal(false);
+      setInfoForm(buildInfoForm(project));
+      setContractForm(
+        project.contract || {
+          maturity: 30,
+          warranty: 0,
+          retention: "",
+          siteFacilities: 0,
+          insurance: 0,
+        },
+      );
+      setInvestorForm(project.investorFinancials || DEFAULT_INVESTOR);
+      setInternalForm({
+        plannedCost: project.plannedCost || 0,
+      });
+      return;
+    }
+
     if (!editingInfo) {
       setInfoForm(buildInfoForm(project));
     }
@@ -136,7 +164,7 @@ export const useProjectOverviewNewController = ({
         plannedCost: project.plannedCost || 0,
       });
     }
-  }, [project, editingInfo, editingContract, editingInvestor, editingInternal]);
+  }, [project, projectIdentity, editingInfo, editingContract, editingInvestor, editingInternal]);
 
   const {
     totalBudget,
