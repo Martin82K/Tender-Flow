@@ -42,8 +42,10 @@ describe("docxConversion", () => {
     const result = await convertToDocx(payloadPath, {
       platform: "darwin",
       tmpDir: "/tmp",
+      homeDir: "/Users/tester",
       now: () => 1700000000000,
       runConversion,
+      resolveRealPath: vi.fn(async () => payloadPath),
       verifyOutput,
     });
 
@@ -57,6 +59,41 @@ describe("docxConversion", () => {
     );
   });
 
+  it("odmitne soubory mimo .doc rozsah", async () => {
+    const runConversion = vi.fn(async () => undefined);
+
+    const result = await convertToDocx("/tmp/input.txt", {
+      platform: "darwin",
+      tmpDir: "/tmp",
+      homeDir: "/Users/tester",
+      runConversion,
+      resolveRealPath: vi.fn(async () => "/tmp/input.txt"),
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: "Only .doc files are supported for conversion",
+    });
+    expect(runConversion).not.toHaveBeenCalled();
+  });
+
+  it("odmitne vstup mimo povolene rooty", async () => {
+    const runConversion = vi.fn(async () => undefined);
+
+    const result = await convertToDocx("/etc/shadow.doc", {
+      platform: "darwin",
+      tmpDir: "/tmp",
+      homeDir: "/Users/tester",
+      runConversion,
+      resolveRealPath: vi.fn(async () => "/etc/shadow.doc"),
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: "Input path is outside allowed roots",
+    });
+    expect(runConversion).not.toHaveBeenCalled();
+  });
   it("pouzije textutil pres execFile s argumentovym polem", async () => {
     execFileMock.mockImplementation((_cmd: string, _args: string[], cb: (err: Error | null, stdout?: string, stderr?: string) => void) => {
       cb(null, "", "");
