@@ -264,10 +264,10 @@ const getTokenInfo = async (token: string): Promise<TokenInfo> => {
     return info;
 };
 
-const authorizeRequest = async (req: http.IncomingMessage): Promise<TokenInfo | null> => {
+const authorizeRequest = async (req: http.IncomingMessage): Promise<TokenInfo> => {
     const requiredClientId = getRequiredClientId();
     if (!requiredClientId) {
-        return null;
+        throw new Error('MCP auth is not configured on this desktop app instance.');
     }
 
     const header = req.headers.authorization || '';
@@ -284,9 +284,22 @@ const authorizeRequest = async (req: http.IncomingMessage): Promise<TokenInfo | 
     return info;
 };
 
+const isAllowedOrigin = (origin: string): boolean => {
+    if (origin === 'null') {
+        return true;
+    }
+
+    return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin);
+};
+
 const setCorsHeaders = (req: http.IncomingMessage, res: http.ServerResponse) => {
-    const origin = req.headers.origin || '*';
+    const origin = typeof req.headers.origin === 'string' ? req.headers.origin : '';
+    if (!origin || !isAllowedOrigin(origin)) {
+        return;
+    }
+
     res.setHeader('access-control-allow-origin', origin);
+    res.setHeader('vary', 'origin');
     res.setHeader('access-control-allow-methods', 'GET,POST,OPTIONS');
     res.setHeader('access-control-allow-headers', 'content-type,authorization,mcp-session-id');
 };
@@ -306,6 +319,12 @@ export const startMcpServer = async (options?: {
         }
 
         const url = new URL(req.url, 'http://127.0.0.1');
+        const origin = typeof req.headers.origin === 'string' ? req.headers.origin : '';
+        if (origin && !isAllowedOrigin(origin)) {
+            sendJson(res, 403, { error: 'Origin not allowed' });
+            return;
+        }
+
         setCorsHeaders(req, res);
 
         if (req.method === 'OPTIONS') {
