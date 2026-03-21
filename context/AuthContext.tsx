@@ -126,7 +126,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
   useEffect(() => {
     console.log("AuthContext: Initializing...");
-    let hasValidStoredSession = false;
 
     // Priority 0: Validate stored session before Supabase tries to use it.
     // A corrupted session can cause "Invalid value" header errors in fetch requests.
@@ -155,8 +154,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         if (isInvalidToken(accessToken) || isInvalidToken(refreshToken)) {
           console.warn('[AuthContext] Corrupted session token detected, clearing session');
           authSessionService.clearStoredSessionData();
-        } else {
-          hasValidStoredSession = true;
         }
       }
     } catch (e) {
@@ -399,9 +396,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
     (async () => {
       try {
-        const desktopRestoreStatus = hasValidStoredSession
-          ? "skipped"
-          : await tryDesktopSessionRestore();
+        const desktopRestoreStatus = await tryDesktopSessionRestore();
         if (desktopRestoreStatus === "success") {
           window.clearTimeout(timer);
           return;
@@ -647,6 +642,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       setUser(updatedUser);
     } catch (error) {
       console.error("Legal acceptance update failed", error);
+      const message = String((error as any)?.message || "").toLowerCase();
+      const code = String((error as any)?.code || "");
+      const isAuthExpired =
+        code === "P0001" ||
+        message.includes("not authenticated") ||
+        message.includes("přihlášení vypršelo");
+
+      if (isAuthExpired) {
+        await authSessionService.invalidateAuthState({
+          navigateToLogin: true,
+          reason: "invalid_refresh_token",
+        });
+        setUser(null);
+      }
       throw error;
     }
   };

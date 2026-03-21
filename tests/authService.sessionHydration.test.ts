@@ -12,7 +12,7 @@ const mockState = vi.hoisted(() => ({
   invokePublicFunction: vi.fn(),
 }));
 
-let profileIsAdmin = false;
+let platformAdminActive = false;
 let subscriptionOverride: string | null = null;
 let organizationId: string | null = null;
 let organizationTier: string | null = null;
@@ -48,7 +48,7 @@ describe("authService session hydration", () => {
     vi.clearAllMocks();
     localStorage.clear();
 
-    profileIsAdmin = false;
+    platformAdminActive = false;
     subscriptionOverride = null;
     organizationId = null;
     organizationTier = null;
@@ -69,13 +69,15 @@ describe("authService session hydration", () => {
     mockState.authGetSession.mockResolvedValue({ data: { session: null } });
 
     mockState.from.mockImplementation((table: string) => {
-      if (table === "profiles") {
+      if (table === "platform_admins") {
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({
-                data: { is_admin: profileIsAdmin },
-                error: null,
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: platformAdminActive ? { user_id: "user-1" } : null,
+                  error: null,
+                }),
               }),
             }),
           }),
@@ -282,6 +284,19 @@ describe("authService session hydration", () => {
       privacyVersion: CURRENT_PRIVACY_VERSION,
       privacyAcceptedAt: "2026-03-15T10:31:00.000Z",
     });
+  });
+
+  it("nastaví admin role a tier podle platform_admins", async () => {
+    platformAdminActive = true;
+    organizationId = "org-1";
+    organizationTier = "starter";
+
+    const user = await authService.getUserFromSession(makeSession(), {
+      skipUserCache: true,
+    });
+
+    expect(user?.role).toBe("admin");
+    expect(user?.subscriptionTier).toBe("admin");
   });
 
   it("ignoruje nevalidní tier v localStorage cache", () => {

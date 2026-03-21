@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { dbAdapter } from "../../services/dbAdapter";
-import { Project, ProjectDetails, DemandCategory } from "../../types";
+import { ActiveProjectStatus, Project, ProjectDetails, DemandCategory, ProjectStatus } from "../../types";
 import { useAuth } from "../../context/AuthContext";
 import { PROJECT_KEYS } from "../queries/useProjectsQuery";
 import { PROJECT_DETAILS_KEYS } from "../queries/useProjectDetailsQuery";
@@ -8,7 +8,8 @@ import { OVERVIEW_TENANT_DATA_KEY } from "../queries/useOverviewTenantDataQuery"
 import { getDemoData, saveDemoData } from "../../services/demoData";
 import { invokeAuthedFunction } from "../../services/functionsClient";
 import { ensureStructure } from "../../services/fileSystemService";
-import { buildHierarchyTree, resolveDocHubStructureV1 } from "../../utils/docHub";
+import { buildHierarchyTree, isProbablyUrl, resolveDocHubStructureV1 } from "../../utils/docHub";
+import { cloneTenderToRealization } from "@/features/projects/api/projectCloneApi";
 
 // Helper for DocHub Sync
 const syncDocHubCategory = async (projectId: string, action: "upsert" | "archive", categoryId: string, categoryTitle?: string) => {
@@ -19,6 +20,34 @@ const syncDocHubCategory = async (projectId: string, action: "upsert" | "archive
     } catch (e) {
         console.error("DocHub sync failed", e);
     }
+};
+
+type ArchiveProjectMutationInput = {
+    id: string;
+    currentStatus: ProjectStatus;
+    archivedOriginalStatus?: ActiveProjectStatus | null;
+};
+
+type ArchiveProjectUpdate = {
+    targetStatus: ProjectStatus;
+    archivedOriginalStatus: ActiveProjectStatus | null;
+};
+
+export const resolveArchiveProjectUpdate = ({
+    currentStatus,
+    archivedOriginalStatus,
+}: Omit<ArchiveProjectMutationInput, "id">): ArchiveProjectUpdate => {
+    if (currentStatus === "archived") {
+        return {
+            targetStatus: archivedOriginalStatus ?? "realization",
+            archivedOriginalStatus: null,
+        };
+    }
+
+    return {
+        targetStatus: "archived",
+        archivedOriginalStatus: currentStatus,
+    };
 };
 
 export const useAddProjectMutation = () => {
@@ -104,30 +133,185 @@ export const useDeleteProjectMutation = () => {
     });
 };
 
+const extractEffectiveBidDisplayPrice = (bid: any): string | null => {
+    if (typeof bid?.price === "string" && bid.price.trim() && bid.price !== "?" && bid.price !== "-") {
+        return bid.price;
+    }
+
+    const priceHistory = bid?.priceHistory;
+    if (!priceHistory || typeof priceHistory !== "object") {
+        return null;
+    }
+
+    const sortedEntries = Object.entries(priceHistory)
+        .map(([round, value]) => ({
+            round: Number.parseInt(round, 10),
+            value: typeof value === "string" ? value.trim() : "",
+        }))
+        .filter((entry) => Number.isFinite(entry.round) && entry.value.length > 0)
+        .sort((a, b) => b.round - a.round);
+
+    return sortedEntries[0]?.value || null;
+};
+
+export const useCloneTenderToRealizationMutation = () => {
+    const queryClient = useQueryClient();
+    const { user } = useAuth();
+
+    return useMutation({
+        mutationFn: async (projectId: string) => {
+            if (user?.role === "demo") {
+                const demoData = getDemoData();
+                const sourceProject = demoData?.projects.find((project) => project.id === projectId);
+                const sourceDetails = demoData?.projectDetails?.[projectId];
+
+                if (!demoData || !sourceProject || !sourceDetails) {
+                    throw new Error("Zdrojový demo projekt nebyl nalezen.");
+                }
+
+                if (sourceProject.status !== "tender") {
+                    throw new Error("Klonovat do realizace lze pouze projekt ve stavu soutěž.");
+                }
+
+                const clonedProjectId = crypto.randomUUID();
+                const clonedCategories = (sourceDetails.categories || []).map((category) => ({
+                    ...structuredClone(category),
+                    id: crypto.randomUUID(),
+                    deadline: undefined,
+                    realizationStart: undefined,
+                    realizationEnd: undefined,
+                }));
+                const categoryIdMap = new Map(
+                    (sourceDetails.categories || []).map((category, index) => [category.id, clonedCategories[index]?.id]),
+                );
+
+                const clonedBids = Object.fromEntries(
+                    clonedCategories.map((category) => {
+                        const sourceCategoryId = [...categoryIdMap.entries()].find(([, newId]) => newId === category.id)?.[0];
+                        const sourceCategoryBids = sourceCategoryId
+                            ? (sourceDetails.bids?.[sourceCategoryId] || [])
+                            : [];
+                        const nextBids = sourceCategoryBids
+                            .map((bid) => {
+                                const effectivePrice = extractEffectiveBidDisplayPrice(bid);
+                                if (!effectivePrice) return null;
+
+                                return {
+                                    ...structuredClone(bid),
+                                    id: crypto.randomUUID(),
+                                    status: "contacted" as const,
+                                    price: "?",
+                                    priceHistory: { 0: effectivePrice },
+                                    selectionRound: 0,
+                                    updateDate: undefined,
+                                    contracted: false,
+                                    notes: undefined,
+                                };
+                            })
+                            .filter(Boolean);
+
+                        return [category.id, nextBids];
+                    }).filter(([, bids]) => Array.isArray(bids) && bids.length > 0),
+                );
+
+                const clonedProject: Project = {
+                    ...structuredClone(sourceProject),
+                    id: clonedProjectId,
+                    status: "realization",
+                };
+
+                const clonedDetails: ProjectDetails = {
+                    ...structuredClone(sourceDetails),
+                    id: clonedProjectId,
+                    title: sourceDetails.title,
+                    status: "realization",
+                    categories: clonedCategories,
+                    bids: clonedBids,
+                    docHubRootLink: "",
+                    docHubRootId: null,
+                    docHubRootName: null,
+                    docHubDriveId: null,
+                    docHubSiteId: null,
+                    docHubRootWebUrl: null,
+                    docHubStatus: "disconnected",
+                    docHubLastError: null,
+                    docHubAutoCreateEnabled: false,
+                    docHubAutoCreateLastRunAt: null,
+                    docHubAutoCreateLastError: null,
+                    docHubSettings: null,
+                };
+
+                demoData.projects = [clonedProject, ...demoData.projects];
+                demoData.projectDetails[clonedProjectId] = clonedDetails;
+                saveDemoData(demoData);
+
+                return { projectId: clonedProjectId };
+            }
+
+            return cloneTenderToRealization(projectId);
+        },
+        onSettled: async (_data, _error) => {
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: PROJECT_KEYS.list() }),
+                queryClient.invalidateQueries({ queryKey: PROJECT_DETAILS_KEYS.all }),
+                queryClient.invalidateQueries({ queryKey: OVERVIEW_TENANT_DATA_KEY }),
+            ]);
+        },
+    });
+};
+
 export const useArchiveProjectMutation = () => {
     const queryClient = useQueryClient();
     const { user } = useAuth();
 
     return useMutation({
-        mutationFn: async ({ id, newStatus }: { id: string; newStatus: "realization" | "archived" }) => {
+        mutationFn: async ({ id, currentStatus, archivedOriginalStatus }: ArchiveProjectMutationInput) => {
+            const nextState = resolveArchiveProjectUpdate({ currentStatus, archivedOriginalStatus });
+
             if (user?.role === "demo") {
                 const demoData = getDemoData();
                 if (demoData) {
-                    demoData.projects = demoData.projects.map(p => p.id === id ? { ...p, status: newStatus } : p);
-                    if (demoData.projectDetails[id]) demoData.projectDetails[id].status = newStatus;
+                    demoData.projects = demoData.projects.map((p) =>
+                        p.id === id
+                            ? {
+                                ...p,
+                                status: nextState.targetStatus,
+                                archivedOriginalStatus: nextState.archivedOriginalStatus,
+                            }
+                            : p
+                    );
+                    if (demoData.projectDetails[id]) {
+                        demoData.projectDetails[id].status = nextState.targetStatus;
+                        demoData.projectDetails[id].archivedOriginalStatus = nextState.archivedOriginalStatus;
+                    }
                     saveDemoData(demoData);
                 }
                 return;
             }
 
-            const { error } = await dbAdapter.from("projects").update({ status: newStatus }).eq("id", id);
+            const { error } = await dbAdapter
+                .from("projects")
+                .update({
+                    status: nextState.targetStatus,
+                    archived_original_status: nextState.archivedOriginalStatus,
+                })
+                .eq("id", id);
             if (error) throw error;
         },
-        onMutate: async ({ id, newStatus }) => {
+        onMutate: async ({ id, currentStatus, archivedOriginalStatus }) => {
+            const nextState = resolveArchiveProjectUpdate({ currentStatus, archivedOriginalStatus });
             await queryClient.cancelQueries({ queryKey: PROJECT_KEYS.list() });
             const previousProjects = queryClient.getQueryData<Project[]>(PROJECT_KEYS.list());
             queryClient.setQueryData<Project[]>(PROJECT_KEYS.list(), (old) =>
-                (old || []).map(p => p.id === id ? { ...p, status: newStatus } : p)
+                (old || []).map((p) =>
+                    p.id === id
+                        ? {
+                            ...p,
+                            status: nextState.targetStatus,
+                            archivedOriginalStatus: nextState.archivedOriginalStatus,
+                        }
+                        : p
+                )
             );
             return { previousProjects };
         },
@@ -147,10 +331,16 @@ export const useUpdateProjectDetailsMutation = () => {
 
     return useMutation({
         mutationFn: async ({ id, updates }: { id: string, updates: Partial<ProjectDetails> }) => {
+            const normalizedUpdates = { ...updates };
+            if (updates.priceListLink !== undefined) {
+                const trimmed = updates.priceListLink.trim();
+                normalizedUpdates.priceListLink = trimmed && isProbablyUrl(trimmed) ? trimmed : "";
+            }
+
             if (user?.role === "demo") {
                 const demoData = getDemoData();
                 if (demoData) {
-                    demoData.projectDetails[id] = { ...demoData.projectDetails[id], ...updates };
+                    demoData.projectDetails[id] = { ...demoData.projectDetails[id], ...normalizedUpdates };
                     saveDemoData(demoData);
                 }
                 return;
@@ -159,36 +349,36 @@ export const useUpdateProjectDetailsMutation = () => {
             // Supabase Logic
             // Update main project fields
             const projectUpdates: any = {};
-            if (updates.investor !== undefined) projectUpdates.investor = updates.investor;
-            if (updates.technicalSupervisor !== undefined) projectUpdates.technical_supervisor = updates.technicalSupervisor;
-            if (updates.siteManager !== undefined) projectUpdates.site_manager = updates.siteManager;
-            if (updates.constructionManager !== undefined) projectUpdates.construction_manager = updates.constructionManager;
-            if (updates.constructionTechnician !== undefined) projectUpdates.construction_technician = updates.constructionTechnician;
-            if (updates.location !== undefined) projectUpdates.location = updates.location;
-            if (updates.finishDate !== undefined) projectUpdates.finish_date = updates.finishDate;
-            if (updates.plannedCost !== undefined) projectUpdates.planned_cost = updates.plannedCost;
-            if (updates.documentationLink !== undefined) projectUpdates.documentation_link = updates.documentationLink;
-            if (updates.documentLinks !== undefined) projectUpdates.document_links = updates.documentLinks;
-            if (updates.inquiryLetterLink !== undefined) projectUpdates.inquiry_letter_link = updates.inquiryLetterLink;
-            if (updates.materialInquiryTemplateLink !== undefined) projectUpdates.material_inquiry_template_link = updates.materialInquiryTemplateLink;
-            if (updates.losersEmailTemplateLink !== undefined) projectUpdates.losers_email_template_link = updates.losersEmailTemplateLink;
-            if (updates.priceListLink !== undefined) projectUpdates.price_list_link = updates.priceListLink;
-            if (updates.docHubEnabled !== undefined) projectUpdates.dochub_enabled = updates.docHubEnabled;
-            if (updates.docHubRootLink !== undefined) projectUpdates.dochub_root_link = updates.docHubRootLink;
-            if (updates.docHubProvider !== undefined) projectUpdates.dochub_provider = updates.docHubProvider;
-            if (updates.docHubMode !== undefined) projectUpdates.dochub_mode = updates.docHubMode;
-            if (updates.docHubRootId !== undefined) projectUpdates.dochub_root_id = updates.docHubRootId;
-            if (updates.docHubRootName !== undefined) projectUpdates.dochub_root_name = updates.docHubRootName;
-            if (updates.docHubDriveId !== undefined) projectUpdates.dochub_drive_id = updates.docHubDriveId;
-            if (updates.docHubSiteId !== undefined) projectUpdates.dochub_site_id = updates.docHubSiteId;
-            if (updates.docHubRootWebUrl !== undefined) projectUpdates.dochub_root_web_url = updates.docHubRootWebUrl;
-            if (updates.docHubStatus !== undefined) projectUpdates.dochub_status = updates.docHubStatus;
-            if (updates.docHubLastError !== undefined) projectUpdates.dochub_last_error = updates.docHubLastError;
-            if (updates.docHubStructureV1 !== undefined) projectUpdates.dochub_structure_v1 = updates.docHubStructureV1;
-            if (updates.docHubStructureVersion !== undefined) projectUpdates.dochub_structure_version = updates.docHubStructureVersion;
-            if (updates.docHubAutoCreateEnabled !== undefined) projectUpdates.dochub_autocreate_enabled = updates.docHubAutoCreateEnabled;
-            if (updates.docHubAutoCreateLastRunAt !== undefined) projectUpdates.dochub_autocreate_last_run_at = updates.docHubAutoCreateLastRunAt;
-            if (updates.docHubAutoCreateLastError !== undefined) projectUpdates.dochub_autocreate_last_error = updates.docHubAutoCreateLastError;
+            if (normalizedUpdates.investor !== undefined) projectUpdates.investor = normalizedUpdates.investor;
+            if (normalizedUpdates.technicalSupervisor !== undefined) projectUpdates.technical_supervisor = normalizedUpdates.technicalSupervisor;
+            if (normalizedUpdates.siteManager !== undefined) projectUpdates.site_manager = normalizedUpdates.siteManager;
+            if (normalizedUpdates.constructionManager !== undefined) projectUpdates.construction_manager = normalizedUpdates.constructionManager;
+            if (normalizedUpdates.constructionTechnician !== undefined) projectUpdates.construction_technician = normalizedUpdates.constructionTechnician;
+            if (normalizedUpdates.location !== undefined) projectUpdates.location = normalizedUpdates.location;
+            if (normalizedUpdates.finishDate !== undefined) projectUpdates.finish_date = normalizedUpdates.finishDate;
+            if (normalizedUpdates.plannedCost !== undefined) projectUpdates.planned_cost = normalizedUpdates.plannedCost;
+            if (normalizedUpdates.documentationLink !== undefined) projectUpdates.documentation_link = normalizedUpdates.documentationLink;
+            if (normalizedUpdates.documentLinks !== undefined) projectUpdates.document_links = normalizedUpdates.documentLinks;
+            if (normalizedUpdates.inquiryLetterLink !== undefined) projectUpdates.inquiry_letter_link = normalizedUpdates.inquiryLetterLink;
+            if (normalizedUpdates.materialInquiryTemplateLink !== undefined) projectUpdates.material_inquiry_template_link = normalizedUpdates.materialInquiryTemplateLink;
+            if (normalizedUpdates.losersEmailTemplateLink !== undefined) projectUpdates.losers_email_template_link = normalizedUpdates.losersEmailTemplateLink;
+            if (normalizedUpdates.priceListLink !== undefined) projectUpdates.price_list_link = normalizedUpdates.priceListLink;
+            if (normalizedUpdates.docHubEnabled !== undefined) projectUpdates.dochub_enabled = normalizedUpdates.docHubEnabled;
+            if (normalizedUpdates.docHubRootLink !== undefined) projectUpdates.dochub_root_link = normalizedUpdates.docHubRootLink;
+            if (normalizedUpdates.docHubProvider !== undefined) projectUpdates.dochub_provider = normalizedUpdates.docHubProvider;
+            if (normalizedUpdates.docHubMode !== undefined) projectUpdates.dochub_mode = normalizedUpdates.docHubMode;
+            if (normalizedUpdates.docHubRootId !== undefined) projectUpdates.dochub_root_id = normalizedUpdates.docHubRootId;
+            if (normalizedUpdates.docHubRootName !== undefined) projectUpdates.dochub_root_name = normalizedUpdates.docHubRootName;
+            if (normalizedUpdates.docHubDriveId !== undefined) projectUpdates.dochub_drive_id = normalizedUpdates.docHubDriveId;
+            if (normalizedUpdates.docHubSiteId !== undefined) projectUpdates.dochub_site_id = normalizedUpdates.docHubSiteId;
+            if (normalizedUpdates.docHubRootWebUrl !== undefined) projectUpdates.dochub_root_web_url = normalizedUpdates.docHubRootWebUrl;
+            if (normalizedUpdates.docHubStatus !== undefined) projectUpdates.dochub_status = normalizedUpdates.docHubStatus;
+            if (normalizedUpdates.docHubLastError !== undefined) projectUpdates.dochub_last_error = normalizedUpdates.docHubLastError;
+            if (normalizedUpdates.docHubStructureV1 !== undefined) projectUpdates.dochub_structure_v1 = normalizedUpdates.docHubStructureV1;
+            if (normalizedUpdates.docHubStructureVersion !== undefined) projectUpdates.dochub_structure_version = normalizedUpdates.docHubStructureVersion;
+            if (normalizedUpdates.docHubAutoCreateEnabled !== undefined) projectUpdates.dochub_autocreate_enabled = normalizedUpdates.docHubAutoCreateEnabled;
+            if (normalizedUpdates.docHubAutoCreateLastRunAt !== undefined) projectUpdates.dochub_autocreate_last_run_at = normalizedUpdates.docHubAutoCreateLastRunAt;
+            if (normalizedUpdates.docHubAutoCreateLastError !== undefined) projectUpdates.dochub_autocreate_last_error = normalizedUpdates.docHubAutoCreateLastError;
 
             if (Object.keys(projectUpdates).length > 0) {
                 const { error } = await dbAdapter.from("projects").update(projectUpdates).eq("id", id);

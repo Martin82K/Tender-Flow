@@ -911,6 +911,10 @@ export function exportContactsToXLSX(contacts: Subcontractor[], statuses: Status
  * Export Contacts to CSV
  */
 export function exportContactsToCSV(contacts: Subcontractor[], statuses: StatusConfig[]): void {
+  const sanitizeCsvCell = (value: string): string => {
+    return /^\s*[=+\-@]/.test(value) ? `'${value}` : value;
+  };
+
   // We can reuse the same structure but simpler for CSV
   const data: (string | number)[][] = [
     ['Firma', 'ICO', 'Region', 'Obory', 'Stav', 'Kontakt', 'Telefon', 'Email', 'Dalsi kontakty']
@@ -928,15 +932,15 @@ export function exportContactsToCSV(contacts: Subcontractor[], statuses: StatusC
     ).join('; ');
 
     data.push([
-      contact.company,
-      contact.ico || '',
-      contact.region || '',
-      contact.specialization.join(', '),
-      getStatusLabel(contact.status),
-      primaryContact.name,
-      primaryContact.phone || '',
-      primaryContact.email || '',
-      otherContacts
+      sanitizeCsvCell(contact.company),
+      sanitizeCsvCell(contact.ico || ''),
+      sanitizeCsvCell(contact.region || ''),
+      sanitizeCsvCell(contact.specialization.join(', ')),
+      sanitizeCsvCell(getStatusLabel(contact.status)),
+      sanitizeCsvCell(primaryContact.name),
+      sanitizeCsvCell(primaryContact.phone || ''),
+      sanitizeCsvCell(primaryContact.email || ''),
+      sanitizeCsvCell(otherContacts)
     ]);
   });
 
@@ -1283,6 +1287,14 @@ const getContractSummaryFilename = (
     .toISOString()
     .split('T')[0]}.${extension}`;
 
+const sanitizeSpreadsheetCell = (value: string): string => {
+  if (/^(?:[=+@]|-.+)/.test(value)) {
+    return `'${value}`;
+  }
+
+  return value;
+};
+
 export async function exportContractSummariesToXlsx(
   contracts: ContractSummaryDto[],
   meta: ContractSummaryExportMeta,
@@ -1304,13 +1316,15 @@ export async function exportContractSummariesToXlsx(
       'Stav',
     ],
     ...contracts.map((contract) => [
-      contract.contractNumber || '-',
-      contract.vendorName,
+      sanitizeSpreadsheetCell(contract.contractNumber || '-'),
+      sanitizeSpreadsheetCell(contract.vendorName),
       formatContractSummaryMoney(contract.currentTotal, contract.currency),
       formatContractSummaryRetention(contract),
       formatContractSummarySiteSetup(contract.siteSetupPercent),
       formatContractSummaryWarranty(contract.warrantyMonths),
-      formatContractSummaryPaymentTerms(contract.paymentTerms),
+      sanitizeSpreadsheetCell(
+        formatContractSummaryPaymentTerms(contract.paymentTerms),
+      ),
       getContractSummaryStatusLabel(contract.status),
     ]),
     [],

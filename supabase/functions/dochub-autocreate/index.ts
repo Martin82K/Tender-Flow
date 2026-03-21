@@ -162,12 +162,28 @@ Deno.serve(async (req) => {
     const { data: project, error: projectError } = await authed
       .from("projects")
       .select(
-        "id, dochub_enabled, dochub_status, dochub_provider, dochub_root_id, dochub_drive_id, dochub_structure_v1"
+        "id, owner_id, dochub_enabled, dochub_status, dochub_provider, dochub_root_id, dochub_drive_id, dochub_structure_v1"
       )
       .eq("id", projectId)
       .maybeSingle();
 
     if (projectError || !project) return json(403, { error: "No access to project" });
+
+    const isOwner = project.owner_id === userData.user.id;
+    if (!isOwner) {
+      const { data: editShare, error: shareError } = await authed
+        .from("project_shares")
+        .select("project_id")
+        .eq("project_id", projectId)
+        .eq("user_id", userData.user.id)
+        .eq("permission", "edit")
+        .maybeSingle();
+
+      if (shareError || !editShare) {
+        return json(403, { error: "Edit permission required" });
+      }
+    }
+
     if (!project.dochub_enabled || project.dochub_status !== "connected") {
       return json(400, { error: "DocHub not connected" });
     }

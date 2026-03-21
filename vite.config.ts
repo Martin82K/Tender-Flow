@@ -52,7 +52,7 @@ export default defineConfig(() => {
         }
       }
     },
-    envPrefix: ['VITE_', 'TINY_URL_'],
+    envPrefix: 'VITE_',
     test: {
       include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
     },
