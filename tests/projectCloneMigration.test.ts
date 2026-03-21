@@ -16,6 +16,14 @@ const compatibilityMigration = fs.readFileSync(
   ),
   "utf8",
 );
+const selectionRoundMigration = fs.readFileSync(
+  path.join(
+    ROOT,
+    "supabase/migrations",
+    "20260319152000_set_clone_tender_selection_round_zero.sql",
+  ),
+  "utf8",
+);
 
 describe("clone_tender_project_to_realization migration", () => {
   it("chrání RPC přes auth, status a edit oprávnění", () => {
@@ -51,5 +59,10 @@ describe("clone_tender_project_to_realization migration", () => {
     expect(compatibilityMigration).toContain("'dochub_settings'");
     expect(compatibilityMigration).toContain("SET dochub_status = 'disconnected'");
     expect(compatibilityMigration).toContain("SET dochub_autocreate_enabled = false");
+  });
+
+  it("selection round migrace neumožňuje klonování přes ownerless fallback", () => {
+    expect(selectionRoundMigration).toContain("public.is_org_member(v_source_project.organization_id)");
+    expect(selectionRoundMigration).not.toContain("v_source_project.owner_id IS NULL");
   });
 });

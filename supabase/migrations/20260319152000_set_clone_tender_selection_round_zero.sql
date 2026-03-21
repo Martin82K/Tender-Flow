@@ -44,7 +44,10 @@ BEGIN
 
   IF NOT (
     v_source_project.owner_id = v_user_id
-    OR v_source_project.owner_id IS NULL
+    OR (
+      v_source_project.organization_id IS NOT NULL
+      AND public.is_org_member(v_source_project.organization_id)
+    )
     OR EXISTS (
       SELECT 1
       FROM public.project_shares ps
