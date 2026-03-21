@@ -87,7 +87,10 @@ const getRunId = (): string => {
 
 const getRoute = (): string => {
   if (typeof window === "undefined") return "/";
-  return `${window.location.pathname || "/"}${window.location.search || ""}${window.location.hash || ""}`;
+  const pathname = window.location.pathname || "/";
+  const search = window.location.search ? "?[redacted]" : "";
+  const hash = window.location.hash ? "#[redacted]" : "";
+  return `${pathname}${search}${hash}`;
 };
 
 const safeString = (value: unknown): string => {
