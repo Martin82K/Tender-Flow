@@ -11,6 +11,7 @@ interface SetupOptions {
   biometricPromptResult?: boolean;
   refreshSessionResult?: { data: { session: any | null }; error: any | null };
   currentUser?: any;
+  storedSessionRaw?: string | null;
 }
 
 const setup = async (options: SetupOptions) => {
@@ -83,7 +84,7 @@ const setup = async (options: SetupOptions) => {
   vi.doMock("../services/authSessionService", () => ({
     authSessionService: {
       clearStoredSessionData: vi.fn(),
-      getStoredAuthSessionRaw: vi.fn().mockReturnValue(null),
+      getStoredAuthSessionRaw: vi.fn().mockReturnValue(options.storedSessionRaw ?? null),
       setRememberMePreference: vi.fn(),
       refreshSession: mockState.refreshSession,
       getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
@@ -165,6 +166,31 @@ describe("AuthContext auth recovery", () => {
     expect(mockState.getCurrentUser).not.toHaveBeenCalled();
     expect(mockState.invalidateAuthState).not.toHaveBeenCalled();
     expect(screen.getByTestId("authenticated").textContent).toBe("false");
+  });
+
+  it("desktop restore se zkusí i při syntakticky validní uložené session", async () => {
+    const mockState = await setup({
+      isDesktop: true,
+      credentials: { refreshToken: "refresh-token-123456", email: "test@example.com" },
+      biometricEnabled: true,
+      biometricPromptResult: true,
+      storedSessionRaw: JSON.stringify({
+        access_token: "header.payload.signature",
+        refresh_token: "refresh-token-123456",
+      }),
+      refreshSessionResult: {
+        data: { session: { access_token: "fresh-session-token" } },
+        error: null,
+      },
+      currentUser: null,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("loading").textContent).toBe("false");
+    });
+
+    expect(mockState.refreshSession).toHaveBeenCalledTimes(1);
+    expect(mockState.invalidateAuthState).not.toHaveBeenCalled();
   });
 
   it("SIGNED_OUT event neaktivuje retry loop", async () => {
