@@ -17,6 +17,32 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const DEFAULT_FROM =
   Deno.env.get("DEFAULT_EMAIL_FROM") || "Tender Flow <noreply@tenderflow.cz>";
 
+const escapeHtml = (value: string): string => {
+  const htmlEscapes: Record<string, string> = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  };
+
+  return value.replace(/[&<>"']/g, (char) => htmlEscapes[char]);
+};
+
+const sanitizeUrl = (value: unknown, fallback: string): string => {
+  if (typeof value !== "string" || value.trim() === "") {
+    return fallback;
+  }
+
+  try {
+    const parsed = new URL(value);
+    const isAllowedProtocol = parsed.protocol === "https:" || parsed.protocol === "http:";
+    return isAllowedProtocol ? parsed.toString() : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
 serve(async (req) => {
   // Handle CORS
   if (req.method === "OPTIONS") {
@@ -74,8 +100,8 @@ serve(async (req) => {
     // Build HTML based on template type
     let htmlContent = "";
     let emailSubject = "";
-    const userName = data?.name || "uživateli";
-    const loginUrl = data?.loginUrl || "https://tenderflow.cz/login";
+    const safeUserName = escapeHtml(String(data?.name || "uživateli"));
+    const loginUrl = sanitizeUrl(data?.loginUrl, "https://tenderflow.cz/login");
 
     if (template === 'registration') {
       emailSubject = "Vítejte v Tender Flow! 🎉";
@@ -106,7 +132,7 @@ serve(async (req) => {
               
               <!-- Content -->
               <p style="color: rgba(255,255,255,0.8); font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">
-                Dobrý den, ${userName}!
+                Dobrý den, ${safeUserName}!
               </p>
               <p style="color: rgba(255,255,255,0.8); font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
                 Váš účet byl úspěšně vytvořen. Nyní máte přístup ke všem funkcím pro správu tendrů a projektů.
@@ -147,7 +173,7 @@ serve(async (req) => {
 </body>
 </html>`;
     } else if (template === 'forgotPassword') {
-      const resetLink = data?.resetLink || "#";
+      const resetLink = sanitizeUrl(data?.resetLink, "#");
       emailSubject = "Obnovení hesla – Tender Flow";
       htmlContent = `
 <!DOCTYPE html>
@@ -224,7 +250,7 @@ serve(async (req) => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "Martin z Tender Flow <martin@mail.tenderflow.cz>",
+        from: DEFAULT_FROM,
         to,
         subject: emailSubject,
         html: htmlContent
