@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
+import { getProjectAccessCheck } from "./projectAccess.ts";
 
 type AgentActionRisk = "read" | "write" | "delete";
 type AgentPolicyDecision = "auto_execute" | "require_confirmation" | "denied";
@@ -291,7 +292,7 @@ const loadProjectForTenant = async (service: ReturnType<typeof createServiceClie
 }) => {
   const { data, error } = await service
     .from("projects")
-    .select("id,name,status,location,organization_id,owner_id")
+    .select("id,name,status,location,organization_id,owner_id,is_demo")
     .eq("id", args.projectId)
     .eq("organization_id", args.organizationId)
     .maybeSingle();
@@ -301,16 +302,19 @@ const loadProjectForTenant = async (service: ReturnType<typeof createServiceClie
   }
 
   const ownerId = normalizeString((data as { owner_id?: unknown }).owner_id, 120);
-  if (ownerId && ownerId !== args.userId) {
-    const requiredAccess = args.requiredAccess || "read";
-    const accessRpc = requiredAccess === "edit" ? "has_project_share_permission" : "is_project_shared_with_user";
-    const accessArgs = requiredAccess === "edit"
-      ? { p_id: args.projectId, u_id: args.userId, required_permission: "edit" }
-      : { p_id: args.projectId, u_id: args.userId };
+  const isDemo = Boolean((data as { is_demo?: unknown }).is_demo);
+  const accessCheck = getProjectAccessCheck({
+    ownerId: ownerId || null,
+    userId: args.userId,
+    isDemo,
+    projectId: args.projectId,
+    requiredAccess: args.requiredAccess,
+  });
 
-    const { data: hasAccess, error: accessError } = await service.rpc(accessRpc, accessArgs);
+  if (accessCheck) {
+    const { data: hasAccess, error: accessError } = await service.rpc(accessCheck.rpcName, accessCheck.rpcArgs);
     if (accessError || !hasAccess) {
-      throw new Error("Projekt neni sdilen pro tohoto uzivatele.");
+      throw new Error(accessCheck.deniedMessage);
     }
   }
 
@@ -321,6 +325,7 @@ const loadProjectForTenant = async (service: ReturnType<typeof createServiceClie
     location: string | null;
     organization_id: string;
     owner_id: string | null;
+    is_demo: boolean | null;
   };
 };
 
