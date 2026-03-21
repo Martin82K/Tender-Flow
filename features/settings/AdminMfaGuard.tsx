@@ -206,9 +206,10 @@ export const AdminMfaGuard: React.FC<AdminMfaGuardProps> = ({ user, children }) 
                 {qrImageFailed ? (
                   <div
                     aria-label="QR kód pro admin MFA fallback"
-                    className="flex h-44 w-44 items-center justify-center rounded-lg border border-slate-200 bg-white p-2"
-                    dangerouslySetInnerHTML={{ __html: enrollment.qrCodeSvg }}
-                  />
+                    className="flex h-44 w-44 items-center justify-center rounded-lg border border-slate-200 bg-white p-3 text-center text-xs text-slate-600"
+                  >
+                    Nepodařilo se zobrazit QR kód. Pro aktivaci použijte záložní secret níže.
+                  </div>
                 ) : (
                   <img
                     alt="QR kód pro admin MFA"
