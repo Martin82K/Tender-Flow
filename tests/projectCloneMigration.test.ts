@@ -16,11 +16,11 @@ const compatibilityMigration = fs.readFileSync(
   ),
   "utf8",
 );
-const selectionRoundMigration = fs.readFileSync(
+const authorizationHardeningMigration = fs.readFileSync(
   path.join(
     ROOT,
     "supabase/migrations",
-    "20260319152000_set_clone_tender_selection_round_zero.sql",
+    "20260321130000_harden_clone_tender_rpc_ownerless_access.sql",
   ),
   "utf8",
 );
@@ -61,8 +61,8 @@ describe("clone_tender_project_to_realization migration", () => {
     expect(compatibilityMigration).toContain("SET dochub_autocreate_enabled = false");
   });
 
-  it("selection round migrace neumožňuje klonování přes ownerless fallback", () => {
-    expect(selectionRoundMigration).toContain("public.is_org_member(v_source_project.organization_id)");
-    expect(selectionRoundMigration).not.toContain("v_source_project.owner_id IS NULL");
+  it("follow-up hardening nahrazuje ownerless fallback kontrolou org membership", () => {
+    expect(authorizationHardeningMigration).toContain("public.is_org_member(v_source_project.organization_id)");
+    expect(authorizationHardeningMigration).not.toContain("OR v_source_project.owner_id IS NULL");
   });
 });

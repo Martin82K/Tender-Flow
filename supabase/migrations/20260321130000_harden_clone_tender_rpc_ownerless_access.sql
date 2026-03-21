@@ -1,5 +1,6 @@
--- Migration: set_clone_tender_selection_round_zero
--- Description: Recreate clone RPC so copied realization bids open with selection_round = 0 (Soutěž)
+-- Migration: harden_clone_tender_rpc_ownerless_access
+-- Date: 2026-03-21
+-- Description: Replace ownerless clone fallback with explicit organization membership checks.
 
 CREATE OR REPLACE FUNCTION public.clone_tender_project_to_realization(project_id_input VARCHAR)
 RETURNS TABLE(cloned_project_id VARCHAR)
@@ -44,7 +45,10 @@ BEGIN
 
   IF NOT (
     v_source_project.owner_id = v_user_id
-    OR v_source_project.owner_id IS NULL
+    OR (
+      v_source_project.organization_id IS NOT NULL
+      AND public.is_org_member(v_source_project.organization_id)
+    )
     OR EXISTS (
       SELECT 1
       FROM public.project_shares ps
