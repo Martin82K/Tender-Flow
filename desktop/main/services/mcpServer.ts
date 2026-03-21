@@ -44,6 +44,25 @@ type McpDataProvider = {
     }>>;
     getSchedule: (input: { projectId: string }) => Promise<any>;
     getTenderPlan: (input: { projectId: string }) => Promise<any>;
+    listContacts: (input?: { search?: string }) => Promise<Array<{
+        id: string;
+        companyName: string;
+        specialization: string[];
+        email?: string | null;
+        phone?: string | null;
+        region?: string | null;
+    }>>;
+    getProjectDetail: (input: { projectId: string }) => Promise<{
+        project: { id: string; name: string; location?: string; status?: string; finishDate?: string | null; investor?: string | null };
+        demandCategories: Array<{ id: string; title: string; status?: string; deadline?: string | null; budgetDisplay?: string | null; planBudget?: number | null }>;
+        bids: Array<{ id: string; categoryId: string; subcontractorId: string; price?: number | null; status?: string }>;
+    }>;
+    createBid: (input: { demandCategoryId: string; subcontractorId: string; price?: number; priceDisplay?: string; notes?: string; status?: string }) => Promise<{
+        id: string;
+        categoryId: string;
+        subcontractorId: string;
+        status: string;
+    }>;
 };
 
 type McpServerHandle = {
@@ -117,6 +136,46 @@ const tools: McpTool[] = [
             additionalProperties: false,
         },
     },
+    {
+        name: 'tf_list_contacts',
+        description: 'List subcontractors (dodavatele) with their specializations.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                search: { type: 'string', description: 'Optional text filter on company name or specialization.' },
+            },
+            additionalProperties: false,
+        },
+    },
+    {
+        name: 'tf_get_project_detail',
+        description: 'Get full project detail including demand categories and bids.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                projectId: { type: 'string' },
+            },
+            required: ['projectId'],
+            additionalProperties: false,
+        },
+    },
+    {
+        name: 'tf_create_bid',
+        description: 'Create a new bid (nabidka) for a demand category. WRITE operation.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                demandCategoryId: { type: 'string', description: 'ID of the demand category.' },
+                subcontractorId: { type: 'string', description: 'ID of the subcontractor.' },
+                price: { type: 'number', description: 'Bid price.' },
+                priceDisplay: { type: 'string', description: 'Formatted price string.' },
+                notes: { type: 'string', description: 'Optional notes.' },
+                status: { type: 'string', enum: ['sent', 'offer', 'shortlist', 'sod', 'rejected'], description: 'Bid status (default: sent).' },
+            },
+            required: ['demandCategoryId', 'subcontractorId'],
+            additionalProperties: false,
+        },
+    },
 ];
 
 const createEmptyProvider = (): McpDataProvider => ({
@@ -125,6 +184,9 @@ const createEmptyProvider = (): McpDataProvider => ({
     listTenders: async () => [],
     getSchedule: async () => ({ items: [] }),
     getTenderPlan: async () => ({ items: [] }),
+    listContacts: async () => [],
+    getProjectDetail: async () => ({ project: { id: '', name: '' }, demandCategories: [], bids: [] }),
+    createBid: async () => ({ id: '', categoryId: '', subcontractorId: '', status: 'sent' }),
 });
 
 const getSupabaseConfig = () => {
@@ -211,6 +273,26 @@ const createSupabaseProvider = (): McpDataProvider => {
                 categoryId: item.categoryId || null,
             }));
         },
+        listContacts: async (input) => {
+            const res = await callFunction<{ items: any[] }>('mcp-list-contacts', {
+                search: input?.search || null,
+            });
+            return (res.items || []).map((item) => ({
+                id: item.id,
+                companyName: item.companyName,
+                specialization: item.specialization || [],
+                email: item.email || null,
+                phone: item.phone || null,
+                region: item.region || null,
+            }));
+        },
+        getProjectDetail: async (input) => {
+            const projectId = input.projectId;
+            return await callFunction('mcp-get-project-detail', { projectId });
+        },
+        createBid: async (input) => {
+            return await callFunction('mcp-create-bid', input);
+        },
     };
 };
 
@@ -276,6 +358,7 @@ const authorizeRequest = async (req: http.IncomingMessage): Promise<TokenInfo> =
         throw new Error('Missing Authorization header');
     }
     const token = match[1];
+
     const info = await getTokenInfo(token);
     const audience = info.aud || info.audience || '';
     if (audience && audience !== requiredClientId) {
@@ -482,6 +565,30 @@ export const startMcpServer = async (options?: {
                             }
                             const plan = await dataProvider.getTenderPlan({ ...args, projectId: effectiveProjectId });
                             await respond({ content: [{ type: 'text', text: JSON.stringify(plan, null, 2) }] });
+                            break;
+                        }
+
+                        if (name === 'tf_list_contacts') {
+                            const items = await dataProvider.listContacts(args);
+                            await respond({ content: [{ type: 'text', text: JSON.stringify(items, null, 2) }] });
+                            break;
+                        }
+                        if (name === 'tf_get_project_detail') {
+                            if (!effectiveProjectId) {
+                                await respondError(-32602, 'Missing projectId and no current project context.');
+                                break;
+                            }
+                            const detail = await dataProvider.getProjectDetail({ projectId: effectiveProjectId });
+                            await respond({ content: [{ type: 'text', text: JSON.stringify(detail, null, 2) }] });
+                            break;
+                        }
+                        if (name === 'tf_create_bid') {
+                            if (!args.demandCategoryId || !args.subcontractorId) {
+                                await respondError(-32602, 'Missing required fields: demandCategoryId, subcontractorId');
+                                break;
+                            }
+                            const bid = await dataProvider.createBid(args);
+                            await respond({ content: [{ type: 'text', text: JSON.stringify(bid, null, 2) }] });
                             break;
                         }
 
