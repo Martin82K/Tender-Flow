@@ -286,10 +286,12 @@ const getProjectIdFromArgs = (
 const loadProjectForTenant = async (service: ReturnType<typeof createServiceClient>, args: {
   projectId: string;
   organizationId: string;
+  userId: string;
+  requiredAccess?: "read" | "edit";
 }) => {
   const { data, error } = await service
     .from("projects")
-    .select("id,name,status,location,organization_id")
+    .select("id,name,status,location,organization_id,owner_id")
     .eq("id", args.projectId)
     .eq("organization_id", args.organizationId)
     .maybeSingle();
@@ -298,12 +300,27 @@ const loadProjectForTenant = async (service: ReturnType<typeof createServiceClie
     throw new Error("Projekt nebyl nalezen nebo neni v pristupu organizace.");
   }
 
+  const ownerId = normalizeString((data as { owner_id?: unknown }).owner_id, 120);
+  if (ownerId && ownerId !== args.userId) {
+    const requiredAccess = args.requiredAccess || "read";
+    const accessRpc = requiredAccess === "edit" ? "has_project_share_permission" : "is_project_shared_with_user";
+    const accessArgs = requiredAccess === "edit"
+      ? { p_id: args.projectId, u_id: args.userId, required_permission: "edit" }
+      : { p_id: args.projectId, u_id: args.userId };
+
+    const { data: hasAccess, error: accessError } = await service.rpc(accessRpc, accessArgs);
+    if (accessError || !hasAccess) {
+      throw new Error("Projekt neni sdilen pro tohoto uzivatele.");
+    }
+  }
+
   return data as {
     id: string;
     name: string;
     status: string;
     location: string | null;
     organization_id: string;
+    owner_id: string | null;
   };
 };
 
@@ -325,6 +342,7 @@ const runTool = async (args: {
   toolArgs: Record<string, unknown>;
   service: ReturnType<typeof createServiceClient>;
   organizationId: string;
+  userId: string;
   fallbackProjectId: string | null;
 }): Promise<{ text: string; payload?: Record<string, unknown> }> => {
   const projectId = getProjectIdFromArgs(args.toolArgs, args.fallbackProjectId);
@@ -335,6 +353,7 @@ const runTool = async (args: {
     const project = await loadProjectForTenant(args.service, {
       projectId,
       organizationId: args.organizationId,
+      userId: args.userId,
     });
     const categories = await loadCategoriesForProject(args.service, projectId);
 
@@ -365,6 +384,7 @@ const runTool = async (args: {
     await loadProjectForTenant(args.service, {
       projectId,
       organizationId: args.organizationId,
+      userId: args.userId,
     });
 
     const minAbsoluteDiff = Number(args.toolArgs.minAbsoluteDiff || 100_000);
@@ -414,6 +434,8 @@ const runTool = async (args: {
     await loadProjectForTenant(args.service, {
       projectId,
       organizationId: args.organizationId,
+      userId: args.userId,
+      requiredAccess: "edit",
     });
 
     const { error } = await args.service
@@ -882,6 +904,7 @@ Deno.serve(async (req) => {
         toolArgs: toolCall.args,
         service,
         organizationId: orgMember.organization_id,
+        userId: user.id,
         fallbackProjectId: normalizeString(body.runtime?.selectedProjectId, 120) || null,
       });
 
