@@ -159,6 +159,10 @@ describe("deepProjectBriefingSkill", () => {
     expect(result.reply).not.toContain("Interní plán kategorií");
     expect(result.reply).not.toContain("Interní plánovaný náklad projektu");
     expect(result.reply).not.toContain("Součet odchylek kategorií");
+    expect(result.reply).not.toContain("Top rozpočtové odchylky (abs)");
+    expect(result.reply).not.toContain("Rozpočtové riziko (negativní odchylka plan vs SOD)");
+    expect(result.reply).not.toContain("| Kategorie | Stav | Deadline | Realizace od | Realizace do | Nabídky | Plán | SOD | Odchylka |");
+    expect(result.reply).toContain("| Kategorie | Stav | Deadline | Realizace od | Realizace do | Nabídky |");
   });
 
   it("bez aktivniho projektu vraci bezpecnou hlasku", async () => {

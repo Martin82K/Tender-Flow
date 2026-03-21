@@ -221,6 +221,10 @@ export const deepProjectBriefingSkill: AgentSkill = {
         const diff = toNumber(item.sodBudget) - toNumber(item.planBudget);
         const diffLabel = `${diff >= 0 ? "+" : "-"}${formatCurrency(Math.abs(diff))}`;
 
+        if (isClientAudience) {
+          return `| ${esc(item.title)} | ${statusLabel[item.status] || item.status} | ${item.deadline || "-"} | ${item.realizationStart || "-"} | ${item.realizationEnd || "-"} | ${bidsCount} |`;
+        }
+
         return `| ${esc(item.title)} | ${statusLabel[item.status] || item.status} | ${item.deadline || "-"} | ${item.realizationStart || "-"} | ${item.realizationEnd || "-"} | ${bidsCount} | ${formatCurrency(toNumber(item.planBudget))} | ${formatCurrency(toNumber(item.sodBudget))} | ${diffLabel} |`;
       })
       .join("\n");
@@ -244,10 +248,12 @@ export const deepProjectBriefingSkill: AgentSkill = {
     const riskLines = [
       `- Termínové riziko (<=21 dní, otevřené): **${deadlineRisk.length}** kategorií`,
       `- Obchodní riziko (otevřená kategorie bez nabídky): **${noBidRisk.length}** kategorií`,
-      `- Rozpočtové riziko (negativní odchylka plan vs SOD): **${negativeBudgetRisk.length}** kategorií`,
+      ...(isClientAudience
+        ? []
+        : [`- Rozpočtové riziko (negativní odchylka plan vs SOD): **${negativeBudgetRisk.length}** kategorií`]),
     ];
 
-    if (topBudgetRisks.length > 0) {
+    if (!isClientAudience && topBudgetRisks.length > 0) {
       riskLines.push("- Největší negativní odchylky:");
       topBudgetRisks.forEach((item, index) => {
         if (item.diff >= 0) return;
@@ -297,14 +303,17 @@ export const deepProjectBriefingSkill: AgentSkill = {
       "Kategorie podle stavu",
       buildStatusChart(categories),
       "",
-      "Top rozpočtové odchylky (abs)",
-      buildDiffChart(categories),
+      ...(isClientAudience ? [] : ["Top rozpočtové odchylky (abs)", buildDiffChart(categories)]),
       "```",
       "",
       "### Kategorie a ekonomika (detail)",
-      "| Kategorie | Stav | Deadline | Realizace od | Realizace do | Nabídky | Plán | SOD | Odchylka |",
-      "|---|---|---|---|---|---:|---:|---:|---:|",
-      categoriesTable || "| - | - | - | - | - | 0 | 0 Kč | 0 Kč | 0 Kč |",
+      ...(isClientAudience
+        ? ["| Kategorie | Stav | Deadline | Realizace od | Realizace do | Nabídky |", "|---|---|---|---|---|---:|"]
+        : [
+            "| Kategorie | Stav | Deadline | Realizace od | Realizace do | Nabídky | Plán | SOD | Odchylka |",
+            "|---|---|---|---|---|---:|---:|---:|---:|",
+          ]),
+      categoriesTable || (isClientAudience ? "| - | - | - | - | - | 0 |" : "| - | - | - | - | - | 0 | 0 Kč | 0 Kč | 0 Kč |"),
       "",
       "### Nabídky (detail)",
       "| Stav nabídky | Počet |",
