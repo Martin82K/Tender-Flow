@@ -298,7 +298,26 @@ AS $$
 DECLARE
   v_plan subscription_plans%ROWTYPE;
   v_trial_ends_at TIMESTAMPTZ;
+  v_actor_id UUID;
+  v_is_admin BOOLEAN := FALSE;
 BEGIN
+  v_actor_id := auth.uid();
+
+  IF p_user_id IS DISTINCT FROM v_actor_id THEN
+    IF auth.role() = 'service_role' THEN
+      NULL;
+    ELSE
+      SELECT COALESCE(subscription_tier_override = 'admin', FALSE)
+      INTO v_is_admin
+      FROM user_profiles
+      WHERE user_id = v_actor_id;
+
+      IF NOT v_is_admin THEN
+        RETURN jsonb_build_object('success', FALSE, 'error', 'Unauthorized');
+      END IF;
+    END IF;
+  END IF;
+
   -- Get plan info
   SELECT * INTO v_plan FROM subscription_plans WHERE id = p_plan_id;
 
@@ -348,7 +367,26 @@ DECLARE
   v_expires_at TIMESTAMPTZ;
   v_previous_tier TEXT;
   v_previous_status TEXT;
+  v_actor_id UUID;
+  v_is_admin BOOLEAN := FALSE;
 BEGIN
+  v_actor_id := auth.uid();
+
+  IF p_user_id IS DISTINCT FROM v_actor_id THEN
+    IF auth.role() = 'service_role' THEN
+      NULL;
+    ELSE
+      SELECT COALESCE(subscription_tier_override = 'admin', FALSE)
+      INTO v_is_admin
+      FROM user_profiles
+      WHERE user_id = v_actor_id;
+
+      IF NOT v_is_admin THEN
+        RETURN jsonb_build_object('success', FALSE, 'error', 'Unauthorized');
+      END IF;
+    END IF;
+  END IF;
+
   -- Get plan info
   SELECT * INTO v_plan FROM subscription_plans WHERE id = p_plan_id;
 
@@ -416,7 +454,26 @@ AS $$
 DECLARE
   v_expires_at TIMESTAMPTZ;
   v_current_tier TEXT;
+  v_actor_id UUID;
+  v_is_admin BOOLEAN := FALSE;
 BEGIN
+  v_actor_id := auth.uid();
+
+  IF p_user_id IS DISTINCT FROM v_actor_id THEN
+    IF auth.role() = 'service_role' THEN
+      NULL;
+    ELSE
+      SELECT COALESCE(subscription_tier_override = 'admin', FALSE)
+      INTO v_is_admin
+      FROM user_profiles
+      WHERE user_id = v_actor_id;
+
+      IF NOT v_is_admin THEN
+        RETURN jsonb_build_object('success', FALSE, 'error', 'Unauthorized');
+      END IF;
+    END IF;
+  END IF;
+
   -- Get current expiration
   SELECT subscription_expires_at, subscription_tier_override
   INTO v_expires_at, v_current_tier
@@ -451,7 +508,26 @@ AS $$
 DECLARE
   v_current_status TEXT;
   v_expires_at TIMESTAMPTZ;
+  v_actor_id UUID;
+  v_is_admin BOOLEAN := FALSE;
 BEGIN
+  v_actor_id := auth.uid();
+
+  IF p_user_id IS DISTINCT FROM v_actor_id THEN
+    IF auth.role() = 'service_role' THEN
+      NULL;
+    ELSE
+      SELECT COALESCE(subscription_tier_override = 'admin', FALSE)
+      INTO v_is_admin
+      FROM user_profiles
+      WHERE user_id = v_actor_id;
+
+      IF NOT v_is_admin THEN
+        RETURN jsonb_build_object('success', FALSE, 'error', 'Unauthorized');
+      END IF;
+    END IF;
+  END IF;
+
   SELECT subscription_status, subscription_expires_at
   INTO v_current_status, v_expires_at
   FROM user_profiles WHERE user_id = p_user_id;
