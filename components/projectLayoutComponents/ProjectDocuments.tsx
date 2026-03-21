@@ -22,6 +22,7 @@ import { TemplatesSection } from "./documents/TemplatesSection";
 import { PriceListsSection } from "./documents/PriceListsSection";
 import { useFeatures } from "../../context/FeatureContext";
 import { FEATURES } from "../../config/features";
+import { isProbablyUrl } from "../../utils/docHub";
 
 // --- Helper Functions ---
 const parseMoney = (valueStr: string): number => {
@@ -227,7 +228,17 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
   };
 
   const handleSavePriceList = () => {
-    onUpdate({ priceListLink: priceListLinkValue });
+    const trimmedValue = priceListLinkValue.trim();
+    if (trimmedValue && !isProbablyUrl(trimmedValue)) {
+      showModal({
+        title: "Neplatný odkaz",
+        message: "Použijte prosím odkaz začínající na http:// nebo https://.",
+        variant: "danger",
+      });
+      return;
+    }
+
+    onUpdate({ priceListLink: trimmedValue });
     setIsEditingPriceList(false);
   };
 
