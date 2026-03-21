@@ -56,3 +56,4 @@ sub.csv
 
 # Internal local architecture logs (not committed)
 docs/internal/*.md
+docs/security20_03.md
