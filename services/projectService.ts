@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import { Project } from "../types";
+import { ActiveProjectStatus, Project } from "../types";
 import { isDemoSession, DEMO_PROJECT } from "./demoData";
 
 export const projectService = {
@@ -22,6 +22,7 @@ export const projectService = {
       name: p.name,
       location: p.location || "",
       status: p.status || "realization",
+      archivedOriginalStatus: (p.archived_original_status as ActiveProjectStatus | null) ?? null,
       ownerId: p.owner_id, // Need to add to type if not exists
       isDemo: p.is_demo,
     }));

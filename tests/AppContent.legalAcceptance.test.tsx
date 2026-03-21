@@ -207,4 +207,24 @@ describe("AppContent legal acceptance gate", () => {
       });
     });
   });
+
+  it("zobrazí chybu z uložení potvrzení bez pádu UI", async () => {
+    mockState.acceptLegalDocuments.mockRejectedValueOnce(
+      new Error("Přihlášení vypršelo. Přihlaste se prosím znovu."),
+    );
+
+    render(<AppContent />);
+
+    fireEvent.click(screen.getByLabelText(/přijímám podmínky používání aplikace/i));
+    fireEvent.click(
+      screen.getByLabelText(/byl\(a\) informován\(a\) o zpracování osobních údajů/i),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Potvrdit a pokračovat" }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Přihlášení vypršelo. Přihlaste se prosím znovu."),
+      ).toBeInTheDocument();
+    });
+  });
 });
