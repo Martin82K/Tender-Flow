@@ -1287,6 +1287,14 @@ const getContractSummaryFilename = (
     .toISOString()
     .split('T')[0]}.${extension}`;
 
+const sanitizeSpreadsheetCell = (value: string): string => {
+  if (/^(?:[=+@]|-.+)/.test(value)) {
+    return `'${value}`;
+  }
+
+  return value;
+};
+
 export async function exportContractSummariesToXlsx(
   contracts: ContractSummaryDto[],
   meta: ContractSummaryExportMeta,
@@ -1308,13 +1316,15 @@ export async function exportContractSummariesToXlsx(
       'Stav',
     ],
     ...contracts.map((contract) => [
-      contract.contractNumber || '-',
-      contract.vendorName,
+      sanitizeSpreadsheetCell(contract.contractNumber || '-'),
+      sanitizeSpreadsheetCell(contract.vendorName),
       formatContractSummaryMoney(contract.currentTotal, contract.currency),
       formatContractSummaryRetention(contract),
       formatContractSummarySiteSetup(contract.siteSetupPercent),
       formatContractSummaryWarranty(contract.warrantyMonths),
-      formatContractSummaryPaymentTerms(contract.paymentTerms),
+      sanitizeSpreadsheetCell(
+        formatContractSummaryPaymentTerms(contract.paymentTerms),
+      ),
       getContractSummaryStatusLabel(contract.status),
     ]),
     [],
