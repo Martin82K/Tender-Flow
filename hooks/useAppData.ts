@@ -7,6 +7,7 @@ import { useContactStatusesQuery, STATUS_KEYS } from "./queries/useContactStatus
 import { useAllProjectDetailsQuery, PROJECT_DETAILS_KEYS } from "./queries/useProjectDetailsQuery";
 import {
     useAddProjectMutation,
+    useCloneTenderToRealizationMutation,
     useDeleteProjectMutation,
     useArchiveProjectMutation,
     useUpdateProjectDetailsMutation,
@@ -59,6 +60,7 @@ export const useAppData = (showUiModal: (props: any) => void) => {
     // Mutations
     const addProjectMutation = useAddProjectMutation();
     const deleteProjectMutation = useDeleteProjectMutation();
+    const cloneTenderToRealizationMutation = useCloneTenderToRealizationMutation();
     const archiveProjectMutation = useArchiveProjectMutation();
     const updateProjectDetailsMutation = useUpdateProjectDetailsMutation();
     const addCategoryMutation = useAddCategoryMutation();
@@ -88,11 +90,18 @@ export const useAppData = (showUiModal: (props: any) => void) => {
         if (selectedProjectId === id) setSelectedProjectId(null);
     };
 
+    const handleCloneTenderToRealization = async (id: string) => {
+        return cloneTenderToRealizationMutation.mutateAsync(id);
+    };
+
     const handleArchiveProject = async (id: string) => {
         const project = projects.find(p => p.id === id);
         if (project) {
-            const newStatus = project.status === 'archived' ? 'realization' : 'archived';
-            await archiveProjectMutation.mutateAsync({ id, newStatus });
+            await archiveProjectMutation.mutateAsync({
+                id,
+                currentStatus: project.status,
+                archivedOriginalStatus: project.archivedOriginalStatus ?? null,
+            });
         }
     };
 
@@ -258,6 +267,7 @@ export const useAppData = (showUiModal: (props: any) => void) => {
 
             handleAddProject,
             handleDeleteProject,
+            handleCloneTenderToRealization,
             handleArchiveProject,
             handleUpdateProjectDetails,
 

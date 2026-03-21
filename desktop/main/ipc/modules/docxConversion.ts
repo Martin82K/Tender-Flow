@@ -43,7 +43,6 @@ const isPathInsideRoot = (targetPath: string, rootPath: string): boolean => {
 
 const isAllowedInputPath = (targetPath: string, allowedRoots: string[]): boolean =>
   allowedRoots.some((root) => isPathInsideRoot(targetPath, root));
-
 export const convertToDocx = async (
   inputPath: string,
   partialDeps: Partial<ConvertToDocxDeps> = {},

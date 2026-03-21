@@ -1,5 +1,6 @@
-import { dialog, ipcMain, shell } from "electron";
+import { app, dialog, ipcMain, shell } from "electron";
 import * as fs from "fs/promises";
+import * as os from "os";
 import * as path from "path";
 import type { FileInfo, FolderInfo } from "../../types";
 
@@ -26,6 +27,62 @@ const shouldIgnore = (filename: string): boolean => {
   });
 };
 
+const toAbsolutePath = (targetPath: string): string => path.resolve(targetPath);
+
+const isPathInsideRoot = (targetPath: string, rootPath: string): boolean => {
+  const relative = path.relative(rootPath, targetPath);
+  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+};
+
+const getAllowedRoots = (): string[] => {
+  const roots = [
+    app.getPath("home"),
+    app.getPath("userData"),
+    os.tmpdir(),
+  ].map(toAbsolutePath);
+
+  return Array.from(new Set(roots));
+};
+
+const ensurePathAllowed = async (
+  requestedPath: string,
+  mode: "read" | "write",
+): Promise<string> => {
+  if (typeof requestedPath !== "string" || requestedPath.trim().length === 0) {
+    throw new Error("Access denied: invalid path");
+  }
+
+  const normalizedPath = toAbsolutePath(requestedPath);
+  const allowedRoots = getAllowedRoots();
+
+  const isInsideAllowedRoot = (targetPath: string): boolean =>
+    allowedRoots.some((root) => isPathInsideRoot(targetPath, root));
+
+  if (mode === "read") {
+    const realPath = await fs.realpath(normalizedPath);
+    if (!isInsideAllowedRoot(realPath)) {
+      throw new Error(`Access denied: path is outside allowed roots (${realPath})`);
+    }
+    return realPath;
+  }
+
+  // write mode: target may not exist, so verify nearest existing parent realpath
+  let parentDir = normalizedPath;
+  while (parentDir !== path.dirname(parentDir)) {
+    try {
+      const realParent = await fs.realpath(parentDir);
+      if (!isInsideAllowedRoot(realParent)) {
+        throw new Error(`Access denied: path is outside allowed roots (${realParent})`);
+      }
+      return normalizedPath;
+    } catch {
+      parentDir = path.dirname(parentDir);
+    }
+  }
+
+  throw new Error("Access denied: unable to resolve path within allowed roots");
+};
+
 export const registerFsHandlers = ({
   resolvePortableReadPath,
   resolvePortableWritePath,
@@ -48,7 +105,7 @@ export const registerFsHandlers = ({
   });
 
   ipcMain.handle("fs:listFiles", async (_, folderPath: string): Promise<FileInfo[]> => {
-    const resolvedFolderPath = await resolvePortableReadPath(folderPath);
+    const resolvedFolderPath = await ensurePathAllowed(await resolvePortableReadPath(folderPath), "read");
     const files: FileInfo[] = [];
 
     const scanDirectory = async (dir: string, relativeTo: string): Promise<void> => {
@@ -91,16 +148,18 @@ export const registerFsHandlers = ({
   });
 
   ipcMain.handle("fs:readFile", async (_, filePath: string): Promise<Buffer> => {
-    return fs.readFile(filePath);
+    const resolvedFilePath = await ensurePathAllowed(await resolvePortableReadPath(filePath), "read");
+    return fs.readFile(resolvedFilePath);
   });
 
   ipcMain.handle("fs:writeFile", async (_, filePath: string, data: Buffer | string): Promise<void> => {
-    await fs.writeFile(filePath, data);
+    const resolvedFilePath = await ensurePathAllowed(await resolvePortableWritePath(filePath), "write");
+    await fs.writeFile(resolvedFilePath, data);
   });
 
   ipcMain.handle("fs:openInExplorer", async (_, targetPath: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      const resolvedTargetPath = await resolvePortableReadPath(targetPath);
+      const resolvedTargetPath = await ensurePathAllowed(await resolvePortableReadPath(targetPath), "read");
       const result = await shell.openPath(resolvedTargetPath);
       return result ? { success: false, error: result } : { success: true };
     } catch (error) {
@@ -113,7 +172,7 @@ export const registerFsHandlers = ({
 
   ipcMain.handle("fs:openFile", async (_, filePath: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      const resolvedFilePath = await resolvePortableReadPath(filePath);
+      const resolvedFilePath = await ensurePathAllowed(await resolvePortableReadPath(filePath), "read");
       const result = await shell.openPath(resolvedFilePath);
       return result ? { success: false, error: result } : { success: true };
     } catch (error) {
@@ -128,7 +187,7 @@ export const registerFsHandlers = ({
     "fs:createFolder",
     async (_, folderPath: string): Promise<{ success: boolean; error?: string }> => {
       try {
-        const resolvedFolderPath = await resolvePortableWritePath(folderPath);
+        const resolvedFolderPath = await ensurePathAllowed(await resolvePortableWritePath(folderPath), "write");
         await fs.mkdir(resolvedFolderPath, { recursive: true });
         return { success: true };
       } catch (e) {
@@ -141,7 +200,7 @@ export const registerFsHandlers = ({
     "fs:deleteFolder",
     async (_, folderPath: string): Promise<{ success: boolean; error?: string }> => {
       try {
-        const resolvedFolderPath = await resolvePortableReadPath(folderPath);
+        const resolvedFolderPath = await ensurePathAllowed(await resolvePortableReadPath(folderPath), "read");
         await fs.rm(resolvedFolderPath, { recursive: true, force: true });
         return { success: true };
       } catch (e) {
@@ -154,8 +213,8 @@ export const registerFsHandlers = ({
     "fs:renameFolder",
     async (_, oldPath: string, newPath: string): Promise<{ success: boolean; error?: string }> => {
       try {
-        const resolvedOldPath = await resolvePortableReadPath(oldPath);
-        const resolvedNewPath = await resolvePortableWritePath(newPath);
+        const resolvedOldPath = await ensurePathAllowed(await resolvePortableReadPath(oldPath), "read");
+        const resolvedNewPath = await ensurePathAllowed(await resolvePortableWritePath(newPath), "write");
         await fs.rename(resolvedOldPath, resolvedNewPath);
         return { success: true };
       } catch (e) {
@@ -166,7 +225,7 @@ export const registerFsHandlers = ({
 
   ipcMain.handle("fs:folderExists", async (_, folderPath: string): Promise<boolean> => {
     try {
-      const resolvedFolderPath = await resolvePortableReadPath(folderPath);
+      const resolvedFolderPath = await ensurePathAllowed(await resolvePortableReadPath(folderPath), "read");
       const stat = await fs.stat(resolvedFolderPath);
       return stat.isDirectory();
     } catch {

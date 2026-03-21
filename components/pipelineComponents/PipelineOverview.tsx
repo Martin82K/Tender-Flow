@@ -4,10 +4,12 @@
  * Extracted from Pipeline.tsx for better modularity.
  */
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { DemandCategory, Bid } from '../../types';
 import { formatMoney } from '../../utils/formatters';
 import { CategoryCard } from './CategoryCard';
+
+const ROW_CLICK_DELAY_MS = 220;
 
 type DemandFilter = 'all' | 'open' | 'closed' | 'sod';
 type ViewMode = 'grid' | 'table';
@@ -41,6 +43,36 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
     onDeleteCategory,
     onToggleCategoryComplete,
 }) => {
+    const rowClickTimeoutRef = useRef<number | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (rowClickTimeoutRef.current !== null) {
+                window.clearTimeout(rowClickTimeoutRef.current);
+            }
+        };
+    }, []);
+
+    const handleRowClick = (category: DemandCategory) => {
+        if (rowClickTimeoutRef.current !== null) {
+            window.clearTimeout(rowClickTimeoutRef.current);
+        }
+
+        rowClickTimeoutRef.current = window.setTimeout(() => {
+            rowClickTimeoutRef.current = null;
+            onCategoryClick(category);
+        }, ROW_CLICK_DELAY_MS);
+    };
+
+    const handleRowDoubleClick = (category: DemandCategory) => {
+        if (rowClickTimeoutRef.current !== null) {
+            window.clearTimeout(rowClickTimeoutRef.current);
+            rowClickTimeoutRef.current = null;
+        }
+
+        onEditCategory(category);
+    };
+
     // Filter counts
     const allCount = categories.length;
     const openCount = categories.filter(c => c.status === 'open' || c.status === 'negotiating').length;
@@ -241,7 +273,8 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
                                         <tr
                                             key={category.id}
                                             className="hover:bg-slate-50 dark:hover:bg-slate-950/30 cursor-pointer"
-                                            onClick={() => onCategoryClick(category)}
+                                            onClick={() => handleRowClick(category)}
+                                            onDoubleClick={() => handleRowDoubleClick(category)}
                                         >
                                             <td className="px-4 py-3">
                                                 <span className={`inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-bold uppercase ${statusClass[normalizedStatus]}`}>
@@ -325,6 +358,7 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
                                 contractedCount={stats.contractedCount}
                                 sodBidsCount={stats.sodBidsCount}
                                 onClick={() => onCategoryClick(category)}
+                                onDoubleClick={onEditCategory}
                                 onEdit={onEditCategory}
                                 onDelete={onDeleteCategory}
                                 onToggleComplete={onToggleCategoryComplete}

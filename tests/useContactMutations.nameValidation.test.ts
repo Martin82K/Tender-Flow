@@ -5,10 +5,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   useAddContactMutation,
   useBulkUpdateContactsMutation,
+  assertValidSubcontractorCompanyNameOrThrow,
   useImportContactsMutation,
   useUpdateContactMutation,
 } from "../hooks/mutations/useContactMutations";
 import type { Subcontractor } from "../types";
+import { renameFolder } from "../services/fileSystemService";
+import { CONTACT_KEYS } from "../hooks/queries/useContactsQuery";
 
 const mocks = vi.hoisted(() => ({
   fromMock: vi.fn(),
@@ -66,6 +69,25 @@ const createWrapper = () => {
       children,
     )
   );
+};
+
+const createTestContext = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      mutations: { retry: false },
+      queries: { retry: false },
+    },
+  });
+
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    React.createElement(
+      QueryClientProvider,
+      { client: queryClient },
+      children,
+    )
+  );
+
+  return { queryClient, wrapper };
 };
 
 const validContact: Subcontractor = {
@@ -160,5 +182,58 @@ describe("useContactMutations name validation", () => {
     ).rejects.toThrow("Neplatny nazev firmy");
 
     expect(mocks.fromMock).not.toHaveBeenCalled();
+  });
+
+  it("pri prejmenovani dodavatele pouzije sanitizovanou cestu DocHub slozky", async () => {
+    const { queryClient, wrapper } = createTestContext();
+    queryClient.setQueryData(["project", "p-1"], {
+      id: "p-1",
+      docHubEnabled: true,
+      docHubStatus: "connected",
+      docHubProvider: "onedrive",
+      docHubRootLink: "C:\\DocHubRoot",
+      docHubStructureV1: { tenders: "01_VYBEROVA_RIZENI" },
+      categories: [{ id: "cat-1", title: "Zakladni cast" }],
+      bids: {
+        "cat-1": [{ subcontractorId: "c-1" }],
+      },
+    });
+    queryClient.setQueryData(CONTACT_KEYS.list(), [
+      { ...validContact, id: "c-1", company: "IZOMAT stavebniny s.r.o." },
+    ]);
+
+    const originalNavigator = globalThis.navigator;
+    Object.defineProperty(globalThis, "navigator", {
+      value: { userAgent: "Windows" },
+      configurable: true,
+    });
+
+    try {
+      const { result } = renderHook(() => useUpdateContactMutation(), {
+        wrapper,
+      });
+
+      await result.current.mutateAsync({
+        id: "c-1",
+        updates: { company: "IZOMAT stavebniny a.s" },
+      });
+
+      expect(renameFolder).toHaveBeenCalledWith(
+        "C:\\DocHubRoot\\01_VYBEROVA_RIZENI\\Zakladni cast\\IZOMAT stavebniny s.r.o",
+        "C:\\DocHubRoot\\01_VYBEROVA_RIZENI\\Zakladni cast\\IZOMAT stavebniny a.s",
+        { provider: "onedrive", projectId: "p-1" },
+      );
+    } finally {
+      Object.defineProperty(globalThis, "navigator", {
+        value: originalNavigator,
+        configurable: true,
+      });
+    }
+  });
+
+  it("stale blokuje ukladani nevalidniho nazvu s koncovou teckou", () => {
+    expect(() => assertValidSubcontractorCompanyNameOrThrow("IZOMAT stavebniny a.s.")).toThrow(
+      "Neplatny nazev firmy",
+    );
   });
 });

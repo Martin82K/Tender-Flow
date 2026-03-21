@@ -3,8 +3,10 @@ import { act, renderHook } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  resolveArchiveProjectUpdate,
   useAddCategoryMutation,
   useAddProjectMutation,
+  useCloneTenderToRealizationMutation,
   useArchiveProjectMutation,
   useDeleteCategoryMutation,
   useDeleteProjectMutation,
@@ -15,6 +17,7 @@ import { OVERVIEW_TENANT_DATA_KEY } from "../hooks/queries/useOverviewTenantData
 
 const mocks = vi.hoisted(() => ({
   fromMock: vi.fn(),
+  rpcRestMock: vi.fn(),
   invokeAuthedFunctionMock: vi.fn(),
   ensureStructureMock: vi.fn(),
   getDemoDataMock: vi.fn(),
@@ -24,6 +27,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("../services/dbAdapter", () => ({
   dbAdapter: {
     from: mocks.fromMock,
+    rpcRest: mocks.rpcRestMock,
   },
 }));
 
@@ -107,6 +111,7 @@ describe("useProjectMutations -> overview cache invalidation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.fromMock.mockImplementation(() => createFromResult());
+    mocks.rpcRestMock.mockResolvedValue({ data: [{ project_id: "realization-1" }], error: null });
     mocks.invokeAuthedFunctionMock.mockResolvedValue(undefined);
     mocks.ensureStructureMock.mockResolvedValue({ success: true });
     mocks.getDemoDataMock.mockReturnValue(null);
@@ -146,10 +151,70 @@ describe("useProjectMutations -> overview cache invalidation", () => {
     await act(async () => {
       await result.current.mutateAsync({
         id: "p-1",
-        newStatus: "archived",
+        currentStatus: "tender",
+        archivedOriginalStatus: null,
       });
     });
 
+    expectOverviewInvalidation(invalidateSpy);
+  });
+
+  it("při archivaci ukládá původní aktivní status projektu", async () => {
+    const fromResult = createFromResult();
+    mocks.fromMock.mockReturnValueOnce(fromResult);
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useArchiveProjectMutation(), { wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        id: "p-archive",
+        currentStatus: "tender",
+        archivedOriginalStatus: null,
+      });
+    });
+
+    expect(fromResult.update).toHaveBeenCalledWith({
+      status: "archived",
+      archived_original_status: "tender",
+    });
+  });
+
+  it("při obnově z archivu vrací uložený původní status", async () => {
+    const fromResult = createFromResult();
+    mocks.fromMock.mockReturnValueOnce(fromResult);
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useArchiveProjectMutation(), { wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        id: "p-restore",
+        currentStatus: "archived",
+        archivedOriginalStatus: "tender",
+      });
+    });
+
+    expect(fromResult.update).toHaveBeenCalledWith({
+      status: "tender",
+      archived_original_status: null,
+    });
+  });
+
+  it("invaliduje overview cache po klonování soutěže do realizace", async () => {
+    const { wrapper, invalidateSpy } = createWrapper();
+    const { result } = renderHook(() => useCloneTenderToRealizationMutation(), {
+      wrapper,
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync("p-1");
+    });
+
+    expect(mocks.rpcRestMock).toHaveBeenCalledWith(
+      "clone_tender_project_to_realization",
+      { project_id_input: "p-1" },
+    );
     expectOverviewInvalidation(invalidateSpy);
   });
 
@@ -229,5 +294,19 @@ describe("useProjectMutations -> overview cache invalidation", () => {
     });
 
     expectOverviewInvalidation(invalidateSpy);
+  });
+});
+
+describe("resolveArchiveProjectUpdate", () => {
+  it("při obnově bez uloženého statusu bezpečně fallbackne na realizaci", () => {
+    expect(
+      resolveArchiveProjectUpdate({
+        currentStatus: "archived",
+        archivedOriginalStatus: null,
+      }),
+    ).toEqual({
+      targetStatus: "realization",
+      archivedOriginalStatus: null,
+    });
   });
 });

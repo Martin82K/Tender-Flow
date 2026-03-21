@@ -94,7 +94,6 @@ describe("docxConversion", () => {
     });
     expect(runConversion).not.toHaveBeenCalled();
   });
-
   it("pouzije textutil pres execFile s argumentovym polem", async () => {
     execFileMock.mockImplementation((_cmd: string, _args: string[], cb: (err: Error | null, stdout?: string, stderr?: string) => void) => {
       cb(null, "", "");
