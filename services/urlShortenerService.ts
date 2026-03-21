@@ -161,20 +161,12 @@ export async function shortenUrl(url: string): Promise<ShortenResult> {
  */
 export async function getOriginalUrl(code: string): Promise<{ url: string | null; error?: string }> {
   try {
-    const { data, error } = await supabase
-      .from('short_urls')
-      .select('original_url')
-      .eq('id', code)
-      .single();
+    const { data, error } = await supabase.rpc('resolve_short_url', { url_id: code });
 
     if (error) throw error;
-    if (!data) return { url: null };
+    if (!data || typeof data !== 'string') return { url: null };
 
-    supabase.rpc('increment_short_url_clicks', { url_id: code }).then(({ error }) => {
-      if (error) console.error("Failed to increment clicks:", summarizeErrorForLog(error));
-    });
-
-    return { url: data.original_url };
+    return { url: data };
 
   } catch (error) {
     console.error('Error fetching original URL:', summarizeErrorForLog(error));
