@@ -19,6 +19,17 @@ export interface ShortenResult {
 
 const SHORT_URL_BASE = window.location.origin + '/s/';
 
+const ALLOWED_SHORT_URL_PROTOCOLS = new Set(['http:', 'https:']);
+
+export function isAllowedShortUrlDestination(url: string): boolean {
+  try {
+    const parsedUrl = new URL(url);
+    return ALLOWED_SHORT_URL_PROTOCOLS.has(parsedUrl.protocol);
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Generates a random short code (6 chars)
  */
@@ -76,6 +87,15 @@ async function shortenWithTfUrl(url: string, userId?: string): Promise<ShortenRe
       shortUrl: url,
       code: url.replace(SHORT_URL_BASE, ''),
       originalUrl: url,
+      provider: 'tfurl'
+    };
+  }
+
+  if (!isAllowedShortUrlDestination(url)) {
+    return {
+      success: false,
+      originalUrl: url,
+      error: 'Only HTTP/HTTPS URLs are allowed',
       provider: 'tfurl'
     };
   }
@@ -169,6 +189,10 @@ export async function getOriginalUrl(code: string): Promise<{ url: string | null
 
     if (error) throw error;
     if (!data) return { url: null };
+
+    if (!isAllowedShortUrlDestination(data.original_url)) {
+      return { url: null, error: 'Stored URL uses an unsupported protocol' };
+    }
 
     supabase.rpc('increment_short_url_clicks', { url_id: code }).then(({ error }) => {
       if (error) console.error("Failed to increment clicks:", summarizeErrorForLog(error));
@@ -303,6 +327,10 @@ export async function shortenUrlWithAlias(
   customAlias?: string
 ): Promise<ShortenResult> {
   try {
+    if (!isAllowedShortUrlDestination(url)) {
+      return { success: false, originalUrl: url, error: 'Only HTTP/HTTPS URLs are allowed', provider: 'tfurl' };
+    }
+
     if (!customAlias) {
       return shortenUrl(url);
     }

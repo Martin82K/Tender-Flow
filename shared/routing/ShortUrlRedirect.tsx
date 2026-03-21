@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getOriginalUrl } from "../../services/urlShortenerService";
+import { getOriginalUrl, isAllowedShortUrlDestination } from "../../services/urlShortenerService";
 import { summarizeErrorForLog } from "@/shared/security/logSanitizer";
 
 interface ShortUrlRedirectProps {
@@ -18,11 +18,11 @@ export const ShortUrlRedirect: React.FC<ShortUrlRedirectProps> = ({ code }) => {
 
       const { url, error: fetchError } = await getOriginalUrl(code);
 
-      if (url) {
+      if (url && isAllowedShortUrlDestination(url)) {
         // Redirect
         window.location.href = url;
       } else {
-        setError("Odkaz nebyl nalezen nebo vypršel.");
+        setError("Odkaz nebyl nalezen, vypršel nebo není bezpečný.");
         if (fetchError) console.error("URL resolution error:", summarizeErrorForLog(fetchError));
       }
     };
