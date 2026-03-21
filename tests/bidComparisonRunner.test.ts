@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import ExcelJS from 'exceljs';
 import * as os from 'os';
 import * as path from 'path';
-import { mkdir, mkdtemp, rm } from 'fs/promises';
+import { access, mkdir, mkdtemp, rm } from 'fs/promises';
 import { BidComparisonRunner } from '../desktop/main/services/bidComparisonRunner';
 
 const tempDirs: string[] = [];
@@ -131,5 +131,56 @@ describe('BidComparisonRunner.detectInputs', () => {
     const fileNames = result.files.map((file) => file.fileName);
     expect(fileNames).toContain('VV_Drywall.xlsx');
     expect(fileNames).not.toContain('VV_PBK_archiv.xlsx');
+  });
+});
+
+
+describe('BidComparisonRunner.start', () => {
+  it('odmítne outputBaseName s cestou mimo cílovou složku', async () => {
+    const tempDir = await createTempDir();
+    await writeWorkbook(
+      path.join(tempDir, 'VV_k_vyplneni_zadani.xlsx'),
+      buildRows(''),
+    );
+    await writeWorkbook(
+      path.join(tempDir, 'VV_Drywall_kolo1.xlsx'),
+      buildRows(125),
+    );
+
+    const runner = new BidComparisonRunner();
+    const detected = await runner.detectInputs({
+      tenderFolderPath: tempDir,
+      suppliers: [{ name: 'Drywall' }],
+    });
+
+    const selectedFiles = detected.files
+      .filter((file) => file.suggestedRole !== 'ignore')
+      .map((file) => ({
+        path: file.path,
+        role: file.suggestedRole,
+        supplierName: file.suggestedSupplierName,
+        round: file.suggestedRound,
+      }));
+
+    const { jobId } = runner.start({
+      tenderFolderPath: tempDir,
+      selectedFiles,
+      outputBaseName: '../pwned',
+    });
+
+    let job = runner.get(jobId);
+    for (let i = 0; i < 50; i += 1) {
+      if (job && (job.status === 'error' || job.status === 'success' || job.status === 'cancelled')) {
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      job = runner.get(jobId);
+    }
+
+    expect(job).not.toBeNull();
+    expect(job?.status).toBe('error');
+    expect(job?.error).toContain('Neplatný název výstupu');
+
+    await expect(access(path.join(tempDir, '..', 'pwned_latest.xlsx'))).rejects.toThrow();
   });
 });

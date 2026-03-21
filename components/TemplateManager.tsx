@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import DOMPurify from 'dompurify';
 import { Template, ProjectDetails } from '../types';
-import { TEMPLATE_VARIABLES, getPreviewData, processTemplate } from '../utils/templateUtils';
+import { TEMPLATE_VARIABLES, getPreviewData, processTemplate, renderTemplateHtml } from '../utils/templateUtils';
 import { getTemplates, saveTemplate, deleteTemplate as serviceDeleteTemplate } from '../services/templateService';
 import { ConfirmationModal } from './ConfirmationModal';
 
@@ -279,6 +279,9 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
 
                 {/* Main Content */}
                 <div className="flex-1 flex flex-col bg-slate-50 dark:bg-slate-900 overflow-hidden">
+                    <div className="px-6 py-3 border-b border-slate-200 dark:border-slate-800 bg-amber-50/80 dark:bg-amber-500/5 text-xs text-slate-600 dark:text-slate-300">
+                        Proměnná <code>{'{PODPIS_UZIVATELE}'}</code> vloží plný podpis uživatele včetně e-mailového brandingu organizace. Pokud ji do šablony nevložíte ručně, systém podpis přidá automaticky na konec e-mailu.
+                    </div>
                     {selectedTemplate ? (
                         <>
                             {/* Toolbar */}
@@ -487,10 +490,10 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
                                                 className="prose dark:prose-invert max-w-none"
                                                 dangerouslySetInnerHTML={{
                                                     __html: sanitizeTemplateHtml(
-                                                        (previewMode
+                                                        renderTemplateHtml(previewMode
                                                             ? processTemplate(selectedTemplate.content, previewData)
                                                             : selectedTemplate.content
-                                                        ).replace(/\n/g, '<br/>')
+                                                        )
                                                     )
                                                 }}
                                             />

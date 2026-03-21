@@ -68,13 +68,15 @@ describe("authService.updateUserPreferences", () => {
     });
 
     mockState.from.mockImplementation((table: string) => {
-      if (table === "profiles") {
+      if (table === "platform_admins") {
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({
-                data: { is_admin: false },
-                error: null,
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: null,
+                  error: null,
+                }),
               }),
             }),
           }),
