@@ -12,7 +12,7 @@ import {
 import { SubcontractorSelector } from "./SubcontractorSelector";
 import { ConfirmationModal } from "./ConfirmationModal";
 import { AlertModal } from "./AlertModal";
-import { formatFileSize } from "../services/documentService";
+import { formatFileSize, getDocumentUrl } from "../services/documentService";
 import {
   formatMoney,
   formatInputNumber,
@@ -114,6 +114,24 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const docHubStructure = resolveDocHubStructureV1(
     projectDetails.docHubStructureV1 || undefined,
   );
+
+  const handleOpenDocument = async (
+    event: React.MouseEvent<HTMLAnchorElement>,
+    documentPath: string,
+  ) => {
+    event.preventDefault();
+    try {
+      const signedUrl = await getDocumentUrl(documentPath);
+      window.open(signedUrl, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      console.error("Error opening document:", error);
+      showAlert({
+        title: "Chyba",
+        message: "Dokument se nepodařilo otevřít. Zkuste to prosím znovu.",
+        variant: "danger",
+      });
+    }
+  };
 
   const [alertModal, setAlertModal] = useState<{
     isOpen: boolean;
@@ -563,6 +581,9 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   <a
                     key={doc.id}
                     href={doc.url}
+                    onClick={(event) => {
+                      void handleOpenDocument(event, doc.url);
+                    }}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors group"
