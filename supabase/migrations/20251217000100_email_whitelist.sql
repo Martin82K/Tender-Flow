@@ -180,8 +180,7 @@ BEGIN
 END;
 $$;
 
--- Grant execute on functions
-GRANT EXECUTE ON FUNCTION public.check_email_whitelist TO anon;
+-- SECURITY: do not expose whitelist checks to unauthenticated callers
 GRANT EXECUTE ON FUNCTION public.check_email_whitelist TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_whitelisted_emails TO authenticated;
 GRANT EXECUTE ON FUNCTION public.add_whitelisted_email TO authenticated;

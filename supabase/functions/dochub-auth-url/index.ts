@@ -166,6 +166,18 @@ Deno.serve(async (req) => {
       return json(400, { error: "Missing projectId" });
     }
 
+    const { data: project, error: projectError } = await authed
+      .from("projects")
+      .select("id")
+      .eq("id", projectId)
+      .maybeSingle();
+    if (projectError) {
+      return json(500, { error: projectError.message });
+    }
+    if (!project) {
+      return json(403, { error: "Forbidden" });
+    }
+
     const nonce = randomNonce();
     const state = `${provider}.${nonce}`;
 
