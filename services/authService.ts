@@ -515,19 +515,15 @@ export const authService = {
                 return cachedUser;
             }
 
-            // Otherwise return minimal fallback user - use cached tier if available
+            // Otherwise return minimal fallback user and fail closed for subscription tier.
             const isSystemAdmin = session.user.email ? ADMIN_EMAILS.includes(session.user.email) : false;
-            const cachedTier = getCachedSubscriptionTier();
-            const fallbackTier = isSystemAdmin ? 'admin' : (cachedTier || 'free');
-            if (cachedTier && !isSystemAdmin) {
-                console.log('[authService] Using cached subscription tier for fallback:', cachedTier);
-            }
+            const fallbackTier: SubscriptionTier = isSystemAdmin ? 'admin' : 'free';
             return {
                 id: session.user.id,
                 name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
                 email: session.user.email || '',
                 role: isSystemAdmin ? 'admin' : 'user',
-                subscriptionTier: fallbackTier as any,
+                subscriptionTier: fallbackTier,
                 avatarUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(session.user.email || 'U')}&background=random`,
                 preferences: DEFAULT_PREFERENCES
             };
@@ -651,7 +647,7 @@ export const authService = {
         const organizationId = await orgMemberPromise;
 
         // Attempt to get organization subscription tier (dependent on organizationId)
-        let subscriptionTier: SubscriptionTier = getCachedSubscriptionTier() || 'free';
+        let subscriptionTier: SubscriptionTier = 'free';
         let organizationType: 'personal' | 'business' | undefined;
         let organizationName: string | undefined;
 
