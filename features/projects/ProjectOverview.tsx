@@ -23,7 +23,6 @@ import {
   FolderKanban,
   Building2,
   Filter,
-  Printer,
   FileText,
   Search,
   RotateCcw,
@@ -229,16 +228,6 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
                 {item.label}
               </button>
             ))}
-          </div>
-          <div className="ml-auto flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => window.print()}
-              className="inline-flex items-center gap-2 rounded-lg bg-slate-900 dark:bg-slate-800 text-white text-sm font-medium px-4 py-2 hover:bg-slate-800 dark:hover:bg-slate-700 transition shadow-sm"
-            >
-              <Printer className="w-4 h-4" />
-              Tisk / PDF
-            </button>
           </div>
         </div>
 

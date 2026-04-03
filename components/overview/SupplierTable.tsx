@@ -176,7 +176,7 @@ export const SupplierTable: React.FC<SupplierTableProps> = ({
 
                   {/* Last awarded */}
                   <td className="py-3 px-4">
-                    <span className="text-sm text-slate-600 dark:text-slate-300 truncate max-w-[200px] block">
+                    <span className="text-sm text-slate-600 dark:text-slate-300" title={supplier.lastAwardedLabel || undefined}>
                       {supplier.lastAwardedLabel || (
                         <span className="text-slate-400 dark:text-slate-500 italic">Bez ocenění</span>
                       )}
