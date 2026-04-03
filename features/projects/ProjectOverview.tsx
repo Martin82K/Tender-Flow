@@ -26,6 +26,7 @@ import {
   FileText,
   Search,
   RotateCcw,
+  ChevronDown,
 } from "lucide-react";
 import { KPICard } from "@/shared/ui/overview/KPICard";
 import { StatusCard } from "@/shared/ui/overview/StatusCard";
@@ -172,37 +173,62 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
             <Filter className="w-4 h-4" />
             Filtry
           </div>
-          <select
-            value={scope}
-            onChange={(e) => setScope(e.target.value as typeof scope)}
-            className="h-9 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-          >
-            <option value="tenant">Celá společnost (tenant)</option>
-            <option value="project">Vybraný projekt</option>
-          </select>
-          <select
-            value={selectedProjectId}
-            onChange={(e) => setSelectedProjectId(e.target.value)}
-            disabled={scope === "tenant"}
-            className="h-9 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-slate-700 dark:text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-          >
-            <option value="all">Všechny stavby</option>
-            {availableProjects.map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.name}
-              </option>
+          <div className="flex items-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-0.5 gap-0.5">
+            {([
+              { value: "tenant", label: "Celá společnost" },
+              { value: "project", label: "Vybraný projekt" },
+            ] as const).map((item) => (
+              <button
+                key={item.value}
+                type="button"
+                onClick={() => setScope(item.value)}
+                className={`h-8 px-3 rounded-md text-sm font-medium transition-colors ${
+                  scope === item.value
+                    ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-sm"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                }`}
+              >
+                {item.label}
+              </button>
             ))}
-          </select>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-            className="h-9 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-          >
-            <option value="all">Všechny stavy</option>
-            <option value="tender">Soutěž</option>
-            <option value="realization">Realizace</option>
-            <option value="archived">Archiv</option>
-          </select>
+          </div>
+          <div className="relative">
+            <select
+              value={selectedProjectId}
+              onChange={(e) => setSelectedProjectId(e.target.value)}
+              disabled={scope === "tenant"}
+              style={{ backgroundImage: "none" }}
+              className="h-9 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 pl-3 pr-8 text-sm text-slate-700 dark:text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+            >
+              <option value="all">Všechny stavby</option>
+              {availableProjects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          </div>
+          <div className="flex items-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-0.5 gap-0.5">
+            {([
+              { value: "all", label: "Vše" },
+              { value: "active", label: "Aktivní" },
+              { value: "archived", label: "Archiv" },
+            ] as const).map((item) => (
+              <button
+                key={item.value}
+                type="button"
+                onClick={() => setStatusFilter(item.value)}
+                className={`h-8 px-3 rounded-md text-sm font-medium transition-colors ${
+                  statusFilter === item.value
+                    ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-sm"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
           <div className="ml-auto flex items-center gap-2">
             <button
               type="button"
@@ -328,18 +354,22 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
               <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                 Zaměření
               </label>
-              <select
-                value={supplierSpecialization}
-                onChange={(e) => setSupplierSpecialization(e.target.value)}
-                className="mt-1 w-full h-10 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-              >
-                <option value="">Všechna zaměření</option>
-                {specializationOptions.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  value={supplierSpecialization}
+                  onChange={(e) => setSupplierSpecialization(e.target.value)}
+                  style={{ backgroundImage: "none" }}
+                  className="mt-1 w-full h-10 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 pl-3 pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                >
+                  <option value="">Všechna zaměření</option>
+                  {specializationOptions.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              </div>
             </div>
             <div className="flex items-end">
               <button

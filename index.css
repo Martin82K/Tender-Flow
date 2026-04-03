@@ -39,11 +39,15 @@
 }
 
 .select-no-native-arrow {
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  background-image: none;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background-image: none !important;
+  background-repeat: no-repeat !important;
+  background-position: initial !important;
+  background-size: initial !important;
 }
+
 
 /* Navigation Pill with Subtle Gradient */
 .nav-pill {
