@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Header } from '@/shared/ui/Header';
 import { StarRating } from '@/shared/ui/StarRating';
 import { Subcontractor, StatusConfig } from '@/types';
-import { findCompanyRegions } from '@/services/geminiService';
+import { findCompanyRegistrationDetails } from '@/services/geminiService';
 import { SubcontractorSelector } from '@/shared/ui/SubcontractorSelector';
 import { ConfirmationModal } from '@/shared/ui/ConfirmationModal';
 import { validateSubcontractorCompanyName } from '@/shared/dochub/subcontractorNameRules';
@@ -27,6 +27,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
 
     // AI Region State
     const [isRegionLoading, setIsRegionLoading] = useState(false);
+    const [isRegistrationLookupLoading, setIsRegistrationLookupLoading] = useState(false);
 
     // Contact Modal State
     const [isContactModalOpen, setIsContactModalOpen] = useState(false);
@@ -39,6 +40,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
         contacts: [],
         ico: '',
         region: '',
+        address: '',
         status: 'available'
     });
 
@@ -73,7 +75,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
 
     // --- AI Handlers ---
 
-    const handleAutoFillRegions = async () => {
+    const handleAutoFillRegistrationData = async () => {
         if (selectedIds.size === 0) return;
 
         const contactsToProcess = contacts.filter(
@@ -81,14 +83,14 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                 selectedIds.has(c.id) &&
                 !!c.ico &&
                 c.ico !== '-' &&
-                isBlankLookupValue(c.region),
+                (isBlankLookupValue(c.region) || isBlankLookupValue(c.address)),
         );
 
         if (contactsToProcess.length === 0) {
             setConfirmModal({
                 isOpen: true,
                 title: 'Informace',
-                message: 'Žádné vybrané kontakty nemají IČO nebo již mají region vyplněný.',
+                message: 'Žádné vybrané kontakty nemají IČO nebo už mají region i adresu vyplněné.',
                 onConfirm: closeConfirmModal
             });
             return;
@@ -97,32 +99,43 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
         setIsRegionLoading(true);
 
         try {
-            // Prepare data for AI
             const queryList = contactsToProcess.map(c => ({ id: c.id, company: c.company, ico: c.ico }));
 
-            const regionsMap = await findCompanyRegions(queryList);
+            const registrationMap = await findCompanyRegistrationDetails(queryList);
 
             const updatedContacts = contacts.map(c => {
-                const region = regionsMap[c.id];
-                if (!region || isBlankLookupValue(region)) {
+                const registration = registrationMap[c.id];
+                if (!registration) {
                     return c;
                 }
-                return { ...c, region };
+
+                const nextRegion =
+                    registration.region && !isBlankLookupValue(registration.region)
+                        ? registration.region
+                        : c.region;
+                const nextAddress =
+                    registration.address && !isBlankLookupValue(registration.address)
+                        ? registration.address
+                        : c.address;
+
+                return { ...c, region: nextRegion, address: nextAddress };
             });
 
-            // Filter only changed contacts for bulk update
             const changedContacts = updatedContacts.filter(c => {
                 const original = contacts.find(orig => orig.id === c.id);
                 if (!original) return false;
-                return (isBlankLookupValue(original.region) ? '' : original.region.trim()) !==
-                    (isBlankLookupValue(c.region) ? '' : c.region?.trim() || '');
+                const originalRegion = isBlankLookupValue(original.region) ? '' : original.region?.trim() || '';
+                const newRegion = isBlankLookupValue(c.region) ? '' : c.region?.trim() || '';
+                const originalAddress = isBlankLookupValue(original.address) ? '' : original.address?.trim() || '';
+                const newAddress = isBlankLookupValue(c.address) ? '' : c.address?.trim() || '';
+                return originalRegion !== newRegion || originalAddress !== newAddress;
             });
 
             if (changedContacts.length === 0) {
                 setConfirmModal({
                     isOpen: true,
                     title: 'Informace',
-                    message: 'AI nevrátila použitelný region. Firma může existovat, ale region se nepodařilo spolehlivě dohledat. Zkuste to znovu později nebo region doplňte ručně.',
+                    message: 'ARES nevrátil použitelný region ani adresu. Firma může existovat, ale registrační údaje se nepodařilo spolehlivě dohledat. Zkuste to znovu později nebo je doplňte ručně.',
                     onConfirm: closeConfirmModal
                 });
                 return;
@@ -130,16 +143,84 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
 
             await onBulkUpdateContacts(changedContacts);
         } catch (error) {
-            console.error('Chyba při doplňování regionů:', error);
+            console.error('Chyba při doplňování registračních údajů:', error);
             setConfirmModal({
                 isOpen: true,
                 title: 'Chyba',
-                message: 'Nepodařilo se doplnit regiony. Zkuste to znovu později.',
+                message: 'Nepodařilo se doplnit region ani adresu. Zkuste to znovu později.',
                 onConfirm: closeConfirmModal
             });
         } finally {
             setIsRegionLoading(false);
             setSelectedIds(new Set()); // Clear selection
+        }
+    };
+
+    const handleLookupRegistrationForForm = async (
+        options: { overwriteExisting?: boolean; showNoResultMessage?: boolean } = {},
+    ) => {
+        const { overwriteExisting = false, showNoResultMessage = false } = options;
+
+        if (!formData.ico || formData.ico === '-') {
+            if (showNoResultMessage) {
+                setConfirmModal({
+                    isOpen: true,
+                    title: 'Informace',
+                    message: 'Pro dohledání adresy a regionu nejdřív vyplňte platné IČO.',
+                    onConfirm: closeConfirmModal
+                });
+            }
+            return;
+        }
+
+        setIsRegistrationLookupLoading(true);
+
+        try {
+            const lookupKey = editingContact?.id || 'draft-subcontractor';
+            const registrationMap = await findCompanyRegistrationDetails([
+                {
+                    id: lookupKey,
+                    company: formData.company || 'Neznámá firma',
+                    ico: formData.ico,
+                }
+            ]);
+            const registration = registrationMap[lookupKey];
+
+            if (!registration) {
+                if (showNoResultMessage) {
+                    setConfirmModal({
+                        isOpen: true,
+                        title: 'Informace',
+                        message: 'Pro zadané IČO se nepodařilo dohledat adresu ani region v ARES.',
+                        onConfirm: closeConfirmModal
+                    });
+                }
+                return;
+            }
+
+            setFormData(prev => ({
+                ...prev,
+                region:
+                    registration.region && (overwriteExisting || isBlankLookupValue(prev.region))
+                        ? registration.region
+                        : prev.region,
+                address:
+                    registration.address && (overwriteExisting || isBlankLookupValue(prev.address))
+                        ? registration.address
+                        : prev.address,
+            }));
+        } catch (error) {
+            console.error('Chyba při dohledání adresy a regionu dle IČO:', error);
+            if (showNoResultMessage) {
+                setConfirmModal({
+                    isOpen: true,
+                    title: 'Chyba',
+                    message: 'Nepodařilo se dohledat registrační údaje dle IČO. Zkuste to znovu později.',
+                    onConfirm: closeConfirmModal
+                });
+            }
+        } finally {
+            setIsRegistrationLookupLoading(false);
         }
     };
 
@@ -167,6 +248,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
             contacts: [{ id: crypto.randomUUID(), name: '', phone: '', email: '', position: 'Hlavní kontakt' }],
             ico: '',
             region: '',
+            address: '',
             status: 'available'
         });
         setIsContactModalOpen(true);
@@ -190,6 +272,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
             contacts: formData.contacts || [],
             ico: formData.ico || '-',
             region: formData.region || '-',
+            address: formData.address || '-',
             status: formData.status || 'available'
         };
 
@@ -296,7 +379,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                                 <span className="material-symbols-outlined text-[18px]">delete</span>
                             </button>
                             <button
-                                onClick={handleAutoFillRegions}
+                                onClick={handleAutoFillRegistrationData}
                                 disabled={isRegionLoading}
                                 className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-sm font-bold shadow-sm transition-colors disabled:opacity-50"
                             >
@@ -305,7 +388,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                                 ) : (
                                     <span className="material-symbols-outlined text-[18px]">travel_explore</span>
                                 )}
-                                Doplnit regiony (AI)
+                                Doplnit adresy a regiony
                             </button>
                         </div>
                     ) : null}
@@ -425,14 +508,32 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                                     {/* IČO */}
                                     <div>
                                         <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">IČO</label>
-                                        <input
-                                            type="text"
-                                            value={formData.ico || ''}
-                                            onChange={e => setFormData({ ...formData, ico: e.target.value })}
-                                            onKeyDown={(e) => e.stopPropagation()}
-                                            className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
-                                            placeholder="IČO firmy"
-                                        />
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                value={formData.ico || ''}
+                                                onChange={e => setFormData({ ...formData, ico: e.target.value })}
+                                                onBlur={() => {
+                                                    if (isBlankLookupValue(formData.region) || isBlankLookupValue(formData.address)) {
+                                                        void handleLookupRegistrationForForm({ overwriteExisting: false, showNoResultMessage: false });
+                                                    }
+                                                }}
+                                                onKeyDown={(e) => e.stopPropagation()}
+                                                className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
+                                                placeholder="IČO firmy"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => void handleLookupRegistrationForForm({ overwriteExisting: true, showNoResultMessage: true })}
+                                                disabled={isRegistrationLookupLoading}
+                                                title="Dohledat adresu a region dle IČO"
+                                                className="shrink-0 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 px-3 py-2 text-slate-700 dark:text-slate-300 transition-colors hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50"
+                                            >
+                                                <span className={`material-symbols-outlined text-[18px] ${isRegistrationLookupLoading ? 'animate-spin' : ''}`}>
+                                                    {isRegistrationLookupLoading ? 'sync' : 'travel_explore'}
+                                                </span>
+                                            </button>
+                                        </div>
                                     </div>
 
                                     {/* Region */}
@@ -440,11 +541,24 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                                         <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Region</label>
                                         <input
                                             type="text"
-                                            value={formData.region}
+                                            value={formData.region || ''}
                                             onChange={e => setFormData({ ...formData, region: e.target.value })}
                                             onKeyDown={(e) => e.stopPropagation()}
                                             className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
                                             placeholder="Praha, Brno..."
+                                        />
+                                    </div>
+
+                                    {/* Address */}
+                                    <div className="col-span-2">
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Adresa</label>
+                                        <input
+                                            type="text"
+                                            value={formData.address || ''}
+                                            onChange={e => setFormData({ ...formData, address: e.target.value })}
+                                            onKeyDown={(e) => e.stopPropagation()}
+                                            className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
+                                            placeholder="Sídlo firmy dle registrace"
                                         />
                                     </div>
 

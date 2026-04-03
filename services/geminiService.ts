@@ -2,22 +2,28 @@
 import { invokeAuthedFunction } from "./functionsClient";
 import { sanitizeLogText, summarizeErrorForLog } from "@/shared/security/logSanitizer";
 
-type RegionLookupContact = { id: string; company: string; ico?: string };
+type RegistrationLookupContact = { id: string; company: string; ico?: string };
+type CompanyRegistrationDetail = {
+  region?: string;
+  address?: string;
+};
 type AresEconomicSubjectResponse = {
   sidlo?: {
     nazevKraje?: string;
+    textovaAdresa?: string;
   };
   dalsiUdaje?: Array<{
     sidlo?: Array<{
       sidlo?: {
         nazevKraje?: string;
+        textovaAdresa?: string;
       };
       primarniZaznam?: boolean;
     }>;
   }>;
 };
 
-const REGION_PLACEHOLDERS = new Set([
+const LOOKUP_PLACEHOLDERS = new Set([
   "",
   "-",
   "–",
@@ -30,10 +36,10 @@ const REGION_PLACEHOLDERS = new Set([
   "unknown",
 ]);
 
-const isEmptyRegionValue = (value: unknown): boolean => {
+const isEmptyLookupValue = (value: unknown): boolean => {
   if (value === null || value === undefined) return true;
   if (typeof value !== "string") return false;
-  return REGION_PLACEHOLDERS.has(value.trim().toLowerCase());
+  return LOOKUP_PLACEHOLDERS.has(value.trim().toLowerCase());
 };
 
 const normalizeIco = (ico?: string): string | undefined => {
@@ -47,14 +53,14 @@ const ARES_TIMEOUT_MS = 10_000;
 
 const extractRegionFromAresResponse = (payload: AresEconomicSubjectResponse): string | null => {
   const primaryRegion = payload.sidlo?.nazevKraje?.trim();
-  if (primaryRegion && !isEmptyRegionValue(primaryRegion)) {
+  if (primaryRegion && !isEmptyLookupValue(primaryRegion)) {
     return primaryRegion;
   }
 
   for (const block of payload.dalsiUdaje || []) {
     for (const seat of block.sidlo || []) {
       const region = seat.sidlo?.nazevKraje?.trim();
-      if (region && !isEmptyRegionValue(region)) {
+      if (region && !isEmptyLookupValue(region)) {
         return region;
       }
     }
@@ -63,7 +69,25 @@ const extractRegionFromAresResponse = (payload: AresEconomicSubjectResponse): st
   return null;
 };
 
-const fetchCompanyRegionFromAres = async (ico: string): Promise<string | null> => {
+const extractAddressFromAresResponse = (payload: AresEconomicSubjectResponse): string | null => {
+  const primaryAddress = payload.sidlo?.textovaAdresa?.trim();
+  if (primaryAddress && !isEmptyLookupValue(primaryAddress)) {
+    return primaryAddress;
+  }
+
+  for (const block of payload.dalsiUdaje || []) {
+    for (const seat of block.sidlo || []) {
+      const address = seat.sidlo?.textovaAdresa?.trim();
+      if (address && !isEmptyLookupValue(address)) {
+        return address;
+      }
+    }
+  }
+
+  return null;
+};
+
+const fetchCompanyRegistrationFromAres = async (ico: string): Promise<CompanyRegistrationDetail | null> => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), ARES_TIMEOUT_MS);
 
@@ -88,7 +112,17 @@ const fetchCompanyRegionFromAres = async (ico: string): Promise<string | null> =
     }
 
     const payload = (await response.json()) as AresEconomicSubjectResponse;
-    return extractRegionFromAresResponse(payload);
+    const region = extractRegionFromAresResponse(payload);
+    const address = extractAddressFromAresResponse(payload);
+
+    if (!region && !address) {
+      return null;
+    }
+
+    return {
+      region: region || undefined,
+      address: address || undefined,
+    };
   } finally {
     clearTimeout(timeoutId);
   }
@@ -117,7 +151,9 @@ export const getAiSuggestion = async (contextData: string): Promise<string> => {
   }
 };
 
-export const findCompanyRegions = async (contacts: RegionLookupContact[]): Promise<Record<string, string>> => {
+export const findCompanyRegistrationDetails = async (
+  contacts: RegistrationLookupContact[],
+): Promise<Record<string, CompanyRegistrationDetail>> => {
   try {
     const lookups = await Promise.all(
       contacts.map(async (contact) => {
@@ -127,13 +163,13 @@ export const findCompanyRegions = async (contacts: RegionLookupContact[]): Promi
         }
 
         try {
-          const region = await fetchCompanyRegionFromAres(ico);
-          if (!region || isEmptyRegionValue(region)) {
+          const details = await fetchCompanyRegistrationFromAres(ico);
+          if (!details) {
             return null;
           }
-          return [contact.id, region] as const;
+          return [contact.id, details] as const;
         } catch (error) {
-          console.error("ARES region lookup failed", {
+          console.error("ARES registration lookup failed", {
             ico,
             company: sanitizeLogText(contact.company, 80),
             error: summarizeErrorForLog(error),
@@ -143,13 +179,23 @@ export const findCompanyRegions = async (contacts: RegionLookupContact[]): Promi
       }),
     );
 
-    return lookups.reduce<Record<string, string>>((acc, entry) => {
+    return lookups.reduce<Record<string, CompanyRegistrationDetail>>((acc, entry) => {
       if (!entry) return acc;
       acc[entry[0]] = entry[1];
       return acc;
     }, {});
   } catch (error) {
-    console.error("ARES region lookup error:", summarizeErrorForLog(error));
+    console.error("ARES registration lookup error:", summarizeErrorForLog(error));
     return {};
   }
+};
+
+export const findCompanyRegions = async (contacts: RegistrationLookupContact[]): Promise<Record<string, string>> => {
+  const details = await findCompanyRegistrationDetails(contacts);
+  return Object.entries(details).reduce<Record<string, string>>((acc, [id, detail]) => {
+    if (detail.region && !isEmptyLookupValue(detail.region)) {
+      acc[id] = detail.region;
+    }
+    return acc;
+  }, {});
 };

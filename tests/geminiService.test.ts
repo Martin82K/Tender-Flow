@@ -45,7 +45,7 @@ describe("geminiService", () => {
     const serializedCalls = JSON.stringify(errorSpy.mock.calls);
     expect(serializedCalls).not.toContain("john@example.com");
     expect(serializedCalls).not.toContain("abc.def.ghi");
-    expect(serializedCalls).toContain("ARES region lookup failed");
+    expect(serializedCalls).toContain("ARES registration lookup failed");
     expect(serializedCalls).toContain("[redacted-email]");
     expect(serializedCalls).toContain("[redacted-token]");
 
@@ -167,5 +167,28 @@ describe("geminiService", () => {
         method: "GET",
       }),
     );
+  });
+
+  it("vraci vedle regionu i adresu sidla", async () => {
+    mockState.fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: vi.fn().mockResolvedValue({
+        sidlo: {
+          nazevKraje: "Karlovarský kraj",
+          textovaAdresa: "č.p. 88, 36225 Božičany",
+        },
+      }),
+    });
+
+    const { findCompanyRegistrationDetails } = await import("../services/geminiService");
+    await expect(
+      findCompanyRegistrationDetails([{ id: "1", company: "Firma A", ico: "64356221" }]),
+    ).resolves.toEqual({
+      "1": {
+        region: "Karlovarský kraj",
+        address: "č.p. 88, 36225 Božičany",
+      },
+    });
   });
 });

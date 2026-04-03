@@ -39,6 +39,7 @@ export interface Subcontractor {
   contacts: ContactPerson[];
   ico?: string; // IČ
   region?: string;
+  address?: string;
   status: string; // Dynamic ID linking to StatusConfig
 
   vendorRatingAverage?: number;

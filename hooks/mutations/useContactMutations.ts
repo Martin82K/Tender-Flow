@@ -56,6 +56,7 @@ export const useAddContactMutation = () => {
                 specialization: newContact.specialization,
                 ico: newContact.ico,
                 region: newContact.region,
+                address: newContact.address,
                 status_id: newContact.status,
                 contacts: newContact.contacts,
                 updated_at: new Date().toISOString(), // Ensure updated_at is set
@@ -108,6 +109,7 @@ export const useUpdateContactMutation = () => {
             if (updates.specialization !== undefined) dbUpdates.specialization = updates.specialization;
             if (updates.ico !== undefined) dbUpdates.ico = updates.ico;
             if (updates.region !== undefined) dbUpdates.region = updates.region;
+            if (updates.address !== undefined) dbUpdates.address = updates.address;
             if (updates.status !== undefined) dbUpdates.status_id = updates.status;
             if (updates.contacts !== undefined) dbUpdates.contacts = updates.contacts;
 
@@ -280,6 +282,7 @@ export const useBulkUpdateContactsMutation = () => {
                 if (data.specialization !== undefined) dbUpdates.specialization = data.specialization;
                 if (data.ico !== undefined) dbUpdates.ico = data.ico;
                 if (data.region !== undefined) dbUpdates.region = data.region;
+                if (data.address !== undefined) dbUpdates.address = data.address;
                 if (data.status !== undefined) dbUpdates.status_id = data.status;
                 if (data.contacts !== undefined) dbUpdates.contacts = data.contacts;
 
@@ -364,6 +367,7 @@ export const useImportContactsMutation = () => {
                 specialization: c.specialization,
                 ico: c.ico,
                 region: c.region,
+                address: c.address,
                 updated_at: new Date().toISOString()
             }));
 

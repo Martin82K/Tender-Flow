@@ -4,12 +4,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Subcontractor, StatusConfig } from "../types";
 
 const mockState = vi.hoisted(() => ({
-  findCompanyRegions: vi.fn(),
+  findCompanyRegistrationDetails: vi.fn(),
   onBulkUpdateContacts: vi.fn(),
 }));
 
 vi.mock("@/services/geminiService", () => ({
-  findCompanyRegions: mockState.findCompanyRegions,
+  findCompanyRegistrationDetails: mockState.findCompanyRegistrationDetails,
 }));
 
 vi.mock("@/shared/ui/Header", () => ({
@@ -75,6 +75,7 @@ describe("Contacts auto-fill regions", () => {
       contacts: [],
       ico: "12345678",
       region: "-",
+      address: "-",
       status: "available",
     },
     {
@@ -84,6 +85,7 @@ describe("Contacts auto-fill regions", () => {
       contacts: [],
       ico: "87654321",
       region: "Praha",
+      address: "Praha 1",
       status: "available",
     },
   ];
@@ -94,7 +96,9 @@ describe("Contacts auto-fill regions", () => {
   });
 
   it("přeskočí placeholder region a zobrazí informaci, když AI vrátí jen pomlčku", async () => {
-    mockState.findCompanyRegions.mockResolvedValue({ "c-1": "-" });
+    mockState.findCompanyRegistrationDetails.mockResolvedValue({
+      "c-1": { region: "-", address: "-" },
+    });
 
     render(
       <Contacts
@@ -108,20 +112,23 @@ describe("Contacts auto-fill regions", () => {
       />,
     );
 
-    const button = await screen.findByRole("button", { name: /doplnit regiony/i });
+    const button = await screen.findByRole("button", { name: /doplnit adresy a regiony/i });
     fireEvent.click(button);
 
     await waitFor(() => {
       expect(screen.getByRole("dialog")).toHaveTextContent(
-        "Firma může existovat, ale region se nepodařilo spolehlivě dohledat",
+        "Firma může existovat, ale registrační údaje se nepodařilo spolehlivě dohledat",
       );
     });
 
     expect(mockState.onBulkUpdateContacts).not.toHaveBeenCalled();
   });
 
-  it("uloží jen kontakty s nově dohledaným regionem", async () => {
-    mockState.findCompanyRegions.mockResolvedValue({ "c-1": "Praha", "c-2": "-" });
+  it("uloží jen kontakty s nově dohledaným regionem nebo adresou", async () => {
+    mockState.findCompanyRegistrationDetails.mockResolvedValue({
+      "c-1": { region: "Praha", address: "Ulice 1, Praha" },
+      "c-2": { region: "-", address: "-" },
+    });
 
     render(
       <Contacts
@@ -135,7 +142,7 @@ describe("Contacts auto-fill regions", () => {
       />,
     );
 
-    const button = await screen.findByRole("button", { name: /doplnit regiony/i });
+    const button = await screen.findByRole("button", { name: /doplnit adresy a regiony/i });
     fireEvent.click(button);
 
     await waitFor(() => {
@@ -143,8 +150,41 @@ describe("Contacts auto-fill regions", () => {
     });
 
     expect(mockState.onBulkUpdateContacts).toHaveBeenCalledWith([
-      expect.objectContaining({ id: "c-1", region: "Praha" }),
+      expect.objectContaining({ id: "c-1", region: "Praha", address: "Ulice 1, Praha" }),
     ]);
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("na karte dodavatele dohleda adresu a region podle ICO", async () => {
+    mockState.findCompanyRegistrationDetails.mockImplementation(async (items: Array<{ id: string }>) => ({
+      [items[0].id]: {
+        region: "Karlovarský kraj",
+        address: "č.p. 88, 36225 Božičany",
+      },
+    }));
+
+    render(
+      <Contacts
+        statuses={statuses}
+        contacts={contacts}
+        onContactsChange={vi.fn()}
+        onAddContact={vi.fn()}
+        onUpdateContact={vi.fn()}
+        onBulkUpdateContacts={mockState.onBulkUpdateContacts}
+        onDeleteContacts={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: /pridat kontakt|přidat kontakt/i }));
+
+    fireEvent.change(screen.getByPlaceholderText(/IČO firmy/i), {
+      target: { value: "64356221" },
+    });
+    fireEvent.click(screen.getByTitle(/Dohledat adresu a region dle IČO/i));
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("Karlovarský kraj")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("č.p. 88, 36225 Božičany")).toBeInTheDocument();
+    });
   });
 });

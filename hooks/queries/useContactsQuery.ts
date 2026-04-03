@@ -64,6 +64,7 @@ export const useContactsQuery = () => {
                     contacts: contactsArray,
                     ico: s.ico || "-",
                     region: s.region || "-",
+                    address: s.address || "-",
                     status: s.status_id || "available",
                     name: s.contact_person_name || "-",
                     phone: s.phone || "-",
