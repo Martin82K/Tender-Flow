@@ -38,6 +38,7 @@ export const buildDesktopCsp = (isDev: boolean): string => {
         'https://*.supabase.in',
         'wss://*.supabase.co',
         'wss://*.supabase.in',
+        'https://ares.gov.cz',
         'https://api.stripe.com',
         'https://js.stripe.com',
         'https://r.stripe.com',

@@ -241,7 +241,7 @@ export const Settings: React.FC<SettingsProps> = ({
   // Render
   // -------------------------------------------------------------------------
   return (
-    <div className="flex flex-col h-full bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen overflow-y-auto">
+    <div className="flex flex-col h-full bg-background-light dark:bg-background-dark min-h-screen overflow-y-auto">
       <Header
         title="Nastavení"
         subtitle="Konfigurace aplikace a správa staveb"

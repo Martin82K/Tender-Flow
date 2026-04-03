@@ -72,7 +72,12 @@ export const AppContent: React.FC = () => {
     setActivePipelineCategoryId,
   });
 
-  const { theme, setTheme, primaryColor, setPrimaryColor } = useTheme({
+  const {
+    theme,
+    setTheme,
+    primaryColor,
+    setPrimaryColor,
+  } = useTheme({
     user,
     onPreferencesUpdate: (prefs) => updatePreferences(prefs),
   });

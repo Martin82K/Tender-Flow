@@ -274,8 +274,14 @@ export const useBulkUpdateContactsMutation = () => {
             await Promise.all(updates.map(async ({ id, data }) => {
                 const dbUpdates: any = { updated_at: new Date().toISOString() };
                 if (data.company !== undefined) dbUpdates.company_name = data.company;
+                if (data.name !== undefined) dbUpdates.contact_person_name = data.name;
+                if (data.email !== undefined) dbUpdates.email = data.email;
+                if (data.phone !== undefined) dbUpdates.phone = data.phone;
+                if (data.specialization !== undefined) dbUpdates.specialization = data.specialization;
+                if (data.ico !== undefined) dbUpdates.ico = data.ico;
+                if (data.region !== undefined) dbUpdates.region = data.region;
                 if (data.status !== undefined) dbUpdates.status_id = data.status;
-                // add other fields if bulk update supports them (usually just status/category)
+                if (data.contacts !== undefined) dbUpdates.contacts = data.contacts;
 
                 const { error } = await dbAdapter.from("subcontractors").update(dbUpdates).eq("id", id);
                 if (error) throw error;

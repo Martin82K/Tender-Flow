@@ -362,11 +362,11 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
   ];
 
   return (
-    <div className="max-w-6xl mx-auto space-y-5 animate-fadeIn">
-      {/* Top Grid: Profile & Appearance */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+    <div className="max-w-7xl mx-auto space-y-5 animate-fadeIn">
+      {/* Main Grid: Profile, Appearance and Quick Settings */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5 items-start">
         {/* User Profile Section */}
-        <section className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+        <section className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm xl:col-span-2">
           <h2 className="text-base font-bold text-slate-900 dark:text-white mb-5 flex items-center gap-2">
             <span className="material-symbols-outlined text-primary text-xl">person</span>
             Můj profil
@@ -589,7 +589,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
         </section>
 
         {/* Appearance Settings */}
-        <section className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+        <section className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm xl:col-span-1">
           <h2 className="text-base font-bold text-slate-900 dark:text-white mb-5 flex items-center gap-2">
             <span className="material-symbols-outlined text-pink-500 text-xl">palette</span>
             Vzhled aplikace
@@ -654,17 +654,15 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                 ))}
               </div>
             </div>
+
           </div>
         </section>
-      </div>
 
-      {/* Middle Grid: Biometrics & Other Settings */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Biometric Authentication */}
-        <BiometricSettings className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm" />
+        <BiometricSettings className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm xl:col-span-1" />
 
         {/* Other Settings */}
-        <section className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+        <section className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm xl:col-span-1">
           <h2 className="text-base font-bold text-slate-900 dark:text-white mb-5 flex items-center gap-2">
             <span className="material-symbols-outlined text-violet-500 text-xl">tune</span>
             Další nastavení
@@ -696,12 +694,12 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
             </div>
           </div>
         </section>
-      </div>
 
-      {/* App Update Section */}
-      <section className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
-        <AppUpdateSection />
-      </section>
+        {/* App Update Section */}
+        <section className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm lg:col-span-2 xl:col-span-1">
+          <AppUpdateSection />
+        </section>
+      </div>
 
       {/* Contact Statuses Management */}
       <section className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">

@@ -18,6 +18,7 @@ describe("desktop CSP", () => {
     expect(csp).toContain("https://*.stripe.com");
     expect(csp).toContain("https://*.stripe.network");
     expect(csp).toContain("https://hooks.stripe.com");
+    expect(csp).toContain("https://ares.gov.cz");
   });
 
   it("keeps production policy without unsafe-eval", () => {
@@ -40,5 +41,6 @@ describe("desktop CSP", () => {
     expect(shouldInjectDesktopCsp("https://js.stripe.com/v3", true)).toBe(false);
     expect(shouldInjectDesktopCsp("https://api.stripe.com/v1/elements/sessions", true)).toBe(false);
     expect(shouldInjectDesktopCsp("https://example.supabase.co/rest/v1/projects", true)).toBe(false);
+    expect(shouldInjectDesktopCsp("https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/00006947", true)).toBe(false);
   });
 });

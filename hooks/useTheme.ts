@@ -4,10 +4,12 @@
  */
 
 import { useState, useEffect } from "react";
-import { hexToRgb } from "../utils/helpers";
+import { hexToRgb, mixHexColors } from "../utils/helpers";
 import type { User } from "../types";
 
 export type ThemeMode = 'light' | 'dark' | 'system';
+
+const DEFAULT_DARK_BACKGROUND = "#0f172a";
 
 export interface ThemeState {
     theme: ThemeMode;
@@ -126,6 +128,14 @@ export const useTheme = (options: UseThemeOptions = {}): UseThemeReturn => {
         document.documentElement.style.setProperty(
             "--color-background",
             backgroundColor
+        );
+        document.documentElement.style.setProperty(
+            "--color-background-light",
+            backgroundColor
+        );
+        document.documentElement.style.setProperty(
+            "--color-background-dark",
+            mixHexColors(backgroundColor, DEFAULT_DARK_BACKGROUND, 0.22)
         );
     }, [backgroundColor]);
 

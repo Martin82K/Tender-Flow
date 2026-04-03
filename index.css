@@ -19,6 +19,8 @@
   /* Slate 700 */
 
   --color-background: #f8fafc;
+  --color-background-light: #f8fafc;
+  --color-background-dark: #0f172a;
   /* Slate 50 for light mode */
 }
 
@@ -92,7 +94,7 @@ h6 {
 
 body {
   font-family: "Inter", sans-serif;
-  @apply bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-200 selection:bg-primary/20 selection:text-primary;
+  @apply bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-200 selection:bg-primary/20 selection:text-primary;
 }
 
 /* Animations */

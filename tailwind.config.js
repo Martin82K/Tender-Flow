@@ -12,8 +12,8 @@ export default {
     extend: {
       colors: {
         primary: "rgb(var(--color-primary) / <alpha-value>)",
-        "background-light": "var(--color-background)",
-        "background-dark": "#0f1323",
+        "background-light": "var(--color-background-light)",
+        "background-dark": "var(--color-background-dark)",
       },
       fontFamily: {
         display: "Inter, sans-serif",

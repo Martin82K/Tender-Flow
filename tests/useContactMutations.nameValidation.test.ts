@@ -16,6 +16,8 @@ import { CONTACT_KEYS } from "../hooks/queries/useContactsQuery";
 const mocks = vi.hoisted(() => ({
   fromMock: vi.fn(),
   mergeContactsMock: vi.fn(),
+  updateEqMock: vi.fn(),
+  updateMock: vi.fn(),
 }));
 
 vi.mock("../services/supabase", () => ({
@@ -104,11 +106,14 @@ const validContact: Subcontractor = {
 beforeEach(() => {
   vi.clearAllMocks();
 
+  mocks.updateEqMock.mockResolvedValue({ error: null });
+  mocks.updateMock.mockImplementation(() => ({
+    eq: mocks.updateEqMock,
+  }));
+
   mocks.fromMock.mockImplementation(() => ({
     insert: vi.fn().mockResolvedValue({ error: null }),
-    update: vi.fn(() => ({
-      eq: vi.fn().mockResolvedValue({ error: null }),
-    })),
+    update: mocks.updateMock,
     delete: vi.fn(() => ({
       in: vi.fn().mockResolvedValue({ error: null }),
     })),
@@ -182,6 +187,26 @@ describe("useContactMutations name validation", () => {
     ).rejects.toThrow("Neplatny nazev firmy");
 
     expect(mocks.fromMock).not.toHaveBeenCalled();
+  });
+
+  it("bulk update zapisuje region do databaze", async () => {
+    const { result } = renderHook(() => useBulkUpdateContactsMutation(), {
+      wrapper: createWrapper(),
+    });
+
+    await result.current.mutateAsync([
+      {
+        id: "c-1",
+        data: { region: "Karlovarský kraj" },
+      },
+    ]);
+
+    expect(mocks.updateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        region: "Karlovarský kraj",
+      }),
+    );
+    expect(mocks.updateEqMock).toHaveBeenCalledWith("id", "c-1");
   });
 
   it("pri prejmenovani dodavatele pouzije sanitizovanou cestu DocHub slozky", async () => {

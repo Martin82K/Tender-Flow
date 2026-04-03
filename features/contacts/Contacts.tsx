@@ -13,7 +13,7 @@ interface ContactsProps {
     onContactsChange: (contacts: Subcontractor[]) => void;
     onAddContact: (contact: Subcontractor) => void;
     onUpdateContact: (contact: Subcontractor) => void;
-    onBulkUpdateContacts: (contacts: Subcontractor[]) => void;
+    onBulkUpdateContacts: (contacts: Subcontractor[]) => Promise<void> | void;
     onDeleteContacts: (ids: string[]) => void;
     isAdmin?: boolean;
 }
@@ -50,6 +50,12 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
         onConfirm: () => void;
     }>({ isOpen: false, title: '', message: '', onConfirm: () => { } });
 
+    const isBlankLookupValue = (value?: string | null) => {
+        if (!value) return true;
+        const normalized = value.trim().toLowerCase();
+        return normalized === '' || normalized === '-' || normalized === '–' || normalized === '—' || normalized === '―';
+    };
+
     const closeConfirmModal = () => {
         setConfirmModal(prev => ({ ...prev, isOpen: false }));
     };
@@ -70,13 +76,19 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
     const handleAutoFillRegions = async () => {
         if (selectedIds.size === 0) return;
 
-        const contactsToProcess = contacts.filter(c => selectedIds.has(c.id) && c.ico && c.ico !== '-' && (!c.region || c.region === '-'));
+        const contactsToProcess = contacts.filter(
+            (c) =>
+                selectedIds.has(c.id) &&
+                !!c.ico &&
+                c.ico !== '-' &&
+                isBlankLookupValue(c.region),
+        );
 
         if (contactsToProcess.length === 0) {
             setConfirmModal({
                 isOpen: true,
                 title: 'Informace',
-                message: "Žádné vybrané kontakty nemají IČO nebo již mají region vyplněný.",
+                message: 'Žádné vybrané kontakty nemají IČO nebo již mají region vyplněný.',
                 onConfirm: closeConfirmModal
             });
             return;
@@ -84,31 +96,51 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
 
         setIsRegionLoading(true);
 
-        // Prepare data for AI
-        const queryList = contactsToProcess.map(c => ({ id: c.id, company: c.company, ico: c.ico }));
+        try {
+            // Prepare data for AI
+            const queryList = contactsToProcess.map(c => ({ id: c.id, company: c.company, ico: c.ico }));
 
-        const regionsMap = await findCompanyRegions(queryList);
+            const regionsMap = await findCompanyRegions(queryList);
 
-        // Update props via handler
-        const updatedContacts = contacts.map(c => {
-            if (regionsMap[c.id]) {
-                return { ...c, region: regionsMap[c.id] };
+            const updatedContacts = contacts.map(c => {
+                const region = regionsMap[c.id];
+                if (!region || isBlankLookupValue(region)) {
+                    return c;
+                }
+                return { ...c, region };
+            });
+
+            // Filter only changed contacts for bulk update
+            const changedContacts = updatedContacts.filter(c => {
+                const original = contacts.find(orig => orig.id === c.id);
+                if (!original) return false;
+                return (isBlankLookupValue(original.region) ? '' : original.region.trim()) !==
+                    (isBlankLookupValue(c.region) ? '' : c.region?.trim() || '');
+            });
+
+            if (changedContacts.length === 0) {
+                setConfirmModal({
+                    isOpen: true,
+                    title: 'Informace',
+                    message: 'AI nevrátila použitelný region. Firma může existovat, ale region se nepodařilo spolehlivě dohledat. Zkuste to znovu později nebo region doplňte ručně.',
+                    onConfirm: closeConfirmModal
+                });
+                return;
             }
-            return c;
-        });
 
-        // Filter only changed contacts for bulk update
-        const changedContacts = updatedContacts.filter(c => {
-            const original = contacts.find(orig => orig.id === c.id);
-            return original && original.region !== c.region;
-        });
-
-        if (changedContacts.length > 0) {
-            onBulkUpdateContacts(changedContacts);
+            await onBulkUpdateContacts(changedContacts);
+        } catch (error) {
+            console.error('Chyba při doplňování regionů:', error);
+            setConfirmModal({
+                isOpen: true,
+                title: 'Chyba',
+                message: 'Nepodařilo se doplnit regiony. Zkuste to znovu později.',
+                onConfirm: closeConfirmModal
+            });
+        } finally {
+            setIsRegionLoading(false);
+            setSelectedIds(new Set()); // Clear selection
         }
-
-        setIsRegionLoading(false);
-        setSelectedIds(new Set()); // Clear selection
     };
 
     const handleDeleteSelected = () => {
