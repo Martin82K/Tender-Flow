@@ -11,6 +11,7 @@ const FILTER_TABS: Array<NotificationCategory | "all"> = [
   "deadline",
   "project",
   "team",
+  "system",
 ];
 
 function groupByDate(notifications: AppNotification[]): Record<string, AppNotification[]> {

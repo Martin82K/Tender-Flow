@@ -336,3 +336,27 @@ export async function emitAgentCompletedNotification(params: {
     entityId: undefined,
   });
 }
+
+// ============================================================
+// System / update notifications
+// ============================================================
+
+export async function emitSystemUpdateNotification(params: {
+  userId: string;
+  version: string;
+  title: string;
+  body: string;
+  actionUrl?: string;
+}): Promise<string | null> {
+  return emitNotification({
+    userId: params.userId,
+    type: "info",
+    category: "system",
+    tier: "important",
+    title: params.title,
+    body: params.body,
+    actionUrl: params.actionUrl,
+    entityType: "system_update",
+    entityId: params.version,
+  });
+}

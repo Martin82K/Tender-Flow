@@ -6,7 +6,8 @@ export type NotificationCategory =
   | "project"
   | "document"
   | "team"
-  | "agent";
+  | "agent"
+  | "system";
 
 /** Notification type - determines visual styling */
 export type NotificationType = "info" | "success" | "warning" | "error";
@@ -38,6 +39,7 @@ export interface NotificationPreferences {
   document_events: boolean;
   team_events: boolean;
   agent_events: boolean;
+  system_updates: boolean;
   desktop_notifications: boolean;
   quiet_hours_start: string | null; // HH:MM format
   quiet_hours_end: string | null;
@@ -51,6 +53,7 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   document_events: true,
   team_events: true,
   agent_events: true,
+  system_updates: true,
   desktop_notifications: true,
   quiet_hours_start: null,
   quiet_hours_end: null,
@@ -66,6 +69,7 @@ export const NOTIFICATION_CATEGORY_LABELS: Record<NotificationCategory | "all", 
   document: "Dokumenty",
   team: "Tým",
   agent: "AI Agent",
+  system: "Systém",
 };
 
 /** Maps notification category to preference key */
@@ -77,6 +81,7 @@ export const CATEGORY_TO_PREFERENCE: Record<NotificationCategory, keyof Notifica
   document: "document_events",
   team: "team_events",
   agent: "agent_events",
+  system: "system_updates",
 };
 
 /** Toast notification for transient display */

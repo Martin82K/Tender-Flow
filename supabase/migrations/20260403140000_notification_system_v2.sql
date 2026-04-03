@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS public.notification_preferences (
   document_events BOOLEAN DEFAULT true,
   team_events BOOLEAN DEFAULT true,
   agent_events BOOLEAN DEFAULT true,
+  system_updates BOOLEAN DEFAULT true,
   desktop_notifications BOOLEAN DEFAULT true,
   quiet_hours_start TIME,
   quiet_hours_end TIME,
@@ -148,6 +149,7 @@ RETURNS TABLE (
   document_events BOOLEAN,
   team_events BOOLEAN,
   agent_events BOOLEAN,
+  system_updates BOOLEAN,
   desktop_notifications BOOLEAN,
   quiet_hours_start TIME,
   quiet_hours_end TIME
@@ -166,6 +168,7 @@ BEGIN
     np.document_events,
     np.team_events,
     np.agent_events,
+    np.system_updates,
     np.desktop_notifications,
     np.quiet_hours_start,
     np.quiet_hours_end
@@ -195,6 +198,7 @@ BEGIN
     document_events,
     team_events,
     agent_events,
+    system_updates,
     desktop_notifications,
     quiet_hours_start,
     quiet_hours_end,
@@ -209,6 +213,7 @@ BEGIN
     COALESCE((prefs->>'document_events')::BOOLEAN, true),
     COALESCE((prefs->>'team_events')::BOOLEAN, true),
     COALESCE((prefs->>'agent_events')::BOOLEAN, true),
+    COALESCE((prefs->>'system_updates')::BOOLEAN, true),
     COALESCE((prefs->>'desktop_notifications')::BOOLEAN, true),
     (prefs->>'quiet_hours_start')::TIME,
     (prefs->>'quiet_hours_end')::TIME,
@@ -222,6 +227,7 @@ BEGIN
     document_events = COALESCE((prefs->>'document_events')::BOOLEAN, notification_preferences.document_events),
     team_events = COALESCE((prefs->>'team_events')::BOOLEAN, notification_preferences.team_events),
     agent_events = COALESCE((prefs->>'agent_events')::BOOLEAN, notification_preferences.agent_events),
+    system_updates = COALESCE((prefs->>'system_updates')::BOOLEAN, notification_preferences.system_updates),
     desktop_notifications = COALESCE((prefs->>'desktop_notifications')::BOOLEAN, notification_preferences.desktop_notifications),
     quiet_hours_start = (prefs->>'quiet_hours_start')::TIME,
     quiet_hours_end = (prefs->>'quiet_hours_end')::TIME,
@@ -288,3 +294,18 @@ $$;
 -- 10) Enable Realtime on notifications table
 -- ============================================================
 ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+
+-- ============================================================
+-- 11) Seed: system update notification about the new notification system
+-- ============================================================
+INSERT INTO public.notifications (user_id, type, category, title, body, action_url, entity_type, entity_id)
+SELECT
+  id AS user_id,
+  'info' AS type,
+  'system' AS category,
+  'Novinka v1.5: Notifikační systém' AS title,
+  'Nově vás aplikace upozorní na změny nabídek, blížící se termíny a uzavření výběrových řízení. Nastavení notifikací najdete v Nastavení → Notifikace.' AS body,
+  '/app/settings?tab=user&subTab=notifications' AS action_url,
+  'system_update' AS entity_type,
+  'v1.5.0' AS entity_id
+FROM auth.users;

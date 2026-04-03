@@ -52,6 +52,12 @@ const TOGGLE_ITEMS: Array<{
     description: "Upozornění při dokončení úlohy AI agentem",
     icon: "smart_toy",
   },
+  {
+    key: "system_updates",
+    label: "Aktualizace systému",
+    description: "Informace o nových verzích, funkcích a vylepšeních aplikace",
+    icon: "system_update",
+  },
 ];
 
 export const NotificationSettings: React.FC = () => {
