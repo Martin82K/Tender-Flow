@@ -13,6 +13,7 @@ import { registerNetHandlers } from './modules/netHandlers';
 import { registerOAuthHandlers } from './modules/oauthHandlers';
 import { registerSessionHandlers } from './modules/sessionHandlers';
 import { registerWatcherHandlers } from './modules/watcherHandlers';
+import { registerNotificationHandlers } from './modules/notificationHandlers';
 import { getAutoUpdaterService } from '../services/autoUpdater';
 import { convertToDocx } from './modules/docxConversion';
 
@@ -192,6 +193,7 @@ export function registerIpcHandlers(): void {
         startLoopbackServer,
     });
     registerNetHandlers({ isAllowedProxyUrl });
+    registerNotificationHandlers();
 
     // --- APP ---
 

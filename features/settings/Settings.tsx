@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Header } from "@/shared/ui/Header";
+import { NotificationBell } from "@features/notifications/ui/NotificationBell";
 import { StatusConfig, Subcontractor } from "@/types";
 import { navigate, useLocation } from "@/shared/routing/router";
 import {
@@ -18,6 +19,7 @@ import { UrlShortener } from "@/features/tools/UrlShortener";
 import { ExcelIndexerSettings } from "@/features/settings/ExcelIndexerSettings";
 import { SubscriptionSettings } from "@/features/settings/SubscriptionSettings";
 import { OrganizationSettings } from "@/features/settings/OrganizationSettings";
+import { NotificationSettings } from "@/features/settings/NotificationSettings";
 import { IncidentLogsAdmin } from "@/features/settings/IncidentLogsAdmin";
 import { ComplianceAdmin } from "@/features/settings/ComplianceAdmin";
 import { AdminMfaGuard } from "@/features/settings/AdminMfaGuard";
@@ -63,6 +65,7 @@ export const Settings: React.FC<SettingsProps> = ({
   type UserSubTab =
     | "profile"
     | "subscription"
+    | "notifications"
     | "contacts"
     | "excelUnlocker"
     | "excelMerger"
@@ -92,6 +95,7 @@ export const Settings: React.FC<SettingsProps> = ({
       subTab =
         subTabParam === "profile" ||
         subTabParam === "subscription" ||
+        subTabParam === "notifications" ||
         subTabParam === "contacts" ||
         subTabParam === "excelUnlocker" ||
         subTabParam === "excelMerger" ||
@@ -124,6 +128,7 @@ export const Settings: React.FC<SettingsProps> = ({
   const [activeUserSubTab, setActiveUserSubTab] = useState<UserSubTab>(() => {
     if (
       settingsRoute.subTab === "subscription" ||
+      settingsRoute.subTab === "notifications" ||
       settingsRoute.subTab === "contacts" ||
       settingsRoute.subTab === "excelMerger" ||
       settingsRoute.subTab === "urlShortener" ||
@@ -245,6 +250,7 @@ export const Settings: React.FC<SettingsProps> = ({
       <Header
         title="Nastavení"
         subtitle="Konfigurace aplikace a správa staveb"
+        notificationSlot={<NotificationBell />}
       />
 
       <div className="p-4 lg:p-6 xl:p-8 w-full pb-20">
@@ -480,6 +486,24 @@ export const Settings: React.FC<SettingsProps> = ({
                   </div>
                 </button>
 
+                <button
+                  onClick={() =>
+                    updateSettingsUrl({ tab: "user", subTab: "notifications" })
+                  }
+                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                    activeUserSubTab === "notifications"
+                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[20px]">
+                      notifications
+                    </span>
+                    Notifikace
+                  </div>
+                </button>
+
                 {canContactsImport && (
                   <button
                     onClick={() =>
@@ -603,6 +627,8 @@ export const Settings: React.FC<SettingsProps> = ({
               )}
 
               {activeUserSubTab === "subscription" && <SubscriptionSettings />}
+
+              {activeUserSubTab === "notifications" && <NotificationSettings />}
 
               {activeUserSubTab === "contacts" && canContactsImport && (
                 <section className="space-y-6">

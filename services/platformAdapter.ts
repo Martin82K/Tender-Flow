@@ -641,6 +641,29 @@ export const shellAdapter = {
     },
 };
 
+/**
+ * Desktop Notification Adapter
+ * Shows native OS notifications on desktop, Web Notifications API on web
+ */
+export const desktopNotificationAdapter = {
+    async show(title: string, body?: string): Promise<void> {
+        if (isDesktop && window.electronAPI?.notification) {
+            await window.electronAPI.notification.show({ title, body });
+        } else if ("Notification" in window && Notification.permission === "granted") {
+            new Notification(title, { body });
+        }
+    },
+
+    async requestPermission(): Promise<boolean> {
+        if (isDesktop) return true; // Electron doesn't need permission
+        if (!("Notification" in window)) return false;
+        if (Notification.permission === "granted") return true;
+        if (Notification.permission === "denied") return false;
+        const result = await Notification.requestPermission();
+        return result === "granted";
+    },
+};
+
 // Combined platform adapter
 export const platformAdapter = {
     isDesktop,
@@ -658,6 +681,7 @@ export const platformAdapter = {
     biometric: biometricAdapter,
     session: sessionAdapter,
     shell: shellAdapter,
+    notification: desktopNotificationAdapter,
 };
 
 export default platformAdapter;

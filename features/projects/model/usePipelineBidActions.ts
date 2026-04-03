@@ -17,6 +17,10 @@ import {
   persistBidStatusChange,
   updateBidStatusInMemory,
 } from "./pipelineBidStatusModel";
+import {
+  emitBidStatusNotification,
+  emitBidContractedNotification,
+} from "@features/notifications/api/notificationEmitter";
 
 interface UsePipelineBidActionsInput {
   activeCategory: DemandCategory | null;
@@ -24,8 +28,10 @@ interface UsePipelineBidActionsInput {
   updateBidsInternal: (
     updater: (prev: Record<string, Bid[]>) => Record<string, Bid[]>,
   ) => void;
+  userId?: string;
   userRole?: string;
   projectDataId: string;
+  projectName?: string;
   projectDataDocHubProviderLegacy?: string;
   projectDataDocHubStructureV1?: string;
   isDocHubEnabled: boolean;
@@ -41,8 +47,10 @@ export const usePipelineBidActions = ({
   activeCategory,
   bids,
   updateBidsInternal,
+  userId,
   userRole,
   projectDataId,
+  projectName,
   projectDataDocHubProviderLegacy,
   projectDataDocHubStructureV1,
   isDocHubEnabled,
@@ -80,8 +88,24 @@ export const usePipelineBidActions = ({
 
       if (error) {
         console.error("Error updating bid status:", error);
-      } else if (targetStatus === "sent") {
-        void runDocHubFallbackForCategory(activeCategory.id, "move-to-sent");
+      } else {
+        if (targetStatus === "sent") {
+          void runDocHubFallbackForCategory(activeCategory.id, "move-to-sent");
+        }
+        // Emit notification for bid status change
+        if (userId) {
+          const bid = (bids[activeCategory.id] || []).find((b) => b.id === bidId);
+          void emitBidStatusNotification({
+            userId,
+            bidId,
+            companyName: bid?.companyName ?? "",
+            newStatus: targetStatus,
+            projectId: projectDataId,
+            projectName,
+            categoryId: activeCategory.id,
+            categoryTitle: activeCategory.title,
+          });
+        }
       }
     } catch (error) {
       console.error("Unexpected error updating bid:", error);
@@ -126,6 +150,17 @@ export const usePipelineBidActions = ({
       const { error } = await updateBidContracted(bid.id, newContracted);
       if (error) {
         console.error("Error updating bid contracted status:", error);
+      } else if (userId) {
+        void emitBidContractedNotification({
+          userId,
+          bidId: bid.id,
+          companyName: bid.companyName,
+          contracted: newContracted,
+          projectId: projectDataId,
+          projectName,
+          categoryId: activeCategory.id,
+          categoryTitle: activeCategory.title,
+        });
       }
     } catch (error) {
       console.error("Unexpected error updating bid:", error);

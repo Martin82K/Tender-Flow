@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { PROJECT_KEYS } from '@/hooks/queries/useProjectsQuery';
 import { Project, ProjectStatus } from '@/types';
 import { Header } from '@/shared/ui/Header';
+import { NotificationBell } from "@features/notifications/ui/NotificationBell";
 import { projectService } from '@/services/projectService';
 import { useAuth } from '@/context/AuthContext';
 import { DeleteConfirmationModal } from '@/shared/ui/DeleteConfirmationModal';
@@ -495,7 +496,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
 
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen overflow-y-auto">
-            <Header title="Správa Staveb" subtitle="Vytváření, archivace a sdílení projektů" />
+            <Header title="Správa Staveb" subtitle="Vytváření, archivace a sdílení projektů" notificationSlot={<NotificationBell />} />
 
             <div className="p-6 lg:p-10 max-w-5xl mx-auto w-full pb-20">
 

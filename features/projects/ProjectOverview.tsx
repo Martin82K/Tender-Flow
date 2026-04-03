@@ -1,5 +1,6 @@
 import React, { useRef } from "react";
 import { Header } from "@/shared/ui/Header";
+import { NotificationBell } from "@features/notifications/ui/NotificationBell";
 import {
   CartesianGrid,
   Legend,
@@ -145,7 +146,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
   return (
     <div className="flex flex-col h-full overflow-y-auto bg-slate-50 dark:bg-slate-950">
       <div className="no-print">
-        <Header title="Přehledy" subtitle="Analytika dodavatelů, výběrů a trendů" />
+        <Header title="Přehledy" subtitle="Analytika dodavatelů, výběrů a trendů" notificationSlot={<NotificationBell />} />
       </div>
 
       <div className="flex-1 space-y-6 p-6">

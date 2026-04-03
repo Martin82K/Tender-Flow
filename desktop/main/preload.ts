@@ -228,6 +228,11 @@ const electronAPI: ElectronAPI = {
             ipcRenderer.invoke('shell:convertToDocx', inputPath),
     },
 
+    notification: {
+        show: (options: { title: string; body?: string }): Promise<void> =>
+            ipcRenderer.invoke('notification:show', options),
+    },
+
     bidComparison: {
         detectInputs: (args: { tenderFolderPath: string; suppliers: BidComparisonSupplierOption[] }): Promise<BidComparisonDetectionResult> =>
             invokeTyped('bid-comparison:detect-inputs', args),

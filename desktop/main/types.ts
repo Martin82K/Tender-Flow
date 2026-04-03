@@ -18,6 +18,11 @@ export interface ElectronAPI {
     mcp: McpAPI;
     shell: ShellAPI;
     bidComparison: BidComparisonAPI;
+    notification: NotificationAPI;
+}
+
+export interface NotificationAPI {
+    show: (options: { title: string; body?: string }) => Promise<void>;
 }
 
 export interface ShellAPI {

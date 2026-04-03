@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Header } from "@/shared/ui/Header";
+import { NotificationBell } from "@features/notifications/ui/NotificationBell";
 import { Button } from "@/shared/ui/Button";
 import { Project, ProjectDetails } from "@/types";
 import { ProjectOverviewNew } from "@/shared/ui/projects/ProjectOverviewNew";
@@ -204,7 +205,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   if (activeProjects.length === 0) {
     return (
       <div className="flex flex-col h-full overflow-y-auto bg-background-light dark:bg-background-dark">
-        <Header title="Dashboard" subtitle="Detailní přehled projektu" />
+        <Header title="Dashboard" subtitle="Detailní přehled projektu" notificationSlot={<NotificationBell />} />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <span className="material-symbols-outlined text-slate-400 dark:text-slate-600 text-[80px] mb-4 block">
@@ -224,7 +225,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950">
-      <Header title="Dashboard" subtitle="Detailní přehled vybraného projektu">
+      <Header title="Dashboard" subtitle="Detailní přehled vybraného projektu" notificationSlot={<NotificationBell />}>
         <div className="flex items-center gap-3 flex-wrap">
           {/* Project Selector Container */}
           <div className="flex items-center gap-2 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border border-slate-200 dark:border-slate-800 p-1 rounded-2xl shadow-sm">

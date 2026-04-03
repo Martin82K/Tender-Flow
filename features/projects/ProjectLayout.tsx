@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Header } from "@/shared/ui/Header";
+import { NotificationBell } from "@features/notifications/ui/NotificationBell";
 import { Pipeline } from "@/shared/ui/projects/Pipeline";
 import { TenderPlan } from "@/shared/ui/projects/TenderPlan";
 import { ProjectSchedule } from "@/shared/ui/projects/ProjectSchedule";
@@ -114,6 +115,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
         subtitle="Detail stavby"
         onSearchChange={setSearchQuery}
         searchPlaceholder="Hledat v projektu..."
+        notificationSlot={<NotificationBell />}
       >
         <div className="flex items-center gap-4">
           {/* Mobile dropdown tabs */}

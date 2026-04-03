@@ -10,6 +10,11 @@ import { invokeAuthedFunction } from "../../services/functionsClient";
 import { ensureStructure } from "../../services/fileSystemService";
 import { buildHierarchyTree, isProbablyUrl, resolveDocHubStructureV1 } from "../../utils/docHub";
 import { cloneTenderToRealization } from "@/features/projects/api/projectCloneApi";
+import {
+    emitCategoryStatusNotification,
+    emitProjectClonedNotification,
+    emitProjectArchivedNotification,
+} from "@features/notifications/api/notificationEmitter";
 
 // Helper for DocHub Sync
 const syncDocHubCategory = async (projectId: string, action: "upsert" | "archive", categoryId: string, categoryTitle?: string) => {
@@ -250,7 +255,19 @@ export const useCloneTenderToRealizationMutation = () => {
 
             return cloneTenderToRealization(projectId);
         },
-        onSettled: async (_data, _error) => {
+        onSuccess: (data, projectId) => {
+            if (user?.id && data?.projectId) {
+                const projects = queryClient.getQueryData<Project[]>(PROJECT_KEYS.list());
+                const sourceProject = projects?.find(p => p.id === projectId);
+                void emitProjectClonedNotification({
+                    userId: user.id,
+                    sourceProjectId: projectId,
+                    sourceProjectName: sourceProject?.name ?? "",
+                    targetProjectId: data.projectId,
+                });
+            }
+        },
+        onSettled: async () => {
             await Promise.all([
                 queryClient.invalidateQueries({ queryKey: PROJECT_KEYS.list() }),
                 queryClient.invalidateQueries({ queryKey: PROJECT_DETAILS_KEYS.all }),
@@ -297,6 +314,17 @@ export const useArchiveProjectMutation = () => {
                 })
                 .eq("id", id);
             if (error) throw error;
+
+            // Emit notification for project archive
+            if (user?.id && nextState.targetStatus === "archived") {
+                const projects = queryClient.getQueryData<Project[]>(PROJECT_KEYS.list());
+                const project = projects?.find(p => p.id === id);
+                void emitProjectArchivedNotification({
+                    userId: user.id,
+                    projectId: id,
+                    projectName: project?.name ?? "",
+                });
+            }
         },
         onMutate: async ({ id, currentStatus, archivedOriginalStatus }) => {
             const nextState = resolveArchiveProjectUpdate({ currentStatus, archivedOriginalStatus });
@@ -571,6 +599,22 @@ export const useEditCategoryMutation = () => {
 
             // Sync DocHub
             syncDocHubCategory(projectId, "upsert", category.id, category.title);
+
+            // Emit notification for category status change
+            if (user?.id) {
+                const previousDetails = queryClient.getQueryData<ProjectDetails>(PROJECT_DETAILS_KEYS.detail(projectId));
+                const oldCategory = previousDetails?.categories.find(c => c.id === category.id);
+                if (oldCategory && oldCategory.status !== category.status) {
+                    void emitCategoryStatusNotification({
+                        userId: user.id,
+                        categoryId: category.id,
+                        categoryTitle: category.title,
+                        newStatus: category.status,
+                        projectId,
+                        projectName: previousDetails?.title,
+                    });
+                }
+            }
         },
         onMutate: async ({ projectId, category }) => {
             await queryClient.cancelQueries({ queryKey: PROJECT_DETAILS_KEYS.detail(projectId) });

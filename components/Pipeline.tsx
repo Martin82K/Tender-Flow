@@ -266,8 +266,10 @@ export const Pipeline: React.FC<PipelineProps> = ({
     activeCategory,
     bids,
     updateBidsInternal,
+    userId: user?.id,
     userRole: user?.role,
     projectDataId: projectData.id,
+    projectName: projectData.title,
     projectDataDocHubProviderLegacy: projectData.dochub_provider || undefined,
     projectDataDocHubStructureV1: projectData.docHubStructureV1 || undefined,
     isDocHubEnabled,
@@ -411,7 +413,6 @@ export const Pipeline: React.FC<PipelineProps> = ({
           title={activeCategory.title}
           subtitle={`${projectData.title} > Průběh výběrového řízení`}
           showSearch={false}
-          showNotifications={false}
         >
           <button
             onClick={() => {

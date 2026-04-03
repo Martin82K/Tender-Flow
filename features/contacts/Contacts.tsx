@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from '@/shared/ui/Header';
+import { NotificationBell } from "@features/notifications/ui/NotificationBell";
 import { StarRating } from '@/shared/ui/StarRating';
 import { Subcontractor, StatusConfig } from '@/types';
 import { findCompanyRegistrationDetails } from '@/services/geminiService';
@@ -364,7 +365,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
 
     return (
         <div className="flex flex-col h-full bg-background-light dark:bg-background-dark overflow-y-auto">
-            <Header title="Kontakty" subtitle={`Celkem ${contacts.length} subdodavatelů`}>
+            <Header title="Kontakty" subtitle={`Celkem ${contacts.length} subdodavatelů`} notificationSlot={<NotificationBell />}>
                 <div className="flex items-center gap-2">
                     {selectedIds.size > 0 ? (
                         <div className="flex items-center gap-2 animate-fade-in bg-blue-50 dark:bg-blue-900/20 px-3 py-1 rounded-lg border border-blue-100 dark:border-blue-800">
