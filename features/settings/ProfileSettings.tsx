@@ -526,7 +526,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                   <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/70 p-4">
                     {emailSignaturePreview.hasContent ? (
                       <div
-                        className="text-sm text-slate-900 dark:text-white [&_a]:text-slate-900 [&_a]:underline"
+                        className="text-sm text-slate-900 dark:text-white [&_a]:text-slate-900 [&_a]:underline dark:[&_*]:!text-inherit dark:[&_a]:!text-sky-400"
                         dangerouslySetInnerHTML={{ __html: emailSignaturePreview.html }}
                       />
                     ) : (
