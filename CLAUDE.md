@@ -179,6 +179,23 @@ Document management module for organizing project files in Google Drive, OneDriv
 - Key hook: `useDocHubIntegration.ts`
 - UI in `components/projectLayoutComponents/documents/`
 
+## Architecture Boundaries (Enforced)
+
+Run `npm run check:boundaries` before committing. These rules are CI-enforced:
+
+1. **No deep relative imports** — max 2 levels (`../../`). Use path aliases (`@/`, `@features/`, etc.) instead
+2. **Shared cannot import Features** — `shared/` must not import from `features/`
+3. **Features cannot import legacy Components** — `features/` must not import from `components/`
+4. **Web code cannot import server/desktop** — no imports from `server/`, `desktop/main/`, `server_py/`
+5. **UI layer cannot import Supabase directly** — use the service layer in `services/`
+6. **Renderer cannot use `window.electronAPI`** — use `services/platformAdapter.ts` instead
+
+Allowlisted exceptions: `config/architecture-boundary-allowlist.json`
+
+## Legacy Freeze
+
+The directories `components/`, `hooks/`, `services/`, `context/`, `utils/` are **frozen** — no new files may be added. New code goes into `app/`, `features/`, `shared/`, or `infra/`. Run `npm run check:legacy-structure` to validate. Allowed files are listed in `config/legacy-freeze.json`.
+
 ## Important Conventions
 
 - **Views** are top-level app sections, **tabs** are within a project view
@@ -187,11 +204,11 @@ Document management module for organizing project files in Google Drive, OneDriv
 - Use `buildAppUrl` from `shared/routing/routeUtils` to construct URLs
 - Feature-gated code uses `RequireFeature` component or `useFeature` hook
 - Version bumping must use npm scripts to keep `config/version.ts` in sync
-- Architecture boundaries are enforced — run `npm run check:boundaries` to validate
 - UI strings are in Czech (the app's target language)
 - Environment variables use `VITE_` or `TINY_URL_` prefix for client access
 - Test files go in `tests/` directory (not co-located), pattern: `tests/**/*.test.{ts,tsx}`
 - Vitest uses jsdom environment with `tests/setup.ts` for setup
+- No ESLint or Prettier configured — architecture checks and TypeScript are the main guardrails
 
 ## AF Integration
 
