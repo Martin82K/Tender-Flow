@@ -121,7 +121,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
             <select
               value={activeTab}
               onChange={(e) => onTabChange(e.target.value as ProjectTab)}
-              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-tighter focus:ring-2 focus:ring-primary/20 appearance-none"
+              className="select-no-native-arrow w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-tighter focus:ring-2 focus:ring-primary/20"
             >
               {visibleTabs.map((tab) => (
                 <option key={tab.id} value={tab.id}>

@@ -23,6 +23,9 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
   onAddContact,
   className,
 }) => {
+  const filterSelectClassName =
+    "select-no-native-arrow w-full h-12 pl-4 pr-10 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-200 bg-none focus:ring-primary focus:border-primary";
+
   const [searchText, setSearchText] = useState("");
   const [filterSpecialization, setFilterSpecialization] =
     useState<string>("all");
@@ -152,7 +155,7 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
             <select
               value={filterSpecialization}
               onChange={(e) => setFilterSpecialization(e.target.value)}
-              className="w-full h-12 pl-4 pr-10 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-200 appearance-none focus:ring-primary focus:border-primary"
+              className={filterSelectClassName}
             >
               <option value="all">Všechny specializace</option>
               {specializations.map((spec) => (
@@ -170,7 +173,7 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full h-12 pl-4 pr-10 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-200 appearance-none focus:ring-primary focus:border-primary"
+              className={filterSelectClassName}
             >
               <option value="all">Všechny stavy</option>
               {statuses.map((s) => (
