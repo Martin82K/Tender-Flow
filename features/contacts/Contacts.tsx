@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Header } from '@/shared/ui/Header';
 import { NotificationBell } from "@features/notifications/ui/NotificationBell";
 import { StarRating } from '@/shared/ui/StarRating';
@@ -51,6 +51,8 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
         title: string;
         message: string;
         onConfirm: () => void;
+        confirmLabel?: string;
+        variant?: 'danger' | 'info' | 'success';
     }>({ isOpen: false, title: '', message: '', onConfirm: () => { } });
 
     const isBlankLookupValue = (value?: string | null) => {
@@ -73,6 +75,59 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
             }
         }
     }, [contacts, editingContact?.id]);
+
+    // --- Auto-fill registration data for contacts with IČO but missing region/address ---
+    const autoFillProcessedRef = useRef<Set<string>>(new Set());
+
+    const autoFillRegistrationForContacts = useCallback(async (contactsToLookup: Subcontractor[]) => {
+        if (contactsToLookup.length === 0) return;
+
+        // Mark as processed to avoid duplicate lookups
+        contactsToLookup.forEach(c => autoFillProcessedRef.current.add(c.id));
+
+        try {
+            const queryList = contactsToLookup.map(c => ({ id: c.id, company: c.company, ico: c.ico }));
+            const registrationMap = await findCompanyRegistrationDetails(queryList);
+
+            const changedContacts: Subcontractor[] = [];
+            for (const c of contactsToLookup) {
+                const registration = registrationMap[c.id];
+                if (!registration) continue;
+
+                const nextRegion = registration.region && !isBlankLookupValue(registration.region)
+                    ? registration.region : c.region;
+                const nextAddress = registration.address && !isBlankLookupValue(registration.address)
+                    ? registration.address : c.address;
+
+                const regionChanged = (isBlankLookupValue(c.region) ? '' : c.region?.trim() || '') !== (isBlankLookupValue(nextRegion) ? '' : nextRegion?.trim() || '');
+                const addressChanged = (isBlankLookupValue(c.address) ? '' : c.address?.trim() || '') !== (isBlankLookupValue(nextAddress) ? '' : nextAddress?.trim() || '');
+
+                if (regionChanged || addressChanged) {
+                    changedContacts.push({ ...c, region: nextRegion, address: nextAddress });
+                }
+            }
+
+            if (changedContacts.length > 0) {
+                await onBulkUpdateContacts(changedContacts);
+            }
+        } catch (error) {
+            console.error('Auto-fill registračních údajů selhalo:', error);
+        }
+    }, [onBulkUpdateContacts]);
+
+    // Auto-fill on mount / when contacts change - find contacts needing lookup
+    useEffect(() => {
+        const needsLookup = contacts.filter(c =>
+            !!c.ico &&
+            c.ico !== '-' &&
+            (isBlankLookupValue(c.region) || isBlankLookupValue(c.address)) &&
+            !autoFillProcessedRef.current.has(c.id)
+        );
+
+        if (needsLookup.length > 0) {
+            void autoFillRegistrationForContacts(needsLookup);
+        }
+    }, [contacts, autoFillRegistrationForContacts]);
 
     // --- AI Handlers ---
 
@@ -99,62 +154,88 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
 
         setIsRegionLoading(true);
 
-        try {
-            const queryList = contactsToProcess.map(c => ({ id: c.id, company: c.company, ico: c.ico }));
+        let lookupSuccessCount = 0;
+        let lookupFailCount = 0;
+        let saveSuccessCount = 0;
+        let saveFailCount = 0;
+        const failedCompanies: string[] = [];
 
-            const registrationMap = await findCompanyRegistrationDetails(queryList);
+        // Process each contact individually so one failure doesn't stop the rest
+        for (const contact of contactsToProcess) {
+            try {
+                const registrationMap = await findCompanyRegistrationDetails([
+                    { id: contact.id, company: contact.company, ico: contact.ico }
+                ]);
 
-            const updatedContacts = contacts.map(c => {
-                const registration = registrationMap[c.id];
+                const registration = registrationMap[contact.id];
                 if (!registration) {
-                    return c;
+                    lookupFailCount++;
+                    failedCompanies.push(contact.company);
+                    continue;
                 }
 
-                const nextRegion =
-                    registration.region && !isBlankLookupValue(registration.region)
-                        ? registration.region
-                        : c.region;
-                const nextAddress =
-                    registration.address && !isBlankLookupValue(registration.address)
-                        ? registration.address
-                        : c.address;
+                const nextRegion = registration.region && !isBlankLookupValue(registration.region)
+                    ? registration.region : contact.region;
+                const nextAddress = registration.address && !isBlankLookupValue(registration.address)
+                    ? registration.address : contact.address;
 
-                return { ...c, region: nextRegion, address: nextAddress };
-            });
+                const originalRegion = isBlankLookupValue(contact.region) ? '' : contact.region?.trim() || '';
+                const newRegion = isBlankLookupValue(nextRegion) ? '' : nextRegion?.trim() || '';
+                const originalAddress = isBlankLookupValue(contact.address) ? '' : contact.address?.trim() || '';
+                const newAddress = isBlankLookupValue(nextAddress) ? '' : nextAddress?.trim() || '';
 
-            const changedContacts = updatedContacts.filter(c => {
-                const original = contacts.find(orig => orig.id === c.id);
-                if (!original) return false;
-                const originalRegion = isBlankLookupValue(original.region) ? '' : original.region?.trim() || '';
-                const newRegion = isBlankLookupValue(c.region) ? '' : c.region?.trim() || '';
-                const originalAddress = isBlankLookupValue(original.address) ? '' : original.address?.trim() || '';
-                const newAddress = isBlankLookupValue(c.address) ? '' : c.address?.trim() || '';
-                return originalRegion !== newRegion || originalAddress !== newAddress;
-            });
+                if (originalRegion === newRegion && originalAddress === newAddress) {
+                    lookupFailCount++;
+                    failedCompanies.push(contact.company);
+                    continue;
+                }
 
-            if (changedContacts.length === 0) {
-                setConfirmModal({
-                    isOpen: true,
-                    title: 'Informace',
-                    message: 'ARES nevrátil použitelný region ani adresu. Firma může existovat, ale registrační údaje se nepodařilo spolehlivě dohledat. Zkuste to znovu později nebo je doplňte ručně.',
-                    onConfirm: closeConfirmModal
-                });
-                return;
+                lookupSuccessCount++;
+
+                try {
+                    await onBulkUpdateContacts([{ ...contact, region: nextRegion, address: nextAddress }]);
+                    saveSuccessCount++;
+                } catch (saveError) {
+                    console.error('Chyba při ukládání kontaktu:', contact.company, saveError);
+                    saveFailCount++;
+                    failedCompanies.push(contact.company);
+                }
+            } catch (error) {
+                console.error('Chyba při dohledání:', contact.company, error);
+                lookupFailCount++;
+                failedCompanies.push(contact.company);
             }
-
-            await onBulkUpdateContacts(changedContacts);
-        } catch (error) {
-            console.error('Chyba při doplňování registračních údajů:', error);
-            setConfirmModal({
-                isOpen: true,
-                title: 'Chyba',
-                message: 'Nepodařilo se doplnit region ani adresu. Zkuste to znovu později.',
-                onConfirm: closeConfirmModal
-            });
-        } finally {
-            setIsRegionLoading(false);
-            setSelectedIds(new Set()); // Clear selection
         }
+
+        // Show summary modal
+        const lines: string[] = [];
+        lines.push(`Zpracováno: ${contactsToProcess.length} kontaktů`);
+        if (saveSuccessCount > 0) {
+            lines.push(`Doplněno: ${saveSuccessCount}`);
+        }
+        if (lookupFailCount > 0) {
+            lines.push(`Bez výsledku z ARES: ${lookupFailCount}`);
+        }
+        if (saveFailCount > 0) {
+            lines.push(`Chyba při ukládání: ${saveFailCount}`);
+        }
+        if (failedCompanies.length > 0 && failedCompanies.length <= 10) {
+            lines.push('');
+            lines.push(`Nedoplněno: ${failedCompanies.join(', ')}`);
+        } else if (failedCompanies.length > 10) {
+            lines.push('');
+            lines.push(`Nedoplněno: ${failedCompanies.slice(0, 10).join(', ')} a dalších ${failedCompanies.length - 10}`);
+        }
+
+        setConfirmModal({
+            isOpen: true,
+            title: saveSuccessCount > 0 ? 'Doplnění dokončeno' : 'Informace',
+            message: lines.join('\n'),
+            onConfirm: closeConfirmModal
+        });
+
+        setIsRegionLoading(false);
+        setSelectedIds(new Set());
     };
 
     const handleLookupRegistrationForForm = async (
@@ -232,6 +313,8 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
             isOpen: true,
             title: 'Smazat kontakty',
             message: `Opravdu chcete smazat ${selectedIds.size} vybraných kontaktů? Tato akce je nevratná.`,
+            confirmLabel: 'Smazat',
+            variant: 'danger',
             onConfirm: () => {
                 onDeleteContacts(Array.from(selectedIds));
                 setSelectedIds(new Set());
@@ -278,14 +361,25 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
         };
 
         try {
+            const contactId = editingContact ? editingContact.id : crypto.randomUUID();
+            const savedContact = { ...baseContact, id: contactId } as Subcontractor;
+
             if (editingContact) {
-                await onUpdateContact({ ...baseContact, id: editingContact.id } as Subcontractor);
+                await onUpdateContact(savedContact);
             } else {
-                await onAddContact({ ...baseContact, id: crypto.randomUUID() } as Subcontractor);
+                await onAddContact(savedContact);
             }
             // Only close modal if no error was thrown
             setIsContactModalOpen(false);
             setEditingContact(null);
+
+            // Auto-fill region/address from ARES if IČO is set but region/address is missing
+            if (savedContact.ico && savedContact.ico !== '-' &&
+                (isBlankLookupValue(savedContact.region) || isBlankLookupValue(savedContact.address))) {
+                // Remove from processed set so the useEffect picks it up, or do it directly
+                autoFillProcessedRef.current.delete(contactId);
+                void autoFillRegistrationForContacts([savedContact]);
+            }
         } catch (error) {
             console.error('Error saving contact:', error);
             // Modal stays open so user can see the error or retry
@@ -348,6 +442,8 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                 isOpen: true,
                 title: 'Smazat kontakt',
                 message: 'Opravdu chcete smazat tento kontakt? Tato akce je nevratná.',
+                confirmLabel: 'Smazat',
+                variant: 'danger',
                 onConfirm: () => {
                     onDeleteContacts([editingContact.id]);
                     setIsContactModalOpen(false);
@@ -723,8 +819,8 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                 message={confirmModal.message}
                 onConfirm={confirmModal.onConfirm}
                 onCancel={closeConfirmModal}
-                confirmLabel="Smazat"
-                variant="danger"
+                confirmLabel={confirmModal.confirmLabel || 'OK'}
+                variant={confirmModal.variant || 'info'}
             />
         </div>
     );

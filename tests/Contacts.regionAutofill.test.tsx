@@ -117,7 +117,7 @@ describe("Contacts auto-fill regions", () => {
 
     await waitFor(() => {
       expect(screen.getByRole("dialog")).toHaveTextContent(
-        "Firma může existovat, ale registrační údaje se nepodařilo spolehlivě dohledat",
+        "Bez výsledku z ARES: 1",
       );
     });
 
@@ -146,13 +146,15 @@ describe("Contacts auto-fill regions", () => {
     fireEvent.click(button);
 
     await waitFor(() => {
-      expect(mockState.onBulkUpdateContacts).toHaveBeenCalledTimes(1);
+      expect(mockState.onBulkUpdateContacts).toHaveBeenCalledWith([
+        expect.objectContaining({ id: "c-1", region: "Praha", address: "Ulice 1, Praha" }),
+      ]);
     });
 
-    expect(mockState.onBulkUpdateContacts).toHaveBeenCalledWith([
-      expect.objectContaining({ id: "c-1", region: "Praha", address: "Ulice 1, Praha" }),
-    ]);
-    expect(screen.queryByRole("dialog")).toBeNull();
+    // Summary modal is shown after completion
+    await waitFor(() => {
+      expect(screen.getByRole("dialog")).toHaveTextContent("Doplněno: 1");
+    });
   });
 
   it("na karte dodavatele dohleda adresu a region podle ICO", async () => {
