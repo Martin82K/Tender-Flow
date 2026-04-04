@@ -40,6 +40,10 @@ const ALLOWED_EXTERNAL_HOSTS = new Set([
     'www.github.com',
     'tenderflow.cz',
     'www.tenderflow.cz',
+    'ares.gov.cz',
+    'www.rzp.cz',
+    'rzp.gov.cz',
+    'or.justice.cz',
 ]);
 
 const ALLOWED_PROXY_HOST_SUFFIXES = ['.supabase.co', '.supabase.in'];

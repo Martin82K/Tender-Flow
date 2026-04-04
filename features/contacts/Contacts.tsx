@@ -7,6 +7,8 @@ import { findCompanyRegistrationDetails } from '@/services/geminiService';
 import { SubcontractorSelector } from '@/shared/ui/SubcontractorSelector';
 import { ConfirmationModal } from '@/shared/ui/ConfirmationModal';
 import { validateSubcontractorCompanyName } from '@/shared/dochub/subcontractorNameRules';
+import { shellAdapter } from '@/services/platformAdapter';
+import { isDesktop } from '@/services/platformAdapter';
 
 interface ContactsProps {
     statuses: StatusConfig[];
@@ -658,6 +660,37 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                                             placeholder="Sídlo firmy dle registrace"
                                         />
                                     </div>
+
+                                    {/* Registry Links */}
+                                    {formData.ico && !isBlankLookupValue(formData.ico) && (
+                                        <div className="col-span-2 flex items-center gap-1.5">
+                                            <span className="text-[11px] text-slate-400 dark:text-slate-500 mr-1">Rejstříky:</span>
+                                            {[
+                                                { label: 'ARES', url: `https://ares.gov.cz/ekonomicke-subjekty?ico=${formData.ico.trim()}` },
+                                                { label: 'RŽP', url: `https://rzp.gov.cz/portal/cs/vyhledani?q=${formData.ico.trim()}` },
+                                                { label: 'RES', url: `https://or.justice.cz/ias/ui/rejstrik-${'$'}firma?ico=${formData.ico.trim()}` },
+                                            ].map(link => (
+                                                <a
+                                                    key={link.label}
+                                                    href={link.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    onClick={(e) => {
+                                                        if (isDesktop) {
+                                                            e.preventDefault();
+                                                            shellAdapter.openExternal(link.url).catch(err =>
+                                                                console.warn('Nepodařilo se otevřít odkaz:', err)
+                                                            );
+                                                        }
+                                                    }}
+                                                    className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
+                                                >
+                                                    {link.label}
+                                                    <span className="material-symbols-outlined text-[12px]">open_in_new</span>
+                                                </a>
+                                            ))}
+                                        </div>
+                                    )}
 
                                     {/* Contacts Section */}
                                     <div className="col-span-2 mt-6">
