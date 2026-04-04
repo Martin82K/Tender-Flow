@@ -425,8 +425,9 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
                 return (
                   <tr
                     key={contact.id}
+                    onDoubleClick={() => onEditContact?.(contact)}
                     className={`
-                      group transition-all duration-200
+                      group transition-all duration-200 cursor-pointer
                       hover:shadow-md hover:-translate-y-[1px]
                       ${selected ? "shadow-md -translate-y-[1px]" : "shadow-sm"}
                     `}
