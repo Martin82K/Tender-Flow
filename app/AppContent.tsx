@@ -38,6 +38,8 @@ import {
 import { getLegalPage } from "@app/views/LegalPageRouter";
 import { LegalAcceptanceModal } from "@/features/auth/ui/LegalAcceptanceModal";
 import { requiresLegalAcceptance } from "@/shared/legal/legalDocumentVersions";
+import { WhatsNewModal } from "@/features/whats-new/WhatsNewModal";
+import { useWhatsNew } from "@/features/whats-new/useWhatsNew";
 
 export const AppContent: React.FC = () => {
   const {
@@ -59,6 +61,7 @@ export const AppContent: React.FC = () => {
   const [activeProjectTab, setActiveProjectTab] = useState<string>("overview");
   const [activePipelineCategoryId, setActivePipelineCategoryId] = useState<string | null>(null);
   const [isLegalAcceptanceSaving, setIsLegalAcceptanceSaving] = useState(false);
+  const { isOpen: isWhatsNewOpen, dismiss: dismissWhatsNew } = useWhatsNew();
 
   useRouteStateSync({
     isAuthenticated,
@@ -400,6 +403,9 @@ export const AppContent: React.FC = () => {
         onAccept={handleAcceptLegalDocuments}
       />
       <AgentFloatingPanel runtime={agentRuntime} />
+      {!shouldRequireLegalAcceptance && (
+        <WhatsNewModal isOpen={isWhatsNewOpen} onClose={dismissWhatsNew} />
+      )}
     </>
   );
 };
