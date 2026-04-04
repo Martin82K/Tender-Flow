@@ -206,9 +206,9 @@ export const useAppData = (showUiModal: (props: any) => void) => {
     }, [queryClient]);
 
     const setContactStatuses = useCallback((statuses: StatusConfig[]) => {
-        queryClient.setQueryData(STATUS_KEYS.contactStatuses(), statuses);
+        queryClient.setQueryData([...STATUS_KEYS.contactStatuses(), user?.id], statuses);
         // Persistence logic missing in Phase 2 too? Assuming only local state update or Settings saves it?
-    }, [queryClient]);
+    }, [queryClient, user?.id]);
 
     // Setters (for specific UI interactions that expect direct state manipulation - try to map to mutations or cache updates)
     // App.tsx uses: onContactsChange={actions.setContacts} -> this replaces contacts list?
