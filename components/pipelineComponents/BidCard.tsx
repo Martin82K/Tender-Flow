@@ -17,6 +17,7 @@ export interface BidCardProps {
   onGenerateInquiry?: (bid: Bid) => void;
   onGenerateMaterialInquiry?: (bid: Bid) => void;
   onOpenDocHubFolder?: (bid: Bid) => void;
+  "data-help-id"?: string;
 }
 
 export const BidCard: React.FC<BidCardProps> = ({
@@ -29,6 +30,7 @@ export const BidCard: React.FC<BidCardProps> = ({
   onGenerateInquiry,
   onGenerateMaterialInquiry,
   onOpenDocHubFolder,
+  "data-help-id": dataHelpId,
 }) => {
   const selectedRoundPrice =
     bid.selectionRound !== undefined && bid.selectionRound !== null
@@ -41,6 +43,7 @@ export const BidCard: React.FC<BidCardProps> = ({
 
   return (
     <div
+      data-help-id={dataHelpId}
       draggable
       onDragStart={(e) => onDragStart(e, bid.id)}
       onClick={onClick}

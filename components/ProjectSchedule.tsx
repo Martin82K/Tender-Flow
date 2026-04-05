@@ -60,7 +60,7 @@ export const ProjectSchedule: React.FC<{ projectId: string; projectTitle?: strin
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div data-help-id="schedule-controls" className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => setIsEditMode((v) => !v)}
@@ -117,7 +117,7 @@ export const ProjectSchedule: React.FC<{ projectId: string; projectTitle?: strin
             </label>
 
             {/* Export button */}
-            <div className="relative" ref={exportMenuRef}>
+            <div data-help-id="schedule-export" className="relative" ref={exportMenuRef}>
               <button
                 type="button"
                 onClick={() => setShowExportMenu((v) => !v)}
@@ -253,7 +253,7 @@ export const ProjectSchedule: React.FC<{ projectId: string; projectTitle?: strin
                 </button>
               )}
 
-              <div ref={scrollRef} className="overflow-x-auto overflow-y-auto flex-1 min-h-0" style={{ maxHeight: 'calc(100vh - 280px)' }}>
+              <div data-help-id="schedule-gantt" ref={scrollRef} className="overflow-x-auto overflow-y-auto flex-1 min-h-0" style={{ maxHeight: 'calc(100vh - 280px)' }}>
                 <div className="min-w-max">
                   {/* Axis header */}
                   <div className="flex sticky top-0 z-20 bg-white dark:bg-slate-950/70 border-b border-slate-200 dark:border-slate-800">

@@ -4,6 +4,7 @@ import { PROJECT_KEYS } from '@/hooks/queries/useProjectsQuery';
 import { Project, ProjectStatus } from '@/types';
 import { Header } from '@/shared/ui/Header';
 import { NotificationBell } from "@features/notifications/ui/NotificationBell";
+import { HelpButton } from "@features/help";
 import { projectService } from '@/services/projectService';
 import { useAuth } from '@/context/AuthContext';
 import { DeleteConfirmationModal } from '@/shared/ui/DeleteConfirmationModal';
@@ -496,12 +497,12 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
 
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen overflow-y-auto">
-            <Header title="Správa Staveb" subtitle="Vytváření, archivace a sdílení projektů" notificationSlot={<NotificationBell />} />
+            <Header title="Správa Staveb" subtitle="Vytváření, archivace a sdílení projektů" helpSlot={<HelpButton />} notificationSlot={<NotificationBell />} />
 
             <div className="p-6 lg:p-10 max-w-5xl mx-auto w-full pb-20">
 
                 {/* 1. Create New Project */}
-                <section className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl mb-8">
+                <section data-help-id="pm-create-section" className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl mb-8">
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
                         <span className="material-symbols-outlined text-emerald-400">add_business</span>
                         Nová stavba
@@ -564,7 +565,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                 </section>
 
                 {/* 2. Active Project List */}
-                <section className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl mb-8">
+                <section data-help-id="pm-project-list" className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl mb-8">
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
                         <span className="material-symbols-outlined text-blue-400">list_alt</span>
                         Seznam vašich a sdílených staveb
@@ -624,7 +625,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-2">
+                                <div data-help-id="pm-project-actions" className="flex items-center gap-2">
                                     {/* Edit Button - Only Owner */}
                                     {(!project.ownerId || project.ownerId === user?.id) && (
                                         <button

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Header } from "@/shared/ui/Header";
 import { NotificationBell } from "@features/notifications/ui/NotificationBell";
+import { HelpButton } from "@features/help";
 import { StatusConfig, Subcontractor } from "@/types";
 import { navigate, useLocation } from "@/shared/routing/router";
 import {
@@ -257,12 +258,13 @@ export const Settings: React.FC<SettingsProps> = ({
       <Header
         title="Nastavení"
         subtitle="Konfigurace aplikace a správa staveb"
+        helpSlot={<HelpButton />}
         notificationSlot={<NotificationBell />}
       />
 
       <div className="p-4 lg:p-6 xl:p-8 w-full pb-20">
         {/* Main Tab Navigation (Top Level) */}
-        <div className="flex items-center gap-4 mb-8 border-b border-slate-200 dark:border-slate-700/50">
+        <div data-help-id="settings-main-tabs" className="flex items-center gap-4 mb-8 border-b border-slate-200 dark:border-slate-700/50">
           <button
             onClick={() => {
               setActiveTab("user");

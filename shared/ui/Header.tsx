@@ -7,6 +7,8 @@ interface HeaderProps {
   onSearchChange?: (query: string) => void;
   searchPlaceholder?: string;
   showSearch?: boolean;
+  /** Slot for help button (rendered by caller) */
+  helpSlot?: React.ReactNode;
   /** Slot for notification bell + dropdown (rendered by caller) */
   notificationSlot?: React.ReactNode;
 }
@@ -18,6 +20,7 @@ export const Header: React.FC<HeaderProps> = ({
   onSearchChange,
   searchPlaceholder = "Search...",
   showSearch = true,
+  helpSlot,
   notificationSlot,
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -63,6 +66,7 @@ export const Header: React.FC<HeaderProps> = ({
               />
             </div>
           )}
+          {helpSlot}
           {notificationSlot}
         </div>
       </div>

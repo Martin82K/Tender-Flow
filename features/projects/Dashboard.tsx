@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Header } from "@/shared/ui/Header";
 import { NotificationBell } from "@features/notifications/ui/NotificationBell";
+import { HelpButton } from "@features/help";
 import { Button } from "@/shared/ui/Button";
 import { Project, ProjectDetails } from "@/types";
 import { ProjectOverviewNew } from "@/shared/ui/projects/ProjectOverviewNew";
@@ -205,7 +206,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   if (activeProjects.length === 0) {
     return (
       <div className="flex flex-col h-full overflow-y-auto bg-background-light dark:bg-background-dark">
-        <Header title="Dashboard" subtitle="Detailní přehled projektu" notificationSlot={<NotificationBell />} />
+        <Header title="Dashboard" subtitle="Detailní přehled projektu" helpSlot={<HelpButton />} notificationSlot={<NotificationBell />} />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <span className="material-symbols-outlined text-slate-400 dark:text-slate-600 text-[80px] mb-4 block">
@@ -225,10 +226,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950">
-      <Header title="Dashboard" subtitle="Detailní přehled vybraného projektu" notificationSlot={<NotificationBell />}>
+      <Header title="Dashboard" subtitle="Detailní přehled vybraného projektu" helpSlot={<HelpButton />} notificationSlot={<NotificationBell />}>
         <div className="flex items-center gap-3 flex-wrap">
           {/* Project Selector Container */}
-          <div className="flex items-center gap-2 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border border-slate-200 dark:border-slate-800 p-1 rounded-2xl shadow-sm">
+          <div data-help-id="dashboard-project-selector" className="flex items-center gap-2 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border border-slate-200 dark:border-slate-800 p-1 rounded-2xl shadow-sm">
             <div className="pl-3 pr-1 text-slate-400">
               <span className="material-symbols-outlined text-[20px]">architecture</span>
             </div>
@@ -249,6 +250,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
           {/* Export Button */}
           <Button
+            data-help-id="dashboard-export"
             variant="success"
             onClick={handleExport}
             leftIcon={
@@ -265,7 +267,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       </Header>
 
       <div className="flex-1 overflow-auto bg-slate-50 dark:bg-slate-950">
-        <div className="max-w-[1600px] mx-auto animate-fadeIn">
+        <div data-help-id="dashboard-overview" className="max-w-[1600px] mx-auto animate-fadeIn">
           {selectedProject ? (
             <ProjectOverviewNew
               project={selectedProject}

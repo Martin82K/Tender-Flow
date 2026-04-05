@@ -346,7 +346,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
 
         <div className="flex flex-col md:flex-row gap-8 animate-fadeIn">
           {/* Sidebar Navigation */}
-          <aside className="w-full md:w-64 flex-shrink-0">
+          <aside data-help-id="documents-sidebar" className="w-full md:w-64 flex-shrink-0">
             <nav className="flex flex-col gap-2">
               <button
                 onClick={() => setDocumentsSubTab("pd")}
@@ -451,6 +451,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
             )}
 
             {documentsSubTab === "templates" && canTemplates && (
+              <div data-help-id="templates-section">
               <TemplatesSection
                 project={project}
                 templateName={templateName}
@@ -458,6 +459,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
                 losersTemplateName={losersTemplateName}
                 openTemplateManager={openTemplateManager}
               />
+              </div>
             )}
 
             {/* DocHub Section (Wizard) */}
@@ -469,32 +471,41 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
                   </div>
                 )}
 
-                <DocHubStatusCard
-                  state={docHub.state}
-                  actions={docHub.actions}
-                  setters={docHub.setters}
-                  showModal={showModal}
-                />
+                <div data-help-id="dochub-status">
+                  <DocHubStatusCard
+                    state={docHub.state}
+                    actions={docHub.actions}
+                    setters={docHub.setters}
+                    showModal={showModal}
+                  />
+                </div>
 
-                <DocHubSetupWizard
-                  state={docHub.state}
-                  actions={docHub.actions}
-                  setters={docHub.setters}
-                  showModal={showModal}
-                />
+                <div data-help-id="dochub-setup">
+                  <DocHubSetupWizard
+                    state={docHub.state}
+                    actions={docHub.actions}
+                    setters={docHub.setters}
+                    showModal={showModal}
+                  />
+                </div>
 
                 {docHub.state.isConnected && !docHub.state.isEditingSetup && (
                   <>
-                    <DocHubStructureEditor
-                      state={docHub.state}
-                      actions={docHub.actions}
-                      setters={docHub.setters}
-                      showModal={showModal}
-                    />
+                    <div data-help-id="dochub-structure">
+                      <DocHubStructureEditor
+                        state={docHub.state}
+                        actions={docHub.actions}
+                        setters={docHub.setters}
+                        showModal={showModal}
+                      />
+                    </div>
 
-                    <DocHubLinks state={docHub.state} showModal={showModal} />
+                    <div data-help-id="dochub-links">
+                      <DocHubLinks state={docHub.state} showModal={showModal} />
+                    </div>
 
-                    <DocHubAutoCreateStatus
+                    <div data-help-id="dochub-autocreate">
+                      <DocHubAutoCreateStatus
                       state={docHub.state}
                       setters={docHub.setters}
                       showModal={showModal}
@@ -505,11 +516,14 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
                       logRef={docHubRunLogRef}
                       overviewRef={docHubRunOverviewRef}
                     />
+                    </div>
 
-                    <DocHubHistory
-                      project={project}
-                      onSelectRun={handleHistorySelect}
-                    />
+                    <div data-help-id="dochub-history">
+                      <DocHubHistory
+                        project={project}
+                        onSelectRun={handleHistorySelect}
+                      />
+                    </div>
                   </>
                 )}
               </div>

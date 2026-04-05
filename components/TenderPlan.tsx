@@ -71,7 +71,7 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
 
                 <div className="flex flex-col md:flex-row gap-8 animate-fadeIn">
                     {/* Sidebar Navigation */}
-                    <aside className="w-full md:w-64 flex-shrink-0">
+                    <aside data-help-id="tender-plan-sidebar" className="w-full md:w-64 flex-shrink-0">
                         <nav className="flex flex-col gap-2">
                             <button
                                 onClick={() => setIsAdding(true)}
@@ -154,7 +154,7 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
                     {/* Main Content */}
                     <main className="flex-1 min-w-0">
                         {viewMode === 'tools' ? (
-                            <div className="bg-white dark:bg-slate-900/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700/40 rounded-2xl shadow-sm p-8">
+                            <div data-help-id="tender-plan-tools" className="bg-white dark:bg-slate-900/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700/40 rounded-2xl shadow-sm p-8">
                                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
                                     <span className="material-symbols-outlined text-primary">handyman</span>
                                     Nástroje pro správu plánu
@@ -220,7 +220,7 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
                                 </div>
                             </div>
                         ) : (
-                            <div className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl shadow-xl overflow-hidden">
+                            <div data-help-id="tender-plan-table" className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl shadow-xl overflow-hidden">
                                 <table className="w-full">
                                     <thead>
                                         <tr className="border-b border-slate-200 dark:border-slate-700/40 bg-slate-50 dark:bg-slate-950/60">

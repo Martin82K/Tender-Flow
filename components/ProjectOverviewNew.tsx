@@ -136,7 +136,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
       </h3>
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 text-sm">
         {/* 1. Investor & Info */}
-        <div className="lg:col-span-1 border-r border-slate-200 dark:border-slate-800/50 pr-6">
+        <div data-help-id="overview-building-info" className="lg:col-span-1 border-r border-slate-200 dark:border-slate-800/50 pr-6">
           <div className="flex justify-between items-center mb-4">
             <span className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">
               Údaje o stavbě
@@ -263,7 +263,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
         </div>
 
         {/* 2. Financials (Investor) */}
-        <div className="lg:col-span-1 border-r border-slate-200 dark:border-slate-800/50 pr-6">
+        <div data-help-id="overview-investor-finances" className="lg:col-span-1 border-r border-slate-200 dark:border-slate-800/50 pr-6">
           <div className="flex justify-between items-center mb-4">
             <span className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">
               Finance (Investor)
@@ -448,7 +448,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
         </div>
 
         {/* 3. Internal Budget */}
-        <div className="lg:col-span-1 border-r border-slate-200 dark:border-slate-800/50 pr-6">
+        <div data-help-id="overview-internal-budget" className="lg:col-span-1 border-r border-slate-200 dark:border-slate-800/50 pr-6">
           <div className="flex justify-between items-center mb-4">
             <span className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">
               Interní Rozpočet
@@ -544,7 +544,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
           )}
         </div>
         {/* 4. Contract Parameters (Restored & Restructured) */}
-        <div className="lg:col-span-1 border-r border-slate-200 dark:border-slate-800/50 pr-6">
+        <div data-help-id="overview-contract-params" className="lg:col-span-1 border-r border-slate-200 dark:border-slate-800/50 pr-6">
           <div className="flex justify-between items-center mb-4">
             <span className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">
               Parametry smlouvy
@@ -755,7 +755,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
   return (
     <div className="flex flex-col gap-8 p-4 md:p-8 w-full bg-slate-50 dark:bg-slate-950 animate-fadeIn">
       {/* Top Row: 4 KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div data-help-id="overview-kpi-cards" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* 1. Rozpočet (Investor) */}
         <div className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden group shadow-sm hover:shadow-md transition-all">
           <div className="absolute -top-4 -right-4 size-24 bg-blue-500/5 rounded-full group-hover:scale-125 transition-transform duration-500" />
@@ -1504,7 +1504,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
 
       {/* Demand Categories Overview Table */}
       {project.categories.length > 0 && (
-            <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-3xl mt-8 shadow-sm">
+            <div data-help-id="overview-demand-table" className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-3xl mt-8 shadow-sm">
               <div className="px-8 py-6 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between flex-wrap gap-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-primary/10 rounded-xl text-primary">

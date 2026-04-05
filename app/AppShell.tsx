@@ -4,12 +4,17 @@ import { AppContent } from "@app/AppContent";
 import { CookieConsentBanner } from "@/features/public/ui/CookieConsentBanner";
 import { ToastProvider } from "@features/notifications/context/ToastContext";
 import { ToastContainer } from "@features/notifications/ui/ToastContainer";
+import { HelpProvider } from "@features/help";
+import { HelpOverlay } from "@features/help/ui/HelpOverlay";
 
 export const AppShell: React.FC = () => {
   return (
     <AppProviders>
       <ToastProvider>
-        <AppContent />
+        <HelpProvider>
+          <AppContent />
+          <HelpOverlay />
+        </HelpProvider>
         <ToastContainer />
         <CookieConsentBanner />
       </ToastProvider>

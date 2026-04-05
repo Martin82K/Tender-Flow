@@ -14,6 +14,7 @@ export interface ColumnProps {
     children: React.ReactNode;
     count?: number;
     onDrop: (e: React.DragEvent, status: BidStatus) => void;
+    "data-help-id"?: string;
 }
 
 const colorStyles = {
@@ -56,6 +57,7 @@ export const Column: React.FC<ColumnProps> = ({
     children,
     count,
     onDrop,
+    "data-help-id": dataHelpId,
 }) => {
     const [isOver, setIsOver] = useState(false);
     const styles = colorStyles[color];
@@ -76,6 +78,7 @@ export const Column: React.FC<ColumnProps> = ({
 
     return (
         <div
+            data-help-id={dataHelpId}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}

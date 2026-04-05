@@ -1,6 +1,7 @@
 import React, { useRef } from "react";
 import { Header } from "@/shared/ui/Header";
 import { NotificationBell } from "@features/notifications/ui/NotificationBell";
+import { HelpButton } from "@features/help";
 import {
   CartesianGrid,
   Legend,
@@ -145,7 +146,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
   return (
     <div className="flex flex-col h-full overflow-y-auto bg-slate-50 dark:bg-slate-950">
       <div className="no-print">
-        <Header title="Přehledy" subtitle="Analytika dodavatelů, výběrů a trendů" notificationSlot={<NotificationBell />} />
+        <Header title="Přehledy" subtitle="Analytika dodavatelů, výběrů a trendů" helpSlot={<HelpButton />} notificationSlot={<NotificationBell />} />
       </div>
 
       <div className="flex-1 space-y-6 p-6">
@@ -168,7 +169,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
         ) : null}
 
         {/* Filters Bar */}
-        <div className="no-print flex flex-wrap items-center gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 shadow-sm">
+        <div data-help-id="overview-scope-toggle" className="no-print flex flex-wrap items-center gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 shadow-sm">
           <div className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
             <Filter className="w-4 h-4" />
             Filtry
@@ -232,7 +233,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div data-help-id="overview-kpi" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <KPICard
             title="Objem zakázek"
             value={formatMoney(analytics.totals.awardedValue)}
@@ -290,6 +291,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
 
         {/* Suppliers Section */}
         <OverviewSection
+          data-help-id="overview-supplier-analysis"
           id="suppliers"
           title="Analýza dodavatelů"
           subtitle="Hodnocení, četnost SOD, nabídky a úspěšnost"
@@ -374,7 +376,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
           </div>
 
           {/* Charts Grid - 2x2 layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <div data-help-id="overview-charts" className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             <SupplierBarChart
               items={topSuppliers.map((s) => ({
                 label: s.name,
@@ -643,6 +645,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
 
         {/* Trends Section */}
         <OverviewSection
+          data-help-id="overview-trends"
           id="trends"
           title="Trendy v čase"
           subtitle="Objemy zakázek a aktivita v jednotlivých letech"

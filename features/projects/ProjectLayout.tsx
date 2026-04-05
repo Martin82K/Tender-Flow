@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Header } from "@/shared/ui/Header";
 import { NotificationBell } from "@features/notifications/ui/NotificationBell";
+import { HelpButton } from "@features/help";
 import { Pipeline } from "@/shared/ui/projects/Pipeline";
 import { TenderPlan } from "@/shared/ui/projects/TenderPlan";
 import { ProjectSchedule } from "@/shared/ui/projects/ProjectSchedule";
@@ -115,6 +116,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
         subtitle="Detail stavby"
         onSearchChange={setSearchQuery}
         searchPlaceholder="Hledat v projektu..."
+        helpSlot={<HelpButton />}
         notificationSlot={<NotificationBell />}
       >
         <div className="flex items-center gap-4">
@@ -135,7 +137,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
           </div>
 
           {/* Desktop horizontal tabs */}
-          <div className="hidden md:flex items-center gap-1.5 bg-slate-100 dark:bg-slate-950/50 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800">
+          <div data-help-id="project-tabs" className="hidden md:flex items-center gap-1.5 bg-slate-100 dark:bg-slate-950/50 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800">
             {visibleTabs.map((tab) => (
               <button
                 key={tab.id}

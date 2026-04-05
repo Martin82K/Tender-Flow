@@ -425,6 +425,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
             <span className="text-sm font-medium">Zpět na přehled</span>
           </button>
           <button
+            data-help-id="kanban-add-supplier"
             onClick={() => setIsSubcontractorModalOpen(true)}
             className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors"
           >
@@ -464,7 +465,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
           )}
 
           {/* Export Button with Dropdown */}
-          <div className="relative">
+          <div data-help-id="kanban-export" className="relative">
             <button
               ref={exportButtonRef}
               onClick={() => {
@@ -568,7 +569,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
         </Header>
 
         <div className="px-6 pt-4">
-          <div className="overflow-x-auto">
+          <div data-help-id="kanban-info-bar" className="overflow-x-auto">
             <div className="flex min-w-max items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
               <span className="font-semibold text-slate-900 dark:text-white">
                 {activeCategory.title}
@@ -636,20 +637,22 @@ export const Pipeline: React.FC<PipelineProps> = ({
           </div>
         )}
 
-        <div className="flex-1 overflow-x-auto overflow-y-hidden p-6">
+        <div data-help-id="pipeline-kanban" className="flex-1 overflow-x-auto overflow-y-hidden p-6">
           <div className="flex h-full space-x-4 min-w-max">
             {/* 1. Oslovení (Contacted) */}
             <Column
+              data-help-id="kanban-col-contacted"
               title="Oslovení"
               status="contacted"
               color="slate"
               count={getBidsForColumn(activeCategory.id, "contacted").length}
               onDrop={handleDrop}
             >
-              {getBidsForColumn(activeCategory.id, "contacted").map((bid) => (
+              {getBidsForColumn(activeCategory.id, "contacted").map((bid, idx) => (
                 <BidCard
                   key={bid.id}
                   bid={bid}
+                  data-help-id={idx === 0 ? "kanban-bid-card" : undefined}
                   onDragStart={handleDragStart}
                   onDoubleClick={setEditingBid}
                   onEdit={setEditingBid}
@@ -699,6 +702,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
             {/* 3. Cenová nabídka (Offers) */}
             <Column
+              data-help-id="kanban-col-offer"
               title="Cenová nabídka"
               status="offer"
               color="amber"
@@ -745,6 +749,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
             {/* 5. Jednání o SOD (Contract Negotiation) */}
             <Column
+              data-help-id="kanban-col-sod"
               title="Jednání o SOD"
               status="sod"
               color="green"
