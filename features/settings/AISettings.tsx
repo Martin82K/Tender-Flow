@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { dbAdapter } from "../../services/dbAdapter";
-import { VikiCostControl } from "@/features/settings/VikiCostControl";
-
 // Default AI Prompts
 const DEFAULT_PROMPT_ACHIEVEMENTS = `Jsi kreativní analytik stavebních projektů. Vygeneruj 4-5 UNIKÁTNÍCH achievement-style insights ve stylu herních úspěchů. Buď kreativní - každé volání má být jiné!
 
@@ -232,9 +230,6 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
         <span className="ml-2 px-2.5 py-1 bg-violet-500/20 text-violet-400 text-xs font-bold rounded-lg border border-violet-500/30">
           Admin
         </span>
-        <span className="px-2.5 py-1 bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 text-xs font-bold rounded-lg border border-emerald-500/30">
-          Viki default: OpenAI / gpt-5-mini
-        </span>
       </h2>
 
       <div className="flex items-center justify-between mb-8">
@@ -243,7 +238,7 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
             Přístup k AI modulům se řídí předplatným
           </p>
           <p className="text-xs text-slate-500">
-            Moduly <strong>Viki</strong> a <strong>OCR</strong> zapínejte v
+            Modul <strong>OCR</strong> zapínejte v
             administraci <strong>Předplatné</strong> podle tarifu. Tato sekce
             slouží pouze pro konfiguraci modelů, providerů a bezpečnostní
             pravidla.
@@ -275,8 +270,6 @@ export const AISettings: React.FC<AISettingsProps> = ({ isAdmin }) => {
             </div>
           </div>
         </div>
-
-        <VikiCostControl />
 
           {/* API Keys Policy */}
           <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-700">

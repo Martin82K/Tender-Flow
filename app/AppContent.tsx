@@ -18,13 +18,11 @@ import { useStuckLoadingRecovery } from "@app/hooks/useStuckLoadingRecovery";
 import { AuthGate } from "@app/views/AuthGate";
 import { AppLoadErrorView } from "@app/views/AppLoadErrorView";
 import { AppLoadingView } from "@app/views/AppLoadingView";
-import { AgentFloatingPanel } from "@shared/ui/agent/AgentFloatingPanel";
 import {
   INCIDENT_FATAL_EVENT_NAME,
   setIncidentContext,
 } from "@/services/incidentLogger";
 import type { FatalIncidentNotice } from "@/shared/types/incidents";
-import type { AgentRuntimeSnapshot } from "@shared/types/agent";
 import {
   AppLazyFallback,
   Contacts,
@@ -344,23 +342,6 @@ export const AppContent: React.FC = () => {
     }
   };
 
-  const agentRuntime: AgentRuntimeSnapshot = {
-    pathname,
-    search,
-    currentView,
-    activeProjectTab,
-    selectedProjectId: state.selectedProjectId,
-    projects: state.projects,
-    projectDetails: state.allProjectDetails,
-    contacts: state.contacts,
-    audience: "internal",
-    contextScopes: ["project", "memory", "manual"],
-    contextPolicyVersion: "v1-strict-allowlist",
-    organizationId: user?.organizationId || null,
-    userId: user?.id || null,
-    isAdmin: state.isAdmin,
-  };
-
   const shouldRequireLegalAcceptance = requiresLegalAcceptance(user);
 
   const handleAcceptLegalDocuments = async (input: {
@@ -402,7 +383,6 @@ export const AppContent: React.FC = () => {
         isSubmitting={isLegalAcceptanceSaving}
         onAccept={handleAcceptLegalDocuments}
       />
-      <AgentFloatingPanel runtime={agentRuntime} />
       {!shouldRequireLegalAcceptance && (
         <WhatsNewModal isOpen={isWhatsNewOpen} onClose={dismissWhatsNew} />
       )}

@@ -86,7 +86,7 @@ export const settingsHelp: HelpEntry[] = [
     id: "settings-admin-ai",
     view: "settings",
     label: "Nastavení AI",
-    description: "Konfigurace AI asistenta (Viki) — model, kontext, oprávnění a limity.",
+    description: "Konfigurace AI funkcí — modely, providery a bezpečnostní pravidla.",
     category: "data-entry",
     tourOrder: 10,
   },

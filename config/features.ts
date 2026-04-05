@@ -27,7 +27,6 @@ export const FEATURES = {
   EXPORT_PDF: 'export_pdf',
   EXPORT_EXCEL: 'export_excel',
   DOC_HUB: 'doc_hub',
-  AI_VIKI: 'ai_viki',
   URL_SHORTENER: 'url_shortener',
   EXCEL_INDEXER: 'excel_indexer',
   DYNAMIC_TEMPLATES: 'dynamic_templates',

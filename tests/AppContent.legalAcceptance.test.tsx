@@ -161,10 +161,6 @@ vi.mock("@app/views/LazyViews", () => ({
   UrlShortener: () => <div>shortener</div>,
 }));
 
-vi.mock("@shared/ui/agent/AgentFloatingPanel", () => ({
-  AgentFloatingPanel: () => null,
-}));
-
 vi.mock("@app/views/LegalPageRouter", () => ({
   getLegalPage: () => null,
 }));

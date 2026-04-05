@@ -30,15 +30,8 @@ type FeatureGroup = {
 const DISPLAY_TIERS = getDisplayTiers();
 const ALL_TIERS = getAllTiers();
 const REMOVED_FEATURE_KEYS = new Set(["ai_insights"]);
-const SYSTEM_PROTECTED_KEYS = new Set(["ai_viki", "ai_ocr"]);
+const SYSTEM_PROTECTED_KEYS = new Set(["ai_ocr"]);
 const SYSTEM_AI_MODULES: FeatureSeed[] = [
-  {
-    key: "ai_viki",
-    name: "Povolit Viki",
-    description: "Přístup k AI asistentce Viki a jejím analytickým funkcím.",
-    category: "AI moduly",
-    sortOrder: 51,
-  },
   {
     key: "ai_ocr",
     name: "Povolit OCR",
