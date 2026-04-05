@@ -8,6 +8,8 @@ import type {
     FolderInfo,
     FileInfo,
     FolderSnapshot,
+    BackupSettingsInfo,
+    BackupFileEntry,
     BidComparisonDetectionResult,
     BidComparisonStartInput,
     BidComparisonStartResult,
@@ -675,6 +677,71 @@ export const desktopNotificationAdapter = {
     },
 };
 
+/**
+ * Backup Adapter
+ * Local backup file management on desktop
+ */
+export const backupAdapter = {
+    isAvailable(): boolean {
+        return !!(isDesktop && window.electronAPI?.backup);
+    },
+
+    async getSettings(): Promise<BackupSettingsInfo> {
+        if (isDesktop && window.electronAPI?.backup) {
+            return window.electronAPI.backup.getSettings();
+        }
+        return { enabled: false, backupFolderPath: '', lastBackupAt: null, lastBackupError: null };
+    },
+
+    async setEnabled(enabled: boolean): Promise<void> {
+        if (isDesktop && window.electronAPI?.backup) {
+            return window.electronAPI.backup.setEnabled(enabled);
+        }
+    },
+
+    async save(jsonContent: string, backupType: 'user' | 'tenant', organizationId: string): Promise<string> {
+        if (isDesktop && window.electronAPI?.backup) {
+            return window.electronAPI.backup.save(jsonContent, backupType, organizationId);
+        }
+        throw new Error('Záloha je dostupná pouze v desktop aplikaci.');
+    },
+
+    async read(filePath: string): Promise<string> {
+        if (isDesktop && window.electronAPI?.backup) {
+            return window.electronAPI.backup.read(filePath);
+        }
+        throw new Error('Záloha je dostupná pouze v desktop aplikaci.');
+    },
+
+    async list(): Promise<BackupFileEntry[]> {
+        if (isDesktop && window.electronAPI?.backup) {
+            return window.electronAPI.backup.list();
+        }
+        return [];
+    },
+
+    async getFolder(): Promise<string> {
+        if (isDesktop && window.electronAPI?.backup) {
+            return window.electronAPI.backup.getFolder();
+        }
+        return '';
+    },
+
+    async openFolder(): Promise<{ success: boolean; error?: string }> {
+        if (isDesktop && window.electronAPI?.backup) {
+            return window.electronAPI.backup.openFolder();
+        }
+        return { success: false, error: 'Dostupné pouze v desktop aplikaci.' };
+    },
+
+    async clean(): Promise<number> {
+        if (isDesktop && window.electronAPI?.backup) {
+            return window.electronAPI.backup.clean();
+        }
+        return 0;
+    },
+};
+
 // Combined platform adapter
 export const platformAdapter = {
     isDesktop,
@@ -693,6 +760,7 @@ export const platformAdapter = {
     session: sessionAdapter,
     shell: shellAdapter,
     notification: desktopNotificationAdapter,
+    backup: backupAdapter,
 };
 
 export default platformAdapter;

@@ -14,6 +14,7 @@ import { registerOAuthHandlers } from './modules/oauthHandlers';
 import { registerSessionHandlers } from './modules/sessionHandlers';
 import { registerWatcherHandlers } from './modules/watcherHandlers';
 import { registerNotificationHandlers } from './modules/notificationHandlers';
+import { registerBackupHandlers } from './modules/backupHandlers';
 import { getAutoUpdaterService } from '../services/autoUpdater';
 import { convertToDocx } from './modules/docxConversion';
 
@@ -198,6 +199,7 @@ export function registerIpcHandlers(): void {
     });
     registerNetHandlers({ isAllowedProxyUrl });
     registerNotificationHandlers();
+    registerBackupHandlers();
 
     // --- APP ---
 

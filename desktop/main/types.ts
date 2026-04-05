@@ -19,6 +19,7 @@ export interface ElectronAPI {
     shell: ShellAPI;
     bidComparison: BidComparisonAPI;
     notification: NotificationAPI;
+    backup: BackupAPI;
 }
 
 export interface NotificationAPI {
@@ -289,6 +290,33 @@ export interface BidComparisonAPI {
     autoStop: (scope: BidComparisonAutoScope) => Promise<{ success: boolean }>;
     autoStatus: (scope: BidComparisonAutoScope) => Promise<BidComparisonAutoStatus | null>;
     autoList: () => Promise<BidComparisonAutoStatus[]>;
+}
+
+export interface BackupAPI {
+    getSettings: () => Promise<BackupSettingsInfo>;
+    setEnabled: (enabled: boolean) => Promise<void>;
+    save: (jsonContent: string, backupType: 'user' | 'tenant', organizationId: string) => Promise<string>;
+    read: (filePath: string) => Promise<string>;
+    list: () => Promise<BackupFileEntry[]>;
+    getFolder: () => Promise<string>;
+    openFolder: () => Promise<{ success: boolean; error?: string }>;
+    clean: () => Promise<number>;
+}
+
+export interface BackupSettingsInfo {
+    enabled: boolean;
+    backupFolderPath: string;
+    lastBackupAt: string | null;
+    lastBackupError: string | null;
+}
+
+export interface BackupFileEntry {
+    fileName: string;
+    filePath: string;
+    backupType: 'user' | 'tenant';
+    organizationId: string;
+    createdAt: string;
+    sizeBytes: number;
 }
 
 export interface UpdateStatus {

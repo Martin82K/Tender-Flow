@@ -23,6 +23,7 @@ import { NotificationSettings } from "@/features/settings/NotificationSettings";
 import { IncidentLogsAdmin } from "@/features/settings/IncidentLogsAdmin";
 import { ComplianceAdmin } from "@/features/settings/ComplianceAdmin";
 import { AdminMfaGuard } from "@/features/settings/AdminMfaGuard";
+import { BackupSettings } from "@/features/backup/ui/BackupSettings";
 
 import { useFeatures } from "@/context/FeatureContext";
 import { FEATURES } from "@/config/features";
@@ -70,7 +71,8 @@ export const Settings: React.FC<SettingsProps> = ({
     | "excelUnlocker"
     | "excelMerger"
     | "urlShortener"
-    | "excelIndexer";
+    | "excelIndexer"
+    | "backup";
   type AdminSubTab =
     | "registration"
     | "users"
@@ -102,6 +104,7 @@ export const Settings: React.FC<SettingsProps> = ({
         subTabParam === "urlShortener" ||
         subTabParam === "indexMatcher" ||
         subTabParam === "excelIndexer" ||
+        subTabParam === "backup" ||
         subTabParam === "tools" // legacy
           ? subTabParam
           : null;
@@ -133,7 +136,8 @@ export const Settings: React.FC<SettingsProps> = ({
       settingsRoute.subTab === "excelMerger" ||
       settingsRoute.subTab === "urlShortener" ||
       settingsRoute.subTab === "indexMatcher" ||
-      settingsRoute.subTab === "excelIndexer"
+      settingsRoute.subTab === "excelIndexer" ||
+      settingsRoute.subTab === "backup"
     )
       return settingsRoute.subTab;
     if (settingsRoute.subTab === "excelUnlocker") return settingsRoute.subTab;
@@ -178,6 +182,7 @@ export const Settings: React.FC<SettingsProps> = ({
   const canExcelMerger = hasFeature(FEATURES.EXCEL_MERGER);
   const canUrlShortener = hasFeature(FEATURES.URL_SHORTENER);
   const canExcelIndexer = hasFeature(FEATURES.EXCEL_INDEXER);
+  const canBackup = hasFeature(FEATURES.DATA_BACKUP);
 
   useEffect(() => {
     if (isFeaturesLoading) return;
@@ -188,7 +193,8 @@ export const Settings: React.FC<SettingsProps> = ({
       (activeUserSubTab === "excelUnlocker" && !canExcelUnlocker) ||
       (activeUserSubTab === "excelMerger" && !canExcelMerger) ||
       (activeUserSubTab === "urlShortener" && !canUrlShortener) ||
-      (activeUserSubTab === "excelIndexer" && !canExcelIndexer);
+      (activeUserSubTab === "excelIndexer" && !canExcelIndexer) ||
+      (activeUserSubTab === "backup" && !canBackup);
 
     if (!isGated) return;
 
@@ -202,6 +208,7 @@ export const Settings: React.FC<SettingsProps> = ({
     canExcelUnlocker,
     canUrlShortener,
     canExcelIndexer,
+    canBackup,
     isFeaturesLoading,
   ]);
 
@@ -452,24 +459,6 @@ export const Settings: React.FC<SettingsProps> = ({
               <nav className="flex flex-col gap-2">
                 <button
                   onClick={() =>
-                    updateSettingsUrl({ tab: "user", subTab: "profile" })
-                  }
-                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
-                    activeUserSubTab === "profile"
-                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="material-symbols-outlined text-[20px]">
-                      person
-                    </span>
-                    Profil a Vzhled
-                  </div>
-                </button>
-
-                <button
-                  onClick={() =>
                     updateSettingsUrl({ tab: "user", subTab: "subscription" })
                   }
                   className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
@@ -483,6 +472,24 @@ export const Settings: React.FC<SettingsProps> = ({
                       credit_card
                     </span>
                     Předplatné
+                  </div>
+                </button>
+
+                <button
+                  onClick={() =>
+                    updateSettingsUrl({ tab: "user", subTab: "profile" })
+                  }
+                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                    activeUserSubTab === "profile"
+                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[20px]">
+                      person
+                    </span>
+                    Profil a Vzhled
                   </div>
                 </button>
 
@@ -503,6 +510,26 @@ export const Settings: React.FC<SettingsProps> = ({
                     Notifikace
                   </div>
                 </button>
+
+                {canBackup && (
+                  <button
+                    onClick={() =>
+                      updateSettingsUrl({ tab: "user", subTab: "backup" })
+                    }
+                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                      activeUserSubTab === "backup"
+                        ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                        : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="material-symbols-outlined text-[20px]">
+                        backup
+                      </span>
+                      Záloha a obnova
+                    </div>
+                  </button>
+                )}
 
                 {canContactsImport && (
                   <button
@@ -718,6 +745,10 @@ export const Settings: React.FC<SettingsProps> = ({
               {(activeUserSubTab === "excelIndexer" ||
                 activeUserSubTab === "indexMatcher") &&
                 canExcelIndexer && <ExcelIndexerSettings />}
+
+              {activeUserSubTab === "backup" && canBackup && (
+                <BackupSettings />
+              )}
             </main>
           </div>
         )}

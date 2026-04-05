@@ -33,6 +33,8 @@ export const FEATURES = {
   DYNAMIC_TEMPLATES: 'dynamic_templates',
   DEMAND_GENERATION: 'demand_generation',
   LOSER_EMAIL: 'loser_email',
+  DATA_BACKUP: 'data_backup',
+  DATA_BACKUP_TENANT: 'data_backup_tenant',
 } as const;
 
 export type FeatureKey = typeof FEATURES[keyof typeof FEATURES];
@@ -70,6 +72,7 @@ export const PLANS = {
       FEATURES.EXPORT_EXCEL,
       FEATURES.URL_SHORTENER,
       FEATURES.EXCEL_INDEXER,
+      FEATURES.DATA_BACKUP,
     ]
   },
   ENTERPRISE: {

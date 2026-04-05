@@ -1,4 +1,6 @@
 import type {
+  BackupFileEntry,
+  BackupSettingsInfo,
   BidComparisonAutoConfig,
   BidComparisonAutoScope,
   BidComparisonAutoStartResult,
@@ -113,6 +115,14 @@ export interface IpcContractMap {
   };
   "bid-comparison:auto-list": { args: []; result: BidComparisonAutoStatus[] };
   "updater:getStatus": { args: []; result: UpdateStatus };
+  "backup:getSettings": { args: []; result: BackupSettingsInfo };
+  "backup:setEnabled": { args: [enabled: boolean]; result: void };
+  "backup:save": { args: [jsonContent: string, backupType: 'user' | 'tenant', organizationId: string]; result: string };
+  "backup:read": { args: [filePath: string]; result: string };
+  "backup:list": { args: []; result: BackupFileEntry[] };
+  "backup:getFolder": { args: []; result: string };
+  "backup:openFolder": { args: []; result: { success: boolean; error?: string } };
+  "backup:clean": { args: []; result: number };
 }
 
 export type IpcChannel = keyof IpcContractMap;

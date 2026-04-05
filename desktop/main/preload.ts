@@ -5,6 +5,8 @@ import type {
     FileInfo,
     FolderSnapshot,
     UpdateStatus,
+    BackupSettingsInfo,
+    BackupFileEntry,
     BidComparisonSupplierOption,
     BidComparisonDetectionResult,
     BidComparisonStartInput,
@@ -234,6 +236,32 @@ const electronAPI: ElectronAPI = {
     notification: {
         show: (options: { title: string; body?: string }): Promise<void> =>
             ipcRenderer.invoke('notification:show', options),
+    },
+
+    backup: {
+        getSettings: (): Promise<BackupSettingsInfo> =>
+            invokeTyped('backup:getSettings'),
+
+        setEnabled: (enabled: boolean): Promise<void> =>
+            invokeTyped('backup:setEnabled', enabled),
+
+        save: (jsonContent: string, backupType: 'user' | 'tenant', organizationId: string): Promise<string> =>
+            invokeTyped('backup:save', jsonContent, backupType, organizationId),
+
+        read: (filePath: string): Promise<string> =>
+            invokeTyped('backup:read', filePath),
+
+        list: (): Promise<BackupFileEntry[]> =>
+            invokeTyped('backup:list'),
+
+        getFolder: (): Promise<string> =>
+            invokeTyped('backup:getFolder'),
+
+        openFolder: (): Promise<{ success: boolean; error?: string }> =>
+            invokeTyped('backup:openFolder'),
+
+        clean: (): Promise<number> =>
+            invokeTyped('backup:clean'),
     },
 
     bidComparison: {

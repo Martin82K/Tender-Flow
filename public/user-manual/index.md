@@ -2,7 +2,7 @@
 
 Tato příručka popisuje práci v aplikaci Tender Flow pro řízení staveb, výběrových řízení a subdodavatelů.
 
-Verze příručky: **1.9** • Datum: **2026‑03‑16** • Aplikace: **v1.4.3**
+Verze příručky: **2.0** • Datum: **2026‑04‑05** • Aplikace: **v1.5.1**
 
 <p class="manualLogoWrap">
   <img class="manualLogo" src="./assets/logo.png" alt="Tender Flow logo" />
@@ -28,6 +28,7 @@ Verze příručky: **1.9** • Datum: **2026‑03‑16** • Aplikace: **v1.4.3*
 - [🏠 Správa staveb](#sprava-staveb)
 - [📈 Přehled staveb (analytika)](#prehled-staveb-analytika)
 - [⚙️ Nastavení aplikace](#nastaveni-aplikace)
+- [💾 Záloha a obnova dat](#zaloha-a-obnova-dat)
 - [📊 Excel nástroje](#excel-nastroje)
 - [🔗 URL Zkracovač](#url-zkracovac)
 - [💻 Tender Flow Desktop](#tender-flow-desktop)
@@ -46,9 +47,13 @@ Verze příručky: **1.9** • Datum: **2026‑03‑16** • Aplikace: **v1.4.3*
 
 ## 🎉 Novinky (poslední změny)
 
-<span class="version-badge">📱 v1.4.3</span> <span class="version-badge">📖 Verze příručky 1.9</span>
+<span class="version-badge">📱 v1.5.1</span> <span class="version-badge">📖 Verze příručky 2.0</span>
 
 Verzi aplikace najdete vlevo dole v sidebaru.
+
+### v1.5.1
+
+- **Záloha a obnova dat**: nová funkce pro zálohování a obnovu uživatelských dat (PRO+) a dat celé organizace (Enterprise+). Desktop: lokální zálohy s automatickou denní frekvencí a 7denní retencí. Web: stažení/nahrání zálohy přes prohlížeč. Obnova přepisuje pouze vlastní záznamy — bezpečné pro multi-tenant prostředí.
 
 ### v1.4.3
 
@@ -413,6 +418,7 @@ Manažerské souhrny napříč stavbami: metriky, grafy a volitelně AI analýza
 
 - **👤 Profil** – zobrazované jméno, vzhled (tmavý režim, primární barva, pozadí), statusy kontaktů a biometrické přihlášení v desktop aplikaci.
 - **🏢 Organizace** – členové, žádosti o vstup, role a předání vlastnictví (dle oprávnění).
+- **💾 Záloha a obnova** – zálohování a obnova dat uživatele nebo celé organizace (dle předplatného; PRO+).
 - **📥 Import kontaktů** – synchronizace z URL / ruční upload (může být v sekci **Nástroje** dle předplatného).
 - **🔓 Excel Unlocker PRO** – odemknutí `.xlsx` lokálně v prohlížeči (soubor se nikam neodesílá; dle předplatného).
 - **🔀 Excel Merger PRO** – slučování Excel listů; v desktop verzi nativní, ve web verzi externí aplikace (dle předplatného).
@@ -422,6 +428,53 @@ Manažerské souhrny napříč stavbami: metriky, grafy a volitelně AI analýza
 - **🛡️ Administrace systému (Admin)** – registrace, whitelist, uživatelé, role/oprávnění, přihlášení, předplatné, AI a incident logy.
 
 ![Nastavení aplikace](./assets/09-settings.svg)
+
+## 💾 Záloha a obnova dat
+
+Tender Flow umožňuje zálohovat a obnovit vaše data. Funkce je dostupná od tarifu **PRO**.
+
+### Záloha uživatelských dat
+
+Záloha obsahuje všechny projekty, poptávkové kategorie, nabídky, subdodavatele, smlouvy a harmonogramy, které vlastníte v rámci aktuální organizace.
+
+**Desktop aplikace:**
+- Zálohy se ukládají lokálně do složky `backup` vedle instalace aplikace
+- Možnost zapnout **automatickou denní zálohu** (toggle v nastavení)
+- Zálohy starší 7 dní se automaticky mažou
+- Tlačítkem **Otevřít složku záloh** zobrazíte složku v průzkumníku
+
+**Web verze:**
+- Záloha se stáhne jako JSON soubor do složky pro stahování prohlížeče
+
+**Postup:**
+1. Otevřete **Nastavení → Záloha a obnova**
+2. Klikněte **Zálohovat moje data**
+3. Desktop: soubor se uloží do instalační složky; Web: soubor se stáhne
+
+### Záloha organizace
+
+Administrátor organizace s tarifem **Enterprise** může zálohovat data celé organizace (všech členů).
+
+- Klikněte **Zálohovat organizaci** v sekci Záloha a obnova
+- Záloha obsahuje projekty, kontakty a smlouvy všech členů organizace
+
+### Obnova dat ze zálohy
+
+Obnova přepíše **pouze záznamy, kde jste vlastníkem**. Data ostatních uživatelů v organizaci zůstanou nedotčena. Celá obnova probíhá v jedné transakci — pokud dojde k chybě, žádná data se nezmění.
+
+**Desktop:**
+1. V sekci **Lokální zálohy** klikněte **Obnovit** u vybrané zálohy
+2. Zkontrolujte náhled (počty záznamů)
+3. Klikněte **Potvrdit obnovu**
+
+**Web:**
+1. Klikněte **Nahrát soubor zálohy (.json)**
+2. Vyberte dříve stažený soubor zálohy
+3. Zkontrolujte náhled a potvrďte obnovu
+
+**Umístění:** Nastavení → Záloha a obnova (PRO+)
+
+---
 
 ## 📊 Excel nástroje
 
