@@ -130,6 +130,17 @@ export const fileSystemAdapter = {
         }
         return { success: false, error: 'Folder renaming not available on web.' };
     },
+
+    /**
+     * Grant access to a folder path outside default allowed roots (desktop only).
+     * Used for paths on non-system drives (e.g. D:\, network shares).
+     */
+    async grantAccess(folderPath: string): Promise<boolean> {
+        if (isDesktop && window.electronAPI?.fs?.grantAccess) {
+            return window.electronAPI.fs.grantAccess(folderPath);
+        }
+        return false;
+    },
 };
 
 /**

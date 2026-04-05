@@ -34,11 +34,19 @@ const isPathInsideRoot = (targetPath: string, rootPath: string): boolean => {
   return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
 };
 
+// User-granted roots: paths explicitly selected via native dialog or manually confirmed
+const userGrantedRoots = new Set<string>();
+
+export const addUserGrantedRoot = (rootPath: string): void => {
+  userGrantedRoots.add(toAbsolutePath(rootPath));
+};
+
 const getAllowedRoots = (): string[] => {
   const roots = [
     app.getPath("home"),
     app.getPath("userData"),
     os.tmpdir(),
+    ...userGrantedRoots,
   ].map(toAbsolutePath);
 
   return Array.from(new Set(roots));
@@ -98,6 +106,7 @@ export const registerFsHandlers = ({
     }
 
     const folderPath = result.filePaths[0];
+    addUserGrantedRoot(folderPath);
     return {
       path: folderPath,
       name: path.basename(folderPath),
@@ -228,6 +237,19 @@ export const registerFsHandlers = ({
       const resolvedFolderPath = await ensurePathAllowed(await resolvePortableReadPath(folderPath), "read");
       const stat = await fs.stat(resolvedFolderPath);
       return stat.isDirectory();
+    } catch {
+      return false;
+    }
+  });
+
+  ipcMain.handle("fs:grantAccess", async (_, folderPath: string): Promise<boolean> => {
+    if (typeof folderPath !== "string" || folderPath.trim().length === 0) return false;
+    const abs = toAbsolutePath(folderPath.trim());
+    try {
+      const stat = await fs.stat(abs);
+      if (!stat.isDirectory()) return false;
+      addUserGrantedRoot(abs);
+      return true;
     } catch {
       return false;
     }

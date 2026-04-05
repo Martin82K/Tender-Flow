@@ -75,6 +75,9 @@ const electronAPI: ElectronAPI = {
 
         folderExists: (folderPath: string): Promise<boolean> =>
             invokeTyped('fs:folderExists', folderPath),
+
+        grantAccess: (folderPath: string): Promise<boolean> =>
+            invokeTyped('fs:grantAccess', folderPath),
     },
 
     // Folder watcher

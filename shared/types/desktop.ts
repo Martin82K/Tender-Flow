@@ -50,6 +50,7 @@ export interface FileSystemAPI {
     deleteFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
     renameFolder: (oldPath: string, newPath: string) => Promise<{ success: boolean; error?: string }>;
     folderExists: (folderPath: string) => Promise<boolean>;
+    grantAccess: (folderPath: string) => Promise<boolean>;
 }
 
 export interface FileSystemOpenResult {

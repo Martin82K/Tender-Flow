@@ -40,6 +40,7 @@ export interface IpcContractMap {
     result: { success: boolean; error?: string };
   };
   "fs:folderExists": { args: [folderPath: string]; result: boolean };
+  "fs:grantAccess": { args: [folderPath: string]; result: boolean };
   "watcher:start": { args: [folderPath: string]; result: void };
   "watcher:stop": { args: []; result: void };
   "watcher:getSnapshot": { args: []; result: FolderSnapshot | null };

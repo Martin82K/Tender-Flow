@@ -451,6 +451,10 @@ export const useDocHubIntegration = (
         if (provider === 'onedrive') {
             try {
                 const path = rootLink.trim();
+                // Grant access for paths outside default allowed roots (e.g. D:\, network shares)
+                if (isDesktop) {
+                    await fileSystemAdapter.grantAccess(path);
+                }
                 const exists = await folderExists(path);
 
                 // For Desktop, we generally trust the user or the picker, but good to check

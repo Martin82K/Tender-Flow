@@ -360,15 +360,17 @@ V praxi zde typicky nastavíte:
 
 ![Dokumenty a šablony](./assets/10-documents-templates.svg)
 
-### DocHub: Tender Flow Desktop (lokální disk)
+### DocHub: Tender Flow Desktop (lokální nebo síťový disk)
 
-Pro lokální práci se složkami použijte provider **Tender Flow Desktop**.
+Pro lokální práci se složkami použijte provider **Tender Flow Desktop**. Podporuje libovolný disk v počítači (C:\, D:\, E:\, …) i síťové/sdílené disky.
 
 **Nastavení v aplikaci:**
 1. Projekt → **Dokumenty** → **DocHub**.
 2. Provider: **Tender Flow Desktop**.
-3. Vyberte nebo zadejte cestu ke kořenové složce projektu.
-4. Klikněte **Připojit** a poté **Synchronizovat**.
+3. Klikněte na **Procházet** a vyberte složku přes nativní dialog, nebo zadejte cestu ke kořenové složce ručně (např. `D:\Projekty\Stavba` nebo `\\server\share\projekt`).
+4. Klikněte **Připojit složku** a poté **Synchronizovat**.
+
+> **Tip:** Složka nemusí být na systémovém disku ani ve složce OneDrive — můžete vybrat jakoukoliv dostupnou složku, včetně externích nebo síťových disků.
 
 ## 👥 Subdodavatelé (Kontakty)
 
