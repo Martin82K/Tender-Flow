@@ -32,7 +32,7 @@ const createCodeVerifier = (): string => base64UrlEncode(crypto.randomBytes(32))
 const createCodeChallenge = (verifier: string): string =>
     base64UrlEncode(crypto.createHash('sha256').update(verifier).digest());
 
-const ALLOWED_EXTERNAL_PROTOCOLS = new Set(['https:', 'mailto:']);
+const ALLOWED_EXTERNAL_PROTOCOLS = new Set(['https:', 'http:', 'mailto:']);
 const ALLOWED_EXTERNAL_HOSTS = new Set([
     'accounts.google.com',
     'oauth2.googleapis.com',
@@ -70,6 +70,7 @@ const parseUrl = (rawUrl: string): URL => {
 
 const isAllowedExternalUrl = (parsed: URL): boolean => {
     if (parsed.protocol === 'mailto:') return true;
+    if (parsed.protocol === 'https:' || parsed.protocol === 'http:') return true;
     return ALLOWED_EXTERNAL_HOSTS.has(parsed.hostname);
 };
 

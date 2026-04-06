@@ -700,14 +700,39 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                                     {/* Web */}
                                     <div className="col-span-2">
                                         <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Web</label>
-                                        <input
-                                            type="url"
-                                            value={formData.web || ''}
-                                            onChange={e => setFormData({ ...formData, web: e.target.value })}
-                                            onKeyDown={(e) => e.stopPropagation()}
-                                            className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
-                                            placeholder="https://www.example.cz"
-                                        />
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="url"
+                                                value={formData.web || ''}
+                                                onChange={e => setFormData({ ...formData, web: e.target.value })}
+                                                onKeyDown={(e) => e.stopPropagation()}
+                                                className="flex-1 min-w-0 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
+                                                placeholder="https://www.example.cz"
+                                            />
+                                            {formData.web && formData.web.trim() && (
+                                                <a
+                                                    href={formData.web.trim().startsWith('http') ? formData.web.trim() : `https://${formData.web.trim()}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 text-sm font-medium whitespace-nowrap transition-colors"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (isDesktop) {
+                                                            e.preventDefault();
+                                                            const url = formData.web!.trim().startsWith('http') ? formData.web!.trim() : `https://${formData.web!.trim()}`;
+                                                            shellAdapter.openExternal(url).catch(err =>
+                                                                console.warn('Nepodařilo se otevřít odkaz:', err)
+                                                            );
+                                                        }
+                                                    }}
+                                                >
+                                                    Web
+                                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                                    </svg>
+                                                </a>
+                                            )}
+                                        </div>
                                     </div>
 
                                     {/* Regions - Kraje ČR */}

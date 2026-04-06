@@ -37,6 +37,7 @@ export interface AnalyzeOptions {
   statuses: StatusConfig[];
   existingContacts: Subcontractor[];
   nameFixMode: "off" | "apply";
+  excludedRowIndices?: Set<number>;
 }
 
 export type RowOutcome = "imported" | "imported_with_warning" | "not_imported";
@@ -63,6 +64,7 @@ export interface AnalyzedRow {
   errors: string[];
   suggestedCompanyName?: string;
   companyNameInvalid?: boolean;
+  excluded?: boolean;
 }
 
 export interface AnalyzeResult {
@@ -529,6 +531,11 @@ export const analyzeContactsImport = (
       outcome = "imported_with_warning";
     }
 
+    const excluded = options.excludedRowIndices?.has(idx + 1) ?? false;
+    if (excluded) {
+      outcome = "not_imported";
+    }
+
     return {
       rowIndex: idx + 1,
       source: sourceRow,
@@ -538,6 +545,7 @@ export const analyzeContactsImport = (
       errors,
       suggestedCompanyName,
       companyNameInvalid,
+      excluded,
     };
   });
 

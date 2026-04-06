@@ -70,6 +70,7 @@ export const ContactsImportWizard: React.FC<ContactsImportWizardProps> = (props)
 
   const [outcomeFilter, setOutcomeFilter] = React.useState<RowOutcome | "all">("all");
   const [nameFixMode, setNameFixMode] = React.useState<"off" | "apply">("off");
+  const [excludedRows, setExcludedRows] = React.useState<Set<number>>(new Set());
 
   const resetAll = () => {
     setLoadError(null);
@@ -82,6 +83,7 @@ export const ContactsImportWizard: React.FC<ContactsImportWizardProps> = (props)
     setAnalysis(null);
     setOutcomeFilter("all");
     setNameFixMode("off");
+    setExcludedRows(new Set());
     setStep("source");
   };
 
@@ -126,17 +128,18 @@ export const ContactsImportWizard: React.FC<ContactsImportWizardProps> = (props)
   };
 
   const recalcAnalysis = React.useCallback(
-    (nextMapping: FieldMapping, nextNameFixMode: "off" | "apply" = nameFixMode) => {
+    (nextMapping: FieldMapping, nextNameFixMode: "off" | "apply" = nameFixMode, nextExcluded: Set<number> = excludedRows) => {
       if (!table) return;
       const next = analyzeContactsImport(table, nextMapping, {
         defaultStatusId,
         statuses,
         existingContacts: contacts,
         nameFixMode: nextNameFixMode,
+        excludedRowIndices: nextExcluded,
       });
       setAnalysis(next);
     },
-    [contacts, defaultStatusId, nameFixMode, statuses, table]
+    [contacts, defaultStatusId, nameFixMode, statuses, table, excludedRows]
   );
 
   const updateMapping = (key: TFFieldKey, header: string | null) => {
@@ -158,6 +161,21 @@ export const ContactsImportWizard: React.FC<ContactsImportWizardProps> = (props)
     setOutcomeFilter("all");
     setStep("preview");
   };
+
+  const toggleRowExclusion = React.useCallback(
+    (rowIndex: number) => {
+      if (!table || !mapping) return;
+      const next = new Set(excludedRows);
+      if (next.has(rowIndex)) {
+        next.delete(rowIndex);
+      } else {
+        next.add(rowIndex);
+      }
+      setExcludedRows(next);
+      recalcAnalysis(mapping, nameFixMode, next);
+    },
+    [table, mapping, excludedRows, nameFixMode, recalcAnalysis]
+  );
 
   const applySuggestedNameFixes = async () => {
     if (!analysis || !mapping) return;
@@ -478,7 +496,7 @@ export const ContactsImportWizard: React.FC<ContactsImportWizardProps> = (props)
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => setStep("mapping")}
+                  onClick={() => { setExcludedRows(new Set()); setStep("mapping"); }}
                   className="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
                 >
                   Zpět na mapování
@@ -554,18 +572,32 @@ export const ContactsImportWizard: React.FC<ContactsImportWizardProps> = (props)
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {filteredRows.slice(0, 200).map((r) => (
-                    <tr key={r.rowIndex} className="text-sm">
+                    <tr
+                      key={r.rowIndex}
+                      onClick={() => toggleRowExclusion(r.rowIndex)}
+                      className={`text-sm cursor-pointer transition-colors ${
+                        r.excluded
+                          ? "bg-red-50 dark:bg-red-900/20 opacity-60"
+                          : "hover:bg-slate-50 dark:hover:bg-slate-800/20"
+                      }`}
+                    >
                       <td className="px-4 py-3 text-slate-500 font-mono">{r.rowIndex}</td>
-                      <td className="px-4 py-3 text-slate-900 dark:text-white">{r.mapped.company || "-"}</td>
-                      <td className="px-4 py-3 text-slate-900 dark:text-white">{r.mapped.contactName || "-"}</td>
-                      <td className="px-4 py-3 text-slate-700 dark:text-slate-200">{r.mapped.contactEmail || "-"}</td>
-                      <td className="px-4 py-3 text-slate-700 dark:text-slate-200">{r.mapped.contactPhone || "-"}</td>
+                      <td className={`px-4 py-3 text-slate-900 dark:text-white ${r.excluded ? "line-through" : ""}`}>{r.mapped.company || "-"}</td>
+                      <td className={`px-4 py-3 text-slate-900 dark:text-white ${r.excluded ? "line-through" : ""}`}>{r.mapped.contactName || "-"}</td>
+                      <td className={`px-4 py-3 text-slate-700 dark:text-slate-200 ${r.excluded ? "line-through" : ""}`}>{r.mapped.contactEmail || "-"}</td>
+                      <td className={`px-4 py-3 text-slate-700 dark:text-slate-200 ${r.excluded ? "line-through" : ""}`}>{r.mapped.contactPhone || "-"}</td>
                       <td className="px-4 py-3">
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-bold border ${OUTCOME_META[r.outcome].className}`}
-                        >
-                          {OUTCOME_META[r.outcome].label}
-                        </span>
+                        {r.excluded ? (
+                          <span className="px-2 py-1 rounded-full text-xs font-bold border bg-red-500/10 text-red-600 border-red-500/20">
+                            Vyloučeno
+                          </span>
+                        ) : (
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-bold border ${OUTCOME_META[r.outcome].className}`}
+                          >
+                            {OUTCOME_META[r.outcome].label}
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-xs text-slate-500">
                         {r.errors.length > 0 ? (
@@ -598,6 +630,9 @@ export const ContactsImportWizard: React.FC<ContactsImportWizardProps> = (props)
               <div className="text-xs text-slate-500">
                 K importu: <span className="font-semibold">{analysis.aggregatedContacts.length}</span> firem (sloučeno z{" "}
                 {analysis.rows.length} řádků)
+                {excludedRows.size > 0 && (
+                  <span className="ml-2 text-red-600 font-semibold">· Vyloučeno: {excludedRows.size}</span>
+                )}
               </div>
               <button
                 type="button"
@@ -629,9 +664,6 @@ export const ContactsImportWizard: React.FC<ContactsImportWizardProps> = (props)
               <p className="text-sm font-bold text-emerald-900 dark:text-emerald-100">Import dokončen</p>
               <p className="text-xs text-emerald-800 dark:text-emerald-200 mt-1">
                 Zpracováno {analysis.rows.length} řádků, sloučeno do {analysis.aggregatedContacts.length} firem.
-              </p>
-              <p className="text-xs text-emerald-800 dark:text-emerald-200 mt-1">
-                Budoucí rozšíření: historie importů a AI obohacení (připraveno na PRO modul).
               </p>
             </div>
             <div className="flex items-center gap-2">

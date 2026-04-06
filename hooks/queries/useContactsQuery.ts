@@ -24,19 +24,41 @@ export const useContactsQuery = () => {
                     : DEMO_CONTACTS;
             }
 
-            const subcontractorsRes = await withRetry(
-                () =>
-                    withTimeout(
-                        Promise.resolve(dbAdapter.from("subcontractors").select("*").order("company_name")),
-                        15000,
-                        "Načtení dodavatelů vypršelo"
-                    ),
-                { retries: 1 }
-            );
+            // Supabase PostgREST has a server-side max_rows limit (default 1000).
+            // Paginate to fetch all contacts regardless of server config.
+            const PAGE_SIZE = 1000;
+            const subcontractorsData: any[] = [];
+            let offset = 0;
+            let hasMore = true;
 
-            if (subcontractorsRes.error) throw subcontractorsRes.error;
+            while (hasMore) {
+                const pageRes = await withRetry(
+                    () =>
+                        withTimeout(
+                            Promise.resolve(
+                                dbAdapter
+                                    .from("subcontractors")
+                                    .select("*")
+                                    .order("company_name")
+                                    .range(offset, offset + PAGE_SIZE - 1)
+                            ),
+                            15000,
+                            "Načtení dodavatelů vypršelo"
+                        ),
+                    { retries: 1 }
+                );
 
-            const subcontractorsData = (subcontractorsRes.data || []) as any[];
+                if (pageRes.error) throw pageRes.error;
+
+                const pageData = (pageRes.data || []) as any[];
+                subcontractorsData.push(...pageData);
+
+                if (pageData.length < PAGE_SIZE) {
+                    hasMore = false;
+                } else {
+                    offset += PAGE_SIZE;
+                }
+            }
             const loadedContacts: Subcontractor[] = subcontractorsData.map((s) => {
                 const specArray = Array.isArray(s.specialization)
                     ? s.specialization
