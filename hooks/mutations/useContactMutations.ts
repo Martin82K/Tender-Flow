@@ -57,6 +57,10 @@ export const useAddContactMutation = () => {
                 ico: newContact.ico,
                 region: newContact.region,
                 address: newContact.address,
+                city: newContact.city,
+                web: newContact.web,
+                note: newContact.note,
+                regions: newContact.regions,
                 status_id: newContact.status,
                 contacts: newContact.contacts,
                 updated_at: new Date().toISOString(), // Ensure updated_at is set
@@ -110,6 +114,10 @@ export const useUpdateContactMutation = () => {
             if (updates.ico !== undefined) dbUpdates.ico = updates.ico;
             if (updates.region !== undefined) dbUpdates.region = updates.region;
             if (updates.address !== undefined) dbUpdates.address = updates.address;
+            if (updates.city !== undefined) dbUpdates.city = updates.city;
+            if (updates.web !== undefined) dbUpdates.web = updates.web;
+            if (updates.note !== undefined) dbUpdates.note = updates.note;
+            if (updates.regions !== undefined) dbUpdates.regions = updates.regions;
             if (updates.status !== undefined) dbUpdates.status_id = updates.status;
             if (updates.contacts !== undefined) dbUpdates.contacts = updates.contacts;
 
@@ -283,6 +291,7 @@ export const useBulkUpdateContactsMutation = () => {
                 if (data.ico !== undefined) dbUpdates.ico = data.ico;
                 if (data.region !== undefined) dbUpdates.region = data.region;
                 if (data.address !== undefined) dbUpdates.address = data.address;
+                if (data.city !== undefined) dbUpdates.city = data.city;
                 if (data.status !== undefined) dbUpdates.status_id = data.status;
                 if (data.contacts !== undefined) dbUpdates.contacts = data.contacts;
 
@@ -368,6 +377,10 @@ export const useImportContactsMutation = () => {
                 ico: c.ico,
                 region: c.region,
                 address: c.address,
+                city: c.city,
+                web: c.web,
+                note: c.note,
+                regions: c.regions,
                 updated_at: new Date().toISOString()
             }));
 

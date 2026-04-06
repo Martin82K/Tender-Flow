@@ -40,6 +40,10 @@ export interface Subcontractor {
   ico?: string; // IČ
   region?: string;
   address?: string;
+  city?: string; // Město sídla firmy
+  web?: string; // URL webu firmy
+  note?: string; // Volná poznámka
+  regions?: string[]; // Zkratky krajů ČR kde firma působí
   status: string; // Dynamic ID linking to StatusConfig
 
   vendorRatingAverage?: number;

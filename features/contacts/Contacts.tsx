@@ -10,6 +10,7 @@ import { ConfirmationModal } from '@/shared/ui/ConfirmationModal';
 import { validateSubcontractorCompanyName } from '@/shared/dochub/subcontractorNameRules';
 import { shellAdapter } from '@/services/platformAdapter';
 import { isDesktop } from '@/services/platformAdapter';
+import { CZ_REGIONS } from '@/config/constants';
 
 interface ContactsProps {
     statuses: StatusConfig[];
@@ -45,6 +46,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
         ico: '',
         region: '',
         address: '',
+        city: '',
         status: 'available'
     });
 
@@ -101,12 +103,15 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                     ? registration.region : c.region;
                 const nextAddress = registration.address && !isBlankLookupValue(registration.address)
                     ? registration.address : c.address;
+                const nextCity = registration.city && !isBlankLookupValue(registration.city)
+                    ? registration.city : c.city;
 
                 const regionChanged = (isBlankLookupValue(c.region) ? '' : c.region?.trim() || '') !== (isBlankLookupValue(nextRegion) ? '' : nextRegion?.trim() || '');
                 const addressChanged = (isBlankLookupValue(c.address) ? '' : c.address?.trim() || '') !== (isBlankLookupValue(nextAddress) ? '' : nextAddress?.trim() || '');
+                const cityChanged = (isBlankLookupValue(c.city) ? '' : c.city?.trim() || '') !== (isBlankLookupValue(nextCity) ? '' : nextCity?.trim() || '');
 
-                if (regionChanged || addressChanged) {
-                    changedContacts.push({ ...c, region: nextRegion, address: nextAddress });
+                if (regionChanged || addressChanged || cityChanged) {
+                    changedContacts.push({ ...c, region: nextRegion, address: nextAddress, city: nextCity });
                 }
             }
 
@@ -123,7 +128,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
         const needsLookup = contacts.filter(c =>
             !!c.ico &&
             c.ico !== '-' &&
-            (isBlankLookupValue(c.region) || isBlankLookupValue(c.address)) &&
+            (isBlankLookupValue(c.region) || isBlankLookupValue(c.address) || isBlankLookupValue(c.city)) &&
             !autoFillProcessedRef.current.has(c.id)
         );
 
@@ -142,7 +147,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                 selectedIds.has(c.id) &&
                 !!c.ico &&
                 c.ico !== '-' &&
-                (isBlankLookupValue(c.region) || isBlankLookupValue(c.address)),
+                (isBlankLookupValue(c.region) || isBlankLookupValue(c.address) || isBlankLookupValue(c.city)),
         );
 
         if (contactsToProcess.length === 0) {
@@ -181,13 +186,17 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                     ? registration.region : contact.region;
                 const nextAddress = registration.address && !isBlankLookupValue(registration.address)
                     ? registration.address : contact.address;
+                const nextCity = registration.city && !isBlankLookupValue(registration.city)
+                    ? registration.city : contact.city;
 
                 const originalRegion = isBlankLookupValue(contact.region) ? '' : contact.region?.trim() || '';
                 const newRegion = isBlankLookupValue(nextRegion) ? '' : nextRegion?.trim() || '';
                 const originalAddress = isBlankLookupValue(contact.address) ? '' : contact.address?.trim() || '';
                 const newAddress = isBlankLookupValue(nextAddress) ? '' : nextAddress?.trim() || '';
+                const originalCity = isBlankLookupValue(contact.city) ? '' : contact.city?.trim() || '';
+                const newCity = isBlankLookupValue(nextCity) ? '' : nextCity?.trim() || '';
 
-                if (originalRegion === newRegion && originalAddress === newAddress) {
+                if (originalRegion === newRegion && originalAddress === newAddress && originalCity === newCity) {
                     lookupFailCount++;
                     failedCompanies.push(contact.company);
                     continue;
@@ -196,7 +205,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                 lookupSuccessCount++;
 
                 try {
-                    await onBulkUpdateContacts([{ ...contact, region: nextRegion, address: nextAddress }]);
+                    await onBulkUpdateContacts([{ ...contact, region: nextRegion, address: nextAddress, city: nextCity }]);
                     saveSuccessCount++;
                 } catch (saveError) {
                     console.error('Chyba při ukládání kontaktu:', contact.company, saveError);
@@ -293,6 +302,10 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                     registration.address && (overwriteExisting || isBlankLookupValue(prev.address))
                         ? registration.address
                         : prev.address,
+                city:
+                    registration.city && (overwriteExisting || isBlankLookupValue(prev.city))
+                        ? registration.city
+                        : prev.city,
             }));
         } catch (error) {
             console.error('Chyba při dohledání adresy a regionu dle IČO:', error);
@@ -336,6 +349,10 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
             ico: '',
             region: '',
             address: '',
+            city: '',
+            web: '',
+            note: '',
+            regions: [],
             status: 'available'
         });
         setIsContactModalOpen(true);
@@ -360,6 +377,10 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
             ico: formData.ico || '-',
             region: formData.region || '-',
             address: formData.address || '-',
+            city: formData.city || '-',
+            web: formData.web || '',
+            note: formData.note || '',
+            regions: formData.regions || [],
             status: formData.status || 'available'
         };
 
@@ -378,11 +399,11 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
 
             // Auto-fill region/address from ARES if IČO is set but region/address is missing
             if (savedContact.ico && savedContact.ico !== '-' &&
-                (isBlankLookupValue(savedContact.region) || isBlankLookupValue(savedContact.address))) {
-                // Remove from processed set so the useEffect picks it up, or do it directly
+                (isBlankLookupValue(savedContact.region) || isBlankLookupValue(savedContact.address) || isBlankLookupValue(savedContact.city))) {
                 autoFillProcessedRef.current.delete(contactId);
                 void autoFillRegistrationForContacts([savedContact]);
             }
+
         } catch (error) {
             console.error('Error saving contact:', error);
             // Modal stays open so user can see the error or retry
@@ -615,7 +636,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                                                 value={formData.ico || ''}
                                                 onChange={e => setFormData({ ...formData, ico: e.target.value })}
                                                 onBlur={() => {
-                                                    if (isBlankLookupValue(formData.region) || isBlankLookupValue(formData.address)) {
+                                                    if (isBlankLookupValue(formData.region) || isBlankLookupValue(formData.address) || isBlankLookupValue(formData.city)) {
                                                         void handleLookupRegistrationForForm({ overwriteExisting: false, showNoResultMessage: false });
                                                     }
                                                 }}
@@ -660,6 +681,101 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                                             onKeyDown={(e) => e.stopPropagation()}
                                             className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
                                             placeholder="Sídlo firmy dle registrace"
+                                        />
+                                    </div>
+
+                                    {/* City */}
+                                    <div className="col-span-2">
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Město</label>
+                                        <input
+                                            type="text"
+                                            value={formData.city || ''}
+                                            onChange={e => setFormData({ ...formData, city: e.target.value })}
+                                            onKeyDown={(e) => e.stopPropagation()}
+                                            className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
+                                            placeholder="Město sídla firmy"
+                                        />
+                                    </div>
+
+                                    {/* Web */}
+                                    <div className="col-span-2">
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Web</label>
+                                        <input
+                                            type="url"
+                                            value={formData.web || ''}
+                                            onChange={e => setFormData({ ...formData, web: e.target.value })}
+                                            onKeyDown={(e) => e.stopPropagation()}
+                                            className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
+                                            placeholder="https://www.example.cz"
+                                        />
+                                    </div>
+
+                                    {/* Regions - Kraje ČR */}
+                                    <div className="col-span-2">
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Kraje působnosti</label>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {/* Celá ČR toggle */}
+                                            {(() => {
+                                                const allCodes = CZ_REGIONS.map(r => r.code);
+                                                const current = formData.regions || [];
+                                                const allSelected = allCodes.every(code => current.includes(code));
+                                                return (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setFormData({
+                                                                ...formData,
+                                                                regions: allSelected ? [] : [...allCodes],
+                                                            });
+                                                        }}
+                                                        className={`px-2.5 py-1 rounded-md text-xs font-bold transition-colors ${
+                                                            allSelected
+                                                                ? 'bg-primary text-white shadow-sm'
+                                                                : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'
+                                                        }`}
+                                                    >
+                                                        Celá ČR
+                                                    </button>
+                                                );
+                                            })()}
+                                            {CZ_REGIONS.map(r => {
+                                                const isSelected = (formData.regions || []).includes(r.code);
+                                                return (
+                                                    <button
+                                                        key={r.code}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const current = formData.regions || [];
+                                                            setFormData({
+                                                                ...formData,
+                                                                regions: isSelected
+                                                                    ? current.filter(c => c !== r.code)
+                                                                    : [...current, r.code],
+                                                            });
+                                                        }}
+                                                        className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                                                            isSelected
+                                                                ? 'bg-primary text-white shadow-sm'
+                                                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                                                        }`}
+                                                    >
+                                                        {r.label}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* Poznámka */}
+                                    <div className="col-span-2">
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Poznámka</label>
+                                        <textarea
+                                            value={formData.note || ''}
+                                            onChange={e => setFormData({ ...formData, note: e.target.value })}
+                                            onKeyDown={(e) => e.stopPropagation()}
+                                            rows={3}
+                                            className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white resize-y"
+                                            placeholder="Vlastní poznámky k dodavateli..."
                                         />
                                     </div>
 

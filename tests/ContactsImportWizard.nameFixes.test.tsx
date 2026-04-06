@@ -15,6 +15,8 @@ const mapping: FieldMapping = {
   contactEmail: "Email",
   contactPhone: null,
   contactPosition: null,
+  web: null,
+  note: null,
 };
 
 const table: ParsedTable = {

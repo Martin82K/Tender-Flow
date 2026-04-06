@@ -86,6 +86,7 @@ describe("Contacts auto-fill regions", () => {
       ico: "87654321",
       region: "Praha",
       address: "Praha 1",
+      city: "Praha",
       status: "available",
     },
   ];
