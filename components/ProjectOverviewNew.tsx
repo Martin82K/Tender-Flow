@@ -61,6 +61,11 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
     addAmendment,
     updateAmendment,
     removeAmendment,
+    addInternalAmendment,
+    updateInternalAmendment,
+    removeInternalAmendment,
+    internalAmendmentsTotal,
+    totalPlannedCost,
     filteredCategories,
     sodCount,
     openCount,
@@ -99,6 +104,8 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
     React.useState<Record<string, string>>({});
   const [compactInternalPlannedCostInput, setCompactInternalPlannedCostInput] =
     React.useState("");
+  const [compactInternalAmendmentPriceInputs, setCompactInternalAmendmentPriceInputs] =
+    React.useState<Record<string, string>>({});
 
   const amendmentsCount = investor.amendments.length;
   const amendmentsTotal = investor.amendments.reduce(
@@ -124,7 +131,15 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
     setCompactInternalPlannedCostInput(
       formatEditableNumber(internalForm.plannedCost || 0),
     );
-  }, [editingInternal, internalForm.plannedCost]);
+    setCompactInternalAmendmentPriceInputs(
+      Object.fromEntries(
+        internalForm.internalAmendments.map((amendment) => [
+          amendment.id,
+          formatEditableNumber(amendment.price || 0),
+        ]),
+      ),
+    );
+  }, [editingInternal, internalForm.plannedCost, internalForm.internalAmendments]);
 
   const renderCompactDetails = () => (
     <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 mb-6 shadow-sm">
@@ -134,7 +149,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
         </span>
         Základní informace o stavbě
       </h3>
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 text-sm">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 text-sm">
         {/* 1. Investor & Info */}
         <div data-help-id="overview-building-info" className="lg:col-span-1 border-r border-slate-200 dark:border-slate-800/50 pr-6">
           <div className="flex justify-between items-center mb-4">
@@ -165,6 +180,14 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
               </span>
               <span className="text-slate-900 dark:text-slate-200 font-bold text-xs truncate ml-2">
                 {project.location || "-"}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-500 dark:text-slate-500 text-xs">
+                Adresa:
+              </span>
+              <span className="text-slate-900 dark:text-slate-200 font-bold text-xs truncate ml-2">
+                {project.address || "-"}
               </span>
             </div>
             <div className="flex justify-between items-center">
@@ -212,6 +235,19 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                       onChange={(e) =>
                         setInfoForm({ ...infoForm, location: e.target.value })
                       }
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-500 font-bold mb-1.5 block">
+                      Adresa stavby
+                    </label>
+                    <input
+                      value={infoForm.address}
+                      onChange={(e) =>
+                        setInfoForm({ ...infoForm, address: e.target.value })
+                      }
+                      placeholder="Přesná adresa pro mapu"
                       className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none"
                     />
                   </div>
@@ -471,6 +507,35 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                 {plannedCost > 0 ? formatMoney(plannedCost) : "-"}
               </span>
             </div>
+            {(project.internalAmendments?.length ?? 0) > 0 && (
+              <>
+                <div className="flex justify-between">
+                  <span className="text-slate-500 dark:text-slate-500 text-xs">
+                    Počet dodatků:
+                  </span>
+                  <span className="text-slate-900 dark:text-slate-200 font-bold text-xs">
+                    {project.internalAmendments!.length}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500 dark:text-slate-500 text-xs">
+                    Dodatky celkem:
+                  </span>
+                  <span className="text-slate-900 dark:text-slate-200 font-bold text-xs">
+                    {formatMoney(internalAmendmentsTotal)}
+                  </span>
+                </div>
+                <div className="h-px bg-slate-200 dark:bg-slate-800 my-1"></div>
+                <div className="flex justify-between">
+                  <span className="text-emerald-600 dark:text-emerald-400 font-extrabold text-xs">
+                    Celkem:
+                  </span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-extrabold text-xs">
+                    {formatMoney(totalPlannedCost)}
+                  </span>
+                </div>
+              </>
+            )}
             <div className="flex justify-between">
               <span className="text-slate-500 dark:text-slate-500 text-xs">
                 Zasmluvněno:
@@ -524,6 +589,107 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                       className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-900 dark:text-white text-sm text-right tabular-nums focus:ring-2 focus:ring-primary/20 transition-all outline-none"
                     />
                   </div>
+                  {internalForm.internalAmendments.length > 0 && (
+                    <div className="flex justify-between items-center px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl">
+                      <span className="text-xs text-slate-500 font-bold">
+                        Počet dodatků
+                      </span>
+                      <span className="text-xs text-slate-500">
+                        {internalForm.internalAmendments.length}
+                      </span>
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">
+                        Dodatky celkem
+                      </span>
+                      <span className="text-xs font-extrabold text-slate-900 dark:text-white">
+                        {formatMoney(
+                          internalForm.internalAmendments.reduce(
+                            (sum, a) => sum + (a.price || 0),
+                            0,
+                          ),
+                        )}
+                      </span>
+                    </div>
+                  )}
+                  {internalForm.internalAmendments.length > 0 && (
+                    <div>
+                      <label className="text-xs text-slate-500 font-bold mb-1.5 block">
+                        Dodatky
+                      </label>
+                      <div className="space-y-2">
+                        {internalForm.internalAmendments.map(
+                          (amendment, index) => (
+                            <div
+                              key={amendment.id}
+                              className="flex gap-2 items-center"
+                            >
+                              <input
+                                type="text"
+                                value={amendment.label}
+                                onChange={(e) =>
+                                  updateInternalAmendment(
+                                    index,
+                                    "label",
+                                    e.target.value,
+                                  )
+                                }
+                                className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                              />
+                              <input
+                                type="text"
+                                inputMode="decimal"
+                                value={
+                                  compactInternalAmendmentPriceInputs[
+                                    amendment.id
+                                  ] ?? formatEditableNumber(amendment.price || 0)
+                                }
+                                onChange={(e) => {
+                                  setCompactInternalAmendmentPriceInputs(
+                                    (prev) => ({
+                                      ...prev,
+                                      [amendment.id]: e.target.value,
+                                    }),
+                                  );
+                                  updateInternalAmendment(
+                                    index,
+                                    "price",
+                                    parseEditableNumber(e.target.value),
+                                  );
+                                }}
+                                onBlur={() =>
+                                  setCompactInternalAmendmentPriceInputs(
+                                    (prev) => ({
+                                      ...prev,
+                                      [amendment.id]: formatEditableNumber(
+                                        amendment.price || 0,
+                                      ),
+                                    }),
+                                  )
+                                }
+                                className="w-40 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-900 dark:text-white text-sm text-right tabular-nums focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                              />
+                              <button
+                                onClick={() => removeInternalAmendment(index)}
+                                className="text-rose-400 hover:text-rose-500 transition-colors p-1"
+                              >
+                                <span className="material-symbols-outlined text-xl">
+                                  delete
+                                </span>
+                              </button>
+                            </div>
+                          ),
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  <button
+                    onClick={addInternalAmendment}
+                    className="text-primary text-xs font-bold hover:text-primary-dark transition-colors flex items-center gap-1"
+                  >
+                    <span className="material-symbols-outlined text-sm">
+                      add
+                    </span>
+                    Přidat dodatek
+                  </button>
                   <div className="flex justify-end gap-3 mt-6">
                     <button
                       onClick={() => setEditingInternal(false)}
@@ -721,33 +887,6 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
             </div>
           )}
         </div>
-        {/* 4. Progress */}
-        <div className="lg:col-span-1">
-          <div className="flex justify-between items-center mb-4">
-            <span className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">
-              Postup
-            </span>
-          </div>
-          <div className="space-y-4">
-            <div className="flex justify-between items-end mb-1">
-              <span className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-tighter">
-                Zasmluvněné subdodávky
-              </span>
-              <span className="text-primary text-sm font-black">
-                {Math.round(progress)}%
-              </span>
-            </div>
-            <div className="w-full bg-slate-200 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden shadow-inner">
-              <div
-                className="h-full bg-gradient-to-r from-primary to-primary-light transition-all duration-1000 ease-out shadow-sm"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <p className="text-[10px] text-slate-500 font-medium">
-              Dokončeno {completedTasks} z {project.categories.length} kategorií
-            </p>
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -797,7 +936,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
             </div>
             <div>
               <div className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none mb-2">
-                {plannedCost > 0 ? formatMoneyFull(plannedCost) : "-"}
+                {totalPlannedCost > 0 ? formatMoneyFull(totalPlannedCost) : "-"}
               </div>
               <p className="text-[10px] text-slate-500 font-medium">
                 Interní cílový náklad stavby
@@ -936,6 +1075,13 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                       bg: "bg-emerald-500/10",
                     },
                     {
+                      label: "Adresa",
+                      value: project.address,
+                      icon: "pin_drop",
+                      color: "text-emerald-500",
+                      bg: "bg-emerald-500/10",
+                    },
+                    {
                       label: "Termín dokončení",
                       value: project.finishDate,
                       icon: "calendar_today",
@@ -1015,6 +1161,20 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                       onChange={(e) =>
                         setInfoForm({ ...infoForm, location: e.target.value })
                       }
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-500 mb-1 block">
+                      Adresa stavby
+                    </label>
+                    <input
+                      type="text"
+                      value={infoForm.address}
+                      onChange={(e) =>
+                        setInfoForm({ ...infoForm, address: e.target.value })
+                      }
+                      placeholder="Přesná adresa pro mapu"
                       className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
                     />
                   </div>
@@ -1284,6 +1444,26 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                         : "Nezadáno"}
                     </span>
                   </div>
+                  {(project.internalAmendments?.length ?? 0) > 0 && (
+                    <div className="flex justify-between items-center py-2.5 px-3 bg-slate-50/50 dark:bg-slate-950/20 rounded-xl border border-slate-100 dark:border-slate-800/50">
+                      <span className="text-slate-500 dark:text-slate-400 text-[10px] font-extrabold uppercase tracking-widest">
+                        Dodatky ({project.internalAmendments!.length})
+                      </span>
+                      <span className="font-bold text-slate-900 dark:text-white text-xs">
+                        {formatMoneyFull(internalAmendmentsTotal)}
+                      </span>
+                    </div>
+                  )}
+                  {(project.internalAmendments?.length ?? 0) > 0 && (
+                    <div className="flex justify-between items-center py-2.5 px-3 bg-indigo-50/50 dark:bg-indigo-950/10 rounded-xl border border-indigo-100 dark:border-indigo-800/30">
+                      <span className="text-indigo-600 dark:text-indigo-400 text-[10px] font-extrabold uppercase tracking-widest">
+                        Celkem
+                      </span>
+                      <span className="font-bold text-indigo-600 dark:text-indigo-400 text-xs">
+                        {formatMoneyFull(totalPlannedCost)}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center py-2.5 px-3 bg-slate-50/50 dark:bg-slate-950/20 rounded-xl border border-slate-100 dark:border-slate-800/50">
                     <span className="text-slate-500 dark:text-slate-400 text-[10px] font-extrabold uppercase tracking-widest">
                       Zasmluvněno

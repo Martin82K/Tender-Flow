@@ -383,6 +383,7 @@ export const useUpdateProjectDetailsMutation = () => {
             if (normalizedUpdates.constructionManager !== undefined) projectUpdates.construction_manager = normalizedUpdates.constructionManager;
             if (normalizedUpdates.constructionTechnician !== undefined) projectUpdates.construction_technician = normalizedUpdates.constructionTechnician;
             if (normalizedUpdates.location !== undefined) projectUpdates.location = normalizedUpdates.location;
+            if (normalizedUpdates.address !== undefined) projectUpdates.address = normalizedUpdates.address;
             if (normalizedUpdates.finishDate !== undefined) projectUpdates.finish_date = normalizedUpdates.finishDate;
             if (normalizedUpdates.plannedCost !== undefined) projectUpdates.planned_cost = normalizedUpdates.plannedCost;
             if (normalizedUpdates.documentationLink !== undefined) projectUpdates.documentation_link = normalizedUpdates.documentationLink;
@@ -471,6 +472,21 @@ export const useUpdateProjectDetailsMutation = () => {
                             }))
                         );
                     }
+                }
+            }
+
+            // Update internal amendments
+            if (updates.internalAmendments) {
+                await dbAdapter.from("project_internal_amendments").delete().eq("project_id", id);
+                if (updates.internalAmendments.length > 0) {
+                    await dbAdapter.from("project_internal_amendments").insert(
+                        updates.internalAmendments.map((a) => ({
+                            id: a.id,
+                            project_id: id,
+                            label: a.label,
+                            price: a.price,
+                        }))
+                    );
                 }
             }
         },

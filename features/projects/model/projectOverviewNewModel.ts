@@ -68,6 +68,13 @@ export const calculateOverviewFinancials = (
   );
   const totalBudget = investorSod + investorAmendmentsTotal;
 
+  const internalAmendments = project.internalAmendments || [];
+  const internalAmendmentsTotal = internalAmendments.reduce(
+    (sum, amendment) => sum + (amendment.price || 0),
+    0,
+  );
+  const totalPlannedCost = plannedCost + internalAmendmentsTotal;
+
   let totalContractedCost = 0;
   let completedTasks = 0;
 
@@ -82,7 +89,7 @@ export const calculateOverviewFinancials = (
     }
   });
 
-  const plannedBalance = plannedCost > 0 ? plannedCost - totalContractedCost : 0;
+  const plannedBalance = totalPlannedCost > 0 ? totalPlannedCost - totalContractedCost : 0;
   const progress =
     project.categories.length > 0
       ? (completedTasks / project.categories.length) * 100
@@ -92,6 +99,8 @@ export const calculateOverviewFinancials = (
     investorSod,
     investorAmendmentsTotal,
     totalBudget,
+    internalAmendmentsTotal,
+    totalPlannedCost,
     totalContractedCost,
     completedTasks,
     plannedBalance,

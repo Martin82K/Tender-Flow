@@ -3,6 +3,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ProjectManager } from "@/features/projects/ProjectManager";
+import { HelpProvider } from "@/features/help";
+import { ToastProvider } from "@/features/notifications/context/ToastContext";
 import type { Project } from "@/types";
 
 const mocks = vi.hoisted(() => ({
@@ -43,13 +45,17 @@ const renderProjectManager = (projects: Project[]) => {
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <ProjectManager
-        projects={projects}
-        onAddProject={vi.fn()}
-        onDeleteProject={vi.fn()}
-        onCloneTenderToRealization={mocks.onCloneMock}
-        onArchiveProject={vi.fn()}
-      />
+      <ToastProvider>
+      <HelpProvider>
+        <ProjectManager
+          projects={projects}
+          onAddProject={vi.fn()}
+          onDeleteProject={vi.fn()}
+          onCloneTenderToRealization={mocks.onCloneMock}
+          onArchiveProject={vi.fn()}
+        />
+      </HelpProvider>
+      </ToastProvider>
     </QueryClientProvider>,
   );
 };

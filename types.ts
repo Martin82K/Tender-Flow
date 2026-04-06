@@ -190,6 +190,8 @@ export interface ProjectDetails {
 
   // Financials
   plannedCost?: number; // Interní plánovaný náklad (Cíl)
+  internalAmendments?: Amendment[]; // Interní dodatky (nezávislé na investorských)
+  address?: string; // Přesná adresa stavby
 
   // Documents
   documentationLink?: string; // Link to shared project documentation (legacy, kept for compatibility)

@@ -1,3 +1,4 @@
+import path from "path";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 const execFileMock = vi.hoisted(() => vi.fn());
@@ -49,13 +50,14 @@ describe("docxConversion", () => {
       verifyOutput,
     });
 
+    const expectedOutput = path.join("/tmp", "pwned_1700000000000.docx");
     expect(result).toEqual({
       success: true,
-      outputPath: "/tmp/pwned_1700000000000.docx",
+      outputPath: expectedOutput,
     });
     expect(runConversion).toHaveBeenCalledWith(
       payloadPath,
-      "/tmp/pwned_1700000000000.docx",
+      expectedOutput,
     );
   });
 
