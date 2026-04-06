@@ -3,7 +3,7 @@ import { useAuth } from '@/context/AuthContext';
 import { backupService } from '../api/backupService';
 import { backupAdapter } from '@/services/platformAdapter';
 import { getManifestRecordCounts } from '../model/backupTypes';
-import type { BackupManifest, RestoreSummary } from '../model/backupTypes';
+import type { AnyBackupManifest, RestoreSummary } from '../model/backupTypes';
 import type { BackupFileEntry, BackupSettingsInfo } from '@/shared/types/desktop';
 import { useFeatures } from '@/context/FeatureContext';
 import { FEATURES } from '@/config/features';
@@ -21,7 +21,7 @@ export const BackupSettings: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
     const [restorePreview, setRestorePreview] = useState<{
-        manifest: BackupManifest;
+        manifest: AnyBackupManifest;
         filePath: string;
         counts: Record<string, number>;
     } | null>(null);
@@ -105,6 +105,35 @@ export const BackupSettings: React.FC = () => {
         }
     };
 
+    const handleContactsExport = async () => {
+        if (!orgId || !user?.id) return;
+        setLoading(true);
+        setError(null);
+        setSuccess(null);
+        try {
+            if (backupAvailable) {
+                const { filePath } = await backupService.exportContactsAndSaveLocally(orgId, user.id);
+                setSuccess(`Záloha kontaktů uložena: ${filePath}`);
+                await loadData();
+            } else {
+                const manifest = await backupService.exportContactsBackup(orgId, user.id);
+                const blob = new Blob([JSON.stringify(manifest, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const date = new Date().toISOString().slice(0, 10);
+                a.download = `backup-contacts-${orgId}-${date}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                setSuccess('Záloha kontaktů stažena');
+            }
+        } catch (e) {
+            setError(e instanceof Error ? e.message : 'Export kontaktů selhal');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleSelectRestore = async (filePath: string) => {
         try {
             const manifest = await backupService.loadFromLocalFile(filePath);
@@ -121,7 +150,7 @@ export const BackupSettings: React.FC = () => {
         if (!file) return;
         try {
             const text = await file.text();
-            const manifest = JSON.parse(text) as BackupManifest;
+            const manifest = JSON.parse(text) as AnyBackupManifest;
             if (!manifest.version || !manifest.type) {
                 throw new Error('Neplatný formát zálohy');
             }
@@ -135,6 +164,10 @@ export const BackupSettings: React.FC = () => {
 
     const handleConfirmRestore = async () => {
         if (!restorePreview || !orgId) return;
+        if (restorePreview.manifest.type === 'contacts') {
+            setError('Obnova zálohy kontaktů není podporována. Kontakty lze pouze exportovat.');
+            return;
+        }
         setRestoring(true);
         setError(null);
         try {
@@ -282,6 +315,15 @@ export const BackupSettings: React.FC = () => {
                     )}
 
                     <button
+                        onClick={handleContactsExport}
+                        disabled={loading}
+                        className="flex items-center gap-2 px-4 py-2 bg-teal-50 hover:bg-teal-100 text-teal-700 dark:bg-teal-500/10 dark:text-teal-400 dark:hover:bg-teal-500/20 rounded-lg font-medium border border-teal-200 dark:border-teal-500/20 transition-all hover:shadow-sm disabled:opacity-50"
+                    >
+                        <span className="material-symbols-outlined">contacts</span>
+                        {loading ? 'Zálohování...' : 'Zálohovat kontakty'}
+                    </button>
+
+                    <button
                         onClick={handleOpenFolder}
                         className="flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700/50 rounded-lg font-medium border border-slate-200 dark:border-slate-700 transition-all hover:shadow-sm"
                     >
@@ -318,20 +360,24 @@ export const BackupSettings: React.FC = () => {
                                             <span className={`text-xs px-2 py-0.5 rounded-full ${
                                                 b.backupType === 'tenant'
                                                     ? 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400'
+                                                    : b.backupType === 'contacts'
+                                                    ? 'bg-teal-100 text-teal-700 dark:bg-teal-500/20 dark:text-teal-400'
                                                     : 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400'
                                             }`}>
-                                                {b.backupType === 'tenant' ? 'Organizace' : 'Uživatel'}
+                                                {b.backupType === 'tenant' ? 'Organizace' : b.backupType === 'contacts' ? 'Kontakty' : 'Uživatel'}
                                             </span>
                                         </td>
                                         <td className="py-2 px-3 text-slate-500">{formatDate(b.createdAt)}</td>
                                         <td className="py-2 px-3 text-right text-slate-500">{formatBytes(b.sizeBytes)}</td>
                                         <td className="py-2 px-3 text-right">
-                                            <button
-                                                onClick={() => handleSelectRestore(b.filePath)}
-                                                className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
-                                            >
-                                                Obnovit
-                                            </button>
+                                            {b.backupType !== 'contacts' && (
+                                                <button
+                                                    onClick={() => handleSelectRestore(b.filePath)}
+                                                    className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+                                                >
+                                                    Obnovit
+                                                </button>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}

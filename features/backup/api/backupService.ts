@@ -1,6 +1,6 @@
 import { dbAdapter } from '@/services/dbAdapter';
 import { backupAdapter } from '@/services/platformAdapter';
-import type { BackupManifest, RestoreSummary, BackupHistoryEntry } from '../model/backupTypes';
+import type { BackupManifest, ContactsBackupManifest, AnyBackupManifest, RestoreSummary, BackupHistoryEntry } from '../model/backupTypes';
 
 /**
  * Backup service — orchestrates export/restore via Supabase RPC
@@ -74,11 +74,51 @@ export const backupService = {
     },
 
     /**
+     * Export contacts-only backup (subcontractors + statuses).
+     */
+    async exportContactsBackup(orgId: string, userId: string): Promise<ContactsBackupManifest> {
+        const [subResult, statusResult] = await Promise.all([
+            dbAdapter.from('subcontractors')
+                .select('*')
+                .eq('organization_id', orgId),
+            dbAdapter.from('subcontractor_statuses')
+                .select('*')
+                .eq('organization_id', orgId),
+        ]);
+
+        if (subResult.error) throw subResult.error;
+        if (statusResult.error) throw statusResult.error;
+
+        return {
+            version: '1.0',
+            type: 'contacts',
+            exported_at: new Date().toISOString(),
+            user_id: userId,
+            organization_id: orgId,
+            subcontractors: subResult.data ?? [],
+            subcontractor_statuses: statusResult.data ?? [],
+        };
+    },
+
+    /**
+     * Export contacts and save locally (desktop only).
+     */
+    async exportContactsAndSaveLocally(
+        orgId: string,
+        userId: string
+    ): Promise<{ manifest: ContactsBackupManifest; filePath: string }> {
+        const manifest = await this.exportContactsBackup(orgId, userId);
+        const jsonContent = JSON.stringify(manifest, null, 2);
+        const filePath = await backupAdapter.save(jsonContent, 'contacts', orgId);
+        return { manifest, filePath };
+    },
+
+    /**
      * Load a backup manifest from local file (desktop only).
      */
-    async loadFromLocalFile(filePath: string): Promise<BackupManifest> {
+    async loadFromLocalFile(filePath: string): Promise<AnyBackupManifest> {
         const content = await backupAdapter.read(filePath);
-        const manifest = JSON.parse(content) as BackupManifest;
+        const manifest = JSON.parse(content) as AnyBackupManifest;
 
         if (!manifest.version || !manifest.type) {
             throw new Error('Neplatný formát zálohy: chybí verze nebo typ.');

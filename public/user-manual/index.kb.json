@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-05T17:36:29.600Z",
+  "generatedAt": "2026-04-06T13:31:38.578Z",
   "source": "/public/user-manual/index.md",
   "entries": [
     {
@@ -20,7 +20,9 @@
         "analytika",
         "tender",
         "flow",
-        "desktop"
+        "desktop",
+        "aplikace",
+        "administrace"
       ],
       "source_anchor": "#obsah",
       "level": 2,
@@ -40,13 +42,13 @@
         "zalo",
         "rov",
         "zen",
-        "otev",
-        "ete",
         "dky",
         "rychl",
         "start",
         "sekce",
-        "provede"
+        "provede",
+        "workflow",
+        "aplikace"
       ],
       "source_anchor": "#rychly-start",
       "level": 2,
@@ -627,24 +629,24 @@
     {
       "slug": "zaloha-a-obnova-dat",
       "title": "💾 Záloha a obnova dat",
-      "content": "Tender Flow umožňuje zálohovat a obnovit vaše data. Funkce je dostupná od tarifu **PRO**. #### Záloha uživatelských dat Záloha obsahuje všechny projekty, poptávkové kategorie, nabídky, subdodavatele, smlouvy a harmonogramy, které vlastníte v rámci aktuální organizace. **Desktop aplikace:** - Zálohy se ukládají lokálně do složky `backup` vedle instalace aplikace. - Možnost zapnout **automatickou denní zálohu** (toggle v nastavení) – záloha proběhne 1× denně. - Zálohy starší 7 dní se automaticky mažou. - Tlačítkem **Otevřít složku záloh** zobrazíte složku v průzkumníku. **Web verze:** - Záloha se stáhne jako JSON soubor do složky pro stahování prohlížeče. **Postup:** 1. Otevřete **Nastavení → Záloha a obnova** 2. Klikněte **Zálohovat moje data** 3. Desktop: soubor se uloží do instalační složky; Web: soubor se stáhne #### Záloha organizace Administrátor organizace s tarifem **Enterprise** může zálohovat data celé organizace (všech členů). - Klikněte **Zálohovat organizaci** v sekci Záloha a obnova. - Záloha obsahuje projekty, kontakty a smlouvy všech členů organizace. #### Obnova dat ze zálohy Obnova přepíše **pouze záznamy, kde jste vlastníkem**. Data ostatních uživatelů v organizaci zůstanou nedotčena. Celá obnova probíhá v jedné transakci — pokud dojde k chybě, žádná data se nezmění. **Desktop:** 1. V sekci **Lokální zálohy** klikněte **Obnovit** u vybrané zálohy. 2. Zkontrolujte náhled (počty záznamů). 3. Klikněte **Potvrdit obnovu**. **Web:** 1. Klikněte **Nahrát soubor zálohy (.json)**. 2. Vyberte dříve stažený soubor zálohy. 3. Zkontrolujte náhled a potvrďte obnovu. **Umístění:** Nastavení → Záloha a obnova (PRO+) ---",
+      "content": "Tender Flow umožňuje zálohovat a obnovit vaše data. Funkce je dostupná od tarifu **PRO**. #### Šifrování záloh Všechny zálohy vytvořené v desktop aplikaci jsou **automaticky šifrovány** algoritmem AES-256-GCM. Šifrovací klíč je uložen v zabezpečeném úložišti operačního systému (Windows DPAPI / macOS Keychain). Šifrované soubory mají příponu `.enc.json` a nelze je přečíst bez příslušného klíče. Starší nešifrované zálohy (`.json`) zůstávají čitelné — systém je při obnově automaticky rozpozná. > **Upozornění:** Při reinstalaci aplikace nebo přeinstalaci systému může dojít ke ztrátě šifrovacího klíče. V takovém případě nelze starší šifrované zálohy dešifrovat. Doporučujeme pravidelně ověřovat funkčnost záloh. #### Záloha uživatelských dat Záloha obsahuje všechny projekty, poptávkové kategorie, nabídky, subdodavatele, smlouvy a harmonogramy, které vlastníte v rámci aktuální organizace. **Desktop aplikace:** - Zálohy se ukládají lokálně do složky `backup` vedle instalace aplikace. - Soubory jsou šifrovány (AES-256-GCM) s příponou `.enc.json`. - Možnost zapnout **automatickou denní zálohu** (toggle v nastavení) – záloha proběhne 1× denně. - Zálohy starší 7 dní se automaticky mažou. - Tlačítkem **Otevřít složku záloh** zobrazíte složku v průzkumníku. **Web verze:** - Záloha se stáhne jako JSON soubor do složky pro stahování prohlížeče (bez šifrování). **Postup:** 1. Otevřete **Nastavení → Záloha a obnova** 2. Klikněte **Zálohovat moje data** 3. Desktop: šifrovaný soubor se uloží do instalační složky; Web: soubor se stáhne #### Záloha kontaktů Kromě kompletní zálohy lze samostatně zálohovat **pouze kontakty** (subdodavatele a jejich statusy). To je užitečné pro rychlý export adresáře bez zbytku dat. - Klikněte **Zálohovat kontakty** v sekci Záloha a obnova. - Desktop: soubor se uloží šifrovaně do složky `backup`. - Web: soubor se stáhne jako JSON. - Záloha kontaktů je pouze pro export — obnovu kontaktů proveďte přes kompletní zálohu (uživatelskou nebo organizace). #### Záloha organizace Administrátor organizace s tarifem **Enterprise** může zálohovat data celé organizace (všech členů). - Klikněte **Zálohovat organizaci** v sekci Záloha a obnova. - Záloha obsahuje projekty, kontakty a smlouvy všech členů organizace. #### Obnova dat ze zálohy Obnova přepíše **pouze záznamy, kde jste vlastníkem**. Data ostatních uživatelů v organizaci zůstanou nedotčena. Celá obnova pro",
       "keywords": [
         "loha",
-        "organizace",
-        "slo",
-        "obnova",
-        "lohovat",
-        "dat",
-        "data",
         "lohy",
-        "hne",
-        "soubor",
-        "obsahuje",
-        "projekty",
-        "smlouvy",
-        "desktop",
+        "ifrov",
+        "syst",
+        "ifrovan",
+        "json",
         "aplikace",
-        "denn"
+        "dat",
+        "loh",
+        "echny",
+        "desktop",
+        "automaticky",
+        "aes",
+        "256",
+        "gcm",
+        "ifrovac"
       ],
       "source_anchor": "#zaloha-a-obnova-dat",
       "level": 3,
@@ -677,7 +679,7 @@
     {
       "slug": "vyhody-desktop-verze",
       "title": "Výhody desktop verze",
-      "content": "| Funkce | 💻 Desktop | 🌐 Web | |--------|------------|--------| | Přístup k souborům | Nativní | Omezené | | Excel nástroje | Lokální Python | HTTP API | | Úložiště tokenů | OS Keychain (bezpečnější) | localStorage | | Auto-update | Windows: ✅ • macOS arm64: manuálně | ❌ | | Folder watcher | ✅ | ❌ | | Biometrické přihlášení | ✅ (Touch ID/Windows Hello) | ❌ | | Mailto odkazy | IPC Bridge (spolehlivější) | Prohlížeč | | Záloha (auto) | ✅ (denní) | ❌ |",
+      "content": "| Funkce | 💻 Desktop | 🌐 Web | |--------|------------|--------| | Přístup k souborům | Nativní | Omezené | | Excel nástroje | Lokální Python | HTTP API | | Úložiště tokenů | OS Keychain (bezpečnější) | localStorage | | Auto-update | Windows: ✅ • macOS arm64: manuálně | ❌ | | Folder watcher | ✅ | ❌ | | Biometrické přihlášení | ✅ (Touch ID/Windows Hello) | ❌ | | Mailto odkazy | IPC Bridge (spolehlivější) | Prohlížeč | | Záloha (auto, šifrovaná) | ✅ (denní, AES-256-GCM) | ❌ |",
       "keywords": [
         "desktop",
         "auto",
@@ -1360,12 +1362,13 @@
     {
       "slug": "jak-obnovit-data-ze-zalohy",
       "title": "Jak obnovit data ze zálohy?",
-      "content": "V **Nastavení → Záloha a obnova**: na desktopu vyberte zálohu ze seznamu lokálních záloh a klikněte Obnovit. Na webu nahrajte dříve stažený JSON soubor. Obnova přepíše pouze vaše záznamy.",
+      "content": "V **Nastavení → Záloha a obnova**: na desktopu vyberte zálohu ze seznamu lokálních záloh a klikněte Obnovit. Na webu nahrajte dříve stažený JSON soubor. Obnova přepíše pouze vaše záznamy. Šifrované zálohy (`.enc.json`) se při obnově automaticky dešifrují.",
       "keywords": [
         "obnovit",
-        "obnova",
-        "data",
         "lohy",
+        "obnova",
+        "json",
+        "data",
         "nastaven",
         "loha",
         "desktopu",
@@ -1376,8 +1379,7 @@
         "loh",
         "klikn",
         "webu",
-        "nahrajte",
-        "sta"
+        "nahrajte"
       ],
       "source_anchor": "#jak-obnovit-data-ze-zalohy",
       "level": 3,
@@ -1386,7 +1388,7 @@
     {
       "slug": "jak-funguje-automaticka-zaloha-v-desktop-verzi",
       "title": "Jak funguje automatická záloha v desktop verzi?",
-      "content": "V **Nastavení → Záloha a obnova** zapněte toggle „Automatická záloha\". Záloha proběhne automaticky 1× denně. Zálohy starší 7 dní se automaticky mažou. Složku se zálohami otevřete tlačítkem „Otevřít složku záloh\". ---",
+      "content": "V **Nastavení → Záloha a obnova** zapněte toggle „Automatická záloha\". Záloha proběhne automaticky 1× denně a je šifrována (AES-256-GCM). Zálohy starší 7 dní se automaticky mažou. Složku se zálohami otevřete tlačítkem „Otevřít složku záloh\".",
       "keywords": [
         "loha",
         "automatick",
@@ -1403,9 +1405,61 @@
         "prob",
         "hne",
         "denn",
-        "lohy"
+        "ifrov"
       ],
       "source_anchor": "#jak-funguje-automaticka-zaloha-v-desktop-verzi",
+      "level": 3,
+      "parentTitle": "❓ Časté otázky"
+    },
+    {
+      "slug": "jak-zalohovat-pouze-kontakty",
+      "title": "Jak zálohovat pouze kontakty?",
+      "content": "V **Nastavení → Záloha a obnova** klikněte tlačítko **Zálohovat kontakty**. Exportují se pouze subdodavatelé a jejich statusy. Na desktopu se soubor uloží šifrovaně do složky `backup`, na webu se stáhne jako JSON. Obnova kontaktů ze samostatné zálohy není podporována — použijte kompletní zálohu.",
+      "keywords": [
+        "lohovat",
+        "pouze",
+        "kontakty",
+        "obnova",
+        "nastaven",
+        "loha",
+        "klikn",
+        "tla",
+        "tko",
+        "exportuj",
+        "subdodavatel",
+        "jejich",
+        "statusy",
+        "desktopu",
+        "soubor",
+        "ulo"
+      ],
+      "source_anchor": "#jak-zalohovat-pouze-kontakty",
+      "level": 3,
+      "parentTitle": "❓ Časté otázky"
+    },
+    {
+      "slug": "jsou-zalohy-sifrovany",
+      "title": "Jsou zálohy šifrovány?",
+      "content": "V desktop verzi ano — všechny nové zálohy jsou automaticky šifrovány algoritmem AES-256-GCM. Šifrovací klíč je chráněn operačním systémem (Windows DPAPI / macOS Keychain). Webové zálohy (stažené přes prohlížeč) šifrovány nejsou. ---",
+      "keywords": [
+        "lohy",
+        "ifrov",
+        "desktop",
+        "verzi",
+        "ano",
+        "echny",
+        "nov",
+        "automaticky",
+        "algoritmem",
+        "aes",
+        "256",
+        "gcm",
+        "ifrovac",
+        "chr",
+        "opera",
+        "syst"
+      ],
+      "source_anchor": "#jsou-zalohy-sifrovany",
       "level": 3,
       "parentTitle": "❓ Časté otázky"
     },
@@ -1425,24 +1479,24 @@
     {
       "slug": "v1-5-1",
       "title": "v1.5.1",
-      "content": "- **Záloha a obnova dat**: nová funkce pro zálohování a obnovu uživatelských dat (PRO+) a dat celé organizace (Enterprise+). Desktop: lokální zálohy s automatickou denní frekvencí a 7denní retencí. Web: stažení/nahrání zálohy přes prohlížeč. Obnova přepisuje pouze vlastní záznamy — bezpečné pro multi-tenant prostředí.",
+      "content": "- **Záloha a obnova dat**: nová funkce pro zálohování a obnovu uživatelských dat (PRO+) a dat celé organizace (Enterprise+). Desktop: lokální zálohy s automatickou denní frekvencí a 7denní retencí. Web: stažení/nahrání zálohy přes prohlížeč. Obnova přepisuje pouze vlastní záznamy — bezpečné pro multi-tenant prostředí. - **Šifrování záloh**: zálohy v desktop verzi jsou automaticky šifrovány algoritmem AES-256-GCM. Šifrovací klíč je chráněn OS (Windows DPAPI / macOS Keychain). Starší nešifrované zálohy zůstávají čitelné. - **Záloha kontaktů**: nové tlačítko „Zálohovat kontakty\" pro samostatný export subdodavatelů a jejich statusů. Funguje na desktopu (šifrovaně) i na webu (stažení JSON).",
       "keywords": [
-        "dat",
-        "obnova",
         "lohy",
+        "dat",
         "loha",
+        "obnova",
         "nov",
+        "desktop",
+        "sta",
+        "ifrov",
+        "ifrovan",
         "funkce",
         "lohov",
         "obnovu",
         "ivatelsk",
         "cel",
         "organizace",
-        "enterprise",
-        "desktop",
-        "lok",
-        "automatickou",
-        "denn"
+        "enterprise"
       ],
       "source_anchor": "#v1-5-1",
       "level": 3,
@@ -1505,10 +1559,6 @@
       "title": "v1.4.1",
       "content": "- **OpenAI provider**: v nastavení AI přibyla možnost výběru OpenAI jako poskytovatele. - **Generátor smluvních protokolů**: nový nástroj pro generování protokolů ke smlouvám. - **Tenant logo**: organizace si může nastavit vlastní logo. - **DPA stránka a retence**: přidána veřejná stránka zpracovatelské doložky a nastavení retenčních politik. - **Bezpečnost**: CSP builder pro desktop, rozšíření CSP o Stripe domény, RLS pro interní billing tabulky.",
       "keywords": [
-        "asistent",
-        "nov",
-        "vlastn",
-        "roz",
         "openai",
         "nastaven",
         "nost",
@@ -1517,9 +1567,14 @@
         "str",
         "nka",
         "csp",
-        "konverza",
-        "znalostn",
-        "enou"
+        "provider",
+        "ibyla",
+        "poskytovatele",
+        "gener",
+        "tor",
+        "smluvn",
+        "nov",
+        "stroj"
       ],
       "source_anchor": "#v1-4-1",
       "level": 3,

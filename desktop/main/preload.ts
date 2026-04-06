@@ -245,7 +245,7 @@ const electronAPI: ElectronAPI = {
         setEnabled: (enabled: boolean): Promise<void> =>
             invokeTyped('backup:setEnabled', enabled),
 
-        save: (jsonContent: string, backupType: 'user' | 'tenant', organizationId: string): Promise<string> =>
+        save: (jsonContent: string, backupType: 'user' | 'tenant' | 'contacts', organizationId: string): Promise<string> =>
             invokeTyped('backup:save', jsonContent, backupType, organizationId),
 
         read: (filePath: string): Promise<string> =>

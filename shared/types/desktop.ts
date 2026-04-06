@@ -295,7 +295,7 @@ export interface BidComparisonAPI {
 export interface BackupAPI {
     getSettings: () => Promise<BackupSettingsInfo>;
     setEnabled: (enabled: boolean) => Promise<void>;
-    save: (jsonContent: string, backupType: 'user' | 'tenant', organizationId: string) => Promise<string>;
+    save: (jsonContent: string, backupType: 'user' | 'tenant' | 'contacts', organizationId: string) => Promise<string>;
     read: (filePath: string) => Promise<string>;
     list: () => Promise<BackupFileEntry[]>;
     getFolder: () => Promise<string>;
@@ -313,7 +313,7 @@ export interface BackupSettingsInfo {
 export interface BackupFileEntry {
     fileName: string;
     filePath: string;
-    backupType: 'user' | 'tenant';
+    backupType: 'user' | 'tenant' | 'contacts';
     organizationId: string;
     createdAt: string;
     sizeBytes: number;

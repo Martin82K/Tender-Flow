@@ -472,23 +472,39 @@ Poznámky k importu:
 
 Tender Flow umožňuje zálohovat a obnovit vaše data. Funkce je dostupná od tarifu **PRO**.
 
+#### Šifrování záloh
+
+Všechny zálohy vytvořené v desktop aplikaci jsou **automaticky šifrovány** algoritmem AES-256-GCM. Šifrovací klíč je uložen v zabezpečeném úložišti operačního systému (Windows DPAPI / macOS Keychain). Šifrované soubory mají příponu `.enc.json` a nelze je přečíst bez příslušného klíče. Starší nešifrované zálohy (`.json`) zůstávají čitelné — systém je při obnově automaticky rozpozná.
+
+> **Upozornění:** Při reinstalaci aplikace nebo přeinstalaci systému může dojít ke ztrátě šifrovacího klíče. V takovém případě nelze starší šifrované zálohy dešifrovat. Doporučujeme pravidelně ověřovat funkčnost záloh.
+
 #### Záloha uživatelských dat
 
 Záloha obsahuje všechny projekty, poptávkové kategorie, nabídky, subdodavatele, smlouvy a harmonogramy, které vlastníte v rámci aktuální organizace.
 
 **Desktop aplikace:**
 - Zálohy se ukládají lokálně do složky `backup` vedle instalace aplikace.
+- Soubory jsou šifrovány (AES-256-GCM) s příponou `.enc.json`.
 - Možnost zapnout **automatickou denní zálohu** (toggle v nastavení) – záloha proběhne 1× denně.
 - Zálohy starší 7 dní se automaticky mažou.
 - Tlačítkem **Otevřít složku záloh** zobrazíte složku v průzkumníku.
 
 **Web verze:**
-- Záloha se stáhne jako JSON soubor do složky pro stahování prohlížeče.
+- Záloha se stáhne jako JSON soubor do složky pro stahování prohlížeče (bez šifrování).
 
 **Postup:**
 1. Otevřete **Nastavení → Záloha a obnova**
 2. Klikněte **Zálohovat moje data**
-3. Desktop: soubor se uloží do instalační složky; Web: soubor se stáhne
+3. Desktop: šifrovaný soubor se uloží do instalační složky; Web: soubor se stáhne
+
+#### Záloha kontaktů
+
+Kromě kompletní zálohy lze samostatně zálohovat **pouze kontakty** (subdodavatele a jejich statusy). To je užitečné pro rychlý export adresáře bez zbytku dat.
+
+- Klikněte **Zálohovat kontakty** v sekci Záloha a obnova.
+- Desktop: soubor se uloží šifrovaně do složky `backup`.
+- Web: soubor se stáhne jako JSON.
+- Záloha kontaktů je pouze pro export — obnovu kontaktů proveďte přes kompletní zálohu (uživatelskou nebo organizace).
 
 #### Záloha organizace
 
@@ -502,7 +518,7 @@ Administrátor organizace s tarifem **Enterprise** může zálohovat data celé 
 Obnova přepíše **pouze záznamy, kde jste vlastníkem**. Data ostatních uživatelů v organizaci zůstanou nedotčena. Celá obnova probíhá v jedné transakci — pokud dojde k chybě, žádná data se nezmění.
 
 **Desktop:**
-1. V sekci **Lokální zálohy** klikněte **Obnovit** u vybrané zálohy.
+1. V sekci **Lokální zálohy** klikněte **Obnovit** u vybrané zálohy (dostupné pro uživatelské a organizační zálohy).
 2. Zkontrolujte náhled (počty záznamů).
 3. Klikněte **Potvrdit obnovu**.
 
@@ -530,7 +546,7 @@ Tender Flow Desktop je nativní desktopová aplikace postavená na Electronu. Na
 | Folder watcher | ✅ | ❌ |
 | Biometrické přihlášení | ✅ (Touch ID/Windows Hello) | ❌ |
 | Mailto odkazy | IPC Bridge (spolehlivější) | Prohlížeč |
-| Záloha (auto) | ✅ (denní) | ❌ |
+| Záloha (auto, šifrovaná) | ✅ (denní, AES-256-GCM) | ❌ |
 
 ### Instalace
 
@@ -710,11 +726,19 @@ Ověřte, že máte vybraného správného providera (Google Drive / OneDrive / 
 
 ### Jak obnovit data ze zálohy?
 
-V **Nastavení → Záloha a obnova**: na desktopu vyberte zálohu ze seznamu lokálních záloh a klikněte Obnovit. Na webu nahrajte dříve stažený JSON soubor. Obnova přepíše pouze vaše záznamy.
+V **Nastavení → Záloha a obnova**: na desktopu vyberte zálohu ze seznamu lokálních záloh a klikněte Obnovit. Na webu nahrajte dříve stažený JSON soubor. Obnova přepíše pouze vaše záznamy. Šifrované zálohy (`.enc.json`) se při obnově automaticky dešifrují.
 
 ### Jak funguje automatická záloha v desktop verzi?
 
-V **Nastavení → Záloha a obnova** zapněte toggle „Automatická záloha". Záloha proběhne automaticky 1× denně. Zálohy starší 7 dní se automaticky mažou. Složku se zálohami otevřete tlačítkem „Otevřít složku záloh".
+V **Nastavení → Záloha a obnova** zapněte toggle „Automatická záloha". Záloha proběhne automaticky 1× denně a je šifrována (AES-256-GCM). Zálohy starší 7 dní se automaticky mažou. Složku se zálohami otevřete tlačítkem „Otevřít složku záloh".
+
+### Jak zálohovat pouze kontakty?
+
+V **Nastavení → Záloha a obnova** klikněte tlačítko **Zálohovat kontakty**. Exportují se pouze subdodavatelé a jejich statusy. Na desktopu se soubor uloží šifrovaně do složky `backup`, na webu se stáhne jako JSON. Obnova kontaktů ze samostatné zálohy není podporována — použijte kompletní zálohu.
+
+### Jsou zálohy šifrovány?
+
+V desktop verzi ano — všechny nové zálohy jsou automaticky šifrovány algoritmem AES-256-GCM. Šifrovací klíč je chráněn operačním systémem (Windows DPAPI / macOS Keychain). Webové zálohy (stažené přes prohlížeč) šifrovány nejsou.
 
 ---
 
@@ -727,6 +751,8 @@ Verzi aplikace najdete vlevo dole v sidebaru.
 ### v1.5.1
 
 - **Záloha a obnova dat**: nová funkce pro zálohování a obnovu uživatelských dat (PRO+) a dat celé organizace (Enterprise+). Desktop: lokální zálohy s automatickou denní frekvencí a 7denní retencí. Web: stažení/nahrání zálohy přes prohlížeč. Obnova přepisuje pouze vlastní záznamy — bezpečné pro multi-tenant prostředí.
+- **Šifrování záloh**: zálohy v desktop verzi jsou automaticky šifrovány algoritmem AES-256-GCM. Šifrovací klíč je chráněn OS (Windows DPAPI / macOS Keychain). Starší nešifrované zálohy zůstávají čitelné.
+- **Záloha kontaktů**: nové tlačítko „Zálohovat kontakty" pro samostatný export subdodavatelů a jejich statusů. Funguje na desktopu (šifrovaně) i na webu (stažení JSON).
 
 ### v1.4.3
 

@@ -15,7 +15,7 @@ export function registerBackupHandlers(): void {
 
     ipcMain.handle(
         'backup:save',
-        async (_, jsonContent: string, backupType: 'user' | 'tenant', organizationId: string): Promise<string> => {
+        async (_, jsonContent: string, backupType: 'user' | 'tenant' | 'contacts', organizationId: string): Promise<string> => {
             return backupService.saveBackup(jsonContent, backupType, organizationId);
         }
     );

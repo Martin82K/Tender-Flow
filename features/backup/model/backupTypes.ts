@@ -1,3 +1,5 @@
+export type BackupType = 'user' | 'tenant' | 'contacts';
+
 export interface BackupManifest {
     version: string;
     type: 'user' | 'tenant';
@@ -36,18 +38,36 @@ export interface RestoreSummary {
     restored_project_amendments: number;
 }
 
+export interface ContactsBackupManifest {
+    version: string;
+    type: 'contacts';
+    exported_at: string;
+    user_id: string;
+    organization_id: string;
+    subcontractors: unknown[];
+    subcontractor_statuses: unknown[];
+}
+
+export type AnyBackupManifest = BackupManifest | ContactsBackupManifest;
+
 export interface BackupHistoryEntry {
     id: string;
     user_id: string;
     organization_id: string;
-    backup_type: 'user' | 'tenant';
+    backup_type: BackupType;
     storage_path: string | null;
     record_counts: Record<string, number> | null;
     backup_size_bytes: number | null;
     created_at: string;
 }
 
-export function getManifestRecordCounts(manifest: BackupManifest): Record<string, number> {
+export function getManifestRecordCounts(manifest: AnyBackupManifest): Record<string, number> {
+    if (manifest.type === 'contacts') {
+        return {
+            subcontractors: manifest.subcontractors?.length ?? 0,
+            subcontractor_statuses: manifest.subcontractor_statuses?.length ?? 0,
+        };
+    }
     return {
         projects: manifest.projects?.length ?? 0,
         demand_categories: manifest.demand_categories?.length ?? 0,
