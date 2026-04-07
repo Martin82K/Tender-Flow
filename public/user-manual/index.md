@@ -2,7 +2,7 @@
 
 Tato příručka popisuje práci v aplikaci Tender Flow pro řízení staveb, výběrových řízení a subdodavatelů.
 
-Verze příručky: **2.2** • Datum: **2026‑04‑07** • Aplikace: **v1.5.2**
+Verze příručky: **2.2** • Datum: **2026‑04‑07** • Aplikace: **v1.5.3**
 
 <p class="manualLogoWrap">
   <img class="manualLogo" src="./assets/logo.png" alt="Tender Flow logo" />
@@ -746,9 +746,13 @@ V desktop verzi ano — všechny nové zálohy jsou automaticky šifrovány algo
 
 ## 🎉 Novinky (changelog)
 
-<span class="version-badge">📱 v1.5.2</span> <span class="version-badge">📖 Verze příručky 2.2</span>
+<span class="version-badge">📱 v1.5.3</span> <span class="version-badge">📖 Verze příručky 2.2</span>
 
 Verzi aplikace najdete vlevo dole v sidebaru.
+
+### v1.5.3
+
+- **Opravy**: opravena uvítací obrazovka, doplněny release podklady pro v1.5.2, čištění projektu.
 
 ### v1.5.2
 

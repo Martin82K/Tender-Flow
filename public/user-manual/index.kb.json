@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-07T20:36:13.285Z",
+  "generatedAt": "2026-04-07T20:43:55.974Z",
   "source": "/public/user-manual/index.md",
   "entries": [
     {
@@ -1477,6 +1477,24 @@
       "parentTitle": null
     },
     {
+      "slug": "v1-5-3",
+      "title": "v1.5.3",
+      "content": "- **Opravy**: opravena uvítací obrazovka, doplněny release podklady pro v1.5.2, čištění projektu.",
+      "keywords": [
+        "opravy",
+        "opravena",
+        "tac",
+        "obrazovka",
+        "dopln",
+        "release",
+        "podklady",
+        "projektu"
+      ],
+      "source_anchor": "#v1-5-3",
+      "level": 3,
+      "parentTitle": "🎉 Novinky (changelog)"
+    },
+    {
       "slug": "v1-5-2",
       "title": "v1.5.2",
       "content": "- **Import wizard kontaktů**: nový průvodce pro hromadný import kontaktů a subdodavatelů s náhledem, mapováním sloupců a vyloučením řádků. - **Hromadná úprava specializací**: specializace subdodavatelů lze upravovat hromadně přímo v přehledu kontaktů. - **Dodatky a vlastní náklady**: vylepšené formuláře pro dodatky a adresy stavby, včetně podpory vlastních nákladů u dodatků. - **Šifrované zálohy**: zálohy v desktop verzi jsou šifrovány algoritmem AES-256-GCM. Desktop ukládá zálohy automaticky s denní frekvencí. Nové tlačítko pro zálohu kontaktů. - **Systém nápovědy**: interaktivní nápověda s kontextovými bublinami, klávesová zkratka pro vyhledávání, onboarding pro nové uživatele. - **Automatické složky dokumentů**: DocHub v desktop verzi umí vytvořit standardizovanou strukturu složek pro dokumenty stavby jedním kliknutím. - **Přepracovaná příručka**: kompletně přepsaná uživatelská příručka s aktuálním popisem všech modulů. - **Opravy UX tabulek**: opraveno scrollování a překryvy v tabulkách pipeline, harmonogramu a plánu VŘ.",
@@ -1870,7 +1888,7 @@
     {
       "slug": "novinky-changelog",
       "title": "🎉 Novinky (changelog)",
-      "content": "📱 v1.5.2 📖 Verze příručky 2.2 Verzi aplikace najdete vlevo dole v sidebaru.",
+      "content": "📱 v1.5.3 📖 Verze příručky 2.2 Verzi aplikace najdete vlevo dole v sidebaru.",
       "keywords": [
         "novinky",
         "changelog",

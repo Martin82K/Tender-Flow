@@ -9,40 +9,10 @@ interface WhatsNewModalProps {
 
 const features = [
   {
-    icon: "person_add",
-    title: "Import wizard kontaktů",
+    icon: "build_circle",
+    title: "Opravy a stabilizace",
     description:
-      "Nový průvodce pro hromadný import kontaktů a subdodavatelů s náhledem a mapováním sloupců.",
-  },
-  {
-    icon: "edit_attributes",
-    title: "Hromadná úprava specializací",
-    description:
-      "Specializace subdodavatelů lze nyní upravovat hromadně přímo v přehledu kontaktů.",
-  },
-  {
-    icon: "post_add",
-    title: "Dodatky a vlastní náklady",
-    description:
-      "Vylepšené formuláře pro dodatky a adresy, včetně podpory vlastních nákladů u dodatků.",
-  },
-  {
-    icon: "enhanced_encryption",
-    title: "Šifrované zálohy",
-    description:
-      "Zálohy dat a kontaktů jsou nově šifrovány algoritmem AES-256-GCM. Desktop verze ukládá zálohy automaticky.",
-  },
-  {
-    icon: "help_center",
-    title: "Nápověda a příručka",
-    description:
-      "Interaktivní systém nápovědy s kontextovými bublinami a kompletně přepracovaná uživatelská příručka.",
-  },
-  {
-    icon: "create_new_folder",
-    title: "Automatické složky dokumentů",
-    description:
-      "DocHub nyní umí automaticky vytvořit standardizovanou strukturu složek pro dokumenty stavby.",
+      "Patch verze s opravami uvítací obrazovky, release podkladů a čištěním projektu.",
   },
 ];
 
