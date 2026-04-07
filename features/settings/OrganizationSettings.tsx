@@ -453,7 +453,7 @@ export const OrganizationSettings: React.FC = () => {
       showAlert({
         title: "Uživatel nenalezen",
         message: "Nejdřív se musí uživatel zaregistrovat.",
-        variant: "warning",
+        variant: "danger",
       });
       setManualAddStatus("unknown");
       return;

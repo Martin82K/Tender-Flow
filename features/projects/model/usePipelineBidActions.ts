@@ -1,4 +1,4 @@
-import type { Bid, BidStatus, DemandCategory } from "@/types";
+import type { Bid, BidStatus, DemandCategory, DocHubStructureV1 } from "@/types";
 import type { DragEvent } from "react";
 import { parseFormattedNumber } from "@/utils/formatters";
 import {
@@ -6,6 +6,7 @@ import {
   updateBid,
   updateBidContracted,
 } from "@/features/projects/api";
+import { getDemoData, saveDemoData } from "@/services/demoData";
 import {
   deleteFolder,
 } from "@/services/fileSystemService";
@@ -33,7 +34,7 @@ interface UsePipelineBidActionsInput {
   projectDataId: string;
   projectName?: string;
   projectDataDocHubProviderLegacy?: string;
-  projectDataDocHubStructureV1?: string;
+  projectDataDocHubStructureV1?: Partial<DocHubStructureV1> | null;
   isDocHubEnabled: boolean;
   docHubRoot: string;
   runDocHubFallbackForCategory: (

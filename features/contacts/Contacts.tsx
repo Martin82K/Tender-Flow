@@ -355,7 +355,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
             if (bulkSpecMode === 'add') {
                 const existing = new Set(contact.specialization || []);
                 bulkSpecSelected.forEach(s => existing.add(s));
-                newSpecs = Array.from(existing);
+                newSpecs = Array.from(existing) as string[];
             } else if (bulkSpecMode === 'remove') {
                 const toRemove = new Set(bulkSpecSelected);
                 newSpecs = (contact.specialization || []).filter(s => !toRemove.has(s));
@@ -526,7 +526,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
     };
 
     // Get unique specializations for datalist (re-calculate here for the form, or export from selector? simpler to recalc)
-    const allSpecializations = Array.from(new Set(contacts.flatMap(c => c.specialization))).sort();
+    const allSpecializations = (Array.from(new Set(contacts.flatMap(c => c.specialization))) as string[]).sort();
     const companyValidation = validateSubcontractorCompanyName(formData.company || '');
     const companyError = formData.company && !companyValidation.isValid ? companyValidation.reason : null;
     const isSaveDisabled = !formData.company || !formData.specialization || formData.specialization.length === 0 || !companyValidation.isValid;

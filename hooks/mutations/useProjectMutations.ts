@@ -186,7 +186,7 @@ export const useCloneTenderToRealizationMutation = () => {
                     realizationStart: undefined,
                     realizationEnd: undefined,
                 }));
-                const categoryIdMap = new Map(
+                const categoryIdMap = new Map<string, string | undefined>(
                     (sourceDetails.categories || []).map((category, index) => [category.id, clonedCategories[index]?.id]),
                 );
 

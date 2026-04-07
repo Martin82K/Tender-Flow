@@ -1,1 +1,1 @@
-export { shortenUrl, getMyUrls, deleteUrl } from "@/services/urlShortenerService";
+export { shortenUrl, getUserLinks as getMyUrls, deleteShortUrl as deleteUrl } from "@/services/urlShortenerService";

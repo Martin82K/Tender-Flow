@@ -14,6 +14,7 @@ describe("buildOverviewChatContext", () => {
           successRate: 0.5,
           totalAwardedValue: 100000,
           categories: [],
+          offers: [],
         },
       ],
       categoryProfit: [
@@ -38,6 +39,11 @@ describe("buildOverviewChatContext", () => {
         awardedValue: 100000,
         categoryCount: 1,
         projectCount: 1,
+      },
+      totalsByStatus: {
+        realization: { offerCount: 0, sodCount: 0, awardedValue: 0, categoryCount: 0, projectCount: 0 },
+        tender: { offerCount: 0, sodCount: 0, awardedValue: 0, categoryCount: 0, projectCount: 0 },
+        archived: { offerCount: 0, sodCount: 0, awardedValue: 0, categoryCount: 0, projectCount: 0 },
       },
     };
 

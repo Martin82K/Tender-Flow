@@ -74,7 +74,7 @@ export const resolveAuthorizedProjectMemoryContext = async (
     };
   }
 
-  const permissions = requiredPermission === "edit" ? ["edit"] : ["view", "edit"];
+  const permissions: ("view" | "edit")[] = requiredPermission === "edit" ? ["edit"] : ["view", "edit"];
   const { data: share, error: shareError } = await client
     .from("project_shares")
     .select("permission")

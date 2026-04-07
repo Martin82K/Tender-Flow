@@ -79,28 +79,8 @@ export interface DemandCategory {
   realizationEnd?: string; // Termín realizace - konec (ISO date string)
 }
 
-export interface DocHubStructureV1 {
-  pd: string;
-  tenders: string;
-  contracts: string;
-  realization: string;
-  archive: string;
-  tendersInquiries: string;
-  supplierEmail: string;
-  supplierOffer: string;
-  ceniky: string;
-  extraTopLevel?: string[]; // Optional additional folders in project root
-  extraSupplier?: string[]; // Optional additional subfolders under supplier folder
-  extraHierarchy?: Array<{
-    id: string;
-    key: string;
-    name: string;
-    enabled: boolean;
-    depth: number;
-    label?: string;
-    children?: any[];
-  }>; // Custom folder hierarchy structure
-}
+import type { DocHubStructureV1 as _DocHubStructureV1 } from "@/utils/docHub";
+export type DocHubStructureV1 = _DocHubStructureV1;
 
 export type BidStatus =
   | "contacted"
@@ -206,7 +186,7 @@ export interface ProjectDetails {
   priceListLink?: string; // Link to price lists (Ceníky)
   docHubEnabled?: boolean; // DocHub module enabled for this project
   docHubRootLink?: string; // Root link/path to the project's DocHub folder
-  docHubProvider?: "gdrive" | "onedrive" | "local" | null; // Storage provider
+  docHubProvider?: "gdrive" | "onedrive" | "onedrive_cloud" | "local" | null; // Storage provider
   docHubMode?: "user" | "org" | null; // User drive vs organization/shared drive
   docHubRootId?: string | null; // Provider root folder/item ID (future backend)
   docHubRootName?: string | null; // Human-readable name for UI

@@ -342,7 +342,7 @@ export const billingService = {
     ): string => {
         let priceInCents: number | null = null;
         if (priceOrTier === null) {
-            priceInCents = priceOrTier;
+            priceInCents = null;
         } else if (typeof priceOrTier === 'number') {
             priceInCents = priceOrTier;
         } else if (priceOrTier === 'starter') {

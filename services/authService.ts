@@ -3,6 +3,7 @@ import { invokePublicFunction } from './functionsClient';
 import { LegalAcceptanceInput, SubscriptionTier, User } from '../types';
 import { isValidTierId } from '../config/subscriptionTiers';
 import { summarizeErrorForLog } from '@/shared/security/logSanitizer';
+import { ADMIN_EMAILS } from '../config/constants';
 import {
     CURRENT_PRIVACY_VERSION,
     CURRENT_TERMS_VERSION,

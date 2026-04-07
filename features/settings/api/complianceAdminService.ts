@@ -717,7 +717,7 @@ const mapAccessReviewReportsFromTable = (
 const loadAccessReviewUsersAdmin = async (): Promise<AccessReviewUser[]> => {
   const userRows = await loadResourceOrDefault(
     "rpc:get_all_users_admin",
-    () => dbAdapter.rpc<unknown[]>("get_all_users_admin"),
+    async () => await dbAdapter.rpc<unknown[]>("get_all_users_admin"),
     [] as unknown[],
   );
 
@@ -732,12 +732,12 @@ const loadAccessReviewOverviewAdmin = async (): Promise<{
   const users = await loadAccessReviewUsersAdmin();
   const auditRows = await loadResourceOrDefault(
     "table:role_permission_audit_log",
-    () => dbAdapter.from("role_permission_audit_log").select("*").order("created_at", { ascending: false }),
+    async () => await dbAdapter.from("role_permission_audit_log").select("*").order("created_at", { ascending: false }),
     [] as unknown[],
   );
   const reviewRows = await loadResourceOrDefault(
     "table:access_review_reports",
-    () => dbAdapter.from("access_review_reports").select("*").order("created_at", { ascending: false }),
+    async () => await dbAdapter.from("access_review_reports").select("*").order("created_at", { ascending: false }),
     [] as unknown[],
   );
 
@@ -752,8 +752,8 @@ export const getComplianceOverviewAdmin = async (): Promise<ComplianceOverview> 
   try {
     const checklistRows = await loadResourceOrDefault(
       "table:compliance_checklist_items",
-      () =>
-        dbAdapter
+      async () =>
+        await dbAdapter
           .from("compliance_checklist_items")
           .select("*")
           .order("priority")
@@ -762,8 +762,8 @@ export const getComplianceOverviewAdmin = async (): Promise<ComplianceOverview> 
     );
     const retentionRows = await loadResourceOrDefault(
       "table:compliance_retention_policies",
-      () =>
-        dbAdapter
+      async () =>
+        await dbAdapter
           .from("compliance_retention_policies")
           .select("*")
           .order("retention_days", { ascending: false }),
@@ -771,13 +771,13 @@ export const getComplianceOverviewAdmin = async (): Promise<ComplianceOverview> 
     );
     const dsrRows = await loadResourceOrDefault(
       "table:data_subject_requests",
-      () => dbAdapter.from("data_subject_requests").select("*").order("due_at"),
+      async () => await dbAdapter.from("data_subject_requests").select("*").order("due_at"),
       defaultDsrQueue,
     );
     const breachRows = await loadResourceOrDefault(
       "table:breach_cases",
-      () =>
-        dbAdapter
+      async () =>
+        await dbAdapter
           .from("breach_cases")
           .select("*")
           .order("created_at", { ascending: false }),
@@ -785,8 +785,8 @@ export const getComplianceOverviewAdmin = async (): Promise<ComplianceOverview> 
     );
     const breachEventRows = await loadResourceOrDefault(
       "table:breach_case_events",
-      () =>
-        dbAdapter
+      async () =>
+        await dbAdapter
           .from("breach_case_events")
           .select("*")
           .order("created_at", { ascending: false }),
@@ -794,22 +794,22 @@ export const getComplianceOverviewAdmin = async (): Promise<ComplianceOverview> 
     );
     const subprocessorRows = await loadResourceOrDefault(
       "table:subprocessors",
-      () => dbAdapter.from("subprocessors").select("*").order("name"),
+      async () => await dbAdapter.from("subprocessors").select("*").order("name"),
       defaultSubprocessors,
     );
     const processingActivityRows = await loadResourceOrDefault(
       "table:processing_activities",
-      () => dbAdapter.from("processing_activities").select("*").order("activity_name"),
+      async () => await dbAdapter.from("processing_activities").select("*").order("activity_name"),
       defaultProcessingActivities,
     );
     const processingActivityLinkRows = await loadResourceOrDefault(
       "table:processing_activity_subprocessors",
-      () => dbAdapter.from("processing_activity_subprocessors").select("*").order("processing_activity_id"),
+      async () => await dbAdapter.from("processing_activity_subprocessors").select("*").order("processing_activity_id"),
       [] as unknown[],
     );
     const crmRetentionReviewRows = await loadResourceOrDefault(
       "table:compliance_crm_retention_reviews",
-      () => dbAdapter.from("compliance_crm_retention_reviews").select("*").order("domain_label"),
+      async () => await dbAdapter.from("compliance_crm_retention_reviews").select("*").order("domain_label"),
       defaultCrmRetentionReviews,
     );
     const accessReviewData = await loadAccessReviewOverviewAdmin();

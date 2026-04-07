@@ -9,6 +9,7 @@ const mapping: FieldMapping = {
   company: "Firma",
   ico: null,
   region: null,
+  city: null,
   specialization: null,
   status: null,
   contactName: "Jmeno",

@@ -7,7 +7,7 @@ const selectMock = vi.fn(() => ({ eq: eqMock }));
 const fromMock = vi.fn(() => ({ select: selectMock }));
 
 vi.mock('@/services/functionsClient', () => ({
-  invokeAuthedFunction: (...args: unknown[]) => invokeAuthedFunctionMock(...args),
+  invokeAuthedFunction: (name: string, opts: unknown) => invokeAuthedFunctionMock(name, opts),
 }));
 
 vi.mock('@/services/supabase', () => ({
@@ -15,7 +15,7 @@ vi.mock('@/services/supabase', () => ({
     auth: {
       getUser: vi.fn(async () => ({ data: { user: { id: 'user-1' } } })),
     },
-    from: (...args: unknown[]) => fromMock(...args),
+    from: fromMock,
     rpc: vi.fn(),
   },
 }));

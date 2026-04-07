@@ -8,13 +8,13 @@ const state = vi.hoisted(() => ({
 }));
 
 vi.mock("@/services/functionsClient", () => ({
-  invokeAuthedFunction: (...args: unknown[]) => state.invokeAuthedFunction(...args),
+  invokeAuthedFunction: (name: string, opts: unknown) => state.invokeAuthedFunction(name, opts),
 }));
 
 vi.mock("@/services/supabase", () => ({
   supabase: {
     auth: {
-      getUser: (...args: unknown[]) => state.authGetUser(...args),
+      getUser: () => state.authGetUser(),
     },
     from: () => ({
       select: () => ({

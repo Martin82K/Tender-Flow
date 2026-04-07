@@ -13,7 +13,7 @@ const isDemoSessionMock = vi.fn(() => false);
 vi.mock('../services/supabase', () => ({
   supabase: {
     storage: {
-      from: (...args: unknown[]) => fromMock(...args),
+      from: fromMock,
     },
   },
 }));

@@ -76,7 +76,7 @@ describe("runtimeDiagnostics", () => {
     expect(result.eventCount).toBeGreaterThan(0);
     expect(openTempFile).toHaveBeenCalledTimes(1);
 
-    const [content, filename] = openTempFile.mock.calls[0];
+    const [content, filename] = openTempFile.mock.calls[0] as unknown as [unknown, unknown];
     expect(String(filename)).toContain("tender-flow-debug-");
     expect(String(content)).toContain("\"events\"");
     expect(String(content)).toContain("\"router\"");
