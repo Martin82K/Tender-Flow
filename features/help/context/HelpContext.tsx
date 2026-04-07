@@ -180,7 +180,7 @@ export const HelpProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [isActive, view]);
 
-  // First-time hint: show a toast when user visits a view with help content for the first time
+  // First-time hint: show a toast once when user first visits a view with help content
   const toast = useToast();
   const hintShownRef = useRef<Set<string>>(new Set());
   useEffect(() => {
@@ -190,6 +190,7 @@ export const HelpProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (currentEntries.length === 0) return;
 
     hintShownRef.current.add(view);
+    markViewSeen(view);
     const timer = setTimeout(() => {
       toast.showToast({
         type: "info",
