@@ -7,7 +7,7 @@ export type View =
   | "project-overview"
   | "url-shortener";
 
-export type ProjectTab = "overview" | "tender-plan" | "pipeline" | "schedule" | "documents" | "contracts";
+export type ProjectTab = "overview" | "tender-plan" | "pipeline" | "schedule" | "documents" | "contracts" | "map";
 
 // Tender Plan Item
 export interface TenderPlanItem {
@@ -48,6 +48,10 @@ export interface Subcontractor {
 
   vendorRatingAverage?: number;
   vendorRatingCount?: number;
+
+  latitude?: number;
+  longitude?: number;
+  geocodedAt?: string;
 
   // Legacy fields for backward compatibility / migration
   name?: string;
@@ -176,6 +180,9 @@ export interface ProjectDetails {
   plannedCost?: number; // Interní plánovaný náklad (Cíl)
   internalAmendments?: Amendment[]; // Interní dodatky (nezávislé na investorských)
   address?: string; // Přesná adresa stavby
+  latitude?: number;
+  longitude?: number;
+  geocodedAt?: string;
 
   // Documents
   documentationLink?: string; // Link to shared project documentation (legacy, kept for compatibility)

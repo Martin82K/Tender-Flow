@@ -18,6 +18,7 @@ import { ProjectDocuments } from "@/shared/ui/projects/ProjectDocuments";
 import { Contracts } from "@/shared/ui/projects/Contracts";
 import { useFeatures } from "@/context/FeatureContext";
 import { FEATURES } from "@/config/features";
+import { ProjectMapView } from "@features/maps/components/ProjectMapView";
 // --- Main Layout Component ---
 
 interface ProjectLayoutProps {
@@ -75,6 +76,12 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
           label: "Harmonogram",
           icon: "event_note",
           feature: FEATURES.PROJECT_SCHEDULE,
+        },
+        {
+          id: "map",
+          label: "Mapa",
+          icon: "map",
+          feature: FEATURES.MODULE_MAPS,
         },
         { id: "documents", label: "Dokumenty", icon: "folder_open" },
         {
@@ -213,6 +220,15 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
               categories={project.categories || []}
             />
           </div>
+        )}
+        {activeTab === "map" && (
+          <ProjectMapView
+            projectId={projectId}
+            projectDetails={project}
+            contacts={contacts}
+            statuses={statuses}
+            onUpdateDetails={onUpdateDetails}
+          />
         )}
         {activeTab === "documents" && (
           <ProjectDocuments project={project} onUpdate={onUpdateDetails} />
