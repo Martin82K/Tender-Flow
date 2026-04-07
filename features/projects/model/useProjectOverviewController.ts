@@ -36,7 +36,7 @@ export const useProjectOverviewController = ({
 
   const [selectedProjectId, setSelectedProjectId] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<
-    "all" | "active" | "archived"
+    "all" | "tender" | "realization" | "archived"
   >("all");
   const [scope, setScope] = useState<"tenant" | "project">("tenant");
   const [sections, setSections] = useState(SECTION_DEFAULTS);

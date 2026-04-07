@@ -213,7 +213,8 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
           <div className="flex items-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-0.5 gap-0.5">
             {([
               { value: "all", label: "Vše" },
-              { value: "active", label: "Aktivní" },
+              { value: "tender", label: "Soutěž" },
+              { value: "realization", label: "Realizace" },
               { value: "archived", label: "Archiv" },
             ] as const).map((item) => (
               <button

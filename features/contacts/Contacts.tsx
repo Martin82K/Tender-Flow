@@ -38,6 +38,12 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
     const [isContactModalOpen, setIsContactModalOpen] = useState(false);
     const [editingContact, setEditingContact] = useState<Subcontractor | null>(null);
 
+    // Bulk Specialization Modal State
+    const [isBulkSpecModalOpen, setIsBulkSpecModalOpen] = useState(false);
+    const [bulkSpecMode, setBulkSpecMode] = useState<'add' | 'remove' | 'replace'>('add');
+    const [bulkSpecSelected, setBulkSpecSelected] = useState<string[]>([]);
+    const [bulkSpecRaw, setBulkSpecRaw] = useState('');
+
     // Form State
     const [formData, setFormData] = useState<Partial<Subcontractor> & { specializationRaw?: string }>({
         company: '',
@@ -322,6 +328,48 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
         }
     };
 
+    const handleOpenBulkSpecModal = () => {
+        setBulkSpecMode('add');
+        setBulkSpecSelected([]);
+        setBulkSpecRaw('');
+        setIsBulkSpecModalOpen(true);
+    };
+
+    const handleBulkSpecAdd = (spec: string) => {
+        const trimmed = spec.trim();
+        if (!trimmed || bulkSpecSelected.includes(trimmed)) return;
+        setBulkSpecSelected(prev => [...prev, trimmed]);
+        setBulkSpecRaw('');
+    };
+
+    const handleBulkSpecRemoveTag = (spec: string) => {
+        setBulkSpecSelected(prev => prev.filter(s => s !== spec));
+    };
+
+    const handleBulkSpecApply = async () => {
+        if (selectedIds.size === 0 || bulkSpecSelected.length === 0) return;
+
+        const selectedContacts = contacts.filter(c => selectedIds.has(c.id));
+        const updatedContacts: Subcontractor[] = selectedContacts.map(contact => {
+            let newSpecs: string[];
+            if (bulkSpecMode === 'add') {
+                const existing = new Set(contact.specialization || []);
+                bulkSpecSelected.forEach(s => existing.add(s));
+                newSpecs = Array.from(existing);
+            } else if (bulkSpecMode === 'remove') {
+                const toRemove = new Set(bulkSpecSelected);
+                newSpecs = (contact.specialization || []).filter(s => !toRemove.has(s));
+            } else {
+                newSpecs = [...bulkSpecSelected];
+            }
+            return { ...contact, specialization: newSpecs };
+        });
+
+        await onBulkUpdateContacts(updatedContacts);
+        setIsBulkSpecModalOpen(false);
+        setSelectedIds(new Set());
+    };
+
     const handleDeleteSelected = () => {
         if (selectedIds.size === 0) return;
 
@@ -498,6 +546,13 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                                 title="Smazat vybrané"
                             >
                                 <span className="material-symbols-outlined text-[18px]">delete</span>
+                            </button>
+                            <button
+                                onClick={handleOpenBulkSpecModal}
+                                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-md text-sm font-bold shadow-sm transition-colors"
+                            >
+                                <span className="material-symbols-outlined text-[18px]">edit_note</span>
+                                Upravit specializace
                             </button>
                             <button
                                 onClick={handleAutoFillRegistrationData}
@@ -988,6 +1043,162 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                     </div>
                 </div>
             )}
+            {/* Bulk Specialization Modal */}
+            {isBulkSpecModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col max-h-[80vh]">
+                        <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shrink-0">
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                                Hromadná úprava specializací
+                                <span className="ml-2 text-sm font-normal text-slate-500">({selectedIds.size} kontaktů)</span>
+                            </h3>
+                            <button onClick={() => setIsBulkSpecModalOpen(false)} className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+
+                        <div className="p-6 overflow-y-auto flex-1 space-y-4">
+                            {/* Mode selector */}
+                            <div>
+                                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">Akce</label>
+                                <div className="flex gap-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-0.5">
+                                    {([
+                                        { value: 'add' as const, label: 'Přidat', icon: 'add_circle' },
+                                        { value: 'remove' as const, label: 'Odebrat', icon: 'remove_circle' },
+                                        { value: 'replace' as const, label: 'Nahradit', icon: 'swap_horiz' },
+                                    ]).map(item => (
+                                        <button
+                                            key={item.value}
+                                            type="button"
+                                            onClick={() => setBulkSpecMode(item.value)}
+                                            className={`flex-1 flex items-center justify-center gap-1.5 h-9 rounded-md text-sm font-medium transition-colors ${
+                                                bulkSpecMode === item.value
+                                                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                                            }`}
+                                        >
+                                            <span className="material-symbols-outlined text-[16px]">{item.icon}</span>
+                                            {item.label}
+                                        </button>
+                                    ))}
+                                </div>
+                                <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
+                                    {bulkSpecMode === 'add' && 'Přidá vybrané specializace ke stávajícím u všech vybraných kontaktů.'}
+                                    {bulkSpecMode === 'remove' && 'Odebere vybrané specializace ze všech vybraných kontaktů.'}
+                                    {bulkSpecMode === 'replace' && 'Nahradí všechny stávající specializace vybraných kontaktů za nové.'}
+                                </p>
+                            </div>
+
+                            {/* Selected specializations */}
+                            <div>
+                                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">Specializace</label>
+                                <div className="flex flex-wrap gap-2 mb-3 min-h-[32px]">
+                                    {bulkSpecSelected.map(spec => (
+                                        <span
+                                            key={spec}
+                                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+                                                bulkSpecMode === 'remove'
+                                                    ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+                                                    : 'bg-primary/10 text-primary'
+                                            }`}
+                                        >
+                                            {spec}
+                                            <button type="button" onClick={() => handleBulkSpecRemoveTag(spec)} className="hover:text-red-500 transition-colors">
+                                                <span className="material-symbols-outlined text-[14px]">close</span>
+                                            </button>
+                                        </span>
+                                    ))}
+                                    {bulkSpecSelected.length === 0 && (
+                                        <span className="text-xs text-slate-400 italic">Vyberte specializace níže</span>
+                                    )}
+                                </div>
+                                <div className="flex gap-2">
+                                    <div className="relative flex-1">
+                                        <input
+                                            type="text"
+                                            list="bulk-available-specializations"
+                                            value={bulkSpecRaw}
+                                            onChange={e => setBulkSpecRaw(e.target.value)}
+                                            onKeyDown={e => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    handleBulkSpecAdd(bulkSpecRaw);
+                                                }
+                                                e.stopPropagation();
+                                            }}
+                                            className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
+                                            placeholder="Přidat specializaci (stiskněte Enter)"
+                                        />
+                                        <datalist id="bulk-available-specializations">
+                                            {allSpecializations.filter(s => !bulkSpecSelected.includes(s)).map(spec => (
+                                                <option key={spec} value={spec} />
+                                            ))}
+                                        </datalist>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleBulkSpecAdd(bulkSpecRaw)}
+                                        className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 px-3 py-2 rounded-lg transition-colors"
+                                    >
+                                        <span className="material-symbols-outlined">add</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Quick select from existing specializations */}
+                            {allSpecializations.length > 0 && (
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">Rychlý výběr</label>
+                                    <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+                                        {allSpecializations.map(spec => {
+                                            const isSelected = bulkSpecSelected.includes(spec);
+                                            return (
+                                                <button
+                                                    key={spec}
+                                                    type="button"
+                                                    onClick={() => isSelected ? handleBulkSpecRemoveTag(spec) : handleBulkSpecAdd(spec)}
+                                                    className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors border ${
+                                                        isSelected
+                                                            ? 'bg-primary text-white border-primary'
+                                                            : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-primary hover:text-primary'
+                                                    }`}
+                                                >
+                                                    {spec}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-2 shrink-0">
+                            <button
+                                type="button"
+                                onClick={() => setIsBulkSpecModalOpen(false)}
+                                className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-300 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700"
+                            >
+                                Zrušit
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleBulkSpecApply}
+                                disabled={bulkSpecSelected.length === 0}
+                                className={`px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                                    bulkSpecMode === 'remove'
+                                        ? 'bg-red-600 hover:bg-red-700 text-white'
+                                        : 'bg-primary hover:bg-primary/90 text-white'
+                                }`}
+                            >
+                                {bulkSpecMode === 'add' && `Přidat k ${selectedIds.size} kontaktům`}
+                                {bulkSpecMode === 'remove' && `Odebrat z ${selectedIds.size} kontaktů`}
+                                {bulkSpecMode === 'replace' && `Nahradit u ${selectedIds.size} kontaktů`}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Confirmation Modal */}
             <ConfirmationModal
                 isOpen={confirmModal.isOpen}
