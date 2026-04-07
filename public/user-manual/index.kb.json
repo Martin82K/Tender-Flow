@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-06T13:31:38.578Z",
+  "generatedAt": "2026-04-07T20:36:13.285Z",
   "source": "/public/user-manual/index.md",
   "entries": [
     {
@@ -447,24 +447,24 @@
     {
       "slug": "subdodavatele-kontakty",
       "title": "👥 Subdodavatelé (Kontakty)",
-      "content": "Databáze kontaktů pro přidávání do poptávek. Podporuje filtry, výběr více řádků a hromadné akce (např. doplnění regionu pomocí AI – pokud je povoleno). - **Více kontaktů na firmu**: u jedné firmy můžete evidovat více kontaktních osob (jméno, pozice, telefon, email). - **Více specializací**: specializace jsou seznam (používá se pro filtrování i výběr do poptávek). - **Hodnocení dodavatelů**: možnost přiřadit rating a stav (např. doporučuji / nedoporučuji). - **IČ a automatické doplnění**: po zadání IČ se mohou automaticky doplnit údaje o firmě. ![Subdodavatelé a kontakty](./assets/07-contacts.svg) ---",
+      "content": "Databáze kontaktů pro přidávání do poptávek. Podporuje filtry, výběr více řádků a hromadné akce (např. doplnění regionu pomocí AI – pokud je povoleno). - **Více kontaktů na firmu**: u jedné firmy můžete evidovat více kontaktních osob (jméno, pozice, telefon, email). - **Více specializací**: specializace jsou seznam (používá se pro filtrování i výběr do poptávek). - **Hodnocení dodavatelů**: možnost přiřadit rating a stav (např. doporučuji / nedoporučuji). - **IČ a automatické doplnění**: po zadání IČ se mohou automaticky doplnit údaje o firmě. - **Hromadná úprava specializací**: vyberte více kontaktů zaškrtnutím a klikněte na tlačítko „Upravit specializace\". Můžete specializace hromadně **přidat** (ke stávajícím), **odebrat** nebo **nahradit** (přepsat). K dispozici je rychlý výběr z existujících specializací i ruční zadání nových. ![Subdodavatelé a kontakty](./assets/07-contacts.svg) ---",
       "keywords": [
+        "kontakt",
+        "hromadn",
+        "specializac",
+        "specializace",
         "subdodavatel",
         "kontakty",
-        "kontakt",
         "popt",
         "vek",
         "nap",
         "dopln",
+        "ete",
         "uji",
+        "zad",
         "datab",
         "podporuje",
-        "filtry",
-        "hromadn",
-        "akce",
-        "regionu",
-        "pomoc",
-        "pokud"
+        "filtry"
       ],
       "source_anchor": "#subdodavatele-kontakty",
       "level": 2,
@@ -525,12 +525,14 @@
     {
       "slug": "prehled-staveb-analytika",
       "title": "📈 Přehled staveb (analytika)",
-      "content": "Manažerské souhrny napříč stavbami: metriky, grafy a volitelně AI analýza. - Rozevírací menu pro možnost přepnutí stavby. - AI analýza vychází z dostupných dat (množství informací, spuštěná VŘ, stav rozpracovanosti). - Export analýzy do PDF (časové razítko a možnost sdílení). ![Přehled staveb a AI](./assets/12-project-overview-ai.svg) ---",
+      "content": "Manažerské souhrny napříč stavbami: metriky, grafy a volitelně AI analýza. - Rozevírací menu pro možnost přepnutí stavby. - **Filtr fáze stavby**: přepínáte mezi **Vše**, **Soutěž**, **Realizace** a **Archiv** — statistiky a grafy se přepočítají podle vybrané fáze. - AI analýza vychází z dostupných dat (množství informací, spuštěná VŘ, stav rozpracovanosti). - Export analýzy do PDF (časové razítko a možnost sdílení). ![Přehled staveb a AI](./assets/12-project-overview-ai.svg) ---",
       "keywords": [
         "anal",
         "ehled",
         "staveb",
+        "grafy",
         "nost",
+        "stavby",
         "analytika",
         "mana",
         "ersk",
@@ -538,11 +540,9 @@
         "nap",
         "stavbami",
         "metriky",
-        "grafy",
         "voliteln",
         "rozev",
-        "rac",
-        "menu"
+        "rac"
       ],
       "source_anchor": "#prehled-staveb-analytika",
       "level": 2,
@@ -1477,6 +1477,32 @@
       "parentTitle": null
     },
     {
+      "slug": "v1-5-2",
+      "title": "v1.5.2",
+      "content": "- **Import wizard kontaktů**: nový průvodce pro hromadný import kontaktů a subdodavatelů s náhledem, mapováním sloupců a vyloučením řádků. - **Hromadná úprava specializací**: specializace subdodavatelů lze upravovat hromadně přímo v přehledu kontaktů. - **Dodatky a vlastní náklady**: vylepšené formuláře pro dodatky a adresy stavby, včetně podpory vlastních nákladů u dodatků. - **Šifrované zálohy**: zálohy v desktop verzi jsou šifrovány algoritmem AES-256-GCM. Desktop ukládá zálohy automaticky s denní frekvencí. Nové tlačítko pro zálohu kontaktů. - **Systém nápovědy**: interaktivní nápověda s kontextovými bublinami, klávesová zkratka pro vyhledávání, onboarding pro nové uživatele. - **Automatické složky dokumentů**: DocHub v desktop verzi umí vytvořit standardizovanou strukturu složek pro dokumenty stavby jedním kliknutím. - **Přepracovaná příručka**: kompletně přepsaná uživatelská příručka s aktuálním popisem všech modulů. - **Opravy UX tabulek**: opraveno scrollování a překryvy v tabulkách pipeline, harmonogramu a plánu VŘ.",
+      "keywords": [
+        "kontakt",
+        "nov",
+        "hromadn",
+        "lohy",
+        "desktop",
+        "import",
+        "subdodavatel",
+        "dodatky",
+        "vlastn",
+        "stavby",
+        "verzi",
+        "pov",
+        "slo",
+        "wizard",
+        "vodce",
+        "hledem"
+      ],
+      "source_anchor": "#v1-5-2",
+      "level": 3,
+      "parentTitle": "🎉 Novinky (changelog)"
+    },
+    {
       "slug": "v1-5-1",
       "title": "v1.5.1",
       "content": "- **Záloha a obnova dat**: nová funkce pro zálohování a obnovu uživatelských dat (PRO+) a dat celé organizace (Enterprise+). Desktop: lokální zálohy s automatickou denní frekvencí a 7denní retencí. Web: stažení/nahrání zálohy přes prohlížeč. Obnova přepisuje pouze vlastní záznamy — bezpečné pro multi-tenant prostředí. - **Šifrování záloh**: zálohy v desktop verzi jsou automaticky šifrovány algoritmem AES-256-GCM. Šifrovací klíč je chráněn OS (Windows DPAPI / macOS Keychain). Starší nešifrované zálohy zůstávají čitelné. - **Záloha kontaktů**: nové tlačítko „Zálohovat kontakty\" pro samostatný export subdodavatelů a jejich statusů. Funguje na desktopu (šifrovaně) i na webu (stažení JSON).",
@@ -1844,7 +1870,7 @@
     {
       "slug": "novinky-changelog",
       "title": "🎉 Novinky (changelog)",
-      "content": "📱 v1.5.1 📖 Verze příručky 2.1 Verzi aplikace najdete vlevo dole v sidebaru.",
+      "content": "📱 v1.5.2 📖 Verze příručky 2.2 Verzi aplikace najdete vlevo dole v sidebaru.",
       "keywords": [
         "novinky",
         "changelog",

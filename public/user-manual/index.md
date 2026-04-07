@@ -2,7 +2,7 @@
 
 Tato příručka popisuje práci v aplikaci Tender Flow pro řízení staveb, výběrových řízení a subdodavatelů.
 
-Verze příručky: **2.1** • Datum: **2026‑04‑05** • Aplikace: **v1.5.1**
+Verze příručky: **2.2** • Datum: **2026‑04‑07** • Aplikace: **v1.5.2**
 
 <p class="manualLogoWrap">
   <img class="manualLogo" src="./assets/logo.png" alt="Tender Flow logo" />
@@ -746,9 +746,20 @@ V desktop verzi ano — všechny nové zálohy jsou automaticky šifrovány algo
 
 ## 🎉 Novinky (changelog)
 
-<span class="version-badge">📱 v1.5.1</span> <span class="version-badge">📖 Verze příručky 2.1</span>
+<span class="version-badge">📱 v1.5.2</span> <span class="version-badge">📖 Verze příručky 2.2</span>
 
 Verzi aplikace najdete vlevo dole v sidebaru.
+
+### v1.5.2
+
+- **Import wizard kontaktů**: nový průvodce pro hromadný import kontaktů a subdodavatelů s náhledem, mapováním sloupců a vyloučením řádků.
+- **Hromadná úprava specializací**: specializace subdodavatelů lze upravovat hromadně přímo v přehledu kontaktů.
+- **Dodatky a vlastní náklady**: vylepšené formuláře pro dodatky a adresy stavby, včetně podpory vlastních nákladů u dodatků.
+- **Šifrované zálohy**: zálohy v desktop verzi jsou šifrovány algoritmem AES-256-GCM. Desktop ukládá zálohy automaticky s denní frekvencí. Nové tlačítko pro zálohu kontaktů.
+- **Systém nápovědy**: interaktivní nápověda s kontextovými bublinami, klávesová zkratka pro vyhledávání, onboarding pro nové uživatele.
+- **Automatické složky dokumentů**: DocHub v desktop verzi umí vytvořit standardizovanou strukturu složek pro dokumenty stavby jedním kliknutím.
+- **Přepracovaná příručka**: kompletně přepsaná uživatelská příručka s aktuálním popisem všech modulů.
+- **Opravy UX tabulek**: opraveno scrollování a překryvy v tabulkách pipeline, harmonogramu a plánu VŘ.
 
 ### v1.5.1
 

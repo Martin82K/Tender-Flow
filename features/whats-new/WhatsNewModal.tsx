@@ -30,13 +30,19 @@ const features = [
     icon: "enhanced_encryption",
     title: "Šifrované zálohy",
     description:
-      "Zálohy dat a kontaktů jsou nově šifrovány pro vyšší bezpečnost vašich údajů.",
+      "Zálohy dat a kontaktů jsou nově šifrovány algoritmem AES-256-GCM. Desktop verze ukládá zálohy automaticky.",
   },
   {
     icon: "help_center",
-    title: "Systém nápovědy",
+    title: "Nápověda a příručka",
     description:
-      "Nový onboarding systém s interaktivní nápovědou pro snazší orientaci v aplikaci.",
+      "Interaktivní systém nápovědy s kontextovými bublinami a kompletně přepracovaná uživatelská příručka.",
+  },
+  {
+    icon: "create_new_folder",
+    title: "Automatické složky dokumentů",
+    description:
+      "DocHub nyní umí automaticky vytvořit standardizovanou strukturu složek pro dokumenty stavby.",
   },
 ];
 
