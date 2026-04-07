@@ -10,11 +10,11 @@ const corsHeaders = {
 
 // Action → Mapy.cz endpoint mapping
 const ACTION_ENDPOINTS: Record<string, string> = {
-    geocode: "https://api.mapy.cz/v1/geocode",
-    rgeocode: "https://api.mapy.cz/v1/rgeocode",
-    suggest: "https://api.mapy.cz/v1/suggest",
-    route: "https://api.mapy.cz/v1/routing/route",
-    matrix: "https://api.mapy.cz/v1/routing/matrix",
+    geocode: "https://api.mapy.com/v1/geocode",
+    rgeocode: "https://api.mapy.com/v1/rgeocode",
+    suggest: "https://api.mapy.com/v1/suggest",
+    route: "https://api.mapy.com/v1/routing/route",
+    matrix: "https://api.mapy.com/v1/routing/matrix",
 };
 
 // Actions that require pro+ tier (routing features)
@@ -140,8 +140,8 @@ Deno.serve(async (req) => {
         if (action === "tile-config") {
             return new Response(
                 JSON.stringify({
-                    tileUrl: `https://api.mapy.cz/v1/maptiles/basic/256/{z}/{x}/{y}?apikey=${mapyApiKey}`,
-                    darkTileUrl: `https://api.mapy.cz/v1/maptiles/dark/256/{z}/{x}/{y}?apikey=${mapyApiKey}`,
+                    tileUrl: `https://api.mapy.com/v1/maptiles/basic/256/{z}/{x}/{y}?apikey=${mapyApiKey}`,
+                    darkTileUrl: `https://api.mapy.com/v1/maptiles/outdoor/256/{z}/{x}/{y}?apikey=${mapyApiKey}`,
                 }),
                 { headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );

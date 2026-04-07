@@ -4,18 +4,32 @@ import type { MapMarker } from '../types';
 import { getMarkerColor } from '../utils/markerColors';
 import { MapView } from './MapView';
 import { MapLegend } from './MapLegend';
+import { BulkGeocodePanel } from './BulkGeocodePanel';
 
 interface SubcontractorMapViewProps {
   contacts: Subcontractor[];
   statuses: StatusConfig[];
   onContactClick?: (contact: Subcontractor) => void;
+  onBulkUpdateContacts?: (contacts: Subcontractor[]) => Promise<void> | void;
 }
 
 export function SubcontractorMapView({
   contacts,
   statuses,
   onContactClick,
+  onBulkUpdateContacts,
 }: SubcontractorMapViewProps) {
+  const [showGeocodePanel, setShowGeocodePanel] = useState(false);
+
+  const handleGeocodesUpdated = useCallback((updates: Array<{ id: string; latitude: number; longitude: number; geocodedAt: string }>) => {
+    if (!onBulkUpdateContacts) return;
+    const updatedContacts = updates.map(u => {
+      const existing = contacts.find(c => c.id === u.id);
+      if (!existing) return null;
+      return { ...existing, latitude: u.latitude, longitude: u.longitude, geocodedAt: u.geocodedAt };
+    }).filter(Boolean) as Subcontractor[];
+    if (updatedContacts.length > 0) onBulkUpdateContacts(updatedContacts);
+  }, [contacts, onBulkUpdateContacts]);
   const [specFilter, setSpecFilter] = useState<string[]>([]);
   const [regionFilter, setRegionFilter] = useState<string>('');
   const [specDropdownOpen, setSpecDropdownOpen] = useState(false);
@@ -167,16 +181,37 @@ export function SubcontractorMapView({
           ))}
         </select>
 
-        {/* Stats */}
-        <div className="ml-auto text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
-          <span className="material-symbols-outlined text-sm">pin_drop</span>
-          {geocodedCount} z {totalContacts} kontaktu na mape
+        {/* Stats + geocode button */}
+        <div className="ml-auto flex items-center gap-2">
+          <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+            <span className="material-symbols-outlined text-sm">pin_drop</span>
+            {geocodedCount} z {totalContacts} kontaktu na mape
+          </span>
+          {onBulkUpdateContacts && (
+            <button
+              onClick={() => setShowGeocodePanel(!showGeocodePanel)}
+              className="flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+            >
+              <span className="material-symbols-outlined text-sm">my_location</span>
+              Geokódovat
+            </button>
+          )}
         </div>
       </div>
 
       {/* Close dropdown on outside click */}
       {specDropdownOpen && (
         <div className="fixed inset-0 z-40" onClick={() => setSpecDropdownOpen(false)} />
+      )}
+
+      {/* Geocode panel */}
+      {showGeocodePanel && (
+        <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700">
+          <BulkGeocodePanel
+            contacts={contacts}
+            onContactsUpdated={handleGeocodesUpdated}
+          />
+        </div>
       )}
 
       {/* Map or empty state */}
@@ -187,11 +222,20 @@ export function SubcontractorMapView({
               location_off
             </span>
             <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">
-              Zadny subdodavatel nema geokodovanou adresu
+              Žádný subdodavatel nemá geokódovanou adresu
             </p>
-            <p className="text-xs text-slate-400 dark:text-slate-500 max-w-xs">
-              Pro zobrazeni na mape je treba nejprve geokodovat adresy subdodavatelu.
+            <p className="text-xs text-slate-400 dark:text-slate-500 max-w-xs mb-3">
+              Pro zobrazení na mapě je třeba nejprve geokódovat adresy subdodavatelů.
             </p>
+            {onBulkUpdateContacts && !showGeocodePanel && (
+              <button
+                onClick={() => setShowGeocodePanel(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+              >
+                <span className="material-symbols-outlined text-sm">my_location</span>
+                Geokódovat adresy
+              </button>
+            )}
           </div>
         ) : (
           <>

@@ -90,21 +90,24 @@ export function MapView({
       attributionControl: true,
     });
 
-    // Add fallback tile layer immediately (prevents "no maxZoom" error)
-    const fallbackTile = L.tileLayer(MAPS_CONFIG.tileUrl, {
-      attribution: '© Seznam.cz, a.s.',
-      maxZoom: 19,
-    }).addTo(map);
-    tileLayerRef.current = fallbackTile;
-
-    // Load tile config from proxy (API key stays server-side) and swap tiles
+    // Load tile config from proxy first, then create tile layer
     mapyApiService.getTileConfig().then((config) => {
       if (cancelled) return;
       tileConfigRef.current = config;
       const url = isDark ? config.darkTileUrl : config.tileUrl;
-      if (tileLayerRef.current) tileLayerRef.current.setUrl(url);
+      const tile = L.tileLayer(url, {
+        attribution: '© Seznam.cz, a.s.',
+        maxZoom: 19,
+      }).addTo(map);
+      tileLayerRef.current = tile;
     }).catch(() => {
-      // Keep fallback tiles
+      // Fallback: use OpenStreetMap tiles (no API key needed)
+      if (cancelled) return;
+      const tile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19,
+      }).addTo(map);
+      tileLayerRef.current = tile;
     });
 
     const clusterGroup = L.markerClusterGroup({

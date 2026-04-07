@@ -623,6 +623,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                         contacts={contacts}
                         statuses={statuses}
                         onContactClick={handleOpenEditModal}
+                        onBulkUpdateContacts={onBulkUpdateContacts}
                     />
                 </div>
             )}
