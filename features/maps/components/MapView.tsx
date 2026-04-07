@@ -85,28 +85,26 @@ export function MapView({
     const map = L.map(containerRef.current, {
       center: mapCenter,
       zoom: mapZoom,
+      maxZoom: 19,
       zoomControl: true,
       attributionControl: true,
     });
 
-    // Load tile config from proxy (API key stays server-side)
+    // Add fallback tile layer immediately (prevents "no maxZoom" error)
+    const fallbackTile = L.tileLayer(MAPS_CONFIG.tileUrl, {
+      attribution: '© Seznam.cz, a.s.',
+      maxZoom: 19,
+    }).addTo(map);
+    tileLayerRef.current = fallbackTile;
+
+    // Load tile config from proxy (API key stays server-side) and swap tiles
     mapyApiService.getTileConfig().then((config) => {
       if (cancelled) return;
       tileConfigRef.current = config;
       const url = isDark ? config.darkTileUrl : config.tileUrl;
-      const tile = L.tileLayer(url, {
-        attribution: '© Seznam.cz, a.s.',
-        maxZoom: 19,
-      }).addTo(map);
-      tileLayerRef.current = tile;
+      if (tileLayerRef.current) tileLayerRef.current.setUrl(url);
     }).catch(() => {
-      // Fallback: tiles without API key (may show watermark)
-      if (cancelled) return;
-      const tile = L.tileLayer(MAPS_CONFIG.tileUrl, {
-        attribution: '© Seznam.cz, a.s.',
-        maxZoom: 19,
-      }).addTo(map);
-      tileLayerRef.current = tile;
+      // Keep fallback tiles
     });
 
     const clusterGroup = L.markerClusterGroup({
