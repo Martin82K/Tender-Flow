@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import type { ProjectDetails } from "../types";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -207,9 +208,9 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
               </span>
             </div>
           </div>
-          {editingInfo && (
+          {editingInfo && createPortal(
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl animate-fadeIn">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-fadeIn">
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">
                   Upravit informace
                 </h3>
@@ -295,7 +296,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                 </div>
               </div>
             </div>
-          )}
+          , document.body)}
         </div>
 
         {/* 2. Financials (Investor) */}
@@ -346,9 +347,9 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
               </span>
             </div>
           </div>
-          {editingInvestor && (
+          {editingInvestor && createPortal(
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-2xl w-full shadow-2xl animate-fadeIn">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-fadeIn">
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">
                   Upravit finance investora
                 </h3>
@@ -480,7 +481,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                 </div>
               </div>
             </div>
-          )}
+          , document.body)}
         </div>
 
         {/* 3. Internal Budget */}
@@ -559,9 +560,9 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
               </span>
             </div>
           </div>
-          {editingInternal && (
+          {editingInternal && createPortal(
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl animate-fadeIn">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-fadeIn">
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">
                   Upravit interní rozpočet
                 </h3>
@@ -707,7 +708,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                 </div>
               </div>
             </div>
-          )}
+          , document.body)}
         </div>
         {/* 4. Contract Parameters (Restored & Restructured) */}
         <div data-help-id="overview-contract-params" className="lg:col-span-1 border-r border-slate-200 dark:border-slate-800/50 pr-6">
@@ -781,9 +782,9 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
               </div>
             </div>
           </div>
-          {editingContract && (
+          {editingContract && createPortal(
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl animate-fadeIn">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-fadeIn">
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">
                   Upravit parametry smlouvy
                 </h3>
@@ -885,7 +886,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                 </div>
               </div>
             </div>
-          )}
+          , document.body)}
         </div>
       </div>
     </div>
@@ -1759,14 +1760,14 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                         Zobrazit sloupce
                       </div>
                       <div className="space-y-1">
-                        {[
+                        {([
                           { id: "sod", label: "SOD (Cena)" },
                           { id: "plan", label: "Plán" },
                           { id: "pn_vr", label: "Rozdíl (Plán - VŘ)" },
                           { id: "sod_vr", label: "Rozdíl (SOD - VŘ)" },
                           { id: "nabidky", label: "Počet nabídek" },
                           { id: "smlouvy", label: "Smlouvy" },
-                        ].map((col) => (
+                        ] as const).map((col) => (
                           <label
                             key={col.id}
                             className="flex items-center gap-3 p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
@@ -1774,11 +1775,9 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                             <input
                               type="checkbox"
                               checked={
-                                visibleColumns[
-                                  col.id as keyof typeof visibleColumns
-                                ]
+                                visibleColumns[col.id]
                               }
-                              onChange={() => toggleColumn(col.id as keyof typeof visibleColumns)}
+                              onChange={() => toggleColumn(col.id)}
                               className="rounded text-primary focus:ring-primary"
                             />
                             <span className="text-sm font-medium text-slate-700 dark:text-slate-300">

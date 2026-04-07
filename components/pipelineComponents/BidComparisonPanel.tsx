@@ -825,9 +825,9 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
                 {job.stats && (
                   <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 p-3 text-xs text-slate-600 dark:text-slate-300 space-y-1">
                     <p>Položek v zadání: {job.stats.pocetPolozek}</p>
-                    {Object.entries(job.stats.suppliers).map(([label, stats]) => (
+                    {(Object.entries(job.stats.suppliers) as [string, { sparovano: number }][]).map(([label, supplierStats]) => (
                       <p key={label}>
-                        {label}: {stats.sparovano}/{job.stats?.pocetPolozek} spárováno
+                        {label}: {supplierStats.sparovano}/{job.stats?.pocetPolozek} spárováno
                       </p>
                     ))}
                   </div>
