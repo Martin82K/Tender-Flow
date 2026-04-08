@@ -10,6 +10,10 @@ on:
         description: "Optional: version to release (must match package.json)"
         required: false
 
+concurrency:
+  group: desktop-release-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
@@ -23,6 +27,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+        with:
+          # For tag pushes, checkout the tag; for workflow_dispatch, checkout the tag if it exists
+          ref: ${{ github.event_name == 'push' && github.ref || '' }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -78,6 +85,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.prepare.outputs.tag }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -105,6 +114,15 @@ jobs:
           [ -f "$BLOCKMAP_PATH" ] || { echo "::error::Missing $BLOCKMAP_PATH"; exit 1; }
           [ -f "$LATEST_PATH" ] || { echo "::error::Missing $LATEST_PATH"; exit 1; }
 
+          # Validate artifact sizes (must be > 10KB)
+          for f in "$INSTALLER_PATH" "$BLOCKMAP_PATH" "$LATEST_PATH"; do
+            SIZE=$(stat -c%s "$f" 2>/dev/null || stat -f%z "$f" 2>/dev/null)
+            if [ "$SIZE" -lt 10240 ] && [ "$f" = "$INSTALLER_PATH" ]; then
+              echo "::error::$f is suspiciously small (${SIZE} bytes)"
+              exit 1
+            fi
+          done
+
       - name: Upload Windows assets to GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -129,6 +147,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.prepare.outputs.tag }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
