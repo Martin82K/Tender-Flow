@@ -54,9 +54,9 @@ function createMarkerIcon(color: string, isProject = false): L.DivIcon {
 
 function buildPopupContent(marker: MapMarker): string {
   let html = `<div style="min-width:160px;">`;
-  html += `<strong style="font-size:14px;">${marker.label}</strong>`;
+  html += `<strong style="font-size:14px;color:#1E293B;">${marker.label}</strong>`;
   if (marker.specialization?.length) {
-    html += `<div style="margin-top:4px;font-size:12px;color:#6B7280;">${marker.specialization.join(', ')}</div>`;
+    html += `<div style="margin-top:4px;font-size:12px;color:#475569;font-weight:500;">${marker.specialization.join(', ')}</div>`;
   }
   if (marker.rating != null) {
     const stars = '★'.repeat(Math.round(marker.rating)) + '☆'.repeat(5 - Math.round(marker.rating));

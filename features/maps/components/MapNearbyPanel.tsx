@@ -112,7 +112,7 @@ export function MapNearbyPanel({
                         <span className="text-xs font-medium text-slate-900 dark:text-white truncate">
                           {sub.company}
                         </span>
-                        <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 shrink-0 tabular-nums">
+                        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 shrink-0 tabular-nums">
                           {sub.distanceKm.toFixed(1)} km
                         </span>
                       </div>
@@ -123,21 +123,22 @@ export function MapNearbyPanel({
                           {sub.specialization.slice(0, 2).map(s => (
                             <span
                               key={s}
-                              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px]"
+                              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium"
                               style={{
-                                backgroundColor: `${getMarkerColor([s])}15`,
+                                backgroundColor: `${getMarkerColor([s])}20`,
                                 color: getMarkerColor([s]),
+                                textShadow: '0 0 0 currentColor',
                               }}
                             >
                               <span
-                                className="w-1 h-1 rounded-full"
+                                className="w-1.5 h-1.5 rounded-full"
                                 style={{ backgroundColor: getMarkerColor([s]) }}
                               />
                               {s}
                             </span>
                           ))}
                           {sub.specialization.length > 2 && (
-                            <span className="text-[10px] text-slate-400">
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
                               +{sub.specialization.length - 2}
                             </span>
                           )}
