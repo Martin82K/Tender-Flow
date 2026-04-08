@@ -294,6 +294,9 @@ export const useBulkUpdateContactsMutation = () => {
                 if (data.city !== undefined) dbUpdates.city = data.city;
                 if (data.status !== undefined) dbUpdates.status_id = data.status;
                 if (data.contacts !== undefined) dbUpdates.contacts = data.contacts;
+                if (data.latitude !== undefined) dbUpdates.latitude = data.latitude;
+                if (data.longitude !== undefined) dbUpdates.longitude = data.longitude;
+                if (data.geocodedAt !== undefined) dbUpdates.geocoded_at = data.geocodedAt;
 
                 const { error } = await dbAdapter.from("subcontractors").update(dbUpdates).eq("id", id);
                 if (error) throw error;

@@ -95,6 +95,9 @@ export const useContactsQuery = () => {
                     name: s.contact_person_name || "-",
                     phone: s.phone || "-",
                     email: s.email || "-",
+                    latitude: s.latitude ?? undefined,
+                    longitude: s.longitude ?? undefined,
+                    geocodedAt: s.geocoded_at ?? undefined,
                 };
             });
 
