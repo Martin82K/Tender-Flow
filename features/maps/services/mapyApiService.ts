@@ -93,6 +93,13 @@ interface ProxyErrorResponse {
 interface TileConfigResponse {
   tileUrl: string;
   darkTileUrl: string;
+  layers?: Record<string, string>;
+}
+
+export interface TileConfig {
+  tileUrl: string;
+  darkTileUrl: string;
+  layers: Record<string, string>;
 }
 
 // ---------------------------------------------------------------------------
@@ -103,7 +110,7 @@ class MapyApiService {
   private geocodeCache = new LRUCache<GeocodingResult>(500, MAPS_CONFIG.cacheGeocodeTTL);
   private routeCache = new LRUCache<RouteResult>(200, MAPS_CONFIG.cacheRouteTTL);
   private rateLimiter = new RateLimiter(MAPS_CONFIG.rateLimit);
-  private tileUrlCache: { tileUrl: string; darkTileUrl: string } | null = null;
+  private tileUrlCache: TileConfig | null = null;
 
   // -----------------------------------------------------------------------
   // Core proxy call with rate limiting + retry
@@ -164,7 +171,7 @@ class MapyApiService {
   // Tile URL (fetched once from proxy, cached in memory)
   // -----------------------------------------------------------------------
 
-  async getTileConfig(): Promise<{ tileUrl: string; darkTileUrl: string }> {
+  async getTileConfig(): Promise<TileConfig> {
     if (this.tileUrlCache) return this.tileUrlCache;
 
     try {
@@ -177,6 +184,10 @@ class MapyApiService {
         this.tileUrlCache = {
           tileUrl: response.tileUrl,
           darkTileUrl: response.darkTileUrl,
+          layers: response.layers ?? {
+            standard: response.tileUrl,
+            outdoor: response.darkTileUrl,
+          },
         };
         return this.tileUrlCache;
       }
@@ -188,6 +199,10 @@ class MapyApiService {
     return {
       tileUrl: MAPS_CONFIG.tileUrl,
       darkTileUrl: MAPS_CONFIG.darkTileUrl,
+      layers: {
+        standard: MAPS_CONFIG.tileUrl,
+        outdoor: MAPS_CONFIG.darkTileUrl,
+      },
     };
   }
 

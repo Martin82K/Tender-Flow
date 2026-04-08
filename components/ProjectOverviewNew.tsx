@@ -13,6 +13,7 @@ import { useProjectOverviewNewController } from "@/features/projects/model/usePr
 interface ProjectOverviewProps {
   project: ProjectDetails;
   onUpdate: (updates: Partial<ProjectDetails>) => void;
+  onAddressChanged?: (address: string, location: string) => void;
   variant?: "full" | "compact";
   searchQuery?: string;
   onNavigateToPipeline?: (categoryId: string) => void;
@@ -21,6 +22,7 @@ interface ProjectOverviewProps {
 export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
   project,
   onUpdate,
+  onAddressChanged,
   variant = "full",
   searchQuery = "",
   onNavigateToPipeline,
@@ -80,6 +82,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
   } = useProjectOverviewNewController({
     project,
     onUpdate,
+    onAddressChanged,
     userId: user?.id,
     searchQuery,
   });
@@ -1081,6 +1084,15 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                       icon: "pin_drop",
                       color: "text-emerald-500",
                       bg: "bg-emerald-500/10",
+                    },
+                    {
+                      label: "GPS souřadnice",
+                      value: project.latitude != null && project.longitude != null
+                        ? `${project.latitude.toFixed(5)}, ${project.longitude.toFixed(5)}`
+                        : project.address ? "Negeokódováno" : undefined,
+                      icon: "my_location",
+                      color: project.latitude != null ? "text-emerald-500" : "text-amber-500",
+                      bg: project.latitude != null ? "bg-emerald-500/10" : "bg-amber-500/10",
                     },
                     {
                       label: "Termín dokončení",

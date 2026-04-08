@@ -1,20 +1,30 @@
-import { getAllSpecializationColors } from '../utils/markerColors';
+import { MAPS_CONFIG } from '@/config/maps';
 
 interface MapLegendProps {
+  /** When provided, only these specializations are shown */
+  activeSpecs?: string[];
+  /** Dynamic color map: spec → color */
+  colorMap?: Record<string, string>;
+  /** Optional: counts per specialization */
+  counts?: Record<string, number>;
   className?: string;
   compact?: boolean;
 }
 
-export function MapLegend({ className = '', compact = false }: MapLegendProps) {
-  const colors = getAllSpecializationColors();
-  const entries = Object.entries(colors);
+export function MapLegend({ activeSpecs, colorMap, counts, className = '', compact = false }: MapLegendProps) {
+  const staticColors = MAPS_CONFIG.colors;
+
+  // Build entries: use colorMap if provided, fall back to static config
+  const entries: [string, string][] = activeSpecs
+    ? activeSpecs.map(spec => [spec, colorMap?.[spec] || staticColors[spec] || staticColors.default] as [string, string])
+    : Object.entries(staticColors).filter(([key]) => key !== 'default');
 
   if (entries.length === 0) return null;
 
   if (compact) {
     return (
       <div
-        className={`flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-lg bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm px-3 py-2 shadow-md border border-slate-200/50 dark:border-slate-700/50 ${className}`}
+        className={`flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm px-3 py-2 shadow-lg border border-slate-200/50 dark:border-slate-700/50 ${className}`}
       >
         {entries.map(([label, color]) => (
           <div key={label} className="flex items-center gap-1.5">
@@ -24,6 +34,9 @@ export function MapLegend({ className = '', compact = false }: MapLegendProps) {
             />
             <span className="text-xs text-slate-600 dark:text-slate-300 whitespace-nowrap">
               {label}
+              {counts?.[label] != null && (
+                <span className="ml-1 text-slate-400 dark:text-slate-500">({counts[label]})</span>
+              )}
             </span>
           </div>
         ))}
@@ -33,7 +46,7 @@ export function MapLegend({ className = '', compact = false }: MapLegendProps) {
 
   return (
     <div
-      className={`rounded-xl bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-3 shadow-md border border-slate-200/50 dark:border-slate-700/50 ${className}`}
+      className={`rounded-xl bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm p-3 shadow-lg border border-slate-200/50 dark:border-slate-700/50 ${className}`}
     >
       <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
         Specializace
@@ -45,7 +58,10 @@ export function MapLegend({ className = '', compact = false }: MapLegendProps) {
               className="inline-block w-3.5 h-3.5 rounded-full shrink-0 border-2 border-white dark:border-slate-700"
               style={{ backgroundColor: color }}
             />
-            <span className="text-sm text-slate-700 dark:text-slate-200">{label}</span>
+            <span className="text-sm text-slate-700 dark:text-slate-200 flex-1">{label}</span>
+            {counts?.[label] != null && (
+              <span className="text-xs text-slate-400 dark:text-slate-500 tabular-nums">{counts[label]}</span>
+            )}
           </div>
         ))}
       </div>
