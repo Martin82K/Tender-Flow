@@ -1,7 +1,8 @@
-import { useState, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import type { Subcontractor, ProjectDetails, StatusConfig } from '@/types';
 import type { GeoPoint, MapMarker } from '../types';
 import { useNearbySubcontractors } from '../hooks/useNearbySubcontractors';
+import { useGeocode } from '../hooks/useGeocode';
 import { MapView } from './MapView';
 import type { MapViewHandle } from './MapView';
 import { MapLegend } from './MapLegend';
@@ -39,12 +40,38 @@ export function ProjectMapView({
   const [specFilter, setSpecFilter] = useState<string[]>([]);
   const [regionFilter, setRegionFilter] = useState('');
 
+  const { geocodeProject } = useGeocode();
+  const geocodeAttemptedRef = useRef<string | null>(null);
+
   const projectPosition: GeoPoint | null = useMemo(() => {
     if (projectDetails.latitude != null && projectDetails.longitude != null) {
       return { lat: projectDetails.latitude, lng: projectDetails.longitude };
     }
     return null;
   }, [projectDetails.latitude, projectDetails.longitude]);
+
+  // Auto-geocode project address when it has address/location but no coordinates
+  useEffect(() => {
+    const addressKey = `${projectDetails.address || ''}|${projectDetails.location || ''}`;
+    if (
+      projectPosition == null &&
+      (projectDetails.address || projectDetails.location) &&
+      onUpdateDetails &&
+      geocodeAttemptedRef.current !== addressKey
+    ) {
+      geocodeAttemptedRef.current = addressKey;
+      let cancelled = false;
+      geocodeProject(projectDetails).then(result => {
+        if (cancelled || !result) return;
+        onUpdateDetails({
+          latitude: result.lat,
+          longitude: result.lng,
+          geocodedAt: new Date().toISOString(),
+        });
+      });
+      return () => { cancelled = true; };
+    }
+  }, [projectDetails.address, projectDetails.location, projectPosition, onUpdateDetails, geocodeProject]);
 
   const { nearby: allNearby, geocodedCount, totalCount } = useNearbySubcontractors(
     projectPosition,
@@ -149,22 +176,94 @@ export function ProjectMapView({
     );
   }, []);
 
-  const hasProjectAddress = projectPosition != null;
+  const hasCoordinates = projectPosition != null;
+  const hasTextAddress = !!(projectDetails.address || projectDetails.location);
+  const [showAddressInput, setShowAddressInput] = useState(false);
+  const [addressInput, setAddressInput] = useState(projectDetails.address || projectDetails.location || '');
+  const [isGeocoding, setIsGeocoding] = useState(false);
+
+  const handleSetAddress = useCallback(async () => {
+    if (!onUpdateDetails) return;
+    const addr = addressInput.trim() || projectDetails.address || projectDetails.location || '';
+    if (!addr) return;
+    setIsGeocoding(true);
+    try {
+      const result = await geocodeProject({ ...projectDetails, address: addr, latitude: undefined, longitude: undefined } as ProjectDetails);
+      const updates: Partial<ProjectDetails> = {};
+      // Only update address field if user typed something new
+      if (addressInput.trim() && addressInput.trim() !== projectDetails.address) {
+        updates.address = addressInput.trim();
+      }
+      if (result) {
+        updates.latitude = result.lat;
+        updates.longitude = result.lng;
+        updates.geocodedAt = new Date().toISOString();
+      }
+      if (Object.keys(updates).length > 0) {
+        onUpdateDetails(updates);
+      }
+      setShowAddressInput(false);
+    } finally {
+      setIsGeocoding(false);
+    }
+  }, [addressInput, onUpdateDetails, geocodeProject, projectDetails]);
 
   return (
     <div className="relative h-full" data-map-root>
-      {/* Warning: no address */}
-      {!hasProjectAddress && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1001] flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-50/95 dark:bg-amber-900/80 backdrop-blur-sm border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs shadow-lg">
-          <span className="material-symbols-outlined text-base">warning</span>
-          <span>Stavba nemá přesnou adresu. Nastavte ji pro zobrazení subdodavatelů na mapě.</span>
-          {onUpdateDetails && (
-            <button
-              onClick={() => {/* Parent should handle navigation to address setting */}}
-              className="shrink-0 px-3 py-1 rounded-lg bg-amber-200 dark:bg-amber-800 hover:bg-amber-300 dark:hover:bg-amber-700 text-amber-900 dark:text-amber-200 font-medium transition-colors"
-            >
-              Nastavit
-            </button>
+      {/* Warning: no coordinates — either missing address or needs geocoding */}
+      {!hasCoordinates && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1001] flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-50/95 dark:bg-amber-900/80 backdrop-blur-sm border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs shadow-lg max-w-lg">
+          <span className="material-symbols-outlined text-base shrink-0">warning</span>
+          {!showAddressInput ? (
+            <>
+              <span>
+                {hasTextAddress
+                  ? `Adresa „${projectDetails.address || projectDetails.location}" nebyla dosud geokódována.`
+                  : 'Stavba nemá přesnou adresu. Nastavte ji pro zobrazení subdodavatelů na mapě.'}
+              </span>
+              {onUpdateDetails && hasTextAddress && (
+                <button
+                  onClick={handleSetAddress}
+                  disabled={isGeocoding}
+                  className="shrink-0 px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors disabled:opacity-50"
+                >
+                  {isGeocoding ? 'Geokóduji...' : 'Geokódovat'}
+                </button>
+              )}
+              {onUpdateDetails && !hasTextAddress && (
+                <button
+                  onClick={() => setShowAddressInput(true)}
+                  className="shrink-0 px-3 py-1 rounded-lg bg-amber-200 dark:bg-amber-800 hover:bg-amber-300 dark:hover:bg-amber-700 text-amber-900 dark:text-amber-200 font-medium transition-colors"
+                >
+                  Nastavit
+                </button>
+              )}
+            </>
+          ) : (
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={addressInput}
+                onChange={(e) => setAddressInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSetAddress()}
+                placeholder="Zadejte adresu stavby..."
+                autoFocus
+                className="px-2 py-1 rounded-md text-xs bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-700 text-slate-900 dark:text-white w-64 focus:outline-none focus:ring-1 focus:ring-amber-400"
+              />
+              <button
+                onClick={handleSetAddress}
+                disabled={!addressInput.trim() || isGeocoding}
+                className="shrink-0 px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs transition-colors disabled:opacity-50"
+              >
+                {isGeocoding ? 'Hledám...' : 'Uložit'}
+              </button>
+              <button
+                onClick={() => setShowAddressInput(false)}
+                className="shrink-0 px-2 py-1 rounded-lg text-amber-800 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-800 text-xs transition-colors"
+              >
+                Zrušit
+              </button>
+            </div>
           )}
         </div>
       )}
@@ -175,7 +274,7 @@ export function ProjectMapView({
         markers={markers}
         projectPin={projectPin || undefined}
         onMarkerClick={handleSubClick}
-        fitBounds={hasProjectAddress}
+        fitBounds={hasCoordinates}
         height="100%"
         className="h-full"
         showRoute={!!(selectedSubId && projectPosition && selectedSubPosition)}
@@ -183,7 +282,7 @@ export function ProjectMapView({
         routeTo={selectedSubPosition}
         showRegions={showRegions}
         activeLayer={activeLayer}
-        radiusKm={hasProjectAddress ? radiusKm : undefined}
+        radiusKm={hasCoordinates ? radiusKm : undefined}
       />
 
       {/* ============ OVERLAY SYSTEM ============ */}

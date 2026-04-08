@@ -43,6 +43,7 @@ interface InternalFormState {
 interface UseProjectOverviewNewControllerInput {
   project: ProjectDetails;
   onUpdate: (updates: Partial<ProjectDetails>) => void;
+  onAddressChanged?: (address: string, location: string) => void;
   userId?: string;
   searchQuery: string;
 }
@@ -61,6 +62,7 @@ const buildInfoForm = (project: ProjectDetails): InfoFormState => ({
 export const useProjectOverviewNewController = ({
   project,
   onUpdate,
+  onAddressChanged,
   userId,
   searchQuery,
 }: UseProjectOverviewNewControllerInput) => {
@@ -240,7 +242,7 @@ export const useProjectOverviewNewController = ({
   );
 
   const handleSaveInfo = () => {
-    onUpdate({
+    const updates: Partial<ProjectDetails> = {
       investor: infoForm.investor,
       technicalSupervisor: infoForm.technicalSupervisor,
       location: infoForm.location,
@@ -249,8 +251,15 @@ export const useProjectOverviewNewController = ({
       siteManager: infoForm.siteManager,
       constructionManager: infoForm.constructionManager,
       constructionTechnician: infoForm.constructionTechnician,
-    });
+    };
+    onUpdate(updates);
     setEditingInfo(false);
+
+    // Notify parent about address change so it can trigger geocoding
+    const addressChanged = infoForm.address !== (project.address || '') || infoForm.location !== (project.location || '');
+    if (addressChanged && (infoForm.address || infoForm.location) && onAddressChanged) {
+      onAddressChanged(infoForm.address, infoForm.location);
+    }
   };
 
   const handleSaveContract = () => {
