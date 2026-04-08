@@ -73,7 +73,7 @@
     "baseline-browser-mapping": "^2.9.17",
     "concurrently": "^9.2.1",
     "cross-env": "^7.0.3",
-    "electron": "40.0.0",
+    "electron": "^40.8.5",
     "electron-builder": "^26.5.0",
     "icon-gen": "^5.0.0",
     "jsdom": "^26.1.0",
