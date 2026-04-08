@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { MAPS_CONFIG } from '@/config/maps';
 
 interface MapFilterPanelProps {
@@ -46,8 +46,15 @@ export function MapFilterPanel({
   className = '',
 }: MapFilterPanelProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [specSearch, setSpecSearch] = useState('');
 
   const allSelected = activeSpecs.length === specializations.length && specializations.length > 0;
+
+  const filteredSpecs = useMemo(() => {
+    if (!specSearch.trim()) return specializations;
+    const q = specSearch.toLowerCase();
+    return specializations.filter(s => s.toLowerCase().includes(q));
+  }, [specializations, specSearch]);
 
   if (isCollapsed) {
     return (
@@ -171,11 +178,33 @@ export function MapFilterPanel({
             )}
           </div>
         </div>
+        {specializations.length > 5 && (
+          <div className="relative mb-1.5">
+            <span className="material-symbols-outlined text-xs text-slate-400 absolute left-2 top-1/2 -translate-y-1/2">search</span>
+            <input
+              type="text"
+              value={specSearch}
+              onChange={(e) => setSpecSearch(e.target.value)}
+              placeholder="Hledat specializaci…"
+              className="w-full text-xs pl-7 pr-2 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all"
+            />
+            {specSearch && (
+              <button
+                onClick={() => setSpecSearch('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+              >
+                <span className="material-symbols-outlined text-xs">close</span>
+              </button>
+            )}
+          </div>
+        )}
         <div className="max-h-40 overflow-y-auto space-y-0.5 -mx-1 px-1">
-          {specializations.length === 0 ? (
-            <div className="text-[11px] text-slate-400 py-2 text-center">Žádné specializace</div>
+          {filteredSpecs.length === 0 ? (
+            <div className="text-[11px] text-slate-400 py-2 text-center">
+              {specSearch ? 'Žádné výsledky' : 'Žádné specializace'}
+            </div>
           ) : (
-            specializations.map(spec => {
+            filteredSpecs.map(spec => {
               const isActive = activeSpecs.includes(spec);
               const dynamicColor = colorMap[spec];
               return (

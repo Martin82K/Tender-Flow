@@ -209,6 +209,10 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
       const tile = L.tileLayer(url, {
         attribution: '© Seznam.cz, a.s.',
         maxZoom: 19,
+        keepBuffer: 6,
+        updateWhenIdle: true,
+        updateWhenZooming: false,
+        crossOrigin: 'anonymous',
       }).addTo(map);
       tileLayerRef.current = tile;
     }).catch(() => {
@@ -216,6 +220,10 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
       const tile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
         maxZoom: 19,
+        keepBuffer: 6,
+        updateWhenIdle: true,
+        updateWhenZooming: false,
+        crossOrigin: 'anonymous',
       }).addTo(map);
       tileLayerRef.current = tile;
     });
@@ -376,12 +384,12 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
         [projectPin.position.lat, projectPin.position.lng],
         {
           radius: radiusKm * 1000,
-          color: '#3B82F6',
-          fillColor: '#3B82F6',
-          fillOpacity: 0.06,
-          weight: 2,
-          opacity: 0.4,
-          dashArray: '6, 6',
+          color: '#1E40AF',
+          fillColor: '#1E3A8A',
+          fillOpacity: 0.10,
+          weight: 2.5,
+          opacity: 0.7,
+          dashArray: '8, 6',
           interactive: false,
         },
       ).addTo(mapRef.current);
