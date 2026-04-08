@@ -1,13 +1,16 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import type { Subcontractor, ProjectDetails, StatusConfig } from '@/types';
-import { FEATURES } from '@/config/features';
-import { RequireFeature } from '@/shared/routing/RequireFeature';
 import type { GeoPoint, MapMarker } from '../types';
 import { useNearbySubcontractors } from '../hooks/useNearbySubcontractors';
 import { MapView } from './MapView';
+import type { MapViewHandle } from './MapView';
 import { MapLegend } from './MapLegend';
-import { RadiusSlider } from './RadiusSlider';
-import { RecommendationPanel } from './RecommendationPanel';
+import { MapSearchOverlay } from './MapSearchOverlay';
+import { MapInfoCard } from './MapInfoCard';
+import { MapControls } from './MapControls';
+import { MapLayerSwitcher } from './MapLayerSwitcher';
+import { MapFilterPanel } from './MapFilterPanel';
+import { MapNearbyPanel } from './MapNearbyPanel';
 
 interface ProjectMapViewProps {
   projectId: string;
@@ -26,10 +29,14 @@ export function ProjectMapView({
   onUpdateDetails,
   onAddBid,
 }: ProjectMapViewProps) {
-  const [radiusKm, setRadiusKm] = useState(30);
+  const mapRef = useRef<MapViewHandle>(null);
+  const [radiusKm, setRadiusKm] = useState(50);
   const [selectedSubId, setSelectedSubId] = useState<string | null>(null);
   const [highlightedSubId, setHighlightedSubId] = useState<string | null>(null);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
+  const [showRegions, setShowRegions] = useState(false);
+  const [activeLayer, setActiveLayer] = useState('standard');
+  const [specFilter, setSpecFilter] = useState<string[]>([]);
+  const [regionFilter, setRegionFilter] = useState('');
 
   const projectPosition: GeoPoint | null = useMemo(() => {
     if (projectDetails.latitude != null && projectDetails.longitude != null) {
@@ -38,13 +45,69 @@ export function ProjectMapView({
     return null;
   }, [projectDetails.latitude, projectDetails.longitude]);
 
-  const { nearby, markers, geocodedCount, totalCount } = useNearbySubcontractors(
+  const { nearby: allNearby, geocodedCount, totalCount } = useNearbySubcontractors(
     projectPosition,
     contacts,
     radiusKm,
   );
 
-  // Project pin marker
+  // Apply filters
+  const nearby = useMemo(() => {
+    return allNearby.filter(sub => {
+      if (specFilter.length > 0) {
+        if (!sub.specialization?.some(s => specFilter.includes(s))) return false;
+      }
+      if (regionFilter) {
+        if (sub.region !== regionFilter && !sub.regions?.includes(regionFilter)) return false;
+      }
+      return true;
+    });
+  }, [allNearby, specFilter, regionFilter]);
+
+  // All specializations & regions from contacts
+  const allSpecializations = useMemo(() => {
+    const set = new Set<string>();
+    contacts.forEach(c => c.specialization?.forEach(s => set.add(s)));
+    return Array.from(set).sort();
+  }, [contacts]);
+
+  const allRegions = useMemo(() => {
+    const set = new Set<string>();
+    contacts.forEach(c => {
+      if (c.region) set.add(c.region);
+      c.regions?.forEach(r => set.add(r));
+    });
+    return Array.from(set).sort();
+  }, [contacts]);
+
+  // Specialization counts for visible markers
+  const specializationCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    nearby.forEach(sub => {
+      sub.specialization?.forEach((s: string) => {
+        counts[s] = (counts[s] || 0) + 1;
+      });
+    });
+    return counts;
+  }, [nearby]);
+
+  // Build markers
+  const markers = useMemo<MapMarker[]>(() =>
+    nearby.map(s => ({
+      id: s.id,
+      position: { lat: s.latitude!, lng: s.longitude! },
+      label: s.company,
+      type: 'subcontractor' as const,
+      color: s.id === highlightedSubId || s.id === selectedSubId
+        ? '#3B82F6'
+        : undefined,
+      specialization: s.specialization,
+      rating: s.vendorRatingAverage,
+      status: s.status,
+    })),
+  [nearby, highlightedSubId, selectedSubId]);
+
+  // Project pin
   const projectPin: MapMarker | null = useMemo(() => {
     if (!projectPosition) return null;
     return {
@@ -56,7 +119,7 @@ export function ProjectMapView({
     };
   }, [projectPosition, projectId, projectDetails.title]);
 
-  // Selected subcontractor data
+  // Selected sub data
   const selectedSub = useMemo(() =>
     nearby.find(s => s.id === selectedSubId),
   [nearby, selectedSubId]);
@@ -66,202 +129,125 @@ export function ProjectMapView({
     return { lat: selectedSub.latitude, lng: selectedSub.longitude };
   }, [selectedSub]);
 
-  // Highlighted markers (visual feedback)
-  const displayMarkers = useMemo(() =>
-    markers.map(m => ({
-      ...m,
-      color: m.id === highlightedSubId || m.id === selectedSubId
-        ? '#3B82F6'
-        : m.color,
-    })),
-  [markers, highlightedSubId, selectedSubId]);
-
-  // Category handling
-  const categories = projectDetails.categories || [];
-  const selectedCategory = categories.find(c => c.id === selectedCategoryId);
-  const categorySpecs = useMemo(() => {
-    if (!selectedCategory) return [];
-    // Use description or title as specialization hint
-    return [selectedCategory.title];
-  }, [selectedCategory]);
-
-  // Existing bid subcontractor IDs for the selected category
-  const existingBidSubIds = useMemo(() => {
-    if (!selectedCategoryId || !projectDetails.bids) return [];
-    const bids = projectDetails.bids[selectedCategoryId] || [];
-    return bids.map(b => b.subcontractorId).filter(Boolean) as string[];
-  }, [selectedCategoryId, projectDetails.bids]);
+  const selectedContact = useMemo(() =>
+    selectedSubId ? contacts.find(c => c.id === selectedSubId) : null,
+  [contacts, selectedSubId]);
 
   const handleSubClick = useCallback((id: string) => {
     setSelectedSubId(prev => prev === id ? null : id);
   }, []);
 
-  const handleAddBid = useCallback((subcontractorId: string) => {
-    if (selectedCategoryId && onAddBid) {
-      onAddBid(selectedCategoryId, subcontractorId);
-    }
-  }, [selectedCategoryId, onAddBid]);
+  const handleSpecToggle = useCallback((spec: string) => {
+    setSpecFilter(prev =>
+      prev.includes(spec) ? prev.filter(s => s !== spec) : [...prev, spec]
+    );
+  }, []);
 
   const hasProjectAddress = projectPosition != null;
 
   return (
-    <div className="flex flex-col lg:flex-row h-full">
-      {/* Map area */}
-      <div className="flex-1 relative min-h-[300px] lg:min-h-0">
-        {/* Warning: no geocoded address */}
-        {!hasProjectAddress && (
-          <div className="absolute top-3 left-3 right-3 z-20 flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs">
-            <span className="material-symbols-outlined text-sm">warning</span>
-            <span className="flex-1">Stavba nema presnou adresu. Nastavte adresu projektu pro zobrazeni na mape.</span>
-            {onUpdateDetails && (
-              <button
-                onClick={() => {/* Parent should handle navigation to address setting */}}
-                className="shrink-0 px-2 py-1 rounded bg-amber-200 dark:bg-amber-800 hover:bg-amber-300 dark:hover:bg-amber-700 text-amber-900 dark:text-amber-200 transition-colors"
-              >
-                Nastavit
-              </button>
-            )}
-          </div>
-        )}
-
-        <MapView
-          markers={displayMarkers}
-          projectPin={projectPin || undefined}
-          onMarkerClick={handleSubClick}
-          fitBounds={hasProjectAddress}
-          height="100%"
-          className="h-full"
-          showRoute={!!(selectedSubId && projectPosition && selectedSubPosition)}
-          routeFrom={projectPosition || undefined}
-          routeTo={selectedSubPosition}
-        />
-
-        {/* Map legend */}
-        <div className="absolute bottom-4 left-4 z-20">
-          <MapLegend compact />
-        </div>
-
-        {/* Radius slider */}
-        {hasProjectAddress && (
-          <div className="absolute top-3 right-3 z-20 w-48">
-            <RadiusSlider
-              value={radiusKm}
-              onChange={setRadiusKm}
-              min={5}
-              max={100}
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Side panel */}
-      <div className="w-full lg:w-80 xl:w-96 border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 flex flex-col max-h-[50vh] lg:max-h-full overflow-hidden">
-        {/* Category filter */}
-        {categories.length > 0 && (
-          <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-700">
-            <select
-              value={selectedCategoryId}
-              onChange={(e) => setSelectedCategoryId(e.target.value)}
-              className="
-                w-full text-xs px-3 py-1.5 rounded-md border
-                border-slate-300 dark:border-slate-600
-                bg-white dark:bg-slate-800
-                text-slate-700 dark:text-slate-300
-              "
+    <div className="relative h-full" data-map-root>
+      {/* Warning: no address */}
+      {!hasProjectAddress && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1001] flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-50/95 dark:bg-amber-900/80 backdrop-blur-sm border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs shadow-lg">
+          <span className="material-symbols-outlined text-base">warning</span>
+          <span>Stavba nemá přesnou adresu. Nastavte ji pro zobrazení subdodavatelů na mapě.</span>
+          {onUpdateDetails && (
+            <button
+              onClick={() => {/* Parent should handle navigation to address setting */}}
+              className="shrink-0 px-3 py-1 rounded-lg bg-amber-200 dark:bg-amber-800 hover:bg-amber-300 dark:hover:bg-amber-700 text-amber-900 dark:text-amber-200 font-medium transition-colors"
             >
-              <option value="">Vsechny kategorie</option>
-              {categories.map(cat => (
-                <option key={cat.id} value={cat.id}>{cat.title}</option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {/* Stats */}
-        <div className="px-4 py-2 border-b border-slate-200 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
-          <span className="material-symbols-outlined text-sm">groups</span>
-          {nearby.length} subdodavatelu v okruhu {radiusKm} km
-          <span className="text-slate-300 dark:text-slate-600">|</span>
-          {geocodedCount}/{totalCount} geokodovano
-        </div>
-
-        {/* Nearby list or recommendations */}
-        <div className="flex-1 overflow-y-auto">
-          {/* Recommendations for selected category */}
-          {selectedCategoryId && projectPosition && (
-            <RequireFeature feature={FEATURES.MAPS_RECOMMENDATIONS} fallback={null}>
-              <div className="border-b border-slate-200 dark:border-slate-700">
-                <RecommendationPanel
-                  projectPosition={projectPosition}
-                  projectRegion={projectDetails.address}
-                  categorySpecializations={categorySpecs}
-                  subcontractors={contacts}
-                  existingBidSubIds={existingBidSubIds}
-                  onAddBid={handleAddBid}
-                  onHighlightMarker={setHighlightedSubId}
-                />
-              </div>
-            </RequireFeature>
+              Nastavit
+            </button>
           )}
-
-          {/* Nearby subcontractor list */}
-          <div className="px-4 py-2">
-            <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
-              Blizci subdodavatele
-            </h3>
-            {nearby.length === 0 ? (
-              <p className="text-xs text-slate-400 dark:text-slate-500 py-4 text-center">
-                {hasProjectAddress
-                  ? 'V danem okruhu nebyli nalezeni zadni subdodavatele.'
-                  : 'Nastavte adresu projektu pro vyhledani subdodavatelu.'}
-              </p>
-            ) : (
-              <div className="space-y-1">
-                {nearby.map(sub => (
-                  <button
-                    key={sub.id}
-                    onClick={() => handleSubClick(sub.id)}
-                    onMouseEnter={() => setHighlightedSubId(sub.id)}
-                    onMouseLeave={() => setHighlightedSubId(null)}
-                    className={`
-                      w-full text-left px-3 py-2 rounded-lg transition-colors text-xs
-                      hover:bg-slate-50 dark:hover:bg-slate-800
-                      ${selectedSubId === sub.id
-                        ? 'bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-300 dark:ring-blue-700'
-                        : ''
-                      }
-                    `}
-                  >
-                    <div className="flex items-center justify-between mb-0.5">
-                      <span className="font-medium text-slate-900 dark:text-white truncate">
-                        {sub.company}
-                      </span>
-                      <span className="text-slate-400 dark:text-slate-500 shrink-0 ml-2">
-                        {sub.distanceKm.toFixed(1)} km
-                      </span>
-                    </div>
-                    {sub.specialization?.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {sub.specialization.slice(0, 3).map(s => (
-                          <span
-                            key={s}
-                            className="px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-[10px]"
-                          >
-                            {s}
-                          </span>
-                        ))}
-                        {sub.specialization.length > 3 && (
-                          <span className="text-[10px] text-slate-400">+{sub.specialization.length - 3}</span>
-                        )}
-                      </div>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
+      )}
+
+      {/* Full-bleed map */}
+      <MapView
+        ref={mapRef}
+        markers={markers}
+        projectPin={projectPin || undefined}
+        onMarkerClick={handleSubClick}
+        fitBounds={hasProjectAddress}
+        height="100%"
+        className="h-full"
+        showRoute={!!(selectedSubId && projectPosition && selectedSubPosition)}
+        routeFrom={projectPosition || undefined}
+        routeTo={selectedSubPosition}
+        showRegions={showRegions}
+        activeLayer={activeLayer}
+        radiusKm={hasProjectAddress ? radiusKm : undefined}
+      />
+
+      {/* ============ OVERLAY SYSTEM ============ */}
+
+      {/* TOP LEFT: Search */}
+      <div className="absolute top-3 left-3 z-[1000]">
+        <MapSearchOverlay
+          onFlyTo={(lat, lng, zoom) => mapRef.current?.flyTo(lat, lng, zoom)}
+        />
       </div>
+
+      {/* LEFT: Filter panel (below search) */}
+      <div className="absolute top-16 left-3 z-[1000]">
+        <MapFilterPanel
+          specializations={allSpecializations}
+          activeSpecs={specFilter}
+          onSpecToggle={handleSpecToggle}
+          onSpecsClear={() => setSpecFilter([])}
+          regions={allRegions}
+          activeRegion={regionFilter}
+          onRegionChange={setRegionFilter}
+          radiusKm={radiusKm}
+          onRadiusChange={setRadiusKm}
+          totalCount={totalCount}
+          geocodedCount={geocodedCount}
+          visibleCount={nearby.length}
+        />
+      </div>
+
+      {/* TOP RIGHT: Controls + Layer switcher */}
+      <div className="absolute top-3 right-3 z-[1000] flex flex-col items-end gap-2">
+        <MapControls
+          onFitBounds={() => mapRef.current?.fitAllBounds()}
+          onToggleRegions={() => setShowRegions(prev => !prev)}
+          regionsVisible={showRegions}
+          onToggleFullscreen={() => mapRef.current?.toggleFullscreen()}
+          isFullscreen={mapRef.current?.isFullscreen ?? false}
+        />
+        <MapLayerSwitcher
+          activeLayer={activeLayer}
+          onLayerChange={setActiveLayer}
+        />
+      </div>
+
+      {/* RIGHT: Nearby panel */}
+      <div className="absolute top-16 right-3 z-[1000]">
+        <MapNearbyPanel
+          nearby={nearby}
+          selectedId={selectedSubId}
+          onSelect={handleSubClick}
+          onHover={setHighlightedSubId}
+          radiusKm={radiusKm}
+        />
+      </div>
+
+      {/* BOTTOM LEFT: Legend */}
+      <div className="absolute bottom-3 left-3 z-[1000]">
+        <MapLegend compact />
+      </div>
+
+      {/* BOTTOM RIGHT: Info card (when selected) */}
+      {selectedContact && (
+        <div className="absolute bottom-3 right-3 z-[1000]">
+          <MapInfoCard
+            contact={selectedContact}
+            distanceKm={selectedSub?.distanceKm}
+            onClose={() => setSelectedSubId(null)}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -138,10 +138,18 @@ Deno.serve(async (req) => {
 
         // 5. Handle tile-config action (returns tile URL templates with embedded API key)
         if (action === "tile-config") {
+            const base = "https://api.mapy.com/v1/maptiles";
+            const suffix = `256/{z}/{x}/{y}?apikey=${mapyApiKey}`;
             return new Response(
                 JSON.stringify({
-                    tileUrl: `https://api.mapy.com/v1/maptiles/basic/256/{z}/{x}/{y}?apikey=${mapyApiKey}`,
-                    darkTileUrl: `https://api.mapy.com/v1/maptiles/outdoor/256/{z}/{x}/{y}?apikey=${mapyApiKey}`,
+                    tileUrl: `${base}/basic/${suffix}`,
+                    darkTileUrl: `${base}/outdoor/${suffix}`,
+                    layers: {
+                        standard: `${base}/basic/${suffix}`,
+                        outdoor: `${base}/outdoor/${suffix}`,
+                        aerial: `${base}/aerial/${suffix}`,
+                        winter: `${base}/winter/${suffix}`,
+                    },
                 }),
                 { headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
