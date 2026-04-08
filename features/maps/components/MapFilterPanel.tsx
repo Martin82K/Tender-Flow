@@ -8,6 +8,9 @@ interface MapFilterPanelProps {
   activeSpecs: string[];
   onSpecToggle: (spec: string) => void;
   onSpecsClear: () => void;
+  onSpecsSelectAll: () => void;
+  /** Dynamic color map: spec → color (assigned on selection) */
+  colorMap: Record<string, string>;
   /** All available regions */
   regions: string[];
   /** Currently selected region */
@@ -29,6 +32,8 @@ export function MapFilterPanel({
   activeSpecs,
   onSpecToggle,
   onSpecsClear,
+  onSpecsSelectAll,
+  colorMap,
   regions,
   activeRegion,
   onRegionChange,
@@ -42,7 +47,7 @@ export function MapFilterPanel({
 }: MapFilterPanelProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  const specColors = MAPS_CONFIG.colors;
+  const allSelected = activeSpecs.length === specializations.length && specializations.length > 0;
 
   if (isCollapsed) {
     return (
@@ -81,7 +86,7 @@ export function MapFilterPanel({
         </button>
       </div>
 
-      {/* Stats summary */}
+      {/* Stats */}
       <div className="px-3 py-2 bg-slate-50/50 dark:bg-slate-900/30 border-b border-slate-100 dark:border-slate-700/50">
         <div className="flex items-center gap-3 text-[11px]">
           <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
@@ -96,7 +101,7 @@ export function MapFilterPanel({
         </div>
       </div>
 
-      {/* Radius control */}
+      {/* Radius */}
       <div className="px-3 py-3 border-b border-slate-100 dark:border-slate-700/50">
         <div className="flex items-center justify-between mb-2">
           <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 flex items-center gap-1">
@@ -122,7 +127,7 @@ export function MapFilterPanel({
         </div>
       </div>
 
-      {/* Region filter */}
+      {/* Region */}
       <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-700/50">
         <div className="text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1.5 flex items-center gap-1">
           <span className="material-symbols-outlined text-xs">map</span>
@@ -140,21 +145,31 @@ export function MapFilterPanel({
         </select>
       </div>
 
-      {/* Specialization filter */}
+      {/* Specializations */}
       <div className="px-3 py-2">
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 flex items-center gap-1">
             <span className="material-symbols-outlined text-xs">category</span>
             Specializace
           </span>
-          {activeSpecs.length > 0 && (
-            <button
-              onClick={onSpecsClear}
-              className="text-[10px] text-blue-500 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-            >
-              Zrušit ({activeSpecs.length})
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {!allSelected && specializations.length > 0 && (
+              <button
+                onClick={onSpecsSelectAll}
+                className="text-[10px] text-blue-500 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+              >
+                Vše
+              </button>
+            )}
+            {activeSpecs.length > 0 && (
+              <button
+                onClick={onSpecsClear}
+                className="text-[10px] text-red-500 hover:text-red-700 dark:hover:text-red-300 transition-colors"
+              >
+                Zrušit ({activeSpecs.length})
+              </button>
+            )}
+          </div>
         </div>
         <div className="max-h-40 overflow-y-auto space-y-0.5 -mx-1 px-1">
           {specializations.length === 0 ? (
@@ -162,7 +177,7 @@ export function MapFilterPanel({
           ) : (
             specializations.map(spec => {
               const isActive = activeSpecs.includes(spec);
-              const color = specColors[spec] || specColors.default;
+              const dynamicColor = colorMap[spec];
               return (
                 <button
                   key={spec}
@@ -177,9 +192,11 @@ export function MapFilterPanel({
                 >
                   <span
                     className={`w-3 h-3 rounded-full shrink-0 border-2 transition-all ${
-                      isActive ? 'border-blue-500 scale-110' : 'border-white dark:border-slate-600'
+                      isActive
+                        ? 'border-white dark:border-slate-600 scale-110 shadow-sm'
+                        : 'border-slate-300 dark:border-slate-600 bg-slate-200 dark:bg-slate-600'
                     }`}
-                    style={{ backgroundColor: color }}
+                    style={isActive && dynamicColor ? { backgroundColor: dynamicColor } : undefined}
                   />
                   <span className={`flex-1 truncate ${
                     isActive
@@ -189,7 +206,9 @@ export function MapFilterPanel({
                     {spec}
                   </span>
                   {isActive && (
-                    <span className="material-symbols-outlined text-blue-500 text-sm">check</span>
+                    <span className="material-symbols-outlined text-sm" style={{ color: dynamicColor }}>
+                      check
+                    </span>
                   )}
                 </button>
               );

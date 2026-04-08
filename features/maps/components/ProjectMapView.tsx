@@ -11,6 +11,7 @@ import { MapControls } from './MapControls';
 import { MapLayerSwitcher } from './MapLayerSwitcher';
 import { MapFilterPanel } from './MapFilterPanel';
 import { MapNearbyPanel } from './MapNearbyPanel';
+import { buildDynamicColorMap, getDynamicMarkerColor } from '../utils/markerColors';
 
 interface ProjectMapViewProps {
   projectId: string;
@@ -91,7 +92,10 @@ export function ProjectMapView({
     return counts;
   }, [nearby]);
 
-  // Build markers
+  // Dynamic color map — each selected specialization gets a unique color
+  const colorMap = useMemo(() => buildDynamicColorMap(specFilter), [specFilter]);
+
+  // Build markers with dynamic colors
   const markers = useMemo<MapMarker[]>(() =>
     nearby.map(s => ({
       id: s.id,
@@ -100,12 +104,14 @@ export function ProjectMapView({
       type: 'subcontractor' as const,
       color: s.id === highlightedSubId || s.id === selectedSubId
         ? '#3B82F6'
-        : undefined,
+        : specFilter.length > 0
+          ? getDynamicMarkerColor(s.specialization || [], colorMap)
+          : undefined,
       specialization: s.specialization,
       rating: s.vendorRatingAverage,
       status: s.status,
     })),
-  [nearby, highlightedSubId, selectedSubId]);
+  [nearby, highlightedSubId, selectedSubId, specFilter, colorMap]);
 
   // Project pin
   const projectPin: MapMarker | null = useMemo(() => {
@@ -196,6 +202,8 @@ export function ProjectMapView({
           activeSpecs={specFilter}
           onSpecToggle={handleSpecToggle}
           onSpecsClear={() => setSpecFilter([])}
+          onSpecsSelectAll={() => setSpecFilter([...allSpecializations])}
+          colorMap={colorMap}
           regions={allRegions}
           activeRegion={regionFilter}
           onRegionChange={setRegionFilter}
@@ -207,8 +215,8 @@ export function ProjectMapView({
         />
       </div>
 
-      {/* TOP RIGHT: Controls + Layer switcher */}
-      <div className="absolute top-3 right-3 z-[1000] flex flex-col items-end gap-2">
+      {/* TOP RIGHT: Controls only */}
+      <div className="absolute top-3 right-3 z-[1000]">
         <MapControls
           onFitBounds={() => mapRef.current?.fitAllBounds()}
           onToggleRegions={() => setShowRegions(prev => !prev)}
@@ -216,14 +224,10 @@ export function ProjectMapView({
           onToggleFullscreen={() => mapRef.current?.toggleFullscreen()}
           isFullscreen={mapRef.current?.isFullscreen ?? false}
         />
-        <MapLayerSwitcher
-          activeLayer={activeLayer}
-          onLayerChange={setActiveLayer}
-        />
       </div>
 
-      {/* RIGHT: Nearby panel */}
-      <div className="absolute top-16 right-3 z-[1000]">
+      {/* RIGHT: Nearby panel (below controls) */}
+      <div className="absolute top-40 right-3 z-[1000]">
         <MapNearbyPanel
           nearby={nearby}
           selectedId={selectedSubId}
@@ -233,10 +237,20 @@ export function ProjectMapView({
         />
       </div>
 
-      {/* BOTTOM LEFT: Legend */}
-      <div className="absolute bottom-3 left-3 z-[1000]">
-        <MapLegend compact />
+      {/* BOTTOM RIGHT: Layer switcher (above zoom controls) */}
+      <div className="absolute bottom-3 right-16 z-[1000]">
+        <MapLayerSwitcher
+          activeLayer={activeLayer}
+          onLayerChange={setActiveLayer}
+        />
       </div>
+
+      {/* BOTTOM LEFT: Legend — only when specialization filters are active */}
+      {specFilter.length > 0 && (
+        <div className="absolute bottom-3 left-3 z-[1000]">
+          <MapLegend compact activeSpecs={specFilter} colorMap={colorMap} counts={specializationCounts} />
+        </div>
+      )}
 
       {/* BOTTOM RIGHT: Info card (when selected) */}
       {selectedContact && (

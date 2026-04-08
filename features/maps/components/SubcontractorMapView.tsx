@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useRef } from 'react';
 import type { Subcontractor, StatusConfig } from '@/types';
 import type { MapMarker } from '../types';
-import { getMarkerColor } from '../utils/markerColors';
+import { getMarkerColor, buildDynamicColorMap, getDynamicMarkerColor } from '../utils/markerColors';
 import { MapView } from './MapView';
 import type { MapViewHandle } from './MapView';
 import { MapLegend } from './MapLegend';
@@ -80,6 +80,9 @@ export function SubcontractorMapView({
     ),
   [filteredContacts]);
 
+  // Dynamic color map
+  const colorMap = useMemo(() => buildDynamicColorMap(specFilter), [specFilter]);
+
   const markers = useMemo<MapMarker[]>(() =>
     geocodedContacts.map(c => {
       const statusObj = statuses.find(s => s.id === c.status || s.label === c.status);
@@ -88,13 +91,15 @@ export function SubcontractorMapView({
         position: { lat: c.latitude, lng: c.longitude },
         label: c.company,
         type: 'subcontractor' as const,
-        color: getMarkerColor(c.specialization || []),
+        color: specFilter.length > 0
+          ? getDynamicMarkerColor(c.specialization || [], colorMap)
+          : getMarkerColor(c.specialization || []),
         specialization: c.specialization,
         rating: c.vendorRatingAverage,
         status: statusObj?.label || c.status,
       };
     }),
-  [geocodedContacts, statuses]);
+  [geocodedContacts, statuses, specFilter, colorMap]);
 
   const handleMarkerClick = useCallback((id: string) => {
     setSelectedContactId(prev => prev === id ? null : id);
@@ -248,8 +253,8 @@ export function SubcontractorMapView({
               />
             </div>
 
-            {/* TOP RIGHT: Controls + Layers */}
-            <div className="absolute top-3 right-3 z-[1000] flex flex-col items-end gap-2">
+            {/* TOP RIGHT: Controls */}
+            <div className="absolute top-3 right-3 z-[1000]">
               <MapControls
                 onFitBounds={() => mapRef.current?.fitAllBounds()}
                 onToggleRegions={() => setShowRegions(prev => !prev)}
@@ -257,16 +262,29 @@ export function SubcontractorMapView({
                 onToggleFullscreen={() => mapRef.current?.toggleFullscreen()}
                 isFullscreen={mapRef.current?.isFullscreen ?? false}
               />
+            </div>
+
+            {/* BOTTOM RIGHT: Layer switcher */}
+            <div className="absolute bottom-3 right-16 z-[1000]">
               <MapLayerSwitcher
                 activeLayer={activeLayer}
                 onLayerChange={setActiveLayer}
               />
             </div>
 
-            {/* BOTTOM LEFT: Legend */}
-            <div className="absolute bottom-3 left-3 z-[1000]">
-              <MapLegend compact />
-            </div>
+            {/* BOTTOM LEFT: Legend — only when filters are active */}
+            {specFilter.length > 0 && (
+              <div className="absolute bottom-3 left-3 z-[1000]">
+                <MapLegend
+                  compact
+                  activeSpecs={specFilter}
+                  colorMap={colorMap}
+                  counts={Object.fromEntries(
+                    specFilter.map(s => [s, geocodedContacts.filter(c => c.specialization?.includes(s)).length])
+                  )}
+                />
+              </div>
+            )}
 
             {/* BOTTOM RIGHT: Info card */}
             {selectedContact && (
