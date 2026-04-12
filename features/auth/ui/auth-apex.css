@@ -1,0 +1,388 @@
+/* ═══════════ AUTH PAGES — APEX STYLE ═══════════ */
+
+.auth-apex-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Background grid */
+.auth-apex-grid {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  opacity: 0.25;
+}
+.auth-apex-grid::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1200px;
+  height: 100%;
+  background-image:
+    linear-gradient(90deg, var(--border) 1px, transparent 1px),
+    linear-gradient(0deg, var(--border) 1px, transparent 1px);
+  background-size: 120px 120px;
+  mask-image: radial-gradient(ellipse 60% 50% at 50% 40%, black, transparent);
+  -webkit-mask-image: radial-gradient(ellipse 60% 50% at 50% 40%, black, transparent);
+}
+
+/* Radial glow */
+.auth-apex-glow {
+  position: absolute;
+  top: -15%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 800px;
+  height: 500px;
+  background: radial-gradient(ellipse 50% 50%, var(--orange-glow), transparent);
+  pointer-events: none;
+}
+
+/* ═══════════ AUTH CARD ═══════════ */
+.auth-apex-page .auth-card-wrap {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 460px;
+  margin: 0 auto;
+  padding: 6rem 1.5rem 3rem;
+}
+
+.auth-card-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.auth-card-logo {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 24px rgba(255, 138, 51, 0.15));
+}
+
+.auth-card-title {
+  margin-top: 1.25rem;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--white);
+  letter-spacing: -0.03em;
+}
+
+.auth-card-subtitle {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--gray-1);
+  font-weight: 350;
+}
+
+.auth-card-accent {
+  height: 2px;
+  width: 60px;
+  margin-top: 1.5rem;
+  background: linear-gradient(90deg, transparent, var(--orange), transparent);
+  border-radius: 2px;
+}
+
+.auth-card-body {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+.auth-card-body::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 15%;
+  right: 15%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--orange-glow-strong), transparent);
+}
+
+.auth-card-footer {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.auth-card-version {
+  font-size: 0.6875rem;
+  color: var(--gray-2);
+}
+
+.auth-card-reg-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.auth-reg-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 100px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.auth-reg-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.auth-reg-open {
+  background: var(--green-dim);
+  color: var(--green);
+  border: 1px solid rgba(52, 211, 153, 0.2);
+}
+
+.auth-reg-closed {
+  background: var(--orange-glow);
+  color: var(--orange);
+  border: 1px solid var(--border-orange);
+}
+
+/* ═══════════ FORM ELEMENTS ═══════════ */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.auth-input {
+  width: 100%;
+  padding: 0.8125rem 1rem;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--white);
+  font-size: 0.875rem;
+  font-family: var(--font);
+  font-weight: 400;
+  outline: none;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.auth-input::placeholder {
+  color: var(--gray-2);
+}
+.auth-input:focus {
+  border-color: var(--border-orange);
+  background: var(--surface-hover);
+  box-shadow: 0 0 0 3px var(--orange-glow);
+}
+
+.auth-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  cursor: pointer;
+  user-select: none;
+}
+.auth-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1px solid var(--border-hover);
+  background: var(--surface);
+  accent-color: var(--orange);
+  cursor: pointer;
+}
+.auth-checkbox span {
+  font-size: 0.8125rem;
+  color: var(--gray-1);
+}
+
+.auth-legal-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.auth-legal-check:hover {
+  border-color: var(--border-hover);
+}
+.auth-legal-check input[type="checkbox"] {
+  margin-top: 2px;
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  border-radius: 4px;
+  border: 1px solid var(--border-hover);
+  background: var(--surface);
+  accent-color: var(--orange);
+  cursor: pointer;
+}
+.auth-legal-check span {
+  font-size: 0.8125rem;
+  color: var(--gray-1);
+  line-height: 1.5;
+}
+.auth-legal-check a {
+  color: var(--orange) !important;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.2s;
+}
+.auth-legal-check a:hover {
+  color: var(--white) !important;
+}
+
+/* ═══════════ ALERTS ═══════════ */
+.auth-alert {
+  font-size: 0.8125rem;
+  text-align: center;
+  padding: 0.625rem 1rem;
+  border-radius: 10px;
+}
+
+.auth-alert-error {
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.15);
+}
+
+.auth-alert-warn {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.15);
+}
+
+/* ═══════════ BUTTONS ═══════════ */
+.auth-btn-primary {
+  width: 100%;
+  padding: 0.875rem;
+  background: var(--orange);
+  color: var(--bg);
+  border: none;
+  border-radius: 14px;
+  font-size: 0.9375rem;
+  font-weight: 650;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  letter-spacing: -0.01em;
+  position: relative;
+  overflow: hidden;
+}
+.auth-btn-primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.15) 50%, transparent 60%);
+  transform: translateX(-100%);
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.auth-btn-primary:hover::after {
+  transform: translateX(100%);
+}
+.auth-btn-primary:hover {
+  box-shadow: 0 12px 40px var(--orange-glow-strong);
+  transform: translateY(-2px);
+}
+.auth-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.auth-btn-secondary {
+  width: 100%;
+  padding: 0.875rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  color: var(--white);
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+}
+.auth-btn-secondary:hover {
+  border-color: var(--border-hover);
+  background: var(--surface-hover);
+}
+.auth-btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.auth-btn-icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* ═══════════ DIVIDER ═══════════ */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 0.5rem 0;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.auth-divider span {
+  font-size: 0.75rem;
+  color: var(--gray-2);
+}
+
+/* ═══════════ LINKS ═══════════ */
+.auth-links {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.75rem;
+}
+.auth-links a {
+  font-size: 0.8125rem;
+  color: var(--gray-2) !important;
+  transition: color 0.2s;
+}
+.auth-links a:hover {
+  color: var(--white) !important;
+}
+
+/* ═══════════ RESPONSIVE ═══════════ */
+@media (max-width: 520px) {
+  .auth-apex-page .auth-card-wrap {
+    padding: 5rem 1rem 2rem;
+  }
+  .auth-card-body {
+    padding: 1.5rem;
+  }
+}

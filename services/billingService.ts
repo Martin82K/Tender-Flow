@@ -175,8 +175,8 @@ export const PRICING_CONFIG = {
             "Onboarding asistence",
             "Excel Indexer - auto tvoření podkladů pro VŘ",
             "Okamžitý přístup k novinkám",
-            "Možnost vlastního vývoje API napojení",
-            "Vývoj modulů na zakázku"
+            "Geokódování kontaktů",
+            "Integrace mapy s kontakty"
         ],
         cta: {
             label: "Kontaktovat",

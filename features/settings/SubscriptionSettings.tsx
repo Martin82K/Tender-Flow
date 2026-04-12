@@ -32,6 +32,16 @@ interface SubscriptionSettingsProps {
   userId?: string;
 }
 
+const BILLING_RETURN_FALLBACK_ORIGIN = "https://tenderflow.cz";
+
+const getBillingReturnUrl = (path: string): string => {
+  if (typeof window === "undefined" || window.location.protocol === "file:") {
+    return new URL(path, BILLING_RETURN_FALLBACK_ORIGIN).toString();
+  }
+
+  return new URL(path, window.location.origin).toString();
+};
+
 export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(
     null,
@@ -190,8 +200,7 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
           // Update existing subscription via Billing Portal
           // This handles proration correctly
           const result = await createBillingPortalSession(
-            window.location.origin +
-              "/app/settings?tab=user&subTab=subscription",
+            getBillingReturnUrl("/app/settings?tab=user&subTab=subscription"),
           );
           if (result.success && result.portalUrl) {
             window.location.href = result.portalUrl;
@@ -209,12 +218,12 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
           const result = await createCheckoutSession({
             tier,
             billingPeriod,
-            successPath:
-              window.location.origin +
+            successPath: getBillingReturnUrl(
               "/app/settings?tab=user&subTab=subscription&success=true",
-            cancelPath:
-              window.location.origin +
+            ),
+            cancelPath: getBillingReturnUrl(
               "/app/settings?tab=user&subTab=subscription&cancelled=true",
+            ),
             paymentMethodPreference: "auto",
           });
           if (result.success && result.checkoutUrl) {
@@ -586,8 +595,7 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
                   <button
                     onClick={async () => {
                       const result = await createBillingPortalSession(
-                        window.location.origin +
-                          "/app/settings?tab=user&subTab=subscription",
+                        getBillingReturnUrl("/app/settings?tab=user&subTab=subscription"),
                       );
                       if (result.success && result.portalUrl) {
                         window.location.href = result.portalUrl;
@@ -624,8 +632,7 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
                   setActionLoading(true);
                   try {
                     const result = await createBillingPortalSession(
-                      window.location.origin +
-                        "/app/settings?tab=user&subTab=subscription",
+                      getBillingReturnUrl("/app/settings?tab=user&subTab=subscription"),
                     );
                     if (result.success && result.portalUrl) {
                       window.location.href = result.portalUrl;
@@ -738,8 +745,7 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
                     setActionLoading(true);
                     try {
                       const result = await createBillingPortalSession(
-                        window.location.origin +
-                          "/app/settings?tab=user&subTab=subscription",
+                        getBillingReturnUrl("/app/settings?tab=user&subTab=subscription"),
                       );
                       if (result.success && result.portalUrl) {
                         window.location.href = result.portalUrl;
