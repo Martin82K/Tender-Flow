@@ -98,6 +98,15 @@ jobs:
         run: npm ci
 
       - name: Build Windows release artifacts
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
+          VITE_OPENROUTER_API_KEY: ${{ secrets.VITE_OPENROUTER_API_KEY }}
+          VITE_GOOGLE_API_KEY: ${{ secrets.VITE_GOOGLE_API_KEY }}
+          VITE_GOOGLE_OAUTH_CLIENT_ID_DESKTOP: ${{ secrets.VITE_GOOGLE_OAUTH_CLIENT_ID_DESKTOP }}
+          VITE_GOOGLE_OAUTH_CLIENT_SECRET_DESKTOP: ${{ secrets.VITE_GOOGLE_OAUTH_CLIENT_SECRET_DESKTOP }}
+          VITE_DOCHUB_FALLBACK_ENABLED: ${{ secrets.VITE_DOCHUB_FALLBACK_ENABLED }}
         run: npm run desktop:build:win
 
       - name: Validate Windows artifacts
@@ -160,6 +169,15 @@ jobs:
         run: npm ci
 
       - name: Build macOS arm64 release artifacts
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
+          VITE_OPENROUTER_API_KEY: ${{ secrets.VITE_OPENROUTER_API_KEY }}
+          VITE_GOOGLE_API_KEY: ${{ secrets.VITE_GOOGLE_API_KEY }}
+          VITE_GOOGLE_OAUTH_CLIENT_ID_DESKTOP: ${{ secrets.VITE_GOOGLE_OAUTH_CLIENT_ID_DESKTOP }}
+          VITE_GOOGLE_OAUTH_CLIENT_SECRET_DESKTOP: ${{ secrets.VITE_GOOGLE_OAUTH_CLIENT_SECRET_DESKTOP }}
+          VITE_DOCHUB_FALLBACK_ENABLED: ${{ secrets.VITE_DOCHUB_FALLBACK_ENABLED }}
         run: npm run desktop:build:mac
 
       - name: Validate macOS arm64 artifacts
