@@ -99,6 +99,7 @@ export const getOrgMembersWithSeats = async (orgId: string): Promise<OrgMemberSe
       role: m.role,
       seatType: m.seat_type || 'full',
       isBillable: m.is_billable ?? true,
+      isActive: m.is_active ?? true,
       joinedAt: m.created_at,
     };
   });

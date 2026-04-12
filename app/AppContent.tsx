@@ -175,6 +175,35 @@ export const AppContent: React.FC = () => {
     );
   }
 
+  // Block deactivated organization members from accessing the app
+  if (user?.organizationId && user.isOrgMemberActive === false) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 p-4">
+        <div className="max-w-md w-full bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-8 text-center">
+          <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+            <span className="material-symbols-outlined text-[32px] text-red-600 dark:text-red-400">person_off</span>
+          </div>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-3">
+            Účet deaktivován
+          </h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
+            Váš účet byl deaktivován administrátorem organizace
+            {user.organizationName ? ` ${user.organizationName}` : ''}.
+          </p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-8">
+            Pro obnovení přístupu kontaktujte administrátora vaší organizace.
+          </p>
+          <button
+            onClick={() => logout()}
+            className="w-full px-6 py-3 text-sm font-semibold rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:opacity-90 transition-opacity"
+          >
+            Odhlásit se
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const handleNavigateToProject = (id: string, tab: string = "overview") => {
     actions.setSelectedProjectId(id);
     navigate(buildAppUrl("project", { projectId: id, tab: tab as any }));

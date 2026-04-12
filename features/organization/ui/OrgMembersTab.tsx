@@ -2,7 +2,7 @@
  * OrgMembersTab
  *
  * Organization members management — list, search, add, role change,
- * join requests, and seat info.
+ * deactivate/activate, remove, join requests, and seat info.
  */
 
 import React, { useEffect, useState } from 'react';
@@ -35,6 +35,8 @@ export const OrgMembersTab: React.FC<OrgMembersTabProps> = ({
   const [search, setSearch] = useState('');
   const [manualAddEmail, setManualAddEmail] = useState('');
   const [processingRequestId, setProcessingRequestId] = useState<string | null>(null);
+  const [processingMemberId, setProcessingMemberId] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -56,6 +58,14 @@ export const OrgMembersTab: React.FC<OrgMembersTabProps> = ({
 
   useEffect(() => { loadData(); }, [orgId]);
 
+  // Close menu on outside click
+  useEffect(() => {
+    if (!openMenuId) return;
+    const handler = () => setOpenMenuId(null);
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, [openMenuId]);
+
   const handleAddMember = async () => {
     if (!manualAddEmail.trim()) return;
     try {
@@ -75,6 +85,64 @@ export const OrgMembersTab: React.FC<OrgMembersTabProps> = ({
       await loadData();
     } catch (err: any) {
       showAlert({ title: 'Chyba', message: err?.message || 'Nepodařilo se změnit roli.', variant: 'danger' });
+    }
+  };
+
+  const handleDeactivateMember = async (member: OrganizationMember) => {
+    const label = member.display_name || member.email;
+    const confirmed = await showConfirm({
+      title: 'Deaktivovat člena',
+      message: `Opravdu chcete deaktivovat uživatele ${label}? Ztratí přístup k datům organizace, ale bude možné jej znovu aktivovat.`,
+      confirmLabel: 'Deaktivovat',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+
+    setProcessingMemberId(member.user_id);
+    try {
+      await organizationService.deactivateOrganizationMember(orgId, member.user_id);
+      showAlert({ title: 'Hotovo', message: `${label} byl deaktivován.`, variant: 'success' });
+      await loadData();
+    } catch (err: any) {
+      showAlert({ title: 'Chyba', message: err?.message || 'Nepodařilo se deaktivovat člena.', variant: 'danger' });
+    } finally {
+      setProcessingMemberId(null);
+    }
+  };
+
+  const handleActivateMember = async (member: OrganizationMember) => {
+    const label = member.display_name || member.email;
+    setProcessingMemberId(member.user_id);
+    try {
+      await organizationService.activateOrganizationMember(orgId, member.user_id);
+      showAlert({ title: 'Hotovo', message: `${label} byl znovu aktivován.`, variant: 'success' });
+      await loadData();
+    } catch (err: any) {
+      showAlert({ title: 'Chyba', message: err?.message || 'Nepodařilo se aktivovat člena.', variant: 'danger' });
+    } finally {
+      setProcessingMemberId(null);
+    }
+  };
+
+  const handleRemoveMember = async (member: OrganizationMember) => {
+    const label = member.display_name || member.email;
+    const confirmed = await showConfirm({
+      title: 'Odebrat člena',
+      message: `Opravdu chcete odebrat uživatele ${label} z organizace? Tato akce je nevratná — uživatel bude muset být znovu přidán nebo podat novou žádost o vstup.`,
+      confirmLabel: 'Odebrat',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+
+    setProcessingMemberId(member.user_id);
+    try {
+      await organizationService.removeOrganizationMember(orgId, member.user_id);
+      showAlert({ title: 'Hotovo', message: `${label} byl odebrán z organizace.`, variant: 'success' });
+      await loadData();
+    } catch (err: any) {
+      showAlert({ title: 'Chyba', message: err?.message || 'Nepodařilo se odebrat člena.', variant: 'danger' });
+    } finally {
+      setProcessingMemberId(null);
     }
   };
 
@@ -112,6 +180,14 @@ export const OrgMembersTab: React.FC<OrgMembersTabProps> = ({
       (m.display_name || '').toLowerCase().includes(q)
     );
   });
+
+  /** Can the current user manage this member (deactivate/remove)? */
+  const canManageMember = (member: OrganizationMember): boolean => {
+    if (isOrgOwnerRole(member.role)) return false; // Cannot manage owner
+    if (isOwner) return true; // Owner can manage anyone except other owners
+    if (isAdminOrOwner && member.role === 'member') return true; // Admin can manage members
+    return false;
+  };
 
   if (loading) {
     return (
@@ -196,12 +272,22 @@ export const OrgMembersTab: React.FC<OrgMembersTabProps> = ({
                 .map(s => s[0]?.toUpperCase())
                 .join('');
               const isOwnerMember = isOrgOwnerRole(member.role);
+              const isActive = member.is_active !== false;
+              const isProcessing = processingMemberId === member.user_id;
+              const manageable = canManageMember(member);
 
               return (
-                <tr key={member.user_id} className="border-b border-slate-100 dark:border-slate-700/30 last:border-0">
+                <tr
+                  key={member.user_id}
+                  className={`border-b border-slate-100 dark:border-slate-700/30 last:border-0 ${!isActive ? 'opacity-60' : ''}`}
+                >
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold flex-shrink-0">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                        isActive
+                          ? 'bg-primary/10 text-primary'
+                          : 'bg-slate-200 dark:bg-slate-700 text-slate-400'
+                      }`}>
                         {initials}
                       </div>
                       <div>
@@ -227,8 +313,10 @@ export const OrgMembersTab: React.FC<OrgMembersTabProps> = ({
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">
-                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                      <span className="text-xs text-slate-500">Aktivní</span>
+                      <div className={`w-2 h-2 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                      <span className={`text-xs ${isActive ? 'text-slate-500' : 'text-slate-400'}`}>
+                        {isActive ? 'Aktivní' : 'Deaktivován'}
+                      </span>
                     </div>
                   </td>
                   <td className="px-4 py-3 text-xs text-slate-400">
@@ -236,15 +324,74 @@ export const OrgMembersTab: React.FC<OrgMembersTabProps> = ({
                   </td>
                   {isAdminOrOwner && (
                     <td className="px-4 py-3">
-                      {!isOwnerMember && isOwner && (
-                        <select
-                          value={member.role}
-                          onChange={e => handleRoleChange(member.user_id, e.target.value as 'admin' | 'member')}
-                          className="text-xs bg-transparent border border-slate-200 dark:border-slate-700 rounded px-2 py-1 text-slate-500"
-                        >
-                          <option value="admin">Admin</option>
-                          <option value="member">Member</option>
-                        </select>
+                      {manageable && (
+                        <div className="relative">
+                          <button
+                            onClick={e => {
+                              e.stopPropagation();
+                              setOpenMenuId(openMenuId === member.user_id ? null : member.user_id);
+                            }}
+                            disabled={isProcessing}
+                            className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors disabled:opacity-50"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">more_vert</span>
+                          </button>
+
+                          {openMenuId === member.user_id && (
+                            <div className="absolute right-0 top-8 z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg py-1 min-w-[180px]">
+                              {/* Role change */}
+                              {isOwner && (
+                                <button
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    handleRoleChange(member.user_id, member.role === 'admin' ? 'member' : 'admin');
+                                  }}
+                                  className="w-full text-left px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-2"
+                                >
+                                  <span className="material-symbols-outlined text-[16px]">swap_horiz</span>
+                                  {member.role === 'admin' ? 'Změnit na člena' : 'Povýšit na admina'}
+                                </button>
+                              )}
+
+                              {/* Deactivate / Activate */}
+                              {isActive ? (
+                                <button
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    handleDeactivateMember(member);
+                                  }}
+                                  className="w-full text-left px-4 py-2 text-sm text-amber-600 dark:text-amber-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-2"
+                                >
+                                  <span className="material-symbols-outlined text-[16px]">person_off</span>
+                                  Deaktivovat
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    handleActivateMember(member);
+                                  }}
+                                  className="w-full text-left px-4 py-2 text-sm text-emerald-600 dark:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-2"
+                                >
+                                  <span className="material-symbols-outlined text-[16px]">person_check</span>
+                                  Aktivovat
+                                </button>
+                              )}
+
+                              {/* Remove */}
+                              <button
+                                onClick={() => {
+                                  setOpenMenuId(null);
+                                  handleRemoveMember(member);
+                                }}
+                                className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex items-center gap-2"
+                              >
+                                <span className="material-symbols-outlined text-[16px]">person_remove</span>
+                                Odebrat z organizace
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       )}
                     </td>
                   )}

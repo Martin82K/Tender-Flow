@@ -45,6 +45,7 @@ export interface OrgMemberSeat {
   role: 'owner' | 'admin' | 'member';
   seatType: 'full' | 'guest';
   isBillable: boolean;
+  isActive: boolean;
   joinedAt: string;
 }
 

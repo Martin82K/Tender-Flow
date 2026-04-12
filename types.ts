@@ -315,6 +315,7 @@ export interface User {
   organizationId?: string;
   organizationType?: 'personal' | 'business';
   organizationName?: string;
+  isOrgMemberActive?: boolean;
   legalAcceptance?: LegalAcceptance;
 }
 

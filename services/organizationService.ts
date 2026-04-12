@@ -19,6 +19,7 @@ export type OrganizationMember = {
   display_name?: string | null;
   role: "owner" | "admin" | "member";
   joined_at: string;
+  is_active: boolean;
 };
 
 export type OrganizationJoinRequest = {
@@ -206,6 +207,30 @@ export const organizationService = {
   rejectJoinRequest: async (requestId: string): Promise<void> => {
     const { error } = await supabase.rpc("reject_org_join_request", {
       request_id_input: requestId,
+    });
+    if (error) throw new Error(error.message);
+  },
+
+  deactivateOrganizationMember: async (orgId: string, userId: string): Promise<void> => {
+    const { error } = await supabase.rpc("deactivate_org_member", {
+      org_id_input: orgId,
+      user_id_input: userId,
+    });
+    if (error) throw new Error(error.message);
+  },
+
+  activateOrganizationMember: async (orgId: string, userId: string): Promise<void> => {
+    const { error } = await supabase.rpc("activate_org_member", {
+      org_id_input: orgId,
+      user_id_input: userId,
+    });
+    if (error) throw new Error(error.message);
+  },
+
+  removeOrganizationMember: async (orgId: string, userId: string): Promise<void> => {
+    const { error } = await supabase.rpc("remove_org_member", {
+      org_id_input: orgId,
+      user_id_input: userId,
     });
     if (error) throw new Error(error.message);
   },
