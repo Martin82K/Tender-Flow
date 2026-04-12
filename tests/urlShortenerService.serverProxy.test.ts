@@ -1,13 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const invokeAuthedFunctionMock = vi.fn();
-const maybeSingleMock = vi.fn();
-const eqMock = vi.fn(() => ({ maybeSingle: maybeSingleMock }));
-const selectMock = vi.fn(() => ({ eq: eqMock }));
-const fromMock = vi.fn(() => ({ select: selectMock }));
+const mocks = vi.hoisted(() => {
+  const invokeAuthedFunction = vi.fn();
+  const maybeSingle = vi.fn();
+  const eq = vi.fn(() => ({ maybeSingle }));
+  const select = vi.fn(() => ({ eq }));
+  const from = vi.fn(() => ({ select }));
+  return { invokeAuthedFunction, maybeSingle, eq, select, from };
+});
+
+const invokeAuthedFunctionMock = mocks.invokeAuthedFunction;
+const maybeSingleMock = mocks.maybeSingle;
+const eqMock = mocks.eq;
+const selectMock = mocks.select;
+const fromMock = mocks.from;
 
 vi.mock('@/services/functionsClient', () => ({
-  invokeAuthedFunction: (name: string, opts: unknown) => invokeAuthedFunctionMock(name, opts),
+  invokeAuthedFunction: (name: string, opts: unknown) => mocks.invokeAuthedFunction(name, opts),
 }));
 
 vi.mock('@/services/supabase', () => ({
@@ -15,7 +24,7 @@ vi.mock('@/services/supabase', () => ({
     auth: {
       getUser: vi.fn(async () => ({ data: { user: { id: 'user-1' } } })),
     },
-    from: fromMock,
+    from: mocks.from,
     rpc: vi.fn(),
   },
 }));

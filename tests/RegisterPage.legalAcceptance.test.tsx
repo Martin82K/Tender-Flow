@@ -40,6 +40,7 @@ vi.mock("@/shared/routing/router", () => ({
     </a>
   ),
   navigate: mockState.navigate,
+  useLocation: () => ({ pathname: "/register", search: "" }),
 }));
 
 vi.mock("@/services/authService", () => ({
