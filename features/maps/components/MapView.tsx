@@ -3,7 +3,6 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster';
 import { MAPS_CONFIG, MAP_LAYERS } from '@/config/maps';
-import { useTheme } from '@/hooks/useTheme';
 import { mapyApiService } from '../services/mapyApiService';
 import type { TileConfig } from '../services/mapyApiService';
 import { CZECH_REGIONS } from '../utils/czechRegions';
@@ -117,8 +116,15 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
   const [isFullscreen, setIsFullscreen] = useState(false);
   const tileConfigRef = useRef<TileConfig | null>(null);
 
-  const { theme } = useTheme();
-  const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains('dark'));
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
 
   // -----------------------------------------------------------------------
   // Helpers
