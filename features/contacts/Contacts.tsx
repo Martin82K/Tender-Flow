@@ -98,10 +98,13 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
     // --- Auto-fill registration data for contacts with IČO but missing region/address ---
     const autoFillProcessedRef = useRef<Set<string>>(new Set());
 
-    const autoFillRegistrationForContacts = useCallback(async (contactsToLookup: Subcontractor[]) => {
-        if (contactsToLookup.length === 0) return;
+    const autoFillRunningRef = useRef(false);
 
-        // Mark as processed to avoid duplicate lookups
+    const autoFillRegistrationForContacts = useCallback(async (contactsToLookup: Subcontractor[]) => {
+        if (contactsToLookup.length === 0 || autoFillRunningRef.current) return;
+        autoFillRunningRef.current = true;
+
+        // Mark ALL as processed upfront — prevents re-triggering even on failure/404
         contactsToLookup.forEach(c => autoFillProcessedRef.current.add(c.id));
 
         try {
@@ -134,10 +137,12 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
             }
         } catch (error) {
             console.error('Auto-fill registračních údajů selhalo:', error);
+        } finally {
+            autoFillRunningRef.current = false;
         }
     }, [onBulkUpdateContacts]);
 
-    // Auto-fill on mount / when contacts change - find contacts needing lookup
+    // Auto-fill once on mount — run only for contacts not yet processed
     useEffect(() => {
         const needsLookup = contacts.filter(c =>
             !!c.ico &&
