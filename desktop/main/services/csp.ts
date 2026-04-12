@@ -9,8 +9,6 @@ export const buildDesktopCsp = (isDev: boolean): string => {
         "'unsafe-inline'",
         ...(isDev ? ["'unsafe-eval'"] : []),
         'https://cdn.tailwindcss.com',
-        'https://js.stripe.com',
-        'https://*.stripe.com',
     ].join(' ');
 
     const styleSrc = [
@@ -39,23 +37,20 @@ export const buildDesktopCsp = (isDev: boolean): string => {
         'wss://*.supabase.co',
         'wss://*.supabase.in',
         'https://ares.gov.cz',
-        'https://api.stripe.com',
-        'https://js.stripe.com',
-        'https://r.stripe.com',
-        'https://m.stripe.com',
-        'https://q.stripe.com',
-        'https://m.stripe.network',
-        'https://*.stripe.com',
-        'https://*.stripe.network',
+        'https://gw.sandbox.gopay.com',
+        'https://gate.gopay.cz',
+        'https://*.gopay.com',
+        'https://*.gopay.cz',
         'https://fonts.googleapis.com',
         'https://fonts.gstatic.com',
     ].join(' ');
 
     const frameSrc = [
         "'self'",
-        'https://js.stripe.com',
-        'https://hooks.stripe.com',
-        'https://*.stripe.com',
+        'https://gw.sandbox.gopay.com',
+        'https://gate.gopay.cz',
+        'https://*.gopay.com',
+        'https://*.gopay.cz',
     ].join(' ');
 
     return [

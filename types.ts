@@ -268,7 +268,7 @@ export type SubscriptionTier = "free" | "starter" | "pro" | "enterprise" | "admi
 
 export type SubscriptionStatus = "active" | "trial" | "cancelled" | "expired" | "pending";
 
-export type BillingProvider = "stripe" | "paddle" | "manual" | null;
+export type BillingProvider = "stripe" | "gopay" | "paddle" | "manual" | null;
 
 export interface SubscriptionInfo {
   tier: SubscriptionTier;

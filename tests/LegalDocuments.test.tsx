@@ -68,7 +68,7 @@ describe("legal documents", () => {
     expect(screen.getByText(/Úřadu pro ochranu osobních údajů/i)).toBeInTheDocument();
     expect(screen.getByText(/pouze po minimální dobu vyžadovanou právními předpisy/i)).toBeInTheDocument();
     expect(screen.getAllByText(/Supabase/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Stripe/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/GoPay/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/OpenAI/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Správa uživatelských účtů a organizací/i).length).toBeGreaterThan(0);
   });

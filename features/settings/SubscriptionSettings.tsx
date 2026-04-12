@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { SubscriptionInfo, SubscriptionTier } from "../../types";
 import {
   cancelPlan,
-  createBillingPortalSession,
+  cancelRecurrence,
   createCheckoutSession,
   formatBillingPrice,
   formatSubscriptionExpirationDate,
@@ -13,7 +13,6 @@ import {
   requestPlanChange,
   syncSubscription,
 } from "@/features/subscription/api";
-import { WalletExpressCheckoutModal } from "@/features/subscription/ui/WalletExpressCheckoutModal";
 import {
   getTierLabel,
   SUBSCRIPTION_TIERS,
@@ -57,15 +56,11 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
     type: "success" | "error";
     text: string;
   } | null>(null);
-  const [walletCheckoutOpen, setWalletCheckoutOpen] = useState(false);
-  const [walletCheckoutTier, setWalletCheckoutTier] = useState<
-    "starter" | "pro" | "enterprise"
-  >("starter");
   const autoCheckoutTriggeredRef = useRef(false);
 
   useEffect(() => {
     const init = async () => {
-      // Check for success param from Stripe redirect
+      // Check for success param from payment redirect
       const params = new URLSearchParams(window.location.search);
       const hasSuccess = params.get("success") === "true";
       const wasCancelled = params.get("cancelled") === "true";
@@ -81,7 +76,7 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
           text: "Platba proběhla úspěšně. Aktualizujeme vaše předplatné...",
         });
 
-        // Force sync with Stripe
+        // Force sync subscription status
         try {
           await syncSubscription();
         } catch (e) {
@@ -189,70 +184,27 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
     setActionLoading(true);
     setMessage(null);
     try {
-      // Determine if we should use Checkout (new sub) or Portal (update sub)
-      const hasActiveSubscription =
-        subscription &&
-        (subscription.status === "active" ||
-          subscription.status === "trial") &&
-        subscription.billingCustomerId;
-
-      if (hasActiveSubscription) {
-          // Update existing subscription via Billing Portal
-          // This handles proration correctly
-          const result = await createBillingPortalSession(
-            getBillingReturnUrl("/app/settings?tab=user&subTab=subscription"),
-          );
-          if (result.success && result.portalUrl) {
-            window.location.href = result.portalUrl;
-            return;
-          }
-          setMessage({
-            type: "error",
-            text:
-              result.error ||
-              "Nepodařilo se otevřít správu předplatného. Zkuste to prosím znovu.",
-          });
-          return;
-      } else {
-          // Create new subscription via Checkout
-          const result = await createCheckoutSession({
-            tier,
-            billingPeriod,
-            successPath: getBillingReturnUrl(
-              "/app/settings?tab=user&subTab=subscription&success=true",
-            ),
-            cancelPath: getBillingReturnUrl(
-              "/app/settings?tab=user&subTab=subscription&cancelled=true",
-            ),
-            paymentMethodPreference: "auto",
-          });
-          if (result.success && result.checkoutUrl) {
-            window.location.href = result.checkoutUrl;
-            return;
-          }
-          setMessage({
-            type: "error",
-            text:
-              result.error ||
-              "Nepodařilo se zahájit Stripe Checkout. Zkuste to prosím znovu.",
-          });
-          return;
+      // Create payment via GoPay checkout
+      const result = await createCheckoutSession({
+        tier,
+        billingPeriod,
+        successPath: getBillingReturnUrl(
+          "/app/settings?tab=user&subTab=subscription&success=true",
+        ),
+        cancelPath: getBillingReturnUrl(
+          "/app/settings?tab=user&subTab=subscription&cancelled=true",
+        ),
+      });
+      if (result.success && result.checkoutUrl) {
+        window.location.href = result.checkoutUrl;
+        return;
       }
-
-      // Fallback: request upgrade via RPC (admin approval flow)
-      // Only if checkout could not start.
-      const result = await requestPlanChange(tier);
-      if (result.success) {
-        setMessage({
-          type: "success",
-          text: "Žádost o upgrade byla odeslána. Budeme vás kontaktovat s dalšími kroky.",
-        });
-      } else {
-        setMessage({
-          type: "error",
-          text: result.message || "Nepodařilo se odeslat žádost.",
-        });
-      }
+      setMessage({
+        type: "error",
+        text:
+          result.error ||
+          "Nepodařilo se zahájit platbu. Zkuste to prosím znovu.",
+      });
     } catch (error) {
       setMessage({ type: "error", text: "Došlo k chybě." });
     } finally {
@@ -287,20 +239,6 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
     );
     void handleUpgradeRequest(tier);
   }, [actionLoading, loading, subscription]);
-
-  const handleWalletCheckoutSuccess = async () => {
-    setWalletCheckoutOpen(false);
-    setMessage({
-      type: "success",
-      text: "Platba byla přijata. Synchronizuji stav předplatného ze Stripe...",
-    });
-    try {
-      await syncSubscription();
-    } catch (error) {
-      console.error("Stripe sync after wallet checkout failed:", error);
-    }
-    await loadSubscription();
-  };
 
   if (loading) {
     return (
@@ -364,7 +302,7 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
                   if (result.success) {
                     setMessage({
                       type: "success",
-                      text: result.message || "Synchronizováno ze Stripe.",
+                      text: result.message || "Synchronizováno.",
                     });
                     await loadSubscription();
                   } else {
@@ -388,7 +326,7 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
               <RefreshCw
                 className={`w-3.5 h-3.5 ${actionLoading ? "animate-spin" : ""}`}
               />
-              Sync Stripe
+              Synchronizovat
             </button>
           )}
         </div>
@@ -588,25 +526,8 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
               </div>
             )}
 
-            {/* Quick Actions (only billing portal remaining) */}
+            {/* Quick Actions */}
             <div className="flex flex-wrap items-center gap-2 self-end sm:self-auto">
-              {isBillingConfigured() &&
-                subscription.billingCustomerId && (
-                  <button
-                    onClick={async () => {
-                      const result = await createBillingPortalSession(
-                        getBillingReturnUrl("/app/settings?tab=user&subTab=subscription"),
-                      );
-                      if (result.success && result.portalUrl) {
-                        window.location.href = result.portalUrl;
-                      }
-                    }}
-                    className="px-3.5 py-2 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2"
-                  >
-                    <CreditCard className="w-3.5 h-3.5" />
-                    Správa karty
-                  </button>
-                )}
             </div>
           </div>
         </div>
@@ -628,18 +549,9 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
                 </p>
               </div>
               <button
-                onClick={async () => {
-                  setActionLoading(true);
-                  try {
-                    const result = await createBillingPortalSession(
-                      getBillingReturnUrl("/app/settings?tab=user&subTab=subscription"),
-                    );
-                    if (result.success && result.portalUrl) {
-                      window.location.href = result.portalUrl;
-                    }
-                  } finally {
-                    setActionLoading(false);
-                  }
+                onClick={() => {
+                  setBillingPeriod("yearly");
+                  handleUpgradeRequest(subscription.tier as SubscriptionTier);
                 }}
                 disabled={actionLoading}
                 className="mt-4 w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm shadow-emerald-600/10"
@@ -663,20 +575,6 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
 
             {/* Monthly / Yearly Toggle */}
             <div className="flex items-center gap-2">
-              {isBillingConfigured() && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setWalletCheckoutTier(
-                      subscription.effectiveTier === "free" ? "starter" : "pro",
-                    );
-                    setWalletCheckoutOpen(true);
-                  }}
-                  className="px-3 py-1.5 text-[11px] font-bold rounded-lg transition-all border border-orange-300/80 dark:border-orange-700 text-orange-600 dark:text-orange-400 hover:bg-orange-500/10"
-                >
-                  Apple Pay / Google Pay (beta)
-                </button>
-              )}
               <div className="flex bg-slate-100/50 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
               <button
                 onClick={() => setBillingPeriod("monthly")}
@@ -743,13 +641,23 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
                 <button
                   onClick={async () => {
                     setActionLoading(true);
+                    setMessage(null);
                     try {
-                      const result = await createBillingPortalSession(
-                        getBillingReturnUrl("/app/settings?tab=user&subTab=subscription"),
-                      );
-                      if (result.success && result.portalUrl) {
-                        window.location.href = result.portalUrl;
+                      const result = await cancelRecurrence();
+                      if (result.success) {
+                        setMessage({
+                          type: "success",
+                          text: result.message || "Předplatné bude zrušeno na konci období.",
+                        });
+                        await loadSubscription();
+                      } else {
+                        setMessage({
+                          type: "error",
+                          text: result.error || "Nepodařilo se zrušit předplatné.",
+                        });
                       }
+                    } catch {
+                      setMessage({ type: "error", text: "Došlo k chybě." });
                     } finally {
                       setActionLoading(false);
                     }
@@ -1010,20 +918,12 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
           </div>
 
           <p className="mt-5 text-[10px] text-slate-400 dark:text-slate-500 text-center">
-            Bezpečné platby přes Stripe. Nevyužité období je automaticky
-            přepočítáno. Apple Pay / Google Pay jsou dostupné podle zařízení a
-            prohlížeče.
+            Bezpečné platby přes GoPay. Apple Pay, Google Pay a bankovní
+            převody jsou dostupné podle zařízení a prohlížeče.
           </p>
         </div>
       )}
 
-      <WalletExpressCheckoutModal
-        isOpen={walletCheckoutOpen}
-        onClose={() => setWalletCheckoutOpen(false)}
-        tier={walletCheckoutTier}
-        billingPeriod={billingPeriod}
-        onSuccess={handleWalletCheckoutSuccess}
-      />
     </section>
   );
 };

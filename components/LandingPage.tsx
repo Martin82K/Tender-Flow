@@ -479,8 +479,8 @@ export const LandingPage: React.FC = () => {
               className="sec-desc"
               style={{ margin: "0 auto 2rem", textAlign: "center" }}
             >
-              Zrušen&iacute; kdykoliv. Platba přes Stripe, Apple Pay a Google
-              Pay.
+              Zrušen&iacute; kdykoliv. Platba kartou, Apple Pay, Google Pay
+              a bankovn&iacute;m převodem.
             </p>
           </div>
           <div className="pricing-toggle">
@@ -569,8 +569,8 @@ export const LandingPage: React.FC = () => {
             </div>
           </div>
           <p className="price-note">
-            Platby běž&iacute; přes Stripe. Apple Pay / Google Pay se
-            zobraz&iacute; automaticky.
+            Platby běž&iacute; přes GoPay. Apple Pay, Google Pay a bankovn&iacute;
+            převody se zobraz&iacute; automaticky.
           </p>
         </div>
       </section>
@@ -737,7 +737,7 @@ export const LandingPage: React.FC = () => {
             </div>
             <div className="stripe-badge">
               Platby přes{" "}
-              <strong style={{ color: "var(--gray-1)" }}>Stripe</strong>
+              <strong style={{ color: "var(--gray-1)" }}>GoPay</strong>
             </div>
           </div>
         </div>
