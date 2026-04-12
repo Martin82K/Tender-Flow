@@ -128,7 +128,7 @@ const PricingFeatureList: React.FC<PricingFeatureListProps> = ({
 
 export const LandingPage: React.FC = () => {
   const { hash } = useLocation();
-  const { loginAsDemo } = useAuth();
+  const { loginAsDemo, user } = useAuth();
   const [activePricingPlan, setActivePricingPlan] =
     useState<string>("Professional");
   const [activeDemoTab, setActiveDemoTab] = useState<string>("prehled");
@@ -140,6 +140,17 @@ export const LandingPage: React.FC = () => {
   const handleDemo = () => {
     loginAsDemo();
     navigate("/app", { replace: true });
+  };
+
+  const buildCheckoutPath = (tier: "starter" | "pro" | "enterprise") =>
+    `/app/settings?tab=user&subTab=subscription&checkout=true&plan=${tier}&billingPeriod=${billingPeriod}`;
+
+  const buildPricingCtaHref = (tier: "starter" | "pro" | "enterprise") => {
+    const checkoutPath = buildCheckoutPath(tier);
+    if (user) {
+      return checkoutPath;
+    }
+    return `/register?next=${encodeURIComponent(checkoutPath)}`;
   };
 
   useEffect(() => {
@@ -788,7 +799,13 @@ export const LandingPage: React.FC = () => {
                         </a>
                       ) : (
                         <Link
-                          to={p.cta.href}
+                          to={
+                            p.title === "Starter"
+                              ? buildPricingCtaHref("starter")
+                              : p.title === "Pro"
+                                ? buildPricingCtaHref("pro")
+                                : p.cta.href
+                          }
                           className={`inline-flex w-full h-12 items-center justify-center px-5 rounded-xl text-sm font-bold transition-all duration-300 shadow-lg ${colors.btn} ${colors.btnText}`}
                         >
                           {p.cta.label}

@@ -322,8 +322,9 @@ export const billingService = {
      * Check if billing is properly configured.
      */
     isBillingConfigured: (): boolean => {
-        // Check for Stripe price IDs or other billing config
-        return [
+        // Backend Supabase functions are the source of truth for Stripe configuration.
+        // Do not block checkout only because VITE_* price IDs are missing in the renderer env.
+        const hasFrontendPriceHints = [
             PRICING_CONFIG.starter.stripePriceIdMonthly,
             PRICING_CONFIG.starter.stripePriceIdYearly,
             PRICING_CONFIG.pro.stripePriceIdMonthly,
@@ -331,6 +332,11 @@ export const billingService = {
             PRICING_CONFIG.enterprise.stripePriceIdMonthly,
             PRICING_CONFIG.enterprise.stripePriceIdYearly,
         ].some(Boolean);
+
+        return Boolean(
+            hasFrontendPriceHints ||
+            (import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY)
+        );
     },
 
     /**

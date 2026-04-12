@@ -32,6 +32,7 @@ export const LoginPage: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(true);
 
   const nextPath = getNext(search);
+  const registerHref = `/register?next=${encodeURIComponent(nextPath)}`;
 
   const biometricLabel = platformAdapter.platform.os === "win32" ? "Windows Hello" : "Touch ID / Face ID";
 
@@ -170,7 +171,7 @@ export const LoginPage: React.FC = () => {
             <Link to="/forgot-password" className="hover:text-white transition-colors">
               Zapomenuté heslo?
             </Link>
-            <Link to="/register" className="hover:text-white transition-colors">
+            <Link to={registerHref} className="hover:text-white transition-colors">
               Vytvořit účet
             </Link>
           </div>

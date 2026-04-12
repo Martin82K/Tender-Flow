@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { SubscriptionInfo, SubscriptionTier } from "../../types";
 import {
   cancelPlan,
@@ -51,6 +51,7 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
   const [walletCheckoutTier, setWalletCheckoutTier] = useState<
     "starter" | "pro" | "enterprise"
   >("starter");
+  const autoCheckoutTriggeredRef = useRef(false);
 
   useEffect(() => {
     const init = async () => {
@@ -58,6 +59,11 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
       const params = new URLSearchParams(window.location.search);
       const hasSuccess = params.get("success") === "true";
       const wasCancelled = params.get("cancelled") === "true";
+      const requestedBillingPeriod = params.get("billingPeriod");
+
+      if (requestedBillingPeriod === "monthly" || requestedBillingPeriod === "yearly") {
+        setBillingPeriod(requestedBillingPeriod);
+      }
 
       if (hasSuccess) {
         setMessage({
@@ -173,16 +179,14 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
     setActionLoading(true);
     setMessage(null);
     try {
-      // First check if billing is configured
-      if (isBillingConfigured()) {
-        // Determine if we should use Checkout (new sub) or Portal (update sub)
-        const hasActiveSubscription =
-          subscription &&
-          (subscription.status === "active" ||
-            subscription.status === "trial") &&
-          subscription.billingCustomerId;
+      // Determine if we should use Checkout (new sub) or Portal (update sub)
+      const hasActiveSubscription =
+        subscription &&
+        (subscription.status === "active" ||
+          subscription.status === "trial") &&
+        subscription.billingCustomerId;
 
-        if (hasActiveSubscription) {
+      if (hasActiveSubscription) {
           // Update existing subscription via Billing Portal
           // This handles proration correctly
           const result = await createBillingPortalSession(
@@ -200,7 +204,7 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
               "Nepodařilo se otevřít správu předplatného. Zkuste to prosím znovu.",
           });
           return;
-        } else {
+      } else {
           // Create new subscription via Checkout
           const result = await createCheckoutSession({
             tier,
@@ -224,11 +228,10 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
               "Nepodařilo se zahájit Stripe Checkout. Zkuste to prosím znovu.",
           });
           return;
-        }
       }
 
       // Fallback: request upgrade via RPC (admin approval flow)
-      // Only if billing is NOT configured or failed
+      // Only if checkout could not start.
       const result = await requestPlanChange(tier);
       if (result.success) {
         setMessage({
@@ -247,6 +250,34 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
       setActionLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (loading || actionLoading || !subscription || autoCheckoutTriggeredRef.current) {
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const shouldCheckout = params.get("checkout") === "true";
+    const tier = params.get("plan");
+    const requestedBillingPeriod = params.get("billingPeriod");
+
+    if (!shouldCheckout) return;
+    if (tier !== "starter" && tier !== "pro" && tier !== "enterprise") {
+      return;
+    }
+
+    if (requestedBillingPeriod === "monthly" || requestedBillingPeriod === "yearly") {
+      setBillingPeriod(requestedBillingPeriod);
+    }
+
+    autoCheckoutTriggeredRef.current = true;
+    window.history.replaceState(
+      {},
+      "",
+      window.location.pathname + "?tab=user&subTab=subscription",
+    );
+    void handleUpgradeRequest(tier);
+  }, [actionLoading, loading, subscription]);
 
   const handleWalletCheckoutSuccess = async () => {
     setWalletCheckoutOpen(false);

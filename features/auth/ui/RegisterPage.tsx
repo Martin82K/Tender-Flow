@@ -3,15 +3,32 @@ import { useAuth } from "@/context/AuthContext";
 import { PublicLayout } from "@/features/public/ui/PublicLayout";
 import { PublicHeader } from "@/features/public/ui/PublicHeader";
 import { AuthCard } from "./AuthCard";
-import { Link, navigate } from "@/shared/routing/router";
+import { Link, navigate, useLocation } from "@/shared/routing/router";
 import { authService } from "@/services/authService";
 import { getCurrentLegalAcceptanceInput } from "@/shared/legal/legalDocumentVersions";
 import { getLegalDocumentUrl } from "@/shared/legal/legalDocumentLinks";
 
+const getNext = (search: string) => {
+  const raw = new URLSearchParams(search).get("next") || "/app";
+  const decodeOnce = (val: string) => {
+    try {
+      return decodeURIComponent(val);
+    } catch {
+      return val;
+    }
+  };
+  const next = decodeOnce(raw);
+  const next2 = next.startsWith("%2F") ? decodeOnce(next) : next;
+  return next2.startsWith("/") ? next2 : "/app";
+};
+
 export const RegisterPage: React.FC = () => {
+  const { search } = useLocation();
   const termsUrl = getLegalDocumentUrl("/terms");
   const privacyUrl = getLegalDocumentUrl("/privacy");
   const { register, loginAsDemo } = useAuth();
+  const nextPath = getNext(search);
+  const loginHref = `/login?next=${encodeURIComponent(nextPath)}`;
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -44,7 +61,7 @@ export const RegisterPage: React.FC = () => {
         throw new Error("Pro registraci musíš potvrdit podmínky používání i zásady ochrany osobních údajů.");
       }
       await register(name, email, password, getCurrentLegalAcceptanceInput());
-      navigate("/app", { replace: true });
+      navigate(nextPath, { replace: true });
     } catch (err: any) {
       setError(err?.message || "Nastala chyba");
     } finally {
@@ -54,7 +71,7 @@ export const RegisterPage: React.FC = () => {
 
   const handleDemo = () => {
     loginAsDemo();
-    navigate("/app", { replace: true });
+    navigate(nextPath, { replace: true });
   };
 
   return (
@@ -157,7 +174,7 @@ export const RegisterPage: React.FC = () => {
           </button>
 
           <div className="flex items-center justify-between text-sm text-white/50 mt-2">
-            <Link to="/login" className="hover:text-white transition-colors">
+            <Link to={loginHref} className="hover:text-white transition-colors">
               Již mám účet
             </Link>
             <Link to="/" className="hover:text-white transition-colors">
