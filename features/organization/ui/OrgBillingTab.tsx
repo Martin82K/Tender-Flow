@@ -211,8 +211,14 @@ export const OrgBillingTab: React.FC<OrgBillingTabProps> = ({ orgId, isOwner }) 
 
       {/* Current Plan Summary */}
       <div className="bg-gradient-to-r from-primary/5 to-primary/0 border border-primary/20 rounded-xl p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white text-xl flex-shrink-0">
-          <span className="material-symbols-outlined text-[24px]">bolt</span>
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white text-xl flex-shrink-0 ${
+          currentTier === 'enterprise'
+            ? 'bg-gradient-to-br from-emerald-500 to-emerald-700'
+            : 'bg-gradient-to-br from-primary to-primary/80'
+        }`}>
+          <span className="material-symbols-outlined text-[24px]">
+            {currentTier === 'enterprise' ? 'diamond' : 'bolt'}
+          </span>
         </div>
         <div className="flex-1">
           <div className="flex items-center gap-2">
@@ -294,7 +300,7 @@ export const OrgBillingTab: React.FC<OrgBillingTabProps> = ({ orgId, isOwner }) 
             return (
               <div
                 key={plan.tier}
-                className={`relative bg-white dark:bg-slate-800 border rounded-xl p-5 transition-all hover:-translate-y-0.5 hover:shadow-md ${
+                className={`relative bg-white dark:bg-slate-800 border rounded-xl p-5 flex flex-col transition-all hover:-translate-y-0.5 hover:shadow-md ${
                   isCurrent
                     ? 'border-primary shadow-sm ring-1 ring-primary'
                     : isRecommended
@@ -328,7 +334,7 @@ export const OrgBillingTab: React.FC<OrgBillingTabProps> = ({ orgId, isOwner }) 
                 </div>
                 <div className="text-xs text-slate-400 mb-4">{plan.perSeatLabel}</div>
 
-                <ul className="space-y-1.5 mb-5">
+                <ul className="space-y-1.5 mb-5 flex-1">
                   {plan.features.map(f => (
                     <li key={f} className="text-xs text-slate-500 flex items-start gap-2">
                       <span className="text-emerald-500 mt-0.5">&#10003;</span>
