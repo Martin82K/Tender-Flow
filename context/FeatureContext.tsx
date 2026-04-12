@@ -1,7 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { FeatureKey, PLANS } from '../config/features';
 import { useAuth } from './AuthContext';
-import { getCurrentTier, getEnabledFeatures } from '@/features/subscription/api';
+import {
+  getCurrentTier,
+  getEnabledFeatures,
+  getEffectiveUserTier,
+  getEnabledFeaturesV2,
+} from '@/features/subscription/api';
 
 // Periodic refresh interval for subscription tier validation
 const SUBSCRIPTION_REFRESH_INTERVAL = 1000 * 60 * 30; // 30 minutes
@@ -15,6 +20,10 @@ interface FeatureContextType {
 }
 
 const FeatureContext = createContext<FeatureContextType | undefined>(undefined);
+
+// Module-level flag: once v2 RPCs fail, skip them for the rest of the session
+// to avoid repeated red POST errors in the console.
+let v2RpcsAvailable = true;
 
 export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
@@ -44,18 +53,45 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     setIsLoading(true);
     try {
-      // Fetch enabled features from backend RPC (cannot be bypassed)
-      const [features, tier] = await Promise.all([
-        getEnabledFeatures(),
-        getCurrentTier(),
-      ]);
+      let features: { key: string; name: string; description: string | null; category: string | null }[];
+      let tier: string;
 
-      // Map feature keys to FeatureKey type
+      // Try v2 RPCs (org-level tier with override support) if they haven't
+      // previously failed in this session. Once they fail, we skip them
+      // to avoid repeated red POST errors in the browser console.
+      if (v2RpcsAvailable) {
+        try {
+          const [v2Features, tierResult] = await Promise.all([
+            getEnabledFeaturesV2(),
+            getEffectiveUserTier(),
+          ]);
+          features = v2Features;
+          tier = tierResult.tier;
+          console.log(`[FeatureContext] v2: ${features.length} features, tier=${tier} (source=${tierResult.source})`);
+        } catch {
+          // v2 RPCs not deployed yet — remember and fall back to v1
+          v2RpcsAvailable = false;
+          console.info('[FeatureContext] v2 RPCs not available, using v1 for this session');
+          const [v1Features, v1Tier] = await Promise.all([
+            getEnabledFeatures(),
+            getCurrentTier(),
+          ]);
+          features = v1Features;
+          tier = v1Tier;
+        }
+      } else {
+        // v2 already known to be unavailable — go straight to v1
+        const [v1Features, v1Tier] = await Promise.all([
+          getEnabledFeatures(),
+          getCurrentTier(),
+        ]);
+        features = v1Features;
+        tier = v1Tier;
+      }
+
       const featureKeys = features.map(f => f.key as FeatureKey);
       setEnabledFeatures(featureKeys);
       setCurrentPlan(tier);
-
-      console.log(`[FeatureContext] Loaded ${featureKeys.length} features for tier: ${tier}`);
       lastRefreshRef.current = Date.now();
     } catch (error) {
       console.error('[FeatureContext] Failed to load features from backend:', error);

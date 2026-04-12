@@ -18,8 +18,8 @@ import { ExcelUnlockerProSettings } from "@/features/settings/ExcelUnlockerProSe
 import { ExcelMergerProSettings } from "@/features/settings/ExcelMergerProSettings";
 import { UrlShortener } from "@/features/tools/UrlShortener";
 import { ExcelIndexerSettings } from "@/features/settings/ExcelIndexerSettings";
-import { SubscriptionSettings } from "@/features/settings/SubscriptionSettings";
-import { OrganizationSettings } from "@/features/settings/OrganizationSettings";
+import { OrganizationDashboard } from "@/features/organization/ui/OrganizationDashboard";
+import type { OrgSubTab } from "@/features/organization/model/types";
 import { NotificationSettings } from "@/features/settings/NotificationSettings";
 import { IncidentLogsAdmin } from "@/features/settings/IncidentLogsAdmin";
 import { ComplianceAdmin } from "@/features/settings/ComplianceAdmin";
@@ -66,7 +66,6 @@ export const Settings: React.FC<SettingsProps> = ({
   const { hasFeature, isLoading: isFeaturesLoading } = useFeatures();
   type UserSubTab =
     | "profile"
-    | "subscription"
     | "notifications"
     | "contacts"
     | "excelUnlocker"
@@ -95,9 +94,12 @@ export const Settings: React.FC<SettingsProps> = ({
         : null;
     let subTab: string | null = null;
     if (tab === "user") {
+      // Redirect legacy subscription subtab to org billing
+      if (subTabParam === "subscription") {
+        return { tab: "organization" as const, subTab: "billing" };
+      }
       subTab =
         subTabParam === "profile" ||
-        subTabParam === "subscription" ||
         subTabParam === "notifications" ||
         subTabParam === "contacts" ||
         subTabParam === "excelUnlocker" ||
@@ -119,6 +121,14 @@ export const Settings: React.FC<SettingsProps> = ({
         subTabParam === "compliance"
           ? subTabParam
           : null;
+    } else if (tab === "organization") {
+      subTab =
+        subTabParam === "overview" ||
+        subTabParam === "members" ||
+        subTabParam === "billing" ||
+        subTabParam === "branding"
+          ? subTabParam
+          : "overview";
     }
     return { tab, subTab };
   }, [search]);
@@ -131,7 +141,6 @@ export const Settings: React.FC<SettingsProps> = ({
   });
   const [activeUserSubTab, setActiveUserSubTab] = useState<UserSubTab>(() => {
     if (
-      settingsRoute.subTab === "subscription" ||
       settingsRoute.subTab === "notifications" ||
       settingsRoute.subTab === "contacts" ||
       settingsRoute.subTab === "excelMerger" ||
@@ -160,14 +169,21 @@ export const Settings: React.FC<SettingsProps> = ({
       return "registration";
     },
   );
+  const [activeOrgSubTab, setActiveOrgSubTab] = useState<OrgSubTab>(() => {
+    const sub = settingsRoute.tab === "organization" ? settingsRoute.subTab : null;
+    if (sub === "overview" || sub === "members" || sub === "billing" || sub === "branding") return sub;
+    return "overview";
+  });
 
   const updateSettingsUrl = (
-    next: { tab: "user" | "admin" | "organization"; subTab?: UserSubTab | AdminSubTab },
+    next: { tab: "user" | "admin" | "organization"; subTab?: UserSubTab | AdminSubTab | OrgSubTab },
     opts?: { replace?: boolean },
   ) => {
     const params = new URLSearchParams();
     params.set("tab", next.tab);
-    if (next.tab !== "organization") {
+    if (next.tab === "organization") {
+      params.set("subTab", (next.subTab as OrgSubTab) || "overview");
+    } else {
       params.set(
         "subTab",
         next.subTab || (next.tab === "user" ? "profile" : "registration"),
@@ -216,6 +232,8 @@ export const Settings: React.FC<SettingsProps> = ({
   useEffect(() => {
     if (settingsRoute.tab === "organization") {
       if (activeTab !== "organization") setActiveTab("organization");
+      const orgSub = settingsRoute.subTab as OrgSubTab;
+      if (orgSub && orgSub !== activeOrgSubTab) setActiveOrgSubTab(orgSub);
       return;
     }
 
@@ -243,6 +261,7 @@ export const Settings: React.FC<SettingsProps> = ({
     }
   }, [
     activeAdminSubTab,
+    activeOrgSubTab,
     activeTab,
     activeUserSubTab,
     isAdmin,
@@ -281,7 +300,7 @@ export const Settings: React.FC<SettingsProps> = ({
           <button
             onClick={() => {
               setActiveTab("organization");
-              updateSettingsUrl({ tab: "organization" });
+              updateSettingsUrl({ tab: "organization", subTab: activeOrgSubTab });
             }}
             className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${
               activeTab === "organization"
@@ -311,7 +330,13 @@ export const Settings: React.FC<SettingsProps> = ({
         {/* --- ADMIN TAB CONTENT --- */}
         {activeTab === "organization" && (
           <div className="animate-fadeIn">
-            <OrganizationSettings />
+            <OrganizationDashboard
+              activeSubTab={activeOrgSubTab}
+              onSubTabChange={(tab) => {
+                setActiveOrgSubTab(tab);
+                updateSettingsUrl({ tab: "organization", subTab: tab });
+              }}
+            />
           </div>
         )}
 
@@ -459,24 +484,6 @@ export const Settings: React.FC<SettingsProps> = ({
             {/* Sidebar Navigation for User Settings */}
             <aside className="w-full md:w-64 flex-shrink-0">
               <nav className="flex flex-col gap-2">
-                <button
-                  onClick={() =>
-                    updateSettingsUrl({ tab: "user", subTab: "subscription" })
-                  }
-                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
-                    activeUserSubTab === "subscription"
-                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="material-symbols-outlined text-[20px]">
-                      credit_card
-                    </span>
-                    Předplatné
-                  </div>
-                </button>
-
                 <button
                   onClick={() =>
                     updateSettingsUrl({ tab: "user", subTab: "profile" })
@@ -654,8 +661,6 @@ export const Settings: React.FC<SettingsProps> = ({
                   user={user}
                 />
               )}
-
-              {activeUserSubTab === "subscription" && <SubscriptionSettings />}
 
               {activeUserSubTab === "notifications" && <NotificationSettings />}
 

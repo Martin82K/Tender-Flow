@@ -1,3 +1,8 @@
+/**
+ * @deprecated This component is no longer rendered in Settings.
+ * Subscription management has moved to the organization-level billing tab.
+ * See: features/organization/ui/OrgBillingTab.tsx
+ */
 import React, { useEffect, useRef, useState } from "react";
 import { SubscriptionInfo, SubscriptionTier } from "../../types";
 import {

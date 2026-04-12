@@ -3,6 +3,8 @@ export {
   getFeatureAccess,
   getCurrentTier,
   getEnabledFeatures,
+  getEffectiveUserTier,
+  getEnabledFeaturesV2,
   formatSubscriptionExpirationDate,
 } from "./subscriptionState";
 export {
