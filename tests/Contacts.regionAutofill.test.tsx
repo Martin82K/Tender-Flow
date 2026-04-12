@@ -44,6 +44,22 @@ vi.mock("@/shared/ui/ConfirmationModal", () => ({
     ) : null,
 }));
 
+vi.mock("@/context/FeatureContext", () => ({
+  useFeatures: () => ({ hasFeature: () => false }),
+}));
+
+vi.mock("@features/notifications/ui/NotificationBell", () => ({
+  NotificationBell: () => null,
+}));
+
+vi.mock("@features/help", () => ({
+  HelpButton: () => null,
+}));
+
+vi.mock("@features/maps/components/SubcontractorMapView", () => ({
+  SubcontractorMapView: () => null,
+}));
+
 vi.mock("@/shared/ui/SubcontractorSelector", () => ({
   SubcontractorSelector: ({
     contacts,
@@ -94,13 +110,11 @@ describe("Contacts auto-fill regions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockState.onBulkUpdateContacts.mockResolvedValue(undefined);
+    // Default: auto-fill on mount returns empty (no ARES results) so it doesn't interfere with manual tests
+    mockState.findCompanyRegistrationDetails.mockResolvedValue({});
   });
 
   it("přeskočí placeholder region a zobrazí informaci, když AI vrátí jen pomlčku", async () => {
-    mockState.findCompanyRegistrationDetails.mockResolvedValue({
-      "c-1": { region: "-", address: "-" },
-    });
-
     render(
       <Contacts
         statuses={statuses}
@@ -112,6 +126,12 @@ describe("Contacts auto-fill regions", () => {
         onDeleteContacts={vi.fn()}
       />,
     );
+
+    // Wait for auto-fill on mount to complete, then set mock for manual action
+    await vi.waitFor(() => expect(mockState.findCompanyRegistrationDetails).toHaveBeenCalled());
+    mockState.findCompanyRegistrationDetails.mockResolvedValue({
+      "c-1": { region: "-", address: "-" },
+    });
 
     const button = await screen.findByRole("button", { name: /doplnit adresy a regiony/i });
     fireEvent.click(button);
@@ -126,11 +146,6 @@ describe("Contacts auto-fill regions", () => {
   });
 
   it("uloží jen kontakty s nově dohledaným regionem nebo adresou", async () => {
-    mockState.findCompanyRegistrationDetails.mockResolvedValue({
-      "c-1": { region: "Praha", address: "Ulice 1, Praha" },
-      "c-2": { region: "-", address: "-" },
-    });
-
     render(
       <Contacts
         statuses={statuses}
@@ -142,6 +157,13 @@ describe("Contacts auto-fill regions", () => {
         onDeleteContacts={vi.fn()}
       />,
     );
+
+    // Wait for auto-fill on mount to complete, then set mock for manual action
+    await vi.waitFor(() => expect(mockState.findCompanyRegistrationDetails).toHaveBeenCalled());
+    mockState.findCompanyRegistrationDetails.mockResolvedValue({
+      "c-1": { region: "Praha", address: "Ulice 1, Praha" },
+      "c-2": { region: "-", address: "-" },
+    });
 
     const button = await screen.findByRole("button", { name: /doplnit adresy a regiony/i });
     fireEvent.click(button);
@@ -159,13 +181,6 @@ describe("Contacts auto-fill regions", () => {
   });
 
   it("na karte dodavatele dohleda adresu a region podle ICO", async () => {
-    mockState.findCompanyRegistrationDetails.mockImplementation(async (items: Array<{ id: string }>) => ({
-      [items[0].id]: {
-        region: "Karlovarský kraj",
-        address: "č.p. 88, 36225 Božičany",
-      },
-    }));
-
     render(
       <Contacts
         statuses={statuses}
@@ -177,6 +192,15 @@ describe("Contacts auto-fill regions", () => {
         onDeleteContacts={vi.fn()}
       />,
     );
+
+    // Wait for auto-fill on mount to complete, then set mock for manual card lookup
+    await vi.waitFor(() => expect(mockState.findCompanyRegistrationDetails).toHaveBeenCalled());
+    mockState.findCompanyRegistrationDetails.mockImplementation(async (items: Array<{ id: string }>) => ({
+      [items[0].id]: {
+        region: "Karlovarský kraj",
+        address: "č.p. 88, 36225 Božičany",
+      },
+    }));
 
     fireEvent.click(await screen.findByRole("button", { name: /pridat kontakt|přidat kontakt/i }));
 
