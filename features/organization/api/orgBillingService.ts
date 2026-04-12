@@ -79,6 +79,13 @@ export const getOrgSeatUsage = async (orgId: string): Promise<OrgSeatUsage> => {
 };
 
 /**
+ * Update max seats for an organization (owner only).
+ */
+export const updateOrgSeats = async (orgId: string, newMaxSeats: number): Promise<void> => {
+  await orgSubscriptionRpc.updateOrgSeats(orgId, newMaxSeats);
+};
+
+/**
  * Get organization members with seat info.
  */
 export const getOrgMembersWithSeats = async (orgId: string): Promise<OrgMemberSeat[]> => {

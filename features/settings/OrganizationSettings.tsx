@@ -294,6 +294,8 @@ export const OrganizationSettings: React.FC = () => {
       companyAddress: emailBrandingForm.companyAddress || null,
       companyMeta: emailBrandingForm.companyMeta || null,
       disclaimerHtml: emailBrandingForm.disclaimerHtml || null,
+      fontFamily: null,
+      fontSize: null,
     },
   });
 

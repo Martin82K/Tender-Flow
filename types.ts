@@ -249,6 +249,8 @@ export interface OrganizationEmailBranding {
   companyAddress: string | null;
   companyMeta: string | null;
   disclaimerHtml: string | null;
+  fontFamily: string | null;
+  fontSize: string | null;
 }
 
 export interface LegalAcceptance {

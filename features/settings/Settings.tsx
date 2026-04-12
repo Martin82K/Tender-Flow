@@ -24,6 +24,7 @@ import { NotificationSettings } from "@/features/settings/NotificationSettings";
 import { IncidentLogsAdmin } from "@/features/settings/IncidentLogsAdmin";
 import { ComplianceAdmin } from "@/features/settings/ComplianceAdmin";
 import { AdminMfaGuard } from "@/features/settings/AdminMfaGuard";
+import { AdminOrganizationsPanel } from "@/features/settings/AdminOrganizationsPanel";
 import { BackupSettings } from "@/features/backup/ui/BackupSettings";
 
 import { useFeatures } from "@/context/FeatureContext";
@@ -76,6 +77,7 @@ export const Settings: React.FC<SettingsProps> = ({
   type AdminSubTab =
     | "registration"
     | "users"
+    | "organizations"
     | "subscriptions"
     | "ai"
     | "incidents"
@@ -115,6 +117,7 @@ export const Settings: React.FC<SettingsProps> = ({
       subTab =
         subTabParam === "registration" ||
         subTabParam === "users" ||
+        subTabParam === "organizations" ||
         subTabParam === "subscriptions" ||
         subTabParam === "ai" ||
         subTabParam === "incidents" ||
@@ -158,6 +161,7 @@ export const Settings: React.FC<SettingsProps> = ({
     () => {
       if (
         settingsRoute.subTab === "users" ||
+        settingsRoute.subTab === "organizations" ||
         settingsRoute.subTab === "subscriptions" ||
         settingsRoute.subTab === "ai" ||
         settingsRoute.subTab === "incidents" ||
@@ -381,6 +385,23 @@ export const Settings: React.FC<SettingsProps> = ({
                   </div>
                 </button>
 
+                <button
+                  onClick={() =>
+                    updateSettingsUrl({ tab: "admin", subTab: "organizations" })
+                  }
+                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                    activeAdminSubTab === "organizations"
+                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[20px]">
+                      domain
+                    </span>
+                    Organizace
+                  </div>
+                </button>
 
                 <button
                   onClick={() =>
@@ -462,6 +483,9 @@ export const Settings: React.FC<SettingsProps> = ({
                 )}
                 {activeAdminSubTab === "users" && (
                   <AdminSettings isAdmin={isAdmin} section="users" />
+                )}
+                {activeAdminSubTab === "organizations" && (
+                  <AdminOrganizationsPanel />
                 )}
                 {activeAdminSubTab === "subscriptions" && (
                   <AdminSettings isAdmin={isAdmin} section="subscriptions" />

@@ -6,7 +6,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { getOrgSubscription, getOrgBillingHistory, getOrgSeatUsage } from '../api/orgBillingService';
+import { getOrgSubscription, getOrgBillingHistory, getOrgSeatUsage, updateOrgSeats } from '../api/orgBillingService';
 import { createOrgCheckout, cancelOrgSubscription, syncOrgSubscription, formatOrgPrice } from '../api/orgBillingActions';
 import { PRICING_CONFIG } from '@/services/billingService';
 import { getTierLabel, getTierBadgeClass } from '@/config/subscriptionTiers';
@@ -71,6 +71,8 @@ export const OrgBillingTab: React.FC<OrgBillingTabProps> = ({ orgId, isOwner }) 
   const [actionLoading, setActionLoading] = useState(false);
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [editingSeats, setEditingSeats] = useState(false);
+  const [newSeatCount, setNewSeatCount] = useState(0);
 
   const loadData = async () => {
     setLoading(true);
@@ -260,6 +262,100 @@ export const OrgBillingTab: React.FC<OrgBillingTabProps> = ({ orgId, isOwner }) 
         )}
       </div>
 
+      {/* Seat Management */}
+      {isOwner && seatUsage && currentTier !== 'free' && (
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50 rounded-xl p-5">
+          <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
+            <span className="material-symbols-outlined text-[18px] text-slate-400">group</span>
+            Správa licencí (seats)
+          </h4>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="text-sm text-slate-500">
+                  Obsazeno <strong className="text-slate-700 dark:text-slate-200">{seatUsage.billableSeats}</strong> z <strong className="text-slate-700 dark:text-slate-200">{seatUsage.maxSeats}</strong> míst
+                </div>
+              </div>
+              <div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden max-w-md">
+                <div
+                  className="h-full bg-gradient-to-r from-primary to-primary/80 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min((seatUsage.billableSeats / seatUsage.maxSeats) * 100, 100)}%` }}
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {editingSeats ? (
+                <>
+                  <button
+                    onClick={() => setNewSeatCount(prev => Math.max(seatUsage.billableSeats, prev - 1))}
+                    disabled={newSeatCount <= seatUsage.billableSeats}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-30"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">remove</span>
+                  </button>
+                  <span className="w-12 text-center text-lg font-bold text-slate-900 dark:text-white">
+                    {newSeatCount}
+                  </span>
+                  <button
+                    onClick={() => setNewSeatCount(prev => prev + 1)}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">add</span>
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (newSeatCount === seatUsage.maxSeats) {
+                        setEditingSeats(false);
+                        return;
+                      }
+                      setActionLoading(true);
+                      setMessage(null);
+                      try {
+                        await updateOrgSeats(orgId, newSeatCount);
+                        setMessage({ type: 'success', text: `Počet licencí změněn na ${newSeatCount}.` });
+                        setEditingSeats(false);
+                        await loadData();
+                      } catch (err: any) {
+                        setMessage({ type: 'error', text: err?.message || 'Nepodařilo se změnit počet licencí.' });
+                      } finally {
+                        setActionLoading(false);
+                      }
+                    }}
+                    disabled={actionLoading || newSeatCount === seatUsage.maxSeats}
+                    className="px-3 py-1.5 text-xs font-semibold rounded-lg text-white bg-primary hover:opacity-90 transition-opacity disabled:opacity-50"
+                  >
+                    Uložit
+                  </button>
+                  <button
+                    onClick={() => setEditingSeats(false)}
+                    disabled={actionLoading}
+                    className="px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                  >
+                    Zrušit
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => {
+                    setNewSeatCount(seatUsage.maxSeats);
+                    setEditingSeats(true);
+                  }}
+                  className="px-4 py-2 text-xs font-semibold rounded-lg border border-primary/30 text-primary hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors flex items-center gap-1.5"
+                >
+                  <span className="material-symbols-outlined text-[16px]">edit</span>
+                  Upravit počet licencí
+                </button>
+              )}
+            </div>
+          </div>
+          {editingSeats && newSeatCount !== seatUsage.maxSeats && (
+            <p className="text-xs text-slate-400 mt-3">
+              Změna počtu licencí se projeví od dalšího fakturačního období.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Plan Selection */}
       <div>
         <div className="flex justify-between items-center mb-4">
@@ -374,11 +470,7 @@ export const OrgBillingTab: React.FC<OrgBillingTabProps> = ({ orgId, isOwner }) 
                   <button
                     onClick={() => handleUpgrade(plan.tier as 'starter' | 'pro')}
                     disabled={actionLoading || !isOwner}
-                    className={`w-full py-2.5 text-sm font-semibold rounded-lg text-white transition-opacity hover:opacity-90 disabled:opacity-50 ${
-                      plan.tier === 'pro'
-                        ? 'bg-gradient-to-r from-indigo-500 to-indigo-600'
-                        : 'bg-gradient-to-r from-primary to-primary/90'
-                    }`}
+                    className="w-full py-2.5 text-sm font-semibold rounded-lg text-white transition-opacity hover:opacity-90 disabled:opacity-50 bg-gradient-to-r from-primary to-primary/90"
                   >
                     Upgradovat
                   </button>

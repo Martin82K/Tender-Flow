@@ -145,4 +145,56 @@ export const orgSubscriptionRpc = {
       .in('user_id', userIds);
     return data || [];
   },
+
+  /**
+   * Owner: Update max seats for an organization.
+   */
+  updateOrgSeats: async (orgId: string, newMaxSeats: number): Promise<void> => {
+    const { error } = await supabase.rpc('org_owner_update_seats', {
+      target_org_id: orgId,
+      new_max_seats: newMaxSeats,
+    });
+    if (error) throw error;
+  },
+
+  /**
+   * Admin: Get all organizations with subscription & seat info.
+   */
+  getAllOrganizationsAdmin: async () => {
+    const { data, error } = await supabase.rpc('get_all_organizations_admin');
+    if (error) throw error;
+    return (data || []) as {
+      org_id: string;
+      org_name: string;
+      subscription_tier: string | null;
+      subscription_status: string | null;
+      max_seats: number;
+      billable_seats: number;
+      total_members: number;
+      billing_period: string | null;
+      expires_at: string | null;
+      override_tier: string | null;
+      override_expires_at: string | null;
+      override_reason: string | null;
+      created_at: string;
+    }[];
+  },
+
+  /**
+   * Admin: Update organization subscription tier and max seats.
+   */
+  adminUpdateOrgSubscription: async (
+    orgId: string,
+    tier: string | null,
+    maxSeats: number | null,
+    reason: string | null,
+  ) => {
+    const { error } = await supabase.rpc('admin_update_org_subscription', {
+      target_org_id: orgId,
+      new_tier: tier,
+      new_max_seats: maxSeats,
+      p_reason: reason,
+    });
+    if (error) throw error;
+  },
 };

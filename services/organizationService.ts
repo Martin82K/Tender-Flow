@@ -11,6 +11,8 @@ export type OrganizationSummary = {
   email_signature_company_address?: string | null;
   email_signature_company_meta?: string | null;
   email_signature_disclaimer_html?: string | null;
+  email_signature_font_family?: string | null;
+  email_signature_font_size?: string | null;
 };
 
 export type OrganizationMember = {
@@ -372,6 +374,8 @@ export const organizationService = {
       companyAddress: org.email_signature_company_address || null,
       companyMeta: org.email_signature_company_meta || null,
       disclaimerHtml: org.email_signature_disclaimer_html || null,
+      fontFamily: org.email_signature_font_family || null,
+      fontSize: org.email_signature_font_size || null,
     };
   },
 
@@ -454,6 +458,8 @@ export const organizationService = {
       companyAddress: string | null;
       companyMeta: string | null;
       disclaimerHtml: string | null;
+      fontFamily?: string | null;
+      fontSize?: string | null;
     },
   ): Promise<void> => {
     if (!orgId) throw new Error("Chybí organizace.");
@@ -464,6 +470,8 @@ export const organizationService = {
       company_address_input: input.companyAddress,
       company_meta_input: input.companyMeta,
       disclaimer_html_input: input.disclaimerHtml,
+      font_family_input: input.fontFamily ?? null,
+      font_size_input: input.fontSize ?? null,
     });
 
     if (error) {

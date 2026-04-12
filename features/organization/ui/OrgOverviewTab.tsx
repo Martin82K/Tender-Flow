@@ -146,9 +146,8 @@ export const OrgOverviewTab: React.FC<OrgOverviewTabProps> = ({
               style={{ width: `${Math.min(seatPercent, 100)}%` }}
             />
           </div>
-          <div className="flex justify-between mt-2 text-xs text-slate-400">
+          <div className="mt-2 text-xs text-slate-400">
             <span>{seatUsage.availableSeats} volná místa</span>
-            <span>+ 99 Kč / další seat / měsíc</span>
           </div>
         </div>
       )}

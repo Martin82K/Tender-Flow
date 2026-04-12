@@ -1,13 +1,20 @@
 /**
  * OrgBrandingTab
  *
- * Organization branding — logo upload, email logo, email signature.
- * Extracted from the old OrganizationSettings branding section.
+ * Organization branding — logo upload, email logo, email signature with
+ * font settings and full live preview.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { organizationService } from '@/services/organizationService';
 import { useUI } from '@/context/UIContext';
+import {
+  buildEmailSignature,
+  SIGNATURE_FONT_OPTIONS,
+  SIGNATURE_FONT_SIZE_OPTIONS,
+  DEFAULT_FONT_FAMILY,
+  DEFAULT_FONT_SIZE,
+} from '@/shared/email/signature';
 
 interface OrgBrandingTabProps {
   orgId: string;
@@ -41,15 +48,16 @@ export const OrgBrandingTab: React.FC<OrgBrandingTabProps> = ({ orgId, isAdminOr
   const [companyAddress, setCompanyAddress] = useState('');
   const [companyMeta, setCompanyMeta] = useState('');
   const [disclaimerHtml, setDisclaimerHtml] = useState('');
+  const [fontFamily, setFontFamily] = useState(DEFAULT_FONT_FAMILY);
+  const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE);
   const [isSavingBranding, setIsSavingBranding] = useState(false);
 
   useEffect(() => {
     const load = async () => {
       setIsLoadingLogo(true);
       try {
-        const [logo, emailLogo, branding] = await Promise.all([
+        const [logo, branding] = await Promise.all([
           organizationService.getOrganizationLogoUrl(orgId).catch(() => null),
-          organizationService.getOrganizationEmailBranding(orgId).catch(() => null),
           organizationService.getOrganizationEmailBranding(orgId).catch(() => null),
         ]);
         setLogoUrl(logo);
@@ -58,7 +66,8 @@ export const OrgBrandingTab: React.FC<OrgBrandingTabProps> = ({ orgId, isAdminOr
           setCompanyAddress(branding.companyAddress || '');
           setCompanyMeta(branding.companyMeta || '');
           setDisclaimerHtml(branding.disclaimerHtml || '');
-          // Load email logo separately
+          setFontFamily(branding.fontFamily || DEFAULT_FONT_FAMILY);
+          setFontSize(branding.fontSize || DEFAULT_FONT_SIZE);
           const eLogoUrl = branding.emailLogoPath
             ? await organizationService.getOrganizationLogoUrl(orgId).catch(() => null)
             : null;
@@ -72,6 +81,33 @@ export const OrgBrandingTab: React.FC<OrgBrandingTabProps> = ({ orgId, isAdminOr
     };
     load();
   }, [orgId]);
+
+  // Live preview of the full signature
+  const signaturePreview = useMemo(
+    () =>
+      buildEmailSignature({
+        profile: {
+          displayName: 'Jan Novák',
+          signatureName: 'Jan Novák',
+          signatureRole: 'obchodní manažer',
+          signaturePhone: '+420 123 456 789',
+          signaturePhoneSecondary: '+420 777 000 111',
+          signatureEmail: 'novak@firma.cz',
+          signatureGreeting: 'S pozdravem',
+        },
+        branding: {
+          emailLogoPath: null,
+          emailLogoUrl: emailLogoUrl,
+          companyName: companyName || null,
+          companyAddress: companyAddress || null,
+          companyMeta: companyMeta || null,
+          disclaimerHtml: disclaimerHtml || null,
+          fontFamily: fontFamily || null,
+          fontSize: fontSize || null,
+        },
+      }),
+    [companyName, companyAddress, companyMeta, disclaimerHtml, fontFamily, fontSize, emailLogoUrl],
+  );
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -109,7 +145,6 @@ export const OrgBrandingTab: React.FC<OrgBrandingTabProps> = ({ orgId, isAdminOr
       setIsUploadingEmailLogo(true);
       await organizationService.uploadOrganizationEmailLogo(orgId, file);
       showAlert({ title: 'Hotovo', message: 'E-mailové logo bylo nahráno.', variant: 'success' });
-      // Refresh
       const branding = await organizationService.getOrganizationEmailBranding(orgId);
       setEmailLogoUrl(branding?.emailLogoPath ? 'loaded' : null);
     } catch (err: any) {
@@ -138,6 +173,8 @@ export const OrgBrandingTab: React.FC<OrgBrandingTabProps> = ({ orgId, isAdminOr
         companyAddress: companyAddress.trim(),
         companyMeta: companyMeta.trim(),
         disclaimerHtml: disclaimerHtml.trim(),
+        fontFamily: fontFamily.trim() || null,
+        fontSize: fontSize.trim() || null,
       });
       showAlert({ title: 'Hotovo', message: 'Branding byl uložen.', variant: 'success' });
     } catch (err: any) {
@@ -268,6 +305,46 @@ export const OrgBrandingTab: React.FC<OrgBrandingTabProps> = ({ orgId, isAdminOr
         <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4">
           Emailová signatura
         </h4>
+
+        {/* Font settings */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+              Písmo
+            </label>
+            <select
+              value={fontFamily}
+              onChange={e => setFontFamily(e.target.value)}
+              disabled={!isAdminOrOwner}
+              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:opacity-50"
+            >
+              {SIGNATURE_FONT_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value} style={{ fontFamily: opt.value }}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+              Velikost písma
+            </label>
+            <select
+              value={fontSize}
+              onChange={e => setFontSize(e.target.value)}
+              disabled={!isAdminOrOwner}
+              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:opacity-50"
+            >
+              {SIGNATURE_FONT_SIZE_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Company fields */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
             <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
@@ -333,6 +410,33 @@ export const OrgBrandingTab: React.FC<OrgBrandingTabProps> = ({ orgId, isAdminOr
             </button>
           </div>
         )}
+      </div>
+
+      {/* Full signature preview */}
+      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50 rounded-xl p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300">
+            Náhled podpisu
+          </h4>
+          <span className="text-[10px] text-slate-400 dark:text-slate-500">
+            Ukázkový podpis s vašimi firemními údaji
+          </span>
+        </div>
+        <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 p-6">
+          {signaturePreview.hasContent ? (
+            <div
+              className="text-slate-900 dark:text-white [&_a]:text-slate-900 [&_a]:underline dark:[&_*]:!text-inherit dark:[&_a]:!text-sky-400"
+              dangerouslySetInnerHTML={{ __html: signaturePreview.html }}
+            />
+          ) : (
+            <div className="text-sm text-slate-500 text-center py-4">
+              Vyplňte údaje výše pro zobrazení náhledu podpisu.
+            </div>
+          )}
+        </div>
+        <p className="mt-2 text-[10px] text-slate-400 dark:text-slate-500">
+          Osobní údaje (jméno, pozice, telefon) si každý uživatel nastavuje ve svém profilu v sekci Prostředí uživatele.
+        </p>
       </div>
     </section>
   );

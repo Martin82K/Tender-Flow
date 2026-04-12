@@ -93,6 +93,31 @@ export interface EmailSignatureRenderResult {
   isBrandingComplete: boolean;
 }
 
+export const SIGNATURE_FONT_OPTIONS = [
+  { value: "Arial, Helvetica, sans-serif", label: "Arial" },
+  { value: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", label: "Segoe UI" },
+  { value: "Verdana, Geneva, Tahoma, sans-serif", label: "Verdana" },
+  { value: "Tahoma, Geneva, Verdana, sans-serif", label: "Tahoma" },
+  { value: "'Trebuchet MS', 'Lucida Grande', sans-serif", label: "Trebuchet MS" },
+  { value: "Georgia, 'Times New Roman', Times, serif", label: "Georgia" },
+  { value: "'Times New Roman', Times, serif", label: "Times New Roman" },
+  { value: "'Courier New', Courier, monospace", label: "Courier New" },
+  { value: "Calibri, 'Segoe UI', sans-serif", label: "Calibri" },
+] as const;
+
+export const SIGNATURE_FONT_SIZE_OPTIONS = [
+  { value: "12px", label: "12 px" },
+  { value: "13px", label: "13 px" },
+  { value: "14px", label: "14 px" },
+  { value: "15px", label: "15 px" },
+  { value: "16px", label: "16 px (výchozí)" },
+  { value: "17px", label: "17 px" },
+  { value: "18px", label: "18 px" },
+] as const;
+
+export const DEFAULT_FONT_FAMILY = "Arial, Helvetica, sans-serif";
+export const DEFAULT_FONT_SIZE = "16px";
+
 export const buildEmailSignature = ({
   profile,
   branding,
@@ -109,6 +134,11 @@ export const buildEmailSignature = ({
   const companyMeta = normalizeText(branding?.companyMeta);
   const disclaimerHtml = sanitizeEmailDisclaimerHtml(branding?.disclaimerHtml);
   const emailLogoUrl = sanitizeUrl(branding?.emailLogoUrl);
+  const fontFamily = normalizeText(branding?.fontFamily) || DEFAULT_FONT_FAMILY;
+  const baseFontSize = normalizeText(branding?.fontSize) || DEFAULT_FONT_SIZE;
+  const baseSizeNum = parseInt(baseFontSize, 10) || 16;
+  const nameFontSize = `${baseSizeNum + 2}px`;
+  const disclaimerFontSize = `${Math.max(baseSizeNum - 4, 10)}px`;
 
   const personLine = signatureName
     ? [
@@ -131,13 +161,13 @@ export const buildEmailSignature = ({
   ].filter(Boolean);
 
   const htmlParts = [
-    `<div style="margin-top:24px;font-family:Arial,sans-serif;color:#1f2937;">`,
-    `<div style="font-size:16px;line-height:1.5;">${convertPlainTextToHtml(greeting)}</div>`,
+    `<div style="margin-top:24px;font-family:${fontFamily};color:#1f2937;">`,
+    `<div style="font-size:${baseFontSize};line-height:1.5;">${convertPlainTextToHtml(greeting)}</div>`,
     personLine
-      ? `<div style="margin-top:28px;font-size:18px;line-height:1.4;">${personLine}</div>`
+      ? `<div style="margin-top:28px;font-size:${nameFontSize};line-height:1.4;">${personLine}</div>`
       : "",
     contactLine
-      ? `<div style="margin-top:10px;font-size:16px;line-height:1.5;">${contactLine}</div>`
+      ? `<div style="margin-top:10px;font-size:${baseFontSize};line-height:1.5;">${contactLine}</div>`
       : "",
     emailLogoUrl || companyBlockParts.length > 0
       ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-top:28px;border-collapse:collapse;"><tr>${
@@ -146,12 +176,12 @@ export const buildEmailSignature = ({
             : ""
         }${
           companyBlockParts.length > 0
-            ? `<td valign="top" style="${emailLogoUrl ? "border-left:1px solid #d1d5db;padding-left:24px;" : ""}font-size:14px;line-height:1.5;">${companyBlockParts.join("")}</td>`
+            ? `<td valign="top" style="${emailLogoUrl ? "border-left:1px solid #d1d5db;padding-left:24px;" : ""}font-size:${baseFontSize};line-height:1.5;">${companyBlockParts.join("")}</td>`
             : ""
         }</tr></table>`
       : "",
     disclaimerHtml
-      ? `<div style="margin-top:24px;font-size:12px;line-height:1.8;color:#6b7280;font-style:italic;">${disclaimerHtml}</div>`
+      ? `<div style="margin-top:24px;font-size:${disclaimerFontSize};line-height:1.8;color:#6b7280;font-style:italic;">${disclaimerHtml}</div>`
       : "",
     `</div>`,
   ].filter(Boolean);

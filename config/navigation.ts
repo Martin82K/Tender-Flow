@@ -24,33 +24,19 @@ export const SIDEBAR_NAVIGATION: NavItemConfig[] = [
     feature: FEATURES.MODULE_DASHBOARD,
   },
   {
+    id: 'contacts',
+    label: 'Subdodavatelé',
+    icon: 'handshake',
+    view: 'contacts',
+    feature: FEATURES.MODULE_CONTACTS,
+  },
+  {
     id: 'projects', // Special handling in Sidebar for accordion
     label: 'Stavby',
     icon: 'apartment',
     view: 'project',
     feature: FEATURES.MODULE_PROJECTS,
     type: 'group'
-  },
-  {
-    id: 'project-management',
-    label: 'Správa staveb',
-    icon: 'domain_add',
-    view: 'project-management',
-    feature: FEATURES.MODULE_PROJECTS,
-  },
-  {
-    id: 'project-overview',
-    label: 'Přehledy',
-    icon: 'analytics',
-    view: 'project-overview',
-    feature: FEATURES.FEATURE_ADVANCED_REPORTING,
-  },
-  {
-    id: 'contacts',
-    label: 'Subdodavatelé',
-    icon: 'handshake',
-    view: 'contacts',
-    feature: FEATURES.MODULE_CONTACTS,
   },
     // Pipeline is now part of Project tabs mostly, but if we had a global pipeline:
     // {
