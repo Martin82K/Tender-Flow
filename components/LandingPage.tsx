@@ -143,13 +143,12 @@ export const LandingPage: React.FC = () => {
           <h1>
             Stavebn&iacute; tendry,
             <br />
-            <span className="serif">bezchybně.</span>
+            <span className="serif">přehledně.</span>
           </h1>
           <p className="hero-sub">
             Kompletn&iacute; platforma pro ř&iacute;zen&iacute;
             nab&iacute;dkov&yacute;ch ř&iacute;zen&iacute;, subdodavatelů a
-            projektov&eacute; dokumentace. Od popt&aacute;vky po podpis
-            smlouvy.
+            projektov&eacute; dokumentace. Od správy kontaktů k poptávce až po zápisy, přehledy a smlouvy.
           </p>
           <div className="hero-actions">
             <button
@@ -672,7 +671,7 @@ export const LandingPage: React.FC = () => {
         <h2>
           Připraveni ř&iacute;dit tendry
           <br />
-          <span className="serif">bezchybně?</span>
+          <span className="serif">přehledně?</span>
         </h2>
         <p>
           Přidejte se k firm&aacute;m, kter&eacute; stav&iacute; efektivněji.
