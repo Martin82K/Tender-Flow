@@ -113,7 +113,7 @@ BEGIN
   END IF;
 
   UPDATE public.organization_members
-  SET is_active = false
+  SET is_active = false, is_billable = false
   WHERE organization_id = org_id_input AND user_id = user_id_input;
 
   RETURN TRUE;
@@ -155,7 +155,7 @@ BEGIN
   END IF;
 
   UPDATE public.organization_members
-  SET is_active = true
+  SET is_active = true, is_billable = true
   WHERE organization_id = org_id_input AND user_id = user_id_input;
 
   RETURN TRUE;

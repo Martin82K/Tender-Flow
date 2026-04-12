@@ -92,18 +92,20 @@ export const orgSubscriptionRpc = {
       .from('organization_members')
       .select('*', { count: 'exact', head: true })
       .eq('organization_id', orgId)
-      .eq('is_billable', true);
+      .eq('is_billable', true)
+      .eq('is_active', true);
     return count || 0;
   },
 
   /**
-   * Count total members.
+   * Count total active members.
    */
   countTotalMembers: async (orgId: string): Promise<number> => {
     const { count } = await supabase
       .from('organization_members')
       .select('*', { count: 'exact', head: true })
-      .eq('organization_id', orgId);
+      .eq('organization_id', orgId)
+      .eq('is_active', true);
     return count || 0;
   },
 
@@ -125,7 +127,7 @@ export const orgSubscriptionRpc = {
   getOrgMemberSeats: async (orgId: string) => {
     const { data, error } = await supabase
       .from('organization_members')
-      .select('user_id, role, seat_type, is_billable, created_at')
+      .select('user_id, role, seat_type, is_billable, is_active, created_at')
       .eq('organization_id', orgId);
 
     if (error) throw error;
