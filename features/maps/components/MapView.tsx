@@ -51,18 +51,43 @@ function createMarkerIcon(color: string, isProject = false): L.DivIcon {
   });
 }
 
-function buildPopupContent(marker: MapMarker): string {
-  let html = `<div style="min-width:160px;">`;
-  html += `<strong style="font-size:14px;color:#1E293B;">${marker.label}</strong>`;
+function buildPopupContent(marker: MapMarker): HTMLDivElement {
+  const container = document.createElement('div');
+  container.style.minWidth = '160px';
+
+  const title = document.createElement('strong');
+  title.style.fontSize = '14px';
+  title.style.color = '#1E293B';
+  title.textContent = marker.label;
+  container.appendChild(title);
+
   if (marker.specialization?.length) {
-    html += `<div style="margin-top:4px;font-size:12px;color:#475569;font-weight:500;">${marker.specialization.join(', ')}</div>`;
+    const specialization = document.createElement('div');
+    specialization.style.marginTop = '4px';
+    specialization.style.fontSize = '12px';
+    specialization.style.color = '#475569';
+    specialization.style.fontWeight = '500';
+    specialization.textContent = marker.specialization.join(', ');
+    container.appendChild(specialization);
   }
+
   if (marker.rating != null) {
+    const rating = document.createElement('div');
+    rating.style.marginTop = '4px';
+    rating.style.fontSize = '13px';
+    rating.style.color = '#F59E0B';
+
     const stars = '★'.repeat(Math.round(marker.rating)) + '☆'.repeat(5 - Math.round(marker.rating));
-    html += `<div style="margin-top:4px;font-size:13px;color:#F59E0B;">${stars} <span style="color:#6B7280;">${marker.rating.toFixed(1)}</span></div>`;
+    rating.append(document.createTextNode(`${stars} `));
+
+    const value = document.createElement('span');
+    value.style.color = '#6B7280';
+    value.textContent = marker.rating.toFixed(1);
+    rating.appendChild(value);
+    container.appendChild(rating);
   }
-  html += `</div>`;
-  return html;
+
+  return container;
 }
 
 function createRegionLabelIcon(name: string): L.DivIcon {
