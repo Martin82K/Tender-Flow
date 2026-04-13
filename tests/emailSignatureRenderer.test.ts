@@ -75,6 +75,36 @@ describe("email signature renderer", () => {
     expect(sanitized).not.toContain("onclick");
   });
 
+  it("odmítne neplatné font nastavení a použije výchozí hodnoty", () => {
+    const result = buildEmailSignature({
+      profile: {
+        displayName: "Martin Kalkuš",
+        signatureName: "Martin Kalkuš",
+        signatureRole: "technik přípravy staveb",
+        signaturePhone: null,
+        signaturePhoneSecondary: null,
+        signatureEmail: "kalkus@baustav.cz",
+        signatureGreeting: "S pozdravem",
+      },
+      branding: {
+        emailLogoPath: null,
+        emailLogoUrl: null,
+        companyName: null,
+        companyAddress: null,
+        companyMeta: null,
+        disclaimerHtml: null,
+        fontFamily: `Arial";><img src=x onerror=alert(1)>`,
+        fontSize: `16px";><img src=x onerror=alert(1)>`,
+      },
+    });
+
+    expect(result.html).toContain(
+      `style="margin-top:24px;font-family:Arial, Helvetica, sans-serif;color:#1f2937;"`,
+    );
+    expect(result.html).toContain(`style="font-size:16px;line-height:1.5;"`);
+    expect(result.html).not.toContain("<img src=x onerror=alert(1)>");
+  });
+
   it("doplní podpis na konec šablony jen pokud chybí placeholder", () => {
     expect(
       appendSignatureToTemplate("Dobrý den", "{PODPIS_UZIVATELE}", {
