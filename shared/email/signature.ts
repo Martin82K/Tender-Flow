@@ -118,6 +118,29 @@ export const SIGNATURE_FONT_SIZE_OPTIONS = [
 export const DEFAULT_FONT_FAMILY = "Arial, Helvetica, sans-serif";
 export const DEFAULT_FONT_SIZE = "16px";
 
+const allowedFontFamilies = new Set(
+  SIGNATURE_FONT_OPTIONS.map((option) => option.value),
+);
+const allowedFontSizes = new Set(
+  SIGNATURE_FONT_SIZE_OPTIONS.map((option) => option.value),
+);
+
+const sanitizeFontFamily = (value: string | null | undefined): string => {
+  const normalized = normalizeText(value);
+  if (!normalized) return DEFAULT_FONT_FAMILY;
+  return allowedFontFamilies.has(normalized)
+    ? normalized
+    : DEFAULT_FONT_FAMILY;
+};
+
+const sanitizeFontSize = (value: string | null | undefined): string => {
+  const normalized = normalizeText(value);
+  if (!normalized) return DEFAULT_FONT_SIZE;
+  return allowedFontSizes.has(normalized)
+    ? normalized
+    : DEFAULT_FONT_SIZE;
+};
+
 export const buildEmailSignature = ({
   profile,
   branding,
@@ -134,8 +157,8 @@ export const buildEmailSignature = ({
   const companyMeta = normalizeText(branding?.companyMeta);
   const disclaimerHtml = sanitizeEmailDisclaimerHtml(branding?.disclaimerHtml);
   const emailLogoUrl = sanitizeUrl(branding?.emailLogoUrl);
-  const fontFamily = normalizeText(branding?.fontFamily) || DEFAULT_FONT_FAMILY;
-  const baseFontSize = normalizeText(branding?.fontSize) || DEFAULT_FONT_SIZE;
+  const fontFamily = sanitizeFontFamily(branding?.fontFamily);
+  const baseFontSize = sanitizeFontSize(branding?.fontSize);
   const baseSizeNum = parseInt(baseFontSize, 10) || 16;
   const nameFontSize = `${baseSizeNum + 2}px`;
   const disclaimerFontSize = `${Math.max(baseSizeNum - 4, 10)}px`;
