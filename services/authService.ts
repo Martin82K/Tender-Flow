@@ -491,7 +491,7 @@ export const authService = {
             cachedUser.id === sessionUserId &&
             isUserCacheTrustedForLegalAcceptance(cachedUser)
         ) {
-            console.log('[authService] getUserFromSession: Using cached user data for fast startup');
+            console.debug('[authService] getUserFromSession: Using cached user data for fast startup');
 
             // Refresh in background (fire and forget)
             authService._buildUserFromSession(session).then(freshUser => {
@@ -751,13 +751,13 @@ export const authService = {
             onBackgroundRefresh?: (freshUser: User) => void;
         } = {}
     ): Promise<User | null> => {
-        console.log('[authService] getCurrentUser: Starting...');
+        console.debug('[authService] getCurrentUser: Starting...');
         const { skipUserCache = false, onBackgroundRefresh } = options;
 
         // Fast path: build user from cached session in localStorage (no network / no auth locks).
         const cachedSession = getCachedSession();
         if (cachedSession?.user) {
-            console.log('[authService] getCurrentUser: Using cached session', cachedSession.user?.id);
+            console.debug('[authService] getCurrentUser: Using cached session', cachedSession.user?.id);
             return authService.getUserFromSession(cachedSession, { skipUserCache, onBackgroundRefresh });
         }
 
@@ -768,7 +768,7 @@ export const authService = {
             const timeoutMs = 5000;
             const { data } = await withTimeout(supabase.auth.getSession(), timeoutMs, 'Auth check') as any;
             session = data?.session || null;
-            console.log('[authService] getCurrentUser: Session loaded', session?.user?.id);
+            console.debug('[authService] getCurrentUser: Session loaded', session?.user?.id);
         } catch (e) {
             console.warn('[authService] getCurrentUser: Could not fetch session', e);
             return null;
@@ -784,7 +784,7 @@ export const authService = {
     },
 
     updateUserPreferences: async (preferences: any): Promise<User> => {
-        console.log('[authService] updateUserPreferences: Starting', {
+        console.debug('[authService] updateUserPreferences: Starting', {
             preferenceKeys: Object.keys(preferences ?? {}),
         });
         const user = await authService.getCurrentUser({ skipUserCache: true });
@@ -798,10 +798,10 @@ export const authService = {
             ...preferences
         };
 
-        console.log('[authService] updateUserPreferences: Merged', {
+        console.debug('[authService] updateUserPreferences: Merged', {
             preferenceKeys: Object.keys(newPreferences ?? {}),
         });
-        console.log('[authService] updateUserPreferences: Upserting to user_settings');
+        console.debug('[authService] updateUserPreferences: Upserting to user_settings');
 
         // Upsert to user_settings
         const { error, data } = await supabase
@@ -818,8 +818,8 @@ export const authService = {
             throw error;
         }
 
-        console.log('[authService] updateUserPreferences: Preferences saved successfully');
-        console.log('[authService] updateUserPreferences: Upsert completed', {
+        console.debug('[authService] updateUserPreferences: Preferences saved successfully');
+        console.debug('[authService] updateUserPreferences: Upsert completed', {
             rows: Array.isArray(data) ? data.length : 0,
         });
 

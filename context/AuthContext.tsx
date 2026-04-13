@@ -46,12 +46,11 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const contextId = Math.floor(Math.random() * 100000);
-console.log("[AuthContext] Module evaluated. ContextID:", contextId);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  console.log("[AuthContext] AuthProvider rendering. ContextID:", contextId);
+  console.debug("[AuthContext] AuthProvider rendering. ContextID:", contextId);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [canUseBiometric, setCanUseBiometric] = useState(false);
@@ -116,7 +115,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         setCanUseBiometric(available && enabled);
         setHasSavedCredentials(!!credentials);
 
-        console.log("[AuthContext] Biometric check:", { available, enabled, hasCredentials: !!credentials });
+        console.debug("[AuthContext] Biometric check:", { available, enabled, hasCredentials: !!credentials });
       } catch (e) {
         console.warn("[AuthContext] Failed to check biometric availability:", e);
       }
@@ -126,7 +125,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   }, []);
 
   useEffect(() => {
-    console.log("AuthContext: Initializing...");
+    console.debug("AuthContext: Initializing...");
 
     // Priority 0: Validate stored session before Supabase tries to use it.
     // A corrupted session can cause "Invalid value" header errors in fetch requests.
@@ -169,7 +168,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     // Security: isDemoSession() is tracked in memory — manipulating localStorage
     // cannot activate demo mode. Only loginAsDemo() sets the runtime flag.
     if (isDemoSession()) {
-      console.log("AuthContext: Active demo session detected");
+      console.debug("AuthContext: Active demo session detected");
       setUser(DEMO_USER);
       setIsLoading(false);
       return;
@@ -177,7 +176,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
     // Clean up stale localStorage demo flag from previous sessions
     if (window.localStorage.getItem('demo_session')) {
-      console.warn('[AuthContext] Stale demo_session localStorage flag found on init. Cleaning up.');
+      console.debug('[AuthContext] Stale demo_session localStorage flag found on init. Cleaning up.');
       endDemoSession();
     }
 
@@ -194,10 +193,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       if (biometricEnabled) {
         setCanUseBiometric(true);
         setHasSavedCredentials(true);
-        console.log("[AuthContext] Auto-login: Requesting credentials with biometric verification...");
+        console.debug("[AuthContext] Auto-login: Requesting credentials with biometric verification...");
         credentials = await platformAdapter.session.getCredentialsWithBiometric("Odemknout Tender Flow");
         if (!credentials) {
-          console.log("[AuthContext] Auto-login: Biometric cancelled or no credentials");
+          console.debug("[AuthContext] Auto-login: Biometric cancelled or no credentials");
           return "cancelled";
         }
       } else {
@@ -205,7 +204,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       }
 
       if (!credentials) {
-        console.log("[AuthContext] Auto-login: No stored credentials");
+        console.debug("[AuthContext] Auto-login: No stored credentials");
         return "skipped";
       }
 
@@ -233,7 +232,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       biometricLoginAttemptedRef.current = true;
 
       try {
-        console.log("[AuthContext] Auto-login: Refreshing session with stored token...");
+        console.debug("[AuthContext] Auto-login: Refreshing session with stored token...");
         const { data, error } = await authSessionService.refreshSession(credentials.refreshToken);
 
         if (error || !data.session) {
@@ -282,7 +281,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         setUser(currentUser);
         setHasSavedCredentials(true);
         setCanUseBiometric(biometricEnabled);
-        console.log("[AuthContext] Auto-login: Success!", currentUser.email);
+        console.debug("[AuthContext] Auto-login: Success!", currentUser.email);
         return "success";
       } catch (error) {
         console.error("[AuthContext] Auto-login error:", error);
@@ -315,11 +314,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     authSessionStore.start();
 
     const unsubscribeAuthEvents = authSessionStore.subscribe(async ({ event, session }) => {
-      console.log(
-        "[AuthContext] Auth State Change:",
-        event,
-        session?.user?.email
-      );
+      console.debug("[AuthContext] Auth State Change:", event, session?.user?.email);
       authEventRef.current = true;
       if (
         event === "SIGNED_IN" ||
@@ -367,7 +362,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           setIsLoading(false);
         }
       } else if (event === "SIGNED_OUT") {
-        console.warn("[AuthContext] Received SIGNED_OUT event from Supabase");
+        console.debug("[AuthContext] Received SIGNED_OUT event from Supabase");
         void logIncident({
           severity: "warn",
           source: "renderer",
@@ -395,7 +390,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       if (finished) return;
       finished = true;
       setIsLoading(false);
-      console.log("AuthContext: Loading finished");
+      console.debug("AuthContext: Loading finished");
     };
     const timer = window.setTimeout(() => {
       console.warn(`[AuthContext] initAuth timed out (${initTimeoutMs}ms)`);
@@ -423,7 +418,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         const currentUser = await authService.getCurrentUser({
           onBackgroundRefresh: applyBackgroundUserRefresh,
         });
-        console.log("AuthContext: User loaded", currentUser?.email);
+        console.debug("AuthContext: User loaded", currentUser?.email);
         if (!authEventRef.current || currentUser) {
           setUser(currentUser);
         }
@@ -530,7 +525,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     }
 
     if (biometricLoginAttemptedRef.current) {
-      console.log("[AuthContext] Biometric login already in progress");
+      console.debug("[AuthContext] Biometric login already in progress");
       return false;
     }
 
@@ -540,23 +535,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       // Check if biometric is enabled
       const biometricEnabled = await platformAdapter.session.isBiometricEnabled();
       if (!biometricEnabled) {
-        console.log("[AuthContext] Biometric not enabled");
+        console.debug("[AuthContext] Biometric not enabled");
         biometricLoginAttemptedRef.current = false;
         return false;
       }
 
       // Atomic biometric verification + credential retrieval in main process.
       // The biometric prompt runs server-side (main process) — renderer cannot bypass it.
-      console.log("[AuthContext] Requesting credentials with biometric verification...");
+      console.debug("[AuthContext] Requesting credentials with biometric verification...");
       const credentials = await platformAdapter.session.getCredentialsWithBiometric("Přihlášení do Tender Flow");
       if (!credentials) {
-        console.log("[AuthContext] Biometric authentication cancelled or no credentials");
+        console.debug("[AuthContext] Biometric authentication cancelled or no credentials");
         biometricLoginAttemptedRef.current = false;
         return false;
       }
 
       // Use refresh token to get new session
-      console.log("[AuthContext] Biometric verified, refreshing session...");
+      console.debug("[AuthContext] Biometric verified, refreshing session...");
       const { data, error } = await authSessionService.refreshSession(
         credentials.refreshToken,
       );
@@ -603,7 +598,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         setUser(currentUser);
         // Notify main process about auth state (enables IPC auth guard)
         platformAdapter.auth.setAuthenticated(true);
-        console.log("[AuthContext] Biometric login successful:", currentUser.email);
+        console.debug("[AuthContext] Biometric login successful:", currentUser.email);
         biometricLoginAttemptedRef.current = false;
         return true;
       }
