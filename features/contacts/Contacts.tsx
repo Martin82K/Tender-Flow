@@ -611,7 +611,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
             </Header>
 
             {viewMode === 'list' ? (
-                <div data-help-id="contacts-list" className="p-6 lg:p-10 flex-1 flex flex-col min-h-0">
+                <div data-help-id="contacts-list" className="p-6 lg:p-10 flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
                     <SubcontractorSelector
                         contacts={contacts}
                         statuses={statuses}

@@ -79,17 +79,30 @@ const VirtualizedContactTable: React.FC<VirtualizedContactTableProps> = ({
     overscan: 10,
   });
 
-  // Build grid-template-columns based on visible columns
-  const gridCols = useMemo(() => {
-    const cols: string[] = ['48px', '40px', '1fr']; // edit, checkbox, firma
-    if (visibleColumns.has('specializace')) cols.push('minmax(120px, 1.2fr)');
-    if (visibleColumns.has('kontakt')) cols.push('minmax(140px, 1.2fr)');
-    if (visibleColumns.has('telefon')) cols.push('minmax(140px, 1fr)');
-    if (visibleColumns.has('ico')) cols.push('90px');
-    if (visibleColumns.has('region')) cols.push('100px');
-    if (visibleColumns.has('hodnoceni')) cols.push('130px');
-    if (visibleColumns.has('stav')) cols.push('minmax(110px, auto)');
-    return cols.join(' ');
+  // Column definitions: min = guaranteed minimum (enables scroll on small screens),
+  // flex = whether column grows to fill remaining space on wide screens.
+  const COL_DEFS: Record<ColumnId | 'edit' | 'checkbox' | 'firma', { min: number; flex?: boolean }> = {
+    edit: { min: 48 }, checkbox: { min: 40 }, firma: { min: 180, flex: true },
+    specializace: { min: 150, flex: true }, kontakt: { min: 160, flex: true },
+    telefon: { min: 160, flex: true }, ico: { min: 90 }, region: { min: 100 },
+    hodnoceni: { min: 130 }, stav: { min: 130 },
+  };
+
+  const { gridCols, tableMinWidth } = useMemo(() => {
+    const toCol = (id: ColumnId | 'edit' | 'checkbox' | 'firma') => {
+      const d = COL_DEFS[id];
+      return d.flex ? `minmax(${d.min}px, 1fr)` : `${d.min}px`;
+    };
+    const cols = ['edit', 'checkbox', 'firma'].map(id => toCol(id as any));
+    let minW = COL_DEFS.edit.min + COL_DEFS.checkbox.min + COL_DEFS.firma.min;
+    const ordered: ColumnId[] = ['specializace', 'kontakt', 'telefon', 'ico', 'region', 'hodnoceni', 'stav'];
+    for (const col of ordered) {
+      if (visibleColumns.has(col)) {
+        cols.push(toCol(col));
+        minW += COL_DEFS[col].min;
+      }
+    }
+    return { gridCols: cols.join(' '), tableMinWidth: minW };
   }, [visibleColumns]);
 
   // Determine last visible column once
@@ -102,12 +115,11 @@ const VirtualizedContactTable: React.FC<VirtualizedContactTableProps> = ({
 
   return (
     <>
-      <div ref={scrollRef} className="overflow-auto flex-1 px-1">
-       <div className="min-w-fit">
+      <div ref={scrollRef} className="overflow-auto flex-1 min-w-0 px-1">
         {/* Header */}
         <div
           className="grid items-end text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider sticky top-0 z-10 bg-white dark:bg-slate-900 pb-1"
-          style={{ gridTemplateColumns: gridCols }}
+          style={{ gridTemplateColumns: gridCols, minWidth: tableMinWidth }}
         >
           <div className="px-6 py-2 font-medium"></div>
           <div className="px-6 py-2">
@@ -134,7 +146,7 @@ const VirtualizedContactTable: React.FC<VirtualizedContactTableProps> = ({
         {/* Body */}
         <div
           className="relative text-sm text-slate-600 dark:text-slate-400"
-          style={{ height: `${virtualizer.getTotalSize()}px` }}
+          style={{ height: `${virtualizer.getTotalSize()}px`, minWidth: tableMinWidth }}
         >
           {filteredContacts.length === 0 ? (
             <div className="px-6 py-12 text-center">
@@ -318,7 +330,6 @@ const VirtualizedContactTable: React.FC<VirtualizedContactTableProps> = ({
             })
           )}
         </div>
-       </div>
       </div>
       <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl mt-2 text-xs text-slate-500 text-center border border-slate-200 dark:border-slate-800">
         Zobrazeno {filteredContacts.length} z {totalCount} kontaktů
@@ -501,7 +512,7 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
   const isIndeterminate = selectedIds.size > 0 && !isAllSelected;
 
   return (
-    <div className={`flex flex-col gap-6 ${className || ""}`}>
+    <div className={`flex flex-col gap-6 min-w-0 ${className || ""}`}>
       {/* Search & Filter Bar */}
       <div className="bg-white dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col gap-4 shadow-sm">
         <div className="flex flex-col md:flex-row gap-4">
