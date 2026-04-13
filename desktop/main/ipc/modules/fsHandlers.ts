@@ -245,13 +245,28 @@ export const registerFsHandlers = ({
   ipcMain.handle("fs:grantAccess", async (_, folderPath: string): Promise<boolean> => {
     if (typeof folderPath !== "string" || folderPath.trim().length === 0) return false;
     const abs = toAbsolutePath(folderPath.trim());
+
     try {
       const stat = await fs.stat(abs);
       if (!stat.isDirectory()) return false;
-      addUserGrantedRoot(abs);
-      return true;
     } catch {
       return false;
     }
+
+    const confirmation = await dialog.showOpenDialog({
+      title: "Potvrďte přístup ke složce",
+      defaultPath: abs,
+      properties: ["openDirectory"],
+      message: "Pro pokračování vyberte složku, ke které chcete udělit přístup.",
+      buttonLabel: "Udělit přístup",
+    });
+
+    if (confirmation.canceled || confirmation.filePaths.length === 0) return false;
+
+    const selectedPath = toAbsolutePath(confirmation.filePaths[0]);
+    if (selectedPath !== abs) return false;
+
+    addUserGrantedRoot(selectedPath);
+    return true;
   });
 };
