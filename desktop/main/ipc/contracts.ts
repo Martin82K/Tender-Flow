@@ -74,7 +74,7 @@ export interface IpcContractMap {
     };
   };
   "oauth:googleLogin": {
-    args: [args: { clientId: string; clientSecret?: string; scopes: string[] }];
+    args: [args: { clientId: string; scopes: string[] }];
     result: {
       accessToken: string;
       refreshToken?: string | null;

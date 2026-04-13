@@ -24,11 +24,12 @@ export const registerOAuthHandlers = ({
     "oauth:googleLogin",
     async (
       _event,
-      args: { clientId: string; clientSecret?: string; scopes: string[] },
+      args: { clientId: string; scopes: string[] },
     ) => {
       requireAuth(_event.sender, 'oauth:googleLogin');
       const clientId = (args?.clientId || "").trim();
-      const clientSecret = (args?.clientSecret || "").trim();
+      // Security: client secret is read from environment, never from renderer IPC
+      const clientSecret = (process.env.GOOGLE_OAUTH_CLIENT_SECRET || "").trim();
       if (!clientId) {
         throw new Error("Missing Google OAuth clientId");
       }

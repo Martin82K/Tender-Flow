@@ -124,7 +124,7 @@ export interface NetworkAPI {
 }
 
 export interface OAuthAPI {
-    googleLogin: (args: { clientId: string; clientSecret?: string; scopes: string[] }) => Promise<{
+    googleLogin: (args: { clientId: string; scopes: string[] }) => Promise<{
         accessToken: string;
         refreshToken?: string | null;
         expiresIn: number;

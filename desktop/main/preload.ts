@@ -200,12 +200,12 @@ const electronAPI: ElectronAPI = {
     },
 
     oauth: {
-        googleLogin: (args: { clientId: string; clientSecret?: string; scopes: string[] }) => {
+        googleLogin: (args: { clientId: string; scopes: string[] }) => {
             console.log('[Preload] OAuth Login Request:', {
                 clientId: args.clientId,
-                hasSecret: !!args.clientSecret,
                 scopes: args.scopes
             });
+            // Security: clientSecret is never sent from renderer — main process reads it from env
             return invokeTyped('oauth:googleLogin', args);
         },
     },

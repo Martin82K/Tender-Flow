@@ -290,7 +290,6 @@ export interface McpStatusInfo {
 
 export interface OAuthGoogleLoginArgs {
     clientId: string;
-    clientSecret?: string;
     scopes: string[];
 }
 
