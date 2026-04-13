@@ -1,4 +1,4 @@
-import { corsHeaders, handleCors } from "../_shared/cors.ts";
+import { buildCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { createServiceClient } from "../_shared/supabase.ts";
 import {
   type BillingPeriod,
@@ -11,7 +11,7 @@ type SubscriptionStatus = "active" | "cancelled" | "expired";
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "content-type": "application/json" },
+    headers: { ...buildCorsHeaders(req), "content-type": "application/json" },
   });
 
 async function updateUserSubscription(

@@ -1,5 +1,5 @@
 import { createServiceClient } from "../_shared/supabase.ts";
-import { corsHeaders, handleCors } from "../_shared/cors.ts";
+import { buildCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 /**
  * Edge Function: check-deadlines
@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
       console.error("Failed to fetch categories:", error);
       return new Response(JSON.stringify({ error: error.message }), {
         status: 500,
-        headers: { ...corsHeaders, "content-type": "application/json" },
+        headers: { ...buildCorsHeaders(req), "content-type": "application/json" },
       });
     }
 
@@ -123,14 +123,14 @@ Deno.serve(async (req) => {
       }),
       {
         status: 200,
-        headers: { ...corsHeaders, "content-type": "application/json" },
+        headers: { ...buildCorsHeaders(req), "content-type": "application/json" },
       },
     );
   } catch (err) {
     console.error("Unexpected error:", err);
     return new Response(JSON.stringify({ error: String(err) }), {
       status: 500,
-      headers: { ...corsHeaders, "content-type": "application/json" },
+      headers: { ...buildCorsHeaders(req), "content-type": "application/json" },
     });
   }
 });

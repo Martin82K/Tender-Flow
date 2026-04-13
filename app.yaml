@@ -13,8 +13,9 @@ handlers:
     secure: always
     expiration: "1d"
     http_headers:
-      Access-Control-Allow-Origin: "*"
-      Content-Security-Policy: "frame-ancestors *"
+      Access-Control-Allow-Origin: "https://tenderflow.cz"
+      Content-Security-Policy: "frame-ancestors 'self'"
+      Vary: "Origin"
 
   # Serve favicon
   - url: /favicon.png

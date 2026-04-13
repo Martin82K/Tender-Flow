@@ -176,11 +176,11 @@ const scriptSrc = [
 2. ~~Pridat auth kontroly na IPC handlery v Electronu~~ ✅ requireAuth() na vsech IPC handlerech
 3. ~~Opravit CSP - odstranit `unsafe-inline` a `unsafe-eval`~~ ✅ unsafe-inline odstraneno z production script-src, inline tailwind config extrahovan do externiho souboru
 
-### Brzy (P1)
-4. Zmenit wildcard CORS na konkretni origins (vite.config.ts + edge functions)
-5. Pridat API key validaci na Flask `/merge` endpoint
-6. Sanitizovat SVG v `convert.html`
-7. Odstranit plaintext fallback v secureStorage
+### Brzy (P1) — VYRESENO
+4. ~~Zmenit wildcard CORS na konkretni origins~~ ✅ sdileny cors.ts s origin validaci, 35 edge functions migrovano, Flask + _headers + app.yaml opraveny
+5. ~~Pridat API key validaci na Flask `/merge` endpoint~~ ✅ has_valid_api_key() pridano, error messages uz nelekuji detaily vyjimek
+6. ~~Sanitizovat SVG v `convert.html`~~ ✅ innerHTML nahrazeno bezpecnym <img> s Blob URL
+7. ~~Odstranit plaintext fallback v secureStorage~~ ✅ set() throwi SECURE_STORAGE_UNAVAILABLE, get() odmitne cist bez sifrovani
 
 ### Strednedoba (P2)
 8. Serverova validace admin role (ne jen frontend check)
@@ -194,7 +194,7 @@ const scriptSrc = [
 ## Celkove hodnoceni
 
 **Datova vrstva (Supabase, RLS, SQL):** SILNA - zadne SQL injection vektory, dukladne RLS politiky  
-**Electron bezpecnost:** STREDNI - auth na IPC pridano, CSP zprisneno; zbyva plaintext fallback  
-**XSS ochrana:** CASTECNA - DOMPurify pouzit, ale ne konzistentne  
+**Electron bezpecnost:** DOBRA - auth na IPC, CSP zprisneno, plaintext fallback odstranen  
+**XSS ochrana:** DOBRA - DOMPurify pouzit, SVG XSS opraveno, CSP zprisneno  
 **Autentifikace:** DOBRA - demo mod bypass opraven (runtime-only), IPC auth pridano  
-**API bezpecnost:** STREDNI - wildcard CORS a chybejici rate limiting  
+**API bezpecnost:** DOBRA - CORS omezeno na allowlist, API key na vsech endpointech; zbyva rate limiting  

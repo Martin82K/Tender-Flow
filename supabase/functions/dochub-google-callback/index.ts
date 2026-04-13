@@ -1,4 +1,4 @@
-import { corsHeaders } from "../_shared/cors.ts";
+import { buildCorsHeaders } from "../_shared/cors.ts";
 import { encryptJsonAesGcm, tryGetEnv } from "../_shared/crypto.ts";
 import { createServiceClient } from "../_shared/supabase.ts";
 
@@ -16,7 +16,7 @@ const siteBaseUrl = () => {
 const defaultReturnTo = () => `${siteBaseUrl()}/app?dochub=1`;
 
 const redirect = (to: string) =>
-  new Response(null, { status: 302, headers: { ...corsHeaders, location: to } });
+  new Response(null, { status: 302, headers: { ...buildCorsHeaders(req), location: to } });
 
 const withQueryParam = (to: string, key: string, value: string) => {
   try {

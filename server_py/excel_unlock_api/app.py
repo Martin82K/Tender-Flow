@@ -17,12 +17,20 @@ app.config["MAX_CONTENT_LENGTH"] = 150 * 1024 * 1024  # 150MB
 
 EXCEL_UNLOCK_API_KEY = os.environ.get("EXCEL_UNLOCK_API_KEY", "")
 
+ALLOWED_ORIGINS = {
+    "https://tenderflow.cz",
+    "https://www.tenderflow.cz",
+}
+
 
 @app.after_request
 def add_cors_headers(response):
-    response.headers["Access-Control-Allow-Origin"] = "*"
+    origin = request.headers.get("Origin", "")
+    allowed_origin = origin if origin in ALLOWED_ORIGINS else "https://tenderflow.cz"
+    response.headers["Access-Control-Allow-Origin"] = allowed_origin
     response.headers["Access-Control-Allow-Methods"] = "GET,POST,OPTIONS"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization,X-Excel-Unlock-Key"
+    response.headers["Vary"] = "Origin"
     return response
 
 
@@ -105,14 +113,20 @@ def unlock_excel():
             max_age=0,
         )
 
-    except Exception as e:
-        return f"Chyba při zpracování: {str(e)}", 500
+    except Exception:
+        return "Chyba při zpracování souboru", 500
 
 
 @app.post("/merge")
 def merge_excel():
     if request.method == "OPTIONS":
         return "", 204
+
+    if not EXCEL_UNLOCK_API_KEY:
+        return "Chyba: EXCEL_UNLOCK_API_KEY není nakonfigurovaný", 503
+
+    if not has_valid_api_key():
+        return "Chyba: Neautorizovaný přístup", 401
 
     if "file" not in request.files:
         return "Chyba: Žádný soubor nebyl nahrán", 400
@@ -280,8 +294,8 @@ def merge_excel():
             max_age=0,
         )
 
-    except Exception as e:
-        return f"Chyba při zpracování: {str(e)}", 500
+    except Exception:
+        return "Chyba při zpracování souboru", 500
 
 
 if __name__ == "__main__":

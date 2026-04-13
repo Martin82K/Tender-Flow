@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders } from "../_shared/cors.ts";
+import { buildCorsHeaders } from "../_shared/cors.ts";
 import { crypto } from "https://deno.land/std@0.177.0/crypto/mod.ts";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
@@ -13,7 +13,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 serve(async (req) => {
     if (req.method === "OPTIONS") {
-        return new Response("ok", { headers: corsHeaders });
+        return new Response("ok", { headers: buildCorsHeaders(req) });
     }
 
     try {
@@ -22,7 +22,7 @@ serve(async (req) => {
         if (!email) {
             return new Response(JSON.stringify({ error: "Email je povinný" }), {
                 status: 400,
-                headers: { ...corsHeaders, "Content-Type": "application/json" },
+                headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
             });
         }
 
@@ -55,7 +55,7 @@ serve(async (req) => {
             console.log(`Password reset requested for non-existent email: ${email}`);
             return new Response(JSON.stringify({ success: true }), {
                 status: 200,
-                headers: { ...corsHeaders, "Content-Type": "application/json" },
+                headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
             });
         }
 
@@ -93,7 +93,7 @@ serve(async (req) => {
             console.warn("RESEND_API_KEY not set. Logging link:", resetLink);
             return new Response(JSON.stringify({ success: true, message: "Mocked sending (no API key)" }), {
                 status: 200,
-                headers: { ...corsHeaders, "Content-Type": "application/json" },
+                headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
             });
         }
 
@@ -182,14 +182,14 @@ serve(async (req) => {
 
         return new Response(JSON.stringify({ success: true }), {
             status: 200,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
         });
 
     } catch (error) {
         console.error("Error in request-password-reset:", error);
         return new Response(JSON.stringify({ error: error.message }), {
             status: 500,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
         });
     }
 });

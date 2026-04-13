@@ -1,12 +1,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { getFirstEnvSecret } from "../_shared/env.ts";
-
-// CORS headers
-const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { buildCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 // Action → Mapy.cz endpoint mapping
 const ACTION_ENDPOINTS: Record<string, string> = {
@@ -28,9 +23,8 @@ const PRO_TIERS = ["pro", "enterprise", "admin"];
 
 Deno.serve(async (req) => {
     // Handle CORS preflight request
-    if (req.method === "OPTIONS") {
-        return new Response("ok", { headers: corsHeaders });
-    }
+    const corsResponse = handleCors(req);
+    if (corsResponse) return corsResponse;
 
     try {
         // 1. Authentication
@@ -38,7 +32,7 @@ Deno.serve(async (req) => {
         if (!authHeader) {
             return new Response(
                 JSON.stringify({ error: "Missing Authorization header" }),
-                { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                { status: 401, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
             );
         }
 
@@ -49,7 +43,7 @@ Deno.serve(async (req) => {
             console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
             return new Response(
                 JSON.stringify({ error: "Server configuration error" }),
-                { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                { status: 500, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
             );
         }
 
@@ -65,7 +59,7 @@ Deno.serve(async (req) => {
         if (!authRes.ok) {
             return new Response(
                 JSON.stringify({ error: "Invalid token" }),
-                { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                { status: 401, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
             );
         }
         const user = await authRes.json();
@@ -78,7 +72,7 @@ Deno.serve(async (req) => {
             console.error("Failed to parse request body:", e);
             return new Response(
                 JSON.stringify({ error: "Invalid JSON body" }),
-                { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                { status: 400, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
             );
         }
 
@@ -90,7 +84,7 @@ Deno.serve(async (req) => {
         if (!action) {
             return new Response(
                 JSON.stringify({ error: "Missing 'action' in request body" }),
-                { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                { status: 400, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
             );
         }
 
@@ -103,7 +97,7 @@ Deno.serve(async (req) => {
             console.error("Tier check error:", tierError);
             return new Response(
                 JSON.stringify({ error: "Failed to verify subscription" }),
-                { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                { status: 500, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
             );
         }
 
@@ -119,7 +113,7 @@ Deno.serve(async (req) => {
                 }),
                 {
                     status: 403,
-                    headers: { ...corsHeaders, "Content-Type": "application/json" },
+                    headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
                 }
             );
         }
@@ -132,7 +126,7 @@ Deno.serve(async (req) => {
                     error: "Missing Mapy.com API Key",
                     message: "Set the MAPY_API_KEY secret in Supabase: supabase secrets set MAPY_API_KEY=your_key",
                 }),
-                { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                { status: 500, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
             );
         }
 
@@ -151,7 +145,7 @@ Deno.serve(async (req) => {
                         winter: `${base}/winter/${suffix}`,
                     },
                 }),
-                { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
             );
         }
 
@@ -163,7 +157,7 @@ Deno.serve(async (req) => {
                     error: "Invalid action",
                     message: `Supported actions: ${Object.keys(ACTION_ENDPOINTS).join(", ")}, tile-config`,
                 }),
-                { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                { status: 400, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
             );
         }
 
@@ -195,7 +189,7 @@ Deno.serve(async (req) => {
                 }),
                 {
                     status: mapyResponse.status,
-                    headers: { ...corsHeaders, "Content-Type": "application/json" },
+                    headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
                 }
             );
         }
@@ -203,7 +197,7 @@ Deno.serve(async (req) => {
         // 8. Return successful response
         return new Response(
             JSON.stringify(mapyData),
-            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
         );
 
     } catch (error) {
@@ -212,7 +206,7 @@ Deno.serve(async (req) => {
             JSON.stringify({ error: error instanceof Error ? error.message : "Unknown Error" }),
             {
                 status: 500,
-                headers: { ...corsHeaders, "Content-Type": "application/json" },
+                headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
             }
         );
     }
