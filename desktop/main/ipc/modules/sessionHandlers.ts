@@ -80,9 +80,9 @@ export const registerSessionHandlers = ({
     },
   );
 
-  // Auth required: clearing credentials
-  ipcMain.handle("session:clearCredentials", async (event): Promise<void> => {
-    requireAuth(event.sender, 'session:clearCredentials');
+  // Pre-auth: needed for startup cleanup of corrupted sessions.
+  // Risk: attacker could clear credentials (self-destructive, not a data leak).
+  ipcMain.handle("session:clearCredentials", async (): Promise<void> => {
     await storageService.delete(SESSION_CREDENTIALS_KEY);
   });
 

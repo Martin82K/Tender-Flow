@@ -19,10 +19,13 @@ const PRE_AUTH_CHANNELS = new Set([
   // Biometric (needed for biometric login)
   'biometric:isAvailable',
   'biometric:prompt',
-  // Session read (needed for auto-login with stored credentials)
+  // Session management (needed for auto-login and session cleanup on startup)
   'session:getCredentials',
   'session:getCredentialsWithBiometric',
   'session:isBiometricEnabled',
+  // clearCredentials is needed pre-auth: startup clears corrupted sessions before login.
+  // Risk: attacker could clear stored credentials (self-destructive, not a data leak).
+  'session:clearCredentials',
   // UI utilities (non-destructive)
   'dialog:showMessage',
   'dialog:showError',
@@ -32,6 +35,11 @@ const PRE_AUTH_CHANNELS = new Set([
   'updater:downloadUpdate',
   'updater:quitAndInstall',
   'updater:getStatus',
+  // MCP state sync (happens on auth state changes including pre-auth events)
+  // Risk: minimal — MCP server is localhost-only and validates tokens against Supabase
+  'mcp:setCurrentProject',
+  'mcp:setAuthToken',
+  'mcp:getStatus',
   // Auth state management (renderer tells main about auth changes)
   'auth:setAuthenticated',
 ]);

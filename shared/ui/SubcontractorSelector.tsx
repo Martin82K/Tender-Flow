@@ -88,7 +88,7 @@ const VirtualizedContactTable: React.FC<VirtualizedContactTableProps> = ({
     if (visibleColumns.has('ico')) cols.push('90px');
     if (visibleColumns.has('region')) cols.push('100px');
     if (visibleColumns.has('hodnoceni')) cols.push('130px');
-    if (visibleColumns.has('stav')) cols.push('110px');
+    if (visibleColumns.has('stav')) cols.push('minmax(110px, auto)');
     return cols.join(' ');
   }, [visibleColumns]);
 
@@ -103,6 +103,7 @@ const VirtualizedContactTable: React.FC<VirtualizedContactTableProps> = ({
   return (
     <>
       <div ref={scrollRef} className="overflow-auto flex-1 px-1">
+       <div className="min-w-fit">
         {/* Header */}
         <div
           className="grid items-end text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider sticky top-0 z-10 bg-white dark:bg-slate-900 pb-1"
@@ -317,6 +318,7 @@ const VirtualizedContactTable: React.FC<VirtualizedContactTableProps> = ({
             })
           )}
         </div>
+       </div>
       </div>
       <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl mt-2 text-xs text-slate-500 text-center border border-slate-200 dark:border-slate-800">
         Zobrazeno {filteredContacts.length} z {totalCount} kontaktů

@@ -154,14 +154,16 @@ describe('Biometric bypass prevention', () => {
     ).rejects.toThrow('IPC_AUTH_DENIED');
   });
 
-  it('clearCredentials requires authentication', async () => {
-    mockRequireAuth.mockImplementation(() => {
-      throw new Error('IPC_AUTH_DENIED: not authenticated');
-    });
+  it('clearCredentials is pre-auth (needed for startup cleanup)', async () => {
+    mockStorageData.set(
+      'session_credentials',
+      JSON.stringify({ refreshToken: 'token', email: 'user@test.com' }),
+    );
 
     const handler = handlers.get('session:clearCredentials');
-    const mockEvent = { sender: {} } as any;
+    await handler!({} as any);
 
-    await expect(handler!(mockEvent)).rejects.toThrow('IPC_AUTH_DENIED');
+    // Credentials should be cleared
+    expect(mockStorageData.has('session_credentials')).toBe(false);
   });
 });
