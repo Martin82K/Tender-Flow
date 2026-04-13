@@ -54,6 +54,10 @@ export interface IpcContractMap {
     args: [];
     result: { refreshToken: string; email: string } | null;
   };
+  "session:getCredentialsWithBiometric": {
+    args: [reason: string];
+    result: { refreshToken: string; email: string } | null;
+  };
   "session:clearCredentials": { args: []; result: void };
   "session:setBiometricEnabled": { args: [enabled: boolean]; result: void };
   "session:isBiometricEnabled": { args: []; result: boolean };
@@ -123,6 +127,7 @@ export interface IpcContractMap {
   "backup:getFolder": { args: []; result: string };
   "backup:openFolder": { args: []; result: { success: boolean; error?: string } };
   "backup:clean": { args: []; result: number };
+  "auth:setAuthenticated": { args: [authenticated: boolean]; result: void };
 }
 
 export type IpcChannel = keyof IpcContractMap;

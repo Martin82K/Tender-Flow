@@ -165,30 +165,44 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       } catch { /* ignore */ }
     }
 
-    // Priority 1: Demo session - only if there's no real auth session
+    // Priority 1: Demo session (runtime-only, not restorable from localStorage)
+    // Security: isDemoSession() is tracked in memory — manipulating localStorage
+    // cannot activate demo mode. Only loginAsDemo() sets the runtime flag.
     if (isDemoSession()) {
-      const hasRealSession = !!window.localStorage.getItem('crm-auth-token');
-      if (hasRealSession) {
-        // Real session exists alongside demo flag - the demo flag is stale, clear it
-        console.warn('[AuthContext] Stale demo_session flag found alongside real auth session. Clearing demo flag.');
-        endDemoSession();
-        // Fall through to normal auth flow below
-      } else {
-        console.log("AuthContext: Demo session detected (no real auth session)");
-        setUser(DEMO_USER);
-        setIsLoading(false);
-        return;
-      }
+      console.log("AuthContext: Active demo session detected");
+      setUser(DEMO_USER);
+      setIsLoading(false);
+      return;
+    }
+
+    // Clean up stale localStorage demo flag from previous sessions
+    if (window.localStorage.getItem('demo_session')) {
+      console.warn('[AuthContext] Stale demo_session localStorage flag found on init. Cleaning up.');
+      endDemoSession();
     }
 
     // Priority 2: Desktop restore flow (single refresh attempt; no fallback retries)
     const tryDesktopSessionRestore = async (): Promise<"success" | "cancelled" | "skipped" | "failed" | "hard_failed"> => {
       if (!isDesktop || biometricLoginAttemptedRef.current) return "skipped";
 
-      const [biometricEnabled, credentials] = await Promise.all([
-        platformAdapter.session.isBiometricEnabled(),
-        platformAdapter.session.getCredentials(),
-      ]);
+      const biometricEnabled = await platformAdapter.session.isBiometricEnabled();
+
+      // Use atomic biometric+credential retrieval when biometric is enabled.
+      // This ensures the biometric check runs in the main process — the renderer
+      // cannot skip it to access stored tokens directly.
+      let credentials: { refreshToken: string; email: string } | null;
+      if (biometricEnabled) {
+        setCanUseBiometric(true);
+        setHasSavedCredentials(true);
+        console.log("[AuthContext] Auto-login: Requesting credentials with biometric verification...");
+        credentials = await platformAdapter.session.getCredentialsWithBiometric("Odemknout Tender Flow");
+        if (!credentials) {
+          console.log("[AuthContext] Auto-login: Biometric cancelled or no credentials");
+          return "cancelled";
+        }
+      } else {
+        credentials = await platformAdapter.session.getCredentials();
+      }
 
       if (!credentials) {
         console.log("[AuthContext] Auto-login: No stored credentials");
@@ -214,17 +228,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         });
         setHasSavedCredentials(false);
         return "hard_failed";
-      }
-
-      if (biometricEnabled) {
-        setCanUseBiometric(true);
-        setHasSavedCredentials(true);
-        console.log("[AuthContext] Auto-login: Prompting for biometric...");
-        const success = await platformAdapter.biometric.prompt("Odemknout Tender Flow");
-        if (!success) {
-          console.log("[AuthContext] Auto-login: Biometric cancelled");
-          return "cancelled";
-        }
       }
 
       biometricLoginAttemptedRef.current = true;
@@ -342,6 +345,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
               setUser(currentUser);
               setIsLoading(false);
               if (token) lastHydratedTokenRef.current = token;
+              // Notify main process about auth state
+              if (isDesktop) {
+                platformAdapter.auth.setAuthenticated(true);
+              }
             } else {
               console.warn(
                 "[AuthContext] Event but could not build user from session"
@@ -463,6 +470,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       // If we got a real user (or fallback), allow navigation; auth events will refine user data.
       if (user?.id !== "pending") setUser(user);
 
+      // Notify main process about auth state (enables IPC auth guard)
+      if (isDesktop) {
+        platformAdapter.auth.setAuthenticated(true);
+      }
+
       // Save session for biometric unlock (desktop only) - only if rememberMe is enabled
       if (isDesktop && rememberMe) {
         const { data } = await authSessionService.getSession();
@@ -525,28 +537,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     biometricLoginAttemptedRef.current = true;
 
     try {
-      // Check if biometric is enabled and credentials exist
-      const [biometricEnabled, credentials] = await Promise.all([
-        platformAdapter.session.isBiometricEnabled(),
-        platformAdapter.session.getCredentials(),
-      ]);
-
-      if (!biometricEnabled || !credentials) {
-        console.log("[AuthContext] Biometric not enabled or no saved credentials");
+      // Check if biometric is enabled
+      const biometricEnabled = await platformAdapter.session.isBiometricEnabled();
+      if (!biometricEnabled) {
+        console.log("[AuthContext] Biometric not enabled");
         biometricLoginAttemptedRef.current = false;
         return false;
       }
 
-      // Prompt for biometric authentication
-      const success = await platformAdapter.biometric.prompt("Přihlášení do Tender Flow");
-      if (!success) {
-        console.log("[AuthContext] Biometric authentication cancelled or failed");
+      // Atomic biometric verification + credential retrieval in main process.
+      // The biometric prompt runs server-side (main process) — renderer cannot bypass it.
+      console.log("[AuthContext] Requesting credentials with biometric verification...");
+      const credentials = await platformAdapter.session.getCredentialsWithBiometric("Přihlášení do Tender Flow");
+      if (!credentials) {
+        console.log("[AuthContext] Biometric authentication cancelled or no credentials");
         biometricLoginAttemptedRef.current = false;
         return false;
       }
 
       // Use refresh token to get new session
-      console.log("[AuthContext] Biometric success, refreshing session...");
+      console.log("[AuthContext] Biometric verified, refreshing session...");
       const { data, error } = await authSessionService.refreshSession(
         credentials.refreshToken,
       );
@@ -591,6 +601,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       });
       if (currentUser) {
         setUser(currentUser);
+        // Notify main process about auth state (enables IPC auth guard)
+        platformAdapter.auth.setAuthenticated(true);
         console.log("[AuthContext] Biometric login successful:", currentUser.email);
         biometricLoginAttemptedRef.current = false;
         return true;
@@ -699,6 +711,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         },
       });
     } finally {
+      // Notify main process before cleanup (disables IPC auth guard)
+      if (isDesktop) {
+        platformAdapter.auth.setAuthenticated(false);
+      }
       await authSessionService.invalidateAuthState({
         navigateToLogin: false,
         reason: "manual_logout",

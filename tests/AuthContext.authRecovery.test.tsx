@@ -74,10 +74,19 @@ const setup = async (options: SetupOptions) => {
       },
       session: {
         isBiometricEnabled: vi.fn().mockResolvedValue(options.biometricEnabled),
-        getCredentials: vi.fn().mockResolvedValue(options.credentials),
+        getCredentials: vi.fn().mockResolvedValue(
+          // When biometric is enabled, getCredentials returns null (must use getCredentialsWithBiometric)
+          options.biometricEnabled ? null : options.credentials,
+        ),
+        getCredentialsWithBiometric: vi.fn().mockResolvedValue(
+          options.biometricPromptResult === false ? null : options.credentials,
+        ),
         clearCredentials: vi.fn().mockResolvedValue(undefined),
         saveCredentials: vi.fn().mockResolvedValue(undefined),
         setBiometricEnabled: vi.fn().mockResolvedValue(undefined),
+      },
+      auth: {
+        setAuthenticated: vi.fn().mockResolvedValue(undefined),
       },
     },
   }));

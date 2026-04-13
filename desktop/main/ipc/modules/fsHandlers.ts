@@ -7,6 +7,7 @@ import type { FileInfo, FolderInfo } from "../../types";
 interface FsHandlerDependencies {
   resolvePortableReadPath: (targetPath: string) => Promise<string>;
   resolvePortableWritePath: (targetPath: string) => Promise<string>;
+  requireAuth: (sender: Electron.WebContents, channel?: string) => void;
 }
 
 const IGNORE_PATTERNS = [
@@ -94,8 +95,11 @@ const ensurePathAllowed = async (
 export const registerFsHandlers = ({
   resolvePortableReadPath,
   resolvePortableWritePath,
+  requireAuth,
 }: FsHandlerDependencies): void => {
-  ipcMain.handle("fs:selectFolder", async (): Promise<FolderInfo | null> => {
+  // fs:selectFolder is dialog-based (user action) but still requires auth
+  ipcMain.handle("fs:selectFolder", async (event): Promise<FolderInfo | null> => {
+    requireAuth(event.sender, 'fs:selectFolder');
     const result = await dialog.showOpenDialog({
       properties: ["openDirectory"],
       title: "Vybrat složku pro synchronizaci",
@@ -113,7 +117,8 @@ export const registerFsHandlers = ({
     };
   });
 
-  ipcMain.handle("fs:listFiles", async (_, folderPath: string): Promise<FileInfo[]> => {
+  ipcMain.handle("fs:listFiles", async (event, folderPath: string): Promise<FileInfo[]> => {
+    requireAuth(event.sender, 'fs:listFiles');
     const resolvedFolderPath = await ensurePathAllowed(await resolvePortableReadPath(folderPath), "read");
     const files: FileInfo[] = [];
 
@@ -156,17 +161,20 @@ export const registerFsHandlers = ({
     return files;
   });
 
-  ipcMain.handle("fs:readFile", async (_, filePath: string): Promise<Buffer> => {
+  ipcMain.handle("fs:readFile", async (event, filePath: string): Promise<Buffer> => {
+    requireAuth(event.sender, 'fs:readFile');
     const resolvedFilePath = await ensurePathAllowed(await resolvePortableReadPath(filePath), "read");
     return fs.readFile(resolvedFilePath);
   });
 
-  ipcMain.handle("fs:writeFile", async (_, filePath: string, data: Buffer | string): Promise<void> => {
+  ipcMain.handle("fs:writeFile", async (event, filePath: string, data: Buffer | string): Promise<void> => {
+    requireAuth(event.sender, 'fs:writeFile');
     const resolvedFilePath = await ensurePathAllowed(await resolvePortableWritePath(filePath), "write");
     await fs.writeFile(resolvedFilePath, data);
   });
 
-  ipcMain.handle("fs:openInExplorer", async (_, targetPath: string): Promise<{ success: boolean; error?: string }> => {
+  ipcMain.handle("fs:openInExplorer", async (event, targetPath: string): Promise<{ success: boolean; error?: string }> => {
+    requireAuth(event.sender, 'fs:openInExplorer');
     try {
       const resolvedTargetPath = await ensurePathAllowed(await resolvePortableReadPath(targetPath), "read");
       const result = await shell.openPath(resolvedTargetPath);
@@ -179,7 +187,8 @@ export const registerFsHandlers = ({
     }
   });
 
-  ipcMain.handle("fs:openFile", async (_, filePath: string): Promise<{ success: boolean; error?: string }> => {
+  ipcMain.handle("fs:openFile", async (event, filePath: string): Promise<{ success: boolean; error?: string }> => {
+    requireAuth(event.sender, 'fs:openFile');
     try {
       const resolvedFilePath = await ensurePathAllowed(await resolvePortableReadPath(filePath), "read");
       const result = await shell.openPath(resolvedFilePath);
@@ -194,7 +203,8 @@ export const registerFsHandlers = ({
 
   ipcMain.handle(
     "fs:createFolder",
-    async (_, folderPath: string): Promise<{ success: boolean; error?: string }> => {
+    async (event, folderPath: string): Promise<{ success: boolean; error?: string }> => {
+      requireAuth(event.sender, 'fs:createFolder');
       try {
         const resolvedFolderPath = await ensurePathAllowed(await resolvePortableWritePath(folderPath), "write");
         await fs.mkdir(resolvedFolderPath, { recursive: true });
@@ -207,7 +217,8 @@ export const registerFsHandlers = ({
 
   ipcMain.handle(
     "fs:deleteFolder",
-    async (_, folderPath: string): Promise<{ success: boolean; error?: string }> => {
+    async (event, folderPath: string): Promise<{ success: boolean; error?: string }> => {
+      requireAuth(event.sender, 'fs:deleteFolder');
       try {
         const resolvedFolderPath = await ensurePathAllowed(await resolvePortableReadPath(folderPath), "read");
         await fs.rm(resolvedFolderPath, { recursive: true, force: true });
@@ -220,7 +231,8 @@ export const registerFsHandlers = ({
 
   ipcMain.handle(
     "fs:renameFolder",
-    async (_, oldPath: string, newPath: string): Promise<{ success: boolean; error?: string }> => {
+    async (event, oldPath: string, newPath: string): Promise<{ success: boolean; error?: string }> => {
+      requireAuth(event.sender, 'fs:renameFolder');
       try {
         const resolvedOldPath = await ensurePathAllowed(await resolvePortableReadPath(oldPath), "read");
         const resolvedNewPath = await ensurePathAllowed(await resolvePortableWritePath(newPath), "write");
@@ -232,7 +244,8 @@ export const registerFsHandlers = ({
     },
   );
 
-  ipcMain.handle("fs:folderExists", async (_, folderPath: string): Promise<boolean> => {
+  ipcMain.handle("fs:folderExists", async (event, folderPath: string): Promise<boolean> => {
+    requireAuth(event.sender, 'fs:folderExists');
     try {
       const resolvedFolderPath = await ensurePathAllowed(await resolvePortableReadPath(folderPath), "read");
       const stat = await fs.stat(resolvedFolderPath);
@@ -242,7 +255,8 @@ export const registerFsHandlers = ({
     }
   });
 
-  ipcMain.handle("fs:grantAccess", async (_, folderPath: string): Promise<boolean> => {
+  ipcMain.handle("fs:grantAccess", async (event, folderPath: string): Promise<boolean> => {
+    requireAuth(event.sender, 'fs:grantAccess');
     if (typeof folderPath !== "string" || folderPath.trim().length === 0) return false;
     const abs = toAbsolutePath(folderPath.trim());
     try {

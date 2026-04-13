@@ -180,6 +180,9 @@ const electronAPI: ElectronAPI = {
         getCredentials: (): Promise<{ refreshToken: string; email: string } | null> =>
             invokeTyped('session:getCredentials'),
 
+        getCredentialsWithBiometric: (reason: string): Promise<{ refreshToken: string; email: string } | null> =>
+            invokeTyped('session:getCredentialsWithBiometric', reason),
+
         clearCredentials: (): Promise<void> =>
             invokeTyped('session:clearCredentials'),
 
@@ -236,6 +239,12 @@ const electronAPI: ElectronAPI = {
     notification: {
         show: (options: { title: string; body?: string }): Promise<void> =>
             ipcRenderer.invoke('notification:show', options),
+    },
+
+    // Auth state notification (renderer → main process)
+    auth: {
+        setAuthenticated: (authenticated: boolean): Promise<void> =>
+            ipcRenderer.invoke('auth:setAuthenticated', authenticated),
     },
 
     backup: {

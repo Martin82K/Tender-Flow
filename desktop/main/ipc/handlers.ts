@@ -17,6 +17,7 @@ import { registerNotificationHandlers } from './modules/notificationHandlers';
 import { registerBackupHandlers } from './modules/backupHandlers';
 import { getAutoUpdaterService } from '../services/autoUpdater';
 import { convertToDocx } from './modules/docxConversion';
+import { ipcAuthGuard } from '../services/ipcAuthGuard';
 
 // Services (singleton instances)
 const storageService = new SecureStorageService();
@@ -158,7 +159,23 @@ const startLoopbackServer = (timeoutMs: number) => {
     });
 };
 
-export function registerIpcHandlers(): void {
+export function registerIpcHandlers(mainWindow?: BrowserWindow): void {
+    if (mainWindow) {
+        ipcAuthGuard.setMainWindow(mainWindow);
+    }
+
+    // Auth state management: renderer notifies main process on login/logout
+    ipcMain.handle('auth:setAuthenticated', async (event, authenticated: boolean): Promise<void> => {
+        if (!ipcAuthGuard.isTrustedSender(event.sender)) {
+            throw new Error('IPC_AUTH_DENIED: untrusted sender for auth:setAuthenticated');
+        }
+        ipcAuthGuard.setAuthenticated(!!authenticated);
+    });
+
+    const requireAuth = (sender: Electron.WebContents, channel?: string): void => {
+        ipcAuthGuard.requireAuth(sender, channel);
+    };
+
     const bidComparisonAutoRunner = getBidComparisonAutoRunner(storageService);
     void bidComparisonAutoRunner.restorePersistedSessions();
     const remapLogCache = new Set<string>();
@@ -187,21 +204,22 @@ export function registerIpcHandlers(): void {
             },
         });
 
-    registerFsHandlers({ resolvePortableReadPath, resolvePortableWritePath });
-    registerWatcherHandlers({ resolvePortableReadPath });
-    registerBidComparisonHandlers({ resolvePortableReadPath, bidComparisonAutoRunner });
-    registerSessionHandlers({ storageService });
-    registerMcpHandlers();
+    registerFsHandlers({ resolvePortableReadPath, resolvePortableWritePath, requireAuth });
+    registerWatcherHandlers({ resolvePortableReadPath, requireAuth });
+    registerBidComparisonHandlers({ resolvePortableReadPath, bidComparisonAutoRunner, requireAuth });
+    registerSessionHandlers({ storageService, requireAuth });
+    registerMcpHandlers({ requireAuth });
     registerOAuthHandlers({
         parseUrl,
         isAllowedExternalUrl,
         createCodeVerifier,
         createCodeChallenge,
         startLoopbackServer,
+        requireAuth,
     });
-    registerNetHandlers({ isAllowedProxyUrl });
+    registerNetHandlers({ isAllowedProxyUrl, requireAuth });
     registerNotificationHandlers();
-    registerBackupHandlers();
+    registerBackupHandlers({ requireAuth });
 
     // --- APP ---
 
@@ -251,17 +269,20 @@ export function registerIpcHandlers(): void {
         return app.getPath('userData');
     });
 
-    // --- STORAGE ---
+    // --- STORAGE (auth required) ---
 
-    ipcMain.handle('storage:get', async (_, key: string): Promise<string | null> => {
+    ipcMain.handle('storage:get', async (event, key: string): Promise<string | null> => {
+        requireAuth(event.sender, 'storage:get');
         return await storageService.get(key);
     });
 
-    ipcMain.handle('storage:set', async (_, key: string, value: string): Promise<void> => {
+    ipcMain.handle('storage:set', async (event, key: string, value: string): Promise<void> => {
+        requireAuth(event.sender, 'storage:set');
         await storageService.set(key, value);
     });
 
-    ipcMain.handle('storage:delete', async (_, key: string): Promise<void> => {
+    ipcMain.handle('storage:delete', async (event, key: string): Promise<void> => {
+        requireAuth(event.sender, 'storage:delete');
         await storageService.delete(key);
     });
 
@@ -281,34 +302,38 @@ export function registerIpcHandlers(): void {
         dialog.showErrorBox(title, content);
     });
 
-    // --- PYTHON TOOLS ---
+    // --- PYTHON TOOLS (auth required) ---
 
-    ipcMain.handle('python:isAvailable', async (): Promise<{ available: boolean; version?: string }> => {
+    ipcMain.handle('python:isAvailable', async (event): Promise<{ available: boolean; version?: string }> => {
+        requireAuth(event.sender, 'python:isAvailable');
         const { getPythonRunner } = await import('../services/pythonRunner');
         return getPythonRunner().isPythonAvailable();
     });
 
-    ipcMain.handle('python:checkDependencies', async (): Promise<{ installed: boolean; missing: string[] }> => {
+    ipcMain.handle('python:checkDependencies', async (event): Promise<{ installed: boolean; missing: string[] }> => {
+        requireAuth(event.sender, 'python:checkDependencies');
         const { getPythonRunner } = await import('../services/pythonRunner');
         return getPythonRunner().checkDependencies();
     });
 
-    ipcMain.handle('python:runTool', async (_, options: { tool: string; inputFile: string; outputFile?: string }): Promise<{
+    ipcMain.handle('python:runTool', async (event, options: { tool: string; inputFile: string; outputFile?: string }): Promise<{
         success: boolean;
         output?: string;
         error?: string;
         outputFile?: string;
     }> => {
+        requireAuth(event.sender, 'python:runTool');
         const { getPythonRunner } = await import('../services/pythonRunner');
         return getPythonRunner().runTool(options as any);
     });
 
-    ipcMain.handle('python:mergeExcel', async (_, inputFile: string, outputFile?: string): Promise<{
+    ipcMain.handle('python:mergeExcel', async (event, inputFile: string, outputFile?: string): Promise<{
         success: boolean;
         output?: string;
         error?: string;
         outputFile?: string;
     }> => {
+        requireAuth(event.sender, 'python:mergeExcel');
         const { getPythonRunner } = await import('../services/pythonRunner');
         return getPythonRunner().mergeExcel(inputFile, outputFile);
     });
@@ -327,9 +352,10 @@ export function registerIpcHandlers(): void {
         return getBiometricAuthService().prompt(reason, windowHandle);
     });
 
-    // --- SHELL ---
+    // --- SHELL (auth required) ---
 
-    ipcMain.handle('shell:openExternal', async (_, url: string): Promise<void> => {
+    ipcMain.handle('shell:openExternal', async (event, url: string): Promise<void> => {
+        requireAuth(event.sender, 'shell:openExternal');
         try {
             const parsedUrl = parseUrl(url);
             if (!isAllowedExternalUrl(parsedUrl)) {
@@ -343,7 +369,8 @@ export function registerIpcHandlers(): void {
         }
     });
 
-    ipcMain.handle('shell:openTempFile', async (_, content: string, filename: string): Promise<void> => {
+    ipcMain.handle('shell:openTempFile', async (event, content: string, filename: string): Promise<void> => {
+        requireAuth(event.sender, 'shell:openTempFile');
         console.log('[Shell] openTempFile called:', filename);
         const os = require('os');
         const tempDir = os.tmpdir();
@@ -361,7 +388,8 @@ export function registerIpcHandlers(): void {
         }
     });
 
-    ipcMain.handle('shell:openTempBinaryFile', async (_, base64Content: string, filename: string): Promise<void> => {
+    ipcMain.handle('shell:openTempBinaryFile', async (event, base64Content: string, filename: string): Promise<void> => {
+        requireAuth(event.sender, 'shell:openTempBinaryFile');
         console.log('[Shell] openTempBinaryFile called:', filename);
         const os = require('os');
         const tempDir = os.tmpdir();
@@ -380,7 +408,8 @@ export function registerIpcHandlers(): void {
         }
     });
 
-    ipcMain.handle('shell:convertToDocx', async (_, inputPath: string): Promise<{ success: boolean; outputPath?: string; error?: string }> => {
+    ipcMain.handle('shell:convertToDocx', async (event, inputPath: string): Promise<{ success: boolean; outputPath?: string; error?: string }> => {
+        requireAuth(event.sender, 'shell:convertToDocx');
         console.log('[Shell] convertToDocx called for:', inputPath);
         const result = await convertToDocx(inputPath);
         if (result.success) {

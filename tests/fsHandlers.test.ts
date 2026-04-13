@@ -61,6 +61,7 @@ describe("fsHandlers", () => {
     registerFsHandlers({
       resolvePortableReadPath: vi.fn(async (value: string) => value),
       resolvePortableWritePath: vi.fn(async (value: string) => value),
+      requireAuth: vi.fn(),
     });
 
     const handler = handlers.get("fs:openInExplorer");
@@ -76,6 +77,7 @@ describe("fsHandlers", () => {
     registerFsHandlers({
       resolvePortableReadPath: vi.fn(async (value: string) => value),
       resolvePortableWritePath: vi.fn(async (value: string) => value),
+      requireAuth: vi.fn(),
     });
 
     const handler = handlers.get("fs:readFile");
@@ -90,6 +92,7 @@ describe("fsHandlers", () => {
     registerFsHandlers({
       resolvePortableReadPath: vi.fn(async (value: string) => value),
       resolvePortableWritePath: vi.fn(async (value: string) => value),
+      requireAuth: vi.fn(),
     });
 
     const handler = handlers.get("fs:readFile");
@@ -108,6 +111,7 @@ describe("fsHandlers", () => {
     registerFsHandlers({
       resolvePortableReadPath: vi.fn(async (value: string) => value),
       resolvePortableWritePath: vi.fn(async (value: string) => value),
+      requireAuth: vi.fn(),
     });
 
     const handler = handlers.get("fs:writeFile");

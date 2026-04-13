@@ -2,6 +2,7 @@ import { ipcMain } from "electron";
 
 interface NetHandlerDependencies {
   isAllowedProxyUrl: (parsed: URL) => boolean;
+  requireAuth: (sender: Electron.WebContents, channel?: string) => void;
 }
 
 const sanitizeProxyError = (error: unknown): Record<string, unknown> => {
@@ -18,8 +19,9 @@ const sanitizeProxyError = (error: unknown): Record<string, unknown> => {
   };
 };
 
-export const registerNetHandlers = ({ isAllowedProxyUrl }: NetHandlerDependencies): void => {
-  ipcMain.handle("net:request", async (_, url: string, options?: any) => {
+export const registerNetHandlers = ({ isAllowedProxyUrl, requireAuth }: NetHandlerDependencies): void => {
+  ipcMain.handle("net:request", async (event, url: string, options?: any) => {
+    requireAuth(event.sender, 'net:request');
     try {
       const parsedUrl = new URL(url);
       if (!isAllowedProxyUrl(parsedUrl)) {

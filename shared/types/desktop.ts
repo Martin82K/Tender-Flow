@@ -20,6 +20,11 @@ export interface ElectronAPI {
     bidComparison: BidComparisonAPI;
     notification: NotificationAPI;
     backup: BackupAPI;
+    auth: AuthNotificationAPI;
+}
+
+export interface AuthNotificationAPI {
+    setAuthenticated: (authenticated: boolean) => Promise<void>;
 }
 
 export interface NotificationAPI {
@@ -102,6 +107,7 @@ export interface BiometricAPI {
 export interface SessionAPI {
     saveCredentials: (credentials: { refreshToken: string; email: string }) => Promise<void>;
     getCredentials: () => Promise<{ refreshToken: string; email: string } | null>;
+    getCredentialsWithBiometric: (reason: string) => Promise<{ refreshToken: string; email: string } | null>;
     clearCredentials: () => Promise<void>;
     setBiometricEnabled: (enabled: boolean) => Promise<void>;
     isBiometricEnabled: () => Promise<boolean>;

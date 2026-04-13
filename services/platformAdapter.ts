@@ -529,13 +529,27 @@ export const sessionAdapter = {
     },
 
     /**
-     * Get stored session credentials
+     * Get stored session credentials.
+     * When biometric is enabled on desktop, this returns null — use getCredentialsWithBiometric instead.
      */
     async getCredentials(): Promise<{ refreshToken: string; email: string } | null> {
         if (isDesktop && window.electronAPI && window.electronAPI.session) {
             return window.electronAPI.session.getCredentials();
         }
 
+        return readWebSessionCredentials();
+    },
+
+    /**
+     * Get credentials with biometric verification (desktop only).
+     * The biometric check runs atomically in the main process — the renderer
+     * cannot skip the prompt and access credentials directly.
+     */
+    async getCredentialsWithBiometric(reason: string): Promise<{ refreshToken: string; email: string } | null> {
+        if (isDesktop && window.electronAPI?.session?.getCredentialsWithBiometric) {
+            return window.electronAPI.session.getCredentialsWithBiometric(reason);
+        }
+        // Fallback for web: no biometric, return regular credentials
         return readWebSessionCredentials();
     },
 
@@ -742,6 +756,23 @@ export const backupAdapter = {
     },
 };
 
+/**
+ * Auth State Notification Adapter
+ * Notifies the main process about renderer auth state changes (desktop only).
+ * This enables the IPC auth guard in the main process.
+ */
+export const authNotificationAdapter = {
+    async setAuthenticated(authenticated: boolean): Promise<void> {
+        if (isDesktop && window.electronAPI?.auth?.setAuthenticated) {
+            try {
+                await window.electronAPI.auth.setAuthenticated(authenticated);
+            } catch (e) {
+                console.warn('[authNotificationAdapter] Failed to notify main process:', e);
+            }
+        }
+    },
+};
+
 // Combined platform adapter
 export const platformAdapter = {
     isDesktop,
@@ -761,6 +792,7 @@ export const platformAdapter = {
     shell: shellAdapter,
     notification: desktopNotificationAdapter,
     backup: backupAdapter,
+    auth: authNotificationAdapter,
 };
 
 export default platformAdapter;

@@ -6,6 +6,7 @@ import { getAutoUpdaterService } from './services/autoUpdater';
 import { startMcpServer } from './services/mcpServer';
 import { buildDesktopCsp, shouldInjectDesktopCsp } from './services/csp';
 import { buildMainWindowWebPreferences } from './services/windowSecurity';
+import { ipcAuthGuard } from './services/ipcAuthGuard';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {
@@ -140,7 +141,11 @@ function createWindow(): void {
         return { action: 'deny' };
     });
 
+    // Register main window with IPC auth guard
+    ipcAuthGuard.setMainWindow(mainWindow);
+
     mainWindow.on('closed', () => {
+        ipcAuthGuard.setAuthenticated(false);
         mainWindow = null;
     });
 

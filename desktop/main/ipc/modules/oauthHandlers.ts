@@ -9,6 +9,7 @@ interface OAuthHandlerDependencies {
   startLoopbackServer: (
     timeoutMs: number,
   ) => Promise<{ port: number; waitForCode: Promise<{ code: string; state: string | null }> }>;
+  requireAuth: (sender: Electron.WebContents, channel?: string) => void;
 }
 
 export const registerOAuthHandlers = ({
@@ -17,6 +18,7 @@ export const registerOAuthHandlers = ({
   createCodeVerifier,
   createCodeChallenge,
   startLoopbackServer,
+  requireAuth,
 }: OAuthHandlerDependencies): void => {
   ipcMain.handle(
     "oauth:googleLogin",
@@ -24,6 +26,7 @@ export const registerOAuthHandlers = ({
       _event,
       args: { clientId: string; clientSecret?: string; scopes: string[] },
     ) => {
+      requireAuth(_event.sender, 'oauth:googleLogin');
       const clientId = (args?.clientId || "").trim();
       const clientSecret = (args?.clientSecret || "").trim();
       if (!clientId) {

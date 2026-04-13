@@ -2,37 +2,48 @@ import { ipcMain, shell } from 'electron';
 import { getAutoBackupService } from '../../services/autoBackupService';
 import type { BackupFileInfo, BackupSettings } from '../../services/autoBackupService';
 
-export function registerBackupHandlers(): void {
+interface BackupHandlerDependencies {
+    requireAuth: (sender: Electron.WebContents, channel?: string) => void;
+}
+
+export function registerBackupHandlers({ requireAuth }: BackupHandlerDependencies): void {
     const backupService = getAutoBackupService();
 
-    ipcMain.handle('backup:getSettings', async (): Promise<BackupSettings> => {
+    ipcMain.handle('backup:getSettings', async (event): Promise<BackupSettings> => {
+        requireAuth(event.sender, 'backup:getSettings');
         return backupService.getSettings();
     });
 
-    ipcMain.handle('backup:setEnabled', async (_, enabled: boolean): Promise<void> => {
+    ipcMain.handle('backup:setEnabled', async (event, enabled: boolean): Promise<void> => {
+        requireAuth(event.sender, 'backup:setEnabled');
         await backupService.setEnabled(enabled);
     });
 
     ipcMain.handle(
         'backup:save',
-        async (_, jsonContent: string, backupType: 'user' | 'tenant' | 'contacts', organizationId: string): Promise<string> => {
+        async (event, jsonContent: string, backupType: 'user' | 'tenant' | 'contacts', organizationId: string): Promise<string> => {
+            requireAuth(event.sender, 'backup:save');
             return backupService.saveBackup(jsonContent, backupType, organizationId);
         }
     );
 
-    ipcMain.handle('backup:read', async (_, filePath: string): Promise<string> => {
+    ipcMain.handle('backup:read', async (event, filePath: string): Promise<string> => {
+        requireAuth(event.sender, 'backup:read');
         return backupService.readBackup(filePath);
     });
 
-    ipcMain.handle('backup:list', async (): Promise<BackupFileInfo[]> => {
+    ipcMain.handle('backup:list', async (event): Promise<BackupFileInfo[]> => {
+        requireAuth(event.sender, 'backup:list');
         return backupService.listBackups();
     });
 
-    ipcMain.handle('backup:getFolder', async (): Promise<string> => {
+    ipcMain.handle('backup:getFolder', async (event): Promise<string> => {
+        requireAuth(event.sender, 'backup:getFolder');
         return backupService.getBackupFolder();
     });
 
-    ipcMain.handle('backup:openFolder', async (): Promise<{ success: boolean; error?: string }> => {
+    ipcMain.handle('backup:openFolder', async (event): Promise<{ success: boolean; error?: string }> => {
+        requireAuth(event.sender, 'backup:openFolder');
         try {
             const folderPath = backupService.getBackupFolder();
             await shell.openPath(folderPath);
@@ -45,7 +56,8 @@ export function registerBackupHandlers(): void {
         }
     });
 
-    ipcMain.handle('backup:clean', async (): Promise<number> => {
+    ipcMain.handle('backup:clean', async (event): Promise<number> => {
+        requireAuth(event.sender, 'backup:clean');
         return backupService.cleanOldBackups();
     });
 }
