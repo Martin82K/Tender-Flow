@@ -28,7 +28,10 @@ const buildHeaders = (
 });
 
 const getRequiredEnv = (key: "VITE_SUPABASE_URL" | "VITE_SUPABASE_ANON_KEY") => {
-  const value = import.meta.env[key];
+  const value =
+    key === "VITE_SUPABASE_URL"
+      ? import.meta.env.VITE_SUPABASE_URL
+      : import.meta.env.VITE_SUPABASE_ANON_KEY;
   if (!value) throw new Error(`Missing env var: ${key}`);
   return value;
 };

@@ -72,8 +72,10 @@ const parseUrl = (rawUrl: string): URL => {
 
 const isAllowedExternalUrl = (parsed: URL): boolean => {
     if (parsed.protocol === 'mailto:') return true;
-    if (parsed.protocol === 'https:' || parsed.protocol === 'http:') return true;
-    return ALLOWED_EXTERNAL_HOSTS.has(parsed.hostname);
+    if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+        return ALLOWED_EXTERNAL_HOSTS.has(parsed.hostname);
+    }
+    return false;
 };
 
 const isAllowedProxyUrl = (parsed: URL): boolean => {
