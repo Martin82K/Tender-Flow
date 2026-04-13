@@ -21,9 +21,17 @@ interface FeatureContextType {
 
 const FeatureContext = createContext<FeatureContextType | undefined>(undefined);
 
-// Module-level flag: once v2 RPCs fail, skip them for the rest of the session
-// to avoid repeated red POST errors in the console.
-let v2RpcsAvailable = true;
+// Persist v2 RPC availability across page navigations within the same browser
+// session.  This avoids repeated red 400 POST errors in the console when the
+// v2 Supabase RPCs have not been deployed yet.
+const V2_STORAGE_KEY = 'tf_v2_rpcs_available';
+let v2RpcsAvailable = (() => {
+  try {
+    return sessionStorage.getItem(V2_STORAGE_KEY) !== 'false';
+  } catch {
+    return true;
+  }
+})();
 
 export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
@@ -56,22 +64,19 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
       let features: { key: string; name: string; description: string | null; category: string | null }[];
       let tier: string;
 
-      // Try v2 RPCs (org-level tier with override support) if they haven't
-      // previously failed in this session. Once they fail, we skip them
-      // to avoid repeated red POST errors in the browser console.
       if (v2RpcsAvailable) {
         try {
-          const [v2Features, tierResult] = await Promise.all([
-            getEnabledFeaturesV2(),
-            getEffectiveUserTier(),
-          ]);
+          // Probe with a single call first to avoid two parallel 400 errors
+          // if the v2 RPCs have not been deployed yet.
+          const tierResult = await getEffectiveUserTier();
+          const v2Features = await getEnabledFeaturesV2();
           features = v2Features;
           tier = tierResult.tier;
-          console.log(`[FeatureContext] v2: ${features.length} features, tier=${tier} (source=${tierResult.source})`);
         } catch {
-          // v2 RPCs not deployed yet — remember and fall back to v1
+          // v2 RPCs not deployed — remember for the rest of this browser session
           v2RpcsAvailable = false;
-          console.info('[FeatureContext] v2 RPCs not available, using v1 for this session');
+          try { sessionStorage.setItem(V2_STORAGE_KEY, 'false'); } catch { /* SSR / sandbox */ }
+          console.debug('[FeatureContext] v2 RPCs not available, using v1');
           const [v1Features, v1Tier] = await Promise.all([
             getEnabledFeatures(),
             getCurrentTier(),
@@ -80,7 +85,6 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
           tier = v1Tier;
         }
       } else {
-        // v2 already known to be unavailable — go straight to v1
         const [v1Features, v1Tier] = await Promise.all([
           getEnabledFeatures(),
           getCurrentTier(),
@@ -117,7 +121,7 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const interval = setInterval(() => {
       const timeSinceLastRefresh = Date.now() - lastRefreshRef.current;
       if (timeSinceLastRefresh >= SUBSCRIPTION_REFRESH_INTERVAL) {
-        console.log('[FeatureContext] Periodic subscription tier refresh');
+        console.debug('[FeatureContext] Periodic subscription tier refresh');
         fetchFeatures();
       }
     }, SUBSCRIPTION_REFRESH_INTERVAL);
