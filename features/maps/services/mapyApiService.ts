@@ -85,11 +85,21 @@ class RateLimiter {
 // Proxy response types
 // ---------------------------------------------------------------------------
 
-interface ProxyResponse {
-  data?: unknown;
+interface ProxyErrorResponse {
   error?: string;
-  tileUrl?: string;
-  darkTileUrl?: string;
+  message?: string;
+}
+
+interface TileConfigResponse {
+  tileUrl: string;
+  darkTileUrl: string;
+  layers?: Record<string, string>;
+}
+
+export interface TileConfig {
+  tileUrl: string;
+  darkTileUrl: string;
+  layers: Record<string, string>;
 }
 
 // ---------------------------------------------------------------------------
@@ -100,7 +110,7 @@ class MapyApiService {
   private geocodeCache = new LRUCache<GeocodingResult>(500, MAPS_CONFIG.cacheGeocodeTTL);
   private routeCache = new LRUCache<RouteResult>(200, MAPS_CONFIG.cacheRouteTTL);
   private rateLimiter = new RateLimiter(MAPS_CONFIG.rateLimit);
-  private tileUrlCache: { tileUrl: string; darkTileUrl: string } | null = null;
+  private tileUrlCache: TileConfig | null = null;
 
   // -----------------------------------------------------------------------
   // Core proxy call with rate limiting + retry
@@ -110,7 +120,8 @@ class MapyApiService {
     await this.rateLimiter.acquire();
 
     try {
-      const response = await invokeAuthedFunction<ProxyResponse>('maps-proxy', {
+      // Edge function returns Mapy.cz API response directly (or {error} on failure)
+      const response = await invokeAuthedFunction<T & ProxyErrorResponse>('maps-proxy', {
         body: {
           action,
           params: Object.fromEntries(
@@ -120,11 +131,11 @@ class MapyApiService {
         timeoutMs: 15_000,
       });
 
-      if (response.error) {
-        throw new GeocodingError(response.error, 'API_ERROR');
+      if ('error' in response && response.error) {
+        throw new GeocodingError(String(response.error), 'API_ERROR');
       }
 
-      return response.data as T;
+      return response as T;
     } catch (err) {
       if (err instanceof GeocodingError) throw err;
 
@@ -160,26 +171,38 @@ class MapyApiService {
   // Tile URL (fetched once from proxy, cached in memory)
   // -----------------------------------------------------------------------
 
-  async getTileConfig(): Promise<{ tileUrl: string; darkTileUrl: string }> {
+  async getTileConfig(): Promise<TileConfig> {
     if (this.tileUrlCache) return this.tileUrlCache;
 
-    const response = await invokeAuthedFunction<ProxyResponse>('maps-proxy', {
-      body: { action: 'tile-config', params: {} },
-      timeoutMs: 10_000,
-    });
+    try {
+      const response = await invokeAuthedFunction<TileConfigResponse>('maps-proxy', {
+        body: { action: 'tile-config', params: {} },
+        timeoutMs: 10_000,
+      });
 
-    if (response.tileUrl && response.darkTileUrl) {
-      this.tileUrlCache = {
-        tileUrl: response.tileUrl,
-        darkTileUrl: response.darkTileUrl,
-      };
-      return this.tileUrlCache;
+      if (response.tileUrl && response.darkTileUrl) {
+        this.tileUrlCache = {
+          tileUrl: response.tileUrl,
+          darkTileUrl: response.darkTileUrl,
+          layers: response.layers ?? {
+            standard: response.tileUrl,
+            outdoor: response.darkTileUrl,
+          },
+        };
+        return this.tileUrlCache;
+      }
+    } catch (err) {
+      console.warn('[MapyApi] Failed to load tile config from proxy:', err);
     }
 
     // Fallback (no API key in URL - tiles may not work)
     return {
       tileUrl: MAPS_CONFIG.tileUrl,
       darkTileUrl: MAPS_CONFIG.darkTileUrl,
+      layers: {
+        standard: MAPS_CONFIG.tileUrl,
+        outdoor: MAPS_CONFIG.darkTileUrl,
+      },
     };
   }
 

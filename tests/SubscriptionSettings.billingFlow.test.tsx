@@ -6,20 +6,15 @@ import { SubscriptionSettings } from "../features/settings/SubscriptionSettings"
 const getSubscriptionStateMock = vi.fn();
 const cancelPlanMock = vi.fn();
 const reactivatePlanMock = vi.fn();
-const createBillingPortalSessionMock = vi.fn();
+const cancelRecurrenceMock = vi.fn();
 const createCheckoutSessionMock = vi.fn();
 const requestPlanChangeMock = vi.fn();
 const syncSubscriptionMock = vi.fn();
 const isBillingConfiguredMock = vi.fn();
 
-vi.mock("@/features/subscription/ui/WalletExpressCheckoutModal", () => ({
-  WalletExpressCheckoutModal: () => null,
-}));
-
 vi.mock("@/features/subscription/api", () => ({
   cancelPlan: (...args: unknown[]) => cancelPlanMock(...args),
-  createBillingPortalSession: (...args: unknown[]) =>
-    createBillingPortalSessionMock(...args),
+  cancelRecurrence: (...args: unknown[]) => cancelRecurrenceMock(...args),
   createCheckoutSession: (...args: unknown[]) => createCheckoutSessionMock(...args),
   formatBillingPrice: (tier: string, billingCycle: "monthly" | "yearly") => {
     if (tier === "enterprise") return "Na míru";
@@ -73,11 +68,11 @@ describe("SubscriptionSettings billing flow", () => {
     });
     cancelPlanMock.mockResolvedValue({ success: true });
     reactivatePlanMock.mockResolvedValue({ success: true });
-    createBillingPortalSessionMock.mockResolvedValue({ success: true });
+    cancelRecurrenceMock.mockResolvedValue({ success: true });
     syncSubscriptionMock.mockResolvedValue({ success: true });
   });
 
-  it("does not fallback to requestPlanChange when Stripe checkout fails but billing is configured", async () => {
+  it("does not fallback to requestPlanChange when GoPay checkout fails but billing is configured", async () => {
     isBillingConfiguredMock.mockReturnValue(true);
     createCheckoutSessionMock.mockResolvedValue({
       success: false,
@@ -99,9 +94,12 @@ describe("SubscriptionSettings billing flow", () => {
     expect(requestPlanChangeMock).not.toHaveBeenCalled();
   });
 
-  it("uses requestPlanChange fallback when billing is not configured", async () => {
-    isBillingConfiguredMock.mockReturnValue(false);
-    requestPlanChangeMock.mockResolvedValue({ success: true });
+  it("shows error when GoPay checkout fails", async () => {
+    isBillingConfiguredMock.mockReturnValue(true);
+    createCheckoutSessionMock.mockResolvedValue({
+      success: false,
+      error: "Platební brána není dostupná.",
+    });
 
     render(<SubscriptionSettings />);
 
@@ -111,10 +109,9 @@ describe("SubscriptionSettings billing flow", () => {
     fireEvent.click(starterButton);
 
     await waitFor(() => {
-      expect(requestPlanChangeMock).toHaveBeenCalledWith("starter");
+      expect(
+        screen.getByText("Platební brána není dostupná."),
+      ).toBeInTheDocument();
     });
-    expect(
-      screen.getByText(/Žádost o upgrade byla odeslána/i),
-    ).toBeInTheDocument();
   });
 });

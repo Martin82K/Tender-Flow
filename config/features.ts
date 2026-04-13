@@ -60,6 +60,22 @@ export const PLANS = {
       FEATURES.MODULE_MAPS,
     ]
   },
+  STARTER: {
+    id: 'starter',
+    label: 'Starter',
+    features: [
+      FEATURES.MODULE_DASHBOARD,
+      FEATURES.MODULE_PROJECTS,
+      FEATURES.MODULE_CONTACTS,
+      FEATURES.MODULE_PIPELINE,
+      FEATURES.CONTACTS_IMPORT,
+      FEATURES.EXCEL_UNLOCKER,
+      FEATURES.EXPORT_PDF,
+      FEATURES.EXPORT_EXCEL,
+      FEATURES.URL_SHORTENER,
+      FEATURES.MODULE_MAPS,
+    ]
+  },
   PRO: {
     id: 'pro',
     label: 'Professional',

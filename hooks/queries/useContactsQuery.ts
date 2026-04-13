@@ -38,7 +38,7 @@ export const useContactsQuery = () => {
                             Promise.resolve(
                                 dbAdapter
                                     .from("subcontractors")
-                                    .select("*")
+                                    .select("id, company_name, specialization, contacts, contact_person_name, phone, email, ico, region, address, city, web, note, regions, status_id, latitude, longitude, geocoded_at")
                                     .order("company_name")
                                     .range(offset, offset + PAGE_SIZE - 1)
                             ),
@@ -95,85 +95,40 @@ export const useContactsQuery = () => {
                     name: s.contact_person_name || "-",
                     phone: s.phone || "-",
                     email: s.email || "-",
+                    latitude: s.latitude ?? undefined,
+                    longitude: s.longitude ?? undefined,
+                    geocodedAt: s.geocoded_at ?? undefined,
                 };
             });
 
-            const vendorIds = loadedContacts.map((c) => c.id).filter(Boolean);
-            if (vendorIds.length > 0) {
-                const normalizeCompanyName = (name: string) =>
-                    name
-                        .toLowerCase()
-                        .replace(/\s+/g, " ")
-                        .replace(/[,\.]/g, "")
-                        .replace(/\b(spol\s*s\s*r\s*o|spol\s*s\.r\.o|s\s*r\s*o|s\.r\.o|sro|a\.s\.|as|v\.o\.s\.|vos)\b/g, "")
-                        .trim();
-                const nameToId = new Map<string, string>();
-                loadedContacts.forEach((contact) => {
-                    if (!contact.company) return;
-                    const key = normalizeCompanyName(contact.company);
-                    if (!key || nameToId.has(key)) return;
-                    nameToId.set(key, contact.id);
-                });
-
-                const ratingStats = new Map<string, { sum: number; count: number }>();
-                const seenContractIds = new Set<string>();
-                const chunkSize = 200;
-
-                const handleRatings = (rows: any[]) => {
-                    rows.forEach((row: any) => {
-                        if (!row || !row.id || seenContractIds.has(row.id)) return;
-                        seenContractIds.add(row.id);
-                        const targetId = row.vendor_id || (row.vendor_name ? nameToId.get(normalizeCompanyName(row.vendor_name)) : undefined);
-                        if (!targetId || row.vendor_rating === null || row.vendor_rating === undefined) return;
-                        const current = ratingStats.get(targetId) || { sum: 0, count: 0 };
-                        const ratingValue = Number.parseFloat(row.vendor_rating);
-                        if (!Number.isFinite(ratingValue)) return;
-                        ratingStats.set(targetId, {
-                            sum: current.sum + ratingValue,
-                            count: current.count + 1,
-                        });
-                    });
-                };
-
-                const projectsRes = await withRetry(
-                    () =>
-                        withTimeout(
-                            Promise.resolve(dbAdapter.from("projects").select("id")),
-                            15000,
-                            "Načtení projektů vypršelo"
+            // Fetch all vendor ratings in a single query (no N+1)
+            const ratingsRes = await withRetry(
+                () =>
+                    withTimeout(
+                        Promise.resolve(
+                            dbAdapter
+                                .from("contracts")
+                                .select("vendor_id, vendor_rating")
+                                .not("vendor_rating", "is", null)
+                                .not("vendor_id", "is", null)
                         ),
-                    { retries: 1 }
-                );
+                        15000,
+                        "Načtení hodnocení dodavatelů vypršelo"
+                    ),
+                { retries: 1 }
+            );
 
-                if (!projectsRes.error) {
-                    const projectIds = (projectsRes.data || []).map((p: any) => p.id).filter(Boolean);
-                    for (let i = 0; i < projectIds.length; i += chunkSize) {
-                        const chunk = projectIds.slice(i, i + chunkSize);
-                        const contractsRes = await withRetry(
-                            () =>
-                                withTimeout(
-                                    Promise.resolve(
-                                        dbAdapter
-                                            .from("contracts")
-                                            .select("id, vendor_id, vendor_name, vendor_rating")
-                                            .in("project_id", chunk)
-                                            .not("vendor_rating", "is", null)
-                                    ),
-                                    15000,
-                                    "Načtení hodnocení dodavatelů vypršelo"
-                                ),
-                            { retries: 1 }
-                        );
-
-                        if (contractsRes.error) {
-                            console.warn("Nepodařilo se načíst hodnocení dodavatelů (projects):", contractsRes.error);
-                            continue;
-                        }
-
-                        handleRatings(contractsRes.data || []);
-                    }
-                } else {
-                    console.warn("Nepodařilo se načíst projekty pro hodnocení:", projectsRes.error);
+            if (!ratingsRes.error && ratingsRes.data) {
+                const ratingStats = new Map<string, { sum: number; count: number }>();
+                for (const row of ratingsRes.data) {
+                    if (!row.vendor_id || row.vendor_rating == null) continue;
+                    const ratingValue = Number.parseFloat(row.vendor_rating);
+                    if (!Number.isFinite(ratingValue)) continue;
+                    const current = ratingStats.get(row.vendor_id) || { sum: 0, count: 0 };
+                    ratingStats.set(row.vendor_id, {
+                        sum: current.sum + ratingValue,
+                        count: current.count + 1,
+                    });
                 }
 
                 loadedContacts.forEach((contact) => {

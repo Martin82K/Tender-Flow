@@ -115,13 +115,16 @@ export const useTheme = (options: UseThemeOptions = {}): UseThemeReturn => {
         }
     }, [theme]);
 
-    // Update primary color CSS variable
+    // Update primary color CSS variable — only when user preferences are provided
+    // to prevent instances without user context from resetting the color to default
     useEffect(() => {
-        document.documentElement.style.setProperty(
-            "--color-primary",
-            hexToRgb(primaryColor)
-        );
-    }, [primaryColor]);
+        if (user?.preferences?.primaryColor || primaryColor !== '#607AFB') {
+            document.documentElement.style.setProperty(
+                "--color-primary",
+                hexToRgb(primaryColor)
+            );
+        }
+    }, [primaryColor, user]);
 
     // Update background CSS variable
     useEffect(() => {

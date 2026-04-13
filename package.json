@@ -1,7 +1,7 @@
 {
   "name": "tender-flow",
   "private": true,
-  "version": "1.5.3",
+  "version": "1.5.4",
   "type": "module",
   "main": "desktop/dist/main.js",
   "scripts": {
@@ -25,17 +25,18 @@
     "version:minor": "npm version minor --no-git-tag-version && node scripts/sync-version.mjs",
     "version:major": "npm version major --no-git-tag-version && node scripts/sync-version.mjs",
     "release:prepare": "node scripts/prepare-release.mjs",
-    "deploy:stripe-webhook": "npx supabase functions deploy stripe-webhook --no-verify-jwt",
-    "deploy:stripe-sync": "npx supabase functions deploy stripe-sync-subscription"
+    "deploy:gopay-webhook": "npx supabase functions deploy gopay-webhook --no-verify-jwt",
+    "deploy:gopay-payment": "npx supabase functions deploy gopay-create-payment",
+    "deploy:gopay-cancel": "npx supabase functions deploy gopay-cancel-subscription",
+    "deploy:gopay-sync": "npx supabase functions deploy gopay-sync-subscription"
   },
   "dependencies": {
     "@google/genai": "^1.30.0",
     "@google/generative-ai": "^0.24.1",
     "@netlify/functions": "^4.2.0",
-    "@stripe/react-stripe-js": "^5.6.1",
-    "@stripe/stripe-js": "^8.11.0",
     "@supabase/supabase-js": "^2.86.0",
     "@tanstack/react-query": "^5.90.16",
+    "@tanstack/react-virtual": "^3.13.23",
     "@types/leaflet": "^1.9.21",
     "@types/leaflet.markercluster": "^1.5.6",
     "@types/papaparse": "^5.5.0",
@@ -73,7 +74,7 @@
     "baseline-browser-mapping": "^2.9.17",
     "concurrently": "^9.2.1",
     "cross-env": "^7.0.3",
-    "electron": "40.0.0",
+    "electron": "^40.8.5",
     "electron-builder": "^26.5.0",
     "icon-gen": "^5.0.0",
     "jsdom": "^26.1.0",

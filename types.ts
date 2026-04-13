@@ -249,6 +249,8 @@ export interface OrganizationEmailBranding {
   companyAddress: string | null;
   companyMeta: string | null;
   disclaimerHtml: string | null;
+  fontFamily: string | null;
+  fontSize: string | null;
 }
 
 export interface LegalAcceptance {
@@ -268,7 +270,7 @@ export type SubscriptionTier = "free" | "starter" | "pro" | "enterprise" | "admi
 
 export type SubscriptionStatus = "active" | "trial" | "cancelled" | "expired" | "pending";
 
-export type BillingProvider = "stripe" | "paddle" | "manual" | null;
+export type BillingProvider = "stripe" | "gopay" | "paddle" | "manual" | null;
 
 export interface SubscriptionInfo {
   tier: SubscriptionTier;
@@ -315,6 +317,7 @@ export interface User {
   organizationId?: string;
   organizationType?: 'personal' | 'business';
   organizationName?: string;
+  isOrgMemberActive?: boolean;
   legalAcceptance?: LegalAcceptance;
 }
 

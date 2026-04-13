@@ -107,9 +107,9 @@ export const EmailWhitelistManagement: React.FC<EmailWhitelistManagementProps> =
     return (
         <section className="bg-white dark:bg-slate-950 dark:bg-gradient-to-br dark:from-slate-900/80 dark:to-slate-950/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl mb-8">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                <span className="material-symbols-outlined text-emerald-400">playlist_add_check</span>
+                <span className="material-symbols-outlined text-primary">playlist_add_check</span>
                 Seznam povolených emailů (Whitelist)
-                <span className="ml-2 px-2.5 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded-lg border border-emerald-500/30">
+                <span className="ml-2 px-2.5 py-1 bg-primary/20 text-primary text-xs font-bold rounded-lg border border-primary/30">
                     Admin
                 </span>
             </h2>
@@ -129,7 +129,7 @@ export const EmailWhitelistManagement: React.FC<EmailWhitelistManagementProps> =
                             value={newEmail}
                             onChange={(e) => setNewEmail(e.target.value)}
                             placeholder="email@firma.cz"
-                            className="w-full rounded-lg bg-white dark:bg-slate-900/50 border border-slate-300 dark:border-slate-600/50 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-emerald-500/50 focus:outline-none"
+                            className="w-full rounded-lg bg-white dark:bg-slate-900/50 border border-slate-300 dark:border-slate-600/50 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-primary/50 focus:outline-none"
                             required
                         />
                     </div>
@@ -139,7 +139,7 @@ export const EmailWhitelistManagement: React.FC<EmailWhitelistManagementProps> =
                             value={newName}
                             onChange={(e) => setNewName(e.target.value)}
                             placeholder="Jméno (nepovinné)"
-                            className="w-full rounded-lg bg-white dark:bg-slate-900/50 border border-slate-300 dark:border-slate-600/50 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-emerald-500/50 focus:outline-none"
+                            className="w-full rounded-lg bg-white dark:bg-slate-900/50 border border-slate-300 dark:border-slate-600/50 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-primary/50 focus:outline-none"
                         />
                     </div>
                     <div className="md:col-span-1">
@@ -148,14 +148,14 @@ export const EmailWhitelistManagement: React.FC<EmailWhitelistManagementProps> =
                             value={newNotes}
                             onChange={(e) => setNewNotes(e.target.value)}
                             placeholder="Poznámka (nepovinné)"
-                            className="w-full rounded-lg bg-white dark:bg-slate-900/50 border border-slate-300 dark:border-slate-600/50 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-emerald-500/50 focus:outline-none"
+                            className="w-full rounded-lg bg-white dark:bg-slate-900/50 border border-slate-300 dark:border-slate-600/50 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-primary/50 focus:outline-none"
                         />
                     </div>
                     <div className="md:col-span-1">
                         <button
                             type="submit"
                             disabled={isAdding}
-                            className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                            className="w-full bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                         >
                             {isAdding ? (
                                 <span className="material-symbols-outlined animate-spin text-[18px]">sync</span>
@@ -180,7 +180,7 @@ export const EmailWhitelistManagement: React.FC<EmailWhitelistManagementProps> =
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Hledat email..."
-                            className="w-full rounded-lg bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 pl-10 pr-3 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-emerald-500/50 focus:outline-none"
+                            className="w-full rounded-lg bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 pl-10 pr-3 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-primary/50 focus:outline-none"
                         />
                     </div>
                 </div>
@@ -188,7 +188,7 @@ export const EmailWhitelistManagement: React.FC<EmailWhitelistManagementProps> =
                     <select
                         value={domainFilter}
                         onChange={(e) => setDomainFilter(e.target.value)}
-                        className="w-full rounded-lg bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
+                        className="w-full rounded-lg bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-primary/50 focus:outline-none"
                     >
                         <option value="">Všechny domény</option>
                         {uniqueDomains.map(d => (
@@ -227,7 +227,7 @@ export const EmailWhitelistManagement: React.FC<EmailWhitelistManagementProps> =
                                             onClick={() => handleToggle(item.id, item.is_active)}
                                             className={`size-6 rounded flex items-center justify-center transition-colors ${
                                                 item.is_active 
-                                                    ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/30'
+                                                    ? 'bg-primary/20 text-primary hover:bg-primary/30'
                                                     : 'bg-slate-200 dark:bg-slate-700/50 text-slate-500 hover:bg-slate-300 dark:hover:bg-slate-700'
                                             }`}
                                             title={item.is_active ? 'Aktivní' : 'Neaktivní'}

@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { PublicLayout } from "@/features/public/ui/PublicLayout";
-import { PublicHeader } from "@/features/public/ui/PublicHeader";
 import { AuthCard } from "./AuthCard";
-import { Link } from "@/shared/routing/router";
+import { Link, navigate } from "@/shared/routing/router";
 import { authService } from "@/services/authService";
+import logo from "@/assets/logo.png";
+import "@/features/public/ui/landing-apex.css";
+import "@/features/auth/ui/auth-apex.css";
 
 export const ForgotPasswordPage: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -28,34 +29,52 @@ export const ForgotPasswordPage: React.FC = () => {
   };
 
   return (
-    <PublicLayout>
-      <PublicHeader variant="auth" />
+    <div className="landing-apex auth-apex-page">
+      <div className="auth-apex-grid" />
+      <div className="auth-apex-glow" />
+
+      <header>
+        <div className="nav-wrap">
+          <div className="logo-group" onClick={() => navigate("/")}>
+            <img src={logo} alt="TenderFlow" className="logo-img" />
+            <div className="logo-text">TenderFlow</div>
+          </div>
+          <div className="nav-right">
+            <button className="btn-login" onClick={() => navigate("/login")}>
+              Přihlásit se
+            </button>
+            <button className="btn-start" onClick={() => navigate("/")}>
+              Zpět
+            </button>
+          </div>
+        </div>
+      </header>
+
       <AuthCard title="Obnova hesla" subtitle="Zadejte svůj email">
         {status === "success" ? (
-          <div className="flex flex-col gap-4 text-center">
-            <div className="bg-green-500/10 border border-green-500/20 text-green-400 p-4 rounded-xl">
-              <p className="font-medium">Odkaz odeslán!</p>
-              <p className="text-sm mt-1 opacity-90">
+          <div className="auth-form">
+            <div className="auth-alert" style={{ color: "var(--green)", background: "var(--green-dim)", border: "1px solid rgba(52,211,153,0.2)", padding: "1rem" }}>
+              <p style={{ fontWeight: 600 }}>Odkaz odeslán!</p>
+              <p style={{ fontSize: "0.8125rem", marginTop: "0.25rem", opacity: 0.9 }}>
                 Pokud účet s tímto emailem existuje, poslali jsme vám instrukce pro obnovu hesla.
               </p>
             </div>
             <Link
               to="/login"
-              className="w-full text-center py-3.5 px-6 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium transition-colors"
+              className="auth-btn-secondary"
+              style={{ textAlign: "center", textDecoration: "none" }}
             >
               Zpět na přihlášení
             </Link>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <p className="text-sm text-white/70">
+          <form onSubmit={handleSubmit} className="auth-form">
+            <p style={{ fontSize: "0.8125rem", color: "var(--gray-1)" }}>
               Zadejte emailovou adresu spojenou s vaším účtem. Pošleme vám odkaz pro nastavení nového hesla.
             </p>
 
             {status === "error" && (
-              <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-lg text-sm">
-                {errorMessage}
-              </div>
+              <div className="auth-alert auth-alert-error">{errorMessage}</div>
             )}
 
             <input
@@ -63,7 +82,7 @@ export const ForgotPasswordPage: React.FC = () => {
               placeholder="Váš email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
+              className="auth-input"
               required
               disabled={status === "loading"}
             />
@@ -71,26 +90,18 @@ export const ForgotPasswordPage: React.FC = () => {
             <button
               type="submit"
               disabled={status === "loading"}
-              className="w-full text-center py-3.5 px-6 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-500/50 text-white rounded-xl font-medium transition-colors shadow-lg shadow-orange-500/20 flex justify-center items-center"
+              className="auth-btn-primary"
             >
-              {status === "loading" ? (
-                <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                "Odeslat odkaz"
-              )}
+              {status === "loading" ? "Odesílám..." : "Odeslat odkaz"}
             </button>
 
-            <div className="flex items-center justify-between text-sm text-white/50">
-              <Link to="/login" className="hover:text-white transition-colors">
-                Zpět na přihlášení
-              </Link>
-              <Link to="/" className="hover:text-white transition-colors">
-                Landing
-              </Link>
+            <div className="auth-links">
+              <Link to="/login">Zpět na přihlášení</Link>
+              <Link to="/">Hlavní stránka</Link>
             </div>
           </form>
         )}
       </AuthCard>
-    </PublicLayout>
+    </div>
   );
 };

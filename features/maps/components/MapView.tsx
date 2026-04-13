@@ -1,10 +1,11 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useImperativeHandle, forwardRef, useCallback } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster';
-import { MAPS_CONFIG } from '@/config/maps';
-import { useTheme } from '@/hooks/useTheme';
+import { MAPS_CONFIG, MAP_LAYERS } from '@/config/maps';
 import { mapyApiService } from '../services/mapyApiService';
+import type { TileConfig } from '../services/mapyApiService';
+import { CZECH_REGIONS } from '../utils/czechRegions';
 import type { MapMarker, GeoPoint } from '../types';
 
 interface MapViewProps {
@@ -20,7 +21,23 @@ interface MapViewProps {
   routeFrom?: GeoPoint;
   routeTo?: GeoPoint;
   className?: string;
+  showRegions?: boolean;
+  /** Active map layer id from MAP_LAYERS */
+  activeLayer?: string;
+  /** Radius circle around project pin (km) */
+  radiusKm?: number;
 }
+
+export interface MapViewHandle {
+  flyTo: (lat: number, lng: number, zoom?: number) => void;
+  fitAllBounds: () => void;
+  toggleFullscreen: () => void;
+  isFullscreen: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Marker helpers
+// ---------------------------------------------------------------------------
 
 function createMarkerIcon(color: string, isProject = false): L.DivIcon {
   const size = isProject ? 40 : 28;
@@ -40,6 +57,7 @@ function buildPopupContent(marker: MapMarker): HTMLDivElement {
 
   const title = document.createElement('strong');
   title.style.fontSize = '14px';
+  title.style.color = '#1E293B';
   title.textContent = marker.label;
   container.appendChild(title);
 
@@ -47,7 +65,8 @@ function buildPopupContent(marker: MapMarker): HTMLDivElement {
     const specialization = document.createElement('div');
     specialization.style.marginTop = '4px';
     specialization.style.fontSize = '12px';
-    specialization.style.color = '#6B7280';
+    specialization.style.color = '#475569';
+    specialization.style.fontWeight = '500';
     specialization.textContent = marker.specialization.join(', ');
     container.appendChild(specialization);
   }
@@ -71,33 +90,131 @@ function buildPopupContent(marker: MapMarker): HTMLDivElement {
   return container;
 }
 
-export function MapView({
-  center,
-  zoom,
-  markers = [],
-  projectPin,
-  onMarkerClick,
-  onMapClick,
-  height = '400px',
-  fitBounds = false,
-  showRoute = false,
-  routeFrom,
-  routeTo,
-  className = '',
-}: MapViewProps) {
+function createRegionLabelIcon(name: string): L.DivIcon {
+  return L.divIcon({
+    className: 'region-label-marker',
+    html: `<div style="
+      font-size:11px;font-weight:600;color:rgba(100,116,139,0.7);
+      text-shadow:0 1px 2px rgba(255,255,255,0.8);
+      white-space:nowrap;pointer-events:none;
+      font-family:system-ui,sans-serif;letter-spacing:0.05em;
+      text-transform:uppercase;
+    ">${name}</div>`,
+    iconSize: [0, 0],
+    iconAnchor: [0, 0],
+  });
+}
+
+// ---------------------------------------------------------------------------
+// MapView Component
+// ---------------------------------------------------------------------------
+
+export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
+  {
+    center,
+    zoom,
+    markers = [],
+    projectPin,
+    onMarkerClick,
+    onMapClick,
+    height = '400px',
+    fitBounds = false,
+    showRoute = false,
+    routeFrom,
+    routeTo,
+    className = '',
+    showRegions = false,
+    activeLayer = 'standard',
+    radiusKm,
+  },
+  ref,
+) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersLayerRef = useRef<L.MarkerClusterGroup | null>(null);
   const projectLayerRef = useRef<L.LayerGroup | null>(null);
   const routeLayerRef = useRef<L.Polyline | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
+  const regionsLayerRef = useRef<L.LayerGroup | null>(null);
+  const radiusCircleRef = useRef<L.Circle | null>(null);
   const [isReady, setIsReady] = useState(false);
-  const tileConfigRef = useRef<{ tileUrl: string; darkTileUrl: string } | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const tileConfigRef = useRef<TileConfig | null>(null);
 
-  const { theme } = useTheme();
-  const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
 
-  // Initialize map
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains('dark'));
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+
+  // -----------------------------------------------------------------------
+  // Helpers
+  // -----------------------------------------------------------------------
+
+  const getLayerUrl = useCallback(
+    (layerId: string): string | null => {
+      const config = tileConfigRef.current;
+      if (!config) return null;
+      // Use layers map from proxy when available
+      if (config.layers[layerId]) return config.layers[layerId];
+      // Fallback: derive URL from base
+      const layerDef = MAP_LAYERS.find(l => l.id === layerId);
+      if (!layerDef) return config.tileUrl;
+      return config.tileUrl.replace('/basic/', `/${layerDef.urlKey}/`);
+    },
+    [],
+  );
+
+  const fitAllBoundsHelper = useCallback(() => {
+    if (!mapRef.current) return;
+    const allPoints: [number, number][] = [];
+    markers.forEach((m) => allPoints.push([m.position.lat, m.position.lng]));
+    if (projectPin) allPoints.push([projectPin.position.lat, projectPin.position.lng]);
+    if (allPoints.length > 0) {
+      const bounds = L.latLngBounds(allPoints);
+      mapRef.current.fitBounds(bounds, { padding: [40, 40] });
+    }
+  }, [markers, projectPin]);
+
+  // -----------------------------------------------------------------------
+  // Imperative handle
+  // -----------------------------------------------------------------------
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      flyTo: (lat: number, lng: number, z?: number) => {
+        mapRef.current?.flyTo([lat, lng], z ?? 14, { duration: 1 });
+      },
+      fitAllBounds: fitAllBoundsHelper,
+      toggleFullscreen: () => {
+        const el = containerRef.current?.closest('[data-map-root]') as HTMLElement | null;
+        if (!el) return;
+        if (!document.fullscreenElement) {
+          el.requestFullscreen?.().then(() => setIsFullscreen(true)).catch(() => {});
+        } else {
+          document.exitFullscreen?.().then(() => setIsFullscreen(false)).catch(() => {});
+        }
+      },
+      isFullscreen,
+    }),
+    [fitAllBoundsHelper, isFullscreen],
+  );
+
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', handler);
+    return () => document.removeEventListener('fullscreenchange', handler);
+  }, []);
+
+  // -----------------------------------------------------------------------
+  // Init map
+  // -----------------------------------------------------------------------
+
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
     let cancelled = false;
@@ -108,26 +225,36 @@ export function MapView({
     const map = L.map(containerRef.current, {
       center: mapCenter,
       zoom: mapZoom,
-      zoomControl: true,
+      maxZoom: 19,
+      zoomControl: false, // We use custom controls
       attributionControl: true,
     });
 
-    // Load tile config from proxy (API key stays server-side)
+    // Add zoom control at bottom-right
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
+
     mapyApiService.getTileConfig().then((config) => {
       if (cancelled) return;
       tileConfigRef.current = config;
-      const url = isDark ? config.darkTileUrl : config.tileUrl;
+      const url = config.layers[activeLayer] ?? (isDark ? config.darkTileUrl : config.tileUrl);
       const tile = L.tileLayer(url, {
         attribution: '© Seznam.cz, a.s.',
         maxZoom: 19,
+        keepBuffer: 6,
+        updateWhenIdle: true,
+        updateWhenZooming: false,
+        crossOrigin: 'anonymous',
       }).addTo(map);
       tileLayerRef.current = tile;
     }).catch(() => {
-      // Fallback: tiles without API key (may show watermark)
       if (cancelled) return;
-      const tile = L.tileLayer(MAPS_CONFIG.tileUrl, {
-        attribution: '© Seznam.cz, a.s.',
+      const tile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
         maxZoom: 19,
+        keepBuffer: 6,
+        updateWhenIdle: true,
+        updateWhenZooming: false,
+        crossOrigin: 'anonymous',
       }).addTo(map);
       tileLayerRef.current = tile;
     });
@@ -142,6 +269,9 @@ export function MapView({
 
     const projectLayer = L.layerGroup().addTo(map);
     projectLayerRef.current = projectLayer;
+
+    const regionsLayer = L.layerGroup();
+    regionsLayerRef.current = regionsLayer;
 
     if (onMapClick) {
       map.on('click', (e: L.LeafletMouseEvent) => {
@@ -160,25 +290,47 @@ export function MapView({
       projectLayerRef.current = null;
       tileLayerRef.current = null;
       routeLayerRef.current = null;
+      regionsLayerRef.current = null;
+      radiusCircleRef.current = null;
       setIsReady(false);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Switch tiles on theme change
-  useEffect(() => {
-    if (!mapRef.current || !tileLayerRef.current || !tileConfigRef.current) return;
-    const url = isDark ? tileConfigRef.current.darkTileUrl : tileConfigRef.current.tileUrl;
-    tileLayerRef.current.setUrl(url);
-  }, [isDark]);
+  // -----------------------------------------------------------------------
+  // Layer switching
+  // -----------------------------------------------------------------------
 
-  // Update center/zoom
+  useEffect(() => {
+    if (!mapRef.current || !tileLayerRef.current || !isReady) return;
+    const url = getLayerUrl(activeLayer);
+    if (url) tileLayerRef.current.setUrl(url);
+  }, [activeLayer, isReady, getLayerUrl]);
+
+  // Also handle dark mode fallback for standard layer
+  useEffect(() => {
+    if (!mapRef.current || !tileLayerRef.current || !tileConfigRef.current || !isReady) return;
+    if (activeLayer === 'standard') {
+      const url = isDark
+        ? (tileConfigRef.current.layers.outdoor ?? tileConfigRef.current.darkTileUrl)
+        : (tileConfigRef.current.layers.standard ?? tileConfigRef.current.tileUrl);
+      tileLayerRef.current.setUrl(url);
+    }
+  }, [isDark, activeLayer, isReady]);
+
+  // -----------------------------------------------------------------------
+  // Center/zoom
+  // -----------------------------------------------------------------------
+
   useEffect(() => {
     if (!mapRef.current || !isReady) return;
     if (center) mapRef.current.setView(center, zoom ?? mapRef.current.getZoom());
   }, [center, zoom, isReady]);
 
-  // Update subcontractor markers
+  // -----------------------------------------------------------------------
+  // Subcontractor markers
+  // -----------------------------------------------------------------------
+
   useEffect(() => {
     if (!markersLayerRef.current || !isReady) return;
     markersLayerRef.current.clearLayers();
@@ -195,7 +347,10 @@ export function MapView({
     });
   }, [markers, isReady, onMarkerClick]);
 
-  // Update project pin
+  // -----------------------------------------------------------------------
+  // Project pin
+  // -----------------------------------------------------------------------
+
   useEffect(() => {
     if (!projectLayerRef.current || !isReady) return;
     projectLayerRef.current.clearLayers();
@@ -211,52 +366,112 @@ export function MapView({
     }
   }, [projectPin, isReady, onMarkerClick]);
 
+  // -----------------------------------------------------------------------
   // Fit bounds
+  // -----------------------------------------------------------------------
+
   useEffect(() => {
     if (!mapRef.current || !isReady || !fitBounds) return;
-
     const allPoints: [number, number][] = [];
     markers.forEach((m) => allPoints.push([m.position.lat, m.position.lng]));
     if (projectPin) allPoints.push([projectPin.position.lat, projectPin.position.lng]);
-
     if (allPoints.length > 0) {
       const bounds = L.latLngBounds(allPoints);
       mapRef.current.fitBounds(bounds, { padding: [40, 40] });
     }
   }, [markers, projectPin, fitBounds, isReady]);
 
+  // -----------------------------------------------------------------------
   // Route polyline
+  // -----------------------------------------------------------------------
+
   useEffect(() => {
     if (!mapRef.current || !isReady) return;
-
     if (routeLayerRef.current) {
       routeLayerRef.current.remove();
       routeLayerRef.current = null;
     }
-
     if (showRoute && routeFrom && routeTo) {
       const polyline = L.polyline(
-        [
-          [routeFrom.lat, routeFrom.lng],
-          [routeTo.lat, routeTo.lng],
-        ],
-        { color: '#3B82F6', weight: 4, opacity: 0.7, dashArray: '8, 8' }
+        [[routeFrom.lat, routeFrom.lng], [routeTo.lat, routeTo.lng]],
+        { color: '#3B82F6', weight: 4, opacity: 0.7, dashArray: '8, 8' },
       ).addTo(mapRef.current);
       routeLayerRef.current = polyline;
     }
   }, [showRoute, routeFrom, routeTo, isReady]);
 
+  // -----------------------------------------------------------------------
+  // Radius circle
+  // -----------------------------------------------------------------------
+
+  useEffect(() => {
+    if (!mapRef.current || !isReady) return;
+    if (radiusCircleRef.current) {
+      radiusCircleRef.current.remove();
+      radiusCircleRef.current = null;
+    }
+    if (radiusKm && projectPin) {
+      const circle = L.circle(
+        [projectPin.position.lat, projectPin.position.lng],
+        {
+          radius: radiusKm * 1000,
+          color: '#1E40AF',
+          fillColor: '#1E3A8A',
+          fillOpacity: 0.10,
+          weight: 2.5,
+          opacity: 0.7,
+          dashArray: '8, 6',
+          interactive: false,
+        },
+      ).addTo(mapRef.current);
+      radiusCircleRef.current = circle;
+    }
+  }, [radiusKm, projectPin, isReady]);
+
+  // -----------------------------------------------------------------------
+  // Region boundaries
+  // -----------------------------------------------------------------------
+
+  useEffect(() => {
+    if (!mapRef.current || !regionsLayerRef.current || !isReady) return;
+    regionsLayerRef.current.clearLayers();
+
+    if (showRegions) {
+      regionsLayerRef.current.addTo(mapRef.current);
+      CZECH_REGIONS.forEach((region) => {
+        const polygon = L.polygon(region.boundary, {
+          color: isDark ? 'rgba(148,163,184,0.4)' : 'rgba(100,116,139,0.3)',
+          fillColor: isDark ? 'rgba(148,163,184,0.05)' : 'rgba(100,116,139,0.04)',
+          weight: 1.5,
+          dashArray: '4, 4',
+          interactive: false,
+        });
+        regionsLayerRef.current!.addLayer(polygon);
+
+        const labelIcon = createRegionLabelIcon(region.name);
+        const labelMarker = L.marker(region.center, { icon: labelIcon, interactive: false });
+        regionsLayerRef.current!.addLayer(labelMarker);
+      });
+    } else {
+      mapRef.current.removeLayer(regionsLayerRef.current);
+    }
+  }, [showRegions, isReady, isDark]);
+
+  // -----------------------------------------------------------------------
+  // Render
+  // -----------------------------------------------------------------------
+
   return (
     <div className={`relative ${className}`} style={{ height }}>
       {!isReady && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-xl">
+        <div className="absolute inset-0 z-[1000] flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-xl">
           <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
             <span className="material-symbols-outlined animate-spin">progress_activity</span>
             <span>Načítání mapy…</span>
           </div>
         </div>
       )}
-      <div ref={containerRef} className="h-full w-full rounded-xl overflow-hidden" />
+      <div ref={containerRef} className="h-full w-full rounded-xl overflow-hidden" style={{ isolation: 'isolate' }} />
     </div>
   );
-}
+});

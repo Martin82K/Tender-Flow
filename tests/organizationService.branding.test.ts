@@ -227,13 +227,13 @@ describe("organizationService branding", () => {
 
     expect(supabaseMocks.rpc).toHaveBeenCalledWith(
       "set_organization_email_branding",
-      {
+      expect.objectContaining({
         org_id_input: "org-1",
         company_name_input: "BAU-STAV a.s.",
         company_address_input: "Loketská 344/12",
         company_meta_input: "IČ: 147 05 877",
         disclaimer_html_input: "<p>Disclaimer</p>",
-      },
+      }),
     );
   });
 });

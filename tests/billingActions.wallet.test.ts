@@ -1,16 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createCheckoutSession,
-  createSubscriptionFromPaymentMethod,
+  cancelRecurrence,
 } from "../features/subscription/api/billingActions";
 
 const { billingServiceMock } = vi.hoisted(() => ({
   billingServiceMock: {
     createCheckoutSession: vi.fn(),
-    createBillingPortalSession: vi.fn(),
+    cancelRecurrence: vi.fn(),
     syncSubscription: vi.fn(),
-    createSetupIntent: vi.fn(),
-    createSubscriptionFromPaymentMethod: vi.fn(),
     isBillingConfigured: vi.fn(),
     formatPrice: vi.fn(),
   },
@@ -33,12 +31,12 @@ vi.mock("@/services/userSubscriptionService", () => ({
   },
 }));
 
-describe("billingActions (wallet wrappers)", () => {
+describe("billingActions (GoPay wrappers)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("passes paymentMethodPreference for checkout requests", async () => {
+  it("passes billingPeriod for checkout requests", async () => {
     billingServiceMock.createCheckoutSession.mockResolvedValueOnce({ success: true });
 
     await createCheckoutSession({
@@ -46,34 +44,25 @@ describe("billingActions (wallet wrappers)", () => {
       billingPeriod: "monthly",
       successPath: "http://localhost:3000/success",
       cancelPath: "http://localhost:3000/cancel",
-      paymentMethodPreference: "wallet_first",
     });
 
     expect(billingServiceMock.createCheckoutSession).toHaveBeenCalledWith(
       expect.objectContaining({
         tier: "starter",
-        paymentMethodPreference: "wallet_first",
+        billingPeriod: "monthly",
       }),
     );
   });
 
-  it("generates fallback idempotency key when none is provided", async () => {
-    billingServiceMock.createSubscriptionFromPaymentMethod.mockResolvedValueOnce({
+  it("calls cancelRecurrence on billingService", async () => {
+    billingServiceMock.cancelRecurrence.mockResolvedValueOnce({
       success: true,
+      message: "Cancelled",
     });
 
-    await createSubscriptionFromPaymentMethod({
-      tier: "pro",
-      billingPeriod: "monthly",
-      paymentMethodId: "pm_test_1",
-    });
+    const result = await cancelRecurrence();
 
-    expect(billingServiceMock.createSubscriptionFromPaymentMethod).toHaveBeenCalledWith(
-      expect.objectContaining({
-        tier: "pro",
-        paymentMethodId: "pm_test_1",
-        idempotencyKey: expect.any(String),
-      }),
-    );
+    expect(billingServiceMock.cancelRecurrence).toHaveBeenCalled();
+    expect(result.success).toBe(true);
   });
 });

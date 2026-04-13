@@ -384,6 +384,9 @@ export const useUpdateProjectDetailsMutation = () => {
             if (normalizedUpdates.constructionTechnician !== undefined) projectUpdates.construction_technician = normalizedUpdates.constructionTechnician;
             if (normalizedUpdates.location !== undefined) projectUpdates.location = normalizedUpdates.location;
             if (normalizedUpdates.address !== undefined) projectUpdates.address = normalizedUpdates.address;
+            if (normalizedUpdates.latitude !== undefined) projectUpdates.latitude = normalizedUpdates.latitude;
+            if (normalizedUpdates.longitude !== undefined) projectUpdates.longitude = normalizedUpdates.longitude;
+            if (normalizedUpdates.geocodedAt !== undefined) projectUpdates.geocoded_at = normalizedUpdates.geocodedAt;
             if (normalizedUpdates.finishDate !== undefined) projectUpdates.finish_date = normalizedUpdates.finishDate;
             if (normalizedUpdates.plannedCost !== undefined) projectUpdates.planned_cost = normalizedUpdates.plannedCost;
             if (normalizedUpdates.documentationLink !== undefined) projectUpdates.documentation_link = normalizedUpdates.documentationLink;

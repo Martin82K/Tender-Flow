@@ -1,146 +1,79 @@
-import React, { useEffect, useState } from "react";
-import {
-  ArrowRight,
-  Brain,
-  Building2,
-  Calendar,
-  Check,
-  ChevronDown,
-  ClipboardList,
-  Cloud,
-  Download,
-  FileSpreadsheet,
-  FileText,
-  FolderOpen,
-  GanttChart,
-  GitBranch,
-  Globe,
-  HelpCircle,
-  Layout,
-  LayoutDashboard,
-  LayoutTemplate,
-  Mail,
-  Play,
-  ScanText,
-  Search,
-  Settings,
-  Shield,
-  ShieldCheck,
-  Sparkles,
-  Star,
-  Users,
-  X,
-  Zap,
-} from "lucide-react";
-import { PublicLayout } from "@/features/public/ui/PublicLayout";
-import { PublicHeader } from "@/features/public/ui/PublicHeader";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { Link, useLocation, navigate } from "@/shared/routing/router";
 import { useAuth } from "../context/AuthContext";
 import { APP_VERSION } from "../config/version";
-import { ScrollReveal } from "@/shared/ui/ScrollReveal";
-import { GradientText } from "@/shared/ui/GradientText";
-import { FloatingElements } from "@/shared/ui/FloatingElements";
-import { PulseBadge } from "@/shared/ui/PulseBadge";
-import { Timeline, HorizontalTimeline, BentoGrid } from "@/shared/ui/Timeline";
-import { TimeSavingsVisualizer } from "@/shared/ui/TimeSavingsVisualizer";
 import { PRICING_CONFIG } from "../services/billingService";
+import logo from "@/assets/logo.png";
+import "@/features/public/ui/landing-apex.css";
 
-const Stat: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4">
-    <div className="text-orange-500 text-xl font-semibold">{value}</div>
-    <div className="text-white/60 text-sm">{label}</div>
-  </div>
-);
-
-const Feature: React.FC<{
-  icon: React.ReactNode;
-  title: string;
-  text: string;
-}> = ({ icon, title, text }) => (
-  <div className="feature-card h-full rounded-2xl border border-white/10 bg-gray-950/40 backdrop-blur p-6 transition-all duration-500 hover:border-orange-500/30 hover:bg-gray-950/60 hover:-translate-y-2 hover:shadow-2xl hover:shadow-orange-500/10 group">
-    <div className="feature-icon-wrapper w-11 h-11 rounded-xl bg-orange-500/15 border border-orange-500/30 flex items-center justify-center text-orange-400 transition-all duration-500 group-hover:scale-110 group-hover:rotate-3 group-hover:shadow-lg group-hover:shadow-orange-500/30">
-      {icon}
-    </div>
-    <h3 className="mt-4 text-white font-semibold transition-colors duration-300 group-hover:text-orange-200">
-      {title}
-    </h3>
-    <p className="mt-2 text-sm text-white/60 leading-relaxed transition-colors duration-300 group-hover:text-white/80">
-      {text}
-    </p>
-  </div>
-);
-
-interface PricingFeatureListProps {
-  features: string[];
-  colors: {
-    icon: string;
-    [key: string]: string;
-  };
-}
-
-const PricingFeatureList: React.FC<PricingFeatureListProps> = ({
-  features,
-  colors,
+/** Animated counter that counts up from 0 to `target` when visible. */
+const AnimatedCounter: React.FC<{ target: number; suffix?: string }> = ({
+  target,
+  suffix = "+",
 }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const LIMIT = 6;
-  const validFeatures = features.filter((t) => t && t.trim().length > 0);
-  const shouldTruncate = validFeatures.length > LIMIT;
+  const [count, setCount] = useState(0);
+  const ref = useRef<HTMLSpanElement>(null);
+  const hasAnimated = useRef(false);
 
-  const visibleFeatures =
-    shouldTruncate && !isExpanded
-      ? validFeatures.slice(0, LIMIT)
-      : validFeatures;
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !hasAnimated.current) {
+          hasAnimated.current = true;
+          const duration = 2000;
+          const startTime = performance.now();
+          const step = (now: number) => {
+            const elapsed = now - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            // ease-out cubic
+            const eased = 1 - Math.pow(1 - progress, 3);
+            setCount(Math.round(eased * target));
+            if (progress < 1) requestAnimationFrame(step);
+          };
+          requestAnimationFrame(step);
+        }
+      },
+      { threshold: 0.5 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [target]);
 
   return (
-    <div className="mt-4">
-      <ul className="space-y-3 text-sm text-slate-300">
-        {visibleFeatures.map((t, idx) => (
-          <li
-            key={t}
-            className="flex items-start gap-3 group-hover:text-slate-200 transition-colors duration-300"
-            style={{ transitionDelay: `${idx * 50}ms` }}
-          >
-            <Check className={`w-4 h-4 shrink-0 mt-0.5 ${colors.icon}`} />
-            <span>{t}</span>
-          </li>
-        ))}
-      </ul>
-      {shouldTruncate && (
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className={`mt-4 text-xs font-semibold uppercase tracking-wider hover:underline transition-all duration-300 flex items-center gap-1 ${colors.icon}`}
-        >
-          {isExpanded ? (
-            <>
-              Zobrazit méně <ChevronDown className="w-3 h-3 rotate-180" />
-            </>
-          ) : (
-            <>
-              Zobrazit další <ChevronDown className="w-3 h-3" />
-            </>
-          )}
-        </button>
-      )}
-    </div>
+    <span ref={ref} className="counter-value">
+      {count}
+      {suffix}
+    </span>
   );
 };
 
 export const LandingPage: React.FC = () => {
   const { hash } = useLocation();
-  const { loginAsDemo } = useAuth();
-  const [activePricingPlan, setActivePricingPlan] =
-    useState<string>("Professional");
-  const [activeDemoTab, setActiveDemoTab] = useState<string>("prehled");
+  const { loginAsDemo, user } = useAuth();
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">(
     "monthly",
   );
-  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
-  const handleDemo = () => {
+  const handleDemo = useCallback(() => {
     loginAsDemo();
     navigate("/app", { replace: true });
+  }, [loginAsDemo]);
+
+  const buildCheckoutPath = (tier: "starter" | "pro" | "enterprise") =>
+    `/app/settings?tab=user&subTab=subscription&checkout=true&plan=${tier}&billingPeriod=${billingPeriod}`;
+
+  const buildPricingCtaHref = (tier: "starter" | "pro" | "enterprise") => {
+    const checkoutPath = buildCheckoutPath(tier);
+    if (user) return checkoutPath;
+    return `/register?next=${encodeURIComponent(checkoutPath)}`;
   };
+
+  const scrollToSection = useCallback((id: string) => {
+    const el = document.getElementById(id);
+    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
 
   useEffect(() => {
     if (!hash) return;
@@ -152,767 +85,663 @@ export const LandingPage: React.FC = () => {
     );
   }, [hash]);
 
+  const starterPrice = PRICING_CONFIG.starter.monthlyPrice / 100;
+  const starterYearlyMonthly = Math.round(
+    PRICING_CONFIG.starter.yearlyPrice! / 100 / 12,
+  );
+  const proPrice = PRICING_CONFIG.pro.monthlyPrice / 100;
+  const proYearlyMonthly = Math.round(
+    PRICING_CONFIG.pro.yearlyPrice! / 100 / 12,
+  );
+
   return (
-    <PublicLayout>
-      <PublicHeader variant="marketing" />
-
-      <main className="relative mx-auto max-w-6xl px-4 py-10 md:py-16">
-        <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-gray-950/30 backdrop-blur">
-          {/* Animated Background Elements */}
+    <div className="landing-apex">
+      {/* ═══ NAV ═══ */}
+      <header>
+        <div className="nav-wrap">
           <div
-            className="absolute inset-0"
-            style={{
-              background:
-                "radial-gradient(circle at 15% 25%, rgba(255, 138, 51, 0.18) 0%, transparent 55%), radial-gradient(circle at 70% 10%, rgba(255, 138, 51, 0.10) 0%, transparent 55%), linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(0,0,0,0.0) 45%, rgba(0,0,0,0.25) 100%)",
-            }}
-          />
-
-          {/* Subtle background decoration - no icons overlapping text */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute top-1/4 right-1/4 w-64 h-64 bg-orange-500/5 rounded-full blur-3xl" />
-            <div className="absolute bottom-1/4 left-1/4 w-48 h-48 bg-blue-500/5 rounded-full blur-3xl" />
-          </div>
-
-          <div className="relative p-8 md:p-10">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-              {/* Levy obsah */}
-              <div>
-                <ScrollReveal direction="down" delay={100}>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-white/70 hover:border-orange-500/30 hover:bg-white/10 transition-all duration-300 cursor-default">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
-                    </span>
-                    v{APP_VERSION} • Cloud-based řešení
-                  </div>
-                </ScrollReveal>
-
-                <ScrollReveal delay={200}>
-                  <h1 className="mt-6 text-4xl md:text-6xl font-semibold tracking-tight text-white leading-[1.05]">
-                    Staví se lépe,
-                    <br />
-                    když máte <GradientText>přehled</GradientText>
-                  </h1>
-                </ScrollReveal>
-
-                <ScrollReveal delay={300}>
-                  <p className="mt-4 text-white/65 leading-relaxed text-base md:text-lg max-w-2xl">
-                    Cloud řešení pro řízení výběrových řízení ve stavebnictví.
-                    <br />
-                    Jedno místo pro podklady, nabídky, rozhodnutí a sdílení v týmu.
-                    <br />
-                  </p>
-                </ScrollReveal>
-
-                <ScrollReveal delay={500} direction="up">
-                  <div className="mt-8 flex items-center gap-2 text-white/60">
-                    <Brain className="w-4 h-4 text-orange-400" />
-                    <span className="text-sm">
-                      Čas je mnohdy to nejdražší — snižujeme repetitivní úkony
-                    </span>
-                  </div>
-                </ScrollReveal>
-              </div>
-
-              {/* Pravy obsah - animovane hodiny */}
-              <div className="hidden lg:flex justify-end pt-4">
-                <ScrollReveal direction="left" delay={400}>
-                  <TimeSavingsVisualizer hoursSaved={15} />
-                </ScrollReveal>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section id="demo" className="mt-16 md:mt-24 scroll-mt-24">
-          <ScrollReveal direction="up" delay={200} threshold={0.2}>
-            <div className="rounded-3xl border border-white/10 bg-gray-950/40 backdrop-blur p-6 hover:border-orange-500/20 transition-all duration-500 group">
-              <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-6 group-hover:from-orange-500/5 group-hover:to-transparent transition-all duration-500">
-                {/* Browser window header */}
-                <div className="flex items-center justify-between gap-4 mb-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-red-500/80 group-hover:bg-red-400 transition-colors duration-300" />
-                    <div className="w-3 h-3 rounded-full bg-yellow-500/80 group-hover:bg-yellow-400 transition-colors duration-300" />
-                    <div className="w-3 h-3 rounded-full bg-green-500/80 group-hover:bg-green-400 transition-colors duration-300" />
-                  </div>
-
-                  {/* Tab navigation */}
-                  <div className="flex items-center gap-1 bg-slate-900/50 p-1 rounded-xl border border-white/10 flex-wrap">
-                    {[
-                      {
-                        id: "prehled",
-                        label: "Přehled Poptávek",
-                        icon: "table_chart",
-                      },
-                      {
-                        id: "plan-vr",
-                        label: "Plán VŘ",
-                        icon: "event_note",
-                      },
-                      {
-                        id: "karty",
-                        label: "Výběrová Řízení",
-                        icon: "dashboard",
-                      },
-                      {
-                        id: "kanban",
-                        label: "Kanban Pipeline",
-                        icon: "view_kanban",
-                      },
-                      {
-                        id: "harmonogram",
-                        label: "Harmonogram",
-                        icon: "calendar_month",
-                      },
-                      {
-                        id: "slozkomat",
-                        label: "Složkomat",
-                        icon: "folder_open",
-                      },
-                    ].map((tab) => (
-                      <button
-                        key={tab.id}
-                        type="button"
-                        onClick={() => setActiveDemoTab(tab.id)}
-                        className={`px-3 py-2 rounded-lg text-xs font-medium transition-all duration-300 flex items-center gap-1.5 magnetic-btn ${
-                          activeDemoTab === tab.id
-                            ? "bg-orange-500 text-white shadow-lg shadow-orange-500/30"
-                            : "text-white/60 hover:text-white hover:bg-white/5 hover:scale-105"
-                        }`}
-                      >
-                        <span className="material-symbols-outlined text-[16px] transition-transform duration-300">
-                          {tab.icon}
-                        </span>
-                        <span className="hidden sm:inline">{tab.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Screenshot display */}
-                <div className="mt-4 rounded-xl border border-white/10 bg-slate-950/50 overflow-hidden group-hover:border-orange-500/20 transition-all duration-500">
-                  <div
-                    className="relative w-full overflow-auto max-h-[400px] cursor-zoom-in"
-                    onClick={() => {
-                      const srcMap: Record<string, string> = {
-                        prehled: "/screenshots/prehled-poptavek.png",
-                        "plan-vr": "/screenshots/plán VŘ.png",
-                        karty: "/screenshots/vyberove-rizeni.png",
-                        kanban: "/screenshots/kanban.png",
-                        harmonogram: "/screenshots/harmonogram.png",
-                        slozkomat: "/screenshots/slozkomat.png",
-                      };
-                      setLightboxImage(srcMap[activeDemoTab] || srcMap.prehled);
-                    }}
-                  >
-                    {activeDemoTab === "prehled" && (
-                      <img
-                        src="/screenshots/prehled-poptavek.png"
-                        alt="Přehled poptávek - tabulkové zobrazení všech poptávek s cenami a stavy"
-                        className="w-full h-auto transition-transform duration-700 hover:scale-[1.02]"
-                      />
-                    )}
-                    {activeDemoTab === "plan-vr" && (
-                      <img
-                        src="/screenshots/plán VŘ.png"
-                        alt="Plán výběrových řízení - plánování a přehled termínů výběrových řízení"
-                        className="w-full h-auto transition-transform duration-700 hover:scale-[1.02]"
-                      />
-                    )}
-                    {activeDemoTab === "karty" && (
-                      <img
-                        src="/screenshots/vyberove-rizeni.png"
-                        alt="Výběrová řízení - kartové zobrazení s detaily jednotlivých poptávek"
-                        className="w-full h-auto transition-transform duration-700 hover:scale-[1.02]"
-                      />
-                    )}
-                    {activeDemoTab === "kanban" && (
-                      <img
-                        src="/screenshots/kanban.png"
-                        alt="Kanban pipeline - přehled fází výběrového řízení od oslovení po smlouvu"
-                        className="w-full h-auto transition-transform duration-700 hover:scale-[1.02]"
-                      />
-                    )}
-                    {activeDemoTab === "harmonogram" && (
-                      <img
-                        src="/screenshots/harmonogram.png"
-                        alt="Harmonogram - Ganttův diagram s přehledem termínů výběrových řízení"
-                        className="w-full h-auto transition-transform duration-700 hover:scale-[1.02]"
-                      />
-                    )}
-                    {activeDemoTab === "slozkomat" && (
-                      <img
-                        src="/screenshots/slozkomat.png"
-                        alt="Složkomat - propojení s Google Drive a OneDrive pro správu dokumentů"
-                        className="w-full h-auto transition-transform duration-700 hover:scale-[1.02]"
-                      />
-                    )}
-                    <div className="absolute bottom-2 right-2 bg-black/60 text-white/80 text-xs px-2 py-1 rounded-lg flex items-center gap-1 group-hover:bg-orange-500/80 group-hover:text-white transition-all duration-300">
-                      <span className="material-symbols-outlined text-[14px]">
-                        zoom_in
-                      </span>
-                      Kliknutím zvětšíte
-                    </div>
-                  </div>
-                </div>
-
-                {/* Caption */}
-                <div className="mt-4 flex items-center justify-between text-sm text-white/60">
-                  <span>
-                    {activeDemoTab === "prehled" &&
-                      "Přehledná tabulka všech poptávek s cenami, stavy a smlouvami"}
-                    {activeDemoTab === "plan-vr" &&
-                      "Plánování výběrových řízení s přehledem termínů a milníků"}
-                    {activeDemoTab === "karty" &&
-                      "Kartové zobrazení výběrových řízení s rychlým přehledem stavu"}
-                    {activeDemoTab === "kanban" &&
-                      "Kanban pipeline pro vizuální sledování průběhu výběrového řízení"}
-                    {activeDemoTab === "harmonogram" &&
-                      "Ganttův diagram s přehledem termínů a exportem do XLSX/PDF"}
-                    {activeDemoTab === "slozkomat" &&
-                      "Napojení na Google Drive a OneDrive pro automatickou správu dokumentů"}
-                  </span>
-                  <span className="text-xs text-white/40">
-                    Tender Flow v{APP_VERSION}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </ScrollReveal>
-        </section>
-
-        {/* HIDDEN: Solution section - uncomment to restore
-        <section id="solution" className="mt-16 md:mt-24 scroll-mt-24">
-          <ScrollReveal direction="up" threshold={0.1}>
-            <div className="text-center mb-10">
-              <h2 className="text-3xl md:text-4xl font-semibold text-white tracking-tight">
-                Proč <GradientText>Tender Flow</GradientText>?
-              </h2>
-              <p className="mt-3 text-white/60 max-w-2xl mx-auto">
-                Srovnání tradičního přístupu s moderním řešením
-              </p>
-            </div>
-          </ScrollReveal>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ScrollReveal direction="left" threshold={0.2}>
-              <div className="relative rounded-3xl border border-white/10 bg-gray-950/40 backdrop-blur p-8 h-full hover:border-white/20 transition-all duration-500 group overflow-hidden">
-                <div className="relative">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center">
-                      <X className="w-5 h-5 text-white/60" />
-                    </div>
-                    <div className="text-xl font-semibold text-white/80 group-hover:text-white transition-colors duration-300">
-                      Bez Tender Flow
-                    </div>
-                  </div>
-
-                  <ul className="space-y-3">
-                    {[
-                      "Excel/Sheets pro každý projekt zvlášť",
-                      "Nabídky rozházené po e-mailech",
-                      "Ruční porovnávání cen a variant",
-                      "Nejasný stav poptávek a termínů",
-                      "Ruční sumarizace dat a reporty",
-                      "Chaotické složky s různou strukturou",
-                      "Ruční tvorba a úpravy harmonogramu",
-                    ].map((text, i) => (
-                      <li
-                        key={i}
-                        className="flex items-start gap-3 text-white/50 group-hover:text-white/60 transition-all duration-300"
-                      >
-                        <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-white/30 shrink-0" />
-                        <span className="text-sm">{text}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </ScrollReveal>
-
-            <ScrollReveal direction="right" threshold={0.2} delay={100}>
-              <div className="relative rounded-3xl border border-orange-500/20 bg-gradient-to-br from-orange-500/10 via-gray-950/40 to-gray-950/60 backdrop-blur p-8 h-full hover:border-orange-500/40 hover:shadow-lg hover:shadow-orange-500/10 transition-all duration-500 group overflow-hidden">
-                <div className="absolute -top-20 -right-20 w-40 h-40 bg-orange-500/20 rounded-full blur-3xl group-hover:bg-orange-500/30 transition-all duration-500" />
-
-                <div className="relative">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-xl bg-orange-500/20 border border-orange-500/30 flex items-center justify-center">
-                      <Check className="w-5 h-5 text-orange-400" />
-                    </div>
-                    <div className="text-xl font-semibold text-white group-hover:text-orange-100 transition-colors duration-300">
-                      S Tender Flow
-                    </div>
-                  </div>
-
-                  <ul className="space-y-3">
-                    {[
-                      "Vše na jednom místě v cloudu",
-                      "Šablony a jednotný výstup poptávek",
-                      "Plánování výběrových řízení",
-                      "Automatická tvorba poptávek",
-                      "Auto-generovaný harmonogram",
-                      "Přehledný tok od plánu po vyhodnocení",
-                      "Rychlé sdílení kontextu v týmu",
-                      "Export/report jedním klikem",
-                      "Hodnocení dodavatelů",
-                      "Dynamické šablony s vlastním editorem",
-                    ].map((text, i) => (
-                      <li
-                        key={i}
-                        className="flex items-start gap-3 text-white/70 group-hover:text-white/80 transition-all duration-300"
-                        style={{ transitionDelay: `${i * 50}ms` }}
-                      >
-                        <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-orange-400 shrink-0" />
-                        <span className="text-sm font-medium">{text}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </ScrollReveal>
-          </div>
-        </section>
-        END HIDDEN */}
-
-        <section id="features" className="mt-16 md:mt-24 scroll-mt-24">
-          <ScrollReveal direction="up" threshold={0.1}>
-            <div className="text-center mb-10">
-              <h2 className="text-3xl md:text-4xl font-semibold text-white tracking-tight">
-                Vše, co potřebujete <GradientText>na jednom místě</GradientText>
-              </h2>
-              <p className="mt-3 text-white/60 max-w-2xl mx-auto">
-                Kompletní řešení pro správu výběrových řízení od plánování po
-                vyhodnocení
-              </p>
-            </div>
-          </ScrollReveal>
-
-          <ScrollReveal direction="up" delay={200} threshold={0.1}>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 auto-rows-[180px]">
-              {/* Row 1 */}
-              <div className="md:col-span-2 group relative rounded-2xl border border-orange-500/20 bg-gradient-to-br from-orange-500/10 to-gray-950/40 backdrop-blur p-6 transition-all duration-500 hover:-translate-y-1 hover:shadow-xl hover:shadow-orange-500/10 hover:border-orange-500/40">
-                <div className="w-10 h-10 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:bg-orange-500/30">
-                  <LayoutDashboard size={24} />
-                </div>
-                <h3 className="mt-4 text-white font-semibold group-hover:text-orange-200 transition-colors duration-300">
-                  Dashboard a přehledy
-                </h3>
-                <p className="mt-2 text-white/60 text-sm leading-relaxed group-hover:text-white/70 transition-colors duration-300">
-                  Aktuální stav zakázek, pipeline a rychlé akce bez zbytečného
-                  hledání.
-                </p>
-              </div>
-
-              <div className="group relative rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-500/10 to-gray-950/40 backdrop-blur p-6 transition-all duration-500 hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-500/10 hover:border-blue-500/40">
-                <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:bg-blue-500/30">
-                  <FileText size={24} />
-                </div>
-                <h3 className="mt-4 text-white font-semibold group-hover:text-blue-200 transition-colors duration-300">
-                  Dokumenty
-                </h3>
-                <p className="mt-2 text-white/60 text-sm leading-relaxed group-hover:text-white/70 transition-colors duration-300">
-                  Nabídky, podklady a exporty na jednom místě.
-                </p>
-              </div>
-
-              <div className="group relative rounded-2xl border border-purple-500/20 bg-gradient-to-br from-purple-500/10 to-gray-950/40 backdrop-blur p-6 transition-all duration-500 hover:-translate-y-1 hover:shadow-xl hover:shadow-purple-500/10 hover:border-purple-500/40">
-                <div className="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:bg-purple-500/30">
-                  <Users size={24} />
-                </div>
-                <h3 className="mt-4 text-white font-semibold group-hover:text-purple-200 transition-colors duration-300">
-                  Kontakty
-                </h3>
-                <p className="mt-2 text-white/60 text-sm leading-relaxed group-hover:text-white/70 transition-colors duration-300">
-                  Historie spolupráce a rychlý výběr.
-                </p>
-              </div>
-
-              {/* Row 2 */}
-              <div className="group relative rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 to-gray-950/40 backdrop-blur p-6 transition-all duration-500 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-500/10 hover:border-emerald-500/40">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:bg-emerald-500/30">
-                  <ShieldCheck size={24} />
-                </div>
-                <h3 className="mt-4 text-white font-semibold group-hover:text-emerald-200 transition-colors duration-300">
-                  Bezpečnost
-                </h3>
-                <p className="mt-2 text-white/60 text-sm leading-relaxed group-hover:text-white/70 transition-colors duration-300">
-                  Přístupová práva podle firmy.
-                </p>
-              </div>
-
-              <div className="md:col-span-2 group relative rounded-2xl border border-orange-500/20 bg-gradient-to-br from-orange-500/10 to-gray-950/40 backdrop-blur p-6 transition-all duration-500 hover:-translate-y-1 hover:shadow-xl hover:shadow-orange-500/10 hover:border-orange-500/40">
-                <div className="w-10 h-10 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:bg-orange-500/30">
-                  <Sparkles size={24} />
-                </div>
-                <h3 className="mt-4 text-white font-semibold group-hover:text-orange-200 transition-colors duration-300">
-                  Harmonogram
-                </h3>
-                <p className="mt-2 text-white/60 text-sm leading-relaxed group-hover:text-white/70 transition-colors duration-300">
-                  Generuje se sám na základě dat v plánu výběrů subdodavatelů.
-                  Základ snadno upravujete.
-                </p>
-              </div>
-
-              <div className="group relative rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-500/10 to-gray-950/40 backdrop-blur p-6 transition-all duration-500 hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-500/10 hover:border-blue-500/40">
-                <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:bg-blue-500/30">
-                  <Settings size={24} />
-                </div>
-                <h3 className="mt-4 text-white font-semibold group-hover:text-blue-200 transition-colors duration-300">
-                  Nástroje
-                </h3>
-                <p className="mt-2 text-white/60 text-sm leading-relaxed group-hover:text-white/70 transition-colors duration-300">
-                  Excel nástroje pro rychlejší práci.
-                </p>
-              </div>
-
-              {/* Row 3 */}
-              <div className="md:col-span-2 group relative rounded-2xl border border-purple-500/20 bg-gradient-to-br from-purple-500/10 to-gray-950/40 backdrop-blur p-6 transition-all duration-500 hover:-translate-y-1 hover:shadow-xl hover:shadow-purple-500/10 hover:border-purple-500/40">
-                <div className="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:bg-purple-500/30">
-                  <ScanText size={24} />
-                </div>
-                <h3 className="mt-4 text-white font-semibold group-hover:text-purple-200 transition-colors duration-300">
-                  OCR dokumenty
-                </h3>
-                <p className="mt-2 text-white/60 text-sm leading-relaxed group-hover:text-white/70 transition-colors duration-300">
-                  Vytěžování dokumentů pomocí technologie OCR a AI pro další
-                  zpracování.
-                </p>
-              </div>
-
-              <div className="md:col-span-2 group relative rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-gray-950/40 backdrop-blur p-6 transition-all duration-500 hover:-translate-y-1 hover:shadow-xl hover:border-white/20">
-                <div className="h-full flex flex-col justify-center items-center text-center">
-                  <div className="w-12 h-12 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center mb-3">
-                    <Check size={24} />
-                  </div>
-                  <h3 className="text-white font-semibold">
-                    A mnoho dalšího...
-                  </h3>
-                  <p className="mt-1 text-white/50 text-sm">
-                    Objevte všechny funkce v demo verzi
-                  </p>
-                </div>
-              </div>
-            </div>
-          </ScrollReveal>
-        </section>
-
-        <section id="pricing" className="mt-16 md:mt-24 scroll-mt-24">
-          {/* Billing period toggle */}
-          <ScrollReveal direction="down" threshold={0.3}>
-            <div className="flex justify-center mb-8">
-              <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-white/5 border border-white/10 hover:border-orange-500/20 transition-all duration-300">
-                <button
-                  type="button"
-                  onClick={() => setBillingPeriod("monthly")}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 magnetic-btn ${
-                    billingPeriod === "monthly"
-                      ? "bg-orange-500 text-white shadow-lg shadow-orange-500/30"
-                      : "text-white/60 hover:text-white hover:bg-white/5"
-                  }`}
-                >
-                  Měsíčně
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setBillingPeriod("yearly")}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 magnetic-btn flex items-center gap-2 ${
-                    billingPeriod === "yearly"
-                      ? "bg-orange-500 text-white shadow-lg shadow-orange-500/30"
-                      : "text-white/60 hover:text-white hover:bg-white/5"
-                  }`}
-                >
-                  Ročně
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 animate-pulse">
-                    2 měsíce zdarma
-                  </span>
-                </button>
-              </div>
-            </div>
-          </ScrollReveal>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {Object.values(PRICING_CONFIG).map((p: any, i) => {
-              const isActive = activePricingPlan === p.title || !!p.featured;
-
-              // Helper for dynamic classes based on accent color
-              const getAccentClasses = () => {
-                switch (p.accent) {
-                  case "sky":
-                    return {
-                      border: "border-sky-500/20 hover:border-sky-500/40",
-                      bg: "from-sky-500/10",
-                      text: "text-sky-400",
-                      pill: "bg-sky-500/10 text-sky-400 border-sky-500/20",
-                      icon: "text-sky-500",
-                      btn: "bg-sky-500 hover:bg-sky-600 shadow-sky-500/20",
-                      btnText: "text-white",
-                    };
-                  case "orange":
-                    return {
-                      border: "border-orange-500/20 hover:border-orange-500/40",
-                      bg: "from-orange-500/10",
-                      text: "text-orange-400",
-                      pill: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-                      icon: "text-orange-500",
-                      btn: "bg-orange-500 hover:bg-orange-600 shadow-orange-500/20",
-                      btnText: "text-white",
-                    };
-                  case "emerald":
-                    return {
-                      border:
-                        "border-emerald-500/20 hover:border-emerald-500/40",
-                      bg: "from-emerald-500/10",
-                      text: "text-emerald-400",
-                      pill: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-                      icon: "text-emerald-500",
-                      btn: "border border-emerald-500/30 hover:bg-emerald-500/10",
-                      btnText: "text-emerald-400",
-                    };
-                  default:
-                    return {
-                      border: "border-white/10 hover:border-white/20",
-                      bg: "from-white/5",
-                      text: "text-white",
-                      pill: "bg-white/10 text-white",
-                      icon: "text-white",
-                      btn: "bg-white/10 hover:bg-white/20",
-                      btnText: "text-white",
-                    };
-                }
-              };
-
-              const colors = getAccentClasses();
-
-              // Determine price label
-              let priceLabel = "/měsíc";
-              if (p.monthlyPrice === null) priceLabel = "individuálně";
-
-              return (
-                <ScrollReveal
-                  key={p.title}
-                  direction="up"
-                  delay={i * 150}
-                  threshold={0.1}
-                  className="h-full"
-                >
-                  <div
-                    className={[
-                      "group relative rounded-3xl border backdrop-blur p-8 flex flex-col h-full transition-all duration-300 transform-gpu bg-gray-950/40",
-                      "hover:-translate-y-1 hover:scale-[1.01] active:scale-[0.99] hover:shadow-2xl hover:shadow-black/40",
-                      colors.border,
-                      p.featured
-                        ? "bg-gradient-to-br " +
-                          colors.bg +
-                          " via-gray-950/40 to-transparent"
-                        : "",
-                    ].join(" ")}
-                    onMouseEnter={() => setActivePricingPlan(p.title)}
-                    onFocus={() => setActivePricingPlan(p.title)}
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      {/* Title with Icon */}
-                      <div className="flex items-center gap-3">
-                        {p.accent === "sky" && (
-                          <Zap
-                            className={`w-5 h-5 ${colors.icon} fill-current opacity-80`}
-                          />
-                        )}
-                        {p.accent === "orange" && (
-                          <Zap
-                            className={`w-5 h-5 ${colors.icon} fill-current opacity-80`}
-                          />
-                        )}
-                        {p.accent === "emerald" && (
-                          <Shield
-                            className={`w-5 h-5 ${colors.icon} fill-current opacity-80`}
-                          />
-                        )}
-                        <div className="text-white font-bold tracking-wide uppercase text-sm">
-                          {p.title}
-                        </div>
-                      </div>
-
-                      {/* Badges */}
-                      <div className="flex items-center gap-2">
-                        {p.trialDurationDays && (
-                          <div
-                            className={`shrink-0 text-[10px] font-bold uppercase tracking-wider rounded-lg px-2 py-1 border ${colors.pill}`}
-                          >
-                            {p.trialDurationDays} dní zdarma
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="mt-6 flex items-end gap-2">
-                      {p.monthlyPrice !== null ? (
-                        <div className="flex flex-col items-start w-full">
-                          {billingPeriod === "yearly" && (
-                            <span className="text-lg font-medium text-slate-500 line-through decoration-slate-500/50 mb-0.5 ml-1">
-                              {p.monthlyPrice / 100} Kč
-                            </span>
-                          )}
-                          <div className="flex items-baseline gap-1.5">
-                            <span className="text-5xl font-black text-white tracking-tighter">
-                              {billingPeriod === "monthly"
-                                ? `${p.monthlyPrice / 100} Kč`
-                                : `${Math.round(p.yearlyPrice / 100 / 12)} Kč`}
-                            </span>
-                            <span className="text-sm font-bold text-slate-500 uppercase tracking-wider">
-                              /m
-                            </span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-start pt-2">
-                          <div className="flex items-baseline gap-1.5">
-                            <span className="text-5xl font-black text-white tracking-tight">
-                              Na míru
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    {/* Placeholder for spacing stability if needed, or remove */}
-                    <div className="h-4"></div>
-
-                    <PricingFeatureList features={p.features} colors={colors} />
-
-                    <div className="mt-auto pt-8">
-                      {p.cta.isMailto ? (
-                        <a
-                          href={p.cta.href}
-                          className={`inline-flex w-full h-12 items-center justify-center px-5 rounded-xl text-sm font-bold transition-all duration-300 ${colors.btn} ${colors.btnText}`}
-                        >
-                          {p.cta.label}
-                        </a>
-                      ) : (
-                        <Link
-                          to={p.cta.href}
-                          className={`inline-flex w-full h-12 items-center justify-center px-5 rounded-xl text-sm font-bold transition-all duration-300 shadow-lg ${colors.btn} ${colors.btnText}`}
-                        >
-                          {p.cta.label}
-                        </Link>
-                      )}
-                    </div>
-                  </div>
-                </ScrollReveal>
-              );
-            })}
-          </div>
-          <p className="mt-6 text-center text-xs text-white/55">
-            Platby běží přes Stripe. Apple Pay / Google Pay se zobrazí
-            automaticky podle zařízení a prohlížeče.
-          </p>
-        </section>
-
-        <section className="mt-16 md:mt-24">
-          <ScrollReveal direction="scale" threshold={0.5}>
-            <div className="group rounded-[32px] border border-white/10 bg-gradient-to-br from-gray-950 via-gray-950/60 to-gray-950 p-10 md:p-16 text-center relative overflow-hidden hover:border-orange-500/30 transition-all duration-700">
-              {/* Animated background glow */}
-              <div
-                className="absolute inset-0 opacity-60 group-hover:opacity-100 transition-opacity duration-700"
-                style={{
-                  background:
-                    "radial-gradient(circle at 30% 20%, rgba(255, 138, 51, 0.25) 0%, transparent 55%), radial-gradient(circle at 80% 70%, rgba(255, 138, 51, 0.15) 0%, transparent 55%)",
-                }}
-              />
-              {/* Shimmer effect overlay */}
-              <div className="absolute inset-0 shimmer-effect opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-              <div className="relative">
-                <h2 className="text-3xl md:text-5xl font-semibold tracking-tight text-white leading-tight group-hover:scale-[1.02] transition-transform duration-500">
-                  Připraveni změnit způsob,
-                  <br className="hidden md:block" />
-                  jakým řídíte <GradientText>výběrová řízení</GradientText>?
-                </h2>
-                <p className="mt-4 text-white/60 group-hover:text-white/70 transition-colors duration-300">
-                  Začněte zdarma s demo projektem. Žádná kreditní karta není
-                  potřeba.
-                </p>
-                <div className="mt-8 flex justify-center">
-                  <Link
-                    to="/register"
-                    className="magnetic-btn inline-flex items-center justify-center px-7 py-3.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-medium transition-all duration-300 shadow-lg shadow-orange-500/20 hover:shadow-orange-500/40 hover:scale-105"
-                  >
-                    Začít hned teď →
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </ScrollReveal>
-        </section>
-
-        <footer className="mt-10 pb-10 border-t border-white/10 pt-8 text-sm text-white/50 text-center hover:border-orange-500/20 transition-colors duration-500">
-          <div className="hover:text-white/70 transition-colors duration-300">
-            © {new Date().getFullYear()} Tender Flow • v{APP_VERSION}
-          </div>
-          <div className="mt-3 flex flex-wrap items-center justify-center gap-4 text-white/60">
-            <Link
-              to="/terms"
-              className="hover:text-white transition-colors duration-300"
-            >
-              Podmínky užívání
-            </Link>
-            <Link
-              to="/privacy"
-              className="hover:text-white transition-colors duration-300"
-            >
-              Ochrana osobních údajů
-            </Link>
-            <Link
-              to="/cookies"
-              className="hover:text-white transition-colors duration-300"
-            >
-              Cookies
-            </Link>
-            <Link
-              to="/dpa"
-              className="hover:text-white transition-colors duration-300"
-            >
-              DPA
-            </Link>
-            <Link
-              to="/imprint"
-              className="hover:text-white transition-colors duration-300"
-            >
-              Provozovatel
-            </Link>
-          </div>
-          <div className="mt-2 text-white/40 hover:text-white/50 transition-colors duration-300">
-            Cloud řešení pro správu výběrových řízení ve stavebnictví
-          </div>
-          <p className="mt-3 mx-auto max-w-3xl text-xs text-white/40 leading-relaxed">
-            Neprovádíme obsahovou kontrolu uživatelských dat. Pro zajištění
-            stability, bezpečnosti a funkčnosti aplikace zpracováváme pouze
-            nezbytné technické provozní a incident logy, které slouží výhradně
-            k diagnostice chyb a ochraně služby podle GDPR. Podrobnosti najdete
-            v sekci Ochrana osobních údajů.
-          </p>
-        </footer>
-      </main>
-
-      {/* Lightbox Modal */}
-      {lightboxImage && (
-        <div
-          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 cursor-zoom-out"
-          onClick={() => setLightboxImage(null)}
-        >
-          <button
-            type="button"
-            onClick={() => setLightboxImage(null)}
-            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+            className="logo-group"
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           >
-            <span className="material-symbols-outlined">close</span>
-          </button>
-          <img
-            src={lightboxImage}
-            alt="Zvětšený screenshot aplikace"
-            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          />
+            <img src={logo} alt="TenderFlow" className="logo-img" />
+            <div className="logo-text">
+              TenderFlow
+            </div>
+          </div>
+          <nav className="nav-center">
+            <a onClick={() => scrollToSection("funkce")}>Funkce</a>
+            <a onClick={() => scrollToSection("platforma")}>Platforma</a>
+            <a onClick={() => scrollToSection("ceny")}>Cen&iacute;k</a>
+            <a onClick={() => scrollToSection("reference")}>Reference</a>
+          </nav>
+          <div className="nav-right">
+            <button className="btn-login" onClick={() => navigate("/login")}>
+              Přihl&aacute;sit se
+            </button>
+            <button
+              className="btn-start"
+              onClick={() => navigate("/register")}
+            >
+              Začít zdarma
+            </button>
+          </div>
         </div>
-      )}
-    </PublicLayout>
+      </header>
+
+      {/* ═══ HERO ═══ */}
+      <section className="hero">
+        <div className="hero-grid" />
+        <div className="hero-line" />
+        <div className="hero-line" />
+        <div className="hero-line" />
+        <div className="hero-line" />
+        <div className="hero-content">
+          <div className="hero-badge">
+            <span>AI-powered spr&aacute;va tendrů</span>
+            <span className="badge-new">Nov&eacute;</span>
+          </div>
+          <h1>
+            Stavebn&iacute; tendry,
+            <br />
+            <span className="serif">přehledně.</span>
+          </h1>
+          <p className="hero-sub">
+            Kompletn&iacute; platforma pro ř&iacute;zen&iacute;
+            nab&iacute;dkov&yacute;ch ř&iacute;zen&iacute;, subdodavatelů a
+            projektov&eacute; dokumentace. Od správy kontaktů k poptávce až po zápisy, přehledy a smlouvy.
+          </p>
+          <div className="hero-actions">
+            <button
+              className="btn-hero-primary"
+              onClick={() => navigate("/register")}
+            >
+              Vyzkoušet 14 dn&iacute; zdarma
+            </button>
+            <button className="btn-hero-secondary" onClick={handleDemo}>
+              Prohl&eacute;dnout demo →
+            </button>
+          </div>
+          <div className="social-strip">
+            <div className="social-text">
+              Platforma pro efektivn&iacute; ř&iacute;zen&iacute; tendrů
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ MARQUEE ═══ */}
+      <div className="marquee-section">
+        <div className="marquee-track">
+          {[
+            "Pipeline tendrů",
+            "Správa kontaktů",
+            "AI analýza smluv",
+            "Dokumentový hub",
+            "Harmonogram",
+            "Excel nástroje",
+            "Desktop & Web",
+            "Reporting",
+          ]
+            .concat([
+              "Pipeline tendrů",
+              "Správa kontaktů",
+              "AI analýza smluv",
+              "Dokumentový hub",
+              "Harmonogram",
+              "Excel nástroje",
+              "Desktop & Web",
+              "Reporting",
+            ])
+            .map((item, i) => (
+              <div key={i} className="marquee-item">
+                {item}
+              </div>
+            ))}
+        </div>
+      </div>
+
+      {/* ═══ FEATURES ═══ */}
+      <section id="funkce">
+        <div className="container">
+          <div className="sec-label">Funkce</div>
+          <h2 className="sec-title">
+            Vše co potřebujete pro <span className="serif">Vaše v&iacute;tězstv&iacute;</span>
+          </h2>
+          <p className="sec-desc">
+            Šest modulů navržen&yacute;ch specificky pro česk&eacute; a
+            slovensk&eacute; stavebn&iacute; firmy.
+          </p>
+
+          <div className="f-bento">
+            <div className="f-card f-1">
+              <div className="f-tag">Kl&iacute;čov&yacute; modul</div>
+              <h3>Inteligentn&iacute; pipeline tendrů</h3>
+              <p>
+                Vizu&aacute;ln&iacute; Kanban board se sledov&aacute;n&iacute;m
+                f&aacute;z&iacute;, automatick&yacute;mi notifikacemi a
+                deadliny. Vid&iacute;te přesně kde jsou vaše nab&iacute;dky v
+                re&aacute;ln&eacute;m čase.
+              </p>
+              <div className="f-mini-dash">
+                <div className="mini-stats">
+                  <div className="mini-stat">
+                    <div className="val orange">24</div>
+                    <div className="lbl">Aktivn&iacute;</div>
+                  </div>
+                  <div className="mini-stat">
+                    <div className="val green">87%</div>
+                    <div className="lbl">Win rate</div>
+                  </div>
+                  <div className="mini-stat">
+                    <div className="val">12.4M</div>
+                    <div className="lbl">Objem Kč</div>
+                  </div>
+                </div>
+                <div className="mini-bars">
+                  <div />
+                  <div />
+                  <div />
+                  <div />
+                  <div />
+                  <div />
+                  <div />
+                  <div />
+                  <div />
+                  <div />
+                </div>
+              </div>
+            </div>
+            <div className="f-card f-2">
+              <div className="f-tag">AI</div>
+              <h3>OCR čten&iacute; objedn&aacute;vek, smluv</h3>
+              <p>
+                Pomoc&iacute; AI je zajištěno čten&iacute; naskenovan&yacute;ch
+                dokumentů pro z&iacute;sk&aacute;n&iacute; parametrů. Buduje
+                přehled o parametrech subdod&aacute;vek pro stavbu.
+                &Uacute;spora času proti proč&iacute;t&aacute;n&iacute;
+                naskenovan&yacute;ch dokumentů.
+              </p>
+            </div>
+            <div className="f-card f-3">
+              <h3>CRM kontakty</h3>
+              <p>
+                360° pohled na subdodavatele — historie, hodnocen&iacute;,
+                nab&iacute;dky, kontaktn&iacute; osoby. Auto doplňov&aacute;n&iacute;
+                informac&iacute; o dodavateli z veřejně dostupn&yacute;ch
+                rejstř&iacute;ků dle zad&aacute;n&iacute; IČ.
+              </p>
+            </div>
+            <div className="f-card f-4">
+              <h3>Složkomat</h3>
+              <p>
+                Centralizovan&eacute; dokumenty s automatickou strukturou.
+                Google Drive, OneDrive nebo lok&aacute;ln&iacute; disk.
+              </p>
+            </div>
+            <div className="f-card f-5">
+              <h3>Harmonogram</h3>
+              <p>
+                Ganttův diagram s miln&iacute;ky, z&aacute;vislostmi a
+                t&yacute;movou kolaborac&iacute; v re&aacute;ln&eacute;m čase.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ PLATFORM ═══ */}
+      <section id="platforma" className="platform-section">
+        <div className="container">
+          <div className="platform-split">
+            <div className="platform-text">
+              <div className="sec-label">Platforma</div>
+              <h2 className="sec-title">
+                Navrženo pro stavebn&iacute;{" "}
+                <span className="serif">profesion&aacute;ly</span>
+              </h2>
+              <p className="sec-desc">
+                Dashboard, kter&yacute; ukazuje přesně to, co potřebujete. Web
+                i desktop verze se synchronizuj&iacute; v re&aacute;ln&eacute;m
+                čase.
+              </p>
+              <ul className="check-list">
+                <li>
+                  <div className="check-icon">&#10003;</div>
+                  <span>
+                    <strong>Neomezen&eacute; projekty</strong> — spravujte
+                    cel&eacute; portfolio z jednoho m&iacute;sta
+                  </span>
+                </li>
+                <li>
+                  <div className="check-icon">&#10003;</div>
+                  <span>
+                    <strong>Real-time synchronizace</strong> — v&aacute;š
+                    t&yacute;m vid&iacute; změny okamžitě
+                  </span>
+                </li>
+                <li>
+                  <div className="check-icon">&#10003;</div>
+                  <span>
+                    <strong>Export jedn&iacute;m klikem</strong> — PDF, Excel,
+                    CSV pro vaše reporty
+                  </span>
+                </li>
+                <li>
+                  <div className="check-icon">&#10003;</div>
+                  <span>
+                    <strong>Desktop & Web</strong> — nativn&iacute; Electron
+                    app + plnohodnotn&yacute; web
+                  </span>
+                </li>
+                <li>
+                  <div className="check-icon">&#10003;</div>
+                  <span>
+                    <strong>GDPR & bezpečnost</strong> — RLS,
+                    šifrov&aacute;n&iacute; dat, compliance
+                  </span>
+                </li>
+              </ul>
+            </div>
+            <div className="app-frame">
+              <div className="app-titlebar">
+                <div className="app-dot app-dot-r" />
+                <div className="app-dot app-dot-y" />
+                <div className="app-dot app-dot-g" />
+                <div className="app-titlebar-text">
+                  TenderFlow — Dashboard
+                </div>
+                <div />
+              </div>
+              <div className="app-body">
+                <div className="app-sidebar">
+                  <div className="app-nav-item active">
+                    <span className="dot" /> Dashboard
+                  </div>
+                  <div className="app-nav-item">
+                    <span className="dot" /> Projekty
+                  </div>
+                  <div className="app-nav-item">
+                    <span className="dot" /> Pipeline
+                  </div>
+                  <div className="app-nav-item">
+                    <span className="dot" /> Kontakty
+                  </div>
+                  <div className="app-nav-item">
+                    <span className="dot" /> Dokumenty
+                  </div>
+                  <div className="app-nav-item">
+                    <span className="dot" /> Harmonogram
+                  </div>
+                  <div className="app-nav-item">
+                    <span className="dot" /> Nastaven&iacute;
+                  </div>
+                </div>
+                <div className="app-main">
+                  <div className="app-header-row">
+                    <div className="app-page-title">Přehled</div>
+                    <div className="app-mini-btn">+ Nov&yacute; projekt</div>
+                  </div>
+                  <div className="app-kpi-row">
+                    <div className="app-kpi">
+                      <div className="kv o">24</div>
+                      <div className="kl">Aktivn&iacute; tendry</div>
+                    </div>
+                    <div className="app-kpi">
+                      <div className="kv g">87%</div>
+                      <div className="kl">Win rate</div>
+                    </div>
+                    <div className="app-kpi">
+                      <div className="kv">12.4M</div>
+                      <div className="kl">Objem Kč</div>
+                    </div>
+                  </div>
+                  <div className="app-kanban">
+                    <div className="kanban-col">
+                      <div className="kanban-header">
+                        Nov&eacute; <span className="count">3</span>
+                      </div>
+                      <div className="kanban-card">
+                        <div className="kc-title">
+                          Bytov&yacute; dům Vinohrady
+                        </div>
+                        4.2M Kč
+                        <div className="kc-tag orange">Odesl&aacute;no</div>
+                      </div>
+                      <div className="kanban-card">
+                        <div className="kc-title">Admin budova</div>
+                        1.8M Kč
+                        <div className="kc-tag blue">Rozpracovan&eacute;</div>
+                      </div>
+                    </div>
+                    <div className="kanban-col">
+                      <div className="kanban-header">
+                        Nab&iacute;dka <span className="count">5</span>
+                      </div>
+                      <div className="kanban-card">
+                        <div className="kc-title">Hotel Centrum</div>
+                        8.5M Kč
+                        <div className="kc-tag orange">14 dn&iacute;</div>
+                      </div>
+                      <div className="kanban-card">
+                        <div className="kc-title">Škola Barrandov</div>
+                        3.1M Kč
+                        <div className="kc-tag green">Odesl&aacute;no</div>
+                      </div>
+                    </div>
+                    <div className="kanban-col">
+                      <div className="kanban-header">
+                        Vyjedn&aacute;v&aacute;n&iacute;{" "}
+                        <span className="count">2</span>
+                      </div>
+                      <div className="kanban-card">
+                        <div className="kc-title">Retail park</div>
+                        12M Kč
+                        <div className="kc-tag green">Fin&aacute;ln&iacute;</div>
+                      </div>
+                    </div>
+                    <div className="kanban-col">
+                      <div className="kanban-header">
+                        V&yacute;hra <span className="count">4</span>
+                      </div>
+                      <div className="kanban-card">
+                        <div className="kc-title">
+                          Logistick&eacute; centrum
+                        </div>
+                        22M Kč
+                        <div className="kc-tag green">Podeps&aacute;no</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ PRICING ═══ */}
+      <section id="ceny">
+        <div className="pricing-container">
+          <div style={{ textAlign: "center" }}>
+            <div className="sec-label" style={{ justifyContent: "center" }}>
+              Cen&iacute;k
+            </div>
+            <h2
+              className="sec-title"
+              style={{ margin: "0 auto 0.75rem" }}
+            >
+              Transparentn&iacute; ceny,{" "}
+              <span className="serif">
+                ž&aacute;dn&eacute; skryt&eacute; poplatky
+              </span>
+            </h2>
+            <p
+              className="sec-desc"
+              style={{ margin: "0 auto 2rem", textAlign: "center" }}
+            >
+              Zrušen&iacute; kdykoliv. Platba kartou, Apple Pay, Google Pay
+              a bankovn&iacute;m převodem.
+            </p>
+          </div>
+          <div className="pricing-toggle">
+            <div className="toggle-wrap">
+              <button
+                className={`toggle-btn${billingPeriod === "monthly" ? " active" : ""}`}
+                onClick={() => setBillingPeriod("monthly")}
+              >
+                Měs&iacute;čně
+              </button>
+              <button
+                className={`toggle-btn${billingPeriod === "yearly" ? " active" : ""}`}
+                onClick={() => setBillingPeriod("yearly")}
+              >
+                Ročně
+              </button>
+            </div>
+            <span className="save-badge">2 měs&iacute;ce zdarma</span>
+          </div>
+          <div className="pricing-grid">
+            {/* Starter */}
+            <div className="price-card">
+              <div className="price-tier">
+                <div className="tier-icon starter">&#9889;</div>
+                <div className="tier-name">Starter</div>
+              </div>
+              <div className="price-amount">
+                {billingPeriod === "monthly" ? starterPrice : starterYearlyMonthly}
+                <span className="currency">Kč</span>
+                <span className="period">/m</span>
+              </div>
+              <div className="price-desc">Pro jednotlivce a mal&eacute; t&yacute;my</div>
+              <div className="price-divider" />
+              <ul className="price-features">
+                {PRICING_CONFIG.starter.features.map((f) => (
+                  <li key={f}>
+                    <span className="pf-check on">&#10003;</span> {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Pro */}
+            <div className="price-card popular">
+              <div className="popular-badge">14 dn&iacute; zdarma</div>
+              <div className="price-tier">
+                <div className="tier-icon pro">&#9889;</div>
+                <div className="tier-name">Pro</div>
+              </div>
+              <div className="price-amount">
+                {billingPeriod === "monthly" ? proPrice : proYearlyMonthly}
+                <span className="currency">Kč</span>
+                <span className="period">/m</span>
+              </div>
+              <div className="price-desc">
+                Pro profesion&aacute;ln&iacute; stavebn&iacute; firmy
+              </div>
+              <div className="price-divider" />
+              <ul className="price-features">
+                {PRICING_CONFIG.pro.features.map((f) => (
+                  <li key={f}>
+                    <span className="pf-check on">&#10003;</span> {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Enterprise */}
+            <div className="price-card">
+              <div className="price-tier">
+                <div className="tier-icon enterprise">&#9670;</div>
+                <div className="tier-name">Enterprise</div>
+              </div>
+              <div className="price-amount custom">Na m&iacute;ru</div>
+              <div className="price-desc">
+                Pro velk&eacute; organizace s vlastn&iacute;mi potřebami
+              </div>
+              <div className="price-divider" />
+              <ul className="price-features">
+                {PRICING_CONFIG.enterprise.features.map((f) => (
+                  <li key={f}>
+                    <span className="pf-check on">&#10003;</span> {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+          <p className="price-note">
+            Platby běž&iacute; přes GoPay. Apple Pay, Google Pay a bankovn&iacute;
+            převody se zobraz&iacute; automaticky.
+          </p>
+        </div>
+      </section>
+
+      {/* ═══ TESTIMONIALS ═══ */}
+      <section id="reference">
+        <div className="container">
+          <div style={{ textAlign: "center" }}>
+            <div className="sec-label" style={{ justifyContent: "center" }}>
+              Reference
+            </div>
+            <h2 className="sec-title" style={{ margin: "0 auto" }}>
+              Co ř&iacute;kaj&iacute; naši{" "}
+              <span className="serif">klienti</span>
+            </h2>
+          </div>
+          <div className="testi-grid">
+            <div className="testi-card">
+              <div className="testi-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+              <p className="testi-text">
+                &bdquo;TenderFlow n&aacute;m přinesl ř&aacute;d do
+                nab&iacute;dkov&yacute;ch ř&iacute;zen&iacute;. Co dř&iacute;v
+                trvalo dny, zvl&aacute;dneme za hodiny. ROI se n&aacute;m
+                vr&aacute;til do tř&iacute; měs&iacute;ců.&ldquo;
+              </p>
+              <div className="testi-author">
+                <div
+                  className="testi-avatar"
+                  style={{
+                    background:
+                      "linear-gradient(135deg,var(--orange),var(--orange-dim))",
+                  }}
+                >
+                  JN
+                </div>
+                <div className="testi-info">
+                  <div className="testi-name">Ing. Jan Nov&aacute;k</div>
+                  <div className="testi-role">
+                    Ředitel divize, Stavebn&iacute; firma
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="testi-card">
+              <div className="testi-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+              <p className="testi-text">
+                &bdquo;Konečně n&aacute;stroj, kter&yacute; rozum&iacute;
+                stavebnictv&iacute;. Pipeline tendrů a automatick&aacute;
+                spr&aacute;va dokumentů n&aacute;m ušetřily des&iacute;tky
+                hodin měs&iacute;čně.&ldquo;
+              </p>
+              <div className="testi-author">
+                <div
+                  className="testi-avatar"
+                  style={{
+                    background: "linear-gradient(135deg,#06b6d4,#0891b2)",
+                  }}
+                >
+                  PS
+                </div>
+                <div className="testi-info">
+                  <div className="testi-name">Petr Svoboda</div>
+                  <div className="testi-role">Projektov&yacute; manažer</div>
+                </div>
+              </div>
+            </div>
+            <div className="testi-card">
+              <div className="testi-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+              <p className="testi-text">
+                &bdquo;Desktop aplikace je skvěl&aacute; pro pr&aacute;ci
+                offline. AI anal&yacute;za smluv zachytila podm&iacute;nky,
+                kter&eacute; bychom ručně přehl&eacute;dli.&ldquo;
+              </p>
+              <div className="testi-author">
+                <div
+                  className="testi-avatar"
+                  style={{
+                    background:
+                      "linear-gradient(135deg,var(--green),#059669)",
+                  }}
+                >
+                  MK
+                </div>
+                <div className="testi-info">
+                  <div className="testi-name">
+                    Mgr. Marie Kratochv&iacute;lov&aacute;
+                  </div>
+                  <div className="testi-role">Legal & Compliance</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ CTA with animated counter ═══ */}
+      <section className="cta-section">
+        <h2>
+          Připraveni ř&iacute;dit tendry
+          <br />
+          <span className="serif">přehledně?</span>
+        </h2>
+        <p>
+          Přidejte se k firm&aacute;m, kter&eacute; stav&iacute; efektivněji.
+        </p>
+        <div className="cta-features">
+          <span className="cta-feat">14 dn&iacute; zdarma</span>
+          <span className="cta-feat">Bez kreditn&iacute; karty</span>
+          <span className="cta-feat">Zrušen&iacute; kdykoliv</span>
+        </div>
+        <button
+          className="btn-hero-primary"
+          style={{ fontSize: "1rem", padding: "1.0625rem 3rem" }}
+          onClick={() => navigate("/register")}
+        >
+          Vytvořit &uacute;čet zdarma
+        </button>
+      </section>
+
+      {/* ═══ FOOTER ═══ */}
+      <footer>
+        <div className="footer-inner">
+          <div className="footer-top">
+            <div>
+              <div className="footer-brand">
+                <img src={logo} alt="TenderFlow" className="logo-img" />
+                <div className="footer-brand-name">TenderFlow</div>
+              </div>
+              <p className="footer-about">
+                Modern&iacute; CRM platforma pro ř&iacute;zen&iacute;
+                stavebn&iacute;ch tendrů a nab&iacute;dkov&yacute;ch
+                ř&iacute;zen&iacute; v Česk&eacute; republice a na Slovensku.
+              </p>
+            </div>
+            <div className="footer-col">
+              <h4>Produkt</h4>
+              <a onClick={() => scrollToSection("funkce")}>Funkce</a>
+              <a onClick={() => scrollToSection("ceny")}>Cen&iacute;k</a>
+              <a onClick={handleDemo}>Demo</a>
+            </div>
+            <div className="footer-col">
+              <h4>Společnost</h4>
+              <Link to="/imprint">Provozovatel</Link>
+              <a href="mailto:info@tenderflow.cz">Kontakt</a>
+            </div>
+            <div className="footer-col">
+              <h4>Pr&aacute;vn&iacute;</h4>
+              <Link to="/terms">Obchodn&iacute; podm&iacute;nky</Link>
+              <Link to="/privacy">Ochrana soukrom&iacute;</Link>
+              <Link to="/cookies">Cookies</Link>
+              <Link to="/dpa">DPA</Link>
+              <Link to="/imprint">Imprint</Link>
+            </div>
+          </div>
+          <div className="footer-bottom">
+            <span>
+              &copy; {new Date().getFullYear()} TenderFlow s.r.o.
+              Všechna pr&aacute;va vyhrazena. v{APP_VERSION}
+            </span>
+            <div className="footer-bottom-links">
+              <Link to="/terms">Podm&iacute;nky</Link>
+              <Link to="/privacy">Soukrom&iacute;</Link>
+              <Link to="/cookies">Cookies</Link>
+            </div>
+            <div className="stripe-badge">
+              Platby přes{" "}
+              <strong style={{ color: "var(--gray-1)" }}>GoPay</strong>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 };

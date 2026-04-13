@@ -130,6 +130,9 @@ const fetchProjectDetails = async (projectId: string): Promise<ProjectDetails> =
         constructionTechnician: project.construction_technician || "",
         plannedCost: project.planned_cost || 0,
         address: project.address || "",
+        latitude: project.latitude ?? undefined,
+        longitude: project.longitude ?? undefined,
+        geocodedAt: project.geocoded_at ?? undefined,
         internalAmendments: internalAmendmentsData.map((a: any) => ({
             id: a.id,
             label: a.label,

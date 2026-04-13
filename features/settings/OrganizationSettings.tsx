@@ -1,3 +1,7 @@
+/**
+ * @deprecated Replaced by features/organization/ui/OrganizationDashboard.tsx
+ * which provides a sub-tabbed dashboard (overview, members, billing, branding).
+ */
 import React, { useEffect, useMemo, useState } from "react";
 import { sanitizeEmailDisclaimerHtml, buildEmailSignature } from "@/shared/email/signature";
 import {
@@ -290,6 +294,8 @@ export const OrganizationSettings: React.FC = () => {
       companyAddress: emailBrandingForm.companyAddress || null,
       companyMeta: emailBrandingForm.companyMeta || null,
       disclaimerHtml: emailBrandingForm.disclaimerHtml || null,
+      fontFamily: null,
+      fontSize: null,
     },
   });
 

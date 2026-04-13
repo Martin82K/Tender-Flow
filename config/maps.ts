@@ -1,7 +1,22 @@
+export interface MapLayerDefinition {
+  id: string;
+  label: string;
+  icon: string;
+  /** URL pattern key returned from maps-proxy tile-config */
+  urlKey: 'standard' | 'outdoor' | 'aerial' | 'winter';
+}
+
+export const MAP_LAYERS: MapLayerDefinition[] = [
+  { id: 'standard', label: 'Základní', icon: 'map', urlKey: 'standard' },
+  { id: 'outdoor', label: 'Turistická', icon: 'terrain', urlKey: 'outdoor' },
+  { id: 'aerial', label: 'Satelitní', icon: 'satellite_alt', urlKey: 'aerial' },
+  { id: 'winter', label: 'Zimní', icon: 'ac_unit', urlKey: 'winter' },
+];
+
 export const MAPS_CONFIG = {
   // Tile URLs are fallbacks only — actual URLs with API key come from maps-proxy Edge Function
-  tileUrl: 'https://api.mapy.cz/v1/maptiles/basic/256/{z}/{x}/{y}',
-  darkTileUrl: 'https://api.mapy.cz/v1/maptiles/dark/256/{z}/{x}/{y}',
+  tileUrl: 'https://api.mapy.com/v1/maptiles/basic/256/{z}/{x}/{y}',
+  darkTileUrl: 'https://api.mapy.com/v1/maptiles/outdoor/256/{z}/{x}/{y}',
   // API key is stored in Supabase Secrets (MAPY_API_KEY), NOT in client-side env
 
   defaultCenter: [49.8175, 15.4730] as [number, number], // Střed ČR
