@@ -31,7 +31,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  IF NOT public.is_admin() THEN
+  IF auth.role() <> 'service_role' AND NOT public.is_admin() THEN
     RAISE EXCEPTION 'Only platform admins can set organization overrides';
   END IF;
 
@@ -56,7 +56,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  IF NOT public.is_admin() THEN
+  IF auth.role() <> 'service_role' AND NOT public.is_admin() THEN
     RAISE EXCEPTION 'Only platform admins can grant user features';
   END IF;
 
