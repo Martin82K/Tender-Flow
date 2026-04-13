@@ -23,6 +23,7 @@ export interface BackupSettings {
 const BACKUP_DIR_NAME = 'backup';
 const MAX_AGE_DAYS = 7;
 const AUTO_BACKUP_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const SAFE_ORGANIZATION_ID_REGEX = /^[A-Za-z0-9-]+$/;
 const ENCRYPTION_KEY_STORAGE_KEY = 'backup_encryption_key';
 const ENCRYPTED_MAGIC_PREFIX = 'TFENC1:';
 
@@ -88,11 +89,12 @@ export class AutoBackupService {
         organizationId: string
     ): Promise<string> {
         await this.ensureBackupFolder();
+        const safeOrganizationId = this.sanitizeOrganizationId(organizationId);
 
         const date = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
         const time = new Date().toISOString().slice(11, 19).replace(/:/g, ''); // HHmmss
-        const fileName = `backup-${backupType}-${organizationId}-${date}-${time}.enc.json`;
-        const filePath = path.join(this.backupFolderPath, fileName);
+        const fileName = `backup-${backupType}-${safeOrganizationId}-${date}-${time}.enc.json`;
+        const filePath = this.resolveBackupPath(fileName);
 
         const encryptedContent = await this.encryptContent(jsonContent);
         await fs.writeFile(filePath, encryptedContent, 'utf-8');
@@ -112,7 +114,8 @@ export class AutoBackupService {
      * Read a backup file from disk (auto-detects encrypted vs plain).
      */
     async readBackup(filePath: string): Promise<string> {
-        const content = await fs.readFile(filePath, 'utf-8');
+        const safePath = this.resolveBackupPath(filePath);
+        const content = await fs.readFile(safePath, 'utf-8');
         if (content.startsWith(ENCRYPTED_MAGIC_PREFIX)) {
             return this.decryptContent(content);
         }
@@ -293,6 +296,30 @@ export class AutoBackupService {
         } catch {
             // Already exists
         }
+    }
+
+    private sanitizeOrganizationId(organizationId: string): string {
+        if (!SAFE_ORGANIZATION_ID_REGEX.test(organizationId)) {
+            throw new Error('Invalid organization ID');
+        }
+
+        return organizationId;
+    }
+
+    private resolveBackupPath(inputPath: string): string {
+        const backupFolder = path.resolve(this.backupFolderPath);
+        const candidatePath = path.isAbsolute(inputPath)
+            ? path.resolve(inputPath)
+            : path.resolve(backupFolder, inputPath);
+        const relativePath = path.relative(backupFolder, candidatePath);
+        const isOutsideBackupFolder =
+            relativePath.startsWith('..') || path.isAbsolute(relativePath);
+
+        if (isOutsideBackupFolder || path.extname(candidatePath) !== '.json') {
+            throw new Error('Invalid backup path');
+        }
+
+        return candidatePath;
     }
 }
 
