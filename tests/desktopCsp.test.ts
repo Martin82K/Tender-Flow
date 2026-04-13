@@ -16,13 +16,15 @@ describe("desktop CSP", () => {
     expect(csp).toContain("https://ares.gov.cz");
   });
 
-  it("keeps production policy without unsafe-eval", () => {
+  it("keeps production policy without unsafe-eval or unsafe-inline", () => {
     const csp = buildDesktopCsp(false);
 
     expect(csp).not.toContain("'unsafe-eval'");
     expect(csp).toContain("default-src 'self'");
-    expect(csp).toContain("script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com");
-    expect(csp).toContain("script-src-elem 'self' 'unsafe-inline' https://cdn.tailwindcss.com");
+    // script-src must NOT contain unsafe-inline in production
+    expect(csp).toContain("script-src 'self' https://cdn.tailwindcss.com");
+    expect(csp).toContain("script-src-elem 'self' https://cdn.tailwindcss.com");
+    // style-src still allows unsafe-inline (required by Tailwind CDN dynamic styles)
     expect(csp).toContain("frame-src 'self' https://gw.sandbox.gopay.com https://gate.gopay.cz https://*.gopay.com https://*.gopay.cz");
     expect(csp).toContain("object-src 'none'");
     expect(csp).toContain("frame-ancestors 'none'");
