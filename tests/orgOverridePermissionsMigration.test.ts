@@ -8,7 +8,7 @@ const readMigration = (name: string): string =>
   fs.readFileSync(path.join(ROOT, "supabase/migrations", name), "utf8");
 
 describe("org override permission hardening migration", () => {
-  const migrationName = "20260412200000_harden_org_override_permissions.sql";
+  const migrationName = "20260412201000_harden_org_override_permissions.sql";
 
   it("uzamyká přímý zápis do user_feature_overrides jen na service role", () => {
     const migration = readMigration(migrationName);
