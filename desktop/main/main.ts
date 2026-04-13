@@ -18,6 +18,13 @@ let mcpServerStop: (() => Promise<void>) | null = null;
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
+// Suppress Electron security warnings in dev mode.
+// In dev, Vite HMR requires 'unsafe-eval' in CSP which triggers the warning.
+// Production builds do NOT include unsafe-eval.
+if (isDev) {
+    process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = 'true';
+}
+
 const ALLOWED_EXTERNAL_PROTOCOLS = new Set(['https:', 'mailto:']);
 const ALLOWED_EXTERNAL_HOSTS = new Set([
     'accounts.google.com',

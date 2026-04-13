@@ -366,6 +366,7 @@ const supabaseAuthStorage = {
 
 const safeFetch: typeof fetch = async (input, init) => {
   // Sanitize headers: ensure all values are valid strings
+  let authHeaderCorrupted = false;
   if (init?.headers) {
     if (init.headers instanceof Headers) {
       // Headers object - check each entry
@@ -375,6 +376,7 @@ const safeFetch: typeof fetch = async (input, init) => {
           // Check for corrupted auth headers
           if (key.toLowerCase() === 'authorization' && isCorruptedAuthHeader(value)) {
             console.warn(`[Supabase] Removing corrupted Authorization header`);
+            authHeaderCorrupted = true;
             return;
           }
           sanitized.set(key, value);
@@ -395,6 +397,7 @@ const safeFetch: typeof fetch = async (input, init) => {
         // Check for corrupted auth headers
         if (key.toLowerCase() === 'authorization' && isCorruptedAuthHeader(strValue)) {
           console.warn(`[Supabase] Removing corrupted Authorization header`);
+          authHeaderCorrupted = true;
           continue;
         }
         sanitized[key] = strValue;
@@ -414,6 +417,7 @@ const safeFetch: typeof fetch = async (input, init) => {
           // Check for corrupted auth headers
           if (key.toLowerCase() === 'authorization' && isCorruptedAuthHeader(strValue)) {
             console.warn(`[Supabase] Removing corrupted Authorization header`);
+            authHeaderCorrupted = true;
             continue;
           }
           sanitized.push([String(key), strValue]);
@@ -423,9 +427,29 @@ const safeFetch: typeof fetch = async (input, init) => {
     }
   }
 
+  // If the auth header was corrupted AND this is a POST to /rest/ (RPC call),
+  // short-circuit with a synthetic error instead of sending the request unauthenticated.
+  // This prevents the browser from logging red 400 errors for RPCs that require auth.uid().
+  if (authHeaderCorrupted) {
+    const requestUrl = getRequestUrl(input);
+    if (requestUrl.includes('/rest/') && init?.method?.toUpperCase() === 'POST') {
+      console.debug(`[Supabase] Skipping RPC call without auth: ${requestUrl.replace(/.*\/rpc\//, '/rpc/')}`);
+      return new Response(
+        JSON.stringify({ code: 'AUTH_HEADER_CORRUPTED', message: 'Request skipped: corrupted auth header' }),
+        { status: 401, statusText: 'Unauthorized', headers: { 'Content-Type': 'application/json' } },
+      );
+    }
+  }
+
   try {
     const response = await fetch(input, init);
     const requestUrl = getRequestUrl(input);
+
+    // Log RPC 400 errors to help diagnose which endpoints are failing
+    if (response.status === 400 && requestUrl.includes('/rest/') && init?.method?.toUpperCase() === 'POST') {
+      const rpcName = requestUrl.match(/\/rpc\/([^?]+)/)?.[1] ?? requestUrl.replace(/.*\/rest\//, '/rest/');
+      console.debug(`[Supabase] RPC 400 from: ${rpcName}`);
+    }
 
     if (isRefreshTokenFailure(requestUrl, response.status)) {
       _refreshAuthErrorCount++;
