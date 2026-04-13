@@ -45,6 +45,21 @@ Deno.serve(async (req) => {
 
     // Query GoPay for current payment status
     const payment = await getPaymentStatus(paymentId);
+    const isUnpaidState =
+      payment.state === "CREATED" ||
+      payment.state === "PAYMENT_METHOD_CHOSEN" ||
+      payment.state === "AUTHORIZED";
+
+    if (isUnpaidState) {
+      return json(200, {
+        success: true,
+        message: "Payment is not settled yet, nothing to sync.",
+        subscription: {
+          id: paymentId,
+          state: payment.state,
+        },
+      });
+    }
 
     const tier =
       getAdditionalParam(payment.additional_params, "tier") || "starter";
