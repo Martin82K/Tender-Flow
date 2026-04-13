@@ -51,15 +51,41 @@ serve(async (req) => {
 
         if (!user) {
             // Security: Do not reveal that user does not exist.
-            // Fake success.
-            console.log(`Password reset requested for non-existent email: ${email}`);
             return new Response(JSON.stringify({ success: true }), {
                 status: 200,
                 headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
             });
         }
 
-        // 2. Generate secure token
+        // 2. Rate limiting — max 3 reset requests per hour, min 2 min cooldown
+        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+        const { data: recentTokens, error: rlError } = await supabase
+            .from("password_reset_tokens")
+            .select("created_at")
+            .eq("user_id", user.id)
+            .gte("created_at", oneHourAgo)
+            .order("created_at", { ascending: false });
+
+        if (!rlError && recentTokens && recentTokens.length > 0) {
+            // Enforce max 3 per hour
+            if (recentTokens.length >= 3) {
+                // Return success to avoid user enumeration
+                return new Response(JSON.stringify({ success: true }), {
+                    status: 200,
+                    headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
+                });
+            }
+            // Enforce 2-minute cooldown between requests
+            const lastCreated = new Date(recentTokens[0].created_at).getTime();
+            if (Date.now() - lastCreated < 2 * 60 * 1000) {
+                return new Response(JSON.stringify({ success: true }), {
+                    status: 200,
+                    headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
+                });
+            }
+        }
+
+        // 3. Generate secure token
         const token = crypto.randomUUID();
         const tokenHash = await crypto.subtle.digest(
             "SHA-256",
@@ -175,9 +201,8 @@ serve(async (req) => {
         });
 
         if (!res.ok) {
-            const errorData = await res.json();
-            console.error("Resend API error:", errorData);
-            throw new Error(`Failed to send email via Resend: ${JSON.stringify(errorData)}`);
+            console.error("Resend API error: status", res.status);
+            throw new Error("Failed to send email");
         }
 
         return new Response(JSON.stringify({ success: true }), {
@@ -186,8 +211,8 @@ serve(async (req) => {
         });
 
     } catch (error) {
-        console.error("Error in request-password-reset:", error);
-        return new Response(JSON.stringify({ error: error.message }), {
+        console.error("Error in request-password-reset");
+        return new Response(JSON.stringify({ error: "Interní chyba serveru" }), {
             status: 500,
             headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
         });

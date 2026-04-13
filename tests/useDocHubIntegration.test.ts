@@ -111,7 +111,7 @@ describe('useDocHubIntegration', () => {
             result.current.setters.setMode('user');
         });
 
-        (invokeAuthedFunction as any).mockResolvedValue({ url: 'https://auth.url' });
+        (invokeAuthedFunction as any).mockResolvedValue({ url: 'https://accounts.google.com/o/oauth2/auth?client_id=test' });
 
         await act(async () => {
             await result.current.actions.connect();
@@ -120,7 +120,7 @@ describe('useDocHubIntegration', () => {
         expect(invokeAuthedFunction).toHaveBeenCalledWith('dochub-auth-url', expect.objectContaining({
             body: expect.objectContaining({ provider: 'gdrive', mode: 'user' })
         }));
-        expect(window.location.href).toBe('https://auth.url');
+        expect(window.location.href).toBe('https://accounts.google.com/o/oauth2/auth?client_id=test');
     });
 
     it('should handle resolveRoot action', async () => {

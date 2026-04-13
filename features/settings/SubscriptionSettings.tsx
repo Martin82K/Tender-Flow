@@ -22,6 +22,7 @@ import {
   getTierLabel,
   SUBSCRIPTION_TIERS,
 } from "../../config/subscriptionTiers";
+import { isRedirectUrlSafe } from "@shared/security/validateRedirectUrl";
 import {
   Check,
   AlertTriangle,
@@ -201,6 +202,10 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
         ),
       });
       if (result.success && result.checkoutUrl) {
+        if (!isRedirectUrlSafe(result.checkoutUrl)) {
+          setMessage({ type: "error", text: "Neplatná platební URL." });
+          return;
+        }
         window.location.href = result.checkoutUrl;
         return;
       }

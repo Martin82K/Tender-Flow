@@ -182,12 +182,12 @@ const scriptSrc = [
 6. ~~Sanitizovat SVG v `convert.html`~~ ✅ innerHTML nahrazeno bezpecnym <img> s Blob URL
 7. ~~Odstranit plaintext fallback v secureStorage~~ ✅ set() throwi SECURE_STORAGE_UNAVAILABLE, get() odmitne cist bez sifrovani
 
-### Strednedoba (P2)
-8. Serverova validace admin role (ne jen frontend check)
-9. Rate limiting na password reset a token refresh
-10. Validace redirect URL pred `window.location.href`
-11. Posilitvalidaci tokenu (ne jen delka >= 10)
-12. Sifrovani role/tier v localStorage nebo pouziti httpOnly cookies
+### Strednedoba (P2) — VYRESENO / POSOUZENO
+8. ~~Serverova validace admin role~~ ✅ app_settings RLS migrovano na is_admin(), platform_admins tabulka a RPC funkce uz existuji
+9. ~~Rate limiting na password reset~~ ✅ max 3 pozadavky/hodinu, 2min cooldown, odpovedi nedavaji najevo rate limit (anti-enumeration)
+10. ~~Validace redirect URL pred `window.location.href`~~ ✅ sdilena utilita isRedirectUrlSafe() aplikovana na GoPay checkout i OAuth redirect (3 mista)
+11. ~~Posilit validaci tokenu~~ ℹ️ NENI RIZIKO — klientska validace je jen defense-in-depth, Supabase server vzdy overuje JWT podpis
+12. ~~Sifrovani role/tier v localStorage~~ ℹ️ NENI RIZIKO — cache ovlivnuje jen UI, vsechna autorizacni rozhodnuti jdou pres RLS/RPC server-side
 
 ---
 

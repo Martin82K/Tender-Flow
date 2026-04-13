@@ -10,6 +10,7 @@ import { getOrgSubscription, getOrgBillingHistory, getOrgSeatUsage, updateOrgSea
 import { createOrgCheckout, cancelOrgSubscription, syncOrgSubscription, formatOrgPrice } from '../api/orgBillingActions';
 import { PRICING_CONFIG } from '@/services/billingService';
 import { getTierLabel, getTierBadgeClass } from '@/config/subscriptionTiers';
+import { isRedirectUrlSafe } from '@shared/security/validateRedirectUrl';
 import type { OrgSubscriptionInfo, OrgBillingHistoryEntry, OrgSeatUsage } from '../model/types';
 
 interface OrgBillingTabProps {
@@ -122,6 +123,10 @@ export const OrgBillingTab: React.FC<OrgBillingTabProps> = ({ orgId, isOwner }) 
         cancelPath: getBillingReturnUrl('/app/settings?tab=organization&subTab=billing&cancelled=true'),
       });
       if (result.success && result.checkoutUrl) {
+        if (!isRedirectUrlSafe(result.checkoutUrl)) {
+          setMessage({ type: 'error', text: 'Neplatná platební URL.' });
+          return;
+        }
         window.location.href = result.checkoutUrl;
         return;
       }
