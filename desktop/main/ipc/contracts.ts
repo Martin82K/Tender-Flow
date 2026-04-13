@@ -117,7 +117,7 @@ export interface IpcContractMap {
   "updater:getStatus": { args: []; result: UpdateStatus };
   "backup:getSettings": { args: []; result: BackupSettingsInfo };
   "backup:setEnabled": { args: [enabled: boolean]; result: void };
-  "backup:save": { args: [jsonContent: string, backupType: 'user' | 'tenant', organizationId: string]; result: string };
+  "backup:save": { args: [jsonContent: string, backupType: 'user' | 'tenant' | 'contacts', organizationId: string]; result: string };
   "backup:read": { args: [filePath: string]; result: string };
   "backup:list": { args: []; result: BackupFileEntry[] };
   "backup:getFolder": { args: []; result: string };

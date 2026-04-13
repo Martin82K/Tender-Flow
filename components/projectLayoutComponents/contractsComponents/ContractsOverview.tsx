@@ -231,14 +231,14 @@ export const ContractsOverview: React.FC<ContractsOverviewProps> = ({ contracts,
             Top dodavatelé
           </h3>
           <div className="space-y-3">
-            {Object.entries(
+            {(Object.entries(
               contracts.reduce((acc, c) => {
                 if (!acc[c.vendorName]) acc[c.vendorName] = { count: 0, value: 0 };
                 acc[c.vendorName].count++;
                 acc[c.vendorName].value += c.currentTotal;
                 return acc;
               }, {} as Record<string, { count: number; value: number }>)
-            )
+            ) as [string, { count: number; value: number }][])
               .sort((a, b) => b[1].value - a[1].value)
               .slice(0, 5)
               .map(([vendor, data]) => (

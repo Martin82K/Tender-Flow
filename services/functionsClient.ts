@@ -104,7 +104,7 @@ export const invokeAuthedFunction = async <TResponse>(
           headers: buildHeaders(anonKey, accessToken, idempotencyKey),
           body: method === "GET" ? undefined : JSON.stringify(options.body ?? {}),
           timeoutMs,
-        });
+        } as any);
 
         if (!res.ok) {
           // Enhanced error handling for IPC response

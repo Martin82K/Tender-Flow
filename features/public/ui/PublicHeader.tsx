@@ -43,7 +43,7 @@ export const PublicHeader: React.FC<{ variant?: "marketing" | "auth" }> = ({
     const target = event.target as HTMLElement | null;
     if (!target) return;
 
-    const inlineRegion = target.style?.WebkitAppRegion || null;
+    const inlineRegion = (target.style as unknown as Record<string, string>)?.WebkitAppRegion || null;
     const computedRegion = (() => {
       try {
         return window.getComputedStyle(target).getPropertyValue("-webkit-app-region") || null;

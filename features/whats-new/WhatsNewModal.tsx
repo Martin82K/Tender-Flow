@@ -9,28 +9,40 @@ interface WhatsNewModalProps {
 
 const features = [
   {
-    icon: "notifications",
-    title: "Notifikační systém",
+    icon: "person_add",
+    title: "Import wizard kontaktů",
     description:
-      "Nový systém notifikací s real-time upozorněními, zvonkem v hlavičce a desktop notifikacemi pro důležité události.",
+      "Nový průvodce pro hromadný import kontaktů a subdodavatelů s náhledem a mapováním sloupců.",
   },
   {
-    icon: "smart_toy",
-    title: "Auto update AI",
+    icon: "edit_attributes",
+    title: "Hromadná úprava specializací",
     description:
-      "AI analýzy a doporučení se nyní aktualizují automaticky při změnách v projektu.",
+      "Specializace subdodavatelů lze nyní upravovat hromadně přímo v přehledu kontaktů.",
   },
   {
-    icon: "travel_explore",
-    title: "Odkazy na registry",
+    icon: "post_add",
+    title: "Dodatky a vlastní náklady",
     description:
-      "U kontaktů jsou nově dostupné přímé odkazy na veřejné registry — OR, ARES a RŽP.",
+      "Vylepšené formuláře pro dodatky a adresy, včetně podpory vlastních nákladů u dodatků.",
   },
   {
-    icon: "ads_click",
-    title: "Dvojklik pro editaci",
+    icon: "enhanced_encryption",
+    title: "Šifrované zálohy",
     description:
-      "Kontakty lze nyní otevřít k editaci dvojklikem přímo v seznamu.",
+      "Zálohy dat a kontaktů jsou nově šifrovány algoritmem AES-256-GCM. Desktop verze ukládá zálohy automaticky.",
+  },
+  {
+    icon: "help_center",
+    title: "Nápověda a příručka",
+    description:
+      "Interaktivní systém nápovědy s kontextovými bublinami a kompletně přepracovaná uživatelská příručka.",
+  },
+  {
+    icon: "create_new_folder",
+    title: "Automatické složky dokumentů",
+    description:
+      "DocHub nyní umí automaticky vytvořit standardizovanou strukturu složek pro dokumenty stavby.",
   },
 ];
 

@@ -25,6 +25,8 @@ describe("email signature renderer", () => {
         companyAddress: "Loketská 344/12\n360 06 Karlovy Vary",
         companyMeta: "IČ: 147 05 877, DIČ: CZ 147 05 877",
         disclaimerHtml: "<p>Bezpečný disclaimer</p>",
+        fontFamily: null,
+        fontSize: null,
       },
     });
 
@@ -53,6 +55,8 @@ describe("email signature renderer", () => {
         companyAddress: null,
         companyMeta: null,
         disclaimerHtml: null,
+        fontFamily: null,
+        fontSize: null,
       },
     });
 

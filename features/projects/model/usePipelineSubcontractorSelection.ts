@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Bid, DemandCategory, Subcontractor } from "@/types";
+import type { Bid, DemandCategory, DocHubStructureV1, Subcontractor } from "@/types";
 import { insertBids } from "@/features/projects/api";
 import { getDemoData, saveDemoData } from "@/services/demoData";
 import { invokeAuthedFunction } from "@/services/functionsClient";
@@ -21,7 +21,7 @@ interface UsePipelineSubcontractorSelectionInput {
   userRole?: string;
   projectDataId: string;
   projectDataDocHubProvider?: string;
-  projectDataDocHubStructureV1?: string;
+  projectDataDocHubStructureV1?: Partial<DocHubStructureV1> | null;
   isDocHubEnabled: boolean;
   docHubRoot: string;
   showAlert: (args: ShowAlertArgs) => void;

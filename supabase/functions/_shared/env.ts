@@ -1,3 +1,5 @@
+declare const Deno: { env: { get(key: string): string | undefined } };
+
 export const normalizeSecret = (value: string | null | undefined): string | null => {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();

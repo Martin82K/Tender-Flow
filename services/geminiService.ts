@@ -6,16 +6,20 @@ type RegistrationLookupContact = { id: string; company: string; ico?: string };
 type CompanyRegistrationDetail = {
   region?: string;
   address?: string;
+  city?: string;
 };
+type WebsiteLookupContact = { id: string; company: string; ico?: string };
 type AresEconomicSubjectResponse = {
   sidlo?: {
     nazevKraje?: string;
+    nazevObce?: string;
     textovaAdresa?: string;
   };
   dalsiUdaje?: Array<{
     sidlo?: Array<{
       sidlo?: {
         nazevKraje?: string;
+        nazevObce?: string;
         textovaAdresa?: string;
       };
       primarniZaznam?: boolean;
@@ -69,6 +73,24 @@ const extractRegionFromAresResponse = (payload: AresEconomicSubjectResponse): st
   return null;
 };
 
+const extractCityFromAresResponse = (payload: AresEconomicSubjectResponse): string | null => {
+  const primaryCity = payload.sidlo?.nazevObce?.trim();
+  if (primaryCity && !isEmptyLookupValue(primaryCity)) {
+    return primaryCity;
+  }
+
+  for (const block of payload.dalsiUdaje || []) {
+    for (const seat of block.sidlo || []) {
+      const city = seat.sidlo?.nazevObce?.trim();
+      if (city && !isEmptyLookupValue(city)) {
+        return city;
+      }
+    }
+  }
+
+  return null;
+};
+
 const extractAddressFromAresResponse = (payload: AresEconomicSubjectResponse): string | null => {
   const primaryAddress = payload.sidlo?.textovaAdresa?.trim();
   if (primaryAddress && !isEmptyLookupValue(primaryAddress)) {
@@ -113,14 +135,16 @@ const fetchCompanyRegistrationFromAres = async (ico: string): Promise<CompanyReg
 
     const payload = (await response.json()) as AresEconomicSubjectResponse;
     const region = extractRegionFromAresResponse(payload);
+    const city = extractCityFromAresResponse(payload);
     const address = extractAddressFromAresResponse(payload);
 
-    if (!region && !address) {
+    if (!region && !address && !city) {
       return null;
     }
 
     return {
       region: region || undefined,
+      city: city || undefined,
       address: address || undefined,
     };
   } finally {
@@ -198,4 +222,62 @@ export const findCompanyRegions = async (contacts: RegistrationLookupContact[]):
     }
     return acc;
   }, {});
+};
+
+const WEBSITE_LOOKUP_BATCH_SIZE = 10;
+
+export const findCompanyWebsites = async (
+  contacts: WebsiteLookupContact[],
+): Promise<Record<string, string>> => {
+  if (contacts.length === 0) return {};
+
+  const results: Record<string, string> = {};
+
+  for (let i = 0; i < contacts.length; i += WEBSITE_LOOKUP_BATCH_SIZE) {
+    const batch = contacts.slice(i, i + WEBSITE_LOOKUP_BATCH_SIZE);
+
+    const companiesList = batch
+      .map((c, idx) => {
+        const ico = normalizeIco(c.ico);
+        return `${idx + 1}. "${sanitizeLogText(c.company, 100)}"${ico ? ` (IČO: ${ico})` : ""}`;
+      })
+      .join("\n");
+
+    try {
+      const result = await invokeAuthedFunction<{ text: string }>("ai-proxy", {
+        body: {
+          prompt: `Jsi asistent, který dohledává oficiální webové stránky českých stavebních firem.
+
+Pro každou firmu v seznamu najdi její oficiální webovou stránku (hlavní doménu).
+Odpověz POUZE ve formátu JSON pole, kde každý prvek je objekt s klíči "index" (pořadové číslo) a "web" (URL nebo null pokud nenalezeno).
+Žádný další text, pouze validní JSON.
+
+Příklad odpovědi: [{"index":1,"web":"https://www.firma.cz"},{"index":2,"web":null}]
+
+Seznam firem:
+${companiesList}`,
+        },
+      });
+
+      const text = (result.text || "").trim();
+      // Extract JSON from response (may be wrapped in markdown code block)
+      const jsonMatch = text.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]) as Array<{ index: number; web: string | null }>;
+        for (const entry of parsed) {
+          const contact = batch[entry.index - 1];
+          if (contact && entry.web && typeof entry.web === "string") {
+            const url = entry.web.trim();
+            if (url.startsWith("http://") || url.startsWith("https://")) {
+              results[contact.id] = url;
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error("AI website lookup failed for batch:", summarizeErrorForLog(error));
+    }
+  }
+
+  return results;
 };

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Header } from "@/shared/ui/Header";
 import { NotificationBell } from "@features/notifications/ui/NotificationBell";
 import { HelpButton } from "@features/help";
@@ -18,6 +18,8 @@ import { ProjectDocuments } from "@/shared/ui/projects/ProjectDocuments";
 import { Contracts } from "@/shared/ui/projects/Contracts";
 import { useFeatures } from "@/context/FeatureContext";
 import { FEATURES } from "@/config/features";
+import { ProjectMapView } from "@features/maps/components/ProjectMapView";
+import { geocodingService } from "@features/maps/services/geocodingService";
 // --- Main Layout Component ---
 
 interface ProjectLayoutProps {
@@ -58,6 +60,26 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
   const project = projectDetails;
   const [searchQuery, setSearchQuery] = useState("");
   const { hasFeature } = useFeatures();
+  const geocodeAbortRef = useRef<{ cancelled: boolean } | null>(null);
+
+  const handleAddressChanged = useCallback((address: string, location: string) => {
+    // Cancel any in-flight geocoding request
+    if (geocodeAbortRef.current) geocodeAbortRef.current.cancelled = true;
+    const token = { cancelled: false };
+    geocodeAbortRef.current = token;
+
+    const detailsForGeocode = { ...project, address, location, latitude: undefined, longitude: undefined } as ProjectDetails;
+    geocodingService.geocodeProject(detailsForGeocode).then(result => {
+      if (token.cancelled) return; // Stale request — discard
+      if (result) {
+        onUpdateDetails({
+          latitude: result.lat,
+          longitude: result.lng,
+          geocodedAt: new Date().toISOString(),
+        });
+      }
+    });
+  }, [project, onUpdateDetails]);
 
   const allTabs = useMemo(
     () =>
@@ -75,6 +97,12 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
           label: "Harmonogram",
           icon: "event_note",
           feature: FEATURES.PROJECT_SCHEDULE,
+        },
+        {
+          id: "map",
+          label: "Mapa",
+          icon: "map",
+          feature: FEATURES.MODULE_MAPS,
         },
         { id: "documents", label: "Dokumenty", icon: "folder_open" },
         {
@@ -160,6 +188,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
           <ProjectOverviewNew
             project={project}
             onUpdate={onUpdateDetails}
+            onAddressChanged={handleAddressChanged}
             variant="compact"
             searchQuery={searchQuery}
             onNavigateToPipeline={handleLocalNavigateToPipeline}
@@ -213,6 +242,15 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
               categories={project.categories || []}
             />
           </div>
+        )}
+        {activeTab === "map" && (
+          <ProjectMapView
+            projectId={projectId}
+            projectDetails={project}
+            contacts={contacts}
+            statuses={statuses}
+            onUpdateDetails={onUpdateDetails}
+          />
         )}
         {activeTab === "documents" && (
           <ProjectDocuments project={project} onUpdate={onUpdateDetails} />

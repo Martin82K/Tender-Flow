@@ -38,7 +38,7 @@ export const userProfileService = {
       return mapProfileRow(null);
     }
 
-    return mapProfileRow(data as Record<string, unknown> | null | undefined);
+    return mapProfileRow(data as unknown as Record<string, unknown> | null | undefined);
   },
 
   async getDisplayName(userId: string): Promise<string | null> {

@@ -699,7 +699,7 @@ export const backupAdapter = {
         }
     },
 
-    async save(jsonContent: string, backupType: 'user' | 'tenant', organizationId: string): Promise<string> {
+    async save(jsonContent: string, backupType: 'user' | 'tenant' | 'contacts', organizationId: string): Promise<string> {
         if (isDesktop && window.electronAPI?.backup) {
             return window.electronAPI.backup.save(jsonContent, backupType, organizationId);
         }

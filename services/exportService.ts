@@ -1011,13 +1011,13 @@ export function exportDashboardToPDF(
 
   // Color palette
   const colors = {
-    primary: [15, 23, 42],
-    secondary: [71, 85, 105],
-    accent: [16, 185, 129],
-    sky: [14, 165, 233],
-    amber: [245, 158, 11],
-    light: [248, 250, 252],
-    border: [226, 232, 240],
+    primary: [15, 23, 42] as [number, number, number],
+    secondary: [71, 85, 105] as [number, number, number],
+    accent: [16, 185, 129] as [number, number, number],
+    sky: [14, 165, 233] as [number, number, number],
+    amber: [245, 158, 11] as [number, number, number],
+    light: [248, 250, 252] as [number, number, number],
+    border: [226, 232, 240] as [number, number, number],
   };
 
   // Helper to draw rounded rectangle

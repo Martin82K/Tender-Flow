@@ -61,7 +61,7 @@ describe("ai-proxy memory access", () => {
     });
 
     return {
-      client: { from } as Parameters<typeof resolveAuthorizedProjectMemoryContext>[0],
+      client: { from } as unknown as Parameters<typeof resolveAuthorizedProjectMemoryContext>[0],
       calls,
       projectsMaybeSingle,
     };

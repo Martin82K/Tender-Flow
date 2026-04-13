@@ -9,12 +9,15 @@ const mapping: FieldMapping = {
   company: "Firma",
   ico: null,
   region: null,
+  city: null,
   specialization: null,
   status: null,
   contactName: "Jmeno",
   contactEmail: "Email",
   contactPhone: null,
   contactPosition: null,
+  web: null,
+  note: null,
 };
 
 const table: ParsedTable = {

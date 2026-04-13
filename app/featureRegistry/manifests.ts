@@ -6,7 +6,7 @@ const emptyChecks = () => [] as string[];
 
 const viewToManifest = <T extends View>(view: T, manifest: FeatureModuleManifest) => ({
   [view]: manifest,
-});
+}) as Record<T, FeatureModuleManifest>;
 
 export const featureModuleRegistry: Record<View, FeatureModuleManifest> = {
   ...viewToManifest("dashboard", {

@@ -1,17 +1,35 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { PublicLayout } from "@/features/public/ui/PublicLayout";
-import { PublicHeader } from "@/features/public/ui/PublicHeader";
 import { AuthCard } from "./AuthCard";
-import { Link, navigate } from "@/shared/routing/router";
+import { Link, navigate, useLocation } from "@/shared/routing/router";
 import { authService } from "@/services/authService";
 import { getCurrentLegalAcceptanceInput } from "@/shared/legal/legalDocumentVersions";
 import { getLegalDocumentUrl } from "@/shared/legal/legalDocumentLinks";
+import logo from "@/assets/logo.png";
+import "@/features/public/ui/landing-apex.css";
+import "@/features/auth/ui/auth-apex.css";
+
+const getNext = (search: string) => {
+  const raw = new URLSearchParams(search).get("next") || "/app";
+  const decodeOnce = (val: string) => {
+    try {
+      return decodeURIComponent(val);
+    } catch {
+      return val;
+    }
+  };
+  const next = decodeOnce(raw);
+  const next2 = next.startsWith("%2F") ? decodeOnce(next) : next;
+  return next2.startsWith("/") ? next2 : "/app";
+};
 
 export const RegisterPage: React.FC = () => {
+  const { search } = useLocation();
   const termsUrl = getLegalDocumentUrl("/terms");
   const privacyUrl = getLegalDocumentUrl("/privacy");
   const { register, loginAsDemo } = useAuth();
+  const nextPath = getNext(search);
+  const loginHref = `/login?next=${encodeURIComponent(nextPath)}`;
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -44,7 +62,7 @@ export const RegisterPage: React.FC = () => {
         throw new Error("Pro registraci musíš potvrdit podmínky používání i zásady ochrany osobních údajů.");
       }
       await register(name, email, password, getCurrentLegalAcceptanceInput());
-      navigate("/app", { replace: true });
+      navigate(nextPath, { replace: true });
     } catch (err: any) {
       setError(err?.message || "Nastala chyba");
     } finally {
@@ -54,24 +72,43 @@ export const RegisterPage: React.FC = () => {
 
   const handleDemo = () => {
     loginAsDemo();
-    navigate("/app", { replace: true });
+    navigate(nextPath, { replace: true });
   };
 
   return (
-    <PublicLayout>
-      <PublicHeader variant="auth" />
-      <AuthCard 
-        title="Registrace" 
+    <div className="landing-apex auth-apex-page">
+      <div className="auth-apex-grid" />
+      <div className="auth-apex-glow" />
+
+      <header>
+        <div className="nav-wrap">
+          <div className="logo-group" onClick={() => navigate("/")}>
+            <img src={logo} alt="TenderFlow" className="logo-img" />
+            <div className="logo-text">TenderFlow</div>
+          </div>
+          <div className="nav-right">
+            <button className="btn-login" onClick={() => navigate(loginHref)}>
+              Přihlásit se
+            </button>
+            <button className="btn-start" onClick={() => navigate("/")}>
+              Zpět
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <AuthCard
+        title="Registrace"
         subtitle="Vytvořte si účet a začněte během minuty"
         registrationStatus={registrationStatus}
       >
-        <form onSubmit={onSubmit} className="flex flex-col gap-4">
+        <form onSubmit={onSubmit} className="auth-form">
           <input
             type="text"
             placeholder="Jméno a Příjmení"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
+            className="auth-input"
             required
           />
           <input
@@ -79,7 +116,7 @@ export const RegisterPage: React.FC = () => {
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
+            className="auth-input"
             required
           />
           <input
@@ -87,7 +124,7 @@ export const RegisterPage: React.FC = () => {
             placeholder="Heslo"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
+            className="auth-input"
             required
           />
           <input
@@ -95,38 +132,36 @@ export const RegisterPage: React.FC = () => {
             placeholder="Potvrzení hesla"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
+            className="auth-input"
             required
           />
 
-          <label className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/80">
+          <label className="auth-legal-check">
             <input
               type="checkbox"
               checked={termsAccepted}
               onChange={(e) => setTermsAccepted(e.target.checked)}
-              className="mt-1 h-4 w-4 rounded border-white/30 bg-transparent text-orange-500 focus:ring-orange-500"
               required
             />
             <span>
               Souhlasím s{" "}
-              <a href={termsUrl} target="_blank" rel="noreferrer" className="text-orange-300 underline underline-offset-2 hover:text-orange-200">
+              <a href={termsUrl} target="_blank" rel="noreferrer">
                 podmínkami používání
               </a>
               .
             </span>
           </label>
 
-          <label className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/80">
+          <label className="auth-legal-check">
             <input
               type="checkbox"
               checked={privacyAccepted}
               onChange={(e) => setPrivacyAccepted(e.target.checked)}
-              className="mt-1 h-4 w-4 rounded border-white/30 bg-transparent text-orange-500 focus:ring-orange-500"
               required
             />
             <span>
               Potvrzuji seznámení se{" "}
-              <a href={privacyUrl} target="_blank" rel="noreferrer" className="text-orange-300 underline underline-offset-2 hover:text-orange-200">
+              <a href={privacyUrl} target="_blank" rel="noreferrer">
                 zásadami ochrany osobních údajů
               </a>
               {" "}a informacemi o zpracování osobních údajů podle GDPR.
@@ -134,38 +169,23 @@ export const RegisterPage: React.FC = () => {
           </label>
 
           {error ? (
-            <div className="text-red-400 text-sm text-center bg-red-500/10 py-2 rounded-lg border border-red-500/20">
-              {error}
-            </div>
+            <div className="auth-alert auth-alert-error">{error}</div>
           ) : null}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 px-6 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-all duration-300 transform hover:-translate-y-0.5 shadow-lg hover:shadow-orange-500/30"
+            className="auth-btn-primary"
           >
             {loading ? "Pracuji..." : "Vytvořit účet"}
           </button>
 
-          <button
-            type="button"
-            onClick={handleDemo}
-            className="w-full py-3 px-6 bg-white/5 hover:bg-white/10 text-white rounded-xl font-medium transition-all duration-300 border border-white/10 flex items-center justify-center gap-2 group"
-          >
-            <span className="material-symbols-outlined text-[20px] text-orange-400 group-hover:scale-110 transition-transform">auto_awesome</span>
-            Vyzkoušet Demo
-          </button>
-
-          <div className="flex items-center justify-between text-sm text-white/50 mt-2">
-            <Link to="/login" className="hover:text-white transition-colors">
-              Již mám účet
-            </Link>
-            <Link to="/" className="hover:text-white transition-colors">
-              Zpět na landing
-            </Link>
+<div className="auth-links">
+            <Link to={loginHref}>Již mám účet</Link>
+            <Link to="/">Zpět na hlavní stránku</Link>
           </div>
         </form>
       </AuthCard>
-    </PublicLayout>
+    </div>
   );
 };

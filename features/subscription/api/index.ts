@@ -3,6 +3,8 @@ export {
   getFeatureAccess,
   getCurrentTier,
   getEnabledFeatures,
+  getEffectiveUserTier,
+  getEnabledFeaturesV2,
   formatSubscriptionExpirationDate,
 } from "./subscriptionState";
 export {
@@ -10,10 +12,8 @@ export {
   cancelPlan,
   reactivatePlan,
   createCheckoutSession,
-  createBillingPortalSession,
+  cancelRecurrence,
   syncSubscription,
-  createSetupIntent,
-  createSubscriptionFromPaymentMethod,
   isBillingConfigured,
   formatBillingPrice,
   PRICING_CONFIG,

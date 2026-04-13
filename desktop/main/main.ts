@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, shell, session } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, shell, session, nativeImage } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import { registerIpcHandlers } from './ipc/handlers';
@@ -85,17 +85,13 @@ function createWindow(): void {
         height: 900,
         minWidth: 1024,
         minHeight: 700,
-        // icon: path.join(__dirname, process.platform === 'darwin' ? '../../assets/icon.icns' : '../../assets/icon.ico'),
         icon: (() => {
             const iconPath = path.join(__dirname, process.platform === 'darwin' ? '../../assets/icon.icns' : '../../assets/icon.ico');
-            console.log('Resolving icon path:', iconPath);
             try {
-                require('fs').accessSync(iconPath);
-                console.log('Icon file exists and is accessible');
-                return iconPath;
-            } catch (error) {
-                console.error('Icon file not accessible:', error);
-                return undefined; // Fallback to no icon to prevent crash
+                const icon = nativeImage.createFromPath(iconPath);
+                return icon.isEmpty() ? undefined : icon;
+            } catch {
+                return undefined;
             }
         })(),
         webPreferences: buildMainWindowWebPreferences(path.join(__dirname, 'preload.js')),
@@ -110,8 +106,12 @@ function createWindow(): void {
     if (process.platform === 'darwin') {
         const iconPath = path.join(__dirname, '../../assets/icon.icns');
         try {
-            require('fs').accessSync(iconPath);
-            app.dock?.setIcon(iconPath);
+            const icon = nativeImage.createFromPath(iconPath);
+            if (!icon.isEmpty()) {
+                app.dock?.setIcon(icon);
+            } else {
+                console.warn('Dock icon loaded but is empty:', iconPath);
+            }
         } catch (error) {
             console.error('Dock icon not accessible:', error);
         }

@@ -48,12 +48,12 @@ describe("UserManagement", () => {
     serviceMocks.getPermissionDefinitions.mockResolvedValue([]);
   });
 
-  it("renderuje subscription sloupec a auto tier volbu", async () => {
+  it("renderuje org plán sloupec s tier badge", async () => {
     render(<UserManagement isAdmin={true} />);
 
     await waitFor(() => {
-      expect(screen.getByText("Předplatné")).toBeInTheDocument();
-      expect(screen.getByDisplayValue("Auto (starter)")).toBeInTheDocument();
+      expect(screen.getByText("Org. plán")).toBeInTheDocument();
+      expect(screen.getByText("Starter")).toBeInTheDocument();
     });
   });
 });

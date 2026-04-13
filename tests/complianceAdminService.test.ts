@@ -20,7 +20,7 @@ const state = vi.hoisted(() => {
   query.eq.mockResolvedValue({ error: null });
 
   return {
-    from: vi.fn(() => query),
+    from: vi.fn(() => query) as any,
     rpc: vi.fn(),
     rpcRest: vi.fn(),
     query,

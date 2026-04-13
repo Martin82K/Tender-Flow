@@ -3,6 +3,7 @@ import { invokePublicFunction } from './functionsClient';
 import { LegalAcceptanceInput, SubscriptionTier, User } from '../types';
 import { isValidTierId } from '../config/subscriptionTiers';
 import { summarizeErrorForLog } from '@/shared/security/logSanitizer';
+import { ADMIN_EMAILS } from '../config/constants';
 import {
     CURRENT_PRIVACY_VERSION,
     CURRENT_TERMS_VERSION,
@@ -642,7 +643,7 @@ export const authService = {
                     Promise.resolve(
                         supabase
                             .from('organization_members')
-                            .select('organization_id')
+                            .select('organization_id, is_active')
                             .eq('user_id', session.user.id)
                             .limit(1)
                             .maybeSingle()
@@ -652,7 +653,8 @@ export const authService = {
                 );
                 const { data, error } = res as any;
                 if (error) return null;
-                return data?.organization_id || null;
+                if (!data?.organization_id) return null;
+                return { organizationId: data.organization_id, isActive: data.is_active ?? true };
             } catch (e) {
                 console.warn('[authService] Could not fetch org member', e);
                 return null;
@@ -660,7 +662,9 @@ export const authService = {
         })();
 
         // Await Batch 2
-        const organizationId = await orgMemberPromise;
+        const orgMemberResult = await orgMemberPromise;
+        const organizationId = orgMemberResult?.organizationId || null;
+        const isOrgMemberActive = orgMemberResult?.isActive ?? true;
 
         // Attempt to get organization subscription tier (dependent on organizationId)
         let subscriptionTier: SubscriptionTier = 'free';
@@ -731,6 +735,7 @@ export const authService = {
             organizationId: organizationId || undefined,
             organizationType,
             organizationName,
+            isOrgMemberActive: organizationId ? isOrgMemberActive : undefined,
             legalAcceptance: {
                 termsVersion: userProfile?.terms_version ?? null,
                 termsAcceptedAt: userProfile?.terms_accepted_at ?? null,

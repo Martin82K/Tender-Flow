@@ -14,12 +14,15 @@ export type TFFieldKey =
   | "company"
   | "ico"
   | "region"
+  | "city"
   | "specialization"
   | "status"
   | "contactName"
   | "contactEmail"
   | "contactPhone"
-  | "contactPosition";
+  | "contactPosition"
+  | "web"
+  | "note";
 
 export type FieldMapping = Record<TFFieldKey, string | null>;
 
@@ -34,6 +37,7 @@ export interface AnalyzeOptions {
   statuses: StatusConfig[];
   existingContacts: Subcontractor[];
   nameFixMode: "off" | "apply";
+  excludedRowIndices?: Set<number>;
 }
 
 export type RowOutcome = "imported" | "imported_with_warning" | "not_imported";
@@ -45,18 +49,22 @@ export interface AnalyzedRow {
     company: string;
     ico: string;
     region: string;
+    city: string;
     specializationRaw: string;
     statusRaw: string;
     contactName: string;
     contactEmail: string;
     contactPhone: string;
     contactPosition: string;
+    web: string;
+    note: string;
   };
   outcome: RowOutcome;
   warnings: string[];
   errors: string[];
   suggestedCompanyName?: string;
   companyNameInvalid?: boolean;
+  excluded?: boolean;
 }
 
 export interface AnalyzeResult {
@@ -136,12 +144,15 @@ export const getTenderFlowImportFields = () => {
     { key: "company", label: "Firma", hint: "Název firmy / společnosti" },
     { key: "ico", label: "IČO", hint: "IČO firmy" },
     { key: "region", label: "Region", hint: "Kraj / město / lokalita" },
+    { key: "city", label: "Město", hint: "Město sídla firmy" },
     { key: "specialization", label: "Specializace", hint: "Obor, typ prací (lze víc hodnot)" },
     { key: "status", label: "Stav", hint: "Např. Dostupný / Dovolená (podle vašich stavů)" },
     { key: "contactName", label: "Jméno", hint: "Kontaktní osoba" },
     { key: "contactEmail", label: "Email", hint: "Email kontaktu" },
     { key: "contactPhone", label: "Telefon", hint: "Telefon kontaktu" },
     { key: "contactPosition", label: "Pozice", hint: "Pozice / role kontaktu" },
+    { key: "web", label: "Web", hint: "URL webu firmy" },
+    { key: "note", label: "Poznámka", hint: "Volná poznámka / popis firmy" },
   ];
   return fields;
 };
@@ -149,6 +160,8 @@ export const getTenderFlowImportFields = () => {
 const FIELD_SYNONYMS: Record<TFFieldKey, string[]> = {
   company: [
     "firma",
+    "nazev",
+    "název",
     "nazev firmy",
     "spolecnost",
     "společnost",
@@ -160,13 +173,16 @@ const FIELD_SYNONYMS: Record<TFFieldKey, string[]> = {
     "organizace",
   ],
   ico: ["ico", "ičo", "iČo", "ic", "dic", "dič", "ič", "ičo (bez mezer)"],
-  region: ["region", "kraj", "mesto", "město", "lokalita", "city", "area", "kraj/region"],
+  region: ["region", "kraj", "lokalita", "area", "kraj/region"],
+  city: ["mesto", "město", "city", "obec", "místo", "misto", "town"],
   specialization: ["specializace", "typ", "obor", "trade", "category", "kategorie"],
   status: ["stav", "status"],
   contactName: ["jmeno", "jméno", "name", "kontakt", "osoba", "kontaktni osoba", "contact"],
   contactEmail: ["email", "e-mail", "mail"],
   contactPhone: ["telefon", "phone", "tel", "mobil", "mobile"],
   contactPosition: ["pozice", "funkce", "role", "position", "job title", "pracovni pozice"],
+  web: ["web", "www", "url", "webova stranka", "website", "homepage"],
+  note: ["poznamka", "poznámka", "note", "notes", "popis", "description", "komentar"],
 };
 
 const findBestHeaderForField = (headers: string[], field: TFFieldKey): string | null => {
@@ -193,12 +209,15 @@ export const suggestFieldMapping = (headers: string[]): FieldMapping => {
     company: findBestHeaderForField(headers, "company"),
     ico: findBestHeaderForField(headers, "ico"),
     region: findBestHeaderForField(headers, "region"),
+    city: findBestHeaderForField(headers, "city"),
     specialization: findBestHeaderForField(headers, "specialization"),
     status: findBestHeaderForField(headers, "status"),
     contactName: findBestHeaderForField(headers, "contactName"),
     contactEmail: findBestHeaderForField(headers, "contactEmail"),
     contactPhone: findBestHeaderForField(headers, "contactPhone"),
     contactPosition: findBestHeaderForField(headers, "contactPosition"),
+    web: findBestHeaderForField(headers, "web"),
+    note: findBestHeaderForField(headers, "note"),
   };
 };
 
@@ -366,12 +385,15 @@ export const analyzeContactsImport = (
       company: companyRaw,
       ico: getMapped("ico"),
       region: getMapped("region"),
+      city: getMapped("city"),
       specializationRaw: getMapped("specialization"),
       statusRaw: getMapped("status"),
       contactName: getMapped("contactName"),
       contactEmail,
       contactPhone: getMapped("contactPhone"),
       contactPosition: getMapped("contactPosition"),
+      web: getMapped("web"),
+      note: getMapped("note"),
     };
 
     const warnings: string[] = [];
@@ -491,8 +513,9 @@ export const analyzeContactsImport = (
 
       const addsIco = !isEmptyValue(mapped.ico) && isEmptyValue(existing.ico);
       const addsRegion = !isEmptyValue(mapped.region) && isEmptyValue(existing.region);
+      const addsCity = !isEmptyValue(mapped.city) && isEmptyValue(existing.city);
 
-      return addsSpec || addsContact || addsIco || addsRegion;
+      return addsSpec || addsContact || addsIco || addsRegion || addsCity;
     })();
 
     let outcome: RowOutcome = "imported";
@@ -508,6 +531,11 @@ export const analyzeContactsImport = (
       outcome = "imported_with_warning";
     }
 
+    const excluded = options.excludedRowIndices?.has(idx + 1) ?? false;
+    if (excluded) {
+      outcome = "not_imported";
+    }
+
     return {
       rowIndex: idx + 1,
       source: sourceRow,
@@ -517,6 +545,7 @@ export const analyzeContactsImport = (
       errors,
       suggestedCompanyName,
       companyNameInvalid,
+      excluded,
     };
   });
 
@@ -528,6 +557,9 @@ export const analyzeContactsImport = (
       canonicalKey: string;
       ico?: string;
       region?: string;
+      city?: string;
+      web?: string;
+      note?: string;
       specialization: Set<string>;
       statusId: string;
       contacts: ContactPerson[];
@@ -575,6 +607,9 @@ export const analyzeContactsImport = (
         canonicalKey,
         ico: isEmptyValue(row.mapped.ico) ? undefined : row.mapped.ico,
         region: isEmptyValue(row.mapped.region) ? undefined : row.mapped.region,
+        city: isEmptyValue(row.mapped.city) ? undefined : row.mapped.city,
+        web: isEmptyValue(row.mapped.web) ? undefined : row.mapped.web,
+        note: isEmptyValue(row.mapped.note) ? undefined : row.mapped.note,
         specialization: new Set<string>(),
         statusId,
         contacts: [],
@@ -590,9 +625,17 @@ export const analyzeContactsImport = (
       entry.region = isEmptyValue(existing.region)
         ? (entry.region || (isEmptyValue(row.mapped.region) ? undefined : row.mapped.region))
         : existing.region;
+      entry.city = isEmptyValue(existing.city)
+        ? (entry.city || (isEmptyValue(row.mapped.city) ? undefined : row.mapped.city))
+        : existing.city;
+      entry.web = isEmptyValue(existing.web) ? (entry.web || (isEmptyValue(row.mapped.web) ? undefined : row.mapped.web)) : existing.web;
+      entry.note = isEmptyValue(existing.note) ? (entry.note || (isEmptyValue(row.mapped.note) ? undefined : row.mapped.note)) : existing.note;
     } else {
       entry.ico = entry.ico || (isEmptyValue(row.mapped.ico) ? undefined : row.mapped.ico);
       entry.region = entry.region || (isEmptyValue(row.mapped.region) ? undefined : row.mapped.region);
+      entry.city = entry.city || (isEmptyValue(row.mapped.city) ? undefined : row.mapped.city);
+      entry.web = entry.web || (isEmptyValue(row.mapped.web) ? undefined : row.mapped.web);
+      entry.note = entry.note || (isEmptyValue(row.mapped.note) ? undefined : row.mapped.note);
     }
     entry.statusId = entry.statusId || statusId;
 
@@ -650,6 +693,9 @@ export const analyzeContactsImport = (
       contacts,
       ico: entry.ico || "-",
       region: entry.region || "-",
+      city: entry.city || "-",
+      web: entry.web || "",
+      note: entry.note || "",
       status: entry.statusId || options.defaultStatusId,
       name: contacts[0]?.name || "-",
       email: contacts[0]?.email || "-",
@@ -698,10 +744,10 @@ export const downloadWorkbook = (wb: XLSX.WorkBook, filename: string) => {
 };
 
 export const buildTemplateWorkbook = () => {
-  const headers = ["Firma", "IČO", "Region", "Specializace", "Jméno", "Email", "Telefon", "Pozice", "Stav"];
+  const headers = ["Firma", "IČO", "Region", "Město", "Specializace", "Jméno", "Email", "Telefon", "Pozice", "Stav"];
   const example = [
-    ["STŘECHY PROFESIONAL s.r.o.", "12345678", "Praha", "Střechy; Klempíř", "Jan Novák", "jan@strechy.cz", "+420 777 000 000", "Obchod", "Dostupný"],
-    ["STŘECHY PROFESIONAL s.r.o.", "12345678", "Praha", "Střechy; Klempíř", "Petr Svoboda", "petr@strechy.cz", "+420 777 111 111", "Technik", "Dostupný"],
+    ["STŘECHY PROFESIONAL s.r.o.", "12345678", "Hlavní město Praha", "Praha", "Střechy; Klempíř", "Jan Novák", "jan@strechy.cz", "+420 777 000 000", "Obchod", "Dostupný"],
+    ["STŘECHY PROFESIONAL s.r.o.", "12345678", "Hlavní město Praha", "Praha", "Střechy; Klempíř", "Petr Svoboda", "petr@strechy.cz", "+420 777 111 111", "Technik", "Dostupný"],
   ];
   const aoa = [headers, ...example];
 

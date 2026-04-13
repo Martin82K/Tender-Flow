@@ -295,7 +295,11 @@ export const useTenderPlanController = ({
         );
       }
 
-      const plannedImport = planTenderImport(parsedItems, existingItems);
+      const validItems = parsedItems
+        .filter((item): item is Partial<TenderPlanItem> & { name: string; dateFrom: string; dateTo: string } =>
+          typeof item.name === "string" && typeof item.dateFrom === "string" && typeof item.dateTo === "string"
+        );
+      const plannedImport = planTenderImport(validItems, existingItems);
       currentStats.skipped += plannedImport.skipped;
 
       for (const row of plannedImport.rowsToCreate) {

@@ -329,7 +329,7 @@ export const IncidentLogsAdmin: React.FC = () => {
         </div>
         <div className="overflow-auto" style={{ maxHeight: tableMaxHeight }}>
           <table className="min-w-full text-sm">
-            <thead className="bg-slate-50 dark:bg-slate-800/60">
+            <thead className="bg-slate-50 dark:bg-slate-800/60 sticky top-0 z-10">
               <tr className="text-left text-slate-500 dark:text-slate-300">
                 <th className="px-2 py-2 w-10">#</th>
                 <th className="px-4 py-2">Čas</th>
