@@ -19,8 +19,14 @@ AS $$
 DECLARE
   new_id UUID;
 BEGIN
+  IF auth.role() = 'authenticated' AND auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Authentication context is required'
+      USING ERRCODE = '42501';
+  END IF;
+
   IF auth.role() = 'authenticated' AND target_user_id IS DISTINCT FROM auth.uid() THEN
-    RAISE EXCEPTION 'Not authorized to insert notifications for other users';
+    RAISE EXCEPTION 'Not authorized to insert notifications for other users'
+      USING ERRCODE = '42501';
   END IF;
 
   INSERT INTO public.notifications (
