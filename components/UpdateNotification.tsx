@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, RefreshCw, X, AlertCircle, CheckCircle } from 'lucide-react';
+import { Download, RefreshCw, X, CheckCircle } from 'lucide-react';
 
 interface UpdateInfo {
     version: string;
@@ -56,34 +56,8 @@ export function UpdateNotification({
         onDismiss();
     };
 
-    if (!isVisible || status === 'not-available' || status === 'checking') {
+    if (!isVisible || status === 'not-available' || status === 'checking' || status === 'error') {
         return null;
-    }
-
-    // Error state
-    if (status === 'error') {
-        return (
-            <div className="fixed bottom-6 right-6 w-96 bg-red-900/90 backdrop-blur-sm border border-red-700 rounded-lg shadow-2xl p-4 z-50 animate-slide-up">
-                <div className="flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-                    <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-white mb-1">
-                            Chyba při aktualizaci
-                        </h3>
-                        <p className="text-sm text-red-200">
-                            {error || 'Nepodařilo se zkontrolovat aktualizace'}
-                        </p>
-                    </div>
-                    <button
-                        onClick={handleDismiss}
-                        className="text-red-400 hover:text-red-200 transition-colors"
-                        aria-label="Zavřít"
-                    >
-                        <X className="w-5 h-5" />
-                    </button>
-                </div>
-            </div>
-        );
     }
 
     // Downloaded - ready to install
