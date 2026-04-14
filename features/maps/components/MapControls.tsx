@@ -6,6 +6,8 @@ interface MapControlsProps {
   regionsVisible?: boolean;
   onToggleFullscreen?: () => void;
   isFullscreen?: boolean;
+  onToggleLabels?: () => void;
+  labelsVisible?: boolean;
   className?: string;
 }
 
@@ -15,6 +17,8 @@ export function MapControls({
   regionsVisible = false,
   onToggleFullscreen,
   isFullscreen = false,
+  onToggleLabels,
+  labelsVisible = false,
   className = '',
 }: MapControlsProps) {
   const [tooltipId, setTooltipId] = useState<string | null>(null);
@@ -26,6 +30,17 @@ export function MapControls({
       label: 'Přizpůsobit pohled',
       onClick: onFitBounds,
     },
+    ...(onToggleLabels
+      ? [
+          {
+            id: 'labels',
+            icon: labelsVisible ? 'label' : 'label_off',
+            label: labelsVisible ? 'Skrýt názvy firem' : 'Zobrazit názvy firem',
+            onClick: onToggleLabels,
+            active: labelsVisible,
+          },
+        ]
+      : []),
     ...(onToggleRegions
       ? [
           {

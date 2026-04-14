@@ -3,6 +3,7 @@ import { Header } from '@/shared/ui/Header';
 import { NotificationBell } from "@features/notifications/ui/NotificationBell";
 import { HelpButton } from "@features/help";
 import { StarRating } from '@/shared/ui/StarRating';
+import { AutocompleteInput } from '@/shared/ui/AutocompleteInput';
 import { Subcontractor, StatusConfig } from '@/types';
 import { findCompanyRegistrationDetails } from '@/services/geminiService';
 import { SubcontractorSelector } from '@/shared/ui/SubcontractorSelector';
@@ -692,28 +693,13 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                                         </div>
 
                                         <div className="flex gap-2">
-                                            <div className="relative flex-1">
-                                                <input
-                                                    type="text"
-                                                    list="available-specializations"
-                                                    value={formData.specializationRaw || ''}
-                                                    onChange={e => setFormData({ ...formData, specializationRaw: e.target.value })}
-                                                    onKeyDown={e => {
-                                                        if (e.key === 'Enter') {
-                                                            e.preventDefault();
-                                                            handleAddSpecialization(formData.specializationRaw || '');
-                                                        }
-                                                        e.stopPropagation();
-                                                    }}
-                                                    className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
-                                                    placeholder="Přidat specializaci (stiskněte Enter)"
-                                                />
-                                                <datalist id="available-specializations">
-                                                    {allSpecializations.filter(s => !formData.specialization?.includes(s)).map(spec => (
-                                                        <option key={spec} value={spec} />
-                                                    ))}
-                                                </datalist>
-                                            </div>
+                                            <AutocompleteInput
+                                                value={formData.specializationRaw || ''}
+                                                onChange={v => setFormData({ ...formData, specializationRaw: v })}
+                                                onCommit={v => handleAddSpecialization(v)}
+                                                options={allSpecializations.filter(s => !formData.specialization?.includes(s))}
+                                                placeholder="Přidat specializaci (stiskněte Enter)"
+                                            />
                                             <button
                                                 type="button"
                                                 onClick={() => handleAddSpecialization(formData.specializationRaw || '')}
@@ -1155,28 +1141,13 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                                     )}
                                 </div>
                                 <div className="flex gap-2">
-                                    <div className="relative flex-1">
-                                        <input
-                                            type="text"
-                                            list="bulk-available-specializations"
-                                            value={bulkSpecRaw}
-                                            onChange={e => setBulkSpecRaw(e.target.value)}
-                                            onKeyDown={e => {
-                                                if (e.key === 'Enter') {
-                                                    e.preventDefault();
-                                                    handleBulkSpecAdd(bulkSpecRaw);
-                                                }
-                                                e.stopPropagation();
-                                            }}
-                                            className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white"
-                                            placeholder="Přidat specializaci (stiskněte Enter)"
-                                        />
-                                        <datalist id="bulk-available-specializations">
-                                            {allSpecializations.filter(s => !bulkSpecSelected.includes(s)).map(spec => (
-                                                <option key={spec} value={spec} />
-                                            ))}
-                                        </datalist>
-                                    </div>
+                                    <AutocompleteInput
+                                        value={bulkSpecRaw}
+                                        onChange={setBulkSpecRaw}
+                                        onCommit={v => handleBulkSpecAdd(v)}
+                                        options={allSpecializations.filter(s => !bulkSpecSelected.includes(s))}
+                                        placeholder="Přidat specializaci (stiskněte Enter)"
+                                    />
                                     <button
                                         type="button"
                                         onClick={() => handleBulkSpecAdd(bulkSpecRaw)}

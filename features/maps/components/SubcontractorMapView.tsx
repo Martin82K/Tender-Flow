@@ -5,7 +5,6 @@ import { getMarkerColor, buildDynamicColorMap, getDynamicMarkerColor } from '../
 import { MapView } from './MapView';
 import type { MapViewHandle } from './MapView';
 import { MapLegend } from './MapLegend';
-import { MapSearchOverlay } from './MapSearchOverlay';
 import { MapInfoCard } from './MapInfoCard';
 import { MapControls } from './MapControls';
 import { MapLayerSwitcher } from './MapLayerSwitcher';
@@ -32,6 +31,12 @@ export function SubcontractorMapView({
   const [specFilter, setSpecFilter] = useState<string[]>([]);
   const [regionFilter, setRegionFilter] = useState<string>('');
   const [specDropdownOpen, setSpecDropdownOpen] = useState(false);
+  const [companyQuery, setCompanyQuery] = useState('');
+  const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
+  const [specSearch, setSpecSearch] = useState('');
+  const [showLabels, setShowLabels] = useState(false);
+  const [showLabelSpecialization, setShowLabelSpecialization] = useState(false);
+  const [highlightedContact, setHighlightedContact] = useState<Subcontractor | null>(null);
 
   const handleGeocodesUpdated = useCallback((updates: Array<{ id: string; latitude: number; longitude: number; geocodedAt: string }>) => {
     if (!onBulkUpdateContacts) return;
@@ -111,6 +116,54 @@ export function SubcontractorMapView({
     selectedContactId ? contacts.find(c => c.id === selectedContactId) : null,
   [contacts, selectedContactId]);
 
+  // Company search matches — searches across all contacts (not restricted by active filters)
+  const companyMatches = useMemo(() => {
+    const q = companyQuery.trim().toLowerCase();
+    if (q.length < 2) return [] as Subcontractor[];
+    return contacts
+      .filter(c => {
+        const haystack = [
+          c.company,
+          c.ico,
+          c.address,
+          c.city,
+          c.region,
+          ...(c.regions ?? []),
+          ...(c.specialization ?? []),
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        return haystack.includes(q);
+      })
+      .slice(0, 8);
+  }, [contacts, companyQuery]);
+
+  const handleCompanySelect = useCallback((contact: Subcontractor) => {
+    setCompanyDropdownOpen(false);
+    setCompanyQuery(contact.company);
+    if (contact.latitude != null && contact.longitude != null) {
+      setHighlightedContact(contact);
+      mapRef.current?.flyTo(contact.latitude, contact.longitude, 13);
+    } else {
+      setHighlightedContact(null);
+    }
+  }, []);
+
+  // Filtered specializations based on search (diacritic-insensitive, token-based)
+  const filteredSpecializations = useMemo(() => {
+    const q = specSearch.trim();
+    if (!q) return allSpecializations;
+    const normalize = (s: string) =>
+      s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const tokens = normalize(q).split(/[\s.,;]+/).filter(Boolean);
+    if (tokens.length === 0) return allSpecializations;
+    return allSpecializations.filter(spec => {
+      const n = normalize(spec);
+      return tokens.every(t => n.includes(t));
+    });
+  }, [allSpecializations, specSearch]);
+
   const toggleSpec = useCallback((spec: string) => {
     setSpecFilter(prev =>
       prev.includes(spec) ? prev.filter(s => s !== spec) : [...prev, spec]
@@ -139,31 +192,73 @@ export function SubcontractorMapView({
             )}
           </button>
           {specDropdownOpen && (
-            <div className="absolute top-full left-0 mt-1 z-50 w-56 max-h-60 overflow-y-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg">
-              {allSpecializations.length === 0 ? (
-                <div className="px-3 py-2 text-xs text-slate-400">Žádné specializace</div>
-              ) : (
-                allSpecializations.map(spec => (
-                  <label
-                    key={spec}
-                    className="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer text-xs text-slate-700 dark:text-slate-300"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={specFilter.includes(spec)}
-                      onChange={() => toggleSpec(spec)}
-                      className="rounded border-slate-300 dark:border-slate-600"
-                    />
-                    {spec}
-                  </label>
-                ))
-              )}
+            <div className="absolute top-full left-0 mt-1 z-50 w-64 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg overflow-hidden flex flex-col">
+              {/* Search input */}
+              <div className="p-2 border-b border-slate-200 dark:border-slate-700">
+                <div className="relative">
+                  <span className="material-symbols-outlined text-sm text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none">
+                    search
+                  </span>
+                  <input
+                    type="text"
+                    value={specSearch}
+                    onChange={(e) => setSpecSearch(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') {
+                        e.preventDefault();
+                        if (specSearch) {
+                          setSpecSearch('');
+                        } else {
+                          setSpecDropdownOpen(false);
+                        }
+                      }
+                    }}
+                    autoFocus
+                    placeholder="Hledat specializaci…"
+                    className="w-full text-xs pl-7 pr-7 py-1.5 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all"
+                  />
+                  {specSearch && (
+                    <button
+                      onClick={() => setSpecSearch('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                      aria-label="Vymazat"
+                    >
+                      <span className="material-symbols-outlined text-sm">close</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* List */}
+              <div className="max-h-60 overflow-y-auto">
+                {allSpecializations.length === 0 ? (
+                  <div className="px-3 py-2 text-xs text-slate-400">Žádné specializace</div>
+                ) : filteredSpecializations.length === 0 ? (
+                  <div className="px-3 py-2 text-xs text-slate-400">Žádné výsledky</div>
+                ) : (
+                  filteredSpecializations.map(spec => (
+                    <label
+                      key={spec}
+                      className="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer text-xs text-slate-700 dark:text-slate-300"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={specFilter.includes(spec)}
+                        onChange={() => toggleSpec(spec)}
+                        className="rounded border-slate-300 dark:border-slate-600"
+                      />
+                      {spec}
+                    </label>
+                  ))
+                )}
+              </div>
+
               {specFilter.length > 0 && (
                 <button
                   onClick={() => setSpecFilter([])}
                   className="w-full text-xs px-3 py-1.5 text-blue-600 dark:text-blue-400 hover:bg-slate-50 dark:hover:bg-slate-700 border-t border-slate-200 dark:border-slate-700"
                 >
-                  Zrušit filtr
+                  Zrušit filtr ({specFilter.length})
                 </button>
               )}
             </div>
@@ -182,8 +277,123 @@ export function SubcontractorMapView({
           ))}
         </select>
 
+        {/* Company / address search */}
+        <div className="relative flex-1 min-w-[200px] max-w-xs">
+          <span className="material-symbols-outlined text-sm text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
+            search
+          </span>
+          <input
+            type="text"
+            value={companyQuery}
+            onChange={(e) => {
+              setCompanyQuery(e.target.value);
+              setCompanyDropdownOpen(e.target.value.trim().length >= 2);
+            }}
+            onFocus={() => {
+              if (companyQuery.trim().length >= 2) setCompanyDropdownOpen(true);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && companyMatches.length > 0) {
+                e.preventDefault();
+                handleCompanySelect(companyMatches[0]);
+              } else if (e.key === 'Escape') {
+                setCompanyDropdownOpen(false);
+              }
+            }}
+            placeholder="Hledat firmu, IČO, město…"
+            className="w-full text-xs pl-8 pr-7 py-1.5 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all"
+          />
+          {companyQuery && (
+            <button
+              onClick={() => {
+                setCompanyQuery('');
+                setCompanyDropdownOpen(false);
+                setHighlightedContact(null);
+              }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+              aria-label="Vymazat"
+            >
+              <span className="material-symbols-outlined text-sm">close</span>
+            </button>
+          )}
+          {companyDropdownOpen && (
+            <div className="absolute top-full left-0 right-0 mt-1 z-50 max-h-72 overflow-y-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg">
+              {companyMatches.length === 0 ? (
+                <div className="px-3 py-2 text-xs text-slate-400">Žádné výsledky</div>
+              ) : (
+                companyMatches.map(c => {
+                  const hasCoords = c.latitude != null && c.longitude != null;
+                  return (
+                    <button
+                      key={c.id}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        handleCompanySelect(c);
+                      }}
+                      className="w-full flex items-start gap-2 px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700 text-xs border-b border-slate-100 dark:border-slate-700/50 last:border-b-0"
+                    >
+                      <span
+                        className={`material-symbols-outlined text-sm mt-0.5 shrink-0 ${
+                          hasCoords ? 'text-blue-500' : 'text-slate-300 dark:text-slate-600'
+                        }`}
+                        title={hasCoords ? 'Na mapě' : 'Bez geokódování'}
+                      >
+                        {hasCoords ? 'location_on' : 'location_off'}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium text-slate-900 dark:text-white truncate">
+                          {c.company}
+                        </div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                          {[c.city, c.region, c.ico].filter(Boolean).join(' · ')}
+                        </div>
+                        {c.specialization && c.specialization.length > 0 && (
+                          <div className="text-[10px] text-slate-400 dark:text-slate-500 truncate">
+                            {c.specialization.join(', ')}
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Stats + geocode */}
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-3">
+          {/* Labels toggle */}
+          <button
+            type="button"
+            role="switch"
+            aria-checked={showLabels}
+            onClick={() => setShowLabels(prev => !prev)}
+            className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer select-none"
+          >
+            <span className={`relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors ${showLabels ? 'bg-blue-500 dark:bg-blue-600' : 'bg-slate-300 dark:bg-slate-600'}`}>
+              <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${showLabels ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="material-symbols-outlined text-sm">label</span>
+              Názvy firem
+            </span>
+          </button>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={showLabelSpecialization}
+            onClick={() => setShowLabelSpecialization(prev => !prev)}
+            className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer select-none"
+          >
+            <span className={`relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors ${showLabelSpecialization ? 'bg-blue-500 dark:bg-blue-600' : 'bg-slate-300 dark:bg-slate-600'}`}>
+              <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${showLabelSpecialization ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="material-symbols-outlined text-sm">category</span>
+              Specializace
+            </span>
+          </button>
           <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
             <span className="material-symbols-outlined text-sm">pin_drop</span>
             {geocodedCount} z {totalContacts} na mapě
@@ -202,6 +412,10 @@ export function SubcontractorMapView({
 
       {specDropdownOpen && (
         <div className="fixed inset-0 z-40" onClick={() => setSpecDropdownOpen(false)} />
+      )}
+
+      {companyDropdownOpen && (
+        <div className="fixed inset-0 z-40" onClick={() => setCompanyDropdownOpen(false)} />
       )}
 
       {showGeocodePanel && (
@@ -244,14 +458,22 @@ export function SubcontractorMapView({
               className="h-full"
               showRegions={showRegions}
               activeLayer={activeLayer}
+              disableClustering
+              showLabels={showLabels}
+              showLabelSpecialization={showLabelSpecialization}
+              labelZoomThreshold={0}
+              highlightedPin={
+                highlightedContact && highlightedContact.latitude != null && highlightedContact.longitude != null
+                  ? {
+                      lat: highlightedContact.latitude,
+                      lng: highlightedContact.longitude,
+                      label: highlightedContact.company,
+                      specialization: highlightedContact.specialization,
+                      rating: highlightedContact.vendorRatingAverage,
+                    }
+                  : null
+              }
             />
-
-            {/* TOP LEFT: Search */}
-            <div className="absolute top-3 left-3 z-[1000]">
-              <MapSearchOverlay
-                onFlyTo={(lat, lng, zoom) => mapRef.current?.flyTo(lat, lng, zoom)}
-              />
-            </div>
 
             {/* TOP RIGHT: Controls */}
             <div className="absolute top-3 right-3 z-[1000]">
