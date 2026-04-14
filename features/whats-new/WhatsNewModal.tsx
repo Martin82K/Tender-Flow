@@ -9,40 +9,40 @@ interface WhatsNewModalProps {
 
 const features = [
   {
-    icon: "person_add",
-    title: "Import wizard kontaktů",
+    icon: "route",
+    title: "Plánování trasy na mapě",
     description:
-      "Nový průvodce pro hromadný import kontaktů a subdodavatelů s náhledem a mapováním sloupců.",
+      "Po výběru subdodavatele se vykreslí skutečná trasa po silnici včetně vzdálenosti v kilometrech a odhadu doby jízdy.",
   },
   {
-    icon: "edit_attributes",
-    title: "Hromadná úprava specializací",
+    icon: "directions_car",
+    title: "Reálné vzdálenosti u nejbližších firem",
     description:
-      "Specializace subdodavatelů lze nyní upravovat hromadně přímo v přehledu kontaktů.",
+      "V panelu nejbližších subdodavatelů vidíte skutečnou vzdálenost a čas jízdy po silnici místo vzdušné čáry.",
   },
   {
-    icon: "post_add",
-    title: "Dodatky a vlastní náklady",
+    icon: "search",
+    title: "Globální vyhledávání (Ctrl+K)",
     description:
-      "Vylepšené formuláře pro dodatky a adresy, včetně podpory vlastních nákladů u dodatků.",
+      "Nové vyhledávání napříč celou aplikací — projekty, kontakty, nastavení. Stačí kdykoliv stisknout Ctrl+K.",
   },
   {
-    icon: "enhanced_encryption",
-    title: "Šifrované zálohy",
+    icon: "tune",
+    title: "Přehlednější Nastavení",
     description:
-      "Zálohy dat a kontaktů jsou nově šifrovány algoritmem AES-256-GCM. Desktop verze ukládá zálohy automaticky.",
+      "Nastavení a nástroje jsou nově rozdělené na samostatné karty pro rychlejší orientaci a přístup.",
   },
   {
-    icon: "help_center",
-    title: "Nápověda a příručka",
+    icon: "map",
+    title: "Jednotné ovládání map",
     description:
-      "Interaktivní systém nápovědy s kontextovými bublinami a kompletně přepracovaná uživatelská příručka.",
+      "Mapa kontaktů a projektu teď sdílí stejné ovládání, vrstvy, filtry a chování při přepínání.",
   },
   {
-    icon: "create_new_folder",
-    title: "Automatické složky dokumentů",
+    icon: "notifications_active",
+    title: "Vylepšené notifikace",
     description:
-      "DocHub nyní umí automaticky vytvořit standardizovanou strukturu složek pro dokumenty stavby.",
+      "Přepracovaný systém notifikací s lepším doručováním a přehledem důležitých událostí v aplikaci.",
   },
 ];
 
