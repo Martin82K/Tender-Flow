@@ -137,12 +137,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const params = new URLSearchParams(search);
     const tabParam = params.get("tab");
     const subTabParam = params.get("subTab");
-    const tab = tabParam === "admin" || tabParam === "user" ? tabParam : null;
+    const tab =
+      tabParam === "admin" || tabParam === "user" || tabParam === "tools" || tabParam === "organization"
+        ? tabParam
+        : null;
     const rawSubTab =
       subTabParam === "profile" ||
+      subTabParam === "notifications" ||
+      subTabParam === "backup" ||
       subTabParam === "contacts" ||
       subTabParam === "excelUnlocker" ||
       subTabParam === "excelMerger" ||
+      subTabParam === "excelIndexer" ||
+      subTabParam === "urlShortener" ||
       subTabParam === "registration" ||
       subTabParam === "users" ||
       subTabParam === "subscriptions" ||
@@ -711,13 +718,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <button
                     onClick={() => {
                       onViewChange("settings", {
-                        settingsTab: "user",
+                        settingsTab: "tools",
                         settingsSubTab: "excelUnlocker",
                       });
                       closeMobileMenu();
                     }}
                     className={`p-2 rounded-xl transition-all ${
-                      currentView === "settings" && settingsRoute.subTab && ["excelUnlocker", "excelMerger", "excelIndexer", "contacts", "urlShortener"].includes(settingsRoute.subTab)
+                      currentView === "settings" && settingsRoute.tab === "tools"
                         ? "text-primary bg-primary/10"
                         : "text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50"
                     }`}

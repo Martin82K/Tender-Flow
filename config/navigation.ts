@@ -11,8 +11,8 @@ export interface NavItemConfig {
   children?: NavItemConfig[];
   href?: string; // For external links
   // Optional deep-linking into Settings
-  settingsTab?: 'user' | 'admin';
-  settingsSubTab?: 'profile' | 'contacts' | 'excelUnlocker' | 'excelMerger' | 'excelIndexer' | 'urlShortener' | 'registration' | 'users' | 'subscriptions' | 'ai' | 'tools';
+  settingsTab?: 'user' | 'tools' | 'organization' | 'admin';
+  settingsSubTab?: 'profile' | 'notifications' | 'backup' | 'contacts' | 'excelUnlocker' | 'excelMerger' | 'excelIndexer' | 'urlShortener' | 'registration' | 'users' | 'organizations' | 'subscriptions' | 'ai' | 'incidents' | 'compliance' | 'tools';
 }
 
 export const SIDEBAR_NAVIGATION: NavItemConfig[] = [
@@ -62,7 +62,7 @@ export const BOTTOM_NAVIGATION: NavItemConfig[] = [
         icon: 'upload_file',
         view: 'settings',
         feature: FEATURES.CONTACTS_IMPORT,
-        settingsTab: 'user',
+        settingsTab: 'tools',
         settingsSubTab: 'contacts',
       },
       {
@@ -71,7 +71,7 @@ export const BOTTOM_NAVIGATION: NavItemConfig[] = [
         icon: 'lock_open',
         view: 'settings',
         feature: FEATURES.EXCEL_UNLOCKER,
-        settingsTab: 'user',
+        settingsTab: 'tools',
         settingsSubTab: 'excelUnlocker',
       },
       {
@@ -80,7 +80,7 @@ export const BOTTOM_NAVIGATION: NavItemConfig[] = [
         icon: 'table_view',
         view: 'settings',
         feature: FEATURES.EXCEL_MERGER,
-        settingsTab: 'user',
+        settingsTab: 'tools',
         settingsSubTab: 'excelMerger',
       },
       {
@@ -89,7 +89,7 @@ export const BOTTOM_NAVIGATION: NavItemConfig[] = [
         icon: 'join_inner',
         view: 'settings',
         feature: FEATURES.EXCEL_INDEXER,
-        settingsTab: 'user',
+        settingsTab: 'tools',
         settingsSubTab: 'excelIndexer',
       },
       {
@@ -98,7 +98,7 @@ export const BOTTOM_NAVIGATION: NavItemConfig[] = [
         icon: 'link',
         view: 'settings',
         feature: FEATURES.URL_SHORTENER,
-        settingsTab: 'user',
+        settingsTab: 'tools',
         settingsSubTab: 'urlShortener',
       },
     ],

@@ -19,8 +19,8 @@ export const buildAppUrl = (
         tab?: ProjectTab;
         categoryId?: string | null;
         documentsSubTab?: "pd" | "templates" | "dochub" | "ceniky";
-        settingsTab?: 'user' | 'admin';
-        settingsSubTab?: 'profile' | 'contacts' | 'excelUnlocker' | 'excelMerger' | 'urlShortener' | 'registration' | 'users' | 'subscriptions' | 'ai' | 'incidents' | 'tools';
+        settingsTab?: 'user' | 'tools' | 'organization' | 'admin';
+        settingsSubTab?: 'profile' | 'notifications' | 'backup' | 'contacts' | 'excelUnlocker' | 'excelMerger' | 'excelIndexer' | 'urlShortener' | 'registration' | 'users' | 'organizations' | 'subscriptions' | 'ai' | 'incidents' | 'compliance' | 'tools' | 'overview' | 'members' | 'billing' | 'branding';
     }
 ): string => {
     switch (view) {

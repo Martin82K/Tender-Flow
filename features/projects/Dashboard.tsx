@@ -251,14 +251,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
           {/* Export Button */}
           <Button
             data-help-id="dashboard-export"
-            variant="success"
+            variant="primary"
             onClick={handleExport}
             leftIcon={
               <span className="material-symbols-outlined text-[18px]">
                 file_download
               </span>
             }
-            className="rounded-2xl px-6 h-[44px] font-black uppercase text-[11px] tracking-wider shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/20 transition-all transition-transform active:scale-95"
+            className="rounded-2xl px-6 h-[44px] font-black uppercase text-[11px] tracking-wider shadow-lg shadow-primary/10 hover:shadow-primary/20 transition-all transition-transform active:scale-95"
           >
             <span className="hidden sm:inline">Export Přehledu</span>
             <span className="sm:hidden">Export</span>
