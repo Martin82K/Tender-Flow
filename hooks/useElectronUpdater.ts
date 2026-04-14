@@ -38,8 +38,8 @@ export const useElectronUpdater = () => {
       typeof status.percent === "number"
         ? {
             percent: status.percent,
-            transferred: 0,
-            total: 0,
+            transferred: status.transferred ?? 0,
+            total: status.total ?? 0,
           }
         : undefined,
     error: status.error,

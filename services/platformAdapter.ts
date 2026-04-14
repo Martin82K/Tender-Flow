@@ -277,6 +277,8 @@ export interface UpdateStatusInfo {
     status: 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error';
     version?: string;
     percent?: number;
+    transferred?: number;
+    total?: number;
     error?: string;
 }
 
@@ -333,6 +335,8 @@ export const updaterAdapter = {
                 status: status.status,
                 version: status.info?.version,
                 percent: status.progress?.percent,
+                transferred: status.progress?.transferred,
+                total: status.progress?.total,
                 error: status.error,
             };
         }
@@ -346,6 +350,8 @@ export const updaterAdapter = {
                     status: status.status,
                     version: status.info?.version,
                     percent: status.progress?.percent,
+                    transferred: status.progress?.transferred,
+                    total: status.progress?.total,
                     error: status.error,
                 });
             });
