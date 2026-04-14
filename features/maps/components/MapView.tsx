@@ -20,6 +20,9 @@ interface MapViewProps {
   showRoute?: boolean;
   routeFrom?: GeoPoint;
   routeTo?: GeoPoint;
+  /** Real route geometry from routing API as [lng, lat][] (GeoJSON order).
+   *  When provided, overrides the straight-line fallback between routeFrom/routeTo. */
+  routeGeometry?: [number, number][];
   className?: string;
   showRegions?: boolean;
   /** Active map layer id from MAP_LAYERS */
@@ -182,6 +185,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
     showRoute = false,
     routeFrom,
     routeTo,
+    routeGeometry,
     className = '',
     showRegions = false,
     activeLayer = 'standard',
@@ -525,13 +529,19 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
       routeLayerRef.current = null;
     }
     if (showRoute && routeFrom && routeTo) {
+      const hasRealRoute = routeGeometry && routeGeometry.length >= 2;
+      const latlngs: [number, number][] = hasRealRoute
+        ? routeGeometry!.map(([lng, lat]) => [lat, lng])
+        : [[routeFrom.lat, routeFrom.lng], [routeTo.lat, routeTo.lng]];
       const polyline = L.polyline(
-        [[routeFrom.lat, routeFrom.lng], [routeTo.lat, routeTo.lng]],
-        { color: '#3B82F6', weight: 4, opacity: 0.7, dashArray: '8, 8' },
+        latlngs,
+        hasRealRoute
+          ? { color: '#2563EB', weight: 5, opacity: 0.85 }
+          : { color: '#3B82F6', weight: 4, opacity: 0.7, dashArray: '8, 8' },
       ).addTo(mapRef.current);
       routeLayerRef.current = polyline;
     }
-  }, [showRoute, routeFrom, routeTo, isReady]);
+  }, [showRoute, routeFrom, routeTo, routeGeometry, isReady]);
 
   // -----------------------------------------------------------------------
   // Radius circle

@@ -3,6 +3,8 @@ import type { Subcontractor, ProjectDetails, StatusConfig } from '@/types';
 import type { GeoPoint, MapMarker } from '../types';
 import { useNearbySubcontractors } from '../hooks/useNearbySubcontractors';
 import { useGeocode } from '../hooks/useGeocode';
+import { useRoute } from '../hooks/useRoute';
+import { useNearbyRoutes } from '../hooks/useNearbyRoutes';
 import { MapView } from './MapView';
 import type { MapViewHandle } from './MapView';
 import { MapLegend } from './MapLegend';
@@ -10,6 +12,9 @@ import { MapInfoCard } from './MapInfoCard';
 import { MapControls } from './MapControls';
 import { MapLayerSwitcher } from './MapLayerSwitcher';
 import { MapNearbyPanel } from './MapNearbyPanel';
+import { MapRoutePanel } from './MapRoutePanel';
+import { useFeatures } from '@/context/FeatureContext';
+import { FEATURES } from '@/config/features';
 import { buildDynamicColorMap, getDynamicMarkerColor } from '../utils/markerColors';
 
 interface ProjectMapViewProps {
@@ -46,6 +51,8 @@ export function ProjectMapView({
   const [highlightedContact, setHighlightedContact] = useState<Subcontractor | null>(null);
 
   const { geocodeProject } = useGeocode();
+  const { hasFeature } = useFeatures();
+  const canUseRouting = hasFeature(FEATURES.MAPS_ROUTING);
   const geocodeAttemptedRef = useRef<string | null>(null);
 
   const projectPosition: GeoPoint | null = useMemo(() => {
@@ -170,6 +177,26 @@ export function ProjectMapView({
   const selectedContact = useMemo(() =>
     selectedSubId ? contacts.find(c => c.id === selectedSubId) : null,
   [contacts, selectedSubId]);
+
+  const routeEnabled = canUseRouting && !!projectPosition && !!selectedSubPosition;
+  const { route, isLoading: routeLoading, error: routeError } = useRoute(
+    routeEnabled ? projectPosition : null,
+    routeEnabled ? selectedSubPosition : null,
+    routeEnabled,
+  );
+
+  const nearbyRouteTargets = useMemo(
+    () =>
+      nearby
+        .filter(s => s.latitude != null && s.longitude != null)
+        .map(s => ({ id: s.id, position: { lat: s.latitude!, lng: s.longitude! } })),
+    [nearby],
+  );
+  const { routes: nearbyRoutes, isLoading: nearbyRoutesLoading } = useNearbyRoutes(
+    canUseRouting ? projectPosition : null,
+    nearbyRouteTargets,
+    canUseRouting,
+  );
 
   const handleSubClick = useCallback((id: string) => {
     setSelectedSubId(prev => prev === id ? null : id);
@@ -541,6 +568,7 @@ export function ProjectMapView({
         showRoute={!!(selectedSubId && projectPosition && selectedSubPosition)}
         routeFrom={projectPosition || undefined}
         routeTo={selectedSubPosition}
+        routeGeometry={route?.geometry}
         showRegions={showRegions}
         activeLayer={activeLayer}
         radiusKm={hasCoordinates ? radiusKm : undefined}
@@ -613,6 +641,8 @@ export function ProjectMapView({
           onSelect={handleSubClick}
           onHover={setHighlightedSubId}
           radiusKm={radiusKm}
+          routeByContactId={nearbyRoutes}
+          routesLoading={nearbyRoutesLoading}
         />
       </div>
 
@@ -631,9 +661,18 @@ export function ProjectMapView({
         </div>
       )}
 
-      {/* BOTTOM RIGHT: Info card (when selected) */}
+      {/* BOTTOM RIGHT: Info card + route panel (when selected) */}
       {selectedContact && (
-        <div className="absolute bottom-3 right-3 z-[1000]">
+        <div className="absolute bottom-3 right-3 z-[1000] flex flex-col items-end gap-2">
+          {canUseRouting && selectedSubPosition && projectPosition && (
+            <MapRoutePanel
+              distanceMeters={route?.distance}
+              durationSeconds={route?.duration}
+              isLoading={routeLoading}
+              error={routeError ? 'Trasu se nepodařilo načíst' : null}
+              targetLabel={selectedContact.company}
+            />
+          )}
           <MapInfoCard
             contact={selectedContact}
             distanceKm={selectedSub?.distanceKm}

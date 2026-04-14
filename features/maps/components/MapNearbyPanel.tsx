@@ -13,6 +13,17 @@ interface MapNearbyPanelProps {
   onHover: (id: string | null) => void;
   radiusKm: number;
   className?: string;
+  /** Real driving distance/duration by contact id (from matrix routing) */
+  routeByContactId?: Map<string, { distance: number; duration: number }>;
+  routesLoading?: boolean;
+}
+
+function formatDriveDuration(seconds: number): string {
+  const total = Math.round(seconds / 60);
+  if (total < 60) return `${total} min`;
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return m === 0 ? `${h} h` : `${h} h ${m} min`;
 }
 
 export function MapNearbyPanel({
@@ -22,6 +33,8 @@ export function MapNearbyPanel({
   onHover,
   radiusKm,
   className = '',
+  routeByContactId,
+  routesLoading = false,
 }: MapNearbyPanelProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -112,9 +125,29 @@ export function MapNearbyPanel({
                         <span className="text-xs font-medium text-slate-900 dark:text-white truncate">
                           {sub.company}
                         </span>
-                        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 shrink-0 tabular-nums">
-                          {sub.distanceKm.toFixed(1)} km
-                        </span>
+                        {(() => {
+                          const realRoute = routeByContactId?.get(sub.id);
+                          if (realRoute) {
+                            return (
+                              <span
+                                className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 shrink-0 tabular-nums flex items-center gap-1"
+                                title="Vzdálenost a čas po silnici"
+                              >
+                                <span className="material-symbols-outlined text-[12px]">directions_car</span>
+                                {(realRoute.distance / 1000).toFixed(1)} km · {formatDriveDuration(realRoute.duration)}
+                              </span>
+                            );
+                          }
+                          return (
+                            <span
+                              className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 shrink-0 tabular-nums"
+                              title={routesLoading ? 'Počítám trasu…' : 'Vzdušná vzdálenost'}
+                            >
+                              {sub.distanceKm.toFixed(1)} km
+                              {routesLoading && <span className="ml-1 opacity-60">…</span>}
+                            </span>
+                          );
+                        })()}
                       </div>
 
                       {/* Specializations */}

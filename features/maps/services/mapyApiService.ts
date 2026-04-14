@@ -327,9 +327,10 @@ class MapyApiService {
     }
 
     const data = await this.proxyCall<RouteApiResponse>('route', {
-      start: `${start.lat},${start.lng}`,
-      end: `${end.lat},${end.lng}`,
+      start: `${start.lng},${start.lat}`,
+      end: `${end.lng},${end.lat}`,
       routeType: 'car_fast',
+      lang: 'cs',
     });
 
     const result: RouteResult = {
@@ -347,8 +348,8 @@ class MapyApiService {
   // -----------------------------------------------------------------------
 
   async matrixRoute(starts: GeoPoint[], ends: GeoPoint[]): Promise<MatrixResult> {
-    const startParam = starts.map(p => `${p.lat},${p.lng}`).join('|');
-    const endParam = ends.map(p => `${p.lat},${p.lng}`).join('|');
+    const startParam = starts.map(p => `${p.lng},${p.lat}`).join('|');
+    const endParam = ends.map(p => `${p.lng},${p.lat}`).join('|');
 
     interface MatrixApiResponse {
       durations: number[][];
