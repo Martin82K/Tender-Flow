@@ -38,6 +38,7 @@ import { LegalAcceptanceModal } from "@/features/auth/ui/LegalAcceptanceModal";
 import { requiresLegalAcceptance } from "@/shared/legal/legalDocumentVersions";
 import { WhatsNewModal } from "@/features/whats-new/WhatsNewModal";
 import { useWhatsNew } from "@/features/whats-new/useWhatsNew";
+import { GlobalSearchProvider, GlobalSearchModal } from "@/shared/ui/GlobalSearch";
 
 export const AppContent: React.FC = () => {
   const {
@@ -385,8 +386,14 @@ export const AppContent: React.FC = () => {
     }
   };
 
+  const searchSources = {
+    projects: state.projects,
+    contacts: state.contacts,
+    projectDetails: state.allProjectDetails,
+  };
+
   return (
-    <>
+    <GlobalSearchProvider sources={searchSources}>
       <MainLayout
         uiModal={uiModal}
         closeUiModal={closeUiModal}
@@ -415,6 +422,7 @@ export const AppContent: React.FC = () => {
       {!shouldRequireLegalAcceptance && (
         <WhatsNewModal isOpen={isWhatsNewOpen} onClose={dismissWhatsNew} />
       )}
-    </>
+      <GlobalSearchModal />
+    </GlobalSearchProvider>
   );
 };

@@ -1,9 +1,15 @@
 import React, { useState } from "react";
+import { HeaderGlobalSearch } from "@/shared/ui/GlobalSearch";
 
 interface HeaderProps {
   title: string;
   subtitle?: string;
   children?: React.ReactNode;
+  /**
+   * Optional legacy per-page filter callback. When provided, renders a local
+   * filter input INSTEAD of the global search. New code should migrate filters
+   * into the page body and rely on the global search in the Header.
+   */
   onSearchChange?: (query: string) => void;
   searchPlaceholder?: string;
   showSearch?: boolean;
@@ -18,7 +24,7 @@ export const Header: React.FC<HeaderProps> = ({
   subtitle,
   children,
   onSearchChange,
-  searchPlaceholder = "Search...",
+  searchPlaceholder = "Filtrovat…",
   showSearch = true,
   helpSlot,
   notificationSlot,
@@ -30,6 +36,8 @@ export const Header: React.FC<HeaderProps> = ({
     setSearchQuery(query);
     onSearchChange?.(query);
   };
+
+  const useLocalFilter = Boolean(onSearchChange);
 
   return (
     <header
@@ -53,18 +61,22 @@ export const Header: React.FC<HeaderProps> = ({
         {children}
         <div className="flex items-center gap-3">
           {showSearch && (
-            <div className="hidden md:flex h-10 w-64 items-center rounded-xl bg-slate-100/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 px-3 focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-              <span className="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[18px]">
-                search
-              </span>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={handleSearchChange}
-                placeholder={searchPlaceholder}
-                className="flex-1 bg-transparent border-none focus:ring-0 text-sm text-slate-900 dark:text-slate-200 placeholder-slate-400/70 ml-2"
-              />
-            </div>
+            useLocalFilter ? (
+              <div className="hidden md:flex h-10 w-64 items-center rounded-xl bg-slate-100/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 px-3 focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                <span className="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[18px]">
+                  filter_list
+                </span>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  placeholder={searchPlaceholder}
+                  className="flex-1 bg-transparent border-none focus:ring-0 text-sm text-slate-900 dark:text-slate-200 placeholder-slate-400/70 ml-2"
+                />
+              </div>
+            ) : (
+              <HeaderGlobalSearch />
+            )
           )}
           {helpSlot}
           {notificationSlot}
