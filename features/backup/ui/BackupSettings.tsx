@@ -340,7 +340,13 @@ export const BackupSettings: React.FC = () => {
                                             )
                                         }
                                         disabled={disabled}
-                                        className="bg-transparent text-sm font-medium text-slate-900 dark:text-white focus:outline-none cursor-pointer disabled:cursor-not-allowed tabular-nums"
+                                        style={{
+                                            WebkitAppearance: 'none',
+                                            MozAppearance: 'none',
+                                            appearance: 'none',
+                                            backgroundImage: 'none',
+                                        }}
+                                        className="appearance-none bg-transparent border-0 text-sm font-medium text-slate-900 dark:text-white focus:outline-none cursor-pointer disabled:cursor-not-allowed tabular-nums p-0 m-0"
                                     >
                                         {Array.from({ length: 24 }, (_, i) => (
                                             <option key={i} value={i} className="bg-white dark:bg-slate-800">
@@ -358,7 +364,13 @@ export const BackupSettings: React.FC = () => {
                                             )
                                         }
                                         disabled={disabled}
-                                        className="bg-transparent text-sm font-medium text-slate-900 dark:text-white focus:outline-none cursor-pointer disabled:cursor-not-allowed tabular-nums"
+                                        style={{
+                                            WebkitAppearance: 'none',
+                                            MozAppearance: 'none',
+                                            appearance: 'none',
+                                            backgroundImage: 'none',
+                                        }}
+                                        className="appearance-none bg-transparent border-0 text-sm font-medium text-slate-900 dark:text-white focus:outline-none cursor-pointer disabled:cursor-not-allowed tabular-nums p-0 m-0"
                                     >
                                         {Array.from(
                                             new Set([
@@ -396,9 +408,9 @@ export const BackupSettings: React.FC = () => {
                     <button
                         onClick={() => handleExport('user')}
                         disabled={loading}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20 rounded-lg font-medium border border-blue-200 dark:border-blue-500/20 transition-all hover:shadow-sm disabled:opacity-50"
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20 rounded-lg font-medium border border-blue-200 dark:border-blue-500/20 transition-all hover:shadow-sm disabled:opacity-50"
                     >
-                        <span className="material-symbols-outlined">person</span>
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>person</span>
                         {loading ? 'Zálohování...' : 'Zálohovat moje data'}
                     </button>
 
@@ -406,9 +418,9 @@ export const BackupSettings: React.FC = () => {
                         <button
                             onClick={() => handleExport('tenant')}
                             disabled={loading}
-                            className="flex items-center gap-2 px-4 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400 dark:hover:bg-purple-500/20 rounded-lg font-medium border border-purple-200 dark:border-purple-500/20 transition-all hover:shadow-sm disabled:opacity-50"
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-purple-50 hover:bg-purple-100 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400 dark:hover:bg-purple-500/20 rounded-lg font-medium border border-purple-200 dark:border-purple-500/20 transition-all hover:shadow-sm disabled:opacity-50"
                         >
-                            <span className="material-symbols-outlined">corporate_fare</span>
+                            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>corporate_fare</span>
                             {loading ? 'Zálohování...' : 'Zálohovat organizaci'}
                         </button>
                     )}
@@ -416,17 +428,17 @@ export const BackupSettings: React.FC = () => {
                     <button
                         onClick={handleContactsExport}
                         disabled={loading}
-                        className="flex items-center gap-2 px-4 py-2 bg-teal-50 hover:bg-teal-100 text-teal-700 dark:bg-teal-500/10 dark:text-teal-400 dark:hover:bg-teal-500/20 rounded-lg font-medium border border-teal-200 dark:border-teal-500/20 transition-all hover:shadow-sm disabled:opacity-50"
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-teal-50 hover:bg-teal-100 text-teal-700 dark:bg-teal-500/10 dark:text-teal-400 dark:hover:bg-teal-500/20 rounded-lg font-medium border border-teal-200 dark:border-teal-500/20 transition-all hover:shadow-sm disabled:opacity-50"
                     >
-                        <span className="material-symbols-outlined">contacts</span>
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>contacts</span>
                         {loading ? 'Zálohování...' : 'Zálohovat kontakty'}
                     </button>
 
                     <button
                         onClick={handleOpenFolder}
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700/50 rounded-lg font-medium border border-slate-200 dark:border-slate-700 transition-all hover:shadow-sm"
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-slate-50 hover:bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700/50 rounded-lg font-medium border border-slate-200 dark:border-slate-700 transition-all hover:shadow-sm"
                     >
-                        <span className="material-symbols-outlined">folder_open</span>
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>folder_open</span>
                         Otevřít složku záloh
                     </button>
                 </div>
