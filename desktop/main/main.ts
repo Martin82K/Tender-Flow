@@ -66,6 +66,10 @@ const configureCachePaths = (): void => {
 
 configureCachePaths();
 
+if (isDev) {
+    app.commandLine.appendSwitch('disable-http-cache');
+}
+
 function createWindow(): void {
     // Configure session to allow Supabase API calls
     const defaultSession = session.defaultSession;
