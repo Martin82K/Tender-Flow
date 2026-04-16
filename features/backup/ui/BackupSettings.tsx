@@ -59,6 +59,30 @@ export const BackupSettings: React.FC = () => {
         }
     };
 
+    const handleChangeScheduledTime = async (time: string) => {
+        if (!settings || !backupAvailable) return;
+        // Optimistic update so the input reflects the change immediately.
+        setSettings({ ...settings, scheduledTime: time });
+        try {
+            await backupAdapter.setScheduledTime(time);
+            await loadData();
+        } catch (e) {
+            setError(e instanceof Error ? e.message : 'Nepodařilo se uložit čas zálohy');
+            await loadData();
+        }
+    };
+
+    const parseScheduledTime = (raw: string | undefined): { hours: number; minutes: number } => {
+        const fallback = { hours: 3, minutes: 0 };
+        if (!raw) return fallback;
+        const [h, m] = raw.split(':').map(Number);
+        if (!Number.isFinite(h) || !Number.isFinite(m)) return fallback;
+        return { hours: h, minutes: m };
+    };
+
+    const formatScheduledTime = (hours: number, minutes: number): string =>
+        `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+
     const handleExport = async (type: 'user' | 'tenant') => {
         if (!orgId) return;
         setLoading(true);
@@ -248,14 +272,17 @@ export const BackupSettings: React.FC = () => {
             {/* Auto-backup toggle (desktop only) */}
             {backupAvailable && settings && (
                 <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50 rounded-xl p-6">
-                    <div className="flex items-center justify-between">
-                        <div>
+                    <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 <span className="material-symbols-outlined text-blue-500">schedule</span>
                                 Automatická záloha
                             </h3>
                             <p className="text-sm text-slate-500 mt-1">
                                 Automaticky zálohovat data 1x denně. Zálohy se ukládají do: <code className="text-xs bg-slate-100 dark:bg-slate-700 px-1 py-0.5 rounded">{settings.backupFolderPath}</code>
+                            </p>
+                            <p className="text-xs text-slate-400 mt-1">
+                                Složka je mimo instalační adresář, takže zálohy přežijí aktualizaci i odinstalaci aplikace.
                             </p>
                             {settings.lastBackupAt && (
                                 <p className="text-xs text-slate-400 mt-1">
@@ -280,6 +307,78 @@ export const BackupSettings: React.FC = () => {
                                 }`}
                             />
                         </button>
+                    </div>
+
+                    <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700/50 flex flex-wrap items-center gap-3">
+                        <label className="text-sm text-slate-700 dark:text-slate-300">
+                            Čas spuštění zálohy
+                        </label>
+                        {(() => {
+                            const { hours, minutes } = parseScheduledTime(settings.scheduledTime);
+                            const disabled = !settings.enabled;
+                            return (
+                                <div
+                                    className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors ${
+                                        disabled
+                                            ? 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 opacity-60'
+                                            : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary'
+                                    }`}
+                                >
+                                    <span
+                                        className="material-symbols-outlined fill text-primary"
+                                        style={{ fontSize: '20px' }}
+                                        aria-hidden="true"
+                                    >
+                                        schedule
+                                    </span>
+                                    <select
+                                        aria-label="Hodina zálohy"
+                                        value={hours}
+                                        onChange={(e) =>
+                                            void handleChangeScheduledTime(
+                                                formatScheduledTime(Number(e.target.value), minutes),
+                                            )
+                                        }
+                                        disabled={disabled}
+                                        className="bg-transparent text-sm font-medium text-slate-900 dark:text-white focus:outline-none cursor-pointer disabled:cursor-not-allowed tabular-nums"
+                                    >
+                                        {Array.from({ length: 24 }, (_, i) => (
+                                            <option key={i} value={i} className="bg-white dark:bg-slate-800">
+                                                {String(i).padStart(2, '0')}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <span className="text-slate-400 font-medium">:</span>
+                                    <select
+                                        aria-label="Minuta zálohy"
+                                        value={minutes}
+                                        onChange={(e) =>
+                                            void handleChangeScheduledTime(
+                                                formatScheduledTime(hours, Number(e.target.value)),
+                                            )
+                                        }
+                                        disabled={disabled}
+                                        className="bg-transparent text-sm font-medium text-slate-900 dark:text-white focus:outline-none cursor-pointer disabled:cursor-not-allowed tabular-nums"
+                                    >
+                                        {Array.from(
+                                            new Set([
+                                                ...Array.from({ length: 12 }, (_, i) => i * 5),
+                                                minutes,
+                                            ]),
+                                        )
+                                            .sort((a, b) => a - b)
+                                            .map((m) => (
+                                                <option key={m} value={m} className="bg-white dark:bg-slate-800">
+                                                    {String(m).padStart(2, '0')}
+                                                </option>
+                                            ))}
+                                    </select>
+                                </div>
+                            );
+                        })()}
+                        <span className="text-xs text-slate-400">
+                            Záloha se spustí v tento čas každý den. Vyžaduje spuštěnou aplikaci.
+                        </span>
                     </div>
                 </div>
             )}

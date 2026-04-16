@@ -18,39 +18,58 @@ export interface BackupSettings {
     backupFolderPath: string;
     lastBackupAt: string | null;
     lastBackupError: string | null;
+    scheduledTime: string; // HH:MM in 24h format
 }
 
 const BACKUP_DIR_NAME = 'backup';
 const MAX_AGE_DAYS = 7;
-const AUTO_BACKUP_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const SAFE_ORGANIZATION_ID_REGEX = /^[A-Za-z0-9-]+$/;
 const ENCRYPTION_KEY_STORAGE_KEY = 'backup_encryption_key';
 const ENCRYPTED_MAGIC_PREFIX = 'TFENC1:';
+const DEFAULT_SCHEDULED_TIME = '03:00';
+const SCHEDULED_TIME_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/;
+const SETTINGS_FILE_NAME = 'backup-settings.json';
 
 /**
  * Auto-backup service for managing local backup files.
- * Stores JSON backup files in {installDir}/backup/ with 7-day retention.
- * In dev mode, falls back to {userData}/backup/.
+ * Stores JSON backup files in {Documents}/Tender Flow/Backups/ so that they
+ * survive application updates and uninstalls. Retention is 7 days.
+ * Settings (enabled flag, scheduled time, last-run metadata) are persisted to
+ * {userData}/backup-settings.json so they survive restarts.
  */
 export class AutoBackupService {
-    private backupInterval: NodeJS.Timeout | null = null;
+    private backupTimeout: NodeJS.Timeout | null = null;
     private backupFolderPath: string;
+    private settingsFilePath: string;
     private enabled: boolean = false;
     private lastBackupAt: string | null = null;
     private lastBackupError: string | null = null;
+    private scheduledTime: string = DEFAULT_SCHEDULED_TIME;
     private onBackupRequest: (() => Promise<string | null>) | null = null;
     private secureStorage: SecureStorageService;
+    private initPromise: Promise<void>;
 
     constructor() {
-        const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
-        if (isDev) {
-            // Dev: use userData to avoid polluting the source tree
-            this.backupFolderPath = path.join(app.getPath('userData'), BACKUP_DIR_NAME);
-        } else {
-            // Production: use the installation directory (next to the .exe)
-            this.backupFolderPath = path.join(path.dirname(app.getPath('exe')), BACKUP_DIR_NAME);
-        }
+        // Documents is stable across installs/updates/uninstalls — backups must not
+        // live in the install directory (wiped on update) or in userData (wiped on
+        // uninstall on some platforms).
+        this.backupFolderPath = path.join(app.getPath('documents'), 'Tender Flow', 'Backups');
+        this.settingsFilePath = path.join(app.getPath('userData'), SETTINGS_FILE_NAME);
         this.secureStorage = new SecureStorageService();
+        this.initPromise = this.initialize();
+    }
+
+    private async initialize(): Promise<void> {
+        try {
+            await this.loadPersistedSettings();
+            await this.ensureBackupFolder();
+            await this.migrateLegacyBackupsIfNeeded();
+            if (this.enabled) {
+                this.scheduleNextBackup();
+            }
+        } catch (error) {
+            console.error('[AutoBackup] Initialization failed:', error);
+        }
     }
 
     /**
@@ -62,22 +81,38 @@ export class AutoBackupService {
     }
 
     async getSettings(): Promise<BackupSettings> {
+        await this.initPromise;
         return {
             enabled: this.enabled,
             backupFolderPath: this.backupFolderPath,
             lastBackupAt: this.lastBackupAt,
             lastBackupError: this.lastBackupError,
+            scheduledTime: this.scheduledTime,
         };
     }
 
     async setEnabled(enabled: boolean): Promise<void> {
+        await this.initPromise;
         this.enabled = enabled;
         if (enabled) {
             await this.ensureBackupFolder();
-            this.startPeriodicBackups();
+            this.scheduleNextBackup();
         } else {
-            this.stopPeriodicBackups();
+            this.stopScheduledBackups();
         }
+        await this.persistSettings();
+    }
+
+    async setScheduledTime(time: string): Promise<void> {
+        await this.initPromise;
+        if (!SCHEDULED_TIME_REGEX.test(time)) {
+            throw new Error('Neplatný formát času (očekávaný HH:MM)');
+        }
+        this.scheduledTime = time;
+        if (this.enabled) {
+            this.scheduleNextBackup();
+        }
+        await this.persistSettings();
     }
 
     /**
@@ -101,6 +136,7 @@ export class AutoBackupService {
 
         this.lastBackupAt = new Date().toISOString();
         this.lastBackupError = null;
+        await this.persistSettings();
 
         console.log(`[AutoBackup] Saved encrypted backup: ${fileName} (${encryptedContent.length} bytes)`);
 
@@ -258,35 +294,139 @@ export class AutoBackupService {
         return this.backupFolderPath;
     }
 
-    private startPeriodicBackups(): void {
-        if (this.backupInterval) {
-            clearInterval(this.backupInterval);
+    private scheduleNextBackup(): void {
+        if (this.backupTimeout) {
+            clearTimeout(this.backupTimeout);
+            this.backupTimeout = null;
         }
 
-        console.log('[AutoBackup] Starting periodic backups (every 24h)');
-        this.backupInterval = setInterval(async () => {
-            if (this.onBackupRequest) {
-                try {
-                    console.log('[AutoBackup] Running scheduled backup...');
-                    const result = await this.onBackupRequest();
-                    if (result) {
-                        this.lastBackupAt = new Date().toISOString();
-                        this.lastBackupError = null;
-                    }
-                } catch (error) {
-                    const msg = error instanceof Error ? error.message : 'Unknown error';
-                    this.lastBackupError = msg;
-                    console.error('[AutoBackup] Scheduled backup failed:', msg);
-                }
+        const delayMs = this.computeDelayUntilNextRun();
+        const nextRun = new Date(Date.now() + delayMs);
+        console.log(`[AutoBackup] Next scheduled backup at ${nextRun.toISOString()} (in ${Math.round(delayMs / 1000)}s)`);
+
+        this.backupTimeout = setTimeout(async () => {
+            await this.runScheduledBackup();
+            // Chain the next run after completion so timing does not drift.
+            if (this.enabled) {
+                this.scheduleNextBackup();
             }
-        }, AUTO_BACKUP_INTERVAL_MS);
+        }, delayMs);
     }
 
-    private stopPeriodicBackups(): void {
-        if (this.backupInterval) {
-            clearInterval(this.backupInterval);
-            this.backupInterval = null;
-            console.log('[AutoBackup] Periodic backups stopped');
+    private computeDelayUntilNextRun(): number {
+        const [hours, minutes] = this.scheduledTime.split(':').map(Number);
+        const now = new Date();
+        const next = new Date(now);
+        next.setHours(hours, minutes, 0, 0);
+        if (next.getTime() <= now.getTime()) {
+            next.setDate(next.getDate() + 1);
+        }
+        return next.getTime() - now.getTime();
+    }
+
+    private async runScheduledBackup(): Promise<void> {
+        if (!this.onBackupRequest) return;
+        try {
+            console.log('[AutoBackup] Running scheduled backup...');
+            const result = await this.onBackupRequest();
+            if (result) {
+                this.lastBackupAt = new Date().toISOString();
+                this.lastBackupError = null;
+                await this.persistSettings();
+            }
+        } catch (error) {
+            const msg = error instanceof Error ? error.message : 'Unknown error';
+            this.lastBackupError = msg;
+            await this.persistSettings();
+            console.error('[AutoBackup] Scheduled backup failed:', msg);
+        }
+    }
+
+    private stopScheduledBackups(): void {
+        if (this.backupTimeout) {
+            clearTimeout(this.backupTimeout);
+            this.backupTimeout = null;
+            console.log('[AutoBackup] Scheduled backups stopped');
+        }
+    }
+
+    private async loadPersistedSettings(): Promise<void> {
+        try {
+            const raw = await fs.readFile(this.settingsFilePath, 'utf-8');
+            const parsed = JSON.parse(raw) as Partial<{
+                enabled: boolean;
+                lastBackupAt: string | null;
+                lastBackupError: string | null;
+                scheduledTime: string;
+            }>;
+            if (typeof parsed.enabled === 'boolean') this.enabled = parsed.enabled;
+            if (typeof parsed.lastBackupAt === 'string' || parsed.lastBackupAt === null) {
+                this.lastBackupAt = parsed.lastBackupAt ?? null;
+            }
+            if (typeof parsed.lastBackupError === 'string' || parsed.lastBackupError === null) {
+                this.lastBackupError = parsed.lastBackupError ?? null;
+            }
+            if (typeof parsed.scheduledTime === 'string' && SCHEDULED_TIME_REGEX.test(parsed.scheduledTime)) {
+                this.scheduledTime = parsed.scheduledTime;
+            }
+        } catch {
+            // Missing or invalid settings file — keep defaults.
+        }
+    }
+
+    private async persistSettings(): Promise<void> {
+        const payload = {
+            enabled: this.enabled,
+            lastBackupAt: this.lastBackupAt,
+            lastBackupError: this.lastBackupError,
+            scheduledTime: this.scheduledTime,
+        };
+        try {
+            await fs.mkdir(path.dirname(this.settingsFilePath), { recursive: true });
+            await fs.writeFile(this.settingsFilePath, JSON.stringify(payload, null, 2), 'utf-8');
+        } catch (error) {
+            console.error('[AutoBackup] Failed to persist settings:', error);
+        }
+    }
+
+    /**
+     * Move backup files from legacy locations (install dir, userData) into the
+     * Documents folder so that previously created backups survive the path change.
+     * Only runs when the new folder has no backups yet.
+     */
+    private async migrateLegacyBackupsIfNeeded(): Promise<void> {
+        const legacyPaths = [
+            path.join(app.getPath('userData'), BACKUP_DIR_NAME),
+            path.join(path.dirname(app.getPath('exe')), BACKUP_DIR_NAME),
+        ];
+
+        try {
+            const existing = await fs.readdir(this.backupFolderPath);
+            const hasBackups = existing.some((f) => f.startsWith('backup-') && f.endsWith('.json'));
+            if (hasBackups) return;
+        } catch {
+            // New folder not yet readable — treat as empty.
+        }
+
+        for (const legacyPath of legacyPaths) {
+            if (path.resolve(legacyPath) === path.resolve(this.backupFolderPath)) continue;
+            try {
+                const files = await fs.readdir(legacyPath);
+                for (const fileName of files) {
+                    if (!fileName.startsWith('backup-') || !fileName.endsWith('.json')) continue;
+                    const src = path.join(legacyPath, fileName);
+                    const dst = path.join(this.backupFolderPath, fileName);
+                    try {
+                        await fs.copyFile(src, dst);
+                        await fs.unlink(src);
+                        console.log(`[AutoBackup] Migrated legacy backup: ${fileName}`);
+                    } catch (error) {
+                        console.warn(`[AutoBackup] Failed to migrate ${fileName}:`, error);
+                    }
+                }
+            } catch {
+                // Legacy folder does not exist — ignore.
+            }
         }
     }
 

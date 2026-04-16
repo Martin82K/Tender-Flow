@@ -19,6 +19,11 @@ export function registerBackupHandlers({ requireAuth }: BackupHandlerDependencie
         await backupService.setEnabled(enabled);
     });
 
+    ipcMain.handle('backup:setScheduledTime', async (event, time: string): Promise<void> => {
+        requireAuth(event.sender, 'backup:setScheduledTime');
+        await backupService.setScheduledTime(time);
+    });
+
     ipcMain.handle(
         'backup:save',
         async (event, jsonContent: string, backupType: 'user' | 'tenant' | 'contacts', organizationId: string): Promise<string> => {

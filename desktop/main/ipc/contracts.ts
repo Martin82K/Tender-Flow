@@ -121,6 +121,7 @@ export interface IpcContractMap {
   "updater:getStatus": { args: []; result: UpdateStatus };
   "backup:getSettings": { args: []; result: BackupSettingsInfo };
   "backup:setEnabled": { args: [enabled: boolean]; result: void };
+  "backup:setScheduledTime": { args: [time: string]; result: void };
   "backup:save": { args: [jsonContent: string, backupType: 'user' | 'tenant' | 'contacts', organizationId: string]; result: string };
   "backup:read": { args: [filePath: string]; result: string };
   "backup:list": { args: []; result: BackupFileEntry[] };

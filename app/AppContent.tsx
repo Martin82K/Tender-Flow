@@ -39,6 +39,7 @@ import { requiresLegalAcceptance } from "@/shared/legal/legalDocumentVersions";
 import { WhatsNewModal } from "@/features/whats-new/WhatsNewModal";
 import { useWhatsNew } from "@/features/whats-new/useWhatsNew";
 import { GlobalSearchProvider, GlobalSearchModal } from "@/shared/ui/GlobalSearch";
+import { useAutoBackupScheduler } from "@/features/backup/hooks/useAutoBackupScheduler";
 
 export const AppContent: React.FC = () => {
   const {
@@ -61,6 +62,8 @@ export const AppContent: React.FC = () => {
   const [activePipelineCategoryId, setActivePipelineCategoryId] = useState<string | null>(null);
   const [isLegalAcceptanceSaving, setIsLegalAcceptanceSaving] = useState(false);
   const { isOpen: isWhatsNewOpen, dismiss: dismissWhatsNew } = useWhatsNew();
+
+  useAutoBackupScheduler();
 
   useRouteStateSync({
     isAuthenticated,

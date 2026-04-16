@@ -254,6 +254,9 @@ const electronAPI: ElectronAPI = {
         setEnabled: (enabled: boolean): Promise<void> =>
             invokeTyped('backup:setEnabled', enabled),
 
+        setScheduledTime: (time: string): Promise<void> =>
+            invokeTyped('backup:setScheduledTime', time),
+
         save: (jsonContent: string, backupType: 'user' | 'tenant' | 'contacts', organizationId: string): Promise<string> =>
             invokeTyped('backup:save', jsonContent, backupType, organizationId),
 

@@ -301,6 +301,7 @@ export interface BidComparisonAPI {
 export interface BackupAPI {
     getSettings: () => Promise<BackupSettingsInfo>;
     setEnabled: (enabled: boolean) => Promise<void>;
+    setScheduledTime: (time: string) => Promise<void>;
     save: (jsonContent: string, backupType: 'user' | 'tenant', organizationId: string) => Promise<string>;
     read: (filePath: string) => Promise<string>;
     list: () => Promise<BackupFileEntry[]>;
@@ -314,6 +315,7 @@ export interface BackupSettingsInfo {
     backupFolderPath: string;
     lastBackupAt: string | null;
     lastBackupError: string | null;
+    scheduledTime: string;
 }
 
 export interface BackupFileEntry {

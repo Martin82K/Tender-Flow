@@ -709,12 +709,18 @@ export const backupAdapter = {
         if (isDesktop && window.electronAPI?.backup) {
             return window.electronAPI.backup.getSettings();
         }
-        return { enabled: false, backupFolderPath: '', lastBackupAt: null, lastBackupError: null };
+        return { enabled: false, backupFolderPath: '', lastBackupAt: null, lastBackupError: null, scheduledTime: '03:00' };
     },
 
     async setEnabled(enabled: boolean): Promise<void> {
         if (isDesktop && window.electronAPI?.backup) {
             return window.electronAPI.backup.setEnabled(enabled);
+        }
+    },
+
+    async setScheduledTime(time: string): Promise<void> {
+        if (isDesktop && window.electronAPI?.backup) {
+            return window.electronAPI.backup.setScheduledTime(time);
         }
     },
 
