@@ -293,7 +293,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <summary
             className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer list-none ${
               currentView === "project"
-                ? "bg-primary/20 text-primary border border-primary/30 font-semibold"
+                ? "text-primary font-semibold"
                 : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
@@ -355,12 +355,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-xl border-l-2 border-primary" />
                     )}
 
-                    {/* Status Badge */}
+                    {/* Status Letter */}
                     <span
-                      className={`relative z-10 flex items-center justify-center size-5 rounded-lg text-[10px] font-extrabold shrink-0 shadow-sm ${
+                      className={`relative z-10 flex items-center justify-center size-5 text-sm font-extrabold shrink-0 ${
                         project.status === "realization"
-                          ? "bg-amber-500 text-white"
-                          : "bg-blue-500 text-white"
+                          ? "text-amber-500"
+                          : "text-blue-500"
                       }`}
                     >
                       {project.status === "realization" ? "R" : "S"}
@@ -460,7 +460,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <summary
             className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer list-none ${
               isItemActive
-                ? "bg-primary/20 text-primary border border-primary/30"
+                ? "text-primary font-semibold"
                 : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
@@ -534,7 +534,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         }}
         className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all group ${
           isItemActive
-            ? "bg-primary/10 text-primary border border-primary/20 font-semibold"
+            ? "text-primary font-semibold"
             : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-100"
         }`}
       >

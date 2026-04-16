@@ -21,11 +21,12 @@ interface OrgOverviewTabProps {
   onNavigate: (tab: OrgSubTab) => void;
 }
 
-const formatMinutes = (minutes: number): string => {
-  if (minutes <= 0) return '0 min';
-  if (minutes < 60) return `${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  const rest = minutes % 60;
+const formatMinutes = (minutes: number | null | undefined): string => {
+  if (!minutes || !Number.isFinite(minutes) || minutes <= 0) return '0 min';
+  const total = Math.round(minutes);
+  if (total < 60) return `${total} min`;
+  const hours = Math.floor(total / 60);
+  const rest = total % 60;
   if (rest === 0) return `${hours} h`;
   return `${hours} h ${rest} min`;
 };
@@ -196,13 +197,13 @@ export const OrgOverviewTab: React.FC<OrgOverviewTabProps> = ({
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">Odemčených Excel souborů</span>
                   <span className="font-medium text-slate-700 dark:text-slate-300">
-                    {timeSavings.totalUnlockedSheets}
+                    {timeSavings.unlocked_sheets_range}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">Úspora času (Excel)</span>
                   <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                    ~{formatMinutes(timeSavings.estimatedMinutesSaved)}
+                    ~{formatMinutes(timeSavings.minutes_saved_range)}
                   </span>
                 </div>
               </>

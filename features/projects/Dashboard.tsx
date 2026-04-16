@@ -229,10 +229,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       <Header title="Dashboard" subtitle="Detailní přehled vybraného projektu" helpSlot={<HelpButton />} notificationSlot={<NotificationBell />}>
         <div className="flex items-center gap-3 flex-wrap">
           {/* Project Selector Container */}
-          <div data-help-id="dashboard-project-selector" className="flex items-center gap-2 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border border-slate-200 dark:border-slate-800 p-1 rounded-2xl shadow-sm">
-            <div className="pl-3 pr-1 text-slate-400">
-              <span className="material-symbols-outlined text-[20px]">architecture</span>
-            </div>
+          <div data-help-id="dashboard-project-selector" className="flex items-center gap-2 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border border-slate-200 dark:border-slate-800 p-1 pl-3 rounded-2xl shadow-sm">
             <div className="relative min-w-[200px] sm:min-w-[240px]">
               <Select
                 value={selectedProjectId}
