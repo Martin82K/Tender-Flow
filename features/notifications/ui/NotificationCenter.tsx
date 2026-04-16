@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { navigate } from "@shared/routing/router";
 import type { AppNotification, NotificationCategory } from "../types";
 import { NOTIFICATION_CATEGORY_LABELS } from "../types";
@@ -42,6 +43,8 @@ interface NotificationCenterProps {
   isLoading: boolean;
   onRefresh: () => void;
   unreadCount: number;
+  anchor?: { top: number; right: number } | null;
+  anchorRef?: React.RefObject<HTMLButtonElement | null>;
 }
 
 export const NotificationCenter: React.FC<NotificationCenterProps> = ({
@@ -51,6 +54,8 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   isLoading,
   onRefresh,
   unreadCount,
+  anchor,
+  anchorRef,
 }) => {
   const [activeFilter, setActiveFilter] = useState<NotificationCategory | "all">("all");
   const panelRef = useRef<HTMLDivElement>(null);
@@ -59,13 +64,14 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     const handleClickOutside = (e: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        onClose();
-      }
+      const target = e.target as Node;
+      if (panelRef.current && panelRef.current.contains(target)) return;
+      if (anchorRef?.current && anchorRef.current.contains(target)) return;
+      onClose();
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, anchorRef]);
 
   // Close on Escape
   useEffect(() => {
@@ -120,10 +126,15 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
 
   if (!isOpen) return null;
 
-  return (
+  const panel = (
     <div
       ref={panelRef}
-      className="absolute right-0 mt-2 w-96 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl z-50 animate-in fade-in zoom-in-95 duration-150"
+      style={
+        anchor
+          ? { position: "fixed", top: anchor.top, right: anchor.right }
+          : undefined
+      }
+      className="w-96 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl z-[100] animate-in fade-in zoom-in-95 duration-150"
     >
       {/* Header */}
       <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
@@ -192,4 +203,9 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       </div>
     </div>
   );
+
+  if (anchor && typeof document !== "undefined") {
+    return createPortal(panel, document.body);
+  }
+  return panel;
 };

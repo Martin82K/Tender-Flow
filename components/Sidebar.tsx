@@ -770,7 +770,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
 
               <div
-                className={`flex items-center gap-3 px-3 py-3 mt-2 overflow-hidden backdrop-blur-md rounded-2xl shadow-sm ${profileCardClassMap[subscriptionTier]}`}
+                className="flex items-center gap-3 px-3 py-3 mt-2 overflow-hidden"
               >
                 {user?.subscriptionTier ? (
                   <div className="size-9 min-w-9 flex items-center justify-center">

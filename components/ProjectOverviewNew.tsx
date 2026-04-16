@@ -900,113 +900,85 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
       {/* Top Row: 4 KPI Cards */}
       <div data-help-id="overview-kpi-cards" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* 1. Rozpočet (Investor) */}
-        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden group shadow-sm hover:shadow-md transition-all">
-          <div className="absolute -top-4 -right-4 size-24 bg-blue-500/5 rounded-full group-hover:scale-125 transition-transform duration-500" />
-          <div className="flex flex-col h-full justify-between relative z-10">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2.5 bg-blue-500/10 rounded-xl border border-blue-500/20 text-blue-500">
-                <span className="material-symbols-outlined text-2xl">
-                  account_balance_wallet
-                </span>
-              </div>
-              <span className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-extrabold">
-                Rozpočet
-              </span>
+        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-sm hover:shadow-md transition-all">
+          <div className="absolute top-0 left-0 h-full w-1 bg-blue-500" />
+          <div className="flex flex-col gap-3 relative z-10">
+            <span className="text-xs uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400 font-bold">
+              Rozpočet
+            </span>
+            <div className="text-3xl font-black text-slate-900 dark:text-white leading-none tabular-nums">
+              {formatMoneyFull(totalBudget)}
             </div>
-            <div>
-              <div className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none mb-2">
-                {formatMoneyFull(totalBudget)}
-              </div>
-              <p className="text-[10px] text-slate-500 font-medium">
-                Celkový příjem od investora
-              </p>
-            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              Celkový příjem od investora
+            </p>
           </div>
         </div>
 
         {/* 2. Plánovaný Náklad */}
-        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden group shadow-sm hover:shadow-md transition-all">
-          <div className="absolute -top-4 -right-4 size-24 bg-indigo-500/5 rounded-full group-hover:scale-125 transition-transform duration-500" />
-          <div className="flex flex-col h-full justify-between relative z-10">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2.5 bg-indigo-500/10 rounded-xl border border-indigo-500/20 text-indigo-500">
-                <span className="material-symbols-outlined text-2xl">
-                  analytics
-                </span>
-              </div>
-              <span className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-extrabold">
-                Plán nákladů
-              </span>
+        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-sm hover:shadow-md transition-all">
+          <div className="absolute top-0 left-0 h-full w-1 bg-indigo-500" />
+          <div className="flex flex-col gap-3 relative z-10">
+            <span className="text-xs uppercase tracking-[0.18em] text-indigo-600 dark:text-indigo-400 font-bold">
+              Plán nákladů
+            </span>
+            <div className="text-3xl font-black text-slate-900 dark:text-white leading-none tabular-nums">
+              {totalPlannedCost > 0 ? formatMoneyFull(totalPlannedCost) : "-"}
             </div>
-            <div>
-              <div className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none mb-2">
-                {totalPlannedCost > 0 ? formatMoneyFull(totalPlannedCost) : "-"}
-              </div>
-              <p className="text-[10px] text-slate-500 font-medium">
-                Interní cílový náklad stavby
-              </p>
-            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              Interní cílový náklad stavby
+            </p>
           </div>
         </div>
 
         {/* 3. Zasmluvněno */}
-        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden group shadow-sm hover:shadow-md transition-all">
-          <div className="absolute -top-4 -right-4 size-24 bg-emerald-500/5 rounded-full group-hover:scale-125 transition-transform duration-500" />
-          <div className="flex flex-col h-full justify-between relative z-10">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2.5 bg-emerald-500/10 rounded-xl border border-emerald-500/20 text-emerald-500">
-                <span className="material-symbols-outlined text-2xl">
-                  handshake
-                </span>
-              </div>
-              <span className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-extrabold">
-                Zasmluvněno
-              </span>
+        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-sm hover:shadow-md transition-all">
+          <div className="absolute top-0 left-0 h-full w-1 bg-emerald-500" />
+          <div className="flex flex-col gap-3 relative z-10">
+            <span className="text-xs uppercase tracking-[0.18em] text-emerald-600 dark:text-emerald-400 font-bold">
+              Zasmluvněno
+            </span>
+            <div className="text-3xl font-black text-emerald-600 dark:text-emerald-400 leading-none tabular-nums">
+              {formatMoneyFull(totalContractedCost)}
             </div>
-            <div>
-              <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight leading-none mb-2">
-                {formatMoneyFull(totalContractedCost)}
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span
-                  className={`size-1.5 rounded-full ${plannedBalance >= 0 ? "bg-emerald-500" : "bg-rose-500"}`}
-                ></span>
-                <p
-                  className={`text-[10px] font-bold ${plannedBalance >= 0 ? "text-emerald-600" : "text-rose-500"}`}
-                >
-                  Rezerva: {plannedBalance >= 0 ? "+" : ""}
-                  {formatMoneyFull(plannedBalance)}
-                </p>
-              </div>
-            </div>
+            <p
+              className={`text-xs font-bold ${plannedBalance >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-500"}`}
+            >
+              Rezerva: {plannedBalance >= 0 ? "+" : ""}
+              {formatMoneyFull(plannedBalance)}
+            </p>
           </div>
         </div>
 
         {/* 4. Postup Zadávání */}
-        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden group shadow-sm hover:shadow-md transition-all">
-          <div className="absolute -top-4 -right-4 size-24 bg-amber-500/5 rounded-full group-hover:scale-125 transition-transform duration-500" />
-          <div className="flex flex-col h-full justify-between relative z-10">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-1.5 rounded-full border-4 border-amber-500/20 border-t-amber-500 size-10 flex items-center justify-center">
-                <span className="text-[10px] font-black text-amber-500">
-                  {Math.round(
-                    (completedTasks / project.categories.length) * 100,
-                  )}
-                  %
-                </span>
-              </div>
-              <span className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-extrabold">
+        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-sm hover:shadow-md transition-all">
+          <div className="absolute top-0 left-0 h-full w-1 bg-amber-500" />
+          <div className="flex flex-col gap-3 relative z-10">
+            <div className="flex items-center justify-between">
+              <span className="text-xs uppercase tracking-[0.18em] text-amber-600 dark:text-amber-400 font-bold">
                 Postup VŘ
               </span>
+              <span className="text-xs font-black text-amber-600 dark:text-amber-400">
+                {Math.round(
+                  (completedTasks / project.categories.length) * 100,
+                )}
+                %
+              </span>
             </div>
-            <div>
-              <div className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none mb-2">
-                {completedTasks} / {project.categories.length}
-              </div>
-              <p className="text-[10px] text-slate-500 font-medium">
-                Hotové subdodavatelské balíčky
-              </p>
+            <div className="text-3xl font-black text-slate-900 dark:text-white leading-none tabular-nums">
+              {completedTasks} / {project.categories.length}
             </div>
+            <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-amber-500 rounded-full transition-all"
+                style={{
+                  width: `${Math.min(100, Math.round((completedTasks / Math.max(1, project.categories.length)) * 100))}%`,
+                }}
+              />
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              Hotové subdodavatelské balíčky
+            </p>
           </div>
         </div>
       </div>
@@ -1699,20 +1671,13 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
       {project.categories.length > 0 && (
             <div data-help-id="overview-demand-table" className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-3xl mt-8 shadow-sm">
               <div className="px-8 py-6 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between flex-wrap gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-primary/10 rounded-xl text-primary">
-                    <span className="material-symbols-outlined text-2xl">
-                      table_chart
-                    </span>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-black text-slate-900 dark:text-white leading-none mb-1">
-                      Přehled Poptávek
-                    </h3>
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-                      Detailní rozpis balíčků
-                    </p>
-                  </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white leading-none mb-1">
+                    Přehled Poptávek
+                  </h3>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                    Detailní rozpis balíčků
+                  </p>
                 </div>
 
                 {/* Filter Buttons */}
