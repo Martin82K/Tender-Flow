@@ -237,6 +237,33 @@ export const organizationService = {
     if (error) throw new Error(error.message);
   },
 
+  /**
+   * Owner-only hard deletion of a member's account. Transfers their data
+   * (projects, subcontractors, contracts, short_urls) to the org owner,
+   * anonymizes audit trails, removes membership, then deletes the auth.users
+   * record via the `delete-user-account` Edge Function.
+   *
+   * IRREVERSIBLE. The UI must double-confirm by requiring the caller to type
+   * the target's email (`confirmationEmail` must match exactly).
+   */
+  deleteUserAccount: async (
+    orgId: string,
+    userId: string,
+    confirmationEmail: string,
+  ): Promise<void> => {
+    const { data, error } = await supabase.functions.invoke("delete-user-account", {
+      body: { orgId, userId, confirmationEmail },
+    });
+    if (error) {
+      const serverMessage = (data as { error?: string } | null)?.error;
+      throw new Error(serverMessage || error.message || "Smazání účtu selhalo.");
+    }
+    const result = data as { success?: boolean; error?: string } | null;
+    if (!result?.success) {
+      throw new Error(result?.error || "Smazání účtu selhalo.");
+    }
+  },
+
   getOrganizationUnlockerTimeSavings: async (
     orgId: string,
     daysBack: number = 30,

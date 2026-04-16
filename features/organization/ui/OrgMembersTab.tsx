@@ -37,6 +37,10 @@ export const OrgMembersTab: React.FC<OrgMembersTabProps> = ({
   const [processingRequestId, setProcessingRequestId] = useState<string | null>(null);
   const [processingMemberId, setProcessingMemberId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<OrganizationMember | null>(null);
+  const [deleteStep, setDeleteStep] = useState<'warn' | 'confirm'>('warn');
+  const [deleteEmailInput, setDeleteEmailInput] = useState('');
+  const [deleteProcessing, setDeleteProcessing] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -142,6 +146,62 @@ export const OrgMembersTab: React.FC<OrgMembersTabProps> = ({
     } catch (err: any) {
       showAlert({ title: 'Chyba', message: err?.message || 'Nepodařilo se odebrat člena.', variant: 'danger' });
     } finally {
+      setProcessingMemberId(null);
+    }
+  };
+
+  const openDeleteFlow = (member: OrganizationMember) => {
+    setDeleteTarget(member);
+    setDeleteStep('warn');
+    setDeleteEmailInput('');
+  };
+
+  const closeDeleteFlow = () => {
+    if (deleteProcessing) return;
+    setDeleteTarget(null);
+    setDeleteStep('warn');
+    setDeleteEmailInput('');
+  };
+
+  const handleConfirmDeleteAccount = async () => {
+    if (!deleteTarget) return;
+    const expectedEmail = (deleteTarget.email || '').trim().toLowerCase();
+    const providedEmail = deleteEmailInput.trim().toLowerCase();
+    if (!expectedEmail || providedEmail !== expectedEmail) {
+      showAlert({
+        title: 'Chyba',
+        message: 'Zadaný email neodpovídá emailu uživatele.',
+        variant: 'danger',
+      });
+      return;
+    }
+
+    setDeleteProcessing(true);
+    setProcessingMemberId(deleteTarget.user_id);
+    try {
+      await organizationService.deleteUserAccount(
+        orgId,
+        deleteTarget.user_id,
+        deleteTarget.email,
+      );
+      const label = deleteTarget.display_name || deleteTarget.email;
+      showAlert({
+        title: 'Účet smazán',
+        message: `Účet uživatele ${label} byl trvale smazán. Data byla převedena na vlastníka organizace.`,
+        variant: 'success',
+      });
+      setDeleteTarget(null);
+      setDeleteStep('warn');
+      setDeleteEmailInput('');
+      await loadData();
+    } catch (err: any) {
+      showAlert({
+        title: 'Chyba',
+        message: err?.message || 'Nepodařilo se smazat účet uživatele.',
+        variant: 'danger',
+      });
+    } finally {
+      setDeleteProcessing(false);
       setProcessingMemberId(null);
     }
   };
@@ -389,6 +449,23 @@ export const OrgMembersTab: React.FC<OrgMembersTabProps> = ({
                                 <span className="material-symbols-outlined text-[16px]">person_remove</span>
                                 Odebrat z organizace
                               </button>
+
+                              {/* Permanently delete account (owner only) */}
+                              {isOwner && (
+                                <>
+                                  <div className="my-1 border-t border-slate-200 dark:border-slate-700/50" />
+                                  <button
+                                    onClick={() => {
+                                      setOpenMenuId(null);
+                                      openDeleteFlow(member);
+                                    }}
+                                    className="w-full text-left px-4 py-2 text-sm text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 font-medium"
+                                  >
+                                    <span className="material-symbols-outlined text-[16px]">delete_forever</span>
+                                    Smazat účet uživatele
+                                  </button>
+                                </>
+                              )}
                             </div>
                           )}
                         </div>
@@ -408,6 +485,108 @@ export const OrgMembersTab: React.FC<OrgMembersTabProps> = ({
           </tbody>
         </table>
       </div>
+
+      {/* Permanent account deletion - two-step modal */}
+      {deleteTarget && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          onClick={closeDeleteFlow}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-red-200 dark:border-red-900/50 max-w-lg w-full overflow-hidden"
+          >
+            <div className="px-5 py-4 bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-900/40 flex items-center gap-3">
+              <span className="material-symbols-outlined text-[24px] text-red-600 dark:text-red-400">warning</span>
+              <h3 className="text-base font-bold text-red-800 dark:text-red-300">
+                {deleteStep === 'warn' ? 'Trvalé smazání účtu' : 'Potvrzení — zadejte email'}
+              </h3>
+            </div>
+
+            {deleteStep === 'warn' ? (
+              <>
+                <div className="px-5 py-4 space-y-3 text-sm text-slate-700 dark:text-slate-300">
+                  <p>
+                    Chystáte se <strong className="text-red-700 dark:text-red-400">trvale smazat</strong> účet
+                    uživatele <strong>{deleteTarget.display_name || deleteTarget.email}</strong>
+                    {' '}({deleteTarget.email}).
+                  </p>
+                  <div className="bg-slate-50 dark:bg-slate-900/40 rounded-lg p-3 space-y-1.5 text-xs">
+                    <div className="font-semibold text-slate-700 dark:text-slate-200">Co se stane:</div>
+                    <ul className="list-disc list-inside space-y-0.5 text-slate-600 dark:text-slate-400">
+                      <li>Projekty, dodavatelé a smlouvy budou převedeny na vlastníka organizace.</li>
+                      <li>Audit logy a statistiky použití budou anonymizovány.</li>
+                      <li>Členství v organizaci bude odebráno.</li>
+                      <li>Uživatelský účet bude <strong>nenávratně smazán</strong> z autentizace.</li>
+                    </ul>
+                  </div>
+                  <p className="text-red-700 dark:text-red-400 font-medium">
+                    Tato akce je nevratná. Uživatel se již nebude moci přihlásit.
+                  </p>
+                </div>
+                <div className="px-5 py-3 bg-slate-50 dark:bg-slate-900/40 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-2">
+                  <button
+                    onClick={closeDeleteFlow}
+                    className="px-4 py-2 text-sm font-medium rounded-lg border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
+                  >
+                    Zrušit
+                  </button>
+                  <button
+                    onClick={() => setDeleteStep('confirm')}
+                    className="px-4 py-2 text-sm font-semibold rounded-lg bg-red-600 text-white hover:bg-red-700"
+                  >
+                    Pokračovat
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="px-5 py-4 space-y-3 text-sm text-slate-700 dark:text-slate-300">
+                  <p>
+                    Pro potvrzení zadejte email uživatele přesně ve tvaru:
+                  </p>
+                  <div className="font-mono text-sm bg-slate-100 dark:bg-slate-900 px-3 py-2 rounded border border-slate-200 dark:border-slate-700 select-all">
+                    {deleteTarget.email}
+                  </div>
+                  <input
+                    type="email"
+                    autoFocus
+                    autoComplete="off"
+                    value={deleteEmailInput}
+                    onChange={e => setDeleteEmailInput(e.target.value)}
+                    placeholder="Zadejte email zde"
+                    disabled={deleteProcessing}
+                    className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-red-500/30 focus:border-red-500 outline-none disabled:opacity-50"
+                  />
+                </div>
+                <div className="px-5 py-3 bg-slate-50 dark:bg-slate-900/40 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-2">
+                  <button
+                    onClick={closeDeleteFlow}
+                    disabled={deleteProcessing}
+                    className="px-4 py-2 text-sm font-medium rounded-lg border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50"
+                  >
+                    Zrušit
+                  </button>
+                  <button
+                    onClick={handleConfirmDeleteAccount}
+                    disabled={
+                      deleteProcessing ||
+                      deleteEmailInput.trim().toLowerCase() !==
+                        (deleteTarget.email || '').trim().toLowerCase()
+                    }
+                    className="px-4 py-2 text-sm font-semibold rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {deleteProcessing && (
+                      <span className="inline-block w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    )}
+                    Smazat trvale
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Join Requests */}
       {requests.length > 0 && isAdminOrOwner && (
