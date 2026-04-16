@@ -35,11 +35,6 @@ const PRE_AUTH_CHANNELS = new Set([
   'updater:downloadUpdate',
   'updater:quitAndInstall',
   'updater:getStatus',
-  // MCP state sync (happens on auth state changes including pre-auth events)
-  // Risk: minimal — MCP server is localhost-only and validates tokens against Supabase
-  'mcp:setCurrentProject',
-  'mcp:setAuthToken',
-  'mcp:getStatus',
   // Auth state management (renderer tells main about auth changes)
   'auth:setAuthenticated',
 ]);
