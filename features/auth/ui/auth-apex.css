@@ -190,6 +190,16 @@
   background: var(--surface-hover);
   box-shadow: 0 0 0 3px var(--orange-glow);
 }
+.auth-input:-webkit-autofill,
+.auth-input:-webkit-autofill:hover,
+.auth-input:-webkit-autofill:focus,
+.auth-input:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--white);
+  caret-color: var(--white);
+  -webkit-box-shadow: 0 0 0 1000px var(--surface) inset;
+  box-shadow: 0 0 0 1000px var(--surface) inset;
+  transition: background-color 9999s ease-out 0s;
+}
 
 .auth-checkbox {
   display: flex;
@@ -198,14 +208,48 @@
   cursor: pointer;
   user-select: none;
 }
-.auth-checkbox input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
+.auth-checkbox input[type="checkbox"],
+.auth-legal-check input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
   border-radius: 4px;
-  border: 1px solid var(--border-hover);
+  border: 1.5px solid var(--border-hover);
   background: var(--surface);
-  accent-color: var(--orange);
   cursor: pointer;
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s;
+  margin: 0;
+}
+.auth-checkbox input[type="checkbox"]:hover,
+.auth-legal-check input[type="checkbox"]:hover {
+  border-color: var(--orange);
+}
+.auth-checkbox input[type="checkbox"]:checked,
+.auth-legal-check input[type="checkbox"]:checked {
+  background: var(--orange);
+  border-color: var(--orange);
+}
+.auth-checkbox input[type="checkbox"]:checked::after,
+.auth-legal-check input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 5px;
+  height: 10px;
+  border: solid var(--bg, #111);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.auth-checkbox input[type="checkbox"]:focus-visible,
+.auth-legal-check input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 2px;
 }
 .auth-checkbox span {
   font-size: 0.8125rem;
@@ -228,14 +272,6 @@
 }
 .auth-legal-check input[type="checkbox"] {
   margin-top: 2px;
-  width: 16px;
-  height: 16px;
-  min-width: 16px;
-  border-radius: 4px;
-  border: 1px solid var(--border-hover);
-  background: var(--surface);
-  accent-color: var(--orange);
-  cursor: pointer;
 }
 .auth-legal-check span {
   font-size: 0.8125rem;
