@@ -82,9 +82,6 @@ describe('IPC Auth Guard security', () => {
     expect(ipcAuthGuard.isPreAuthChannel('app:getVersion')).toBe(true);
     expect(ipcAuthGuard.isPreAuthChannel('dialog:showMessage')).toBe(true);
     expect(ipcAuthGuard.isPreAuthChannel('auth:setAuthenticated')).toBe(true);
-    expect(ipcAuthGuard.isPreAuthChannel('mcp:setAuthToken')).toBe(true);
-    expect(ipcAuthGuard.isPreAuthChannel('mcp:setCurrentProject')).toBe(true);
-    expect(ipcAuthGuard.isPreAuthChannel('mcp:getStatus')).toBe(true);
   });
 
   it('protected channels are NOT pre-auth', () => {
@@ -100,6 +97,9 @@ describe('IPC Auth Guard security', () => {
     expect(ipcAuthGuard.isPreAuthChannel('oauth:googleLogin')).toBe(false);
     expect(ipcAuthGuard.isPreAuthChannel('net:request')).toBe(false);
     expect(ipcAuthGuard.isPreAuthChannel('backup:save')).toBe(false);
+    expect(ipcAuthGuard.isPreAuthChannel('mcp:setAuthToken')).toBe(false);
+    expect(ipcAuthGuard.isPreAuthChannel('mcp:setCurrentProject')).toBe(false);
+    expect(ipcAuthGuard.isPreAuthChannel('mcp:getStatus')).toBe(false);
   });
 
   it('setAuthenticated toggles state correctly', () => {
