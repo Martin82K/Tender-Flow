@@ -812,6 +812,7 @@ const AppUpdateSection: React.FC = () => {
           <div className="flex items-center gap-3 mb-2">
             <div className={`w-3 h-3 rounded-full ${status === 'available' ? 'bg-green-500 animate-pulse' :
               status === 'checking' ? 'bg-blue-500 animate-pulse' :
+              status === 'error' ? 'bg-red-500 animate-pulse' :
                   'bg-slate-400'
               }`} />
             <h3 className="font-medium text-slate-900 dark:text-white">
@@ -820,13 +821,15 @@ const AppUpdateSection: React.FC = () => {
               {status === 'not-available' && 'Máte nejnovější verzi'}
               {status === 'downloading' && 'Stahování aktualizace...'}
               {status === 'downloaded' && 'Aktualizace připravena k instalaci'}
-              {status === 'error' && 'Máte nejnovější verzi'}
+              {status === 'error' && 'Kontrola aktualizací selhala'}
             </h3>
           </div>
 
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            {status === 'not-available' || status === 'error' ? (
+            {status === 'not-available' ? (
               <>Systém automaticky kontroluje aktualizace. {lastCheck && `Poslední kontrola: ${lastCheck.toLocaleTimeString()}`}</>
+            ) : status === 'error' ? (
+              <>{error || 'Nepodařilo se ověřit dostupnost aktualizací. Zkuste to prosím znovu.'}</>
             ) : status === 'available' ? (
               <>Je dostupná nová verze aplikace. Doporučujeme aktualizovat.</>
             ) : (
