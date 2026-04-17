@@ -53,6 +53,9 @@ export interface Subcontractor {
   longitude?: number;
   geocodedAt?: string;
 
+  aresCheckedAt?: string;
+  aresNotFound?: boolean;
+
   // Legacy fields for backward compatibility / migration
   name?: string;
   phone?: string;

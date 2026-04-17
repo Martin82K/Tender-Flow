@@ -38,7 +38,7 @@ export const useContactsQuery = () => {
                             Promise.resolve(
                                 dbAdapter
                                     .from("subcontractors")
-                                    .select("id, company_name, specialization, contacts, contact_person_name, phone, email, ico, region, address, city, web, note, regions, status_id, latitude, longitude, geocoded_at")
+                                    .select("id, company_name, specialization, contacts, contact_person_name, phone, email, ico, region, address, city, web, note, regions, status_id, latitude, longitude, geocoded_at, ares_checked_at, ares_not_found")
                                     .order("company_name")
                                     .range(offset, offset + PAGE_SIZE - 1)
                             ),
@@ -98,6 +98,8 @@ export const useContactsQuery = () => {
                     latitude: s.latitude ?? undefined,
                     longitude: s.longitude ?? undefined,
                     geocodedAt: s.geocoded_at ?? undefined,
+                    aresCheckedAt: s.ares_checked_at ?? undefined,
+                    aresNotFound: s.ares_not_found ?? false,
                 };
             });
 

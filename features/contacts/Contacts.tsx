@@ -5,7 +5,7 @@ import { HelpButton } from "@features/help";
 import { StarRating } from '@/shared/ui/StarRating';
 import { AutocompleteInput } from '@/shared/ui/AutocompleteInput';
 import { Subcontractor, StatusConfig } from '@/types';
-import { findCompanyRegistrationDetails } from '@/services/geminiService';
+import { findCompanyRegistrationDetails, lookupCompanyRegistrations } from '@/services/geminiService';
 import { SubcontractorSelector } from '@/shared/ui/SubcontractorSelector';
 import { ConfirmationModal } from '@/shared/ui/ConfirmationModal';
 import { validateSubcontractorCompanyName } from '@/shared/dochub/subcontractorNameRules';
@@ -98,8 +98,16 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
 
     // --- Auto-fill registration data for contacts with IČO but missing region/address ---
     const autoFillProcessedRef = useRef<Set<string>>(new Set());
-
     const autoFillRunningRef = useRef(false);
+
+    // 30 dní TTL: ARES data firem se mění zřídka, ale občasný recheck zachytí změny.
+    const ARES_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+    const isAresCacheFresh = (checkedAt?: string): boolean => {
+        if (!checkedAt) return false;
+        const ts = Date.parse(checkedAt);
+        if (!Number.isFinite(ts)) return false;
+        return Date.now() - ts < ARES_CACHE_TTL_MS;
+    };
 
     const autoFillRegistrationForContacts = useCallback(async (contactsToLookup: Subcontractor[]) => {
         if (contactsToLookup.length === 0 || autoFillRunningRef.current) return;
@@ -110,13 +118,20 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
 
         try {
             const queryList = contactsToLookup.map(c => ({ id: c.id, company: c.company, ico: c.ico }));
-            const registrationMap = await findCompanyRegistrationDetails(queryList);
+            const lookupMap = await lookupCompanyRegistrations(queryList);
+            const nowIso = new Date().toISOString();
 
             const changedContacts: Subcontractor[] = [];
             for (const c of contactsToLookup) {
-                const registration = registrationMap[c.id];
-                if (!registration) continue;
+                const result = lookupMap[c.id];
+                if (!result || result.status === 'error') continue;
 
+                if (result.status === 'not_found') {
+                    changedContacts.push({ ...c, aresCheckedAt: nowIso, aresNotFound: true });
+                    continue;
+                }
+
+                const registration = result.details;
                 const nextRegion = registration.region && !isBlankLookupValue(registration.region)
                     ? registration.region : c.region;
                 const nextAddress = registration.address && !isBlankLookupValue(registration.address)
@@ -124,13 +139,14 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                 const nextCity = registration.city && !isBlankLookupValue(registration.city)
                     ? registration.city : c.city;
 
-                const regionChanged = (isBlankLookupValue(c.region) ? '' : c.region?.trim() || '') !== (isBlankLookupValue(nextRegion) ? '' : nextRegion?.trim() || '');
-                const addressChanged = (isBlankLookupValue(c.address) ? '' : c.address?.trim() || '') !== (isBlankLookupValue(nextAddress) ? '' : nextAddress?.trim() || '');
-                const cityChanged = (isBlankLookupValue(c.city) ? '' : c.city?.trim() || '') !== (isBlankLookupValue(nextCity) ? '' : nextCity?.trim() || '');
-
-                if (regionChanged || addressChanged || cityChanged) {
-                    changedContacts.push({ ...c, region: nextRegion, address: nextAddress, city: nextCity });
-                }
+                changedContacts.push({
+                    ...c,
+                    region: nextRegion,
+                    address: nextAddress,
+                    city: nextCity,
+                    aresCheckedAt: nowIso,
+                    aresNotFound: false,
+                });
             }
 
             if (changedContacts.length > 0) {
@@ -143,12 +159,14 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
         }
     }, [onBulkUpdateContacts]);
 
-    // Auto-fill once on mount — run only for contacts not yet processed
+    // Auto-fill once on mount — skip contacts s čerstvou cache nebo s ARES 404 flagem
     useEffect(() => {
         const needsLookup = contacts.filter(c =>
             !!c.ico &&
             c.ico !== '-' &&
             (isBlankLookupValue(c.region) || isBlankLookupValue(c.address) || isBlankLookupValue(c.city)) &&
+            !c.aresNotFound &&
+            !isAresCacheFresh(c.aresCheckedAt) &&
             !autoFillProcessedRef.current.has(c.id)
         );
 
