@@ -40,6 +40,11 @@ describe('delete_org_member_account migration', () => {
     expect(sql).toMatch(/target_role\s*=\s*'owner'/);
   });
 
+  it('blokuje hard-delete účtu, který patří do jiné organizace', () => {
+    expect(sql).toContain('user belongs to another organization');
+    expect(sql).toMatch(/om\.organization_id\s*<>\s*org_id_input/);
+  });
+
   it('vyžaduje shodu potvrzovacího emailu', () => {
     expect(sql).toContain('Confirmation email does not match member email');
     expect(sql).toMatch(/LOWER\(COALESCE\(confirmation_email, ''\)\)\s*<>\s*LOWER\(target_email\)/);

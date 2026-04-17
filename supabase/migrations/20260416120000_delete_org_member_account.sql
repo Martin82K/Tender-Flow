@@ -72,6 +72,29 @@ BEGIN
     RAISE EXCEPTION 'Member not found in this organization';
   END IF;
 
+  -- Hard-delete is allowed only when the target account belongs exclusively
+  -- to this organization. Otherwise auth.users deletion would impact other
+  -- tenants via ON DELETE CASCADE on organization_members.
+  IF EXISTS (
+    SELECT 1
+    FROM public.organization_members om
+    WHERE om.user_id = user_id_input
+      AND om.organization_id <> org_id_input
+  ) THEN
+    RAISE EXCEPTION 'Cannot delete account: user belongs to another organization';
+  END IF;
+
+  -- Extra explicit guard for owners in any other organization.
+  IF EXISTS (
+    SELECT 1
+    FROM public.organization_members om
+    WHERE om.user_id = user_id_input
+      AND om.organization_id <> org_id_input
+      AND om.role = 'owner'
+  ) THEN
+    RAISE EXCEPTION 'Cannot delete account: user is owner in another organization';
+  END IF;
+
   -- Cannot delete another owner
   IF target_role = 'owner' THEN
     RAISE EXCEPTION 'Cannot delete an owner. Transfer ownership first.';
