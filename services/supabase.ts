@@ -475,12 +475,14 @@ const safeFetch: typeof fetch = async (input, init) => {
 
       if (_refreshAuthErrorCount >= MAX_REFRESH_AUTH_ERRORS) {
         _refreshAuthErrorCount = 0;
+        // Refresh token selhal (typicky "Already Used" po přihlášení na
+        // jiném zařízení) — jde o očekávaný stav, který řešíme tichým
+        // invalidate + redirect na login. Žádný fatal modal.
         void emitSupabaseIncident({
-          severity: "error",
+          severity: "warn",
           category: "auth",
           code: "SUPABASE_REFRESH_TOKEN_THRESHOLD",
           message: "Supabase refresh token failures exceeded threshold",
-          notifyUser: true,
           context: {
             retry_count: MAX_REFRESH_AUTH_ERRORS,
           },
@@ -532,12 +534,13 @@ const safeFetch: typeof fetch = async (input, init) => {
           `Session may be corrupted. Triggering centralized auth recovery.`
         );
         _authErrorCount = 0;
+        // Korupce auth headerů — session bude shozená a uživatel
+        // přesměrován na login. Bez fatal modalu, recovery je tichá.
         void emitSupabaseIncident({
-          severity: "error",
+          severity: "warn",
           category: "network",
           code: "SUPABASE_FETCH_ERROR_THRESHOLD",
           message: "Supabase fetch auth errors exceeded threshold",
-          notifyUser: true,
           context: {
             retry_count: MAX_AUTH_ERRORS,
           },

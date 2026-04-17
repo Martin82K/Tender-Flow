@@ -6,6 +6,7 @@ import { Header } from '@/shared/ui/Header';
 import { NotificationBell } from "@features/notifications/ui/NotificationBell";
 import { HelpButton } from "@features/help";
 import { projectService } from '@/services/projectService';
+import { organizationService, OrganizationMember } from '@/services/organizationService';
 import { useAuth } from '@/context/AuthContext';
 import { DeleteConfirmationModal } from '@/shared/ui/DeleteConfirmationModal';
 import { AlertModal } from '@/shared/ui/AlertModal';
@@ -132,6 +133,13 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
     // Delete Confirmation State
     const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
+    // Transfer Ownership State
+    const [transferTarget, setTransferTarget] = useState<{ id: string; name: string } | null>(null);
+    const [transferMembers, setTransferMembers] = useState<OrganizationMember[]>([]);
+    const [selectedTransferOwnerId, setSelectedTransferOwnerId] = useState<string>('');
+    const [isLoadingTransferMembers, setIsLoadingTransferMembers] = useState(false);
+    const [isTransferring, setIsTransferring] = useState(false);
+
     const openDeleteModal = (id: string, name: string) => {
         setDeleteTarget({ id, name });
     };
@@ -164,6 +172,98 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
         if (deleteTarget) {
             onDeleteProject(deleteTarget.id);
             setDeleteTarget(null);
+        }
+    };
+
+    const openTransferModal = async (project: Project) => {
+        if (!user?.organizationId) {
+            setAlertModal({
+                isOpen: true,
+                title: 'Předání není možné',
+                message: 'Stavbu lze předat pouze v rámci organizace. Tvůj účet není přiřazen k žádné organizaci.',
+                variant: 'info',
+            });
+            return;
+        }
+
+        setTransferTarget({ id: project.id, name: project.name });
+        setSelectedTransferOwnerId('');
+        setTransferMembers([]);
+        setIsLoadingTransferMembers(true);
+        try {
+            const members = await organizationService.getOrganizationMembers(user.organizationId);
+            const eligible = members.filter(
+                (m) => m.user_id !== user.id && m.is_active !== false,
+            );
+            setTransferMembers(eligible);
+        } catch (error) {
+            console.error('[ProjectManager] Error loading organization members:', error);
+            setAlertModal({
+                isOpen: true,
+                title: 'Chyba',
+                message: error instanceof Error ? error.message : 'Nepodařilo se načíst členy organizace.',
+                variant: 'error',
+            });
+            setTransferTarget(null);
+        } finally {
+            setIsLoadingTransferMembers(false);
+        }
+    };
+
+    const closeTransferModal = () => {
+        if (isTransferring) return;
+        setTransferTarget(null);
+        setTransferMembers([]);
+        setSelectedTransferOwnerId('');
+    };
+
+    const handleConfirmTransfer = async () => {
+        if (!transferTarget || !selectedTransferOwnerId) return;
+
+        const newOwner = transferMembers.find((m) => m.user_id === selectedTransferOwnerId);
+        const newOwnerLabel = newOwner?.display_name || newOwner?.email || 'zvolenému uživateli';
+        const projectName = transferTarget.name;
+
+        setConfirmModal({
+            isOpen: true,
+            title: 'Předat vlastnictví stavby',
+            message: `Opravdu chceš předat stavbu „${projectName}" uživateli ${newOwnerLabel}? Ztratíš roli vlastníka a přístup si zachováš pouze v rámci organizace.`,
+            confirmLabel: 'Předat vlastnictví',
+            variant: 'danger',
+            onConfirm: () => executeTransfer(),
+        });
+    };
+
+    const executeTransfer = async () => {
+        closeConfirmModal();
+        if (!transferTarget || !selectedTransferOwnerId) return;
+
+        setIsTransferring(true);
+        try {
+            await projectService.transferProjectOwnership(
+                transferTarget.id,
+                selectedTransferOwnerId,
+            );
+            await queryClient.invalidateQueries({ queryKey: PROJECT_KEYS.list() });
+            setAlertModal({
+                isOpen: true,
+                title: 'Vlastnictví předáno',
+                message: `Stavba „${transferTarget.name}" má nového vlastníka.`,
+                variant: 'success',
+            });
+            setTransferTarget(null);
+            setSelectedTransferOwnerId('');
+            setTransferMembers([]);
+        } catch (error) {
+            console.error('[ProjectManager] Transfer ownership failed:', error);
+            setAlertModal({
+                isOpen: true,
+                title: 'Chyba',
+                message: error instanceof Error ? error.message : 'Nepodařilo se předat vlastnictví stavby.',
+                variant: 'error',
+            });
+        } finally {
+            setIsTransferring(false);
         }
     };
 
@@ -661,6 +761,17 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                         </button>
                                     )}
 
+                                    {/* Transfer Ownership - Only current Owner in an organization */}
+                                    {project.ownerId === user?.id && user?.organizationId && (
+                                        <button
+                                            onClick={() => openTransferModal(project)}
+                                            className="p-2 text-slate-500 hover:text-violet-400 hover:bg-violet-500/10 rounded-lg transition-colors"
+                                            title="Předat vlastnictví"
+                                        >
+                                            <span className="material-symbols-outlined text-[20px]">swap_horiz</span>
+                                        </button>
+                                    )}
+
                                     <button
                                         onClick={() => onArchiveProject(project.id)}
                                         className="p-2 text-slate-500 hover:text-amber-400 hover:bg-amber-500/10 rounded-lg transition-colors"
@@ -860,6 +971,100 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                         ))}
                                     </div>
                                 )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Transfer Ownership Modal */}
+            {transferTarget && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-gradient-to-br dark:from-slate-800 dark:to-slate-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 dark:border-slate-700/50">
+                        <div className="p-4 border-b border-slate-200 dark:border-slate-700/50 flex justify-between items-center">
+                            <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <span className="material-symbols-outlined text-violet-400">swap_horiz</span>
+                                Předat vlastnictví
+                            </h3>
+                            <button
+                                onClick={closeTransferModal}
+                                className="text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors disabled:opacity-50"
+                                disabled={isTransferring}
+                            >
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+
+                        <div className="p-6">
+                            <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
+                                Vyber nového vlastníka stavby <span className="font-semibold">„{transferTarget.name}"</span>. Dostupní jsou pouze aktivní členové tvé organizace.
+                            </p>
+
+                            {isLoadingTransferMembers ? (
+                                <div className="flex justify-center py-8">
+                                    <span className="material-symbols-outlined animate-spin text-slate-400">sync</span>
+                                </div>
+                            ) : transferMembers.length === 0 ? (
+                                <p className="text-sm text-slate-500 italic py-4 text-center">
+                                    V organizaci nejsou žádní další aktivní členové, kterým by bylo možné vlastnictví předat.
+                                </p>
+                            ) : (
+                                <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1 mb-5">
+                                    {transferMembers.map((member) => {
+                                        const isSelected = selectedTransferOwnerId === member.user_id;
+                                        const label = member.display_name || member.email;
+                                        return (
+                                            <button
+                                                key={member.user_id}
+                                                type="button"
+                                                onClick={() => setSelectedTransferOwnerId(member.user_id)}
+                                                className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-colors ${isSelected
+                                                    ? 'bg-violet-50 dark:bg-violet-500/15 border-violet-400 dark:border-violet-400/60'
+                                                    : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700/50 hover:border-violet-300 dark:hover:border-violet-500/40'
+                                                    }`}
+                                            >
+                                                <div className={`size-8 rounded-full flex items-center justify-center text-xs font-bold ${isSelected
+                                                    ? 'bg-violet-500 text-white'
+                                                    : 'bg-violet-500/20 text-violet-500 dark:text-violet-300'
+                                                    }`}>
+                                                    {label.charAt(0).toUpperCase()}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{label}</p>
+                                                    {member.display_name && member.email && member.display_name !== member.email && (
+                                                        <p className="text-xs text-slate-500 truncate">{member.email}</p>
+                                                    )}
+                                                    <p className="text-[10px] uppercase tracking-wider text-slate-400 mt-0.5">
+                                                        {member.role === 'owner' ? 'Vlastník organizace' : member.role === 'admin' ? 'Administrátor' : 'Člen'}
+                                                    </p>
+                                                </div>
+                                                {isSelected && (
+                                                    <span className="material-symbols-outlined text-violet-500 text-[22px]">check_circle</span>
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
+                            <div className="flex justify-end gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={closeTransferModal}
+                                    disabled={isTransferring}
+                                    className="px-4 py-2.5 rounded-xl text-sm font-medium text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors disabled:opacity-50"
+                                >
+                                    Zrušit
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleConfirmTransfer}
+                                    disabled={!selectedTransferOwnerId || isTransferring || isLoadingTransferMembers}
+                                    className="bg-gradient-to-r from-violet-600 to-violet-500 hover:from-violet-500 hover:to-violet-400 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                >
+                                    {isTransferring && <span className="material-symbols-outlined animate-spin text-[18px]">sync</span>}
+                                    Předat vlastnictví
+                                </button>
                             </div>
                         </div>
                     </div>

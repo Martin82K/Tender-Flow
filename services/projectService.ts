@@ -145,4 +145,15 @@ export const projectService = {
 
     if (error) throw error;
   },
+
+  transferProjectOwnership: async (
+    projectId: string,
+    newOwnerUserId: string,
+  ): Promise<void> => {
+    const { error } = await supabase.rpc("transfer_project_ownership", {
+      project_id_input: projectId,
+      new_owner_user_id: newOwnerUserId,
+    });
+    if (error) throw new Error(error.message);
+  },
 };
