@@ -15,7 +15,7 @@ export const featureModuleRegistry: Record<View, FeatureModuleManifest> = {
     navItems: [{ id: "dashboard", label: "Dashboard" }],
     requiredCapabilities: [FEATURES.MODULE_PROJECTS],
     mount: () =>
-      import("@/features/projects/Dashboard").then((m) => ({ default: m.Dashboard })),
+      import("@/features/dashboard").then((m) => ({ default: m.DashboardView })),
     unmountSafeChecks: emptyChecks,
   }),
   ...viewToManifest("project", {

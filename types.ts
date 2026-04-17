@@ -84,6 +84,7 @@ export interface DemandCategory {
   deadline?: string; // Termín pro podání nabídky (ISO date string)
   realizationStart?: string; // Termín realizace - začátek (ISO date string)
   realizationEnd?: string; // Termín realizace - konec (ISO date string)
+  createdAt?: string; // Datum vytvoření poptávky (ISO timestamp) — pro pravidlo 14 dní bez nabídek
 }
 
 import type { DocHubStructureV1 as _DocHubStructureV1 } from "@/utils/docHub";
