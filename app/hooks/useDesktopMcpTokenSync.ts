@@ -13,11 +13,19 @@ export const useDesktopMcpTokenSync = (): void => {
     const pushToken = async (token: string | null) => {
       if (!isMounted) return;
       if (token === lastPushedToken) return;
-      // Without a valid session, don't touch the main-process MCP state.
-      // The IPC guard would reject this call (renderer hasn't authenticated yet)
-      // and the error would surface as an incident dialog on cold start.
       if (!token) {
-        lastPushedToken = null;
+        try {
+          // Clear main-process MCP auth context on logout.
+          // setAuthToken is a guarded IPC call, so temporarily mark renderer as
+          // authenticated to clear the token and then reset auth back to false.
+          await platformAdapter.auth.setAuthenticated(true);
+          await mcpAdapter.setAuthToken(null);
+          lastPushedToken = null;
+        } catch (err) {
+          console.warn("[useDesktopMcpTokenSync] Failed to clear MCP token:", err);
+        } finally {
+          await platformAdapter.auth.setAuthenticated(false);
+        }
         return;
       }
       try {
