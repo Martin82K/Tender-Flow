@@ -194,11 +194,18 @@
 .auth-input:-webkit-autofill:hover,
 .auth-input:-webkit-autofill:focus,
 .auth-input:-webkit-autofill:active {
-  -webkit-text-fill-color: var(--white);
+  -webkit-text-fill-color: var(--white) !important;
   caret-color: var(--white);
-  -webkit-box-shadow: 0 0 0 1000px var(--surface) inset;
-  box-shadow: 0 0 0 1000px var(--surface) inset;
-  transition: background-color 9999s ease-out 0s;
+  -webkit-box-shadow: 0 0 0 1000px var(--bg-card) inset !important;
+  box-shadow: 0 0 0 1000px var(--bg-card) inset !important;
+  border: 1px solid var(--border) !important;
+  background-clip: content-box !important;
+  transition: background-color 9999s ease-out 0s, color 9999s ease-out 0s;
+}
+.auth-input:-webkit-autofill:focus {
+  border-color: var(--border-orange) !important;
+  box-shadow: 0 0 0 1000px var(--bg-card) inset, 0 0 0 3px var(--orange-glow) !important;
+  -webkit-box-shadow: 0 0 0 1000px var(--bg-card) inset, 0 0 0 3px var(--orange-glow) !important;
 }
 
 .auth-checkbox {

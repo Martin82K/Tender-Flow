@@ -106,6 +106,9 @@ export const RegisterPage: React.FC = () => {
           <input
             type="text"
             placeholder="Jméno a Příjmení"
+            name="name"
+            id="name"
+            autoComplete="name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="auth-input"
@@ -114,6 +117,9 @@ export const RegisterPage: React.FC = () => {
           <input
             type="email"
             placeholder="Email"
+            name="email"
+            id="email"
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="auth-input"
@@ -122,6 +128,9 @@ export const RegisterPage: React.FC = () => {
           <input
             type="password"
             placeholder="Heslo"
+            name="new-password"
+            id="new-password"
+            autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="auth-input"
@@ -130,6 +139,9 @@ export const RegisterPage: React.FC = () => {
           <input
             type="password"
             placeholder="Potvrzení hesla"
+            name="confirm-password"
+            id="confirm-password"
+            autoComplete="new-password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             className="auth-input"
