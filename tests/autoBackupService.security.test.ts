@@ -67,9 +67,13 @@ describe('AutoBackupService security', () => {
     const payload = '{"ok":true}';
     const savedPath = await service.saveBackup(payload, 'tenant', orgId);
 
-    expect(savedPath.startsWith(path.resolve('/Users/tester/user-data/backup'))).toBe(true);
+    expect(savedPath.startsWith(path.resolve(service.getBackupFolder()))).toBe(true);
     expect(savedPath.endsWith('.enc.json')).toBe(true);
-    expect(fsMock.writeFile).toHaveBeenCalledOnce();
+    expect(fsMock.writeFile).toHaveBeenCalledWith(
+      savedPath,
+      expect.stringMatching(/^TFENC1:/),
+      'utf-8',
+    );
 
     const content = await service.readBackup(savedPath);
     expect(content).toBe(payload);
