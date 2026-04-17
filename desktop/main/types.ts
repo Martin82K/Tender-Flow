@@ -18,6 +18,17 @@ export interface ElectronAPI {
     mcp: McpAPI;
     shell: ShellAPI;
     bidComparison: BidComparisonAPI;
+    notification: NotificationAPI;
+    backup: BackupAPI;
+    auth: AuthNotificationAPI;
+}
+
+export interface AuthNotificationAPI {
+    setAuthenticated: (authenticated: boolean) => Promise<void>;
+}
+
+export interface NotificationAPI {
+    show: (options: { title: string; body?: string }) => Promise<void>;
 }
 
 export interface ShellAPI {
@@ -45,6 +56,7 @@ export interface FileSystemAPI {
     deleteFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
     renameFolder: (oldPath: string, newPath: string) => Promise<{ success: boolean; error?: string }>;
     folderExists: (folderPath: string) => Promise<boolean>;
+    grantAccess: (folderPath: string) => Promise<boolean>;
 }
 
 export interface FileSystemOpenResult {
@@ -95,6 +107,7 @@ export interface BiometricAPI {
 export interface SessionAPI {
     saveCredentials: (credentials: { refreshToken: string; email: string }) => Promise<void>;
     getCredentials: () => Promise<{ refreshToken: string; email: string } | null>;
+    getCredentialsWithBiometric: (reason: string) => Promise<{ refreshToken: string; email: string } | null>;
     clearCredentials: () => Promise<void>;
     setBiometricEnabled: (enabled: boolean) => Promise<void>;
     isBiometricEnabled: () => Promise<boolean>;
@@ -111,7 +124,7 @@ export interface NetworkAPI {
 }
 
 export interface OAuthAPI {
-    googleLogin: (args: { clientId: string; clientSecret?: string; scopes: string[] }) => Promise<{
+    googleLogin: (args: { clientId: string; scopes: string[] }) => Promise<{
         accessToken: string;
         refreshToken?: string | null;
         expiresIn: number;
@@ -283,6 +296,35 @@ export interface BidComparisonAPI {
     autoStop: (scope: BidComparisonAutoScope) => Promise<{ success: boolean }>;
     autoStatus: (scope: BidComparisonAutoScope) => Promise<BidComparisonAutoStatus | null>;
     autoList: () => Promise<BidComparisonAutoStatus[]>;
+}
+
+export interface BackupAPI {
+    getSettings: () => Promise<BackupSettingsInfo>;
+    setEnabled: (enabled: boolean) => Promise<void>;
+    setScheduledTime: (time: string) => Promise<void>;
+    save: (jsonContent: string, backupType: 'user' | 'tenant', organizationId: string) => Promise<string>;
+    read: (filePath: string) => Promise<string>;
+    list: () => Promise<BackupFileEntry[]>;
+    getFolder: () => Promise<string>;
+    openFolder: () => Promise<{ success: boolean; error?: string }>;
+    clean: () => Promise<number>;
+}
+
+export interface BackupSettingsInfo {
+    enabled: boolean;
+    backupFolderPath: string;
+    lastBackupAt: string | null;
+    lastBackupError: string | null;
+    scheduledTime: string;
+}
+
+export interface BackupFileEntry {
+    fileName: string;
+    filePath: string;
+    backupType: 'user' | 'tenant';
+    organizationId: string;
+    createdAt: string;
+    sizeBytes: number;
 }
 
 export interface UpdateStatus {

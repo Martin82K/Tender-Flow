@@ -127,7 +127,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
                   onClick={() =>
                     setAllowPublicRegistration(!allowPublicRegistration)
                   }
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${allowPublicRegistration ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600"}`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${allowPublicRegistration ? "bg-primary" : "bg-slate-300 dark:bg-slate-600"}`}
                 >
                   <span
                     className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${allowPublicRegistration ? "translate-x-6" : "translate-x-1"}`}
@@ -150,7 +150,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
                   value={allowedDomains}
                   onChange={(e) => setAllowedDomains(e.target.value)}
                   placeholder="@baustav.cz, @mojefirma.cz"
-                  className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
+                  className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-primary/50 focus:outline-none"
                 />
                 <p className="text-xs text-slate-500 italic">
                   💡 Pokud je povoleno "Povolit registrace všem", tento
@@ -172,7 +172,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
                   onClick={() =>
                     setRequireEmailWhitelist(!requireEmailWhitelist)
                   }
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${requireEmailWhitelist ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600"}`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${requireEmailWhitelist ? "bg-primary" : "bg-slate-300 dark:bg-slate-600"}`}
                 >
                   <span
                     className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${requireEmailWhitelist ? "translate-x-6" : "translate-x-1"}`}
@@ -201,7 +201,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
             <button
               onClick={handleSaveRegistrationSettings}
               disabled={isSavingSettings || isLoadingSettings}
-              className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span
                 className={`material-symbols-outlined ${isSavingSettings ? "animate-spin" : ""}`}

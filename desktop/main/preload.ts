@@ -5,6 +5,8 @@ import type {
     FileInfo,
     FolderSnapshot,
     UpdateStatus,
+    BackupSettingsInfo,
+    BackupFileEntry,
     BidComparisonSupplierOption,
     BidComparisonDetectionResult,
     BidComparisonStartInput,
@@ -75,6 +77,9 @@ const electronAPI: ElectronAPI = {
 
         folderExists: (folderPath: string): Promise<boolean> =>
             invokeTyped('fs:folderExists', folderPath),
+
+        grantAccess: (folderPath: string): Promise<boolean> =>
+            invokeTyped('fs:grantAccess', folderPath),
     },
 
     // Folder watcher
@@ -175,6 +180,9 @@ const electronAPI: ElectronAPI = {
         getCredentials: (): Promise<{ refreshToken: string; email: string } | null> =>
             invokeTyped('session:getCredentials'),
 
+        getCredentialsWithBiometric: (reason: string): Promise<{ refreshToken: string; email: string } | null> =>
+            invokeTyped('session:getCredentialsWithBiometric', reason),
+
         clearCredentials: (): Promise<void> =>
             invokeTyped('session:clearCredentials'),
 
@@ -192,12 +200,12 @@ const electronAPI: ElectronAPI = {
     },
 
     oauth: {
-        googleLogin: (args: { clientId: string; clientSecret?: string; scopes: string[] }) => {
+        googleLogin: (args: { clientId: string; scopes: string[] }) => {
             console.log('[Preload] OAuth Login Request:', {
                 clientId: args.clientId,
-                hasSecret: !!args.clientSecret,
                 scopes: args.scopes
             });
+            // Security: clientSecret is never sent from renderer — main process reads it from env
             return invokeTyped('oauth:googleLogin', args);
         },
     },
@@ -226,6 +234,46 @@ const electronAPI: ElectronAPI = {
             ipcRenderer.invoke('shell:openTempBinaryFile', base64Content, filename),
         convertToDocx: (inputPath: string): Promise<{ success: boolean; outputPath?: string; error?: string }> =>
             ipcRenderer.invoke('shell:convertToDocx', inputPath),
+    },
+
+    notification: {
+        show: (options: { title: string; body?: string }): Promise<void> =>
+            ipcRenderer.invoke('notification:show', options),
+    },
+
+    // Auth state notification (renderer → main process)
+    auth: {
+        setAuthenticated: (authenticated: boolean): Promise<void> =>
+            ipcRenderer.invoke('auth:setAuthenticated', authenticated),
+    },
+
+    backup: {
+        getSettings: (): Promise<BackupSettingsInfo> =>
+            invokeTyped('backup:getSettings'),
+
+        setEnabled: (enabled: boolean): Promise<void> =>
+            invokeTyped('backup:setEnabled', enabled),
+
+        setScheduledTime: (time: string): Promise<void> =>
+            invokeTyped('backup:setScheduledTime', time),
+
+        save: (jsonContent: string, backupType: 'user' | 'tenant' | 'contacts', organizationId: string): Promise<string> =>
+            invokeTyped('backup:save', jsonContent, backupType, organizationId),
+
+        read: (filePath: string): Promise<string> =>
+            invokeTyped('backup:read', filePath),
+
+        list: (): Promise<BackupFileEntry[]> =>
+            invokeTyped('backup:list'),
+
+        getFolder: (): Promise<string> =>
+            invokeTyped('backup:getFolder'),
+
+        openFolder: (): Promise<{ success: boolean; error?: string }> =>
+            invokeTyped('backup:openFolder'),
+
+        clean: (): Promise<number> =>
+            invokeTyped('backup:clean'),
     },
 
     bidComparison: {

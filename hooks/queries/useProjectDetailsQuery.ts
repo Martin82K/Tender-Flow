@@ -1,7 +1,7 @@
 import { useQuery, useQueries, UseQueryOptions } from "@tanstack/react-query";
 import { dbAdapter } from "../../services/dbAdapter";
 import { withRetry, withTimeout } from "../../utils/helpers";
-import { Project, ProjectDetails, DemandCategory, Bid } from "../../types";
+import { ActiveProjectStatus, Project, ProjectDetails, DemandCategory, Bid } from "../../types";
 import { isDemoSession, DEMO_PROJECT_DETAILS, DEMO_PROJECT } from "../../services/demoData";
 
 export const PROJECT_DETAILS_KEYS = {
@@ -34,12 +34,14 @@ const fetchProjectDetails = async (projectId: string): Promise<ProjectDetails> =
         contractRes,
         financialsRes,
         amendmentsRes,
+        internalAmendmentsRes,
     ] = await Promise.all([
         withRetry<any>(async () => await dbAdapter.from("projects").select("*").eq("id", projectId).single()),
         withRetry<any>(async () => await dbAdapter.from("demand_categories").select("*").eq("project_id", projectId)),
         withRetry<any>(async () => await dbAdapter.from("project_contracts").select("*").eq("project_id", projectId).maybeSingle()),
         withRetry<any>(async () => await dbAdapter.from("project_investor_financials").select("*").eq("project_id", projectId).maybeSingle()),
         withRetry<any>(async () => await dbAdapter.from("project_amendments").select("*").eq("project_id", projectId)),
+        withRetry<any>(async () => await dbAdapter.from("project_internal_amendments").select("*").eq("project_id", projectId)),
     ]);
 
     if (projectRes.error) throw projectRes.error;
@@ -48,6 +50,7 @@ const fetchProjectDetails = async (projectId: string): Promise<ProjectDetails> =
     if (contractRes.error) throw contractRes.error;
     if (financialsRes.error) throw financialsRes.error;
     if (amendmentsRes.error) throw amendmentsRes.error;
+    if (internalAmendmentsRes.error) throw internalAmendmentsRes.error;
 
     const project = projectRes.data;
     const categories: DemandCategory[] = (categoriesRes.data || []).map((c: any) => ({
@@ -69,6 +72,7 @@ const fetchProjectDetails = async (projectId: string): Promise<ProjectDetails> =
     const contractData = contractRes.data;
     const financialsData = financialsRes.data;
     const amendmentsData = (amendmentsRes.data || []) as any[];
+    const internalAmendmentsData = (internalAmendmentsRes.data || []) as any[];
 
     // 2. Fetch Bids for these categories
     const categoryIds = categories.map(c => c.id);
@@ -116,6 +120,7 @@ const fetchProjectDetails = async (projectId: string): Promise<ProjectDetails> =
         id: project.id,
         title: project.name,
         status: project.status || "realization",
+        archivedOriginalStatus: (project.archived_original_status as ActiveProjectStatus | null) ?? null,
         investor: project.investor || "",
         technicalSupervisor: project.technical_supervisor || "",
         location: project.location || "",
@@ -124,6 +129,15 @@ const fetchProjectDetails = async (projectId: string): Promise<ProjectDetails> =
         constructionManager: project.construction_manager || "",
         constructionTechnician: project.construction_technician || "",
         plannedCost: project.planned_cost || 0,
+        address: project.address || "",
+        latitude: project.latitude ?? undefined,
+        longitude: project.longitude ?? undefined,
+        geocodedAt: project.geocoded_at ?? undefined,
+        internalAmendments: internalAmendmentsData.map((a: any) => ({
+            id: a.id,
+            label: a.label,
+            price: a.price || 0,
+        })),
         documentationLink: project.documentation_link,
         documentLinks: project.document_links || [],
         inquiryLetterLink: project.inquiry_letter_link,

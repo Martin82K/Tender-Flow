@@ -22,6 +22,8 @@ import { TemplatesSection } from "./documents/TemplatesSection";
 import { PriceListsSection } from "./documents/PriceListsSection";
 import { useFeatures } from "../../context/FeatureContext";
 import { FEATURES } from "../../config/features";
+import { useLocation } from "../../shared/routing/router";
+import { isProbablyUrl } from "../../utils/docHub";
 
 // --- Helper Functions ---
 const parseMoney = (valueStr: string): number => {
@@ -68,6 +70,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
   const [isEditingDocs, setIsEditingDocs] = useState(false);
   const [isEditingLetter, setIsEditingLetter] = useState(false);
   const [documentsSubTab, setDocumentsSubTab] = useState<DocumentsSubTab>("pd");
+  const { search } = useLocation();
   const { hasFeature } = useFeatures();
   const canDocHub = hasFeature(FEATURES.DOC_HUB);
   const canTemplates =
@@ -150,6 +153,15 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
   const [templateManagerInitialId, setTemplateManagerInitialId] = useState<
     string | null
   >(null);
+  const routeDocumentsSubTab = (() => {
+    const value = new URLSearchParams(search).get("documentsSubTab");
+    return value === "pd" || value === "templates" || value === "dochub" || value === "ceniky"
+      ? value
+      : null;
+  })();
+  const shouldHighlightDocHubSetup =
+    routeDocumentsSubTab === "dochub" &&
+    !project.docHubRootLink?.trim();
 
   const extractTemplateId = (link: string | null | undefined) => {
     if (!link) return null;
@@ -176,6 +188,12 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
       setDocumentsSubTab("pd");
     }
   }, [availableSubTabs, documentsSubTab]);
+
+  useEffect(() => {
+    if (!routeDocumentsSubTab) return;
+    if (!availableSubTabs.includes(routeDocumentsSubTab)) return;
+    setDocumentsSubTab(routeDocumentsSubTab);
+  }, [availableSubTabs, routeDocumentsSubTab]);
 
   useEffect(() => {
     setPriceListLinkValue(project.priceListLink || "");
@@ -227,7 +245,17 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
   };
 
   const handleSavePriceList = () => {
-    onUpdate({ priceListLink: priceListLinkValue });
+    const trimmedValue = priceListLinkValue.trim();
+    if (trimmedValue && !isProbablyUrl(trimmedValue)) {
+      showModal({
+        title: "Neplatný odkaz",
+        message: "Použijte prosím odkaz začínající na http:// nebo https://.",
+        variant: "danger",
+      });
+      return;
+    }
+
+    onUpdate({ priceListLink: trimmedValue });
     setIsEditingPriceList(false);
   };
 
@@ -318,7 +346,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
 
         <div className="flex flex-col md:flex-row gap-8 animate-fadeIn">
           {/* Sidebar Navigation */}
-          <aside className="w-full md:w-64 flex-shrink-0">
+          <aside data-help-id="documents-sidebar" className="w-full md:w-64 flex-shrink-0">
             <nav className="flex flex-col gap-2">
               <button
                 onClick={() => setDocumentsSubTab("pd")}
@@ -423,6 +451,7 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
             )}
 
             {documentsSubTab === "templates" && canTemplates && (
+              <div data-help-id="templates-section">
               <TemplatesSection
                 project={project}
                 templateName={templateName}
@@ -430,37 +459,53 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
                 losersTemplateName={losersTemplateName}
                 openTemplateManager={openTemplateManager}
               />
+              </div>
             )}
 
             {/* DocHub Section (Wizard) */}
             {documentsSubTab === "dochub" && canDocHub && (
               <div className="space-y-6">
-                <DocHubStatusCard
-                  state={docHub.state}
-                  actions={docHub.actions}
-                  setters={docHub.setters}
-                  showModal={showModal}
-                />
+                {shouldHighlightDocHubSetup && (
+                  <div className="rounded-xl border border-emerald-300/60 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100">
+                    Nová realizační stavba potřebuje vlastní realizační složku. Dokončete prosím napojení Složkomatu níže.
+                  </div>
+                )}
 
-                <DocHubSetupWizard
-                  state={docHub.state}
-                  actions={docHub.actions}
-                  setters={docHub.setters}
-                  showModal={showModal}
-                />
+                <div data-help-id="dochub-status">
+                  <DocHubStatusCard
+                    state={docHub.state}
+                    actions={docHub.actions}
+                    setters={docHub.setters}
+                    showModal={showModal}
+                  />
+                </div>
+
+                <div data-help-id="dochub-setup">
+                  <DocHubSetupWizard
+                    state={docHub.state}
+                    actions={docHub.actions}
+                    setters={docHub.setters}
+                    showModal={showModal}
+                  />
+                </div>
 
                 {docHub.state.isConnected && !docHub.state.isEditingSetup && (
                   <>
-                    <DocHubStructureEditor
-                      state={docHub.state}
-                      actions={docHub.actions}
-                      setters={docHub.setters}
-                      showModal={showModal}
-                    />
+                    <div data-help-id="dochub-structure">
+                      <DocHubStructureEditor
+                        state={docHub.state}
+                        actions={docHub.actions}
+                        setters={docHub.setters}
+                        showModal={showModal}
+                      />
+                    </div>
 
-                    <DocHubLinks state={docHub.state} showModal={showModal} />
+                    <div data-help-id="dochub-links">
+                      <DocHubLinks state={docHub.state} showModal={showModal} />
+                    </div>
 
-                    <DocHubAutoCreateStatus
+                    <div data-help-id="dochub-autocreate">
+                      <DocHubAutoCreateStatus
                       state={docHub.state}
                       setters={docHub.setters}
                       showModal={showModal}
@@ -471,11 +516,14 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
                       logRef={docHubRunLogRef}
                       overviewRef={docHubRunOverviewRef}
                     />
+                    </div>
 
-                    <DocHubHistory
-                      project={project}
-                      onSelectRun={handleHistorySelect}
-                    />
+                    <div data-help-id="dochub-history">
+                      <DocHubHistory
+                        project={project}
+                        onSelectRun={handleHistorySelect}
+                      />
+                    </div>
                   </>
                 )}
               </div>

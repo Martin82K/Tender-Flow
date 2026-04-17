@@ -27,12 +27,19 @@ export const FEATURES = {
   EXPORT_PDF: 'export_pdf',
   EXPORT_EXCEL: 'export_excel',
   DOC_HUB: 'doc_hub',
-  AI_VIKI: 'ai_viki',
   URL_SHORTENER: 'url_shortener',
   EXCEL_INDEXER: 'excel_indexer',
   DYNAMIC_TEMPLATES: 'dynamic_templates',
   DEMAND_GENERATION: 'demand_generation',
   LOSER_EMAIL: 'loser_email',
+  DATA_BACKUP: 'data_backup',
+  DATA_BACKUP_TENANT: 'data_backup_tenant',
+
+  // Maps & Geolocation
+  MODULE_MAPS: 'module_maps',
+  MAPS_RECOMMENDATIONS: 'maps_recommendations',
+  MAPS_ROUTING: 'maps_routing',
+  MAPS_BULK_GEOCODE: 'maps_bulk_geocode',
 } as const;
 
 export type FeatureKey = typeof FEATURES[keyof typeof FEATURES];
@@ -50,6 +57,23 @@ export const PLANS = {
       FEATURES.MODULE_PROJECTS, // Limited probably in real SaaS logic
       FEATURES.MODULE_CONTACTS,
       FEATURES.URL_SHORTENER,
+      FEATURES.MODULE_MAPS,
+    ]
+  },
+  STARTER: {
+    id: 'starter',
+    label: 'Starter',
+    features: [
+      FEATURES.MODULE_DASHBOARD,
+      FEATURES.MODULE_PROJECTS,
+      FEATURES.MODULE_CONTACTS,
+      FEATURES.MODULE_PIPELINE,
+      FEATURES.CONTACTS_IMPORT,
+      FEATURES.EXCEL_UNLOCKER,
+      FEATURES.EXPORT_PDF,
+      FEATURES.EXPORT_EXCEL,
+      FEATURES.URL_SHORTENER,
+      FEATURES.MODULE_MAPS,
     ]
   },
   PRO: {
@@ -70,6 +94,11 @@ export const PLANS = {
       FEATURES.EXPORT_EXCEL,
       FEATURES.URL_SHORTENER,
       FEATURES.EXCEL_INDEXER,
+      FEATURES.DATA_BACKUP,
+      FEATURES.MODULE_MAPS,
+      FEATURES.MAPS_RECOMMENDATIONS,
+      FEATURES.MAPS_ROUTING,
+      FEATURES.MAPS_BULK_GEOCODE,
     ]
   },
   ENTERPRISE: {

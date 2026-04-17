@@ -105,23 +105,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                 className="flex-1 flex flex-col h-full min-h-0 overflow-y-auto overflow-x-hidden relative"
             >
                 {/* Toggle Button for Mobile/Hidden Sidebar */}
-                {user?.role === 'demo' && (
-                    <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-4 py-2 flex items-center justify-between shadow-lg z-50">
-                        <div className="flex items-center gap-3">
-                            <span className="material-symbols-outlined animate-pulse">auto_awesome</span>
-                            <div>
-                                <span className="font-bold">DEMO REŽIM</span>
-                                <span className="hidden sm:inline ml-2 text-orange-100 text-sm">— Data jsou uložena pouze v tomto prohlížeči a po odhlášení budou smazána.</span>
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => navigate('/register')}
-                            className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded text-xs font-bold transition-colors border border-white/20"
-                        >
-                            Vytvořit plný účet
-                        </button>
-                    </div>
-                )}
 
                 {(isBackgroundLoading || backgroundWarning) && (
                     <div className="mx-4 mt-3 rounded-xl border border-slate-200/60 dark:border-slate-700/60 bg-white/80 dark:bg-slate-900/60 backdrop-blur px-4 py-3 flex items-start gap-3">
@@ -161,8 +144,9 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
 
                 <button
                     onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                    className={`fixed top-3 left-3 z-20 flex items-center justify-center p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-sm transition-all hover:bg-slate-200 dark:hover:bg-slate-700 md:hidden ${isSidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+                    className={`fixed top-3 left-3 z-40 flex items-center justify-center p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-sm transition-all hover:bg-slate-200 dark:hover:bg-slate-700 md:hidden ${isSidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
                     title={isSidebarOpen ? "Schovat sidebar" : "Zobrazit sidebar"}
+                    aria-label={isSidebarOpen ? "Schovat sidebar" : "Zobrazit sidebar"}
                 >
                     <span className="material-symbols-outlined text-[22px]">menu</span>
                 </button>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, RefreshCw, X, AlertCircle, CheckCircle } from 'lucide-react';
+import { AlertTriangle, Download, RefreshCw, X, CheckCircle } from 'lucide-react';
 
 interface UpdateInfo {
     version: string;
@@ -45,8 +45,8 @@ export function UpdateNotification({
     const [isVisible, setIsVisible] = useState(false);
 
     useEffect(() => {
-        // Show notification when update is available or downloaded
-        if (status === 'available' || status === 'downloading' || status === 'downloaded') {
+        // Show notification when update needs user attention
+        if (status === 'available' || status === 'downloading' || status === 'downloaded' || status === 'error') {
             setIsVisible(true);
         }
     }, [status]);
@@ -60,26 +60,44 @@ export function UpdateNotification({
         return null;
     }
 
-    // Error state
+    // Error - check failed
     if (status === 'error') {
         return (
-            <div className="fixed bottom-6 right-6 w-96 bg-red-900/90 backdrop-blur-sm border border-red-700 rounded-lg shadow-2xl p-4 z-50 animate-slide-up">
-                <div className="flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+            <div className="fixed bottom-6 right-6 w-96 bg-gradient-to-br from-red-900/90 to-rose-900/90 backdrop-blur-sm border border-red-700 rounded-lg shadow-2xl p-5 z-50 animate-slide-up">
+                <div className="flex items-start gap-3 mb-4">
+                    <AlertTriangle className="w-6 h-6 text-red-300 flex-shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-white mb-1">
-                            Chyba při aktualizaci
+                        <h3 className="font-semibold text-white text-lg mb-1">
+                            Kontrola aktualizací selhala
                         </h3>
-                        <p className="text-sm text-red-200">
-                            {error || 'Nepodařilo se zkontrolovat aktualizace'}
+                        <p className="text-sm text-red-100">
+                            {error || 'Nepodařilo se ověřit dostupnost aktualizací.'}
                         </p>
                     </div>
                     <button
                         onClick={handleDismiss}
-                        className="text-red-400 hover:text-red-200 transition-colors"
+                        className="text-red-300 hover:text-red-100 transition-colors"
                         aria-label="Zavřít"
                     >
                         <X className="w-5 h-5" />
+                    </button>
+                </div>
+
+                <div className="flex gap-2">
+                    {onCheckForUpdates && (
+                        <button
+                            onClick={onCheckForUpdates}
+                            className="flex-1 bg-white hover:bg-red-50 text-red-900 font-medium px-4 py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2"
+                        >
+                            <RefreshCw className="w-4 h-4" />
+                            Zkusit znovu
+                        </button>
+                    )}
+                    <button
+                        onClick={handleDismiss}
+                        className="px-4 py-2.5 rounded-lg border border-red-600 text-red-100 hover:bg-red-800/50 transition-colors"
+                    >
+                        Zavřít
                     </button>
                 </div>
             </div>

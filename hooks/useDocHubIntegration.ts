@@ -3,6 +3,7 @@ import { ProjectDetails } from '../types';
 import { dbAdapter } from '../services/dbAdapter';
 import { invokeAuthedFunction } from '../services/functionsClient';
 import { resolveDocHubStructureV1, getDocHubProjectLinks, DEFAULT_DOCHUB_HIERARCHY, DocHubHierarchyItem, buildHierarchyTree, type DocHubStructureV1 } from '../utils/docHub';
+import { isRedirectUrlSafe } from '@shared/security/validateRedirectUrl';
 import { isDesktop, fileSystemAdapter, oauthAdapter } from '../services/platformAdapter';
 import { folderExists } from '../services/fileSystemService';
 
@@ -385,6 +386,7 @@ export const useDocHubIntegration = (
             });
             const url = data?.url;
             if (!url) throw new Error("Backend nevrátil autorizační URL.");
+            if (!isRedirectUrlSafe(url)) throw new Error("Neplatná autorizační URL.");
             window.location.href = url;
         } catch (e) {
             console.error(e);
@@ -451,6 +453,10 @@ export const useDocHubIntegration = (
         if (provider === 'onedrive') {
             try {
                 const path = rootLink.trim();
+                // Grant access for paths outside default allowed roots (e.g. D:\, network shares)
+                if (isDesktop) {
+                    await fileSystemAdapter.grantAccess(path);
+                }
                 const exists = await folderExists(path);
 
                 // For Desktop, we generally trust the user or the picker, but good to check

@@ -728,7 +728,7 @@ export const ExcelIndexerSettings: React.FC = () => {
                 </div>
               ) : (
                 <table className="w-full text-sm">
-                  <thead className="bg-slate-50 dark:bg-slate-800/50 sticky top-0">
+                  <thead className="bg-slate-50 dark:bg-slate-800/50 sticky top-0 z-10">
                     <tr>
                       <th className="px-3 py-2 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-24">
                         Kód

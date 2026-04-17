@@ -161,10 +161,6 @@ vi.mock("@app/views/LazyViews", () => ({
   UrlShortener: () => <div>shortener</div>,
 }));
 
-vi.mock("@shared/ui/agent/AgentFloatingPanel", () => ({
-  AgentFloatingPanel: () => null,
-}));
-
 vi.mock("@app/views/LegalPageRouter", () => ({
   getLegalPage: () => null,
 }));
@@ -205,6 +201,26 @@ describe("AppContent legal acceptance gate", () => {
         termsVersion: CURRENT_TERMS_VERSION,
         privacyVersion: CURRENT_PRIVACY_VERSION,
       });
+    });
+  });
+
+  it("zobrazí chybu z uložení potvrzení bez pádu UI", async () => {
+    mockState.acceptLegalDocuments.mockRejectedValueOnce(
+      new Error("Přihlášení vypršelo. Přihlaste se prosím znovu."),
+    );
+
+    render(<AppContent />);
+
+    fireEvent.click(screen.getByLabelText(/přijímám podmínky používání aplikace/i));
+    fireEvent.click(
+      screen.getByLabelText(/byl\(a\) informován\(a\) o zpracování osobních údajů/i),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Potvrdit a pokračovat" }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Přihlášení vypršelo. Přihlaste se prosím znovu."),
+      ).toBeInTheDocument();
     });
   });
 });

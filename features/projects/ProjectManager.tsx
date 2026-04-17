@@ -3,6 +3,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { PROJECT_KEYS } from '@/hooks/queries/useProjectsQuery';
 import { Project, ProjectStatus } from '@/types';
 import { Header } from '@/shared/ui/Header';
+import { NotificationBell } from "@features/notifications/ui/NotificationBell";
+import { HelpButton } from "@features/help";
 import { projectService } from '@/services/projectService';
 import { useAuth } from '@/context/AuthContext';
 import { DeleteConfirmationModal } from '@/shared/ui/DeleteConfirmationModal';
@@ -14,6 +16,7 @@ interface ProjectManagerProps {
     projects: Project[];
     onAddProject: (project: Project) => void;
     onDeleteProject: (id: string) => void;
+    onCloneTenderToRealization: (id: string) => Promise<{ projectId: string }>;
     onArchiveProject: (id: string) => void;
 }
 
@@ -94,6 +97,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
     projects,
     onAddProject,
     onDeleteProject,
+    onCloneTenderToRealization,
     onArchiveProject
 }) => {
     const { user } = useAuth();
@@ -115,6 +119,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
     // Edit State
     const [editingProject, setEditingProject] = useState<{ id: string; name: string; location: string; status: ProjectStatus } | null>(null);
     const [isSavingEdit, setIsSavingEdit] = useState(false);
+    const [cloningProjectId, setCloningProjectId] = useState<string | null>(null);
 
     // Sharing State
     const [sharingProjectId, setSharingProjectId] = useState<string | null>(null);
@@ -444,14 +449,60 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
         }
     };
 
+    const handleCloneProjectClick = (project: Project) => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Přepnout do realizace',
+            message: `Vytvoří se nová stavba v realizaci jako kopie projektu "${project.name}". Původní soutěž zůstane beze změny. Pokračovat?`,
+            confirmLabel: 'Vytvořit realizaci',
+            variant: 'info',
+            onConfirm: () => executeCloneProject(project),
+        });
+    };
+
+    const executeCloneProject = async (project: Project) => {
+        closeConfirmModal();
+
+        if (isProjectLimitReached) {
+            setAlertModal({
+                isOpen: true,
+                title: 'Limit tarifu Free',
+                message: 'Tarif Free umožňuje pouze 1 aktivní stavbu. Pro další stavby prosím upgradujte plán nebo stávající stavbu archivujte.',
+                variant: 'info',
+            });
+            return;
+        }
+
+        setCloningProjectId(project.id);
+        try {
+            await onCloneTenderToRealization(project.id);
+            setAlertModal({
+                isOpen: true,
+                title: 'Realizace vytvořena',
+                message: 'Byla vytvořena nová realizační stavba a otevřena v záložce Dokumenty.',
+                variant: 'success',
+            });
+        } catch (error) {
+            console.error('Error cloning project to realization:', error);
+            setAlertModal({
+                isOpen: true,
+                title: 'Chyba',
+                message: error instanceof Error ? error.message : 'Nepodařilo se vytvořit realizační kopii projektu.',
+                variant: 'error',
+            });
+        } finally {
+            setCloningProjectId(null);
+        }
+    };
+
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen overflow-y-auto">
-            <Header title="Správa Staveb" subtitle="Vytváření, archivace a sdílení projektů" />
+            <Header title="Správa Staveb" subtitle="Vytváření, archivace a sdílení projektů" helpSlot={<HelpButton />} notificationSlot={<NotificationBell />} />
 
             <div className="p-6 lg:p-10 max-w-5xl mx-auto w-full pb-20">
 
                 {/* 1. Create New Project */}
-                <section className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl mb-8">
+                <section data-help-id="pm-create-section" className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl mb-8">
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
                         <span className="material-symbols-outlined text-emerald-400">add_business</span>
                         Nová stavba
@@ -514,7 +565,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                 </section>
 
                 {/* 2. Active Project List */}
-                <section className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl mb-8">
+                <section data-help-id="pm-project-list" className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl mb-8">
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
                         <span className="material-symbols-outlined text-blue-400">list_alt</span>
                         Seznam vašich a sdílených staveb
@@ -574,7 +625,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-2">
+                                <div data-help-id="pm-project-actions" className="flex items-center gap-2">
                                     {/* Edit Button - Only Owner */}
                                     {(!project.ownerId || project.ownerId === user?.id) && (
                                         <button
@@ -594,6 +645,19 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                             title="Sdílet projekt"
                                         >
                                             <span className="material-symbols-outlined text-[20px]">share</span>
+                                        </button>
+                                    )}
+
+                                    {project.status === 'tender' && (!project.ownerId || project.ownerId === user?.id) && (
+                                        <button
+                                            onClick={() => handleCloneProjectClick(project)}
+                                            disabled={cloningProjectId === project.id}
+                                            className="p-2 text-slate-500 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                            title="Přepnout do realizace"
+                                        >
+                                            <span className={`material-symbols-outlined text-[20px] ${cloningProjectId === project.id ? 'animate-spin' : ''}`}>
+                                                {cloningProjectId === project.id ? 'sync' : 'published_with_changes'}
+                                            </span>
                                         </button>
                                     )}
 

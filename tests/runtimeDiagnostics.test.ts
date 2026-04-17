@@ -76,10 +76,47 @@ describe("runtimeDiagnostics", () => {
     expect(result.eventCount).toBeGreaterThan(0);
     expect(openTempFile).toHaveBeenCalledTimes(1);
 
-    const [content, filename] = openTempFile.mock.calls[0];
+    const [content, filename] = openTempFile.mock.calls[0] as unknown as [unknown, unknown];
     expect(String(filename)).toContain("tender-flow-debug-");
     expect(String(content)).toContain("\"events\"");
     expect(String(content)).toContain("\"router\"");
   });
+
+  it("rediguje search/hash v route diagnostiky", async () => {
+    const originalPathname = window.location.pathname;
+    const originalSearch = window.location.search;
+    const originalHash = window.location.hash;
+
+    window.history.replaceState({}, "", "/reset-password?token=super-secret#access_token=very-secret");
+
+    vi.doMock("../services/platformAdapter", () => ({
+      isDesktop: false,
+      platformAdapter: {
+        platform: { os: "unknown" },
+        storage: {
+          get: vi.fn(async () => null),
+          set: vi.fn(async () => undefined),
+          delete: vi.fn(async () => undefined),
+        },
+        shell: {
+          openTempFile: vi.fn(async () => undefined),
+        },
+      },
+    }));
+
+    const diagnostics = await import("../infra/diagnostics/runtimeDiagnostics");
+
+    diagnostics.logRuntimeEvent("auth", "route_check");
+
+    const snapshot = diagnostics.getRuntimeDiagnosticsSnapshot();
+    const route = String(snapshot.events[snapshot.events.length - 1]?.route ?? "");
+
+    expect(route).toBe("/reset-password?[redacted]#[redacted]");
+    expect(route).not.toContain("super-secret");
+    expect(route).not.toContain("very-secret");
+
+    window.history.replaceState({}, "", `${originalPathname}${originalSearch}${originalHash}`);
+  });
+
 });
 

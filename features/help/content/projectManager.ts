@@ -1,0 +1,61 @@
+import type { HelpEntry } from "../types";
+
+export const projectManagerHelp: HelpEntry[] = [
+  {
+    id: "pm-create-section",
+    view: "project-management",
+    label: "Vytvoření projektu",
+    description: "Formulář pro založení nového projektu/stavby. Zadejte název, místo a typ (Výběrová řízení nebo Realizace).",
+    detail: "Typ 'Výběrová řízení' se používá při přípravě stavby, kdy teprve vybíráte subdodavatele. Typ 'Realizace' pro stavby, kde již máte vybrané dodavatele. Z VŘ projektu lze později vytvořit realizační kopii.",
+    category: "action",
+    tourOrder: 1,
+  },
+  {
+    id: "pm-project-list",
+    view: "project-management",
+    label: "Seznam aktivních projektů",
+    description: "Přehled všech aktivních staveb s možností řazení přetažením (drag & drop).",
+    detail: "Každý projekt zobrazuje název, místo, stav (T = Výběrová řízení, S = Realizace), vlastnictví a sdílení. Pořadí projektů lze změnit přetažením.",
+    category: "info",
+    tourOrder: 2,
+  },
+  {
+    id: "pm-project-actions",
+    view: "project-management",
+    label: "Akce projektu",
+    description: "Tlačítka pro správu projektu — editace, sdílení, klonování do realizace, archivace a smazání.",
+    detail: "Editace: změna názvu, místa a typu. Sdílení: pozvání kolegů e-mailem s oprávněním (editace/čtení). Klonování: vytvoří kopii projektu pro fázi realizace. Archivace: přesune projekt do archivu. Smazání: trvalé odstranění.",
+    category: "action",
+    tourOrder: 3,
+  },
+  {
+    id: "pm-share",
+    view: "project-management",
+    label: "Sdílení projektu",
+    description: "Pozvěte kolegy k projektu zadáním jejich e-mailu. Můžete nastavit oprávnění — plný přístup (editace) nebo pouze čtení.",
+    detail: "Sdílený projekt se zobrazí v jejich seznamu projektů. Vlastník může kdykoli změnit oprávnění nebo odebrat přístup. Projekt může být také veřejný pro celou organizaci.",
+    category: "action",
+    tourOrder: 4,
+  },
+  {
+    id: "pm-archive",
+    view: "project-management",
+    label: "Archiv projektů",
+    description: "Rozbalitelná sekce s archivovanými projekty. Archivované projekty lze obnovit nebo trvale smazat.",
+    detail: "Archivace je reverzibilní — projekt se skryje z hlavního seznamu, ale data zůstávají zachována. Vhodné pro dokončené stavby.",
+    category: "info",
+    tourOrder: 5,
+  },
+  {
+    id: "pm-clone",
+    view: "project-management",
+    label: "Klonování do realizace",
+    description: "Vytvoří kopii projektu typu 'Výběrová řízení' jako nový projekt typu 'Realizace' se všemi daty.",
+    detail: "Přenese poptávkové kategorie, vítězné nabídky, dokumenty a nastavení. Původní VŘ projekt zůstane zachován. Užitečné při přechodu stavby z fáze výběru do fáze realizace.",
+    category: "action",
+    tourOrder: 6,
+    dataFlow: [
+      { targetHelpId: "pm-project-list", label: "Nový realizační projekt v seznamu" },
+    ],
+  },
+];

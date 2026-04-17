@@ -1,11 +1,13 @@
-import { dialog, ipcMain, shell } from "electron";
+import { app, dialog, ipcMain, shell } from "electron";
 import * as fs from "fs/promises";
+import * as os from "os";
 import * as path from "path";
 import type { FileInfo, FolderInfo } from "../../types";
 
 interface FsHandlerDependencies {
   resolvePortableReadPath: (targetPath: string) => Promise<string>;
   resolvePortableWritePath: (targetPath: string) => Promise<string>;
+  requireAuth: (sender: Electron.WebContents, channel?: string) => void;
 }
 
 const IGNORE_PATTERNS = [
@@ -26,11 +28,78 @@ const shouldIgnore = (filename: string): boolean => {
   });
 };
 
+const toAbsolutePath = (targetPath: string): string => path.resolve(targetPath);
+
+const isPathInsideRoot = (targetPath: string, rootPath: string): boolean => {
+  const relative = path.relative(rootPath, targetPath);
+  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+};
+
+// User-granted roots: paths explicitly selected via native dialog or manually confirmed
+const userGrantedRoots = new Set<string>();
+
+export const addUserGrantedRoot = (rootPath: string): void => {
+  userGrantedRoots.add(toAbsolutePath(rootPath));
+};
+
+const getAllowedRoots = (): string[] => {
+  const roots = [
+    app.getPath("home"),
+    app.getPath("userData"),
+    os.tmpdir(),
+    ...userGrantedRoots,
+  ].map(toAbsolutePath);
+
+  return Array.from(new Set(roots));
+};
+
+const ensurePathAllowed = async (
+  requestedPath: string,
+  mode: "read" | "write",
+): Promise<string> => {
+  if (typeof requestedPath !== "string" || requestedPath.trim().length === 0) {
+    throw new Error("Access denied: invalid path");
+  }
+
+  const normalizedPath = toAbsolutePath(requestedPath);
+  const allowedRoots = getAllowedRoots();
+
+  const isInsideAllowedRoot = (targetPath: string): boolean =>
+    allowedRoots.some((root) => isPathInsideRoot(targetPath, root));
+
+  if (mode === "read") {
+    const realPath = await fs.realpath(normalizedPath);
+    if (!isInsideAllowedRoot(realPath)) {
+      throw new Error(`Access denied: path is outside allowed roots (${realPath})`);
+    }
+    return realPath;
+  }
+
+  // write mode: target may not exist, so verify nearest existing parent realpath
+  let parentDir = normalizedPath;
+  while (parentDir !== path.dirname(parentDir)) {
+    try {
+      const realParent = await fs.realpath(parentDir);
+      if (!isInsideAllowedRoot(realParent)) {
+        throw new Error(`Access denied: path is outside allowed roots (${realParent})`);
+      }
+      return normalizedPath;
+    } catch {
+      parentDir = path.dirname(parentDir);
+    }
+  }
+
+  throw new Error("Access denied: unable to resolve path within allowed roots");
+};
+
 export const registerFsHandlers = ({
   resolvePortableReadPath,
   resolvePortableWritePath,
+  requireAuth,
 }: FsHandlerDependencies): void => {
-  ipcMain.handle("fs:selectFolder", async (): Promise<FolderInfo | null> => {
+  // fs:selectFolder is dialog-based (user action) but still requires auth
+  ipcMain.handle("fs:selectFolder", async (event): Promise<FolderInfo | null> => {
+    requireAuth(event.sender, 'fs:selectFolder');
     const result = await dialog.showOpenDialog({
       properties: ["openDirectory"],
       title: "Vybrat složku pro synchronizaci",
@@ -41,14 +110,16 @@ export const registerFsHandlers = ({
     }
 
     const folderPath = result.filePaths[0];
+    addUserGrantedRoot(folderPath);
     return {
       path: folderPath,
       name: path.basename(folderPath),
     };
   });
 
-  ipcMain.handle("fs:listFiles", async (_, folderPath: string): Promise<FileInfo[]> => {
-    const resolvedFolderPath = await resolvePortableReadPath(folderPath);
+  ipcMain.handle("fs:listFiles", async (event, folderPath: string): Promise<FileInfo[]> => {
+    requireAuth(event.sender, 'fs:listFiles');
+    const resolvedFolderPath = await ensurePathAllowed(await resolvePortableReadPath(folderPath), "read");
     const files: FileInfo[] = [];
 
     const scanDirectory = async (dir: string, relativeTo: string): Promise<void> => {
@@ -90,17 +161,22 @@ export const registerFsHandlers = ({
     return files;
   });
 
-  ipcMain.handle("fs:readFile", async (_, filePath: string): Promise<Buffer> => {
-    return fs.readFile(filePath);
+  ipcMain.handle("fs:readFile", async (event, filePath: string): Promise<Buffer> => {
+    requireAuth(event.sender, 'fs:readFile');
+    const resolvedFilePath = await ensurePathAllowed(await resolvePortableReadPath(filePath), "read");
+    return fs.readFile(resolvedFilePath);
   });
 
-  ipcMain.handle("fs:writeFile", async (_, filePath: string, data: Buffer | string): Promise<void> => {
-    await fs.writeFile(filePath, data);
+  ipcMain.handle("fs:writeFile", async (event, filePath: string, data: Buffer | string): Promise<void> => {
+    requireAuth(event.sender, 'fs:writeFile');
+    const resolvedFilePath = await ensurePathAllowed(await resolvePortableWritePath(filePath), "write");
+    await fs.writeFile(resolvedFilePath, data);
   });
 
-  ipcMain.handle("fs:openInExplorer", async (_, targetPath: string): Promise<{ success: boolean; error?: string }> => {
+  ipcMain.handle("fs:openInExplorer", async (event, targetPath: string): Promise<{ success: boolean; error?: string }> => {
+    requireAuth(event.sender, 'fs:openInExplorer');
     try {
-      const resolvedTargetPath = await resolvePortableReadPath(targetPath);
+      const resolvedTargetPath = await ensurePathAllowed(await resolvePortableReadPath(targetPath), "read");
       const result = await shell.openPath(resolvedTargetPath);
       return result ? { success: false, error: result } : { success: true };
     } catch (error) {
@@ -111,9 +187,10 @@ export const registerFsHandlers = ({
     }
   });
 
-  ipcMain.handle("fs:openFile", async (_, filePath: string): Promise<{ success: boolean; error?: string }> => {
+  ipcMain.handle("fs:openFile", async (event, filePath: string): Promise<{ success: boolean; error?: string }> => {
+    requireAuth(event.sender, 'fs:openFile');
     try {
-      const resolvedFilePath = await resolvePortableReadPath(filePath);
+      const resolvedFilePath = await ensurePathAllowed(await resolvePortableReadPath(filePath), "read");
       const result = await shell.openPath(resolvedFilePath);
       return result ? { success: false, error: result } : { success: true };
     } catch (error) {
@@ -126,9 +203,10 @@ export const registerFsHandlers = ({
 
   ipcMain.handle(
     "fs:createFolder",
-    async (_, folderPath: string): Promise<{ success: boolean; error?: string }> => {
+    async (event, folderPath: string): Promise<{ success: boolean; error?: string }> => {
+      requireAuth(event.sender, 'fs:createFolder');
       try {
-        const resolvedFolderPath = await resolvePortableWritePath(folderPath);
+        const resolvedFolderPath = await ensurePathAllowed(await resolvePortableWritePath(folderPath), "write");
         await fs.mkdir(resolvedFolderPath, { recursive: true });
         return { success: true };
       } catch (e) {
@@ -139,9 +217,10 @@ export const registerFsHandlers = ({
 
   ipcMain.handle(
     "fs:deleteFolder",
-    async (_, folderPath: string): Promise<{ success: boolean; error?: string }> => {
+    async (event, folderPath: string): Promise<{ success: boolean; error?: string }> => {
+      requireAuth(event.sender, 'fs:deleteFolder');
       try {
-        const resolvedFolderPath = await resolvePortableReadPath(folderPath);
+        const resolvedFolderPath = await ensurePathAllowed(await resolvePortableReadPath(folderPath), "read");
         await fs.rm(resolvedFolderPath, { recursive: true, force: true });
         return { success: true };
       } catch (e) {
@@ -152,10 +231,11 @@ export const registerFsHandlers = ({
 
   ipcMain.handle(
     "fs:renameFolder",
-    async (_, oldPath: string, newPath: string): Promise<{ success: boolean; error?: string }> => {
+    async (event, oldPath: string, newPath: string): Promise<{ success: boolean; error?: string }> => {
+      requireAuth(event.sender, 'fs:renameFolder');
       try {
-        const resolvedOldPath = await resolvePortableReadPath(oldPath);
-        const resolvedNewPath = await resolvePortableWritePath(newPath);
+        const resolvedOldPath = await ensurePathAllowed(await resolvePortableReadPath(oldPath), "read");
+        const resolvedNewPath = await ensurePathAllowed(await resolvePortableWritePath(newPath), "write");
         await fs.rename(resolvedOldPath, resolvedNewPath);
         return { success: true };
       } catch (e) {
@@ -164,13 +244,43 @@ export const registerFsHandlers = ({
     },
   );
 
-  ipcMain.handle("fs:folderExists", async (_, folderPath: string): Promise<boolean> => {
+  ipcMain.handle("fs:folderExists", async (event, folderPath: string): Promise<boolean> => {
+    requireAuth(event.sender, 'fs:folderExists');
     try {
-      const resolvedFolderPath = await resolvePortableReadPath(folderPath);
+      const resolvedFolderPath = await ensurePathAllowed(await resolvePortableReadPath(folderPath), "read");
       const stat = await fs.stat(resolvedFolderPath);
       return stat.isDirectory();
     } catch {
       return false;
     }
+  });
+
+  ipcMain.handle("fs:grantAccess", async (event, folderPath: string): Promise<boolean> => {
+    requireAuth(event.sender, 'fs:grantAccess');
+    if (typeof folderPath !== "string" || folderPath.trim().length === 0) return false;
+    const abs = toAbsolutePath(folderPath.trim());
+
+    try {
+      const stat = await fs.stat(abs);
+      if (!stat.isDirectory()) return false;
+    } catch {
+      return false;
+    }
+
+    const confirmation = await dialog.showOpenDialog({
+      title: "Potvrďte přístup ke složce",
+      defaultPath: abs,
+      properties: ["openDirectory"],
+      message: "Pro pokračování vyberte složku, ke které chcete udělit přístup.",
+      buttonLabel: "Udělit přístup",
+    });
+
+    if (confirmation.canceled || confirmation.filePaths.length === 0) return false;
+
+    const selectedPath = toAbsolutePath(confirmation.filePaths[0]);
+    if (selectedPath !== abs) return false;
+
+    addUserGrantedRoot(selectedPath);
+    return true;
   });
 };

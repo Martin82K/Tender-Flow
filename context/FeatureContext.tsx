@@ -1,7 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { FeatureKey, PLANS } from '../config/features';
 import { useAuth } from './AuthContext';
-import { getCurrentTier, getEnabledFeatures } from '@/features/subscription/api';
+import {
+  getCurrentTier,
+  getEnabledFeatures,
+  getEffectiveUserTier,
+  getEnabledFeaturesV2,
+} from '@/features/subscription/api';
 
 // Periodic refresh interval for subscription tier validation
 const SUBSCRIPTION_REFRESH_INTERVAL = 1000 * 60 * 30; // 30 minutes
@@ -15,6 +20,18 @@ interface FeatureContextType {
 }
 
 const FeatureContext = createContext<FeatureContextType | undefined>(undefined);
+
+// Persist v2 RPC availability across page navigations within the same browser
+// session.  This avoids repeated red 400 POST errors in the console when the
+// v2 Supabase RPCs have not been deployed yet.
+const V2_STORAGE_KEY = 'tf_v2_rpcs_available';
+let v2RpcsAvailable = (() => {
+  try {
+    return sessionStorage.getItem(V2_STORAGE_KEY) !== 'false';
+  } catch {
+    return true;
+  }
+})();
 
 export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
@@ -44,28 +61,51 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     setIsLoading(true);
     try {
-      // Fetch enabled features from backend RPC (cannot be bypassed)
-      const [features, tier] = await Promise.all([
-        getEnabledFeatures(),
-        getCurrentTier(),
-      ]);
+      let features: { key: string; name: string; description: string | null; category: string | null }[];
+      let tier: string;
 
-      // Map feature keys to FeatureKey type
+      if (v2RpcsAvailable) {
+        try {
+          // Probe with a single call first to avoid two parallel 400 errors
+          // if the v2 RPCs have not been deployed yet.
+          const tierResult = await getEffectiveUserTier();
+          const v2Features = await getEnabledFeaturesV2();
+          features = v2Features;
+          tier = tierResult.tier;
+        } catch {
+          // v2 RPCs not deployed — remember for the rest of this browser session
+          v2RpcsAvailable = false;
+          try { sessionStorage.setItem(V2_STORAGE_KEY, 'false'); } catch { /* SSR / sandbox */ }
+          console.debug('[FeatureContext] v2 RPCs not available, using v1');
+          const [v1Features, v1Tier] = await Promise.all([
+            getEnabledFeatures(),
+            getCurrentTier(),
+          ]);
+          features = v1Features;
+          tier = v1Tier;
+        }
+      } else {
+        const [v1Features, v1Tier] = await Promise.all([
+          getEnabledFeatures(),
+          getCurrentTier(),
+        ]);
+        features = v1Features;
+        tier = v1Tier;
+      }
+
       const featureKeys = features.map(f => f.key as FeatureKey);
       setEnabledFeatures(featureKeys);
       setCurrentPlan(tier);
-
-      console.log(`[FeatureContext] Loaded ${featureKeys.length} features for tier: ${tier}`);
       lastRefreshRef.current = Date.now();
     } catch (error) {
       console.error('[FeatureContext] Failed to load features from backend:', error);
-      // On error, keep current plan instead of reverting to free
-      // This prevents transient network errors from downgrading users
-      console.warn('[FeatureContext] Keeping current plan due to error:', currentPlan);
+      // Fail closed on backend errors to prevent stale or spoofed feature access.
+      setEnabledFeatures([]);
+      setCurrentPlan('free');
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, user, currentPlan]);
+  }, [isAuthenticated, user]);
 
   // Fetch features when auth state changes
   useEffect(() => {
@@ -81,7 +121,7 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const interval = setInterval(() => {
       const timeSinceLastRefresh = Date.now() - lastRefreshRef.current;
       if (timeSinceLastRefresh >= SUBSCRIPTION_REFRESH_INTERVAL) {
-        console.log('[FeatureContext] Periodic subscription tier refresh');
+        console.debug('[FeatureContext] Periodic subscription tier refresh');
         fetchFeatures();
       }
     }, SUBSCRIPTION_REFRESH_INTERVAL);

@@ -7,7 +7,7 @@ export type View =
   | "project-overview"
   | "url-shortener";
 
-export type ProjectTab = "overview" | "tender-plan" | "pipeline" | "schedule" | "documents" | "contracts";
+export type ProjectTab = "overview" | "tender-plan" | "pipeline" | "schedule" | "documents" | "contracts" | "map";
 
 // Tender Plan Item
 export interface TenderPlanItem {
@@ -39,10 +39,19 @@ export interface Subcontractor {
   contacts: ContactPerson[];
   ico?: string; // IČ
   region?: string;
+  address?: string;
+  city?: string; // Město sídla firmy
+  web?: string; // URL webu firmy
+  note?: string; // Volná poznámka
+  regions?: string[]; // Zkratky krajů ČR kde firma působí
   status: string; // Dynamic ID linking to StatusConfig
 
   vendorRatingAverage?: number;
   vendorRatingCount?: number;
+
+  latitude?: number;
+  longitude?: number;
+  geocodedAt?: string;
 
   // Legacy fields for backward compatibility / migration
   name?: string;
@@ -74,28 +83,8 @@ export interface DemandCategory {
   realizationEnd?: string; // Termín realizace - konec (ISO date string)
 }
 
-export interface DocHubStructureV1 {
-  pd: string;
-  tenders: string;
-  contracts: string;
-  realization: string;
-  archive: string;
-  tendersInquiries: string;
-  supplierEmail: string;
-  supplierOffer: string;
-  ceniky: string;
-  extraTopLevel?: string[]; // Optional additional folders in project root
-  extraSupplier?: string[]; // Optional additional subfolders under supplier folder
-  extraHierarchy?: Array<{
-    id: string;
-    key: string;
-    name: string;
-    enabled: boolean;
-    depth: number;
-    label?: string;
-    children?: any[];
-  }>; // Custom folder hierarchy structure
-}
+import type { DocHubStructureV1 as _DocHubStructureV1 } from "@/utils/docHub";
+export type DocHubStructureV1 = _DocHubStructureV1;
 
 export type BidStatus =
   | "contacted"
@@ -129,12 +118,14 @@ export interface ChartData {
 }
 
 export type ProjectStatus = "tender" | "realization" | "archived";
+export type ActiveProjectStatus = Exclude<ProjectStatus, "archived">;
 
 export interface Project {
   id: string;
   name: string;
   location: string;
   status: ProjectStatus;
+  archivedOriginalStatus?: ActiveProjectStatus | null;
   isDemo?: boolean;
   ownerId?: string;
   ownerEmail?: string;
@@ -174,6 +165,7 @@ export interface ProjectDetails {
   id?: string; // Optional linkage
   title: string;
   status?: ProjectStatus; // Added specific status field
+  archivedOriginalStatus?: ActiveProjectStatus | null;
 
   // Editable General Info
   investor?: string; // Investor
@@ -186,6 +178,11 @@ export interface ProjectDetails {
 
   // Financials
   plannedCost?: number; // Interní plánovaný náklad (Cíl)
+  internalAmendments?: Amendment[]; // Interní dodatky (nezávislé na investorských)
+  address?: string; // Přesná adresa stavby
+  latitude?: number;
+  longitude?: number;
+  geocodedAt?: string;
 
   // Documents
   documentationLink?: string; // Link to shared project documentation (legacy, kept for compatibility)
@@ -196,7 +193,7 @@ export interface ProjectDetails {
   priceListLink?: string; // Link to price lists (Ceníky)
   docHubEnabled?: boolean; // DocHub module enabled for this project
   docHubRootLink?: string; // Root link/path to the project's DocHub folder
-  docHubProvider?: "gdrive" | "onedrive" | "local" | null; // Storage provider
+  docHubProvider?: "gdrive" | "onedrive" | "onedrive_cloud" | "local" | null; // Storage provider
   docHubMode?: "user" | "org" | null; // User drive vs organization/shared drive
   docHubRootId?: string | null; // Provider root folder/item ID (future backend)
   docHubRootName?: string | null; // Human-readable name for UI
@@ -235,6 +232,27 @@ export interface UserPreferences {
   signature?: string; // HTML compatible signature
 }
 
+export interface UserEmailSignatureProfile {
+  displayName: string | null;
+  signatureName: string | null;
+  signatureRole: string | null;
+  signaturePhone: string | null;
+  signaturePhoneSecondary: string | null;
+  signatureEmail: string | null;
+  signatureGreeting: string | null;
+}
+
+export interface OrganizationEmailBranding {
+  emailLogoPath: string | null;
+  emailLogoUrl?: string | null;
+  companyName: string | null;
+  companyAddress: string | null;
+  companyMeta: string | null;
+  disclaimerHtml: string | null;
+  fontFamily: string | null;
+  fontSize: string | null;
+}
+
 export interface LegalAcceptance {
   termsVersion: string | null;
   termsAcceptedAt: string | null;
@@ -252,7 +270,7 @@ export type SubscriptionTier = "free" | "starter" | "pro" | "enterprise" | "admi
 
 export type SubscriptionStatus = "active" | "trial" | "cancelled" | "expired" | "pending";
 
-export type BillingProvider = "stripe" | "paddle" | "manual" | null;
+export type BillingProvider = "stripe" | "gopay" | "paddle" | "manual" | null;
 
 export interface SubscriptionInfo {
   tier: SubscriptionTier;
@@ -299,6 +317,7 @@ export interface User {
   organizationId?: string;
   organizationType?: 'personal' | 'business';
   organizationName?: string;
+  isOrgMemberActive?: boolean;
   legalAcceptance?: LegalAcceptance;
 }
 

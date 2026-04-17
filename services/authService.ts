@@ -3,6 +3,7 @@ import { invokePublicFunction } from './functionsClient';
 import { LegalAcceptanceInput, SubscriptionTier, User } from '../types';
 import { isValidTierId } from '../config/subscriptionTiers';
 import { summarizeErrorForLog } from '@/shared/security/logSanitizer';
+import { ADMIN_EMAILS } from '../config/constants';
 import {
     CURRENT_PRIVACY_VERSION,
     CURRENT_TERMS_VERSION,
@@ -22,9 +23,6 @@ const withTimeout = async <T,>(promise: Promise<T>, ms: number, label: string): 
     ]);
 };
 
-// Admin email configuration (matches Sidebar.tsx)
-const ADMIN_EMAILS = ["martinkalkus82@gmail.com", "kalkus@baustav.cz"];
-
 // Cache keys for localStorage
 const USER_CACHE_KEY = 'crm-user-cache';
 const USER_CACHE_TTL = 1000 * 60 * 60 * 12; // 12 hours
@@ -37,6 +35,15 @@ const normalizeSubscriptionTier = (tier: unknown): SubscriptionTier | null => {
     if (typeof tier !== 'string') return null;
     const normalized = tier.trim().toLowerCase();
     return isValidTierId(normalized) ? normalized : null;
+};
+
+const getCachedAdminState = (): boolean => {
+    try {
+        const cachedUser = getCachedUserData();
+        return cachedUser?.role === 'admin';
+    } catch {
+        return false;
+    }
 };
 
 // Cache subscription tier separately for fallback on errors
@@ -175,7 +182,7 @@ export const authService = {
         }
 
         // Fallback: return minimal user object; AuthContext auth events will hydrate further.
-        const isSystemAdmin = data.user.email ? ADMIN_EMAILS.includes(data.user.email) : false;
+        const isSystemAdmin = getCachedAdminState();
         return {
             id: data.user.id,
             name: (data.user.user_metadata as any)?.name || data.user.email?.split('@')[0] || 'User',
@@ -425,6 +432,15 @@ export const authService = {
             throw new Error('Neplatná verze právních dokumentů. Obnov stránku a potvrď aktuální verzi.');
         }
 
+        const activeSession =
+            options.session?.user
+                ? options.session
+                : (await supabase.auth.getSession()).data.session;
+
+        if (!activeSession?.user) {
+            throw new Error("Přihlášení vypršelo. Přihlaste se prosím znovu.");
+        }
+
         const { error } = await supabase.rpc('accept_current_legal_documents', {
             p_terms_version: input.termsVersion,
             p_privacy_version: input.privacyVersion,
@@ -435,8 +451,8 @@ export const authService = {
             throw error;
         }
 
-        if (options.session?.user) {
-            const updatedFromSession = await authService.getUserFromSession(options.session, {
+        if (activeSession?.user) {
+            const updatedFromSession = await authService.getUserFromSession(activeSession, {
                 skipUserCache: true,
             });
             if (updatedFromSession) return updatedFromSession;
@@ -475,7 +491,7 @@ export const authService = {
             cachedUser.id === sessionUserId &&
             isUserCacheTrustedForLegalAcceptance(cachedUser)
         ) {
-            console.log('[authService] getUserFromSession: Using cached user data for fast startup');
+            console.debug('[authService] getUserFromSession: Using cached user data for fast startup');
 
             // Refresh in background (fire and forget)
             authService._buildUserFromSession(session).then(freshUser => {
@@ -515,19 +531,15 @@ export const authService = {
                 return cachedUser;
             }
 
-            // Otherwise return minimal fallback user - use cached tier if available
+            // Otherwise return minimal fallback user and fail closed for subscription tier.
             const isSystemAdmin = session.user.email ? ADMIN_EMAILS.includes(session.user.email) : false;
-            const cachedTier = getCachedSubscriptionTier();
-            const fallbackTier = isSystemAdmin ? 'admin' : (cachedTier || 'free');
-            if (cachedTier && !isSystemAdmin) {
-                console.log('[authService] Using cached subscription tier for fallback:', cachedTier);
-            }
+            const fallbackTier: SubscriptionTier = isSystemAdmin ? 'admin' : 'free';
             return {
                 id: session.user.id,
                 name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
                 email: session.user.email || '',
                 role: isSystemAdmin ? 'admin' : 'user',
-                subscriptionTier: fallbackTier as any,
+                subscriptionTier: fallbackTier,
                 avatarUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(session.user.email || 'U')}&background=random`,
                 preferences: DEFAULT_PREFERENCES
             };
@@ -545,25 +557,26 @@ export const authService = {
 
         // BATCH 1: Core User Data + Manual Override
         // Prioritize manual override to ensure correct tiering even if Org data fails/lags.
-        const profilePromise = (async () => {
+        const platformAdminPromise = (async () => {
             try {
                 const res = await withTimeout(
                     Promise.resolve(supabase
-                        .from('profiles')
-                        .select('is_admin')
-                        .eq('id', session.user.id)
-                        .single()),
+                        .from('platform_admins')
+                        .select('user_id')
+                        .eq('user_id', session.user.id)
+                        .eq('is_active', true)
+                        .maybeSingle()),
                     queryTimeoutMs,
-                    'Profile load'
+                    'Platform admin load'
                 );
                 const { data, error } = res as any;
                 if (error) {
-                    console.warn('[authService] Error fetching profile', error);
+                    console.warn('[authService] Error fetching platform admin state', error);
                     return null;
                 }
-                return data ?? null;
+                return data ? { is_admin: true } : { is_admin: false };
             } catch (e) {
-                console.warn('[authService] Could not fetch profile', e);
+                console.warn('[authService] Could not fetch platform admin state', e);
                 return null;
             }
         })();
@@ -616,8 +629,8 @@ export const authService = {
         })();
 
         // Await Batch 1
-        const [profile, settings, userProfile] = await Promise.all([
-            profilePromise,
+        const [platformAdmin, settings, userProfile] = await Promise.all([
+            platformAdminPromise,
             settingsPromise,
             overridePromise
         ]);
@@ -630,7 +643,7 @@ export const authService = {
                     Promise.resolve(
                         supabase
                             .from('organization_members')
-                            .select('organization_id')
+                            .select('organization_id, is_active')
                             .eq('user_id', session.user.id)
                             .limit(1)
                             .maybeSingle()
@@ -640,7 +653,8 @@ export const authService = {
                 );
                 const { data, error } = res as any;
                 if (error) return null;
-                return data?.organization_id || null;
+                if (!data?.organization_id) return null;
+                return { organizationId: data.organization_id, isActive: data.is_active ?? true };
             } catch (e) {
                 console.warn('[authService] Could not fetch org member', e);
                 return null;
@@ -648,10 +662,12 @@ export const authService = {
         })();
 
         // Await Batch 2
-        const organizationId = await orgMemberPromise;
+        const orgMemberResult = await orgMemberPromise;
+        const organizationId = orgMemberResult?.organizationId || null;
+        const isOrgMemberActive = orgMemberResult?.isActive ?? true;
 
         // Attempt to get organization subscription tier (dependent on organizationId)
-        let subscriptionTier: SubscriptionTier = getCachedSubscriptionTier() || 'free';
+        let subscriptionTier: SubscriptionTier = 'free';
         let organizationType: 'personal' | 'business' | undefined;
         let organizationName: string | undefined;
 
@@ -697,9 +713,9 @@ export const authService = {
             }
         }
 
-        const isSystemAdmin = session.user.email ? ADMIN_EMAILS.includes(session.user.email) : false;
-        const finalRole = isSystemAdmin ? 'admin' : (profile?.is_admin ? 'admin' : 'user');
-        const finalTier = isSystemAdmin ? 'admin' : subscriptionTier;
+        const isPlatformAdmin = platformAdmin?.is_admin === true;
+        const finalRole = isPlatformAdmin ? 'admin' : 'user';
+        const finalTier = isPlatformAdmin ? 'admin' : subscriptionTier;
 
         // Cache the subscription tier for fallback purposes
         if (finalTier && finalTier !== 'free') {
@@ -719,6 +735,7 @@ export const authService = {
             organizationId: organizationId || undefined,
             organizationType,
             organizationName,
+            isOrgMemberActive: organizationId ? isOrgMemberActive : undefined,
             legalAcceptance: {
                 termsVersion: userProfile?.terms_version ?? null,
                 termsAcceptedAt: userProfile?.terms_accepted_at ?? null,
@@ -734,13 +751,13 @@ export const authService = {
             onBackgroundRefresh?: (freshUser: User) => void;
         } = {}
     ): Promise<User | null> => {
-        console.log('[authService] getCurrentUser: Starting...');
+        console.debug('[authService] getCurrentUser: Starting...');
         const { skipUserCache = false, onBackgroundRefresh } = options;
 
         // Fast path: build user from cached session in localStorage (no network / no auth locks).
         const cachedSession = getCachedSession();
         if (cachedSession?.user) {
-            console.log('[authService] getCurrentUser: Using cached session', cachedSession.user?.id);
+            console.debug('[authService] getCurrentUser: Using cached session', cachedSession.user?.id);
             return authService.getUserFromSession(cachedSession, { skipUserCache, onBackgroundRefresh });
         }
 
@@ -751,7 +768,7 @@ export const authService = {
             const timeoutMs = 5000;
             const { data } = await withTimeout(supabase.auth.getSession(), timeoutMs, 'Auth check') as any;
             session = data?.session || null;
-            console.log('[authService] getCurrentUser: Session loaded', session?.user?.id);
+            console.debug('[authService] getCurrentUser: Session loaded', session?.user?.id);
         } catch (e) {
             console.warn('[authService] getCurrentUser: Could not fetch session', e);
             return null;
@@ -767,7 +784,7 @@ export const authService = {
     },
 
     updateUserPreferences: async (preferences: any): Promise<User> => {
-        console.log('[authService] updateUserPreferences: Starting', {
+        console.debug('[authService] updateUserPreferences: Starting', {
             preferenceKeys: Object.keys(preferences ?? {}),
         });
         const user = await authService.getCurrentUser({ skipUserCache: true });
@@ -781,10 +798,10 @@ export const authService = {
             ...preferences
         };
 
-        console.log('[authService] updateUserPreferences: Merged', {
+        console.debug('[authService] updateUserPreferences: Merged', {
             preferenceKeys: Object.keys(newPreferences ?? {}),
         });
-        console.log('[authService] updateUserPreferences: Upserting to user_settings');
+        console.debug('[authService] updateUserPreferences: Upserting to user_settings');
 
         // Upsert to user_settings
         const { error, data } = await supabase
@@ -801,8 +818,8 @@ export const authService = {
             throw error;
         }
 
-        console.log('[authService] updateUserPreferences: Preferences saved successfully');
-        console.log('[authService] updateUserPreferences: Upsert completed', {
+        console.debug('[authService] updateUserPreferences: Preferences saved successfully');
+        console.debug('[authService] updateUserPreferences: Upsert completed', {
             rows: Array.isArray(data) ? data.length : 0,
         });
 

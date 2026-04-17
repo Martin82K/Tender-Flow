@@ -5,14 +5,19 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   useAddContactMutation,
   useBulkUpdateContactsMutation,
+  assertValidSubcontractorCompanyNameOrThrow,
   useImportContactsMutation,
   useUpdateContactMutation,
 } from "../hooks/mutations/useContactMutations";
 import type { Subcontractor } from "../types";
+import { renameFolder } from "../services/fileSystemService";
+import { CONTACT_KEYS } from "../hooks/queries/useContactsQuery";
 
 const mocks = vi.hoisted(() => ({
   fromMock: vi.fn(),
   mergeContactsMock: vi.fn(),
+  updateEqMock: vi.fn(),
+  updateMock: vi.fn(),
 }));
 
 vi.mock("../services/supabase", () => ({
@@ -68,6 +73,25 @@ const createWrapper = () => {
   );
 };
 
+const createTestContext = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      mutations: { retry: false },
+      queries: { retry: false },
+    },
+  });
+
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    React.createElement(
+      QueryClientProvider,
+      { client: queryClient },
+      children,
+    )
+  );
+
+  return { queryClient, wrapper };
+};
+
 const validContact: Subcontractor = {
   id: "c-1",
   company: "Validni Firma",
@@ -82,11 +106,14 @@ const validContact: Subcontractor = {
 beforeEach(() => {
   vi.clearAllMocks();
 
+  mocks.updateEqMock.mockResolvedValue({ error: null });
+  mocks.updateMock.mockImplementation(() => ({
+    eq: mocks.updateEqMock,
+  }));
+
   mocks.fromMock.mockImplementation(() => ({
     insert: vi.fn().mockResolvedValue({ error: null }),
-    update: vi.fn(() => ({
-      eq: vi.fn().mockResolvedValue({ error: null }),
-    })),
+    update: mocks.updateMock,
     delete: vi.fn(() => ({
       in: vi.fn().mockResolvedValue({ error: null }),
     })),
@@ -160,5 +187,78 @@ describe("useContactMutations name validation", () => {
     ).rejects.toThrow("Neplatny nazev firmy");
 
     expect(mocks.fromMock).not.toHaveBeenCalled();
+  });
+
+  it("bulk update zapisuje region do databaze", async () => {
+    const { result } = renderHook(() => useBulkUpdateContactsMutation(), {
+      wrapper: createWrapper(),
+    });
+
+    await result.current.mutateAsync([
+      {
+        id: "c-1",
+        data: { region: "Karlovarský kraj" },
+      },
+    ]);
+
+    expect(mocks.updateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        region: "Karlovarský kraj",
+      }),
+    );
+    expect(mocks.updateEqMock).toHaveBeenCalledWith("id", "c-1");
+  });
+
+  it("pri prejmenovani dodavatele pouzije sanitizovanou cestu DocHub slozky", async () => {
+    const { queryClient, wrapper } = createTestContext();
+    queryClient.setQueryData(["project", "p-1"], {
+      id: "p-1",
+      docHubEnabled: true,
+      docHubStatus: "connected",
+      docHubProvider: "onedrive",
+      docHubRootLink: "C:\\DocHubRoot",
+      docHubStructureV1: { tenders: "01_VYBEROVA_RIZENI" },
+      categories: [{ id: "cat-1", title: "Zakladni cast" }],
+      bids: {
+        "cat-1": [{ subcontractorId: "c-1" }],
+      },
+    });
+    queryClient.setQueryData(CONTACT_KEYS.list(), [
+      { ...validContact, id: "c-1", company: "IZOMAT stavebniny s.r.o." },
+    ]);
+
+    const originalNavigator = globalThis.navigator;
+    Object.defineProperty(globalThis, "navigator", {
+      value: { userAgent: "Windows" },
+      configurable: true,
+    });
+
+    try {
+      const { result } = renderHook(() => useUpdateContactMutation(), {
+        wrapper,
+      });
+
+      await result.current.mutateAsync({
+        id: "c-1",
+        updates: { company: "IZOMAT stavebniny a.s" },
+      });
+
+      expect(renameFolder).toHaveBeenCalledWith(
+        "C:\\DocHubRoot\\01_VYBEROVA_RIZENI\\Zakladni cast\\IZOMAT stavebniny s.r.o",
+        "C:\\DocHubRoot\\01_VYBEROVA_RIZENI\\Zakladni cast\\IZOMAT stavebniny a.s",
+        { provider: "onedrive", projectId: "p-1" },
+      );
+    } finally {
+      Object.defineProperty(globalThis, "navigator", {
+        value: originalNavigator,
+        configurable: true,
+      });
+    }
+  });
+
+  it("stale blokuje ukladani nevalidniho nazvu s koncovou teckou", () => {
+    expect(() => assertValidSubcontractorCompanyNameOrThrow("IZOMAT stavebniny a.s.")).toThrow(
+      "Neplatny nazev firmy",
+    );
   });
 });

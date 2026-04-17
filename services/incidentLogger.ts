@@ -207,7 +207,18 @@ const canSendIncidentNow = async (): Promise<boolean> => {
 
   try {
     const { data } = await authApi.getSession();
-    return !!data?.session?.user?.id;
+    const session = data?.session;
+    if (!session?.user?.id) return false;
+
+    // Reject expired tokens — sending with an expired token causes a 400 from the server
+    if (session.expires_at) {
+      const expiresAt = typeof session.expires_at === 'number'
+        ? session.expires_at * 1000
+        : new Date(session.expires_at).getTime();
+      if (expiresAt < Date.now()) return false;
+    }
+
+    return true;
   } catch {
     return false;
   }

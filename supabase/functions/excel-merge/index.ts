@@ -4,7 +4,8 @@
  * Using ExcelJS (same as desktop version)
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+import { buildCorsHeaders } from "../_shared/cors.ts";
+import { createAuthedUserClient } from "../_shared/supabase.ts";
 
 // We'll use ExcelJS via npm specifier (Deno supports npm:)
 import ExcelJS from "npm:exceljs@4.4.0";
@@ -12,6 +13,9 @@ import ExcelJS from "npm:exceljs@4.4.0";
 interface MergeRequest {
   sheets: string[]; // Sheet names to merge
 }
+
+const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
+const MAX_SHEET_SELECTION = 50;
 
 /**
  * Helper to shift column letters (e.g., A -> B, Z -> AA)
@@ -87,10 +91,34 @@ function copyCellStyle(srcCell: ExcelJS.Cell, destCell: ExcelJS.Cell): void {
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: buildCorsHeaders(req) });
+  }
+
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
+    });
   }
 
   try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Missing or invalid Authorization header" }), {
+        status: 401,
+        headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
+      });
+    }
+
+    const authed = createAuthedUserClient(req);
+    const { data: userData, error: userError } = await authed.auth.getUser();
+    if (userError || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
+      });
+    }
+
     // Parse multipart form data
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
@@ -101,7 +129,7 @@ serve(async (req) => {
         JSON.stringify({ error: "Missing 'file' field" }),
         {
           status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
         }
       );
     }
@@ -111,19 +139,43 @@ serve(async (req) => {
         JSON.stringify({ error: "Missing 'sheets' field" }),
         {
           status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    if (!file.name.toLowerCase().endsWith(".xlsx")) {
+      return new Response(
+        JSON.stringify({ error: "Only .xlsx files are supported" }),
+        {
+          status: 400,
+          headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    if (file.size > MAX_UPLOAD_SIZE_BYTES) {
+      return new Response(
+        JSON.stringify({ error: "File too large (max 10 MB)" }),
+        {
+          status: 413,
+          headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
         }
       );
     }
 
     const sheetsToInclude: string[] = JSON.parse(sheetsJson);
 
-    if (!Array.isArray(sheetsToInclude) || sheetsToInclude.length === 0) {
+    if (
+      !Array.isArray(sheetsToInclude) ||
+      sheetsToInclude.length === 0 ||
+      sheetsToInclude.length > MAX_SHEET_SELECTION
+    ) {
       return new Response(
-        JSON.stringify({ error: "No sheets selected for merging" }),
+        JSON.stringify({ error: "Invalid sheet selection" }),
         {
           status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
         }
       );
     }
@@ -273,7 +325,7 @@ serve(async (req) => {
     return new Response(outputBuffer, {
       status: 200,
       headers: {
-        ...corsHeaders,
+        ...buildCorsHeaders(req),
         "Content-Type":
           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         "Content-Disposition": `attachment; filename="${outputFilename}"`,
@@ -285,7 +337,7 @@ serve(async (req) => {
       JSON.stringify({ error: error.message || "Unknown error" }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
       }
     );
   }

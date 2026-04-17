@@ -3,7 +3,7 @@
  * Handles common UI state like modals and sidebar visibility.
  */
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 
 // Modal types
 export interface UiModalState {

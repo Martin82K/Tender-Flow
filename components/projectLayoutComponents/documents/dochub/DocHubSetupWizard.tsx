@@ -76,7 +76,7 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
                 Tender Flow Desktop
               </div>
               <div className="text-xs text-slate-600 dark:text-slate-400">
-                Lokální složka
+                Lokální nebo síťový disk
               </div>
             </button>
           </div>
@@ -110,16 +110,41 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
             )}
           </div>
           <div className="space-y-2">
-            {/* Manual Link Entry (Primary for Google Drive) */}
             <div className="space-y-3">
-              <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl text-sm text-slate-600 dark:text-slate-400">
-                <p className="font-semibold mb-1">Jak vybrat složku:</p>
-                <ol className="list-decimal list-inside space-y-1 text-xs">
-                  <li>Otevřete požadovanou složku v Google Drive (v prohlížeči).</li>
-                  <li>Zkopírujte celou adresu (URL) z řádku prohlížeče.</li>
-                  <li>Vložte ji do pole níže a klikněte na "Získat odkaz".</li>
-                </ol>
-              </div>
+              {isLocalProvider ? (
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl text-sm text-slate-600 dark:text-slate-400">
+                  <p className="font-semibold mb-1">Jak vybrat složku:</p>
+                  <ol className="list-decimal list-inside space-y-1 text-xs">
+                    <li>Klikněte na "Procházet" a vyberte složku z disku.</li>
+                    <li>Nebo zadejte cestu ke složce ručně do pole níže.</li>
+                  </ol>
+                </div>
+              ) : (
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl text-sm text-slate-600 dark:text-slate-400">
+                  <p className="font-semibold mb-1">Jak vybrat složku:</p>
+                  <ol className="list-decimal list-inside space-y-1 text-xs">
+                    <li>Otevřete požadovanou složku v Google Drive (v prohlížeči).</li>
+                    <li>Zkopírujte celou adresu (URL) z řádku prohlížeče.</li>
+                    <li>Vložte ji do pole níže a klikněte na "Získat odkaz".</li>
+                  </ol>
+                </div>
+              )}
+
+              {/* Local provider: Browse button */}
+              {isLocalProvider && (
+                <button
+                  type="button"
+                  onClick={actions.pickLocalFolder}
+                  disabled={isConnecting}
+                  className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold border transition-colors ${isConnecting
+                    ? "bg-slate-200 dark:bg-slate-800/60 text-slate-500 border-slate-300 dark:border-slate-700/50 cursor-not-allowed"
+                    : "bg-violet-600 hover:bg-violet-500 text-white border-violet-500/30 shadow-lg shadow-violet-500/20"
+                    }`}
+                >
+                  <span className="material-symbols-outlined text-[18px]">folder_open</span>
+                  Procházet
+                </button>
+              )}
 
               <div className="flex gap-2">
                 <input
@@ -128,7 +153,7 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
                   onChange={(e) => setters.setRootLink(e.target.value)}
                   placeholder={
                     isLocalProvider
-                      ? "Cesta ke složce (např. C:\\Projekty\\Stavba)"
+                      ? "Cesta ke složce (např. D:\\Projekty\\Stavba)"
                       : "Vložte URL složky z Google Drive (https://drive.google.com/...)"
                   }
                   className="flex-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700/50 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:border-violet-500/50 focus:outline-none"
@@ -194,8 +219,8 @@ export const DocHubSetupWizard: React.FC<DocHubSetupWizardProps> = ({
             )}
             <div className="text-[11px] text-slate-500">
               {isLocalProvider
-                ? "Zadejte cestu ke složce nebo použijte tlačítko výše."
-                : "Google: doporučeno vybrat přes Picker. Tender Flow Desktop: vyberte lokální složku."}
+                ? "Vyberte složku přes Procházet nebo zadejte cestu ručně."
+                : "Vložte URL adresu složky z Google Drive."}
             </div>
           </div>
         </div>

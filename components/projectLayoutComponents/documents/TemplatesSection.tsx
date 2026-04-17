@@ -33,7 +33,7 @@ export const TemplatesSection: React.FC<TemplatesSectionProps> = ({
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                        <tr className="hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors">
+                        <tr data-help-id="templates-inquiry" className="hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors">
                             <td className="px-5 py-4">
                                 <div className="flex items-start gap-3">
                                     <span className="material-symbols-outlined text-slate-400 mt-0.5">mail</span>
@@ -70,7 +70,7 @@ export const TemplatesSection: React.FC<TemplatesSectionProps> = ({
                             </td>
                         </tr>
 
-                        <tr className="hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors">
+                        <tr data-help-id="templates-material" className="hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors">
                             <td className="px-5 py-4">
                                 <div className="flex items-start gap-3">
                                     <span className="material-symbols-outlined text-slate-400 mt-0.5">inventory_2</span>
@@ -107,7 +107,7 @@ export const TemplatesSection: React.FC<TemplatesSectionProps> = ({
                             </td>
                         </tr>
 
-                        <tr className="hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors">
+                        <tr data-help-id="templates-losers" className="hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors">
                             <td className="px-5 py-4">
                                 <div className="flex items-start gap-3">
                                     <span className="material-symbols-outlined text-slate-400 mt-0.5">mark_email_unread</span>

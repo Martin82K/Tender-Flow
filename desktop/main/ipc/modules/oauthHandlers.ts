@@ -9,6 +9,7 @@ interface OAuthHandlerDependencies {
   startLoopbackServer: (
     timeoutMs: number,
   ) => Promise<{ port: number; waitForCode: Promise<{ code: string; state: string | null }> }>;
+  requireAuth: (sender: Electron.WebContents, channel?: string) => void;
 }
 
 export const registerOAuthHandlers = ({
@@ -17,15 +18,18 @@ export const registerOAuthHandlers = ({
   createCodeVerifier,
   createCodeChallenge,
   startLoopbackServer,
+  requireAuth,
 }: OAuthHandlerDependencies): void => {
   ipcMain.handle(
     "oauth:googleLogin",
     async (
       _event,
-      args: { clientId: string; clientSecret?: string; scopes: string[] },
+      args: { clientId: string; scopes: string[] },
     ) => {
+      requireAuth(_event.sender, 'oauth:googleLogin');
       const clientId = (args?.clientId || "").trim();
-      const clientSecret = (args?.clientSecret || "").trim();
+      // Security: client secret is read from environment, never from renderer IPC
+      const clientSecret = (process.env.GOOGLE_OAUTH_CLIENT_SECRET || "").trim();
       if (!clientId) {
         throw new Error("Missing Google OAuth clientId");
       }

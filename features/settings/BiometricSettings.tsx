@@ -65,9 +65,25 @@ export function BiometricSettings({ className = '' }: BiometricSettingsProps) {
         setTimeout(() => setTestResult(null), 3000);
     };
 
-    // Don't show on web
     if (!isDesktop) {
-        return null;
+        return (
+            <div className={`p-4 rounded-lg border border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/30 ${className}`}>
+                <div className="flex items-start gap-4">
+                    <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-700/50">
+                        <Fingerprint className="w-6 h-6 text-slate-400 dark:text-slate-300" />
+                    </div>
+
+                    <div className="flex-1">
+                        <h3 className="font-semibold text-slate-900 dark:text-white">
+                            Biometrické přihlášení
+                        </h3>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                            Tato volba je dostupná pouze v desktop aplikaci.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     if (isLoading) {

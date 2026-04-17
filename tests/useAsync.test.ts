@@ -54,7 +54,7 @@ describe('useAsync', () => {
 
         const { result } = renderHook(() => useAsync(asyncFn, false));
 
-        let executePromise: Promise<string | null>;
+        let executePromise: Promise<unknown>;
         act(() => {
             executePromise = result.current.execute();
         });

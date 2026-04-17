@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import type { ProjectDetails } from "../types";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -12,6 +13,7 @@ import { useProjectOverviewNewController } from "@/features/projects/model/usePr
 interface ProjectOverviewProps {
   project: ProjectDetails;
   onUpdate: (updates: Partial<ProjectDetails>) => void;
+  onAddressChanged?: (address: string, location: string) => void;
   variant?: "full" | "compact";
   searchQuery?: string;
   onNavigateToPipeline?: (categoryId: string) => void;
@@ -20,6 +22,7 @@ interface ProjectOverviewProps {
 export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
   project,
   onUpdate,
+  onAddressChanged,
   variant = "full",
   searchQuery = "",
   onNavigateToPipeline,
@@ -61,6 +64,11 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
     addAmendment,
     updateAmendment,
     removeAmendment,
+    addInternalAmendment,
+    updateInternalAmendment,
+    removeInternalAmendment,
+    internalAmendmentsTotal,
+    totalPlannedCost,
     filteredCategories,
     sodCount,
     openCount,
@@ -74,6 +82,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
   } = useProjectOverviewNewController({
     project,
     onUpdate,
+    onAddressChanged,
     userId: user?.id,
     searchQuery,
   });
@@ -99,6 +108,8 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
     React.useState<Record<string, string>>({});
   const [compactInternalPlannedCostInput, setCompactInternalPlannedCostInput] =
     React.useState("");
+  const [compactInternalAmendmentPriceInputs, setCompactInternalAmendmentPriceInputs] =
+    React.useState<Record<string, string>>({});
 
   const amendmentsCount = investor.amendments.length;
   const amendmentsTotal = investor.amendments.reduce(
@@ -124,7 +135,15 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
     setCompactInternalPlannedCostInput(
       formatEditableNumber(internalForm.plannedCost || 0),
     );
-  }, [editingInternal, internalForm.plannedCost]);
+    setCompactInternalAmendmentPriceInputs(
+      Object.fromEntries(
+        internalForm.internalAmendments.map((amendment) => [
+          amendment.id,
+          formatEditableNumber(amendment.price || 0),
+        ]),
+      ),
+    );
+  }, [editingInternal, internalForm.plannedCost, internalForm.internalAmendments]);
 
   const renderCompactDetails = () => (
     <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 mb-6 shadow-sm">
@@ -134,9 +153,9 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
         </span>
         Základní informace o stavbě
       </h3>
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 text-sm">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 text-sm">
         {/* 1. Investor & Info */}
-        <div className="lg:col-span-1 border-r border-slate-200 dark:border-slate-800/50 pr-6">
+        <div data-help-id="overview-building-info" className="lg:col-span-1 border-r border-slate-200 dark:border-slate-800/50 pr-6">
           <div className="flex justify-between items-center mb-4">
             <span className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">
               Údaje o stavbě
@@ -169,6 +188,14 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
             </div>
             <div className="flex justify-between items-center">
               <span className="text-slate-500 dark:text-slate-500 text-xs">
+                Adresa:
+              </span>
+              <span className="text-slate-900 dark:text-slate-200 font-bold text-xs truncate ml-2">
+                {project.address || "-"}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-500 dark:text-slate-500 text-xs">
                 Termín:
               </span>
               <span className="text-slate-900 dark:text-slate-200 font-bold text-xs truncate ml-2">
@@ -184,9 +211,9 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
               </span>
             </div>
           </div>
-          {editingInfo && (
+          {editingInfo && createPortal(
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl animate-fadeIn">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-fadeIn">
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">
                   Upravit informace
                 </h3>
@@ -212,6 +239,19 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                       onChange={(e) =>
                         setInfoForm({ ...infoForm, location: e.target.value })
                       }
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-500 font-bold mb-1.5 block">
+                      Adresa stavby
+                    </label>
+                    <input
+                      value={infoForm.address}
+                      onChange={(e) =>
+                        setInfoForm({ ...infoForm, address: e.target.value })
+                      }
+                      placeholder="Přesná adresa pro mapu"
                       className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none"
                     />
                   </div>
@@ -259,11 +299,11 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                 </div>
               </div>
             </div>
-          )}
+          , document.body)}
         </div>
 
         {/* 2. Financials (Investor) */}
-        <div className="lg:col-span-1 border-r border-slate-200 dark:border-slate-800/50 pr-6">
+        <div data-help-id="overview-investor-finances" className="lg:col-span-1 border-r border-slate-200 dark:border-slate-800/50 pr-6">
           <div className="flex justify-between items-center mb-4">
             <span className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">
               Finance (Investor)
@@ -310,9 +350,9 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
               </span>
             </div>
           </div>
-          {editingInvestor && (
+          {editingInvestor && createPortal(
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-2xl w-full shadow-2xl animate-fadeIn">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-fadeIn">
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">
                   Upravit finance investora
                 </h3>
@@ -444,11 +484,11 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                 </div>
               </div>
             </div>
-          )}
+          , document.body)}
         </div>
 
         {/* 3. Internal Budget */}
-        <div className="lg:col-span-1 border-r border-slate-200 dark:border-slate-800/50 pr-6">
+        <div data-help-id="overview-internal-budget" className="lg:col-span-1 border-r border-slate-200 dark:border-slate-800/50 pr-6">
           <div className="flex justify-between items-center mb-4">
             <span className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">
               Interní Rozpočet
@@ -471,6 +511,35 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                 {plannedCost > 0 ? formatMoney(plannedCost) : "-"}
               </span>
             </div>
+            {(project.internalAmendments?.length ?? 0) > 0 && (
+              <>
+                <div className="flex justify-between">
+                  <span className="text-slate-500 dark:text-slate-500 text-xs">
+                    Počet dodatků:
+                  </span>
+                  <span className="text-slate-900 dark:text-slate-200 font-bold text-xs">
+                    {project.internalAmendments!.length}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500 dark:text-slate-500 text-xs">
+                    Dodatky celkem:
+                  </span>
+                  <span className="text-slate-900 dark:text-slate-200 font-bold text-xs">
+                    {formatMoney(internalAmendmentsTotal)}
+                  </span>
+                </div>
+                <div className="h-px bg-slate-200 dark:bg-slate-800 my-1"></div>
+                <div className="flex justify-between">
+                  <span className="text-emerald-600 dark:text-emerald-400 font-extrabold text-xs">
+                    Celkem:
+                  </span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-extrabold text-xs">
+                    {formatMoney(totalPlannedCost)}
+                  </span>
+                </div>
+              </>
+            )}
             <div className="flex justify-between">
               <span className="text-slate-500 dark:text-slate-500 text-xs">
                 Zasmluvněno:
@@ -494,9 +563,9 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
               </span>
             </div>
           </div>
-          {editingInternal && (
+          {editingInternal && createPortal(
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl animate-fadeIn">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-fadeIn">
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">
                   Upravit interní rozpočet
                 </h3>
@@ -524,6 +593,107 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                       className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-900 dark:text-white text-sm text-right tabular-nums focus:ring-2 focus:ring-primary/20 transition-all outline-none"
                     />
                   </div>
+                  {internalForm.internalAmendments.length > 0 && (
+                    <div className="flex justify-between items-center px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl">
+                      <span className="text-xs text-slate-500 font-bold">
+                        Počet dodatků
+                      </span>
+                      <span className="text-xs text-slate-500">
+                        {internalForm.internalAmendments.length}
+                      </span>
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">
+                        Dodatky celkem
+                      </span>
+                      <span className="text-xs font-extrabold text-slate-900 dark:text-white">
+                        {formatMoney(
+                          internalForm.internalAmendments.reduce(
+                            (sum, a) => sum + (a.price || 0),
+                            0,
+                          ),
+                        )}
+                      </span>
+                    </div>
+                  )}
+                  {internalForm.internalAmendments.length > 0 && (
+                    <div>
+                      <label className="text-xs text-slate-500 font-bold mb-1.5 block">
+                        Dodatky
+                      </label>
+                      <div className="space-y-2">
+                        {internalForm.internalAmendments.map(
+                          (amendment, index) => (
+                            <div
+                              key={amendment.id}
+                              className="flex gap-2 items-center"
+                            >
+                              <input
+                                type="text"
+                                value={amendment.label}
+                                onChange={(e) =>
+                                  updateInternalAmendment(
+                                    index,
+                                    "label",
+                                    e.target.value,
+                                  )
+                                }
+                                className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                              />
+                              <input
+                                type="text"
+                                inputMode="decimal"
+                                value={
+                                  compactInternalAmendmentPriceInputs[
+                                    amendment.id
+                                  ] ?? formatEditableNumber(amendment.price || 0)
+                                }
+                                onChange={(e) => {
+                                  setCompactInternalAmendmentPriceInputs(
+                                    (prev) => ({
+                                      ...prev,
+                                      [amendment.id]: e.target.value,
+                                    }),
+                                  );
+                                  updateInternalAmendment(
+                                    index,
+                                    "price",
+                                    parseEditableNumber(e.target.value),
+                                  );
+                                }}
+                                onBlur={() =>
+                                  setCompactInternalAmendmentPriceInputs(
+                                    (prev) => ({
+                                      ...prev,
+                                      [amendment.id]: formatEditableNumber(
+                                        amendment.price || 0,
+                                      ),
+                                    }),
+                                  )
+                                }
+                                className="w-40 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-900 dark:text-white text-sm text-right tabular-nums focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                              />
+                              <button
+                                onClick={() => removeInternalAmendment(index)}
+                                className="text-rose-400 hover:text-rose-500 transition-colors p-1"
+                              >
+                                <span className="material-symbols-outlined text-xl">
+                                  delete
+                                </span>
+                              </button>
+                            </div>
+                          ),
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  <button
+                    onClick={addInternalAmendment}
+                    className="text-primary text-xs font-bold hover:text-primary-dark transition-colors flex items-center gap-1"
+                  >
+                    <span className="material-symbols-outlined text-sm">
+                      add
+                    </span>
+                    Přidat dodatek
+                  </button>
                   <div className="flex justify-end gap-3 mt-6">
                     <button
                       onClick={() => setEditingInternal(false)}
@@ -541,10 +711,10 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                 </div>
               </div>
             </div>
-          )}
+          , document.body)}
         </div>
         {/* 4. Contract Parameters (Restored & Restructured) */}
-        <div className="lg:col-span-1 border-r border-slate-200 dark:border-slate-800/50 pr-6">
+        <div data-help-id="overview-contract-params" className="lg:col-span-1 border-r border-slate-200 dark:border-slate-800/50 pr-6">
           <div className="flex justify-between items-center mb-4">
             <span className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">
               Parametry smlouvy
@@ -615,9 +785,9 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
               </div>
             </div>
           </div>
-          {editingContract && (
+          {editingContract && createPortal(
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl animate-fadeIn">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-fadeIn">
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">
                   Upravit parametry smlouvy
                 </h3>
@@ -719,34 +889,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                 </div>
               </div>
             </div>
-          )}
-        </div>
-        {/* 4. Progress */}
-        <div className="lg:col-span-1">
-          <div className="flex justify-between items-center mb-4">
-            <span className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">
-              Postup
-            </span>
-          </div>
-          <div className="space-y-4">
-            <div className="flex justify-between items-end mb-1">
-              <span className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-tighter">
-                Zasmluvněné subdodávky
-              </span>
-              <span className="text-primary text-sm font-black">
-                {Math.round(progress)}%
-              </span>
-            </div>
-            <div className="w-full bg-slate-200 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden shadow-inner">
-              <div
-                className="h-full bg-gradient-to-r from-primary to-primary-light transition-all duration-1000 ease-out shadow-sm"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <p className="text-[10px] text-slate-500 font-medium">
-              Dokončeno {completedTasks} z {project.categories.length} kategorií
-            </p>
-          </div>
+          , document.body)}
         </div>
       </div>
     </div>
@@ -755,115 +898,87 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
   return (
     <div className="flex flex-col gap-8 p-4 md:p-8 w-full bg-slate-50 dark:bg-slate-950 animate-fadeIn">
       {/* Top Row: 4 KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div data-help-id="overview-kpi-cards" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* 1. Rozpočet (Investor) */}
-        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden group shadow-sm hover:shadow-md transition-all">
-          <div className="absolute -top-4 -right-4 size-24 bg-blue-500/5 rounded-full group-hover:scale-125 transition-transform duration-500" />
-          <div className="flex flex-col h-full justify-between relative z-10">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2.5 bg-blue-500/10 rounded-xl border border-blue-500/20 text-blue-500">
-                <span className="material-symbols-outlined text-2xl">
-                  account_balance_wallet
-                </span>
-              </div>
-              <span className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-extrabold">
-                Rozpočet
-              </span>
+        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-sm hover:shadow-md transition-all">
+          <div className="absolute top-0 left-0 h-full w-1 bg-blue-500" />
+          <div className="flex flex-col gap-3 relative z-10">
+            <span className="text-xs uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400 font-bold">
+              Rozpočet
+            </span>
+            <div className="text-3xl font-black text-slate-900 dark:text-white leading-none tabular-nums">
+              {formatMoneyFull(totalBudget)}
             </div>
-            <div>
-              <div className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none mb-2">
-                {formatMoneyFull(totalBudget)}
-              </div>
-              <p className="text-[10px] text-slate-500 font-medium">
-                Celkový příjem od investora
-              </p>
-            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              Celkový příjem od investora
+            </p>
           </div>
         </div>
 
         {/* 2. Plánovaný Náklad */}
-        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden group shadow-sm hover:shadow-md transition-all">
-          <div className="absolute -top-4 -right-4 size-24 bg-indigo-500/5 rounded-full group-hover:scale-125 transition-transform duration-500" />
-          <div className="flex flex-col h-full justify-between relative z-10">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2.5 bg-indigo-500/10 rounded-xl border border-indigo-500/20 text-indigo-500">
-                <span className="material-symbols-outlined text-2xl">
-                  analytics
-                </span>
-              </div>
-              <span className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-extrabold">
-                Plán nákladů
-              </span>
+        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-sm hover:shadow-md transition-all">
+          <div className="absolute top-0 left-0 h-full w-1 bg-indigo-500" />
+          <div className="flex flex-col gap-3 relative z-10">
+            <span className="text-xs uppercase tracking-[0.18em] text-indigo-600 dark:text-indigo-400 font-bold">
+              Plán nákladů
+            </span>
+            <div className="text-3xl font-black text-slate-900 dark:text-white leading-none tabular-nums">
+              {totalPlannedCost > 0 ? formatMoneyFull(totalPlannedCost) : "-"}
             </div>
-            <div>
-              <div className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none mb-2">
-                {plannedCost > 0 ? formatMoneyFull(plannedCost) : "-"}
-              </div>
-              <p className="text-[10px] text-slate-500 font-medium">
-                Interní cílový náklad stavby
-              </p>
-            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              Interní cílový náklad stavby
+            </p>
           </div>
         </div>
 
         {/* 3. Zasmluvněno */}
-        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden group shadow-sm hover:shadow-md transition-all">
-          <div className="absolute -top-4 -right-4 size-24 bg-emerald-500/5 rounded-full group-hover:scale-125 transition-transform duration-500" />
-          <div className="flex flex-col h-full justify-between relative z-10">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2.5 bg-emerald-500/10 rounded-xl border border-emerald-500/20 text-emerald-500">
-                <span className="material-symbols-outlined text-2xl">
-                  handshake
-                </span>
-              </div>
-              <span className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-extrabold">
-                Zasmluvněno
-              </span>
+        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-sm hover:shadow-md transition-all">
+          <div className="absolute top-0 left-0 h-full w-1 bg-emerald-500" />
+          <div className="flex flex-col gap-3 relative z-10">
+            <span className="text-xs uppercase tracking-[0.18em] text-emerald-600 dark:text-emerald-400 font-bold">
+              Zasmluvněno
+            </span>
+            <div className="text-3xl font-black text-emerald-600 dark:text-emerald-400 leading-none tabular-nums">
+              {formatMoneyFull(totalContractedCost)}
             </div>
-            <div>
-              <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight leading-none mb-2">
-                {formatMoneyFull(totalContractedCost)}
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span
-                  className={`size-1.5 rounded-full ${plannedBalance >= 0 ? "bg-emerald-500" : "bg-rose-500"}`}
-                ></span>
-                <p
-                  className={`text-[10px] font-bold ${plannedBalance >= 0 ? "text-emerald-600" : "text-rose-500"}`}
-                >
-                  Rezerva: {plannedBalance >= 0 ? "+" : ""}
-                  {formatMoneyFull(plannedBalance)}
-                </p>
-              </div>
-            </div>
+            <p
+              className={`text-xs font-bold ${plannedBalance >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-500"}`}
+            >
+              Rezerva: {plannedBalance >= 0 ? "+" : ""}
+              {formatMoneyFull(plannedBalance)}
+            </p>
           </div>
         </div>
 
         {/* 4. Postup Zadávání */}
-        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden group shadow-sm hover:shadow-md transition-all">
-          <div className="absolute -top-4 -right-4 size-24 bg-amber-500/5 rounded-full group-hover:scale-125 transition-transform duration-500" />
-          <div className="flex flex-col h-full justify-between relative z-10">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-1.5 rounded-full border-4 border-amber-500/20 border-t-amber-500 size-10 flex items-center justify-center">
-                <span className="text-[10px] font-black text-amber-500">
-                  {Math.round(
-                    (completedTasks / project.categories.length) * 100,
-                  )}
-                  %
-                </span>
-              </div>
-              <span className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-extrabold">
+        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-sm hover:shadow-md transition-all">
+          <div className="absolute top-0 left-0 h-full w-1 bg-amber-500" />
+          <div className="flex flex-col gap-3 relative z-10">
+            <div className="flex items-center justify-between">
+              <span className="text-xs uppercase tracking-[0.18em] text-amber-600 dark:text-amber-400 font-bold">
                 Postup VŘ
               </span>
+              <span className="text-xs font-black text-amber-600 dark:text-amber-400">
+                {Math.round(
+                  (completedTasks / project.categories.length) * 100,
+                )}
+                %
+              </span>
             </div>
-            <div>
-              <div className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none mb-2">
-                {completedTasks} / {project.categories.length}
-              </div>
-              <p className="text-[10px] text-slate-500 font-medium">
-                Hotové subdodavatelské balíčky
-              </p>
+            <div className="text-3xl font-black text-slate-900 dark:text-white leading-none tabular-nums">
+              {completedTasks} / {project.categories.length}
             </div>
+            <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-amber-500 rounded-full transition-all"
+                style={{
+                  width: `${Math.min(100, Math.round((completedTasks / Math.max(1, project.categories.length)) * 100))}%`,
+                }}
+              />
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              Hotové subdodavatelské balíčky
+            </p>
           </div>
         </div>
       </div>
@@ -934,6 +1049,22 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                       icon: "location_on",
                       color: "text-emerald-500",
                       bg: "bg-emerald-500/10",
+                    },
+                    {
+                      label: "Adresa",
+                      value: project.address,
+                      icon: "pin_drop",
+                      color: "text-emerald-500",
+                      bg: "bg-emerald-500/10",
+                    },
+                    {
+                      label: "GPS souřadnice",
+                      value: project.latitude != null && project.longitude != null
+                        ? `${project.latitude.toFixed(5)}, ${project.longitude.toFixed(5)}`
+                        : project.address ? "Negeokódováno" : undefined,
+                      icon: "my_location",
+                      color: project.latitude != null ? "text-emerald-500" : "text-amber-500",
+                      bg: project.latitude != null ? "bg-emerald-500/10" : "bg-amber-500/10",
                     },
                     {
                       label: "Termín dokončení",
@@ -1015,6 +1146,20 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                       onChange={(e) =>
                         setInfoForm({ ...infoForm, location: e.target.value })
                       }
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-500 mb-1 block">
+                      Adresa stavby
+                    </label>
+                    <input
+                      type="text"
+                      value={infoForm.address}
+                      onChange={(e) =>
+                        setInfoForm({ ...infoForm, address: e.target.value })
+                      }
+                      placeholder="Přesná adresa pro mapu"
                       className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500/50 focus:outline-none"
                     />
                   </div>
@@ -1284,6 +1429,26 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                         : "Nezadáno"}
                     </span>
                   </div>
+                  {(project.internalAmendments?.length ?? 0) > 0 && (
+                    <div className="flex justify-between items-center py-2.5 px-3 bg-slate-50/50 dark:bg-slate-950/20 rounded-xl border border-slate-100 dark:border-slate-800/50">
+                      <span className="text-slate-500 dark:text-slate-400 text-[10px] font-extrabold uppercase tracking-widest">
+                        Dodatky ({project.internalAmendments!.length})
+                      </span>
+                      <span className="font-bold text-slate-900 dark:text-white text-xs">
+                        {formatMoneyFull(internalAmendmentsTotal)}
+                      </span>
+                    </div>
+                  )}
+                  {(project.internalAmendments?.length ?? 0) > 0 && (
+                    <div className="flex justify-between items-center py-2.5 px-3 bg-indigo-50/50 dark:bg-indigo-950/10 rounded-xl border border-indigo-100 dark:border-indigo-800/30">
+                      <span className="text-indigo-600 dark:text-indigo-400 text-[10px] font-extrabold uppercase tracking-widest">
+                        Celkem
+                      </span>
+                      <span className="font-bold text-indigo-600 dark:text-indigo-400 text-xs">
+                        {formatMoneyFull(totalPlannedCost)}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center py-2.5 px-3 bg-slate-50/50 dark:bg-slate-950/20 rounded-xl border border-slate-100 dark:border-slate-800/50">
                     <span className="text-slate-500 dark:text-slate-400 text-[10px] font-extrabold uppercase tracking-widest">
                       Zasmluvněno
@@ -1504,22 +1669,15 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
 
       {/* Demand Categories Overview Table */}
       {project.categories.length > 0 && (
-            <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-3xl mt-8 shadow-sm">
+            <div data-help-id="overview-demand-table" className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-3xl mt-8 shadow-sm">
               <div className="px-8 py-6 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between flex-wrap gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-primary/10 rounded-xl text-primary">
-                    <span className="material-symbols-outlined text-2xl">
-                      table_chart
-                    </span>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-black text-slate-900 dark:text-white leading-none mb-1">
-                      Přehled Poptávek
-                    </h3>
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-                      Detailní rozpis balíčků
-                    </p>
-                  </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white leading-none mb-1">
+                    Přehled Poptávek
+                  </h3>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                    Detailní rozpis balíčků
+                  </p>
                 </div>
 
                 {/* Filter Buttons */}
@@ -1579,14 +1737,14 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                         Zobrazit sloupce
                       </div>
                       <div className="space-y-1">
-                        {[
+                        {([
                           { id: "sod", label: "SOD (Cena)" },
                           { id: "plan", label: "Plán" },
                           { id: "pn_vr", label: "Rozdíl (Plán - VŘ)" },
                           { id: "sod_vr", label: "Rozdíl (SOD - VŘ)" },
                           { id: "nabidky", label: "Počet nabídek" },
                           { id: "smlouvy", label: "Smlouvy" },
-                        ].map((col) => (
+                        ] as const).map((col) => (
                           <label
                             key={col.id}
                             className="flex items-center gap-3 p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
@@ -1594,11 +1752,9 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                             <input
                               type="checkbox"
                               checked={
-                                visibleColumns[
-                                  col.id as keyof typeof visibleColumns
-                                ]
+                                visibleColumns[col.id]
                               }
-                              onChange={() => toggleColumn(col.id as keyof typeof visibleColumns)}
+                              onChange={() => toggleColumn(col.id)}
                               className="rounded text-primary focus:ring-primary"
                             />
                             <span className="text-sm font-medium text-slate-700 dark:text-slate-300">

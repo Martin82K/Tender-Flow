@@ -10,29 +10,44 @@ import { Bid } from "../../types";
 export interface BidCardProps {
   bid: Bid;
   onClick?: () => void;
+  onDoubleClick?: (bid: Bid) => void;
   onDragStart: (e: React.DragEvent, bidId: string) => void;
   onEdit: (bid: Bid) => void;
   onDelete?: (bidId: string) => void;
   onGenerateInquiry?: (bid: Bid) => void;
   onGenerateMaterialInquiry?: (bid: Bid) => void;
   onOpenDocHubFolder?: (bid: Bid) => void;
+  "data-help-id"?: string;
 }
 
 export const BidCard: React.FC<BidCardProps> = ({
   bid,
   onClick,
+  onDoubleClick,
   onDragStart,
   onEdit,
   onDelete,
   onGenerateInquiry,
   onGenerateMaterialInquiry,
   onOpenDocHubFolder,
+  "data-help-id": dataHelpId,
 }) => {
+  const selectedRoundPrice =
+    bid.selectionRound !== undefined && bid.selectionRound !== null
+      ? bid.priceHistory?.[bid.selectionRound]
+      : undefined;
+  const displayedPrice =
+    bid.price && bid.price !== "-" && bid.price !== "?"
+      ? bid.price
+      : selectedRoundPrice;
+
   return (
     <div
+      data-help-id={dataHelpId}
       draggable
       onDragStart={(e) => onDragStart(e, bid.id)}
       onClick={onClick}
+      onDoubleClick={() => onDoubleClick?.(bid)}
       className="bg-white dark:bg-slate-900/80 backdrop-blur-xl rounded-xl shadow-sm dark:shadow-lg p-4 border border-slate-200 dark:border-slate-700/40 hover:shadow-md dark:hover:shadow-xl hover:border-emerald-500/30 transition-all cursor-grab active:cursor-grabbing group"
     >
       <div className="flex justify-between items-start mb-3">
@@ -78,9 +93,9 @@ export const BidCard: React.FC<BidCardProps> = ({
             </button>
           )}
         </div>
-        {bid.price && bid.price !== "-" && bid.price !== "?" && (
+        {displayedPrice && displayedPrice !== "-" && displayedPrice !== "?" && (
           <span className="text-xs font-bold bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-lg border border-emerald-500/30">
-            {bid.price}
+            {displayedPrice}
           </span>
         )}
       </div>
@@ -103,7 +118,7 @@ export const BidCard: React.FC<BidCardProps> = ({
           </div>
         )}
         {/* Price History */}
-        {bid.priceHistory && Object.keys(bid.priceHistory).length > 1 && (
+        {bid.priceHistory && Object.keys(bid.priceHistory).length > 0 && (
           <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700/50">
             {Object.entries(bid.priceHistory)
               .sort(([a], [b]) => Number(a) - Number(b))

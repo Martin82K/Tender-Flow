@@ -1,3 +1,66 @@
+## 🎉 Tender Flow v1.5.3
+
+### 🐛 Opravy chyb
+
+- **WhatsNewModal**: opravena uvítací obrazovka pro zobrazení správného obsahu verze.
+- **Release podklady**: doplněny chybějící release notes a aktualizována příručka pro v1.5.2.
+- **Čištění projektu**: odstraněn plánovací dokument.
+
+### 🔧 Technické změny
+
+- **Verze aplikace**: patch bump na `1.5.3`.
+
+### 📦 Instalace
+
+#### Windows
+
+Stáhněte soubor `Tender Flow Setup 1.5.3.exe` a spusťte instalaci.
+
+#### macOS (Apple Silicon M1/M2/M3)
+
+Stáhněte soubor `Tender Flow-1.5.3-arm64.dmg` a přetáhněte aplikaci do složky Aplikace.
+
+---
+
+## 🎉 Tender Flow v1.5.2
+
+### ✨ Co je nového
+
+- **Import wizard kontaktů**: nový průvodce pro hromadný import kontaktů a subdodavatelů s náhledem, mapováním sloupců a vyloučením řádků.
+- **Hromadná úprava specializací**: hromadná úprava specializací subdodavatelů přímo v přehledu kontaktů.
+- **Dodatky a vlastní náklady**: vylepšené formuláře pro dodatky a adresy, podpora vlastních nákladů u dodatků.
+- **Šifrované zálohy**: AES-256-GCM šifrování záloh v desktop verzi, automatické denní zálohy, záloha kontaktů.
+- **Systém nápovědy**: interaktivní kontextová nápověda s bublinami, klávesové zkratky, onboarding.
+- **Automatické složky dokumentů**: DocHub vytvoří strukturu složek pro dokumenty stavby jedním kliknutím.
+- **Přepracovaná příručka**: kompletně přepsaná uživatelská příručka (v2.2).
+
+### 🐛 Opravy chyb
+
+- **Scrollování tabulek**: opraveno horizontální scrollování v pipeline, harmonogramu a plánu VŘ.
+- **Překryvy UX**: opraveny překrývající se prvky v tabulkách.
+- **Delay nápovědy**: zvětšen delay zobrazení nápovědních bublin.
+
+### 🔧 Technické změny
+
+- **Verze aplikace**: bump na `1.5.2`.
+- **Odebrání Viki**: kompletně odstraněn experimentální AI agent Viki.
+
+### 📦 Instalace
+
+#### Windows
+
+Stáhněte soubor `Tender Flow Setup 1.5.2.exe` a spusťte instalaci.
+
+#### macOS (Apple Silicon M1/M2/M3)
+
+Stáhněte soubor `Tender Flow-1.5.2-arm64.dmg` a přetáhněte aplikaci do složky Aplikace.
+
+---
+
+**Automatické aktualizace**: V této verzi jsou aktivní pro Windows. Na macOS (Apple Silicon) probíhá aktualizace manuálně přes nový instalační balíček.
+
+---
+
 ## 🎉 Tender Flow v1.4.0
 
 ### ✨ Co je nového

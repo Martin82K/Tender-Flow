@@ -20,13 +20,11 @@ import { useStuckLoadingRecovery } from "@app/hooks/useStuckLoadingRecovery";
 import { AuthGate } from "@app/views/AuthGate";
 import { AppLoadErrorView } from "@app/views/AppLoadErrorView";
 import { AppLoadingView } from "@app/views/AppLoadingView";
-import { AgentFloatingPanel } from "@shared/ui/agent/AgentFloatingPanel";
 import {
   INCIDENT_FATAL_EVENT_NAME,
   setIncidentContext,
 } from "@/services/incidentLogger";
 import type { FatalIncidentNotice } from "@/shared/types/incidents";
-import type { AgentRuntimeSnapshot } from "@shared/types/agent";
 import {
   AppLazyFallback,
   Contacts,
@@ -40,6 +38,10 @@ import {
 import { getLegalPage } from "@app/views/LegalPageRouter";
 import { LegalAcceptanceModal } from "@/features/auth/ui/LegalAcceptanceModal";
 import { requiresLegalAcceptance } from "@/shared/legal/legalDocumentVersions";
+import { WhatsNewModal } from "@/features/whats-new/WhatsNewModal";
+import { useWhatsNew } from "@/features/whats-new/useWhatsNew";
+import { GlobalSearchProvider, GlobalSearchModal } from "@/shared/ui/GlobalSearch";
+import { useAutoBackupScheduler } from "@/features/backup/hooks/useAutoBackupScheduler";
 
 export const AppContent: React.FC = () => {
   const {
@@ -62,6 +64,9 @@ export const AppContent: React.FC = () => {
   const [activeProjectTab, setActiveProjectTab] = useState<string>("overview");
   const [activePipelineCategoryId, setActivePipelineCategoryId] = useState<string | null>(null);
   const [isLegalAcceptanceSaving, setIsLegalAcceptanceSaving] = useState(false);
+  const { isOpen: isWhatsNewOpen, dismiss: dismissWhatsNew } = useWhatsNew();
+
+  useAutoBackupScheduler();
 
   useRouteStateSync({
     isAuthenticated,
@@ -75,7 +80,12 @@ export const AppContent: React.FC = () => {
     setActivePipelineCategoryId,
   });
 
-  const { theme, setTheme, primaryColor, setPrimaryColor } = useTheme({
+  const {
+    theme,
+    setTheme,
+    primaryColor,
+    setPrimaryColor,
+  } = useTheme({
     user,
     onPreferencesUpdate: (prefs) => updatePreferences(prefs),
   });
@@ -187,6 +197,35 @@ export const AppContent: React.FC = () => {
         search={search}
         isDesktop={isDesktop}
       />
+    );
+  }
+
+  // Block deactivated organization members from accessing the app
+  if (user?.organizationId && user.isOrgMemberActive === false) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 p-4">
+        <div className="max-w-md w-full bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-8 text-center">
+          <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+            <span className="material-symbols-outlined text-[32px] text-red-600 dark:text-red-400">person_off</span>
+          </div>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-3">
+            Účet deaktivován
+          </h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
+            Váš účet byl deaktivován administrátorem organizace
+            {user.organizationName ? ` ${user.organizationName}` : ''}.
+          </p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-8">
+            Pro obnovení přístupu kontaktujte administrátora vaší organizace.
+          </p>
+          <button
+            onClick={() => logout()}
+            className="w-full px-6 py-3 text-sm font-semibold rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:opacity-90 transition-opacity"
+          >
+            Odhlásit se
+          </button>
+        </div>
+      </div>
     );
   }
 
@@ -343,6 +382,18 @@ export const AppContent: React.FC = () => {
             projects={state.projects}
             onAddProject={actions.handleAddProject}
             onDeleteProject={actions.handleDeleteProject}
+            onCloneTenderToRealization={async (projectId) => {
+              const result = await actions.handleCloneTenderToRealization(projectId);
+              actions.setSelectedProjectId(result.projectId);
+              navigate(
+                buildAppUrl("project", {
+                  projectId: result.projectId,
+                  tab: "documents",
+                  documentsSubTab: "dochub",
+                }),
+              );
+              return result;
+            }}
             onArchiveProject={actions.handleArchiveProject}
           />
         );
@@ -373,23 +424,6 @@ export const AppContent: React.FC = () => {
     }
   };
 
-  const agentRuntime: AgentRuntimeSnapshot = {
-    pathname,
-    search,
-    currentView,
-    activeProjectTab,
-    selectedProjectId: state.selectedProjectId,
-    projects: state.projects,
-    projectDetails: state.allProjectDetails,
-    contacts: state.contacts,
-    audience: "internal",
-    contextScopes: ["project", "memory", "manual"],
-    contextPolicyVersion: "v1-strict-allowlist",
-    organizationId: user?.organizationId || null,
-    userId: user?.id || null,
-    isAdmin: state.isAdmin,
-  };
-
   const shouldRequireLegalAcceptance = requiresLegalAcceptance(user);
 
   const handleAcceptLegalDocuments = async (input: {
@@ -404,8 +438,14 @@ export const AppContent: React.FC = () => {
     }
   };
 
+  const searchSources = {
+    projects: state.projects,
+    contacts: state.contacts,
+    projectDetails: state.allProjectDetails,
+  };
+
   return (
-    <>
+    <GlobalSearchProvider sources={searchSources}>
       <MainLayout
         uiModal={uiModal}
         closeUiModal={closeUiModal}
@@ -431,7 +471,10 @@ export const AppContent: React.FC = () => {
         isSubmitting={isLegalAcceptanceSaving}
         onAccept={handleAcceptLegalDocuments}
       />
-      <AgentFloatingPanel runtime={agentRuntime} />
-    </>
+      {!shouldRequireLegalAcceptance && (
+        <WhatsNewModal isOpen={isWhatsNewOpen} onClose={dismissWhatsNew} />
+      )}
+      <GlobalSearchModal />
+    </GlobalSearchProvider>
   );
 };

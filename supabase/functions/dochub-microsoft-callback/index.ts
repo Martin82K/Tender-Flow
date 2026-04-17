@@ -1,4 +1,4 @@
-import { corsHeaders } from "../_shared/cors.ts";
+import { buildCorsHeaders } from "../_shared/cors.ts";
 import { encryptJsonAesGcm, tryGetEnv } from "../_shared/crypto.ts";
 import { createServiceClient } from "../_shared/supabase.ts";
 
@@ -16,7 +16,7 @@ const siteBaseUrl = () => {
 const defaultReturnTo = () => `${siteBaseUrl()}/app?dochub=1`;
 
 const redirect = (to: string) =>
-  new Response(null, { status: 302, headers: { ...corsHeaders, location: to } });
+  new Response(null, { status: 302, headers: { ...buildCorsHeaders(req), location: to } });
 
 const withQueryParam = (to: string, key: string, value: string) => {
   try {
@@ -146,6 +146,30 @@ Deno.serve(async (req) => {
 
     if (stateError || !stateRow) {
       return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "state_not_found"));
+    }
+
+    const { data: project, error: projectAccessError } = await service
+      .from("projects")
+      .select("id, owner_id")
+      .eq("id", stateRow.project_id)
+      .maybeSingle();
+    if (projectAccessError || !project) {
+      await service.from("dochub_oauth_states").delete().eq("id", stateRow.id);
+      return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "forbidden_project"));
+    }
+
+    if (project.owner_id !== stateRow.user_id) {
+      const { data: share } = await service
+        .from("project_shares")
+        .select("id")
+        .eq("project_id", stateRow.project_id)
+        .eq("user_id", stateRow.user_id)
+        .eq("permission", "edit")
+        .maybeSingle();
+      if (!share) {
+        await service.from("dochub_oauth_states").delete().eq("id", stateRow.id);
+        return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "forbidden_project"));
+      }
     }
 
     const clientId = Deno.env.get("MS_OAUTH_CLIENT_ID") || "";

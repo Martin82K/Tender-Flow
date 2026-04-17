@@ -11,6 +11,7 @@ interface SetupOptions {
   biometricPromptResult?: boolean;
   refreshSessionResult?: { data: { session: any | null }; error: any | null };
   currentUser?: any;
+  storedSessionRaw?: string | null;
 }
 
 const setup = async (options: SetupOptions) => {
@@ -39,6 +40,7 @@ const setup = async (options: SetupOptions) => {
     ),
     invalidateAuthState: vi.fn().mockResolvedValue(undefined),
     navigate: vi.fn(),
+    queryClientClear: vi.fn(),
     subscribe: vi.fn((listener: (snapshot: { event: string; session: any }) => void) => {
       mockState.authListener = listener;
       return vi.fn();
@@ -72,10 +74,19 @@ const setup = async (options: SetupOptions) => {
       },
       session: {
         isBiometricEnabled: vi.fn().mockResolvedValue(options.biometricEnabled),
-        getCredentials: vi.fn().mockResolvedValue(options.credentials),
+        getCredentials: vi.fn().mockResolvedValue(
+          // When biometric is enabled, getCredentials returns null (must use getCredentialsWithBiometric)
+          options.biometricEnabled ? null : options.credentials,
+        ),
+        getCredentialsWithBiometric: vi.fn().mockResolvedValue(
+          options.biometricPromptResult === false ? null : options.credentials,
+        ),
         clearCredentials: vi.fn().mockResolvedValue(undefined),
         saveCredentials: vi.fn().mockResolvedValue(undefined),
         setBiometricEnabled: vi.fn().mockResolvedValue(undefined),
+      },
+      auth: {
+        setAuthenticated: vi.fn().mockResolvedValue(undefined),
       },
     },
   }));
@@ -83,7 +94,7 @@ const setup = async (options: SetupOptions) => {
   vi.doMock("../services/authSessionService", () => ({
     authSessionService: {
       clearStoredSessionData: vi.fn(),
-      getStoredAuthSessionRaw: vi.fn().mockReturnValue(null),
+      getStoredAuthSessionRaw: vi.fn().mockReturnValue(options.storedSessionRaw ?? null),
       setRememberMePreference: vi.fn(),
       refreshSession: mockState.refreshSession,
       getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
@@ -93,6 +104,17 @@ const setup = async (options: SetupOptions) => {
 
   vi.doMock("../shared/routing/router", () => ({
     navigate: mockState.navigate,
+  }));
+
+  vi.doMock("../services/queryClient", () => ({
+    queryClient: {
+      clear: mockState.queryClientClear,
+    },
+  }));
+
+  vi.doMock("@/services/incidentLogger", () => ({
+    logIncident: vi.fn(),
+    setIncidentContext: vi.fn(),
   }));
 
   vi.doMock("@infra/auth/authSessionStore", () => ({
@@ -106,11 +128,14 @@ const setup = async (options: SetupOptions) => {
   const { AuthProvider, useAuth } = await import("../context/AuthContext");
 
   const Probe: React.FC = () => {
-    const { isLoading, isAuthenticated } = useAuth();
+    const { isLoading, isAuthenticated, logout } = useAuth();
     return (
       <div>
         <div data-testid="loading">{String(isLoading)}</div>
         <div data-testid="authenticated">{String(isAuthenticated)}</div>
+        <button type="button" onClick={() => void logout()}>
+          logout
+        </button>
       </div>
     );
   };
@@ -165,6 +190,57 @@ describe("AuthContext auth recovery", () => {
     expect(mockState.getCurrentUser).not.toHaveBeenCalled();
     expect(mockState.invalidateAuthState).not.toHaveBeenCalled();
     expect(screen.getByTestId("authenticated").textContent).toBe("false");
+  });
+  it("desktop logout clears react-query cache before navigate", async () => {
+    const mockState = await setup({
+      isDesktop: true,
+      credentials: null,
+      biometricEnabled: false,
+      currentUser: null,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("loading").textContent).toBe("false");
+    });
+
+    await act(async () => {
+      screen.getByRole("button", { name: "logout" }).click();
+    });
+
+    await waitFor(() => {
+      expect(mockState.invalidateAuthState).toHaveBeenCalledWith({
+        navigateToLogin: false,
+        reason: "manual_logout",
+      });
+    });
+
+    expect(mockState.queryClientClear).toHaveBeenCalledTimes(1);
+    expect(mockState.navigate).toHaveBeenCalledWith("/login", { replace: true });
+  });
+
+  it("desktop restore se zkusí i při syntakticky validní uložené session", async () => {
+    const mockState = await setup({
+      isDesktop: true,
+      credentials: { refreshToken: "refresh-token-123456", email: "test@example.com" },
+      biometricEnabled: true,
+      biometricPromptResult: true,
+      storedSessionRaw: JSON.stringify({
+        access_token: "header.payload.signature",
+        refresh_token: "refresh-token-123456",
+      }),
+      refreshSessionResult: {
+        data: { session: { access_token: "fresh-session-token" } },
+        error: null,
+      },
+      currentUser: null,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("loading").textContent).toBe("false");
+    });
+
+    expect(mockState.refreshSession).toHaveBeenCalledTimes(1);
+    expect(mockState.invalidateAuthState).not.toHaveBeenCalled();
   });
 
   it("SIGNED_OUT event neaktivuje retry loop", async () => {

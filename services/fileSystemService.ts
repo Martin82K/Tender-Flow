@@ -11,7 +11,10 @@
 import { isDesktop, fileSystemAdapter, watcherAdapter } from './platformAdapter';
 import { invokeAuthedFunction } from './functionsClient';
 import type { DocHubStructureV1, DocHubHierarchyItem } from '../utils/docHub';
-import { validateSubcontractorCompanyName } from '../shared/dochub/subcontractorNameRules';
+import {
+    sanitizeSubcontractorCompanyName,
+    validateSubcontractorCompanyName,
+} from '../shared/dochub/subcontractorNameRules';
 import { logIncident } from './incidentLogger';
 
 export interface FileSystemStatus {
@@ -104,6 +107,28 @@ const getFolderSegmentValidationError = (pathOrName: string): string | null => {
     }
 
     return null;
+};
+
+const resolveStructureFolderName = (name: string): {
+    finalName: string;
+    warning?: string;
+} => {
+    const validation = validateSubcontractorCompanyName(name);
+    if (validation.isValid) {
+        return { finalName: name };
+    }
+
+    const sanitizedResult = sanitizeSubcontractorCompanyName(name);
+    const sanitizedValidation = validateSubcontractorCompanyName(sanitizedResult.sanitized);
+    if (!sanitizedValidation.isValid) {
+        const reason = (validation.reason || "").replace(/Nazev firmy/g, "Nazev slozky");
+        throw new Error(`Neplatny nazev slozky "${name}". ${reason}`.trim());
+    }
+
+    return {
+        finalName: sanitizedResult.sanitized,
+        warning: `Nazev slozky "${name}" byl pro filesystem upraven na "${sanitizedResult.sanitized}".`,
+    };
 };
 
 /**
@@ -678,8 +703,6 @@ export async function ensureStructure(
             ) => {
                 if (!item.enabled) return;
 
-                const currentPath = joinPath(parentPath, item.name);
-
                 // Handle placeholders replacements in the name
                 let finalName = item.name;
 
@@ -714,15 +737,12 @@ export async function ensureStructure(
                     }
                 }
 
-                const nameValidation = validateSubcontractorCompanyName(finalName);
-                if (!nameValidation.isValid) {
-                    const reason = (nameValidation.reason || "").replace(/Nazev firmy/g, "Nazev slozky");
-                    const message = `Neplatny nazev slozky "${finalName}". ${reason}`.trim();
-                    logs.push(`âś— Chyba: ${message}`);
-                    throw new Error(message);
+                const resolvedName = resolveStructureFolderName(finalName);
+                if (resolvedName.warning) {
+                    logs.push(`! Upozornění: ${resolvedName.warning}`);
                 }
 
-                const finalPath = joinPath(parentPath, finalName);
+                const finalPath = joinPath(parentPath, resolvedName.finalName);
                 await ensureFolder(finalPath);
 
                 // Process children
@@ -975,5 +995,3 @@ export async function stopWatching(): Promise<void> {
     }
 }
 
-// Export type for external use
-export type { EnsureStructureRequest };

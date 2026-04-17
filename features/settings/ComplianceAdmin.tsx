@@ -2225,7 +2225,7 @@ export const ComplianceAdmin: React.FC = () => {
                   value={newProcessingActivitySubprocessorIds}
                   onChange={(e) =>
                     setNewProcessingActivitySubprocessorIds(
-                      Array.from(e.target.selectedOptions, (option) => option.value),
+                      Array.from(e.target.selectedOptions, (option: HTMLOptionElement) => option.value),
                     )
                   }
                   className="min-h-28 min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"

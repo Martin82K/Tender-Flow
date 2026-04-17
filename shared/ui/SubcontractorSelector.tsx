@@ -1,7 +1,344 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { Subcontractor, StatusConfig } from "@/types";
 import { StarRating } from "@/shared/ui/StarRating";
 
+// Column visibility configuration
+type ColumnId = 'specializace' | 'kontakt' | 'telefon' | 'ico' | 'region' | 'hodnoceni' | 'stav';
+
+const COLUMN_DEFINITIONS: { id: ColumnId; label: string }[] = [
+  { id: 'specializace', label: 'Specializace' },
+  { id: 'kontakt', label: 'Kontakt' },
+  { id: 'telefon', label: 'Telefon / Email' },
+  { id: 'ico', label: 'IČO' },
+  { id: 'region', label: 'Region' },
+  { id: 'hodnoceni', label: 'Hodnocení' },
+  { id: 'stav', label: 'Stav' },
+];
+
+const STORAGE_KEY = 'tf-contacts-visible-columns';
+const DEFAULT_VISIBLE: ColumnId[] = ['specializace', 'kontakt', 'telefon', 'ico', 'region', 'hodnoceni', 'stav'];
+
+function loadVisibleColumns(): Set<ColumnId> {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored) as ColumnId[];
+      return new Set(parsed);
+    }
+  } catch { /* ignore */ }
+  return new Set(DEFAULT_VISIBLE);
+}
+
+function saveVisibleColumns(columns: Set<ColumnId>) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(columns)));
+}
+
+// ─── Virtualized table component ───────────────────────────────────────────
+const ROW_HEIGHT = 72; // estimated row height in px
+
+interface VirtualizedContactTableProps {
+  filteredContacts: Subcontractor[];
+  totalCount: number;
+  selectedIds: Set<string>;
+  visibleColumns: Set<ColumnId>;
+  isAllSelected: boolean;
+  isIndeterminate: boolean;
+  isColumnVisible: (id: ColumnId) => boolean;
+  getStatusConfig: (id: string) => StatusConfig;
+  getStatusColorClasses: (color: string) => string;
+  getStatusDotColor: (color: string) => string;
+  handleSelectAll: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleSelectOne: (id: string) => void;
+  onEditContact?: (contact: Subcontractor) => void;
+  onClearFilters: () => void;
+}
+
+const VirtualizedContactTable: React.FC<VirtualizedContactTableProps> = ({
+  filteredContacts,
+  totalCount,
+  selectedIds,
+  visibleColumns,
+  isAllSelected,
+  isIndeterminate,
+  isColumnVisible,
+  getStatusConfig,
+  getStatusColorClasses,
+  getStatusDotColor,
+  handleSelectAll,
+  handleSelectOne,
+  onEditContact,
+  onClearFilters,
+}) => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const virtualizer = useVirtualizer({
+    count: filteredContacts.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 10,
+  });
+
+  // Column definitions: min = guaranteed minimum (enables scroll on small screens),
+  // flex = whether column grows to fill remaining space on wide screens.
+  const COL_DEFS: Record<ColumnId | 'edit' | 'checkbox' | 'firma', { min: number; flex?: boolean }> = {
+    edit: { min: 48 }, checkbox: { min: 40 }, firma: { min: 180, flex: true },
+    specializace: { min: 150, flex: true }, kontakt: { min: 160, flex: true },
+    telefon: { min: 160, flex: true }, ico: { min: 90 }, region: { min: 100 },
+    hodnoceni: { min: 130 }, stav: { min: 130 },
+  };
+
+  const { gridCols, tableMinWidth } = useMemo(() => {
+    const toCol = (id: ColumnId | 'edit' | 'checkbox' | 'firma') => {
+      const d = COL_DEFS[id];
+      return d.flex ? `minmax(${d.min}px, 1fr)` : `${d.min}px`;
+    };
+    const cols = ['edit', 'checkbox', 'firma'].map(id => toCol(id as any));
+    let minW = COL_DEFS.edit.min + COL_DEFS.checkbox.min + COL_DEFS.firma.min;
+    const ordered: ColumnId[] = ['specializace', 'kontakt', 'telefon', 'ico', 'region', 'hodnoceni', 'stav'];
+    for (const col of ordered) {
+      if (visibleColumns.has(col)) {
+        cols.push(toCol(col));
+        minW += COL_DEFS[col].min;
+      }
+    }
+    return { gridCols: cols.join(' '), tableMinWidth: minW };
+  }, [visibleColumns]);
+
+  // Determine last visible column once
+  const orderedCols: ColumnId[] = ['specializace', 'kontakt', 'telefon', 'ico', 'region', 'hodnoceni', 'stav'];
+  const lastCol = [...orderedCols].reverse().find(c => visibleColumns.has(c)) || null;
+  const lastCellClass = (id: ColumnId) => id === lastCol ? 'rounded-r-xl border-r' : '';
+  const firmaIsLast = lastCol === null;
+
+  const cellBase = "px-6 py-4";
+
+  return (
+    <>
+      <div ref={scrollRef} className="overflow-auto flex-1 min-w-0 px-1">
+        {/* Header */}
+        <div
+          className="grid items-end text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider sticky top-0 z-10 bg-white dark:bg-slate-900 pb-1"
+          style={{ gridTemplateColumns: gridCols, minWidth: tableMinWidth }}
+        >
+          <div className="px-6 py-2 font-medium"></div>
+          <div className="px-6 py-2">
+            <input
+              type="checkbox"
+              checked={isAllSelected}
+              ref={(input) => {
+                if (input) input.indeterminate = isIndeterminate;
+              }}
+              onChange={handleSelectAll}
+              className="rounded border-slate-300 text-primary focus:ring-primary dark:bg-slate-700 dark:border-slate-600"
+            />
+          </div>
+          <div className="px-6 py-2 font-medium">Firma</div>
+          {isColumnVisible('specializace') && <div className="px-6 py-2 font-medium">Specializace</div>}
+          {isColumnVisible('kontakt') && <div className="px-6 py-2 font-medium">Kontakt</div>}
+          {isColumnVisible('telefon') && <div className="px-6 py-2 font-medium">Telefon / Email</div>}
+          {isColumnVisible('ico') && <div className="px-6 py-2 font-medium">IČO</div>}
+          {isColumnVisible('region') && <div className="px-6 py-2 font-medium">Region</div>}
+          {isColumnVisible('hodnoceni') && <div className="px-6 py-2 font-medium">Hodnocení</div>}
+          {isColumnVisible('stav') && <div className="px-6 py-2 font-medium">Stav</div>}
+        </div>
+
+        {/* Body */}
+        <div
+          className="relative text-sm text-slate-600 dark:text-slate-400"
+          style={{ height: `${virtualizer.getTotalSize()}px`, minWidth: tableMinWidth }}
+        >
+          {filteredContacts.length === 0 ? (
+            <div className="px-6 py-12 text-center">
+              <div className="flex flex-col items-center justify-center text-slate-400">
+                <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4">
+                  <span className="material-symbols-outlined text-3xl">search_off</span>
+                </div>
+                <p className="font-medium">Nebyly nalezeny žádné kontakty</p>
+                <p className="text-sm mt-1">Zkuste upravit filtry nebo hledaný výraz.</p>
+                <button
+                  onClick={onClearFilters}
+                  className="mt-4 text-primary font-bold text-sm hover:underline"
+                >
+                  Vymazat filtry
+                </button>
+              </div>
+            </div>
+          ) : (
+            virtualizer.getVirtualItems().map((virtualRow) => {
+              const contact = filteredContacts[virtualRow.index];
+              const status = getStatusConfig(contact.status);
+              const selected = selectedIds.has(contact.id);
+              const rowBg = selected
+                ? "bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
+                : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800";
+
+              return (
+                <div
+                  key={contact.id}
+                  ref={virtualizer.measureElement}
+                  data-index={virtualRow.index}
+                  onDoubleClick={() => onEditContact?.(contact)}
+                  className={`
+                    grid items-center absolute left-0 w-full mt-3 rounded-xl border
+                    group transition-all duration-200 cursor-pointer
+                    hover:shadow-md hover:-translate-y-[1px]
+                    ${rowBg}
+                    ${selected ? "shadow-md -translate-y-[1px]" : "shadow-sm"}
+                  `}
+                  style={{
+                    gridTemplateColumns: gridCols,
+                    transform: `translateY(${virtualRow.start}px)`,
+                  }}
+                >
+                  <div className={cellBase}>
+                    {onEditContact && (
+                      <button
+                        onClick={() => onEditContact(contact)}
+                        className="p-2 rounded-lg text-orange-500 hover:text-orange-600 dark:text-orange-400 dark:hover:text-orange-300 hover:bg-orange-50/60 dark:hover:bg-orange-500/10 transition-colors"
+                        title="Upravit"
+                      >
+                        <span className="material-symbols-outlined text-[20px]">edit</span>
+                      </button>
+                    )}
+                  </div>
+                  <div className={cellBase}>
+                    <input
+                      type="checkbox"
+                      checked={selected}
+                      onChange={() => handleSelectOne(contact.id)}
+                      className="rounded border-slate-300 text-primary focus:ring-primary dark:bg-slate-700 dark:border-slate-600"
+                    />
+                  </div>
+                  <div className={`${cellBase} font-bold text-slate-900 dark:text-white whitespace-nowrap`}>
+                    <div className="text-[15px]">{contact.company}</div>
+                  </div>
+                  {isColumnVisible('specializace') && (
+                    <div className={cellBase}>
+                      <div className="flex flex-wrap gap-1.5">
+                        {contact.specialization.map((spec, index) => (
+                          <span key={index} className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 px-2.5 py-1 rounded-full text-[11px] font-medium whitespace-nowrap">
+                            {spec}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {isColumnVisible('kontakt') && (
+                    <div className={`${cellBase} text-slate-900 dark:text-slate-200`}>
+                      <div className="flex flex-col gap-2">
+                        {contact.contacts.map((c, idx) => {
+                          const initials = c.name
+                            .split(' ')
+                            .map(n => n[0])
+                            .slice(0, 2)
+                            .join('')
+                            .toUpperCase();
+
+                          return (
+                            <div key={idx} className="flex items-center gap-3">
+                              <div className="size-8 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-500 border border-slate-200 dark:border-slate-600 shadow-sm">
+                                {initials || '?'}
+                              </div>
+                              <div className="flex flex-col">
+                                <span className={idx === 0 ? "text-sm font-medium" : "text-xs text-slate-500"}>
+                                  {c.name !== "-" ? c.name : <span className="italic">Nezadáno</span>}
+                                </span>
+                                {c.position && <span className="text-[10px] text-slate-400 font-medium">{c.position}</span>}
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {contact.contacts.length === 0 && (
+                          <span className="text-slate-400 italic text-xs">Bez kontaktu</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {isColumnVisible('telefon') && (
+                    <div className={cellBase}>
+                      <div className="flex flex-col gap-2">
+                        {contact.contacts.map((c, idx) => (
+                          <div key={idx} className={`flex flex-col gap-0.5 ${idx > 0 ? "mt-1 pt-1 border-t border-slate-100 dark:border-slate-800/50" : ""}`}>
+                            {c.phone !== "-" && (
+                              <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+                                <span className="material-symbols-outlined text-[14px] text-slate-400">call</span>
+                                {c.phone}
+                              </div>
+                            )}
+                            {c.email !== "-" && (
+                              <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+                                <span className="material-symbols-outlined text-[14px] text-slate-400">mail</span>
+                                <a
+                                  href={`mailto:${c.email}`}
+                                  className="hover:text-primary hover:underline truncate max-w-[150px]"
+                                >
+                                  {c.email}
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {isColumnVisible('ico') && (
+                    <div className={`${cellBase} font-mono text-xs`}>
+                      {contact.ico || "-"}
+                    </div>
+                  )}
+                  {isColumnVisible('region') && (
+                    <div className={`${cellBase} text-sm text-slate-600 dark:text-slate-400`}>
+                      {contact.region || "-"}
+                    </div>
+                  )}
+                  {isColumnVisible('hodnoceni') && (
+                    <div className={cellBase}>
+                      {contact.vendorRatingAverage !== undefined && contact.vendorRatingAverage !== null ? (
+                        <div
+                          className="inline-flex items-center gap-2"
+                          title={contact.vendorRatingCount ? `Hodnoceno: ${contact.vendorRatingCount}×` : undefined}
+                        >
+                          <StarRating value={contact.vendorRatingAverage} readOnly size="sm" />
+                          <span className="text-xs text-slate-500">
+                            {contact.vendorRatingAverage.toFixed(1)}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-400">Neohodnoceno</span>
+                      )}
+                    </div>
+                  )}
+                  {isColumnVisible('stav') && (
+                    <div className={cellBase}>
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap shadow-sm border border-transparent ${getStatusColorClasses(
+                          status.color
+                        )}`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${getStatusDotColor(
+                            status.color
+                          )}`}
+                        ></span>
+                        {status.label}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+      <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl mt-2 text-xs text-slate-500 text-center border border-slate-200 dark:border-slate-800">
+        Zobrazeno {filteredContacts.length} z {totalCount} kontaktů
+      </div>
+    </>
+  );
+};
+
+// ─── Main component ────────────────────────────────────────────────────────
 interface SubcontractorSelectorProps {
   contacts: Subcontractor[];
   statuses: StatusConfig[];
@@ -23,10 +360,53 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
   onAddContact,
   className,
 }) => {
+  const filterSelectClassName =
+    "select-no-native-arrow w-full h-12 pl-4 pr-10 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-200 bg-none focus:ring-primary focus:border-primary";
+
   const [searchText, setSearchText] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filterSpecialization, setFilterSpecialization] =
     useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+
+  // Debounce search input by 250ms
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchText), 250);
+    return () => clearTimeout(timer);
+  }, [searchText]);
+
+  // Column visibility
+  const [visibleColumns, setVisibleColumns] = useState<Set<ColumnId>>(loadVisibleColumns);
+  const [isColumnMenuOpen, setIsColumnMenuOpen] = useState(false);
+  const columnMenuRef = useRef<HTMLDivElement>(null);
+
+  const toggleColumn = (id: ColumnId) => {
+    setVisibleColumns(prev => {
+      const next = new Set<ColumnId>(prev);
+      if (next.has(id)) {
+        if (next.size > 1) next.delete(id);
+      } else {
+        next.add(id);
+      }
+      saveVisibleColumns(next);
+      return next;
+    });
+  };
+
+  const isColumnVisible = (id: ColumnId) => visibleColumns.has(id);
+
+  // Close column menu on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (columnMenuRef.current && !columnMenuRef.current.contains(e.target as Node)) {
+        setIsColumnMenuOpen(false);
+      }
+    };
+    if (isColumnMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isColumnMenuOpen]);
 
   // Get unique specializations
   const specializations = useMemo(() => {
@@ -34,17 +414,18 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
     return Array.from(specs).sort();
   }, [contacts]);
 
-  // Filter Logic
+  // Filter Logic (uses debounced search for performance)
   const filteredContacts = useMemo(() => {
+    const search = debouncedSearch.toLowerCase();
     return contacts.filter((contact) => {
-      const matchesSearch =
-        contact.company.toLowerCase().includes(searchText.toLowerCase()) ||
+      const matchesSearch = !search ||
+        contact.company.toLowerCase().includes(search) ||
         contact.contacts.some(c =>
-          c.name.toLowerCase().includes(searchText.toLowerCase()) ||
-          c.email.toLowerCase().includes(searchText.toLowerCase()) ||
-          c.phone.toLowerCase().includes(searchText.toLowerCase())
+          c.name.toLowerCase().includes(search) ||
+          c.email.toLowerCase().includes(search) ||
+          c.phone.toLowerCase().includes(search)
         ) ||
-        contact.specialization.some(s => s.toLowerCase().includes(searchText.toLowerCase()));
+        contact.specialization.some(s => s.toLowerCase().includes(search));
 
       const matchesSpec =
         filterSpecialization === "all" ||
@@ -54,7 +435,7 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
 
       return matchesSearch && matchesSpec && matchesStatus;
     });
-  }, [contacts, searchText, filterSpecialization, filterStatus]);
+  }, [contacts, debouncedSearch, filterSpecialization, filterStatus]);
 
   // Notify parent about filtered contacts change
   useEffect(() => {
@@ -131,7 +512,7 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
   const isIndeterminate = selectedIds.size > 0 && !isAllSelected;
 
   return (
-    <div className={`flex flex-col gap-6 ${className || ""}`}>
+    <div className={`flex flex-col gap-6 min-w-0 ${className || ""}`}>
       {/* Search & Filter Bar */}
       <div className="bg-white dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col gap-4 shadow-sm">
         <div className="flex flex-col md:flex-row gap-4">
@@ -152,7 +533,7 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
             <select
               value={filterSpecialization}
               onChange={(e) => setFilterSpecialization(e.target.value)}
-              className="w-full h-12 pl-4 pr-10 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-200 appearance-none focus:ring-primary focus:border-primary"
+              className={filterSelectClassName}
             >
               <option value="all">Všechny specializace</option>
               {specializations.map((spec) => (
@@ -170,7 +551,7 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full h-12 pl-4 pr-10 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-200 appearance-none focus:ring-primary focus:border-primary"
+              className={filterSelectClassName}
             >
               <option value="all">Všechny stavy</option>
               {statuses.map((s) => (
@@ -182,6 +563,64 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
             <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
               expand_more
             </span>
+          </div>
+
+          {/* Column Visibility Toggle */}
+          <div className="relative" ref={columnMenuRef}>
+            <button
+              type="button"
+              onClick={() => setIsColumnMenuOpen(prev => !prev)}
+              className="h-12 px-4 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 whitespace-nowrap"
+              title="Zobrazení sloupců"
+            >
+              <span className="material-symbols-outlined text-[20px]">view_column</span>
+              <span className="hidden md:inline text-sm font-medium">Sloupce</span>
+              {visibleColumns.size < COLUMN_DEFINITIONS.length && (
+                <span className="bg-primary text-white text-[10px] font-bold rounded-full size-5 flex items-center justify-center">
+                  {visibleColumns.size}
+                </span>
+              )}
+            </button>
+
+            {isColumnMenuOpen && (
+              <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 py-2 animate-fade-in">
+                <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800">
+                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Zobrazit sloupce</span>
+                </div>
+                {COLUMN_DEFINITIONS.map(col => (
+                  <button
+                    key={col.id}
+                    type="button"
+                    onClick={() => toggleColumn(col.id)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left"
+                  >
+                    <div className={`size-5 rounded border-2 flex items-center justify-center transition-colors ${
+                      visibleColumns.has(col.id)
+                        ? 'bg-primary border-primary'
+                        : 'border-slate-300 dark:border-slate-600'
+                    }`}>
+                      {visibleColumns.has(col.id) && (
+                        <span className="material-symbols-outlined text-white text-[14px]">check</span>
+                      )}
+                    </div>
+                    <span className="text-sm text-slate-700 dark:text-slate-300">{col.label}</span>
+                  </button>
+                ))}
+                <div className="px-3 pt-2 pb-1 border-t border-slate-100 dark:border-slate-800 mt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const all = new Set(DEFAULT_VISIBLE);
+                      setVisibleColumns(all);
+                      saveVisibleColumns(all);
+                    }}
+                    className="text-xs text-primary hover:underline font-medium"
+                  >
+                    Zobrazit vše
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -255,255 +694,26 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
 
       {/* Table */}
       <div className="flex-1 flex flex-col min-h-0">
-        <div className="overflow-auto flex-1 px-1">
-          <table className="w-full text-sm text-left text-slate-600 dark:text-slate-400 border-separate border-spacing-y-3">
-            <thead className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider sticky top-0 z-10">
-              <tr>
-                <th className="px-6 py-2 font-medium text-left"></th>
-                <th className="px-6 py-2 w-10">
-                  <input
-                    type="checkbox"
-                    checked={isAllSelected}
-                    ref={(input) => {
-                      if (input) input.indeterminate = isIndeterminate;
-                    }}
-                    onChange={handleSelectAll}
-                    className="rounded border-slate-300 text-primary focus:ring-primary dark:bg-slate-700 dark:border-slate-600"
-                  />
-                </th>
-                <th className="px-6 py-2 font-medium">Firma</th>
-                <th className="px-6 py-2 font-medium">Specializace</th>
-                <th className="px-6 py-2 font-medium">Kontakt</th>
-                <th className="px-6 py-2 font-medium">Telefon / Email</th>
-                <th className="px-6 py-2 font-medium">IČO</th>
-                <th className="px-6 py-2 font-medium">Region</th>
-                <th className="px-6 py-2 font-medium">Hodnocení</th>
-                <th className="px-6 py-2 font-medium">Stav</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredContacts.map((contact) => {
-                const status = getStatusConfig(contact.status);
-                return (
-                  <tr
-                    key={contact.id}
-                    className={`
-                      group transition-all duration-200
-                      hover:shadow-md hover:-translate-y-[1px]
-                      ${selectedIds.has(contact.id) ? "shadow-md -translate-y-[1px]" : "shadow-sm"}
-                    `}
-                  >
-                    <td className={`
-                      px-6 py-4 rounded-l-xl border-y border-l
-                      ${selectedIds.has(contact.id)
-                        ? "bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
-                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"}
-                    `}>
-                      {onEditContact && (
-                        <button
-                          onClick={() => onEditContact(contact)}
-                          className="p-2 rounded-lg text-orange-500 hover:text-orange-600 dark:text-orange-400 dark:hover:text-orange-300 hover:bg-orange-50/60 dark:hover:bg-orange-500/10 transition-colors"
-                          title="Upravit"
-                        >
-                          <span className="material-symbols-outlined text-[20px]">
-                            edit
-                          </span>
-                        </button>
-                      )}
-                    </td>
-                    <td className={`
-                      px-6 py-4 border-y
-                      ${selectedIds.has(contact.id)
-                        ? "bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
-                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"}
-                    `}>
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.has(contact.id)}
-                        onChange={() => handleSelectOne(contact.id)}
-                        className="rounded border-slate-300 text-primary focus:ring-primary dark:bg-slate-700 dark:border-slate-600"
-                      />
-                    </td>
-                    <td className={`
-                      px-6 py-4 font-bold text-slate-900 dark:text-white whitespace-nowrap border-y
-                      ${selectedIds.has(contact.id)
-                        ? "bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
-                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"}
-                    `}>
-                      <div className="text-[15px]">{contact.company}</div>
-                    </td>
-                    <td className={`
-                      px-6 py-4 border-y
-                      ${selectedIds.has(contact.id)
-                        ? "bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
-                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"}
-                    `}>
-                      <div className="flex flex-wrap gap-1.5">
-                        {contact.specialization.map((spec, index) => (
-                          <span key={index} className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 px-2.5 py-1 rounded-full text-[11px] font-medium whitespace-nowrap">
-                            {spec}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className={`
-                      px-6 py-4 text-slate-900 dark:text-slate-200 border-y
-                      ${selectedIds.has(contact.id)
-                        ? "bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
-                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"}
-                    `}>
-                      <div className="flex flex-col gap-2">
-                        {contact.contacts.map((c, idx) => {
-                          const initials = c.name
-                            .split(' ')
-                            .map(n => n[0])
-                            .slice(0, 2)
-                            .join('')
-                            .toUpperCase();
-
-                          return (
-                            <div key={idx} className="flex items-center gap-3">
-                              <div className="size-8 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-500 border border-slate-200 dark:border-slate-600 shadow-sm">
-                                {initials || '?'}
-                              </div>
-                              <div className="flex flex-col">
-                                <span className={idx === 0 ? "text-sm font-medium" : "text-xs text-slate-500"}>
-                                  {c.name !== "-" ? c.name : <span className="italic">Nezadáno</span>}
-                                </span>
-                                {c.position && <span className="text-[10px] text-slate-400 font-medium">{c.position}</span>}
-                              </div>
-                            </div>
-                          );
-                        })}
-                        {contact.contacts.length === 0 && (
-                          <span className="text-slate-400 italic text-xs">Bez kontaktu</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className={`
-                      px-6 py-4 border-y
-                      ${selectedIds.has(contact.id)
-                        ? "bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
-                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"}
-                    `}>
-                      <div className="flex flex-col gap-2">
-                        {contact.contacts.map((c, idx) => (
-                          <div key={idx} className={`flex flex-col gap-0.5 ${idx > 0 ? "mt-1 pt-1 border-t border-slate-100 dark:border-slate-800/50" : ""}`}>
-                            {c.phone !== "-" && (
-                              <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-                                <span className="material-symbols-outlined text-[14px] text-slate-400">
-                                  call
-                                </span>
-                                {c.phone}
-                              </div>
-                            )}
-                            {c.email !== "-" && (
-                              <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-                                <span className="material-symbols-outlined text-[14px] text-slate-400">
-                                  mail
-                                </span>
-                                <a
-                                  href={`mailto:${c.email}`}
-                                  className="hover:text-primary hover:underline truncate max-w-[150px]"
-                                >
-                                  {c.email}
-                                </a>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </td>
-                    <td className={`
-                      px-6 py-4 font-mono text-xs border-y
-                      ${selectedIds.has(contact.id)
-                        ? "bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
-                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"}
-                    `}>
-                      {contact.ico || "-"}
-                    </td>
-                    <td className={`
-                      px-6 py-4 text-sm text-slate-600 dark:text-slate-400 border-y
-                      ${selectedIds.has(contact.id)
-                        ? "bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
-                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"}
-                    `}>
-                      {contact.region || "-"}
-                    </td>
-                    <td className={`
-                      px-6 py-4 border-y
-                      ${selectedIds.has(contact.id)
-                        ? "bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
-                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"}
-                    `}>
-                      {contact.vendorRatingAverage !== undefined && contact.vendorRatingAverage !== null ? (
-                        <div
-                          className="inline-flex items-center gap-2"
-                          title={contact.vendorRatingCount ? `Hodnoceno: ${contact.vendorRatingCount}×` : undefined}
-                        >
-                          <StarRating value={contact.vendorRatingAverage} readOnly size="sm" />
-                          <span className="text-xs text-slate-500">
-                            {contact.vendorRatingAverage.toFixed(1)}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-slate-400">Neohodnoceno</span>
-                      )}
-                    </td>
-                    <td className={`
-                      px-6 py-4 rounded-r-xl border-y border-r
-                      ${selectedIds.has(contact.id)
-                        ? "bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
-                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"}
-                    `}>
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap shadow-sm border border-transparent ${getStatusColorClasses(
-                          status.color
-                        )}`}
-                      >
-                        <span
-                          className={`w-1.5 h-1.5 rounded-full ${getStatusDotColor(
-                            status.color
-                          )}`}
-                        ></span>
-                        {status.label}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-              {filteredContacts.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={10}
-                    className="px-6 py-12 text-center"
-                  >
-                    <div className="flex flex-col items-center justify-center text-slate-400">
-                      <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4">
-                        <span className="material-symbols-outlined text-3xl">search_off</span>
-                      </div>
-                      <p className="font-medium">Nebyly nalezeny žádné kontakty</p>
-                      <p className="text-sm mt-1">Zkuste upravit filtry nebo hledaný výraz.</p>
-                      <button
-                        onClick={() => {
-                          setSearchText("");
-                          setFilterSpecialization("all");
-                          setFilterStatus("all");
-                        }}
-                        className="mt-4 text-primary font-bold text-sm hover:underline"
-                      >
-                        Vymazat filtry
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl mt-2 text-xs text-slate-500 text-center border border-slate-200 dark:border-slate-800">
-          Zobrazeno {filteredContacts.length} z {contacts.length} kontaktů
-        </div>
+        <VirtualizedContactTable
+          filteredContacts={filteredContacts}
+          totalCount={contacts.length}
+          selectedIds={selectedIds}
+          visibleColumns={visibleColumns}
+          isAllSelected={isAllSelected}
+          isIndeterminate={isIndeterminate}
+          isColumnVisible={isColumnVisible}
+          getStatusConfig={getStatusConfig}
+          getStatusColorClasses={getStatusColorClasses}
+          getStatusDotColor={getStatusDotColor}
+          handleSelectAll={handleSelectAll}
+          handleSelectOne={handleSelectOne}
+          onEditContact={onEditContact}
+          onClearFilters={() => {
+            setSearchText("");
+            setFilterSpecialization("all");
+            setFilterStatus("all");
+          }}
+        />
       </div>
     </div>
   );

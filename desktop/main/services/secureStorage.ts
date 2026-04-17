@@ -27,34 +27,31 @@ export class SecureStorageService {
 
         if (!encryptedValue) return null;
 
-        // Decrypt if safeStorage is available
-        if (safeStorage.isEncryptionAvailable()) {
-            try {
-                const buffer = Buffer.from(encryptedValue, 'base64');
-                const decrypted = safeStorage.decryptString(buffer);
-                this.cache.set(key, decrypted);
-                return decrypted;
-            } catch (error) {
-                console.error('Failed to decrypt value:', error);
-                return null;
-            }
+        if (!safeStorage.isEncryptionAvailable()) {
+            console.error('[SecureStorage] OS encryption not available — refusing to read potentially unencrypted data');
+            return null;
         }
 
-        // Fallback: return as-is (not encrypted)
-        return encryptedValue;
+        try {
+            const buffer = Buffer.from(encryptedValue, 'base64');
+            const decrypted = safeStorage.decryptString(buffer);
+            this.cache.set(key, decrypted);
+            return decrypted;
+        } catch (error) {
+            console.error('[SecureStorage] Failed to decrypt value for key:', key);
+            return null;
+        }
     }
 
     async set(key: string, value: string): Promise<void> {
-        const data = await this.loadStorage();
-
-        // Encrypt if safeStorage is available
-        if (safeStorage.isEncryptionAvailable()) {
-            const encrypted = safeStorage.encryptString(value);
-            data[key] = encrypted.toString('base64');
-        } else {
-            // Fallback: store as-is (development mode)
-            data[key] = value;
+        if (!safeStorage.isEncryptionAvailable()) {
+            console.error('[SecureStorage] OS encryption not available — refusing to store credentials in plaintext');
+            throw new Error('SECURE_STORAGE_UNAVAILABLE');
         }
+
+        const data = await this.loadStorage();
+        const encrypted = safeStorage.encryptString(value);
+        data[key] = encrypted.toString('base64');
 
         this.cache.set(key, value);
         await this.saveStorage(data);

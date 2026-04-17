@@ -2,14 +2,15 @@ import { supabase } from "./supabase";
 
 export const dbAdapter = {
   from: <T extends string>(table: T) => supabase.from(table),
+  functions: supabase.functions,
   rpc: <T = unknown>(fn: string, args?: Record<string, unknown>) =>
-    supabase.rpc<T>(fn, args),
+    (supabase as any).rpc(fn, args),
   rpcRest: async <T = unknown>(fn: string, args?: Record<string, unknown>) => {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL ?? "";
     const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY ?? "";
 
     if (!supabaseUrl || !supabaseAnonKey || typeof fetch !== "function") {
-      return supabase.rpc<T>(fn, args);
+      return (supabase.rpc as any)(fn, args);
     }
 
     const sessionResult = await supabase.auth.getSession();

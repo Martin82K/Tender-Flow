@@ -1,8 +1,7 @@
 /**
- * Billing Service - Payment Gateway Integration
- * 
- * This is a skeleton service prepared for future Stripe (or other payment gateway) integration.
- * Currently contains placeholder methods that will be implemented when billing is set up.
+ * Billing Service - GoPay Payment Gateway Integration
+ *
+ * Handles payment creation, subscription management, and sync via GoPay.
  */
 
 import { invokeAuthedFunction } from './functionsClient';
@@ -14,44 +13,13 @@ export interface CheckoutSessionRequest {
     successUrl: string;
     cancelUrl: string;
     billingPeriod?: 'monthly' | 'yearly';
-    paymentMethodPreference?: 'auto' | 'wallet_first';
 }
 
 export interface CheckoutSessionResponse {
     success: boolean;
     checkoutUrl?: string;
-    sessionId?: string;
-    error?: string;
-}
-
-export interface BillingPortalResponse {
-    success: boolean;
-    portalUrl?: string;
-    error?: string;
-}
-
-export interface CreateSetupIntentResponse {
-    success: boolean;
-    customerId?: string;
-    clientSecret?: string | null;
-    setupIntentId?: string;
-    error?: string;
-}
-
-export interface CreateSubscriptionFromPaymentMethodRequest {
-    tier: 'starter' | 'pro' | 'enterprise';
-    billingPeriod?: 'monthly' | 'yearly';
-    paymentMethodId: string;
-    idempotencyKey: string;
-}
-
-export interface CreateSubscriptionFromPaymentMethodResponse {
-    success: boolean;
-    subscriptionId?: string;
-    status?: string;
-    requiresAction?: boolean;
-    paymentIntentClientSecret?: string | null;
-    message?: string;
+    paymentUrl?: string;
+    paymentId?: string;
     error?: string;
 }
 
@@ -80,9 +48,9 @@ const mapBillingErrorToUserMessage = (rawError?: string): string => {
     if (!normalized) return 'Platební brána není dostupná.';
 
     if (
-        normalized.includes('missing stripe_secret_key') ||
         normalized.includes('not configured') ||
-        normalized.includes('price id')
+        normalized.includes('gopay_goid') ||
+        normalized.includes('gopay_client')
     ) {
         return 'Platební brána není správně nakonfigurovaná. Kontaktujte prosím podporu.';
     }
@@ -95,29 +63,23 @@ const mapBillingErrorToUserMessage = (rawError?: string): string => {
         return 'Vaše relace vypršela. Přihlaste se znovu a opakujte akci.';
     }
 
-    if (normalized.includes('payment method') && normalized.includes('available')) {
-        return 'Zvolená platební metoda není na tomto zařízení dostupná.';
+    if (normalized.includes('oauth') || normalized.includes('token')) {
+        return 'Chyba autentizace platební brány. Zkuste to prosím znovu.';
     }
 
-    if (normalized.includes('idempotency')) {
-        return 'Stejná platební akce už byla zpracována. Ověřte stav předplatného.';
-    }
-
-    if (normalized.includes('request is already being processed')) {
-        return 'Platba se už zpracovává. Vyčkejte prosím několik sekund.';
+    if (normalized.includes('no active subscription')) {
+        return 'Nebylo nalezeno aktivní předplatné.';
     }
 
     return rawError || 'Platební brána není dostupná.';
 };
 
-// Pricing configuration (can be moved to environment or database)
+// Pricing configuration
 export const PRICING_CONFIG = {
     starter: {
         title: "Starter",
-        monthlyPrice: 39900, // In cents (CZK) = 399 Kč
+        monthlyPrice: 39900, // In hellers (CZK) = 399 Kč
         yearlyPrice: 383040, // 3830 Kč (20% discount)
-        stripePriceIdMonthly: import.meta.env.VITE_STRIPE_PRICE_ID_STARTER_MONTHLY || '',
-        stripePriceIdYearly: import.meta.env.VITE_STRIPE_PRICE_ID_STARTER_YEARLY || '',
         accent: "sky",
         features: [
             "Neomezené projekty",
@@ -134,10 +96,8 @@ export const PRICING_CONFIG = {
     },
     pro: {
         title: "Pro",
-        monthlyPrice: 49900, // In cents (CZK) = 499 Kč
+        monthlyPrice: 49900, // In hellers (CZK) = 499 Kč
         yearlyPrice: 479000, // 4790 Kč (20% discount)
-        stripePriceIdMonthly: import.meta.env.VITE_STRIPE_PRICE_ID_PRO_MONTHLY || '',
-        stripePriceIdYearly: import.meta.env.VITE_STRIPE_PRICE_ID_PRO_YEARLY || '',
         accent: "orange",
         featured: true,
         trialDurationDays: 14,
@@ -162,8 +122,6 @@ export const PRICING_CONFIG = {
         title: "Enterprise",
         monthlyPrice: null, // Custom pricing
         yearlyPrice: null,
-        stripePriceIdMonthly: import.meta.env.VITE_STRIPE_PRICE_ID_ENTERPRISE_MONTHLY || '',
-        stripePriceIdYearly: import.meta.env.VITE_STRIPE_PRICE_ID_ENTERPRISE_YEARLY || '',
         accent: "emerald",
         features: [
             "Vše z Pro",
@@ -175,8 +133,8 @@ export const PRICING_CONFIG = {
             "Onboarding asistence",
             "Excel Indexer - auto tvoření podkladů pro VŘ",
             "Okamžitý přístup k novinkám",
-            "Možnost vlastního vývoje API napojení",
-            "Vývoj modulů na zakázku"
+            "Geokódování kontaktů",
+            "Integrace mapy s kontakty"
         ],
         cta: {
             label: "Kontaktovat",
@@ -188,18 +146,30 @@ export const PRICING_CONFIG = {
 
 export const billingService = {
     /**
-     * Create a Stripe Checkout session for subscription purchase.
-     * 
-     * TODO: Implement when Stripe is integrated
+     * Create a GoPay payment for subscription purchase.
+     * Returns a payment URL to redirect the user to GoPay's hosted checkout.
      */
     createCheckoutSession: async (
         request: CheckoutSessionRequest
     ): Promise<CheckoutSessionResponse> => {
         try {
-            return await invokeAuthedFunction<CheckoutSessionResponse>(
-                'stripe-create-checkout-session',
+            const result = await invokeAuthedFunction<{
+                success: boolean;
+                paymentUrl?: string;
+                paymentId?: string;
+                error?: string;
+            }>(
+                'gopay-create-payment',
                 { body: request },
             );
+
+            return {
+                success: result.success,
+                checkoutUrl: result.paymentUrl,
+                paymentUrl: result.paymentUrl,
+                paymentId: result.paymentId,
+                error: result.error ? mapBillingErrorToUserMessage(result.error) : undefined,
+            };
         } catch (error) {
             return {
                 success: false,
@@ -209,67 +179,29 @@ export const billingService = {
     },
 
     /**
-     * Create a Stripe Billing Portal session for subscription management.
-     * Allows customers to update payment methods, view invoices, cancel, etc.
-     * 
-     * TODO: Implement when Stripe is integrated
+     * Cancel recurring payments via GoPay.
+     * Subscription remains active until the current period ends.
      */
-    createBillingPortalSession: async (options?: {
-        returnUrl?: string;
-    }): Promise<BillingPortalResponse> => {
+    cancelRecurrence: async (): Promise<{
+        success: boolean;
+        message?: string;
+        error?: string;
+    }> => {
         try {
-            return await invokeAuthedFunction<BillingPortalResponse>(
-                'stripe-create-billing-portal-session',
-                { body: options ?? {} },
-            );
-        } catch (error) {
-            return {
-                success: false,
-                error: mapBillingErrorToUserMessage(normalizeErrorMessage(error, 'Platební brána není dostupná.')),
-            };
-        }
-    },
-
-    createSetupIntent: async (): Promise<CreateSetupIntentResponse> => {
-        try {
-            return await invokeAuthedFunction<CreateSetupIntentResponse>(
-                'stripe-create-setup-intent',
+            return await invokeAuthedFunction(
+                'gopay-cancel-subscription',
                 { body: {} },
             );
         } catch (error) {
             return {
                 success: false,
-                error: mapBillingErrorToUserMessage(normalizeErrorMessage(error, 'Nepodařilo se zahájit peněženkovou platbu.')),
-            };
-        }
-    },
-
-    createSubscriptionFromPaymentMethod: async (
-        request: CreateSubscriptionFromPaymentMethodRequest,
-    ): Promise<CreateSubscriptionFromPaymentMethodResponse> => {
-        try {
-            return await invokeAuthedFunction<CreateSubscriptionFromPaymentMethodResponse>(
-                'stripe-create-subscription-from-payment-method',
-                {
-                    body: {
-                        tier: request.tier,
-                        billingPeriod: request.billingPeriod ?? 'monthly',
-                        paymentMethodId: request.paymentMethodId,
-                        idempotencyKey: request.idempotencyKey,
-                    },
-                    idempotencyKey: request.idempotencyKey,
-                },
-            );
-        } catch (error) {
-            return {
-                success: false,
-                error: mapBillingErrorToUserMessage(normalizeErrorMessage(error, 'Nepodařilo se vytvořit předplatné.')),
+                error: mapBillingErrorToUserMessage(normalizeErrorMessage(error, 'Nepodařilo se zrušit opakovanou platbu.')),
             };
         }
     },
 
     /**
-     * Force sync subscription data from Stripe.
+     * Force sync subscription data from GoPay.
      * Use when webhook data is stale or missing.
      */
     syncSubscription: async (): Promise<{
@@ -286,7 +218,7 @@ export const billingService = {
     }> => {
         try {
             return await invokeAuthedFunction(
-                'stripe-sync-subscription',
+                'gopay-sync-subscription',
                 { body: {} },
             );
         } catch (error) {
@@ -298,39 +230,12 @@ export const billingService = {
     },
 
     /**
-     * Handle incoming webhook events from payment provider.
-     * This should be called from a Supabase Edge Function that receives webhooks.
-     * 
-     * Common events to handle:
-     * - checkout.session.completed: Customer completed payment
-     * - customer.subscription.updated: Subscription changed
-     * - customer.subscription.deleted: Subscription cancelled
-     * - invoice.payment_failed: Payment failed
-     * 
-     * TODO: Implement webhook handler Edge Function
-     */
-    handleWebhook: async (_event: WebhookEvent): Promise<WebhookResult> => {
-        console.warn('Billing not configured: handleWebhook called');
-        return {
-            received: true,
-            processed: false,
-            error: 'Webhook handler not implemented',
-        };
-    },
-
-    /**
      * Check if billing is properly configured.
      */
     isBillingConfigured: (): boolean => {
-        // Check for Stripe price IDs or other billing config
-        return [
-            PRICING_CONFIG.starter.stripePriceIdMonthly,
-            PRICING_CONFIG.starter.stripePriceIdYearly,
-            PRICING_CONFIG.pro.stripePriceIdMonthly,
-            PRICING_CONFIG.pro.stripePriceIdYearly,
-            PRICING_CONFIG.enterprise.stripePriceIdMonthly,
-            PRICING_CONFIG.enterprise.stripePriceIdYearly,
-        ].some(Boolean);
+        return Boolean(
+            import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY
+        );
     },
 
     /**
@@ -342,7 +247,7 @@ export const billingService = {
     ): string => {
         let priceInCents: number | null = null;
         if (priceOrTier === null) {
-            priceInCents = priceOrTier;
+            priceInCents = null;
         } else if (typeof priceOrTier === 'number') {
             priceInCents = priceOrTier;
         } else if (priceOrTier === 'starter') {

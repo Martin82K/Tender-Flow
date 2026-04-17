@@ -27,7 +27,7 @@ const createTemplateBuffer = async () => {
   worksheet.getCell("B31").value = "1310/OSM/08";
   worksheet.getCell("C132").value = "BAU-STAV a.s.";
   worksheet.getCell("A120").value = "dodávek v souladu dle SOD č. 1310/OSM/08";
-  const buffer = await workbook.xlsx.writeBuffer();
+  const buffer: ArrayBuffer | ArrayBufferView = await workbook.xlsx.writeBuffer() as ArrayBuffer | ArrayBufferView;
   if (buffer instanceof ArrayBuffer) return buffer;
   if (ArrayBuffer.isView(buffer)) {
     return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);

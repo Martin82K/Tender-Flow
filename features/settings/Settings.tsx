@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Header } from "@/shared/ui/Header";
+import { NotificationBell } from "@features/notifications/ui/NotificationBell";
+import { HelpButton } from "@features/help";
 import { StatusConfig, Subcontractor } from "@/types";
 import { navigate, useLocation } from "@/shared/routing/router";
 import {
@@ -16,11 +18,14 @@ import { ExcelUnlockerProSettings } from "@/features/settings/ExcelUnlockerProSe
 import { ExcelMergerProSettings } from "@/features/settings/ExcelMergerProSettings";
 import { UrlShortener } from "@/features/tools/UrlShortener";
 import { ExcelIndexerSettings } from "@/features/settings/ExcelIndexerSettings";
-import { SubscriptionSettings } from "@/features/settings/SubscriptionSettings";
-import { OrganizationSettings } from "@/features/settings/OrganizationSettings";
+import { OrganizationDashboard } from "@/features/organization/ui/OrganizationDashboard";
+import type { OrgSubTab } from "@/features/organization/model/types";
+import { NotificationSettings } from "@/features/settings/NotificationSettings";
 import { IncidentLogsAdmin } from "@/features/settings/IncidentLogsAdmin";
 import { ComplianceAdmin } from "@/features/settings/ComplianceAdmin";
 import { AdminMfaGuard } from "@/features/settings/AdminMfaGuard";
+import { AdminOrganizationsPanel } from "@/features/settings/AdminOrganizationsPanel";
+import { BackupSettings } from "@/features/backup/ui/BackupSettings";
 
 import { useFeatures } from "@/context/FeatureContext";
 import { FEATURES } from "@/config/features";
@@ -62,15 +67,24 @@ export const Settings: React.FC<SettingsProps> = ({
   const { hasFeature, isLoading: isFeaturesLoading } = useFeatures();
   type UserSubTab =
     | "profile"
-    | "subscription"
+    | "notifications"
+    | "backup";
+  type ToolsSubTab =
     | "contacts"
     | "excelUnlocker"
     | "excelMerger"
     | "urlShortener"
     | "excelIndexer";
+  const USER_SUBTABS: UserSubTab[] = ["profile", "notifications", "backup"];
+  const TOOLS_SUBTABS: ToolsSubTab[] = ["contacts", "excelUnlocker", "excelMerger", "excelIndexer", "urlShortener"];
+  const isToolsSubTab = (v: string | null): v is ToolsSubTab =>
+    !!v && (TOOLS_SUBTABS as string[]).includes(v);
+  const isUserSubTab = (v: string | null): v is UserSubTab =>
+    !!v && (USER_SUBTABS as string[]).includes(v);
   type AdminSubTab =
     | "registration"
     | "users"
+    | "organizations"
     | "subscriptions"
     | "ai"
     | "incidents"
@@ -83,62 +97,100 @@ export const Settings: React.FC<SettingsProps> = ({
     const params = new URLSearchParams(search);
     const tabParam = params.get("tab");
     const subTabParam = params.get("subTab");
-    const tab =
-      tabParam === "admin" || tabParam === "user" || tabParam === "organization"
+    let tab: "user" | "tools" | "organization" | "admin" | null =
+      tabParam === "admin" || tabParam === "user" || tabParam === "organization" || tabParam === "tools"
         ? tabParam
         : null;
+    // Migrate legacy user-tab tools to the new tools tab
+    if (tab === "user" && subTabParam && (TOOLS_SUBTABS as string[]).includes(subTabParam)) {
+      tab = "tools";
+    }
+    // Legacy "tools" subTab under user → tools tab, excelUnlocker
+    if (tab === "user" && subTabParam === "tools") {
+      return { tab: "tools" as const, subTab: "excelUnlocker" };
+    }
     let subTab: string | null = null;
     if (tab === "user") {
+      // Redirect legacy subscription subtab to org billing
+      if (subTabParam === "subscription") {
+        return { tab: "organization" as const, subTab: "billing" };
+      }
       subTab =
         subTabParam === "profile" ||
-        subTabParam === "subscription" ||
+        subTabParam === "notifications" ||
+        subTabParam === "backup"
+          ? subTabParam
+          : null;
+    } else if (tab === "tools") {
+      subTab =
         subTabParam === "contacts" ||
         subTabParam === "excelUnlocker" ||
         subTabParam === "excelMerger" ||
         subTabParam === "urlShortener" ||
         subTabParam === "indexMatcher" ||
-        subTabParam === "excelIndexer" ||
-        subTabParam === "tools" // legacy
+        subTabParam === "excelIndexer"
           ? subTabParam
           : null;
     } else if (tab === "admin") {
       subTab =
         subTabParam === "registration" ||
         subTabParam === "users" ||
+        subTabParam === "organizations" ||
         subTabParam === "subscriptions" ||
         subTabParam === "ai" ||
         subTabParam === "incidents" ||
         subTabParam === "compliance"
           ? subTabParam
           : null;
+    } else if (tab === "organization") {
+      subTab =
+        subTabParam === "overview" ||
+        subTabParam === "members" ||
+        subTabParam === "billing" ||
+        subTabParam === "branding"
+          ? subTabParam
+          : "overview";
     }
     return { tab, subTab };
   }, [search]);
 
   // Internal State for Tabs (Syncs with URL)
-  const [activeTab, setActiveTab] = useState<"user" | "admin" | "organization">(() => {
+  const [activeTab, setActiveTab] = useState<"user" | "tools" | "admin" | "organization">(() => {
     if (settingsRoute.tab === "organization") return "organization";
     if (settingsRoute.tab === "admin" && isAdmin) return "admin";
+    if (settingsRoute.tab === "tools") return "tools";
     return "user";
   });
   const [activeUserSubTab, setActiveUserSubTab] = useState<UserSubTab>(() => {
     if (
-      settingsRoute.subTab === "subscription" ||
-      settingsRoute.subTab === "contacts" ||
-      settingsRoute.subTab === "excelMerger" ||
-      settingsRoute.subTab === "urlShortener" ||
-      settingsRoute.subTab === "indexMatcher" ||
-      settingsRoute.subTab === "excelIndexer"
-    )
+      settingsRoute.tab === "user" &&
+      (settingsRoute.subTab === "notifications" || settingsRoute.subTab === "backup")
+    ) {
       return settingsRoute.subTab;
-    if (settingsRoute.subTab === "excelUnlocker") return settingsRoute.subTab;
-    if (settingsRoute.subTab === "tools") return "excelUnlocker";
+    }
     return "profile";
+  });
+  const [activeToolsSubTab, setActiveToolsSubTab] = useState<ToolsSubTab>(() => {
+    if (
+      settingsRoute.tab === "tools" &&
+      (settingsRoute.subTab === "contacts" ||
+        settingsRoute.subTab === "excelUnlocker" ||
+        settingsRoute.subTab === "excelMerger" ||
+        settingsRoute.subTab === "urlShortener" ||
+        settingsRoute.subTab === "excelIndexer")
+    ) {
+      return settingsRoute.subTab;
+    }
+    if (settingsRoute.tab === "tools" && settingsRoute.subTab === "indexMatcher") {
+      return "excelIndexer";
+    }
+    return "excelUnlocker";
   });
   const [activeAdminSubTab, setActiveAdminSubTab] = useState<AdminSubTab>(
     () => {
       if (
         settingsRoute.subTab === "users" ||
+        settingsRoute.subTab === "organizations" ||
         settingsRoute.subTab === "subscriptions" ||
         settingsRoute.subTab === "ai" ||
         settingsRoute.subTab === "incidents" ||
@@ -150,14 +202,23 @@ export const Settings: React.FC<SettingsProps> = ({
       return "registration";
     },
   );
+  const [activeOrgSubTab, setActiveOrgSubTab] = useState<OrgSubTab>(() => {
+    const sub = settingsRoute.tab === "organization" ? settingsRoute.subTab : null;
+    if (sub === "overview" || sub === "members" || sub === "billing" || sub === "branding") return sub;
+    return "overview";
+  });
 
   const updateSettingsUrl = (
-    next: { tab: "user" | "admin" | "organization"; subTab?: UserSubTab | AdminSubTab },
+    next: { tab: "user" | "tools" | "admin" | "organization"; subTab?: UserSubTab | ToolsSubTab | AdminSubTab | OrgSubTab },
     opts?: { replace?: boolean },
   ) => {
     const params = new URLSearchParams();
     params.set("tab", next.tab);
-    if (next.tab !== "organization") {
+    if (next.tab === "organization") {
+      params.set("subTab", (next.subTab as OrgSubTab) || "overview");
+    } else if (next.tab === "tools") {
+      params.set("subTab", (next.subTab as ToolsSubTab) || "excelUnlocker");
+    } else {
       params.set(
         "subTab",
         next.subTab || (next.tab === "user" ? "profile" : "registration"),
@@ -173,36 +234,60 @@ export const Settings: React.FC<SettingsProps> = ({
   const canExcelMerger = hasFeature(FEATURES.EXCEL_MERGER);
   const canUrlShortener = hasFeature(FEATURES.URL_SHORTENER);
   const canExcelIndexer = hasFeature(FEATURES.EXCEL_INDEXER);
+  const canBackup = hasFeature(FEATURES.DATA_BACKUP);
 
   useEffect(() => {
     if (isFeaturesLoading) return;
-    if (activeTab !== "user") return;
-
-    const isGated =
-      (activeUserSubTab === "contacts" && !canContactsImport) ||
-      (activeUserSubTab === "excelUnlocker" && !canExcelUnlocker) ||
-      (activeUserSubTab === "excelMerger" && !canExcelMerger) ||
-      (activeUserSubTab === "urlShortener" && !canUrlShortener) ||
-      (activeUserSubTab === "excelIndexer" && !canExcelIndexer);
-
-    if (!isGated) return;
-
-    setActiveUserSubTab("profile");
-    updateSettingsUrl({ tab: "user", subTab: "profile" }, { replace: true });
+    if (activeTab === "user") {
+      if (activeUserSubTab === "backup" && !canBackup) {
+        setActiveUserSubTab("profile");
+        updateSettingsUrl({ tab: "user", subTab: "profile" }, { replace: true });
+      }
+      return;
+    }
+    if (activeTab === "tools") {
+      const isGated =
+        (activeToolsSubTab === "contacts" && !canContactsImport) ||
+        (activeToolsSubTab === "excelUnlocker" && !canExcelUnlocker) ||
+        (activeToolsSubTab === "excelMerger" && !canExcelMerger) ||
+        (activeToolsSubTab === "urlShortener" && !canUrlShortener) ||
+        (activeToolsSubTab === "excelIndexer" && !canExcelIndexer);
+      if (!isGated) return;
+      // Fall back to any accessible tools sub-tab, else redirect to user/profile
+      const firstAvailable =
+        (canExcelUnlocker && "excelUnlocker") ||
+        (canExcelMerger && "excelMerger") ||
+        (canExcelIndexer && "excelIndexer") ||
+        (canContactsImport && "contacts") ||
+        (canUrlShortener && "urlShortener") ||
+        null;
+      if (firstAvailable) {
+        setActiveToolsSubTab(firstAvailable as ToolsSubTab);
+        updateSettingsUrl({ tab: "tools", subTab: firstAvailable as ToolsSubTab }, { replace: true });
+      } else {
+        setActiveTab("user");
+        setActiveUserSubTab("profile");
+        updateSettingsUrl({ tab: "user", subTab: "profile" }, { replace: true });
+      }
+    }
   }, [
     activeTab,
     activeUserSubTab,
+    activeToolsSubTab,
     canContactsImport,
     canExcelMerger,
     canExcelUnlocker,
     canUrlShortener,
     canExcelIndexer,
+    canBackup,
     isFeaturesLoading,
   ]);
 
   useEffect(() => {
     if (settingsRoute.tab === "organization") {
       if (activeTab !== "organization") setActiveTab("organization");
+      const orgSub = settingsRoute.subTab as OrgSubTab;
+      if (orgSub && orgSub !== activeOrgSubTab) setActiveOrgSubTab(orgSub);
       return;
     }
 
@@ -215,23 +300,32 @@ export const Settings: React.FC<SettingsProps> = ({
       return;
     }
 
+    if (settingsRoute.tab === "tools") {
+      if (activeTab !== "tools") setActiveTab("tools");
+      const sub = settingsRoute.subTab === "indexMatcher"
+        ? "excelIndexer"
+        : settingsRoute.subTab;
+      if (isToolsSubTab(sub) && sub !== activeToolsSubTab) {
+        setActiveToolsSubTab(sub);
+      }
+      return;
+    }
+
     // Default to user tab
     if (activeTab !== "user") setActiveTab("user");
 
-    if (settingsRoute.subTab) {
-      const normalizedSubTab =
-        settingsRoute.subTab === "tools"
-          ? "excelUnlocker"
-          : (settingsRoute.subTab as any);
-      if (normalizedSubTab !== activeUserSubTab)
-        setActiveUserSubTab(normalizedSubTab);
+    if (settingsRoute.subTab && isUserSubTab(settingsRoute.subTab)) {
+      if (settingsRoute.subTab !== activeUserSubTab)
+        setActiveUserSubTab(settingsRoute.subTab);
     } else if (activeUserSubTab !== "profile") {
       setActiveUserSubTab("profile");
     }
   }, [
     activeAdminSubTab,
+    activeOrgSubTab,
     activeTab,
     activeUserSubTab,
+    activeToolsSubTab,
     isAdmin,
     settingsRoute.subTab,
     settingsRoute.tab,
@@ -241,15 +335,17 @@ export const Settings: React.FC<SettingsProps> = ({
   // Render
   // -------------------------------------------------------------------------
   return (
-    <div className="flex flex-col h-full bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen overflow-y-auto">
+    <div className="flex flex-col h-full bg-background-light dark:bg-background-dark min-h-screen overflow-y-auto">
       <Header
         title="Nastavení"
         subtitle="Konfigurace aplikace a správa staveb"
+        helpSlot={<HelpButton />}
+        notificationSlot={<NotificationBell />}
       />
 
       <div className="p-4 lg:p-6 xl:p-8 w-full pb-20">
         {/* Main Tab Navigation (Top Level) */}
-        <div className="flex items-center gap-4 mb-8 border-b border-slate-200 dark:border-slate-700/50">
+        <div data-help-id="settings-main-tabs" className="flex items-center gap-4 mb-8 border-b border-slate-200 dark:border-slate-700/50">
           <button
             onClick={() => {
               setActiveTab("user");
@@ -265,8 +361,21 @@ export const Settings: React.FC<SettingsProps> = ({
           </button>
           <button
             onClick={() => {
+              setActiveTab("tools");
+              updateSettingsUrl({ tab: "tools", subTab: activeToolsSubTab });
+            }}
+            className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${
+              activeTab === "tools"
+                ? "border-primary text-primary"
+                : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+            }`}
+          >
+            Nástroje
+          </button>
+          <button
+            onClick={() => {
               setActiveTab("organization");
-              updateSettingsUrl({ tab: "organization" });
+              updateSettingsUrl({ tab: "organization", subTab: activeOrgSubTab });
             }}
             className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${
               activeTab === "organization"
@@ -296,7 +405,13 @@ export const Settings: React.FC<SettingsProps> = ({
         {/* --- ADMIN TAB CONTENT --- */}
         {activeTab === "organization" && (
           <div className="animate-fadeIn">
-            <OrganizationSettings />
+            <OrganizationDashboard
+              activeSubTab={activeOrgSubTab}
+              onSubTabChange={(tab) => {
+                setActiveOrgSubTab(tab);
+                updateSettingsUrl({ tab: "organization", subTab: tab });
+              }}
+            />
           </div>
         )}
 
@@ -341,6 +456,23 @@ export const Settings: React.FC<SettingsProps> = ({
                   </div>
                 </button>
 
+                <button
+                  onClick={() =>
+                    updateSettingsUrl({ tab: "admin", subTab: "organizations" })
+                  }
+                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                    activeAdminSubTab === "organizations"
+                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[20px]">
+                      domain
+                    </span>
+                    Organizace
+                  </div>
+                </button>
 
                 <button
                   onClick={() =>
@@ -423,6 +555,9 @@ export const Settings: React.FC<SettingsProps> = ({
                 {activeAdminSubTab === "users" && (
                   <AdminSettings isAdmin={isAdmin} section="users" />
                 )}
+                {activeAdminSubTab === "organizations" && (
+                  <AdminOrganizationsPanel />
+                )}
                 {activeAdminSubTab === "subscriptions" && (
                   <AdminSettings isAdmin={isAdmin} section="subscriptions" />
                 )}
@@ -464,125 +599,42 @@ export const Settings: React.FC<SettingsProps> = ({
 
                 <button
                   onClick={() =>
-                    updateSettingsUrl({ tab: "user", subTab: "subscription" })
+                    updateSettingsUrl({ tab: "user", subTab: "notifications" })
                   }
                   className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
-                    activeUserSubTab === "subscription"
+                    activeUserSubTab === "notifications"
                       ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
                       : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
                   }`}
                 >
                   <div className="flex items-center gap-3">
                     <span className="material-symbols-outlined text-[20px]">
-                      credit_card
+                      notifications
                     </span>
-                    Předplatné
+                    Notifikace
                   </div>
                 </button>
 
-                {canContactsImport && (
+                {canBackup && (
                   <button
                     onClick={() =>
-                      updateSettingsUrl({ tab: "user", subTab: "contacts" })
+                      updateSettingsUrl({ tab: "user", subTab: "backup" })
                     }
                     className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
-                      activeUserSubTab === "contacts"
+                      activeUserSubTab === "backup"
                         ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
                         : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
                     }`}
                   >
                     <div className="flex items-center gap-3">
                       <span className="material-symbols-outlined text-[20px]">
-                        import_contacts
+                        backup
                       </span>
-                      Import Kontaktů
+                      Záloha a obnova
                     </div>
                   </button>
                 )}
 
-                {canExcelUnlocker && (
-                  <button
-                    onClick={() =>
-                      updateSettingsUrl({
-                        tab: "user",
-                        subTab: "excelUnlocker",
-                      })
-                    }
-                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
-                      activeUserSubTab === "excelUnlocker"
-                        ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                        : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="material-symbols-outlined text-[20px]">
-                        lock_open
-                      </span>
-                      Excel Unlocker PRO
-                    </div>
-                  </button>
-                )}
-
-                {canExcelMerger && (
-                  <button
-                    onClick={() =>
-                      updateSettingsUrl({ tab: "user", subTab: "excelMerger" })
-                    }
-                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
-                      activeUserSubTab === "excelMerger"
-                        ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                        : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="material-symbols-outlined text-[20px]">
-                        table_view
-                      </span>
-                      Excel Merger PRO
-                    </div>
-                  </button>
-                )}
-
-                {canExcelIndexer && (
-                  <button
-                    onClick={() =>
-                      updateSettingsUrl({ tab: "user", subTab: "excelIndexer" })
-                    }
-                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
-                      activeUserSubTab === "excelIndexer" ||
-                      activeUserSubTab === "indexMatcher"
-                        ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                        : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="material-symbols-outlined text-[20px]">
-                        join_inner
-                      </span>
-                      Excel Indexer
-                    </div>
-                  </button>
-                )}
-
-                {canUrlShortener && (
-                  <button
-                    onClick={() =>
-                      updateSettingsUrl({ tab: "user", subTab: "urlShortener" })
-                    }
-                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
-                      activeUserSubTab === "urlShortener"
-                        ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                        : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="material-symbols-outlined text-[20px]">
-                        link
-                      </span>
-                      URL Zkracovač
-                    </div>
-                  </button>
-                )}
               </nav>
             </aside>
 
@@ -602,57 +654,127 @@ export const Settings: React.FC<SettingsProps> = ({
                 />
               )}
 
-              {activeUserSubTab === "subscription" && <SubscriptionSettings />}
+              {activeUserSubTab === "notifications" && <NotificationSettings />}
 
-              {activeUserSubTab === "contacts" && canContactsImport && (
+              {activeUserSubTab === "backup" && canBackup && (
+                <BackupSettings />
+              )}
+            </main>
+          </div>
+        )}
+
+        {/* --- TOOLS TAB CONTENT --- */}
+        {activeTab === "tools" && (
+          <div className="flex flex-col md:flex-row gap-8 animate-fadeIn">
+            <aside className="w-full md:w-64 flex-shrink-0">
+              <nav className="flex flex-col gap-2">
+                {canContactsImport && (
+                  <button
+                    onClick={() => updateSettingsUrl({ tab: "tools", subTab: "contacts" })}
+                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                      activeToolsSubTab === "contacts"
+                        ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                        : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="material-symbols-outlined text-[20px]">import_contacts</span>
+                      Import Kontaktů
+                    </div>
+                  </button>
+                )}
+                {canExcelUnlocker && (
+                  <button
+                    onClick={() => updateSettingsUrl({ tab: "tools", subTab: "excelUnlocker" })}
+                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                      activeToolsSubTab === "excelUnlocker"
+                        ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                        : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="material-symbols-outlined text-[20px]">lock_open</span>
+                      Excel Unlocker PRO
+                    </div>
+                  </button>
+                )}
+                {canExcelMerger && (
+                  <button
+                    onClick={() => updateSettingsUrl({ tab: "tools", subTab: "excelMerger" })}
+                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                      activeToolsSubTab === "excelMerger"
+                        ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                        : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="material-symbols-outlined text-[20px]">table_view</span>
+                      Excel Merger PRO
+                    </div>
+                  </button>
+                )}
+                {canExcelIndexer && (
+                  <button
+                    onClick={() => updateSettingsUrl({ tab: "tools", subTab: "excelIndexer" })}
+                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                      activeToolsSubTab === "excelIndexer"
+                        ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                        : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="material-symbols-outlined text-[20px]">join_inner</span>
+                      Excel Indexer
+                    </div>
+                  </button>
+                )}
+                {canUrlShortener && (
+                  <button
+                    onClick={() => updateSettingsUrl({ tab: "tools", subTab: "urlShortener" })}
+                    className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                      activeToolsSubTab === "urlShortener"
+                        ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                        : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="material-symbols-outlined text-[20px]">link</span>
+                      URL Zkracovač
+                    </div>
+                  </button>
+                )}
+              </nav>
+            </aside>
+
+            <main className="flex-1 min-w-0 overflow-x-hidden">
+              {activeToolsSubTab === "contacts" && canContactsImport && (
                 <section className="space-y-6">
                   <div className="pb-4 border-b border-slate-200 dark:border-slate-800 flex flex-col gap-1">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-blue-500">
-                          contacts
-                        </span>
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-                          Správa kontaktů
-                        </h2>
-                      </div>
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-blue-500">contacts</span>
+                      <h2 className="text-xl font-bold text-slate-900 dark:text-white">Správa kontaktů</h2>
                     </div>
-                    <p className="text-sm text-slate-500">
-                      Import a export databáze dodavatelů a kontaktů
-                    </p>
+                    <p className="text-sm text-slate-500">Import a export databáze dodavatelů a kontaktů</p>
                   </div>
 
-                  {/* Export Section */}
                   <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50 rounded-xl p-6">
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                      <span className="material-symbols-outlined text-emerald-500">
-                        download
-                      </span>
+                      <span className="material-symbols-outlined text-emerald-500">download</span>
                       Export databáze
                     </h3>
                     <p className="text-sm text-slate-500 mb-6 max-w-2xl">
-                      Stáhněte si kompletní databázi kontaktů ve formátu Excel
-                      nebo CSV. Export obsahuje všechny dodavatele, kontaktní
-                      osoby a detaily.
+                      Stáhněte si kompletní databázi kontaktů ve formátu Excel nebo CSV. Export obsahuje všechny dodavatele, kontaktní osoby a detaily.
                     </p>
-
                     <div className="flex flex-wrap gap-3">
                       <button
-                        onClick={() =>
-                          exportContactsToXLSX(contacts, contactStatuses)
-                        }
+                        onClick={() => exportContactsToXLSX(contacts, contactStatuses)}
                         className="flex items-center gap-2 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20 rounded-lg font-medium border border-emerald-200 dark:border-emerald-500/20 transition-all hover:shadow-sm"
                       >
-                        <span className="material-symbols-outlined">
-                          table_view
-                        </span>
+                        <span className="material-symbols-outlined">table_view</span>
                         Stáhnout Excel (.xlsx)
                       </button>
-
                       <button
-                        onClick={() =>
-                          exportContactsToCSV(contacts, contactStatuses)
-                        }
+                        onClick={() => exportContactsToCSV(contacts, contactStatuses)}
                         className="flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700/50 rounded-lg font-medium border border-slate-200 dark:border-slate-700 transition-all hover:shadow-sm"
                       >
                         <span className="material-symbols-outlined">csv</span>
@@ -661,37 +783,20 @@ export const Settings: React.FC<SettingsProps> = ({
                     </div>
                   </div>
 
-                  {/* Import Section */}
                   <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50 rounded-xl p-6">
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                      <span className="material-symbols-outlined text-blue-500">
-                        upload
-                      </span>
+                      <span className="material-symbols-outlined text-blue-500">upload</span>
                       Import kontaktů
                     </h3>
-                    <ContactsImportWizard
-                      onImport={onImportContacts}
-                      existingContacts={contacts}
-                    />
+                    <ContactsImportWizard onImport={onImportContacts} existingContacts={contacts} />
                   </div>
                 </section>
               )}
 
-              {activeUserSubTab === "excelUnlocker" && canExcelUnlocker && (
-                <ExcelUnlockerProSettings />
-              )}
-
-              {activeUserSubTab === "excelMerger" && canExcelMerger && (
-                <ExcelMergerProSettings />
-              )}
-
-              {activeUserSubTab === "urlShortener" && canUrlShortener && (
-                <UrlShortener />
-              )}
-
-              {(activeUserSubTab === "excelIndexer" ||
-                activeUserSubTab === "indexMatcher") &&
-                canExcelIndexer && <ExcelIndexerSettings />}
+              {activeToolsSubTab === "excelUnlocker" && canExcelUnlocker && <ExcelUnlockerProSettings />}
+              {activeToolsSubTab === "excelMerger" && canExcelMerger && <ExcelMergerProSettings />}
+              {activeToolsSubTab === "urlShortener" && canUrlShortener && <UrlShortener />}
+              {activeToolsSubTab === "excelIndexer" && canExcelIndexer && <ExcelIndexerSettings />}
             </main>
           </div>
         )}

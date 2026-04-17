@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import type { ContractDetails, InvestorFinancials, ProjectDetails } from "@/types";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { Amendment, ContractDetails, InvestorFinancials, ProjectDetails } from "@/types";
 import {
   buildDemandTableData,
   calculateOverviewFinancials,
@@ -28,6 +28,7 @@ interface InfoFormState {
   investor: string;
   technicalSupervisor: string;
   location: string;
+  address: string;
   finishDate: string;
   siteManager: string;
   constructionManager: string;
@@ -36,11 +37,13 @@ interface InfoFormState {
 
 interface InternalFormState {
   plannedCost: number;
+  internalAmendments: Amendment[];
 }
 
 interface UseProjectOverviewNewControllerInput {
   project: ProjectDetails;
   onUpdate: (updates: Partial<ProjectDetails>) => void;
+  onAddressChanged?: (address: string, location: string) => void;
   userId?: string;
   searchQuery: string;
 }
@@ -49,6 +52,7 @@ const buildInfoForm = (project: ProjectDetails): InfoFormState => ({
   investor: project.investor || "",
   technicalSupervisor: project.technicalSupervisor || "",
   location: project.location || "",
+  address: project.address || "",
   finishDate: project.finishDate || "",
   siteManager: project.siteManager || "",
   constructionManager: project.constructionManager || "",
@@ -58,9 +62,13 @@ const buildInfoForm = (project: ProjectDetails): InfoFormState => ({
 export const useProjectOverviewNewController = ({
   project,
   onUpdate,
+  onAddressChanged,
   userId,
   searchQuery,
 }: UseProjectOverviewNewControllerInput) => {
+  const projectIdentity = project.id || `${project.title}:${project.location}`;
+  const previousProjectIdentityRef = useRef(projectIdentity);
+
   const contract = project.contract;
   const investor = project.investorFinancials || DEFAULT_INVESTOR;
   const plannedCost = project.plannedCost || 0;
@@ -90,6 +98,7 @@ export const useProjectOverviewNewController = ({
   );
   const [internalForm, setInternalForm] = useState<InternalFormState>({
     plannedCost,
+    internalAmendments: project.internalAmendments || [],
   });
 
   useEffect(() => {
@@ -115,6 +124,32 @@ export const useProjectOverviewNewController = ({
   }, [visibleColumns, isLoaded, userId]);
 
   useEffect(() => {
+    const projectChanged = previousProjectIdentityRef.current !== projectIdentity;
+
+    if (projectChanged) {
+      previousProjectIdentityRef.current = projectIdentity;
+      setEditingInfo(false);
+      setEditingContract(false);
+      setEditingInvestor(false);
+      setEditingInternal(false);
+      setInfoForm(buildInfoForm(project));
+      setContractForm(
+        project.contract || {
+          maturity: 30,
+          warranty: 0,
+          retention: "",
+          siteFacilities: 0,
+          insurance: 0,
+        },
+      );
+      setInvestorForm(project.investorFinancials || DEFAULT_INVESTOR);
+      setInternalForm({
+        plannedCost: project.plannedCost || 0,
+        internalAmendments: project.internalAmendments || [],
+      });
+      return;
+    }
+
     if (!editingInfo) {
       setInfoForm(buildInfoForm(project));
     }
@@ -134,9 +169,10 @@ export const useProjectOverviewNewController = ({
     if (!editingInternal) {
       setInternalForm({
         plannedCost: project.plannedCost || 0,
+        internalAmendments: project.internalAmendments || [],
       });
     }
-  }, [project, editingInfo, editingContract, editingInvestor, editingInternal]);
+  }, [project, projectIdentity, editingInfo, editingContract, editingInvestor, editingInternal]);
 
   const {
     totalBudget,
@@ -144,6 +180,8 @@ export const useProjectOverviewNewController = ({
     completedTasks,
     plannedBalance,
     progress,
+    internalAmendmentsTotal,
+    totalPlannedCost,
   } = useMemo(
     () => calculateOverviewFinancials(project, plannedCost),
     [project, plannedCost],
@@ -204,16 +242,24 @@ export const useProjectOverviewNewController = ({
   );
 
   const handleSaveInfo = () => {
-    onUpdate({
+    const updates: Partial<ProjectDetails> = {
       investor: infoForm.investor,
       technicalSupervisor: infoForm.technicalSupervisor,
       location: infoForm.location,
+      address: infoForm.address,
       finishDate: infoForm.finishDate,
       siteManager: infoForm.siteManager,
       constructionManager: infoForm.constructionManager,
       constructionTechnician: infoForm.constructionTechnician,
-    });
+    };
+    onUpdate(updates);
     setEditingInfo(false);
+
+    // Notify parent about address change so it can trigger geocoding
+    const addressChanged = infoForm.address !== (project.address || '') || infoForm.location !== (project.location || '');
+    if (addressChanged && (infoForm.address || infoForm.location) && onAddressChanged) {
+      onAddressChanged(infoForm.address, infoForm.location);
+    }
   };
 
   const handleSaveContract = () => {
@@ -227,7 +273,10 @@ export const useProjectOverviewNewController = ({
   };
 
   const handleSaveInternal = () => {
-    onUpdate({ plannedCost: internalForm.plannedCost });
+    onUpdate({
+      plannedCost: internalForm.plannedCost,
+      internalAmendments: internalForm.internalAmendments,
+    });
     setEditingInternal(false);
   };
 
@@ -258,6 +307,35 @@ export const useProjectOverviewNewController = ({
   const removeAmendment = (index: number) => {
     const nextAmendments = investorForm.amendments.filter((_, i) => i !== index);
     setInvestorForm({ ...investorForm, amendments: nextAmendments });
+  };
+
+  const addInternalAmendment = () => {
+    setInternalForm((prev) => ({
+      ...prev,
+      internalAmendments: [
+        ...prev.internalAmendments,
+        {
+          id: `ia${Date.now()}`,
+          label: `Dodatek č.${prev.internalAmendments.length + 1}`,
+          price: 0,
+        },
+      ],
+    }));
+  };
+
+  const updateInternalAmendment = (
+    index: number,
+    field: "label" | "price",
+    value: string | number,
+  ) => {
+    const next = [...internalForm.internalAmendments];
+    next[index] = { ...next[index], [field]: value };
+    setInternalForm({ ...internalForm, internalAmendments: next });
+  };
+
+  const removeInternalAmendment = (index: number) => {
+    const next = internalForm.internalAmendments.filter((_, i) => i !== index);
+    setInternalForm({ ...internalForm, internalAmendments: next });
   };
 
   const toggleColumn = (column: keyof ProjectOverviewVisibleColumns) => {
@@ -303,6 +381,11 @@ export const useProjectOverviewNewController = ({
     addAmendment,
     updateAmendment,
     removeAmendment,
+    addInternalAmendment,
+    updateInternalAmendment,
+    removeInternalAmendment,
+    internalAmendmentsTotal,
+    totalPlannedCost,
     filteredCategories,
     sodCount,
     openCount,

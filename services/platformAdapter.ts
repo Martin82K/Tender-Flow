@@ -8,6 +8,8 @@ import type {
     FolderInfo,
     FileInfo,
     FolderSnapshot,
+    BackupSettingsInfo,
+    BackupFileEntry,
     BidComparisonDetectionResult,
     BidComparisonStartInput,
     BidComparisonStartResult,
@@ -129,6 +131,17 @@ export const fileSystemAdapter = {
             return window.electronAPI.fs.renameFolder(oldPath, newPath);
         }
         return { success: false, error: 'Folder renaming not available on web.' };
+    },
+
+    /**
+     * Grant access to a folder path outside default allowed roots (desktop only).
+     * Used for paths on non-system drives (e.g. D:\, network shares).
+     */
+    async grantAccess(folderPath: string): Promise<boolean> {
+        if (isDesktop && window.electronAPI?.fs?.grantAccess) {
+            return window.electronAPI.fs.grantAccess(folderPath);
+        }
+        return false;
     },
 };
 
@@ -264,6 +277,8 @@ export interface UpdateStatusInfo {
     status: 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error';
     version?: string;
     percent?: number;
+    transferred?: number;
+    total?: number;
     error?: string;
 }
 
@@ -277,7 +292,6 @@ export interface McpStatusInfo {
 
 export interface OAuthGoogleLoginArgs {
     clientId: string;
-    clientSecret?: string;
     scopes: string[];
 }
 
@@ -321,6 +335,8 @@ export const updaterAdapter = {
                 status: status.status,
                 version: status.info?.version,
                 percent: status.progress?.percent,
+                transferred: status.progress?.transferred,
+                total: status.progress?.total,
                 error: status.error,
             };
         }
@@ -334,6 +350,8 @@ export const updaterAdapter = {
                     status: status.status,
                     version: status.info?.version,
                     percent: status.progress?.percent,
+                    transferred: status.progress?.transferred,
+                    total: status.progress?.total,
                     error: status.error,
                 });
             });
@@ -516,13 +534,27 @@ export const sessionAdapter = {
     },
 
     /**
-     * Get stored session credentials
+     * Get stored session credentials.
+     * When biometric is enabled on desktop, this returns null — use getCredentialsWithBiometric instead.
      */
     async getCredentials(): Promise<{ refreshToken: string; email: string } | null> {
         if (isDesktop && window.electronAPI && window.electronAPI.session) {
             return window.electronAPI.session.getCredentials();
         }
 
+        return readWebSessionCredentials();
+    },
+
+    /**
+     * Get credentials with biometric verification (desktop only).
+     * The biometric check runs atomically in the main process — the renderer
+     * cannot skip the prompt and access credentials directly.
+     */
+    async getCredentialsWithBiometric(reason: string): Promise<{ refreshToken: string; email: string } | null> {
+        if (isDesktop && window.electronAPI?.session?.getCredentialsWithBiometric) {
+            return window.electronAPI.session.getCredentialsWithBiometric(reason);
+        }
+        // Fallback for web: no biometric, return regular credentials
         return readWebSessionCredentials();
     },
 
@@ -641,6 +673,117 @@ export const shellAdapter = {
     },
 };
 
+/**
+ * Desktop Notification Adapter
+ * Shows native OS notifications on desktop, Web Notifications API on web
+ */
+export const desktopNotificationAdapter = {
+    async show(title: string, body?: string): Promise<void> {
+        if (isDesktop && window.electronAPI?.notification) {
+            await window.electronAPI.notification.show({ title, body });
+        } else if ("Notification" in window && Notification.permission === "granted") {
+            new Notification(title, { body });
+        }
+    },
+
+    async requestPermission(): Promise<boolean> {
+        if (isDesktop) return true; // Electron doesn't need permission
+        if (!("Notification" in window)) return false;
+        if (Notification.permission === "granted") return true;
+        if (Notification.permission === "denied") return false;
+        const result = await Notification.requestPermission();
+        return result === "granted";
+    },
+};
+
+/**
+ * Backup Adapter
+ * Local backup file management on desktop
+ */
+export const backupAdapter = {
+    isAvailable(): boolean {
+        return !!(isDesktop && window.electronAPI?.backup);
+    },
+
+    async getSettings(): Promise<BackupSettingsInfo> {
+        if (isDesktop && window.electronAPI?.backup) {
+            return window.electronAPI.backup.getSettings();
+        }
+        return { enabled: false, backupFolderPath: '', lastBackupAt: null, lastBackupError: null, scheduledTime: '03:00' };
+    },
+
+    async setEnabled(enabled: boolean): Promise<void> {
+        if (isDesktop && window.electronAPI?.backup) {
+            return window.electronAPI.backup.setEnabled(enabled);
+        }
+    },
+
+    async setScheduledTime(time: string): Promise<void> {
+        if (isDesktop && window.electronAPI?.backup) {
+            return window.electronAPI.backup.setScheduledTime(time);
+        }
+    },
+
+    async save(jsonContent: string, backupType: 'user' | 'tenant' | 'contacts', organizationId: string): Promise<string> {
+        if (isDesktop && window.electronAPI?.backup) {
+            return window.electronAPI.backup.save(jsonContent, backupType, organizationId);
+        }
+        throw new Error('Záloha je dostupná pouze v desktop aplikaci.');
+    },
+
+    async read(filePath: string): Promise<string> {
+        if (isDesktop && window.electronAPI?.backup) {
+            return window.electronAPI.backup.read(filePath);
+        }
+        throw new Error('Záloha je dostupná pouze v desktop aplikaci.');
+    },
+
+    async list(): Promise<BackupFileEntry[]> {
+        if (isDesktop && window.electronAPI?.backup) {
+            return window.electronAPI.backup.list();
+        }
+        return [];
+    },
+
+    async getFolder(): Promise<string> {
+        if (isDesktop && window.electronAPI?.backup) {
+            return window.electronAPI.backup.getFolder();
+        }
+        return '';
+    },
+
+    async openFolder(): Promise<{ success: boolean; error?: string }> {
+        if (isDesktop && window.electronAPI?.backup) {
+            return window.electronAPI.backup.openFolder();
+        }
+        return { success: false, error: 'Dostupné pouze v desktop aplikaci.' };
+    },
+
+    async clean(): Promise<number> {
+        if (isDesktop && window.electronAPI?.backup) {
+            return window.electronAPI.backup.clean();
+        }
+        return 0;
+    },
+};
+
+/**
+ * Auth State Notification Adapter
+ * Notifies the main process about renderer auth state changes (desktop only).
+ * This enables the IPC auth guard in the main process.
+ */
+export const authNotificationAdapter = {
+    async setAuthenticated(authenticated: boolean): Promise<void> {
+        if (isDesktop && window.electronAPI?.auth?.setAuthenticated) {
+            try {
+                await window.electronAPI.auth.setAuthenticated(authenticated);
+            } catch (e) {
+                console.warn('[authNotificationAdapter] Failed to notify main process:', e);
+            }
+        }
+    },
+};
+
 // Combined platform adapter
 export const platformAdapter = {
     isDesktop,
@@ -658,6 +801,9 @@ export const platformAdapter = {
     biometric: biometricAdapter,
     session: sessionAdapter,
     shell: shellAdapter,
+    notification: desktopNotificationAdapter,
+    backup: backupAdapter,
+    auth: authNotificationAdapter,
 };
 
 export default platformAdapter;

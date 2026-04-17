@@ -4,10 +4,12 @@
  */
 
 import { useState, useEffect } from "react";
-import { hexToRgb } from "../utils/helpers";
+import { hexToRgb, mixHexColors } from "../utils/helpers";
 import type { User } from "../types";
 
 export type ThemeMode = 'light' | 'dark' | 'system';
+
+const DEFAULT_DARK_BACKGROUND = "#0f172a";
 
 export interface ThemeState {
     theme: ThemeMode;
@@ -113,19 +115,30 @@ export const useTheme = (options: UseThemeOptions = {}): UseThemeReturn => {
         }
     }, [theme]);
 
-    // Update primary color CSS variable
+    // Update primary color CSS variable — only when user preferences are provided
+    // to prevent instances without user context from resetting the color to default
     useEffect(() => {
-        document.documentElement.style.setProperty(
-            "--color-primary",
-            hexToRgb(primaryColor)
-        );
-    }, [primaryColor]);
+        if (user?.preferences?.primaryColor || primaryColor !== '#607AFB') {
+            document.documentElement.style.setProperty(
+                "--color-primary",
+                hexToRgb(primaryColor)
+            );
+        }
+    }, [primaryColor, user]);
 
     // Update background CSS variable
     useEffect(() => {
         document.documentElement.style.setProperty(
             "--color-background",
             backgroundColor
+        );
+        document.documentElement.style.setProperty(
+            "--color-background-light",
+            backgroundColor
+        );
+        document.documentElement.style.setProperty(
+            "--color-background-dark",
+            mixHexColors(backgroundColor, DEFAULT_DARK_BACKGROUND, 0.22)
         );
     }, [backgroundColor]);
 

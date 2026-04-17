@@ -1,10 +1,12 @@
-import { app, BrowserWindow, ipcMain, dialog, shell, session } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, shell, session, nativeImage } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import { registerIpcHandlers } from './ipc/handlers';
 import { getAutoUpdaterService } from './services/autoUpdater';
 import { startMcpServer } from './services/mcpServer';
-import { buildDesktopCsp } from './services/csp';
+import { buildDesktopCsp, shouldInjectDesktopCsp } from './services/csp';
+import { buildMainWindowWebPreferences } from './services/windowSecurity';
+import { ipcAuthGuard } from './services/ipcAuthGuard';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {
@@ -15,6 +17,13 @@ let mainWindow: BrowserWindow | null = null;
 let mcpServerStop: (() => Promise<void>) | null = null;
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+
+// Suppress Electron security warnings in dev mode.
+// In dev, Vite HMR requires 'unsafe-eval' in CSP which triggers the warning.
+// Production builds do NOT include unsafe-eval.
+if (isDev) {
+    process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = 'true';
+}
 
 const ALLOWED_EXTERNAL_PROTOCOLS = new Set(['https:', 'mailto:']);
 const ALLOWED_EXTERNAL_HOSTS = new Set([
@@ -57,12 +66,23 @@ const configureCachePaths = (): void => {
 
 configureCachePaths();
 
+if (isDev) {
+    app.commandLine.appendSwitch('disable-http-cache');
+}
+
 function createWindow(): void {
     // Configure session to allow Supabase API calls
     const defaultSession = session.defaultSession;
 
     // Set CSP for desktop renderer (stricter in production)
     defaultSession.webRequest.onHeadersReceived((details, callback) => {
+        if (!shouldInjectDesktopCsp(details.url, isDev)) {
+            callback({
+                responseHeaders: details.responseHeaders,
+            });
+            return;
+        }
+
         const csp = buildDesktopCsp(isDev);
         callback({
             responseHeaders: {
@@ -77,26 +97,16 @@ function createWindow(): void {
         height: 900,
         minWidth: 1024,
         minHeight: 700,
-        // icon: path.join(__dirname, process.platform === 'darwin' ? '../../assets/icon.icns' : '../../assets/icon.ico'),
         icon: (() => {
             const iconPath = path.join(__dirname, process.platform === 'darwin' ? '../../assets/icon.icns' : '../../assets/icon.ico');
-            console.log('Resolving icon path:', iconPath);
             try {
-                require('fs').accessSync(iconPath);
-                console.log('Icon file exists and is accessible');
-                return iconPath;
-            } catch (error) {
-                console.error('Icon file not accessible:', error);
-                return undefined; // Fallback to no icon to prevent crash
+                const icon = nativeImage.createFromPath(iconPath);
+                return icon.isEmpty() ? undefined : icon;
+            } catch {
+                return undefined;
             }
         })(),
-        webPreferences: {
-            preload: path.join(__dirname, 'preload.js'),
-            contextIsolation: true,
-            nodeIntegration: false,
-            sandbox: false, // Disabled to allow fetch requests on Windows
-            webSecurity: !isDev, // Disable web security in dev mode for easier testing
-        },
+        webPreferences: buildMainWindowWebPreferences(path.join(__dirname, 'preload.js')),
         titleBarStyle: 'hiddenInset', // macOS native feel
         trafficLightPosition: { x: 15, y: 15 },
         show: false, // Show when ready
@@ -108,8 +118,12 @@ function createWindow(): void {
     if (process.platform === 'darwin') {
         const iconPath = path.join(__dirname, '../../assets/icon.icns');
         try {
-            require('fs').accessSync(iconPath);
-            app.dock?.setIcon(iconPath);
+            const icon = nativeImage.createFromPath(iconPath);
+            if (!icon.isEmpty()) {
+                app.dock?.setIcon(icon);
+            } else {
+                console.warn('Dock icon loaded but is empty:', iconPath);
+            }
         } catch (error) {
             console.error('Dock icon not accessible:', error);
         }
@@ -138,7 +152,11 @@ function createWindow(): void {
         return { action: 'deny' };
     });
 
+    // Register main window with IPC auth guard
+    ipcAuthGuard.setMainWindow(mainWindow);
+
     mainWindow.on('closed', () => {
+        ipcAuthGuard.setAuthenticated(false);
         mainWindow = null;
     });
 

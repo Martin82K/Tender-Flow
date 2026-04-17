@@ -1,5 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Header } from "@/shared/ui/Header";
+import { NotificationBell } from "@features/notifications/ui/NotificationBell";
+import { HelpButton } from "@features/help";
 import { Pipeline } from "@/shared/ui/projects/Pipeline";
 import { TenderPlan } from "@/shared/ui/projects/TenderPlan";
 import { ProjectSchedule } from "@/shared/ui/projects/ProjectSchedule";
@@ -16,6 +18,8 @@ import { ProjectDocuments } from "@/shared/ui/projects/ProjectDocuments";
 import { Contracts } from "@/shared/ui/projects/Contracts";
 import { useFeatures } from "@/context/FeatureContext";
 import { FEATURES } from "@/config/features";
+import { ProjectMapView } from "@features/maps/components/ProjectMapView";
+import { geocodingService } from "@features/maps/services/geocodingService";
 // --- Main Layout Component ---
 
 interface ProjectLayoutProps {
@@ -56,6 +60,26 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
   const project = projectDetails;
   const [searchQuery, setSearchQuery] = useState("");
   const { hasFeature } = useFeatures();
+  const geocodeAbortRef = useRef<{ cancelled: boolean } | null>(null);
+
+  const handleAddressChanged = useCallback((address: string, location: string) => {
+    // Cancel any in-flight geocoding request
+    if (geocodeAbortRef.current) geocodeAbortRef.current.cancelled = true;
+    const token = { cancelled: false };
+    geocodeAbortRef.current = token;
+
+    const detailsForGeocode = { ...project, address, location, latitude: undefined, longitude: undefined } as ProjectDetails;
+    geocodingService.geocodeProject(detailsForGeocode).then(result => {
+      if (token.cancelled) return; // Stale request — discard
+      if (result) {
+        onUpdateDetails({
+          latitude: result.lat,
+          longitude: result.lng,
+          geocodedAt: new Date().toISOString(),
+        });
+      }
+    });
+  }, [project, onUpdateDetails]);
 
   const allTabs = useMemo(
     () =>
@@ -73,6 +97,12 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
           label: "Harmonogram",
           icon: "event_note",
           feature: FEATURES.PROJECT_SCHEDULE,
+        },
+        {
+          id: "map",
+          label: "Mapa",
+          icon: "map",
+          feature: FEATURES.MODULE_MAPS,
         },
         { id: "documents", label: "Dokumenty", icon: "folder_open" },
         {
@@ -114,6 +144,8 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
         subtitle="Detail stavby"
         onSearchChange={setSearchQuery}
         searchPlaceholder="Hledat v projektu..."
+        helpSlot={<HelpButton />}
+        notificationSlot={<NotificationBell />}
       >
         <div className="flex items-center gap-4">
           {/* Mobile dropdown tabs */}
@@ -121,7 +153,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
             <select
               value={activeTab}
               onChange={(e) => onTabChange(e.target.value as ProjectTab)}
-              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-tighter focus:ring-2 focus:ring-primary/20 appearance-none"
+              className="select-no-native-arrow w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-tighter focus:ring-2 focus:ring-primary/20"
             >
               {visibleTabs.map((tab) => (
                 <option key={tab.id} value={tab.id}>
@@ -133,7 +165,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
           </div>
 
           {/* Desktop horizontal tabs */}
-          <div className="hidden md:flex items-center gap-1.5 bg-slate-100 dark:bg-slate-950/50 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800">
+          <div data-help-id="project-tabs" className="hidden md:flex items-center gap-1.5 bg-slate-100 dark:bg-slate-950/50 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800">
             {visibleTabs.map((tab) => (
               <button
                 key={tab.id}
@@ -156,6 +188,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
           <ProjectOverviewNew
             project={project}
             onUpdate={onUpdateDetails}
+            onAddressChanged={handleAddressChanged}
             variant="compact"
             searchQuery={searchQuery}
             onNavigateToPipeline={handleLocalNavigateToPipeline}
@@ -209,6 +242,15 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
               categories={project.categories || []}
             />
           </div>
+        )}
+        {activeTab === "map" && (
+          <ProjectMapView
+            projectId={projectId}
+            projectDetails={project}
+            contacts={contacts}
+            statuses={statuses}
+            onUpdateDetails={onUpdateDetails}
+          />
         )}
         {activeTab === "documents" && (
           <ProjectDocuments project={project} onUpdate={onUpdateDetails} />

@@ -1,4 +1,4 @@
-import { corsHeaders, handleCors } from "../_shared/cors.ts";
+import { buildCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { encryptJsonAesGcm, tryGetEnv } from "../_shared/crypto.ts";
 import { createAuthedUserClient, createServiceClient } from "../_shared/supabase.ts";
 
@@ -7,7 +7,7 @@ type Mode = "user" | "org";
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "content-type": "application/json" },
+    headers: { ...buildCorsHeaders(req), "content-type": "application/json" },
   });
 
 Deno.serve(async (req) => {
@@ -41,10 +41,26 @@ Deno.serve(async (req) => {
 
     const { data: project, error: projectError } = await authed
       .from("projects")
-      .select("id")
+      .select("id, owner_id")
       .eq("id", projectId)
       .maybeSingle();
     if (projectError || !project) return json(403, { error: "No access to project" });
+
+    let canUpdateProject = project.owner_id === null || project.owner_id === userData.user.id;
+    if (!canUpdateProject) {
+      const { data: hasEditPermission, error: editPermissionError } = await authed.rpc(
+        "has_project_share_permission",
+        {
+          p_id: projectId,
+          u_id: userData.user.id,
+          required_permission: "edit",
+        }
+      );
+      if (editPermissionError) return json(403, { error: "No edit access to project" });
+      canUpdateProject = Boolean(hasEditPermission);
+    }
+
+    if (!canUpdateProject) return json(403, { error: "No edit access to project" });
 
     const encKey = tryGetEnv("DOCHUB_TOKEN_ENCRYPTION_KEY");
     if (!encKey) return json(500, { error: "Missing DOCHUB_TOKEN_ENCRYPTION_KEY" });

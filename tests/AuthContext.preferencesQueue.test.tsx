@@ -43,6 +43,9 @@ vi.mock("../services/platformAdapter", () => ({
       saveCredentials: vi.fn(),
       setBiometricEnabled: vi.fn(),
     },
+    auth: {
+      setAuthenticated: vi.fn(),
+    },
   },
 }));
 

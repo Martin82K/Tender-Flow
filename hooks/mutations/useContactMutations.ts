@@ -10,7 +10,10 @@ import { parseAppRoute } from "../../shared/routing/routeUtils";
 import { renameFolder } from '../../services/fileSystemService';
 import { logIncident } from "../../services/incidentLogger";
 import { ProjectDetails } from '../../types';
-import { validateSubcontractorCompanyName } from "../../shared/dochub/subcontractorNameRules";
+import {
+    sanitizeSubcontractorCompanyName,
+    validateSubcontractorCompanyName,
+} from "../../shared/dochub/subcontractorNameRules";
 
 const getInvalidCompanyNameMessage = (companyName: string, reason?: string): string => {
     const base = `Neplatny nazev firmy "${companyName}".`;
@@ -23,6 +26,9 @@ export const assertValidSubcontractorCompanyNameOrThrow = (companyName: string):
         throw new Error(getInvalidCompanyNameMessage(companyName, validation.reason));
     }
 };
+
+const toDocHubFolderSegment = (name: string): string =>
+    sanitizeSubcontractorCompanyName(name.trim()).sanitized;
 
 export const useAddContactMutation = () => {
     const queryClient = useQueryClient();
@@ -50,6 +56,11 @@ export const useAddContactMutation = () => {
                 specialization: newContact.specialization,
                 ico: newContact.ico,
                 region: newContact.region,
+                address: newContact.address,
+                city: newContact.city,
+                web: newContact.web,
+                note: newContact.note,
+                regions: newContact.regions,
                 status_id: newContact.status,
                 contacts: newContact.contacts,
                 updated_at: new Date().toISOString(), // Ensure updated_at is set
@@ -102,6 +113,11 @@ export const useUpdateContactMutation = () => {
             if (updates.specialization !== undefined) dbUpdates.specialization = updates.specialization;
             if (updates.ico !== undefined) dbUpdates.ico = updates.ico;
             if (updates.region !== undefined) dbUpdates.region = updates.region;
+            if (updates.address !== undefined) dbUpdates.address = updates.address;
+            if (updates.city !== undefined) dbUpdates.city = updates.city;
+            if (updates.web !== undefined) dbUpdates.web = updates.web;
+            if (updates.note !== undefined) dbUpdates.note = updates.note;
+            if (updates.regions !== undefined) dbUpdates.regions = updates.regions;
             if (updates.status !== undefined) dbUpdates.status_id = updates.status;
             if (updates.contacts !== undefined) dbUpdates.contacts = updates.contacts;
 
@@ -170,8 +186,8 @@ export const useUpdateContactMutation = () => {
                                     if (category && rootPath) {
                                         // Tender Flow Desktop only for now
                                         if (provider === 'onedrive') {
-                                            const oldPath = `${rootPath}${sep}${tendersName}${sep}${category.title.trim()}${sep}${oldName.trim()}`;
-                                            const newPath = `${rootPath}${sep}${tendersName}${sep}${category.title.trim()}${sep}${newName.trim()}`;
+                                            const oldPath = `${rootPath}${sep}${tendersName}${sep}${category.title.trim()}${sep}${toDocHubFolderSegment(oldName)}`;
+                                            const newPath = `${rootPath}${sep}${tendersName}${sep}${category.title.trim()}${sep}${toDocHubFolderSegment(newName)}`;
 
                                             // Trigger rename (fire and forget)
                                             renameFolder(oldPath, newPath, { provider, projectId }).catch((e) => {
@@ -268,8 +284,19 @@ export const useBulkUpdateContactsMutation = () => {
             await Promise.all(updates.map(async ({ id, data }) => {
                 const dbUpdates: any = { updated_at: new Date().toISOString() };
                 if (data.company !== undefined) dbUpdates.company_name = data.company;
+                if (data.name !== undefined) dbUpdates.contact_person_name = data.name;
+                if (data.email !== undefined) dbUpdates.email = data.email;
+                if (data.phone !== undefined) dbUpdates.phone = data.phone;
+                if (data.specialization !== undefined) dbUpdates.specialization = data.specialization;
+                if (data.ico !== undefined) dbUpdates.ico = data.ico;
+                if (data.region !== undefined) dbUpdates.region = data.region;
+                if (data.address !== undefined) dbUpdates.address = data.address;
+                if (data.city !== undefined) dbUpdates.city = data.city;
                 if (data.status !== undefined) dbUpdates.status_id = data.status;
-                // add other fields if bulk update supports them (usually just status/category)
+                if (data.contacts !== undefined) dbUpdates.contacts = data.contacts;
+                if (data.latitude !== undefined) dbUpdates.latitude = data.latitude;
+                if (data.longitude !== undefined) dbUpdates.longitude = data.longitude;
+                if (data.geocodedAt !== undefined) dbUpdates.geocoded_at = data.geocodedAt;
 
                 const { error } = await dbAdapter.from("subcontractors").update(dbUpdates).eq("id", id);
                 if (error) throw error;
@@ -352,6 +379,11 @@ export const useImportContactsMutation = () => {
                 specialization: c.specialization,
                 ico: c.ico,
                 region: c.region,
+                address: c.address,
+                city: c.city,
+                web: c.web,
+                note: c.note,
+                regions: c.regions,
                 updated_at: new Date().toISOString()
             }));
 

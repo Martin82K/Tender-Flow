@@ -4,10 +4,12 @@
  * Extracted from Pipeline.tsx for better modularity.
  */
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { DemandCategory, Bid } from '../../types';
 import { formatMoney } from '../../utils/formatters';
 import { CategoryCard } from './CategoryCard';
+
+const ROW_CLICK_DELAY_MS = 220;
 
 type DemandFilter = 'all' | 'open' | 'closed' | 'sod';
 type ViewMode = 'grid' | 'table';
@@ -41,6 +43,36 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
     onDeleteCategory,
     onToggleCategoryComplete,
 }) => {
+    const rowClickTimeoutRef = useRef<number | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (rowClickTimeoutRef.current !== null) {
+                window.clearTimeout(rowClickTimeoutRef.current);
+            }
+        };
+    }, []);
+
+    const handleRowClick = (category: DemandCategory) => {
+        if (rowClickTimeoutRef.current !== null) {
+            window.clearTimeout(rowClickTimeoutRef.current);
+        }
+
+        rowClickTimeoutRef.current = window.setTimeout(() => {
+            rowClickTimeoutRef.current = null;
+            onCategoryClick(category);
+        }, ROW_CLICK_DELAY_MS);
+    };
+
+    const handleRowDoubleClick = (category: DemandCategory) => {
+        if (rowClickTimeoutRef.current !== null) {
+            window.clearTimeout(rowClickTimeoutRef.current);
+            rowClickTimeoutRef.current = null;
+        }
+
+        onEditCategory(category);
+    };
+
     // Filter counts
     const allCount = categories.length;
     const openCount = categories.filter(c => c.status === 'open' || c.status === 'negotiating').length;
@@ -129,7 +161,7 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
         <div className="p-6 lg:p-10 overflow-y-auto">
             {/* Filter Buttons and Add Button */}
             <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-1 bg-slate-200 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-300 dark:border-slate-700/50">
+                <div data-help-id="pipeline-filters" className="flex items-center gap-1 bg-slate-200 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-300 dark:border-slate-700/50">
                     <button
                         onClick={() => onFilterChange('all')}
                         className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${demandFilter === 'all'
@@ -197,6 +229,7 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
                     </div>
 
                     <button
+                        data-help-id="pipeline-add-category"
                         onClick={onAddClick}
                         className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-lg transition-colors"
                     >
@@ -241,7 +274,8 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
                                         <tr
                                             key={category.id}
                                             className="hover:bg-slate-50 dark:hover:bg-slate-950/30 cursor-pointer"
-                                            onClick={() => onCategoryClick(category)}
+                                            onClick={() => handleRowClick(category)}
+                                            onDoubleClick={() => handleRowDoubleClick(category)}
                                         >
                                             <td className="px-4 py-3">
                                                 <span className={`inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-bold uppercase ${statusClass[normalizedStatus]}`}>
@@ -312,7 +346,7 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
                     </div>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div data-help-id="pipeline-category-card" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {filteredCategories.map((category) => {
                         const stats = getCategoryStats(category.id);
                         const categoryWithPrice = { ...category, winningPrice: stats.winningPrice };
@@ -325,6 +359,7 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
                                 contractedCount={stats.contractedCount}
                                 sodBidsCount={stats.sodBidsCount}
                                 onClick={() => onCategoryClick(category)}
+                                onDoubleClick={onEditCategory}
                                 onEdit={onEditCategory}
                                 onDelete={onDeleteCategory}
                                 onToggleComplete={onToggleCategoryComplete}

@@ -1,5 +1,4 @@
 import { supabase } from './supabase';
-import { getCachedSubscriptionTier } from './authService';
 import { SubscriptionFeature, SubscriptionTier, SubscriptionTierFeatureFlag } from '../types';
 import { summarizeErrorForLog } from '@/shared/security/logSanitizer';
 
@@ -118,7 +117,7 @@ export const subscriptionFeaturesService = {
 
   /**
    * Get current user's effective subscription tier from the backend.
-   * Falls back to cached tier on error to prevent tier downgrade.
+   * Fails closed to free tier when the backend cannot be reached.
    */
   getUserSubscriptionTier: async (): Promise<string> => {
     try {
@@ -126,19 +125,13 @@ export const subscriptionFeaturesService = {
       const userId = userResult.data.user?.id;
 
       if (!userId) {
-        const cachedTier = getCachedSubscriptionTier();
-        return cachedTier || 'free';
+        return 'free';
       }
 
       const { data, error } = await supabase.rpc('get_user_subscription_tier', { target_user_id: userId });
 
       if (error) {
         console.error('[subscriptionFeaturesService] getUserSubscriptionTier: RPC error =', summarizeErrorForLog(error));
-        // Use cached tier on error to prevent downgrade
-        const cachedTier = getCachedSubscriptionTier();
-        if (cachedTier) {
-          return cachedTier;
-        }
         return 'free';
       }
 
@@ -146,11 +139,6 @@ export const subscriptionFeaturesService = {
       return tier;
     } catch (e) {
       console.error('[subscriptionFeaturesService] getUserSubscriptionTier: exception =', summarizeErrorForLog(e));
-      // Use cached tier on exception to prevent downgrade
-      const cachedTier = getCachedSubscriptionTier();
-      if (cachedTier) {
-        return cachedTier;
-      }
       return 'free';
     }
   },

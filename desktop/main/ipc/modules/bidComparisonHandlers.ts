@@ -23,21 +23,24 @@ interface BidComparisonAutoRunnerLike {
 interface BidComparisonHandlerDependencies {
   resolvePortableReadPath: (targetPath: string) => Promise<string>;
   bidComparisonAutoRunner: BidComparisonAutoRunnerLike;
+  requireAuth: (sender: Electron.WebContents, channel?: string) => void;
 }
 
 export const registerBidComparisonHandlers = ({
   resolvePortableReadPath,
   bidComparisonAutoRunner,
+  requireAuth,
 }: BidComparisonHandlerDependencies): void => {
   ipcMain.handle(
     "bid-comparison:detect-inputs",
     async (
-      _,
+      event,
       args: {
         tenderFolderPath: string;
         suppliers?: BidComparisonSupplierOption[];
       },
     ): Promise<BidComparisonDetectionResult> => {
+      requireAuth(event.sender, 'bid-comparison:detect-inputs');
       const resolvedTenderFolderPath = await resolvePortableReadPath(args.tenderFolderPath);
       return getBidComparisonRunner().detectInputs({
         tenderFolderPath: resolvedTenderFolderPath,
@@ -46,7 +49,8 @@ export const registerBidComparisonHandlers = ({
     },
   );
 
-  ipcMain.handle("bid-comparison:start", async (_, input: BidComparisonStartInput): Promise<BidComparisonStartResult> => {
+  ipcMain.handle("bid-comparison:start", async (event, input: BidComparisonStartInput): Promise<BidComparisonStartResult> => {
+    requireAuth(event.sender, 'bid-comparison:start');
     const resolvedTenderFolderPath = await resolvePortableReadPath(input.tenderFolderPath);
     const resolvedSelectedFiles: BidComparisonSelectedFileInput[] = await Promise.all(
       (input.selectedFiles || []).map(async (selectedFile) => ({
@@ -61,24 +65,28 @@ export const registerBidComparisonHandlers = ({
     });
   });
 
-  ipcMain.handle("bid-comparison:get", async (_, jobId: string): Promise<BidComparisonJobStatus | null> => {
+  ipcMain.handle("bid-comparison:get", async (event, jobId: string): Promise<BidComparisonJobStatus | null> => {
+    requireAuth(event.sender, 'bid-comparison:get');
     return getBidComparisonRunner().get(jobId);
   });
 
   ipcMain.handle(
     "bid-comparison:list",
-    async (_, filter?: { projectId?: string; categoryId?: string }): Promise<BidComparisonJobStatus[]> => {
+    async (event, filter?: { projectId?: string; categoryId?: string }): Promise<BidComparisonJobStatus[]> => {
+      requireAuth(event.sender, 'bid-comparison:list');
       return getBidComparisonRunner().list(filter);
     },
   );
 
-  ipcMain.handle("bid-comparison:cancel", async (_, jobId: string): Promise<{ success: boolean }> => {
+  ipcMain.handle("bid-comparison:cancel", async (event, jobId: string): Promise<{ success: boolean }> => {
+    requireAuth(event.sender, 'bid-comparison:cancel');
     return getBidComparisonRunner().cancel(jobId);
   });
 
   ipcMain.handle(
     "bid-comparison:auto-start",
-    async (_, config: BidComparisonAutoConfig): Promise<BidComparisonAutoStartResult> => {
+    async (event, config: BidComparisonAutoConfig): Promise<BidComparisonAutoStartResult> => {
+      requireAuth(event.sender, 'bid-comparison:auto-start');
       const resolvedTenderFolderPath = await resolvePortableReadPath(config.tenderFolderPath);
       const resolvedSelectedFiles: BidComparisonSelectedFileInput[] = await Promise.all(
         (config.selectedFiles || []).map(async (selectedFile) => ({
@@ -96,19 +104,22 @@ export const registerBidComparisonHandlers = ({
 
   ipcMain.handle(
     "bid-comparison:auto-stop",
-    async (_, scope: BidComparisonAutoScope): Promise<{ success: boolean }> => {
+    async (event, scope: BidComparisonAutoScope): Promise<{ success: boolean }> => {
+      requireAuth(event.sender, 'bid-comparison:auto-stop');
       return bidComparisonAutoRunner.autoStop(scope);
     },
   );
 
   ipcMain.handle(
     "bid-comparison:auto-status",
-    async (_, scope: BidComparisonAutoScope): Promise<BidComparisonAutoStatus | null> => {
+    async (event, scope: BidComparisonAutoScope): Promise<BidComparisonAutoStatus | null> => {
+      requireAuth(event.sender, 'bid-comparison:auto-status');
       return bidComparisonAutoRunner.autoStatus(scope);
     },
   );
 
-  ipcMain.handle("bid-comparison:auto-list", async (): Promise<BidComparisonAutoStatus[]> => {
+  ipcMain.handle("bid-comparison:auto-list", async (event): Promise<BidComparisonAutoStatus[]> => {
+    requireAuth(event.sender, 'bid-comparison:auto-list');
     return bidComparisonAutoRunner.autoList();
   });
 };

@@ -1,6 +1,7 @@
 /*
-  X-Frame-Options: ALLOWALL
-  Content-Security-Policy: frame-ancestors *
-  Access-Control-Allow-Origin: *
+  X-Frame-Options: SAMEORIGIN
+  Content-Security-Policy: frame-ancestors 'self'
+  Access-Control-Allow-Origin: https://tenderflow.cz
   Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
   Access-Control-Allow-Headers: Content-Type, Authorization
+  Vary: Origin

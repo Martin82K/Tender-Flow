@@ -1,4 +1,6 @@
 import type {
+  BackupFileEntry,
+  BackupSettingsInfo,
   BidComparisonAutoConfig,
   BidComparisonAutoScope,
   BidComparisonAutoStartResult,
@@ -40,6 +42,7 @@ export interface IpcContractMap {
     result: { success: boolean; error?: string };
   };
   "fs:folderExists": { args: [folderPath: string]; result: boolean };
+  "fs:grantAccess": { args: [folderPath: string]; result: boolean };
   "watcher:start": { args: [folderPath: string]; result: void };
   "watcher:stop": { args: []; result: void };
   "watcher:getSnapshot": { args: []; result: FolderSnapshot | null };
@@ -49,6 +52,10 @@ export interface IpcContractMap {
   };
   "session:getCredentials": {
     args: [];
+    result: { refreshToken: string; email: string } | null;
+  };
+  "session:getCredentialsWithBiometric": {
+    args: [reason: string];
     result: { refreshToken: string; email: string } | null;
   };
   "session:clearCredentials": { args: []; result: void };
@@ -67,7 +74,7 @@ export interface IpcContractMap {
     };
   };
   "oauth:googleLogin": {
-    args: [args: { clientId: string; clientSecret?: string; scopes: string[] }];
+    args: [args: { clientId: string; scopes: string[] }];
     result: {
       accessToken: string;
       refreshToken?: string | null;
@@ -112,6 +119,16 @@ export interface IpcContractMap {
   };
   "bid-comparison:auto-list": { args: []; result: BidComparisonAutoStatus[] };
   "updater:getStatus": { args: []; result: UpdateStatus };
+  "backup:getSettings": { args: []; result: BackupSettingsInfo };
+  "backup:setEnabled": { args: [enabled: boolean]; result: void };
+  "backup:setScheduledTime": { args: [time: string]; result: void };
+  "backup:save": { args: [jsonContent: string, backupType: 'user' | 'tenant' | 'contacts', organizationId: string]; result: string };
+  "backup:read": { args: [filePath: string]; result: string };
+  "backup:list": { args: []; result: BackupFileEntry[] };
+  "backup:getFolder": { args: []; result: string };
+  "backup:openFolder": { args: []; result: { success: boolean; error?: string } };
+  "backup:clean": { args: []; result: number };
+  "auth:setAuthenticated": { args: [authenticated: boolean]; result: void };
 }
 
 export type IpcChannel = keyof IpcContractMap;

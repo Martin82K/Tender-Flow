@@ -1,4 +1,4 @@
-import { corsHeaders, handleCors } from "../_shared/cors.ts";
+import { buildCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { createAuthedUserClient, createServiceClient } from "../_shared/supabase.ts";
 
 type Provider = "gdrive" | "onedrive";
@@ -7,7 +7,7 @@ type Mode = "user" | "org";
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "content-type": "application/json" },
+    headers: { ...buildCorsHeaders(req), "content-type": "application/json" },
   });
 
 const randomNonce = () => crypto.randomUUID().replaceAll("-", "");
@@ -164,6 +164,18 @@ Deno.serve(async (req) => {
     }
     if (!projectId) {
       return json(400, { error: "Missing projectId" });
+    }
+
+    const { data: project, error: projectError } = await authed
+      .from("projects")
+      .select("id")
+      .eq("id", projectId)
+      .maybeSingle();
+    if (projectError) {
+      return json(500, { error: projectError.message });
+    }
+    if (!project) {
+      return json(403, { error: "Forbidden" });
     }
 
     const nonce = randomNonce();

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { DemandCategory } from "@/types";
+import type { DemandCategory, DocHubStructureV1 } from "@/types";
 import { folderExists } from "@/services/fileSystemService";
 import { logIncident } from "@/services/incidentLogger";
 import platformAdapter from "@/services/platformAdapter";
@@ -15,7 +15,7 @@ interface UsePipelineCategoryNavigationInput {
   initialOpenCategoryId?: string;
   categories: DemandCategory[];
   docHubRoot: string;
-  docHubStructureV1?: string;
+  docHubStructureV1?: Partial<DocHubStructureV1> | null;
 }
 
 export const usePipelineCategoryNavigation = ({

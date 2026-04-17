@@ -1,10 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("@/features/settings/VikiCostControl", () => ({
-  VikiCostControl: () => <div data-testid="viki-cost-control" />,
-}));
-
 const mockSingle = vi.fn(async () => ({ data: null, error: null }));
 const mockEq = vi.fn(() => ({ single: mockSingle }));
 const mockSelect = vi.fn(() => ({ eq: mockEq, single: mockSingle }));

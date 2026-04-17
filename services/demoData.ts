@@ -358,11 +358,16 @@ export const DEMO_PROJECT_DETAILS: ProjectDetails = {
 };
 
 // Demo Mode Helper Functions
+// Security: demo state is tracked in memory, NOT derived from localStorage.
+// This prevents attackers from setting localStorage flags to bypass authentication.
+let _demoSessionActive = false;
+
 export const isDemoSession = (): boolean => {
-  return localStorage.getItem(DEMO_SESSION_KEY) === 'true';
+  return _demoSessionActive;
 };
 
 export const startDemoSession = (): void => {
+  _demoSessionActive = true;
   localStorage.setItem(DEMO_SESSION_KEY, 'true');
   // Initialize demo data in localStorage
   const initialData = {
@@ -375,8 +380,14 @@ export const startDemoSession = (): void => {
 };
 
 export const endDemoSession = (): void => {
+  _demoSessionActive = false;
   localStorage.removeItem(DEMO_SESSION_KEY);
   localStorage.removeItem(DEMO_DATA_KEY);
+};
+
+// Exported only for tests
+export const _testSetDemoActive = (active: boolean): void => {
+  _demoSessionActive = active;
 };
 
 export const getDemoData = () => {

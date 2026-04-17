@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { buildCorsHeaders } from "../_shared/cors.ts";
 
 interface EmailRequest {
   to: string | string[];
@@ -13,14 +14,42 @@ interface EmailRequest {
 }
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 // Default sender if not specified. Ideally configured in env, fallback to a placeholder.
 const DEFAULT_FROM =
   Deno.env.get("DEFAULT_EMAIL_FROM") || "Tender Flow <noreply@tenderflow.cz>";
 
+const escapeHtml = (value: string): string => {
+  const htmlEscapes: Record<string, string> = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  };
+
+  return value.replace(/[&<>"']/g, (char) => htmlEscapes[char]);
+};
+
+const sanitizeUrl = (value: unknown, fallback: string): string => {
+  if (typeof value !== "string" || value.trim() === "") {
+    return fallback;
+  }
+
+  try {
+    const parsed = new URL(value);
+    const isAllowedProtocol = parsed.protocol === "https:" || parsed.protocol === "http:";
+    return isAllowedProtocol ? parsed.toString() : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
 serve(async (req) => {
   // Handle CORS
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: buildCorsHeaders(req) });
   }
 
   try {
@@ -31,10 +60,32 @@ serve(async (req) => {
       throw new Error("Missing Authorization header");
     }
 
-    // Validate JWT (basic check that header exists and looks like Bearer)
-    // In a real scenario, we might want to use supabase-js to getUser(),
-    // but for now, we trust the gateway verified the JWT or we do a quick check.
-    // For tighter security, we should use createClient and getUser.
+    if (!authHeader.startsWith("Bearer ")) {
+      throw new Error("Invalid Authorization header format");
+    }
+
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      throw new Error("Missing Supabase configuration");
+    }
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: {
+        headers: {
+          Authorization: authHeader,
+        },
+      },
+    });
+
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData.user) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        {
+          status: 401,
+          headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
+        },
+      );
+    }
 
     // 2. Parse Request Body
     const { to, subject, data, template }: {
@@ -51,7 +102,7 @@ serve(async (req) => {
         }),
         {
           status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
         },
       );
     }
@@ -66,7 +117,7 @@ serve(async (req) => {
         }),
         {
           status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
         },
       );
     }
@@ -74,8 +125,8 @@ serve(async (req) => {
     // Build HTML based on template type
     let htmlContent = "";
     let emailSubject = "";
-    const userName = data?.name || "uživateli";
-    const loginUrl = data?.loginUrl || "https://tenderflow.cz/login";
+    const safeUserName = escapeHtml(String(data?.name || "uživateli"));
+    const loginUrl = sanitizeUrl(data?.loginUrl, "https://tenderflow.cz/login");
 
     if (template === 'registration') {
       emailSubject = "Vítejte v Tender Flow! 🎉";
@@ -106,7 +157,7 @@ serve(async (req) => {
               
               <!-- Content -->
               <p style="color: rgba(255,255,255,0.8); font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">
-                Dobrý den, ${userName}!
+                Dobrý den, ${safeUserName}!
               </p>
               <p style="color: rgba(255,255,255,0.8); font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
                 Váš účet byl úspěšně vytvořen. Nyní máte přístup ke všem funkcím pro správu tendrů a projektů.
@@ -147,7 +198,7 @@ serve(async (req) => {
 </body>
 </html>`;
     } else if (template === 'forgotPassword') {
-      const resetLink = data?.resetLink || "#";
+      const resetLink = sanitizeUrl(data?.resetLink, "#");
       emailSubject = "Obnovení hesla – Tender Flow";
       htmlContent = `
 <!DOCTYPE html>
@@ -212,7 +263,7 @@ serve(async (req) => {
     } else {
       return new Response(
         JSON.stringify({ error: `Unknown template: ${template}` }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -224,7 +275,7 @@ serve(async (req) => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "Martin z Tender Flow <martin@mail.tenderflow.cz>",
+        from: DEFAULT_FROM,
         to,
         subject: emailSubject,
         html: htmlContent
@@ -237,18 +288,18 @@ serve(async (req) => {
       console.error("Resend API error:", resData);
       return new Response(JSON.stringify(resData), {
         status: res.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
     return new Response(JSON.stringify(resData), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
     });
   } catch (error) {
     console.error("Error handling request:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
 });

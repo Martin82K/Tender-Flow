@@ -181,7 +181,7 @@ const addSupplierOffer = (
 export const buildOverviewAnalytics = (
   projects: Project[],
   projectDetails: Record<string, ProjectDetails | undefined>,
-  statusFilter: Project["status"] | "all" = "all",
+  statusFilter: Project["status"] | "all" | "active" = "all",
 ): OverviewAnalytics => {
   const projectNameById = new Map(projects.map((project) => [project.id, project.name]));
   const projectStatusById = new Map(projects.map((project) => [project.id, project.status]));
@@ -203,7 +203,8 @@ export const buildOverviewAnalytics = (
   Object.entries(projectDetails).forEach(([projectId, details]) => {
     if (!details) return;
     const projectStatus = projectStatusById.get(projectId) || "tender";
-    if (statusFilter !== "all" && projectStatus !== statusFilter) return;
+    if (statusFilter === "active" && projectStatus === "archived") return;
+    if (statusFilter !== "all" && statusFilter !== "active" && projectStatus !== statusFilter) return;
     const projectName = details.title || projectNameById.get(projectId) || "Projekt";
     const categories = details.categories || [];
 

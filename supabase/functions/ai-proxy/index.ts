@@ -1,12 +1,8 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { getFirstEnvSecret } from "../_shared/env.ts";
-
-// CORS headers
-const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { buildCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { resolveAuthorizedProjectMemoryContext } from "./memoryAccess.ts";
 
 // Define message interface for clarity
 interface Message {
@@ -153,9 +149,8 @@ const memoryDocumentToMarkdown = (document: AgentProjectMemoryDocument): string 
 // Native Deno.serve (more robust)
 Deno.serve(async (req) => {
     // Handle CORS preflight request
-    if (req.method === "OPTIONS") {
-        return new Response("ok", { headers: corsHeaders });
-    }
+    const corsResponse = handleCors(req);
+    if (corsResponse) return corsResponse;
 
     try {
         // 1. Kill Switch Check
@@ -168,7 +163,7 @@ Deno.serve(async (req) => {
                 }),
                 {
                     status: 503,
-                    headers: { ...corsHeaders, "Content-Type": "application/json" },
+                    headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
                 }
             );
         }
@@ -178,7 +173,7 @@ Deno.serve(async (req) => {
         if (!authHeader) {
             return new Response(
                 JSON.stringify({ error: "Missing Authorization header" }),
-                { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                { status: 401, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
             );
         }
 
@@ -189,7 +184,7 @@ Deno.serve(async (req) => {
             console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
             return new Response(
                 JSON.stringify({ error: "Server configuration error" }),
-                { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                { status: 500, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
             );
         }
 
@@ -197,7 +192,7 @@ Deno.serve(async (req) => {
         const createServiceClient = () => createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } });
 
         // Verify token directly against Auth API
-        const apikey = req.headers.get("apikey") || Deno.env.get("SUPABASE_ANON_KEY") || "";
+        const apikey = (req.headers.get("apikey") || Deno.env.get("SUPABASE_ANON_KEY") || "").trim();
         const authRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
             headers: {
                 apikey,
@@ -208,10 +203,19 @@ Deno.serve(async (req) => {
         if (!authRes.ok) {
             return new Response(
                 JSON.stringify({ error: "Invalid token" }),
-                { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                { status: 401, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
             );
         }
         const user = await authRes.json();
+        const authed = createClient(supabaseUrl, apikey, {
+            auth: { persistSession: false },
+            global: {
+                headers: {
+                    apikey,
+                    Authorization: authHeader,
+                },
+            },
+        });
 
         // 3. Parse request body before access control so Viki-specific actions can
         // follow ai_viki feature flags instead of generic tier gating.
@@ -222,7 +226,7 @@ Deno.serve(async (req) => {
             console.error("Failed to parse request body:", e);
             return new Response(
                 JSON.stringify({ error: "Invalid JSON body" }),
-                { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                { status: 400, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
             );
         }
 
@@ -250,7 +254,7 @@ Deno.serve(async (req) => {
                 console.error("Viki access check error:", accessError);
                 return new Response(
                     JSON.stringify({ error: "Failed to verify Viki access" }),
-                    { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                    { status: 500, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
                 );
             }
 
@@ -262,7 +266,7 @@ Deno.serve(async (req) => {
                     }),
                     {
                         status: 403,
-                        headers: { ...corsHeaders, "Content-Type": "application/json" }
+                        headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" }
                     }
                 );
             }
@@ -273,7 +277,7 @@ Deno.serve(async (req) => {
                 console.error("Tier check error:", tierError);
                 return new Response(
                     JSON.stringify({ error: "Failed to verify subscription" }),
-                    { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                    { status: 500, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
                 );
             }
 
@@ -287,7 +291,7 @@ Deno.serve(async (req) => {
                     }),
                     {
                         status: 403,
-                        headers: { ...corsHeaders, "Content-Type": "application/json" }
+                        headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" }
                     }
                 );
             }
@@ -302,25 +306,29 @@ Deno.serve(async (req) => {
             if (!projectId) {
                 return new Response(
                     JSON.stringify({ error: "Missing projectId" }),
-                    { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                    { status: 400, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
                 );
             }
 
-            const { data: orgMember, error: orgError } = await service
-                .from("organization_members")
-                .select("organization_id")
-                .eq("user_id", user.id)
-                .limit(1)
-                .maybeSingle();
+            const projectAccess = await resolveAuthorizedProjectMemoryContext(
+                authed,
+                projectId,
+                user.id,
+                action === "memory-save" ? "edit" : "view",
+            );
+            if (!projectAccess.ok) {
+                const error = projectAccess.error === "PROJECT_ORGANIZATION_MISSING"
+                    ? "Project organization context not found"
+                    : "No access to project";
+                const status = projectAccess.error === "PROJECT_ORGANIZATION_MISSING" ? 400 : 403;
 
-            if (orgError || !orgMember?.organization_id) {
                 return new Response(
-                    JSON.stringify({ error: "Organization context not found" }),
-                    { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                    JSON.stringify({ error }),
+                    { status, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
                 );
             }
 
-            const storagePath = `org/${orgMember.organization_id}/projects/${projectId}/viki-memory.md`;
+            const storagePath = `org/${projectAccess.value.organizationId}/projects/${projectAccess.value.projectId}/viki-memory.md`;
 
             if (action === "memory-load") {
                 const { data: fileData, error: fileError } = await service.storage
@@ -332,13 +340,13 @@ Deno.serve(async (req) => {
                     if (message.includes("not found") || message.includes("does not exist")) {
                         return new Response(
                             JSON.stringify({ document: null }),
-                            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                            { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
                         );
                     }
 
                     return new Response(
                         JSON.stringify({ error: "Failed to load project memory", details: fileError.message }),
-                        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                        { status: 500, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
                     );
                 }
 
@@ -347,7 +355,7 @@ Deno.serve(async (req) => {
 
                 return new Response(
                     JSON.stringify({ document }),
-                    { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                    { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
                 );
             }
 
@@ -355,7 +363,7 @@ Deno.serve(async (req) => {
             if (!incomingDocument || !Array.isArray(incomingDocument.sections)) {
                 return new Response(
                     JSON.stringify({ error: "Invalid memory document payload" }),
-                    { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                    { status: 400, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
                 );
             }
 
@@ -388,13 +396,13 @@ Deno.serve(async (req) => {
             if (uploadError) {
                 return new Response(
                     JSON.stringify({ error: "Failed to save project memory", details: uploadError.message }),
-                    { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                    { status: 500, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
                 );
             }
 
             return new Response(
                 JSON.stringify({ document: normalizedDocument }),
-                { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
             );
         }
 
@@ -426,7 +434,7 @@ Deno.serve(async (req) => {
 
                 return new Response(
                     JSON.stringify({ models }),
-                    { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                    { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
                 );
             }
 
@@ -435,7 +443,7 @@ Deno.serve(async (req) => {
                 if (!apiKey) {
                     return new Response(
                         JSON.stringify({ error: "Missing Mistral API Key (MISTRAL_API_KEY/MISTRAL_OCR_API_KEY)", models: [] }),
-                        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                        { status: 500, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
                     );
                 }
 
@@ -450,7 +458,7 @@ Deno.serve(async (req) => {
                 if (!response.ok) {
                     return new Response(
                         JSON.stringify({ error: "Mistral model list error", details: data, models: [] }),
-                        { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                        { status: response.status, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
                     );
                 }
 
@@ -475,7 +483,7 @@ Deno.serve(async (req) => {
 
                 return new Response(
                     JSON.stringify({ models }),
-                    { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                    { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
                 );
             }
 
@@ -499,7 +507,7 @@ Deno.serve(async (req) => {
                             ? `OpenRouter returned 401. Verify Supabase Secret ${apiKeySource || "OPENROUTER_API_KEY"} has a valid key without extra quotes and redeploy ai-proxy.`
                             : undefined
                     }),
-                    { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                    { status: response.status, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
                 );
             }
 
@@ -520,7 +528,7 @@ Deno.serve(async (req) => {
 
             return new Response(
                 JSON.stringify({ models }),
-                { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
             );
         }
 
@@ -530,7 +538,7 @@ Deno.serve(async (req) => {
             if (!apiKey) {
                 return new Response(
                     JSON.stringify({ error: "Missing Google API Key" }),
-                    { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                    { status: 500, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
                 );
             }
 
@@ -555,13 +563,13 @@ Deno.serve(async (req) => {
             if (!response.ok) {
                  return new Response(
                     JSON.stringify({ error: "Google API Error", details: data }),
-                    { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                    { status: response.status, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
                 );
             }
             const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
             return new Response(
                 JSON.stringify({ text, raw: data }),
-                { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
             );
         }
 
@@ -571,7 +579,7 @@ Deno.serve(async (req) => {
             if (!apiKey) {
                 return new Response(
                     JSON.stringify({ error: "Missing OpenAI API Key (OPENAI_API_KEY/OPEN_AI_API_KEY)" }),
-                    { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                    { status: 500, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
                 );
             }
 
@@ -619,7 +627,7 @@ Deno.serve(async (req) => {
                             ? `OpenAI returned 401. Verify Supabase Secret ${apiKeySource || "OPENAI_API_KEY"} has a valid key without extra quotes and redeploy ai-proxy.`
                             : undefined
                     }),
-                    { status: openAiResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                    { status: openAiResponse.status, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
                 );
             }
 
@@ -636,7 +644,7 @@ Deno.serve(async (req) => {
 
             return new Response(
                 JSON.stringify({ text, raw: data }),
-                { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
             );
         }
 
@@ -646,14 +654,14 @@ Deno.serve(async (req) => {
             if (!apiKey) {
                 return new Response(
                     JSON.stringify({ error: "Missing Mistral API Key (MISTRAL_API_KEY/MISTRAL_OCR_API_KEY)" }),
-                    { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                    { status: 500, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
                 );
             }
 
             if (!documentUrl) {
                 return new Response(
                     JSON.stringify({ error: "Missing documentUrl for Mistral OCR" }),
-                    { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                    { status: 400, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
                 );
             }
 
@@ -693,7 +701,7 @@ Deno.serve(async (req) => {
                                 ? `Mistral returned 401 Unauthorized. Verify Supabase Secret ${apiKeySource || "MISTRAL_API_KEY"} contains a valid key without extra quotes and redeploy ai-proxy.`
                                 : undefined
                         }),
-                        { status: ocrResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                        { status: ocrResponse.status, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
                     );
                 }
 
@@ -703,13 +711,13 @@ Deno.serve(async (req) => {
 
                 return new Response(
                     JSON.stringify({ text, raw: data }),
-                    { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                    { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
                 );
             } catch (mistralErr) {
                 console.error("Mistral Fetched Failed:", mistralErr);
                 return new Response(
                     JSON.stringify({ error: `Mistral Network Error: ${mistralErr instanceof Error ? mistralErr.message : String(mistralErr)}` }),
-                    { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                    { status: 502, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
                 );
             }
         }
@@ -720,7 +728,7 @@ Deno.serve(async (req) => {
             if (!apiKey) {
                 return new Response(
                     JSON.stringify({ error: "Missing Mistral API Key (MISTRAL_API_KEY/MISTRAL_OCR_API_KEY)" }),
-                    { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                    { status: 500, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
                 );
             }
 
@@ -751,14 +759,14 @@ Deno.serve(async (req) => {
                             ? `Mistral returned 401 Unauthorized. Verify Supabase Secret ${apiKeySource || "MISTRAL_API_KEY"} contains a valid key without extra quotes and redeploy ai-proxy.`
                             : undefined
                     }),
-                    { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                    { status: response.status, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
                 );
             }
 
             const text = data.choices[0].message.content;
             return new Response(
                 JSON.stringify({ text, raw: data }),
-                { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
             );
         }
 
@@ -767,7 +775,7 @@ Deno.serve(async (req) => {
         if (!apiKey) {
             return new Response(
                 JSON.stringify({ error: "Missing OpenRouter API Key (OPENROUTER_API_KEY/OPEN_ROUTER_API_KEY)" }),
-                { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                { status: 500, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
             );
         }
 
@@ -810,14 +818,14 @@ Deno.serve(async (req) => {
                         ? `OpenRouter returned 401. Verify Supabase Secret ${apiKeySource || "OPENROUTER_API_KEY"} has a valid key without extra quotes and redeploy ai-proxy.`
                         : undefined
                 }),
-                { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                { status: response.status, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
             );
         }
 
         const text = data.choices[0].message.content;
         return new Response(
             JSON.stringify({ text, raw: data }),
-            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
         );
 
     } catch (error) {
@@ -826,7 +834,7 @@ Deno.serve(async (req) => {
             JSON.stringify({ error: error instanceof Error ? error.message : "Unknown Error" }),
             {
                 status: 500,
-                headers: { ...corsHeaders, "Content-Type": "application/json" },
+                headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
             }
         );
     }

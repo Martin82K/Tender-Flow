@@ -3,16 +3,13 @@ import { useAuth } from "../context/AuthContext";
 import { platformAdapter, isDesktop } from "../services/platformAdapter";
 import { View, Project, ProjectTab } from "../types";
 import logo from "../assets/logo.png";
-import { SIDEBAR_NAVIGATION, BOTTOM_NAVIGATION } from "../config/navigation";
+import { SIDEBAR_NAVIGATION } from "../config/navigation";
 import { FEATURES, type FeatureKey } from "../config/features";
 import { useFeatures } from "../context/FeatureContext";
 import { useLocation } from "@/shared/routing/router";
 import { userProfileService } from "../services/userProfileService";
 
 import { APP_VERSION } from "../config/version";
-
-// Admin role configuration (must match App.tsx)
-const ADMIN_EMAILS = ["martinkalkus82@gmail.com", "kalkus@baustav.cz"];
 const PROJECT_TABS: {
   id: ProjectTab;
   label: string;
@@ -44,11 +41,10 @@ const PROJECT_TABS: {
 
 // Helper function to get display role
 const getUserRole = (
-  email: string | undefined,
   defaultRole?: string,
 ): string => {
-  if (!email) return defaultRole || "User";
-  if (ADMIN_EMAILS.includes(email)) return "Admin";
+  if (defaultRole === "admin") return "Admin";
+  if (defaultRole === "user") return "User";
   return defaultRole || "User";
 };
 
@@ -141,12 +137,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const params = new URLSearchParams(search);
     const tabParam = params.get("tab");
     const subTabParam = params.get("subTab");
-    const tab = tabParam === "admin" || tabParam === "user" ? tabParam : null;
+    const tab =
+      tabParam === "admin" || tabParam === "user" || tabParam === "tools" || tabParam === "organization"
+        ? tabParam
+        : null;
     const rawSubTab =
       subTabParam === "profile" ||
+      subTabParam === "notifications" ||
+      subTabParam === "backup" ||
       subTabParam === "contacts" ||
       subTabParam === "excelUnlocker" ||
       subTabParam === "excelMerger" ||
+      subTabParam === "excelIndexer" ||
+      subTabParam === "urlShortener" ||
       subTabParam === "registration" ||
       subTabParam === "users" ||
       subTabParam === "subscriptions" ||
@@ -290,7 +293,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <summary
             className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer list-none ${
               currentView === "project"
-                ? "bg-primary/20 text-primary border border-primary/30 font-semibold"
+                ? "text-primary font-semibold"
                 : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
@@ -316,7 +319,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onViewChange("project-management");
                 closeMobileMenu();
               }}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 border border-dashed border-emerald-500/30 hover:border-emerald-500/50"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all text-primary hover:bg-primary/10 border border-dashed border-primary/30 hover:border-primary/50"
             >
               <span className="material-symbols-outlined text-[18px]">add</span>
               <span>Nová stavba</span>
@@ -352,12 +355,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-xl border-l-2 border-primary" />
                     )}
 
-                    {/* Status Badge */}
+                    {/* Status Letter */}
                     <span
-                      className={`relative z-10 flex items-center justify-center size-5 rounded-lg text-[10px] font-extrabold shrink-0 shadow-sm ${
+                      className={`relative z-10 flex items-center justify-center size-5 text-sm font-extrabold shrink-0 ${
                         project.status === "realization"
-                          ? "bg-amber-500 text-white"
-                          : "bg-blue-500 text-white"
+                          ? "text-amber-500"
+                          : "text-blue-500"
                       }`}
                     >
                       {project.status === "realization" ? "R" : "S"}
@@ -371,7 +374,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     {/* Expand Button */}
                     <button
                       onClick={(e) => toggleProjectExpand(e, project.id)}
-                      className={`relative z-10 p-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-slate-400 transition-all ${
+                      className={`relative z-10 p-1 rounded-lg text-slate-400 transition-all hover:bg-primary/15 hover:text-primary ${
                         isExpanded ? "rotate-180" : ""
                       }`}
                     >
@@ -457,7 +460,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <summary
             className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer list-none ${
               isItemActive
-                ? "bg-primary/20 text-primary border border-primary/30"
+                ? "text-primary font-semibold"
                 : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
@@ -531,7 +534,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         }}
         className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all group ${
           isItemActive
-            ? "bg-primary/10 text-primary border border-primary/20 font-semibold"
+            ? "text-primary font-semibold"
             : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-100"
         }`}
       >
@@ -681,36 +684,93 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </button>
               </div>
 
-              {BOTTOM_NAVIGATION.map((item) => renderNavItem(item))}
-
-              <a
-                href="/user-manual/index.html"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => {
-                  if (isDesktop) {
-                    e.preventDefault();
-                    platformAdapter.app.openUserManual().catch((error) => {
-                      console.error("Nepodařilo se otevřít příručku:", error);
-                    });
-                  }
-                }}
-                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
-                title="Otevře uživatelskou příručku"
-              >
-                <span className="material-symbols-outlined shrink-0">
-                  menu_book
-                </span>
-                <span className="text-sm font-medium break-words">
-                  Uživatelská příručka
-                </span>
-                <span className="material-symbols-outlined ml-auto text-[18px] text-slate-500">
-                  open_in_new
-                </span>
-              </a>
+              {/* Bottom Icon Bar */}
+              <div className="px-3">
+                <div className="flex items-center justify-center gap-1">
+                  <button
+                    onClick={() => {
+                      onViewChange("project-management");
+                      closeMobileMenu();
+                    }}
+                    className={`p-2 rounded-xl transition-all ${
+                      currentView === "project-management"
+                        ? "text-primary bg-primary/10"
+                        : "text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                    }`}
+                    title="Správa staveb"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">domain_add</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      onViewChange("project-overview");
+                      closeMobileMenu();
+                    }}
+                    className={`p-2 rounded-xl transition-all ${
+                      currentView === "project-overview"
+                        ? "text-primary bg-primary/10"
+                        : "text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                    }`}
+                    title="Přehledy"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">analytics</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      onViewChange("settings", {
+                        settingsTab: "tools",
+                        settingsSubTab: "excelUnlocker",
+                      });
+                      closeMobileMenu();
+                    }}
+                    className={`p-2 rounded-xl transition-all ${
+                      currentView === "settings" && settingsRoute.tab === "tools"
+                        ? "text-primary bg-primary/10"
+                        : "text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                    }`}
+                    title="Nástroje"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">build</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      onViewChange("settings");
+                      closeMobileMenu();
+                    }}
+                    className={`p-2 rounded-xl transition-all ${
+                      currentView === "settings" && (!settingsRoute.subTab || settingsRoute.subTab === "profile")
+                        ? "text-primary bg-primary/10"
+                        : "text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                    }`}
+                    title="Nastavení"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">settings</span>
+                  </button>
+                  <a
+                    href="/user-manual/index.html"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => {
+                      if (isDesktop) {
+                        e.preventDefault();
+                        platformAdapter.app.openUserManual().catch((error) => {
+                          console.error("Nepodařilo se otevřít příručku:", error);
+                        });
+                      }
+                    }}
+                    className="p-2 rounded-xl transition-all text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                    title="Uživatelská příručka"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">menu_book</span>
+                  </a>
+                  <span className="ml-auto text-xs text-slate-400 dark:text-slate-500 font-mono cursor-default">
+                    v{APP_VERSION}
+                  </span>
+                </div>
+              </div>
 
               <div
-                className={`flex items-center gap-3 px-3 py-3 mt-2 overflow-hidden backdrop-blur-md rounded-2xl shadow-sm ${profileCardClassMap[subscriptionTier]}`}
+                className="flex items-center gap-3 px-3 py-3 mt-2 overflow-hidden"
               >
                 {user?.subscriptionTier ? (
                   <div className="size-9 min-w-9 flex items-center justify-center">
@@ -742,7 +802,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     {displayName || user?.email?.split("@")[0] || "User"}
                   </p>
                   <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter truncate">
-                    {getUserRole(user?.email, user?.role)}
+                    {getUserRole(user?.role)}
                   </p>
                 </div>
                 <button
@@ -754,22 +814,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     logout
                   </span>
                 </button>
-              </div>
-
-              {/* Footer Credit */}
-              <div className="px-3 pb-2">
-                <div className="h-px bg-slate-700/50 w-full my-3"></div>
-                <p className="text-[13px] text-center leading-relaxed font-medium tracking-wide">
-                  <span className="text-slate-400 dark:text-slate-500">
-                    Created by{" "}
-                  </span>
-                  <span className="bg-gradient-to-r from-orange-400 to-amber-500 bg-clip-text text-transparent font-bold">
-                    Martin Kalkuš 2026
-                  </span>
-                </p>
-                <p className="text-[10px] text-white text-center mt-1 font-mono hover:text-white/80 transition-colors cursor-default">
-                  v{APP_VERSION}
-                </p>
               </div>
             </div>
           </div>

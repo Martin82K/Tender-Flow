@@ -137,4 +137,17 @@ describe("authService legal acceptance", () => {
     expect(hydrateSpy).toHaveBeenCalled();
     expect(user).toBe(hydratedUser);
   });
+
+  it("bez aktivní session nevolá RPC a vrátí srozumitelnou chybu", async () => {
+    mockState.authGetSession.mockResolvedValue({ data: { session: null } });
+
+    await expect(
+      authService.acceptLegalDocuments({
+        termsVersion: CURRENT_TERMS_VERSION,
+        privacyVersion: CURRENT_PRIVACY_VERSION,
+      }),
+    ).rejects.toThrow("Přihlášení vypršelo. Přihlaste se prosím znovu.");
+
+    expect(mockState.rpc).not.toHaveBeenCalled();
+  });
 });

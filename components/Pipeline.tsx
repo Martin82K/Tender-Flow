@@ -12,7 +12,7 @@ import {
 import { SubcontractorSelector } from "./SubcontractorSelector";
 import { ConfirmationModal } from "./ConfirmationModal";
 import { AlertModal } from "./AlertModal";
-import { formatFileSize } from "../services/documentService";
+import { formatFileSize, getDocumentUrl } from "../services/documentService";
 import {
   formatMoney,
   formatInputNumber,
@@ -114,6 +114,24 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const docHubStructure = resolveDocHubStructureV1(
     projectDetails.docHubStructureV1 || undefined,
   );
+
+  const handleOpenDocument = async (
+    event: React.MouseEvent<HTMLAnchorElement>,
+    documentPath: string,
+  ) => {
+    event.preventDefault();
+    try {
+      const signedUrl = await getDocumentUrl(documentPath);
+      window.open(signedUrl, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      console.error("Error opening document:", error);
+      showAlert({
+        title: "Chyba",
+        message: "Dokument se nepodařilo otevřít. Zkuste to prosím znovu.",
+        variant: "danger",
+      });
+    }
+  };
 
   const [alertModal, setAlertModal] = useState<{
     isOpen: boolean;
@@ -248,8 +266,10 @@ export const Pipeline: React.FC<PipelineProps> = ({
     activeCategory,
     bids,
     updateBidsInternal,
+    userId: user?.id,
     userRole: user?.role,
     projectDataId: projectData.id,
+    projectName: projectData.title,
     projectDataDocHubProviderLegacy: projectData.dochub_provider || undefined,
     projectDataDocHubStructureV1: projectData.docHubStructureV1 || undefined,
     isDocHubEnabled,
@@ -288,6 +308,8 @@ export const Pipeline: React.FC<PipelineProps> = ({
     bids,
     projectDetails,
     emailClientMode: user?.preferences?.emailClientMode,
+    userRole: user?.role,
+    currentUser: user,
     updateBidsInternal,
     setIsExportMenuOpen,
     showAlert,
@@ -391,7 +413,6 @@ export const Pipeline: React.FC<PipelineProps> = ({
           title={activeCategory.title}
           subtitle={`${projectData.title} > Průběh výběrového řízení`}
           showSearch={false}
-          showNotifications={false}
         >
           <button
             onClick={() => {
@@ -404,6 +425,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
             <span className="text-sm font-medium">Zpět na přehled</span>
           </button>
           <button
+            data-help-id="kanban-add-supplier"
             onClick={() => setIsSubcontractorModalOpen(true)}
             className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors"
           >
@@ -443,7 +465,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
           )}
 
           {/* Export Button with Dropdown */}
-          <div className="relative">
+          <div data-help-id="kanban-export" className="relative">
             <button
               ref={exportButtonRef}
               onClick={() => {
@@ -546,6 +568,30 @@ export const Pipeline: React.FC<PipelineProps> = ({
           </button>
         </Header>
 
+        <div className="px-6 pt-4">
+          <div data-help-id="kanban-info-bar" className="overflow-x-auto">
+            <div className="flex min-w-max items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
+              <span className="font-semibold text-slate-900 dark:text-white">
+                {activeCategory.title}
+              </span>
+              <span className="text-slate-300 dark:text-slate-700">|</span>
+              <span className="font-medium text-slate-500 dark:text-slate-400">
+                Cena SOD:
+              </span>
+              <span className="font-semibold text-slate-900 dark:text-white">
+                {formatMoney(activeCategory.sodBudget ?? 0)}
+              </span>
+              <span className="text-slate-300 dark:text-slate-700">|</span>
+              <span className="font-medium text-slate-500 dark:text-slate-400">
+                Interní plán:
+              </span>
+              <span className="font-semibold text-slate-900 dark:text-white">
+                {formatMoney(activeCategory.planBudget ?? 0)}
+              </span>
+            </div>
+          </div>
+        </div>
+
         {/* Document List Section */}
         {activeCategory.documents && activeCategory.documents.length > 0 && (
           <div className="px-6 pt-4">
@@ -563,6 +609,9 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   <a
                     key={doc.id}
                     href={doc.url}
+                    onClick={(event) => {
+                      void handleOpenDocument(event, doc.url);
+                    }}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors group"
@@ -588,21 +637,24 @@ export const Pipeline: React.FC<PipelineProps> = ({
           </div>
         )}
 
-        <div className="flex-1 overflow-x-auto overflow-y-hidden p-6">
+        <div data-help-id="pipeline-kanban" className="flex-1 overflow-x-auto overflow-y-hidden p-6">
           <div className="flex h-full space-x-4 min-w-max">
             {/* 1. Oslovení (Contacted) */}
             <Column
+              data-help-id="kanban-col-contacted"
               title="Oslovení"
               status="contacted"
               color="slate"
               count={getBidsForColumn(activeCategory.id, "contacted").length}
               onDrop={handleDrop}
             >
-              {getBidsForColumn(activeCategory.id, "contacted").map((bid) => (
+              {getBidsForColumn(activeCategory.id, "contacted").map((bid, idx) => (
                 <BidCard
                   key={bid.id}
                   bid={bid}
+                  data-help-id={idx === 0 ? "kanban-bid-card" : undefined}
                   onDragStart={handleDragStart}
+                  onDoubleClick={setEditingBid}
                   onEdit={setEditingBid}
                   onDelete={handleDeleteBidRequest}
                   onGenerateInquiry={handleGenerateInquiry}
@@ -633,6 +685,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   key={bid.id}
                   bid={bid}
                   onDragStart={handleDragStart}
+                  onDoubleClick={setEditingBid}
                   onEdit={setEditingBid}
                   onDelete={handleDeleteBidRequest}
                   onOpenDocHubFolder={
@@ -649,6 +702,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
             {/* 3. Cenová nabídka (Offers) */}
             <Column
+              data-help-id="kanban-col-offer"
               title="Cenová nabídka"
               status="offer"
               color="amber"
@@ -660,6 +714,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   key={bid.id}
                   bid={bid}
                   onDragStart={handleDragStart}
+                  onDoubleClick={setEditingBid}
                   onEdit={setEditingBid}
                   onDelete={handleDeleteBidRequest}
                   onOpenDocHubFolder={
@@ -682,6 +737,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   key={bid.id}
                   bid={bid}
                   onDragStart={handleDragStart}
+                  onDoubleClick={setEditingBid}
                   onEdit={setEditingBid}
                   onDelete={handleDeleteBidRequest}
                   onOpenDocHubFolder={
@@ -693,6 +749,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
             {/* 5. Jednání o SOD (Contract Negotiation) */}
             <Column
+              data-help-id="kanban-col-sod"
               title="Jednání o SOD"
               status="sod"
               color="green"
@@ -740,6 +797,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   <BidCard
                     bid={bid}
                     onDragStart={handleDragStart}
+                    onDoubleClick={setEditingBid}
                     onEdit={setEditingBid}
                     onDelete={handleDeleteBid}
                     onOpenDocHubFolder={
@@ -762,6 +820,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   key={bid.id}
                   bid={bid}
                   onDragStart={handleDragStart}
+                  onDoubleClick={setEditingBid}
                   onEdit={setEditingBid}
                   onDelete={handleDeleteBid}
                   onOpenDocHubFolder={
