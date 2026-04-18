@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { AuthCard } from "./AuthCard";
 import { Link, navigate, useLocation } from "@/shared/routing/router";
 import { authService } from "@/services/authService";
-import logo from "@/assets/logo.png";
+import logo from "@/assets/logo.svg";
 import "@/features/public/ui/landing-apex.css";
 import "@/features/auth/ui/auth-apex.css";
 

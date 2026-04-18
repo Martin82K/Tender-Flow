@@ -29,6 +29,7 @@ vi.mock('electron', () => ({
     isPackaged: false,
     getPath: vi.fn((name: string) => {
       if (name === 'userData') return '/Users/tester/user-data';
+      if (name === 'documents') return '/Users/tester/documents';
       if (name === 'exe') return '/Applications/TenderFlow/TenderFlow.exe';
       return '/tmp';
     }),
@@ -67,9 +68,15 @@ describe('AutoBackupService security', () => {
     const payload = '{"ok":true}';
     const savedPath = await service.saveBackup(payload, 'tenant', orgId);
 
-    expect(savedPath.startsWith(path.resolve('/Users/tester/user-data/backup'))).toBe(true);
+    const expectedFolder = path.resolve('/Users/tester/documents/Tender Flow/Backups');
+    expect(savedPath.startsWith(expectedFolder)).toBe(true);
     expect(savedPath.endsWith('.enc.json')).toBe(true);
-    expect(fsMock.writeFile).toHaveBeenCalledOnce();
+    // writeFile je volán pro šifrovaný backup i pro persist settings — stačí ověřit, že backup proběhl
+    expect(
+      fsMock.writeFile.mock.calls.some(([filePath]) =>
+        typeof filePath === 'string' && filePath.startsWith(expectedFolder),
+      ),
+    ).toBe(true);
 
     const content = await service.readBackup(savedPath);
     expect(content).toBe(payload);

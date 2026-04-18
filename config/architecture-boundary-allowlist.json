@@ -2,30 +2,6 @@
   "allowedFindings": [
     {
       "type": "deep-relative-import",
-      "file": "components/projectLayoutComponents/contractsComponents/AmendmentsList.tsx"
-    },
-    {
-      "type": "deep-relative-import",
-      "file": "components/projectLayoutComponents/contractsComponents/ContractForm.tsx"
-    },
-    {
-      "type": "deep-relative-import",
-      "file": "components/projectLayoutComponents/contractsComponents/ContractsList.tsx"
-    },
-    {
-      "type": "deep-relative-import",
-      "file": "components/projectLayoutComponents/contractsComponents/ContractsOverview.tsx"
-    },
-    {
-      "type": "deep-relative-import",
-      "file": "components/projectLayoutComponents/contractsComponents/DrawdownsList.tsx"
-    },
-    {
-      "type": "deep-relative-import",
-      "file": "components/projectLayoutComponents/contractsComponents/ExtractionValidation.tsx"
-    },
-    {
-      "type": "deep-relative-import",
       "file": "components/projectLayoutComponents/documents/AutoCreateModal.tsx"
     },
     {

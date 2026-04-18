@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { platformAdapter, isDesktop } from "../services/platformAdapter";
 import { View, Project, ProjectTab } from "../types";
-import logo from "../assets/logo.png";
+import logo from "../assets/logo.svg";
 import { SIDEBAR_NAVIGATION } from "../config/navigation";
 import { FEATURES, type FeatureKey } from "../config/features";
 import { useFeatures } from "../context/FeatureContext";

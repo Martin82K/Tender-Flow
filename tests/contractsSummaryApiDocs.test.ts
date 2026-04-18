@@ -33,6 +33,10 @@ describe("contracts summary API docs", () => {
       source: "manual",
       amendments: [],
       drawdowns: [],
+      invoices: [],
+      invoicedSum: 0,
+      paidSum: 0,
+      overdueSum: 0,
     });
 
     expect(Object.keys(example).sort()).toEqual(Object.keys(dto).sort());

@@ -352,6 +352,10 @@ export type ContractMarkdownEntityType = 'contract' | 'amendment';
 export type ContractMarkdownSourceKind = 'ocr' | 'manual_edit' | 'manual_upload' | 'import';
 export type ContractMarkdownAccessKind = 'view' | 'download' | 'export';
 
+export type ContractRetentionStatus = 'held' | 'released';
+
+export type ContractInvoiceStatus = 'issued' | 'approved' | 'paid' | 'overdue';
+
 export interface Contract {
   id: string;
   projectId: string;
@@ -370,8 +374,21 @@ export interface Contract {
   currency: string;
   basePrice: number;
 
+  /** @deprecated Nahrazeno retentionShortPercent / retentionLongPercent. Ponecháno pro zpětnou kompatibilitu. */
   retentionPercent?: number;
+  /** @deprecated Nahrazeno retentionShortAmount / retentionLongAmount. */
   retentionAmount?: number;
+
+  retentionShortPercent?: number;
+  retentionShortAmount?: number;
+  retentionShortReleaseOn?: string;
+  retentionShortStatus?: ContractRetentionStatus;
+
+  retentionLongPercent?: number;
+  retentionLongAmount?: number;
+  retentionLongReleaseOn?: string;
+  retentionLongStatus?: ContractRetentionStatus;
+
   siteSetupPercent?: number;
   warrantyMonths?: number;
   paymentTerms?: string;
@@ -431,12 +448,33 @@ export interface ContractDrawdown {
   createdAt?: string;
 }
 
+export interface ContractInvoice {
+  id: string;
+  contractId: string;
+  invoiceNumber: string;
+  issueDate: string;
+  dueDate: string;
+  amount: number;
+  currency: string;
+  status: ContractInvoiceStatus;
+  paidAt?: string;
+  documentUrl?: string;
+  note?: string;
+  createdBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface ContractWithDetails extends Contract {
   amendments: ContractAmendment[];
   drawdowns: ContractDrawdown[];
+  invoices: ContractInvoice[];
   currentTotal: number; // basePrice + sum(amendments.deltaPrice)
   approvedSum: number;  // sum(drawdowns.approvedAmount)
   remaining: number;    // currentTotal - approvedSum
+  invoicedSum: number;  // sum(invoices.amount)
+  paidSum: number;      // sum(invoices.amount where status='paid')
+  overdueSum: number;   // sum(invoices.amount where status='overdue' nebo issued && dueDate < today)
 }
 
 export interface ContractSummaryDto {

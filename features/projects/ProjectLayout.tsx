@@ -15,7 +15,7 @@ import {
 } from "@/types";
 import { ProjectOverviewNew } from "@/shared/ui/projects/ProjectOverviewNew";
 import { ProjectDocuments } from "@/shared/ui/projects/ProjectDocuments";
-import { Contracts } from "@/shared/ui/projects/Contracts";
+import { ContractsModule } from "@features/projects/contracts/ContractsModule";
 import { useFeatures } from "@/context/FeatureContext";
 import { FEATURES } from "@/config/features";
 import { ProjectMapView } from "@features/maps/components/ProjectMapView";
@@ -256,7 +256,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
           <ProjectDocuments project={project} onUpdate={onUpdateDetails} />
         )}
         {activeTab === "contracts" && (
-          <Contracts projectId={projectId} projectDetails={project} />
+          <ContractsModule projectId={projectId} />
         )}
       </div>
     </div>

@@ -593,7 +593,7 @@ const main = async () => {
         <div class="brand">
           <img
             class="logo-img"
-            src="./assets/logo.png"
+            src="./assets/logo.svg"
             alt="Tender Flow Logo"
             loading="eager"
             decoding="async"

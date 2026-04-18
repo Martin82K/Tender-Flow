@@ -3,11 +3,14 @@ import { invokeAuthedFunction } from './functionsClient';
 import {
   Contract,
   ContractAmendment,
+  ContractInvoice,
+  ContractInvoiceStatus,
   ContractMarkdownAccessKind,
   ContractDrawdown,
   ContractMarkdownEntityType,
   ContractMarkdownSourceKind,
   ContractMarkdownVersion,
+  ContractRetentionStatus,
   ContractWithDetails,
 } from '../types';
 
@@ -28,6 +31,24 @@ const mapContract = (row: Record<string, unknown>): Contract => ({
   basePrice: parseFloat(row.base_price as string) || 0,
   retentionPercent: row.retention_percent ? parseFloat(row.retention_percent as string) : undefined,
   retentionAmount: row.retention_amount ? parseFloat(row.retention_amount as string) : undefined,
+  retentionShortPercent: row.retention_short_percent
+    ? parseFloat(row.retention_short_percent as string)
+    : undefined,
+  retentionShortAmount: row.retention_short_amount
+    ? parseFloat(row.retention_short_amount as string)
+    : undefined,
+  retentionShortReleaseOn: (row.retention_short_release_on as string | null | undefined) ?? undefined,
+  retentionShortStatus:
+    (row.retention_short_status as ContractRetentionStatus | null | undefined) ?? undefined,
+  retentionLongPercent: row.retention_long_percent
+    ? parseFloat(row.retention_long_percent as string)
+    : undefined,
+  retentionLongAmount: row.retention_long_amount
+    ? parseFloat(row.retention_long_amount as string)
+    : undefined,
+  retentionLongReleaseOn: (row.retention_long_release_on as string | null | undefined) ?? undefined,
+  retentionLongStatus:
+    (row.retention_long_status as ContractRetentionStatus | null | undefined) ?? undefined,
   siteSetupPercent: row.site_setup_percent ? parseFloat(row.site_setup_percent as string) : undefined,
   warrantyMonths: row.warranty_months as number | undefined,
   paymentTerms: row.payment_terms as string | undefined,
@@ -64,6 +85,45 @@ const mapAmendment = (row: Record<string, unknown>): ContractAmendment => ({
   createdBy: row.created_by as string | undefined,
   createdAt: row.created_at as string | undefined,
 });
+
+const mapInvoice = (row: Record<string, unknown>): ContractInvoice => ({
+  id: row.id as string,
+  contractId: row.contract_id as string,
+  invoiceNumber: row.invoice_number as string,
+  issueDate: row.issue_date as string,
+  dueDate: row.due_date as string,
+  amount: parseFloat(row.amount as string) || 0,
+  currency: (row.currency as string) || 'CZK',
+  status: (row.status as ContractInvoiceStatus) || 'issued',
+  paidAt: (row.paid_at as string | null | undefined) ?? undefined,
+  documentUrl: (row.document_url as string | null | undefined) ?? undefined,
+  note: (row.note as string | null | undefined) ?? undefined,
+  createdBy: (row.created_by as string | null | undefined) ?? undefined,
+  createdAt: (row.created_at as string | null | undefined) ?? undefined,
+  updatedAt: (row.updated_at as string | null | undefined) ?? undefined,
+});
+
+const todayIso = (): string => new Date().toISOString().slice(0, 10);
+
+const deriveInvoiceStatus = (invoice: ContractInvoice): ContractInvoiceStatus => {
+  if (invoice.status === 'issued' && invoice.dueDate && invoice.dueDate < todayIso()) {
+    return 'overdue';
+  }
+  return invoice.status;
+};
+
+const computeInvoiceAggregates = (invoices: ContractInvoice[]) => {
+  let invoicedSum = 0;
+  let paidSum = 0;
+  let overdueSum = 0;
+  for (const inv of invoices) {
+    invoicedSum += inv.amount;
+    const effective = deriveInvoiceStatus(inv);
+    if (effective === 'paid') paidSum += inv.amount;
+    if (effective === 'overdue') overdueSum += inv.amount;
+  }
+  return { invoicedSum, paidSum, overdueSum };
+};
 
 const mapDrawdown = (row: Record<string, unknown>): ContractDrawdown => ({
   id: row.id as string,
@@ -131,16 +191,18 @@ export const contractService = {
     if (error) throw error;
     if (!contracts?.length) return [];
 
-    // Fetch amendments and drawdowns for all contracts
+    // Fetch amendments, drawdowns and invoices for all contracts
     const contractIds = contracts.map(c => c.id);
 
-    const [amendmentsRes, drawdownsRes] = await Promise.all([
+    const [amendmentsRes, drawdownsRes, invoicesRes] = await Promise.all([
       supabase.from('contract_amendments').select('*').in('contract_id', contractIds).order('amendment_no', { ascending: true }),
       supabase.from('contract_drawdowns').select('*').in('contract_id', contractIds).order('period', { ascending: true }),
+      supabase.from('contract_invoices').select('*').in('contract_id', contractIds).order('due_date', { ascending: true }),
     ]);
 
     const amendmentsByContract: Record<string, ContractAmendment[]> = {};
     const drawdownsByContract: Record<string, ContractDrawdown[]> = {};
+    const invoicesByContract: Record<string, ContractInvoice[]> = {};
 
     (amendmentsRes.data || []).forEach(a => {
       if (!amendmentsByContract[a.contract_id]) amendmentsByContract[a.contract_id] = [];
@@ -152,21 +214,32 @@ export const contractService = {
       drawdownsByContract[d.contract_id].push(mapDrawdown(d));
     });
 
+    (invoicesRes.data || []).forEach(i => {
+      if (!invoicesByContract[i.contract_id]) invoicesByContract[i.contract_id] = [];
+      invoicesByContract[i.contract_id].push(mapInvoice(i));
+    });
+
     return contracts.map(c => {
       const contract = mapContract(c);
       const amendments = amendmentsByContract[c.id] || [];
       const drawdowns = drawdownsByContract[c.id] || [];
+      const invoices = invoicesByContract[c.id] || [];
 
       const currentTotal = contract.basePrice + amendments.reduce((sum, a) => sum + a.deltaPrice, 0);
       const approvedSum = drawdowns.reduce((sum, d) => sum + d.approvedAmount, 0);
+      const { invoicedSum, paidSum, overdueSum } = computeInvoiceAggregates(invoices);
 
       return {
         ...contract,
         amendments,
         drawdowns,
+        invoices,
         currentTotal,
         approvedSum,
         remaining: currentTotal - approvedSum,
+        invoicedSum,
+        paidSum,
+        overdueSum,
       };
     });
   },
@@ -184,25 +257,32 @@ export const contractService = {
     }
     if (!contract) return null;
 
-    const [amendmentsRes, drawdownsRes] = await Promise.all([
+    const [amendmentsRes, drawdownsRes, invoicesRes] = await Promise.all([
       supabase.from('contract_amendments').select('*').eq('contract_id', contractId).order('amendment_no', { ascending: true }),
       supabase.from('contract_drawdowns').select('*').eq('contract_id', contractId).order('period', { ascending: true }),
+      supabase.from('contract_invoices').select('*').eq('contract_id', contractId).order('due_date', { ascending: true }),
     ]);
 
     const mappedContract = mapContract(contract);
     const amendments = (amendmentsRes.data || []).map(mapAmendment);
     const drawdowns = (drawdownsRes.data || []).map(mapDrawdown);
+    const invoices = (invoicesRes.data || []).map(mapInvoice);
 
     const currentTotal = mappedContract.basePrice + amendments.reduce((sum, a) => sum + a.deltaPrice, 0);
     const approvedSum = drawdowns.reduce((sum, d) => sum + d.approvedAmount, 0);
+    const { invoicedSum, paidSum, overdueSum } = computeInvoiceAggregates(invoices);
 
     return {
       ...mappedContract,
       amendments,
       drawdowns,
+      invoices,
       currentTotal,
       approvedSum,
       remaining: currentTotal - approvedSum,
+      invoicedSum,
+      paidSum,
+      overdueSum,
     };
   },
 
@@ -225,9 +305,17 @@ export const contractService = {
         effective_to: contract.effectiveTo || null,
         currency: contract.currency || 'CZK',
         base_price: contract.basePrice,
-        retention_percent: contract.retentionPercent || null,
-        retention_amount: contract.retentionAmount || null,
-        site_setup_percent: contract.siteSetupPercent || null,
+        retention_percent: contract.retentionPercent ?? null,
+        retention_amount: contract.retentionAmount ?? null,
+        retention_short_percent: contract.retentionShortPercent ?? null,
+        retention_short_amount: contract.retentionShortAmount ?? null,
+        retention_short_release_on: contract.retentionShortReleaseOn || null,
+        retention_short_status: contract.retentionShortStatus ?? 'held',
+        retention_long_percent: contract.retentionLongPercent ?? null,
+        retention_long_amount: contract.retentionLongAmount ?? null,
+        retention_long_release_on: contract.retentionLongReleaseOn || null,
+        retention_long_status: contract.retentionLongStatus ?? 'held',
+        site_setup_percent: contract.siteSetupPercent ?? null,
         warranty_months: contract.warrantyMonths || null,
         payment_terms: contract.paymentTerms || null,
         scope_summary: contract.scopeSummary || null,
@@ -278,6 +366,14 @@ export const contractService = {
     if (updates.basePrice !== undefined) dbUpdates.base_price = updates.basePrice;
     if (updates.retentionPercent !== undefined) dbUpdates.retention_percent = updates.retentionPercent;
     if (updates.retentionAmount !== undefined) dbUpdates.retention_amount = updates.retentionAmount;
+    if (updates.retentionShortPercent !== undefined) dbUpdates.retention_short_percent = updates.retentionShortPercent;
+    if (updates.retentionShortAmount !== undefined) dbUpdates.retention_short_amount = updates.retentionShortAmount;
+    if (updates.retentionShortReleaseOn !== undefined) dbUpdates.retention_short_release_on = updates.retentionShortReleaseOn || null;
+    if (updates.retentionShortStatus !== undefined) dbUpdates.retention_short_status = updates.retentionShortStatus;
+    if (updates.retentionLongPercent !== undefined) dbUpdates.retention_long_percent = updates.retentionLongPercent;
+    if (updates.retentionLongAmount !== undefined) dbUpdates.retention_long_amount = updates.retentionLongAmount;
+    if (updates.retentionLongReleaseOn !== undefined) dbUpdates.retention_long_release_on = updates.retentionLongReleaseOn || null;
+    if (updates.retentionLongStatus !== undefined) dbUpdates.retention_long_status = updates.retentionLongStatus;
     if (updates.siteSetupPercent !== undefined) dbUpdates.site_setup_percent = updates.siteSetupPercent;
     if (updates.warrantyMonths !== undefined) dbUpdates.warranty_months = updates.warrantyMonths;
     if (updates.paymentTerms !== undefined) dbUpdates.payment_terms = updates.paymentTerms;
@@ -498,6 +594,98 @@ export const contractService = {
         accessSource,
       },
     });
+  },
+
+  // ============== INVOICES ==============
+
+  getInvoicesByContract: async (contractId: string): Promise<ContractInvoice[]> => {
+    const { data, error } = await supabase
+      .from('contract_invoices')
+      .select('*')
+      .eq('contract_id', contractId)
+      .order('due_date', { ascending: true });
+
+    if (error) throw error;
+    return (data || []).map(mapInvoice);
+  },
+
+  createInvoice: async (
+    invoice: Omit<ContractInvoice, 'id' | 'createdAt' | 'updatedAt'>,
+  ): Promise<ContractInvoice> => {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    const { data, error } = await supabase
+      .from('contract_invoices')
+      .insert({
+        contract_id: invoice.contractId,
+        invoice_number: invoice.invoiceNumber,
+        issue_date: invoice.issueDate,
+        due_date: invoice.dueDate,
+        amount: invoice.amount,
+        currency: invoice.currency || 'CZK',
+        status: invoice.status || 'issued',
+        paid_at: invoice.paidAt || null,
+        document_url: invoice.documentUrl || null,
+        note: invoice.note || null,
+        created_by: user?.id || null,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return mapInvoice(data);
+  },
+
+  updateInvoice: async (id: string, updates: Partial<ContractInvoice>): Promise<void> => {
+    const dbUpdates: Record<string, unknown> = {};
+
+    if (updates.invoiceNumber !== undefined) dbUpdates.invoice_number = updates.invoiceNumber;
+    if (updates.issueDate !== undefined) dbUpdates.issue_date = updates.issueDate;
+    if (updates.dueDate !== undefined) dbUpdates.due_date = updates.dueDate;
+    if (updates.amount !== undefined) dbUpdates.amount = updates.amount;
+    if (updates.currency !== undefined) dbUpdates.currency = updates.currency;
+    if (updates.status !== undefined) dbUpdates.status = updates.status;
+    if (updates.paidAt !== undefined) dbUpdates.paid_at = updates.paidAt || null;
+    if (updates.documentUrl !== undefined) dbUpdates.document_url = updates.documentUrl || null;
+    if (updates.note !== undefined) dbUpdates.note = updates.note || null;
+
+    if (Object.keys(dbUpdates).length === 0) return;
+
+    const { error } = await supabase.from('contract_invoices').update(dbUpdates).eq('id', id);
+    if (error) throw error;
+  },
+
+  deleteInvoice: async (id: string): Promise<void> => {
+    const { error } = await supabase.from('contract_invoices').delete().eq('id', id);
+    if (error) throw error;
+  },
+
+  markInvoicePaid: async (id: string, paidAt?: string): Promise<void> => {
+    const effectivePaidAt = paidAt || todayIso();
+    const { error } = await supabase
+      .from('contract_invoices')
+      .update({ status: 'paid', paid_at: effectivePaidAt })
+      .eq('id', id);
+    if (error) throw error;
+  },
+
+  // ============== RETENTION HELPERS ==============
+
+  releaseRetention: async (
+    contractId: string,
+    kind: 'short' | 'long',
+    releaseOn?: string,
+  ): Promise<void> => {
+    const column = kind === 'short' ? 'retention_short_status' : 'retention_long_status';
+    const dateColumn = kind === 'short' ? 'retention_short_release_on' : 'retention_long_release_on';
+    const { error } = await supabase
+      .from('contracts')
+      .update({
+        [column]: 'released',
+        [dateColumn]: releaseOn || todayIso(),
+      })
+      .eq('id', contractId);
+    if (error) throw error;
   },
 
   // ============== DOCUMENT UPLOAD ==============

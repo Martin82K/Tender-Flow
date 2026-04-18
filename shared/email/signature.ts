@@ -118,10 +118,10 @@ export const SIGNATURE_FONT_SIZE_OPTIONS = [
 export const DEFAULT_FONT_FAMILY = "Arial, Helvetica, sans-serif";
 export const DEFAULT_FONT_SIZE = "16px";
 
-const allowedFontFamilies = new Set(
+const allowedFontFamilies = new Set<string>(
   SIGNATURE_FONT_OPTIONS.map((option) => option.value),
 );
-const allowedFontSizes = new Set(
+const allowedFontSizes = new Set<string>(
   SIGNATURE_FONT_SIZE_OPTIONS.map((option) => option.value),
 );
 

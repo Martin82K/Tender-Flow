@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import logo from "@/assets/logo.png";
+import logo from "@/assets/logo.svg";
 import { Link, useLocation, navigate } from "@/shared/routing/router";
 import { useAuth } from "@/context/AuthContext";
 import { logRuntimeEvent } from "@infra/diagnostics/runtimeDiagnostics";

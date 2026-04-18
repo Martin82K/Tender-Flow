@@ -23,7 +23,6 @@ import {
 } from "../utils/docHub";
 import platformAdapter from "../services/platformAdapter";
 import { DEFAULT_STATUSES } from "../config/constants";
-import { contractService } from "../services/contractService";
 import {
   buildBidComparisonSuppliers,
   getTemplateLinksForInquiryKindModel,
@@ -359,30 +358,6 @@ export const Pipeline: React.FC<PipelineProps> = ({
   const handleDragStart = (e: React.DragEvent, bidId: string) => {
     e.dataTransfer.setData("bidId", bidId);
     e.dataTransfer.effectAllowed = "move";
-  };
-
-  // Create contract from a contracted bid
-  const handleCreateContractFromBid = async (bid: Bid) => {
-    if (!activeCategory) return;
-    try {
-      await contractService.createContractFromBid(
-        projectData.id,
-        bid,
-        activeCategory.title,
-      );
-      showAlert({
-        title: "Smlouva vytvořena",
-        message: `Smlouva pro ${bid.companyName} byla vytvořena. Přejděte do záložky Smlouvy pro další úpravy.`,
-        variant: "success",
-      });
-    } catch (err) {
-      console.error("Error creating contract:", err);
-      showAlert({
-        title: "Chyba",
-        message: "Nepodařilo se vytvořit smlouvu.",
-        variant: "danger",
-      });
-    }
   };
 
   const handleDeleteCategory = (categoryId: string) => {
@@ -782,18 +757,6 @@ export const Pipeline: React.FC<PipelineProps> = ({
                       {bid.contracted ? "task_alt" : "description"}
                     </span>
                   </button>
-                  {/* Create Contract button - only for contracted bids */}
-                  {bid.contracted && (
-                    <button
-                      onClick={() => handleCreateContractFromBid(bid)}
-                      className="absolute -top-2 right-14 bg-emerald-500 text-white rounded-full p-1 z-10 shadow-sm transition-all hover:scale-110 hover:bg-emerald-600"
-                      title="Vytvořit smlouvu"
-                    >
-                      <span className="material-symbols-outlined text-[16px] block">
-                        add
-                      </span>
-                    </button>
-                  )}
                   <BidCard
                     bid={bid}
                     onDragStart={handleDragStart}

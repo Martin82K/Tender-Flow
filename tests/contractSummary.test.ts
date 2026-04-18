@@ -28,6 +28,10 @@ const baseContract: ContractWithDetails = {
   source: "manual",
   amendments: [],
   drawdowns: [],
+  invoices: [],
+  invoicedSum: 0,
+  paidSum: 0,
+  overdueSum: 0,
 };
 
 describe("contractSummary", () => {

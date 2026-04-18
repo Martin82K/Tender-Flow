@@ -28,9 +28,13 @@ const mockContract: ContractWithDetails = {
     },
   ],
   drawdowns: [],
+  invoices: [],
   currentTotal: 105000,
   approvedSum: 0,
   remaining: 105000,
+  invoicedSum: 0,
+  paidSum: 0,
+  overdueSum: 0,
 };
 
 const mockProject: ProjectDetails = {

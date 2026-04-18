@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import logo from '../assets/logo.png';
+import logo from '../assets/logo.svg';
 
 export const ConstructionBackground: React.FC = () => {
     const [mounted, setMounted] = useState(false);
