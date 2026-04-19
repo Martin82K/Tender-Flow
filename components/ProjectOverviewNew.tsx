@@ -93,6 +93,13 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
 
   const parseEditableNumber = (value: string): number => parseDecimal(value) ?? 0;
 
+  const DEMAND_INITIAL_VISIBLE = 10;
+  const DEMAND_PAGE_SIZE = 10;
+  const [demandVisibleCount, setDemandVisibleCount] = React.useState(DEMAND_INITIAL_VISIBLE);
+  React.useEffect(() => {
+    setDemandVisibleCount(DEMAND_INITIAL_VISIBLE);
+  }, [demandFilter]);
+
   const [compactInvestorSodInput, setCompactInvestorSodInput] = React.useState("");
   const [compactAmendmentPriceInputs, setCompactAmendmentPriceInputs] =
     React.useState<Record<string, string>>({});
@@ -1813,6 +1820,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
                     {[...filteredCategories]
                       .sort((a, b) => a.title.localeCompare(b.title, "cs"))
+                      .slice(0, demandVisibleCount)
                       .map((cat) => {
                         const catBids = project.bids?.[cat.id] || [];
                         const winningBids = getWinningBids(project, cat.id);
@@ -1881,7 +1889,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                           >
                             <td className="py-4 px-6">
                               <div
-                                className={`inline-flex items-center gap-2 px-3 py-1 rounded-full ${status.bg} ${status.text} text-[10px] font-black uppercase tracking-tighter border border-current opacity-80 group-hover:opacity-100 transition-opacity`}
+                                className={`inline-flex items-center gap-2 ${status.text} text-[10px] font-black uppercase tracking-tighter opacity-80 group-hover:opacity-100 transition-opacity`}
                               >
                                 <span
                                   className={`size-1.5 rounded-full ${status.dot} animate-pulse`}
@@ -1890,7 +1898,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                               </div>
                             </td>
                             <td className="py-4 px-6">
-                              <div className="font-extrabold text-slate-900 dark:text-white text-sm group-hover:text-primary transition-colors">
+                              <div className="font-medium text-slate-900 dark:text-white text-sm group-hover:text-primary transition-colors">
                                 {cat.title}
                               </div>
                               {!visibleColumns.nabidky && (
@@ -1901,17 +1909,17 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                             </td>
 
                             {visibleColumns.sod && (
-                              <td className="py-4 px-6 text-right font-bold text-slate-500 dark:text-slate-400 text-xs">
+                              <td className="py-4 px-6 text-right font-medium text-slate-900 dark:text-white text-xs">
                                 {formatMoney(cat.sodBudget)}
                               </td>
                             )}
                             {visibleColumns.plan && (
-                              <td className="py-4 px-6 text-right font-bold text-slate-900 dark:text-slate-200 text-xs">
+                              <td className="py-4 px-6 text-right font-medium text-slate-900 dark:text-white text-xs">
                                 {formatMoney(cat.planBudget)}
                               </td>
                             )}
 
-                            <td className="py-4 px-6 text-right font-black text-slate-900 dark:text-white text-sm">
+                            <td className="py-4 px-6 text-right font-medium text-slate-900 dark:text-white text-xs">
                               {hasWinner ? (
                                 formatMoney(subPrice)
                               ) : (
@@ -1925,7 +1933,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                               <td className="py-4 px-6 text-right">
                                 {hasWinner ? (
                                   <div
-                                    className={`inline-flex items-center gap-1 font-black text-xs ${diffSod >= 0 ? "text-emerald-500" : "text-rose-500"}`}
+                                    className={`inline-flex items-center gap-1 font-medium text-xs ${diffSod >= 0 ? "text-emerald-500" : "text-rose-500"}`}
                                   >
                                     {diffSod >= 0 ? "+" : ""}
                                     {formatMoney(diffSod)}
@@ -1941,7 +1949,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                               <td className="py-4 px-6 text-right">
                                 {hasWinner ? (
                                   <div
-                                    className={`inline-flex items-center gap-1 font-black text-xs ${diffPlan >= 0 ? "text-emerald-500" : "text-rose-500"}`}
+                                    className={`inline-flex items-center gap-1 font-medium text-xs ${diffPlan >= 0 ? "text-emerald-500" : "text-rose-500"}`}
                                   >
                                     {diffPlan >= 0 ? "+" : ""}
                                     {formatMoney(diffPlan)}
@@ -1955,7 +1963,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                             )}
 
                             {visibleColumns.nabidky && (
-                              <td className="py-4 px-6 text-center text-xs font-bold text-slate-600 dark:text-slate-400">
+                              <td className="py-4 px-6 text-center text-xs font-medium text-slate-900 dark:text-white">
                                 {
                                   catBids.filter(
                                     (b) =>
@@ -1975,7 +1983,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                               <td className="py-4 px-6 text-center">
                                 {hasWinner ? (
                                   <span
-                                    className={`text-xs font-bold ${
+                                    className={`text-xs font-medium ${
                                       allContracted
                                         ? "text-emerald-600 dark:text-emerald-400"
                                         : "text-amber-600 dark:text-amber-400"
@@ -2001,7 +2009,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                                   <div className="size-6 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-black text-slate-500">
                                     {winnersNames.charAt(0)}
                                   </div>
-                                  <span className="text-xs font-bold text-slate-600 dark:text-slate-400 truncate">
+                                  <span className="text-xs font-medium text-slate-900 dark:text-white truncate">
                                     {winnersNames}
                                   </span>
                                 </div>
@@ -2070,6 +2078,40 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                   </tfoot>
                 </table>
               </div>
+              {filteredCategories.length > demandVisibleCount && (
+                <div className="px-8 py-4 border-t border-slate-200 dark:border-slate-800/50 flex items-center justify-center gap-3">
+                  <span className="text-[11px] text-slate-500 font-bold uppercase tracking-widest">
+                    Zobrazeno {demandVisibleCount} z {filteredCategories.length}
+                  </span>
+                  <button
+                    onClick={() =>
+                      setDemandVisibleCount((c) =>
+                        Math.min(c + DEMAND_PAGE_SIZE, filteredCategories.length),
+                      )
+                    }
+                    className="px-4 py-2 text-[11px] font-black uppercase tracking-tighter rounded-xl bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-primary border border-slate-200 dark:border-slate-700 transition-colors shadow-sm"
+                  >
+                    Zobrazit více
+                  </button>
+                  <button
+                    onClick={() => setDemandVisibleCount(filteredCategories.length)}
+                    className="px-4 py-2 text-[11px] font-black uppercase tracking-tighter rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
+                  >
+                    Zobrazit vše
+                  </button>
+                </div>
+              )}
+              {filteredCategories.length > DEMAND_INITIAL_VISIBLE &&
+                demandVisibleCount >= filteredCategories.length && (
+                  <div className="px-8 py-4 border-t border-slate-200 dark:border-slate-800/50 flex items-center justify-center">
+                    <button
+                      onClick={() => setDemandVisibleCount(DEMAND_INITIAL_VISIBLE)}
+                      className="px-4 py-2 text-[11px] font-black uppercase tracking-tighter rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
+                    >
+                      Sbalit
+                    </button>
+                  </div>
+                )}
             </div>
       )}
     </div>
