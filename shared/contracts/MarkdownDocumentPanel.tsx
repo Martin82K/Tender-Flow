@@ -484,8 +484,8 @@ export const MarkdownDocumentPanel: React.FC<MarkdownDocumentPanelProps> = ({
         )}
       </div>
 
-      <div className="p-4 flex-1 overflow-y-auto">
-        <div className="flex items-center justify-between mb-3">
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-4 pt-4 flex items-center justify-between mb-3">
           <p className="text-xs uppercase tracking-wide font-semibold text-slate-500">
             Náhled
           </p>
@@ -526,11 +526,11 @@ export const MarkdownDocumentPanel: React.FC<MarkdownDocumentPanelProps> = ({
         </div>
 
         {error && (
-          <div className="mb-3 p-2 rounded-lg bg-red-50 text-red-600 text-xs">{error}</div>
+          <div className="mx-4 mb-3 p-2 rounded-lg bg-red-50 text-red-600 text-xs">{error}</div>
         )}
 
         {enableSearch && (
-          <div className="mb-3 flex flex-col sm:flex-row sm:items-center gap-2">
+          <div className="sticky top-0 z-20 px-4 py-2 mb-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center gap-2">
             <div className="relative flex-1">
               <span className="material-symbols-outlined text-base text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2">
                 search
@@ -593,7 +593,7 @@ export const MarkdownDocumentPanel: React.FC<MarkdownDocumentPanelProps> = ({
         )}
 
         {editing ? (
-          <div className="space-y-3">
+          <div className="px-4 pb-4 space-y-3">
             <textarea
               value={draftMd}
               onChange={(e) => setDraftMd(e.target.value)}
@@ -613,11 +613,11 @@ export const MarkdownDocumentPanel: React.FC<MarkdownDocumentPanelProps> = ({
         ) : selectedVersion ? (
           <div
             ref={previewContainerRef}
-            className="text-sm leading-6 text-slate-700 dark:text-slate-200 [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:text-base [&_h3]:font-semibold [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-slate-300 [&_th]:px-2 [&_th]:py-1 [&_td]:border [&_td]:border-slate-300 [&_td]:px-2 [&_td]:py-1 [&_code]:bg-slate-100 [&_code]:px-1 [&_code]:rounded"
+            className="px-4 pb-4 text-sm leading-6 text-slate-700 dark:text-slate-200 [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:text-base [&_h3]:font-semibold [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-slate-300 [&_th]:px-2 [&_th]:py-1 [&_td]:border [&_td]:border-slate-300 [&_td]:px-2 [&_td]:py-1 [&_code]:bg-slate-100 [&_code]:px-1 [&_code]:rounded"
             dangerouslySetInnerHTML={selectedMarkup}
           />
         ) : (
-          <p className="text-sm text-slate-500">
+          <p className="px-4 pb-4 text-sm text-slate-500">
             Dokument zatím nemá žádnou verzi. Nahrajte smlouvu přes OCR, nebo vytvořte první verzi ručně.
           </p>
         )}

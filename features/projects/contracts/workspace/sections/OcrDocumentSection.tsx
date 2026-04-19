@@ -38,15 +38,14 @@ const ConfidencePill: React.FC<{ value: number | null | undefined }> = ({ value 
 const DocumentRow: React.FC<{
   title: string;
   subtitle?: string;
-  documentUrl?: string | null;
+  ocrDone?: boolean;
   confidence?: number | null;
   busy?: boolean;
   busyLabel?: string;
   error?: string | null;
   onPickFile: (file: File) => void;
-  onOpen?: () => Promise<void> | void;
   actionLabel: string;
-}> = ({ title, subtitle, documentUrl, confidence, busy, busyLabel, error, onPickFile, onOpen, actionLabel }) => {
+}> = ({ title, subtitle, ocrDone, confidence, busy, busyLabel, error, onPickFile, actionLabel }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   return (
     <div className="rounded-xl bg-slate-950/60 border border-slate-800 p-3 space-y-2">
@@ -56,30 +55,21 @@ const DocumentRow: React.FC<{
           {subtitle && <div className="text-[11px] text-slate-500 truncate">{subtitle}</div>}
         </div>
         <div className="flex items-center gap-2">
-          {documentUrl ? (
+          {ocrDone ? (
             <>
               <span className="rounded-full bg-emerald-500/15 text-emerald-400 px-2 py-0.5 text-[10px] font-semibold">
-                Nahráno
+                OCR hotové
               </span>
               <ConfidencePill value={confidence} />
             </>
           ) : (
             <span className="rounded-full bg-slate-500/15 text-slate-400 px-2 py-0.5 text-[10px] font-semibold">
-              Bez dokumentu
+              Bez OCR
             </span>
           )}
         </div>
       </div>
       <div className="flex flex-wrap gap-2">
-        {documentUrl && onOpen && (
-          <button
-            type="button"
-            onClick={() => onOpen()}
-            className="px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900 text-slate-200 text-xs hover:bg-slate-800"
-          >
-            ↓ Otevřít dokument
-          </button>
-        )}
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
@@ -228,16 +218,6 @@ export const OcrDocumentSection: React.FC<Props> = ({ contract, onRefresh }) => 
     }
   };
 
-  const openDocument = async (documentRef: string | null | undefined) => {
-    if (!documentRef) return;
-    try {
-      const url = await contractService.resolveContractDocumentUrl(documentRef);
-      window.open(url, '_blank', 'noopener,noreferrer');
-    } catch (err) {
-      setErr('open', err instanceof Error ? err.message : 'Nepodařilo se otevřít dokument.');
-    }
-  };
-
   const isContractBusy = busy === 'contract';
 
   return (
@@ -258,14 +238,15 @@ export const OcrDocumentSection: React.FC<Props> = ({ contract, onRefresh }) => 
             [contract.contractNumber, formatDate(contract.signedAt)].filter(Boolean).join(' · ') ||
             undefined
           }
-          documentUrl={contract.documentUrl}
+          ocrDone={contract.extractionConfidence != null}
           confidence={contract.extractionConfidence}
           busy={isContractBusy}
           busyLabel="Zpracovávám…"
           error={error.contract}
           onPickFile={(f) => void runContractOcr(f)}
-          onOpen={() => openDocument(contract.documentUrl)}
-          actionLabel={contract.documentUrl ? 'Nahradit a spustit OCR' : 'Nahrát a spustit OCR'}
+          actionLabel={
+            contract.extractionConfidence != null ? 'Spustit OCR znovu' : 'Vybrat dokument a spustit OCR'
+          }
         />
 
         <div>
@@ -289,26 +270,21 @@ export const OcrDocumentSection: React.FC<Props> = ({ contract, onRefresh }) => 
                         .filter(Boolean)
                         .join(' · ') || undefined
                     }
-                    documentUrl={a.documentUrl}
+                    ocrDone={a.extractionConfidence != null}
                     confidence={a.extractionConfidence}
                     busy={Boolean(isBusy)}
                     busyLabel="Zpracovávám…"
                     error={error[key]}
                     onPickFile={(f) => void runAmendmentOcr(a, f)}
-                    onOpen={() => openDocument(a.documentUrl)}
-                    actionLabel={a.documentUrl ? 'Nahradit a spustit OCR' : 'Nahrát a spustit OCR'}
+                    actionLabel={
+                      a.extractionConfidence != null ? 'Spustit OCR znovu' : 'Vybrat dokument a spustit OCR'
+                    }
                   />
                 );
               })}
             </div>
           )}
         </div>
-
-        {error.open && (
-          <div className="rounded-md bg-red-500/10 border border-red-500/30 text-red-400 text-[11px] px-2.5 py-1.5">
-            {error.open}
-          </div>
-        )}
 
         <div className="pt-4 mt-2 border-t border-slate-800">
           <MarkdownVersionsList

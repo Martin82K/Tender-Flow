@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Modal } from '@/shared/ui/Modal';
 import { NumericInput } from '@/shared/ui/NumericInput';
+import { MarkdownDocumentPanel } from '@/shared/contracts/MarkdownDocumentPanel';
 import { contractService } from '@/services/contractService';
 import type { ContractAmendment } from '@/types';
 
@@ -59,8 +60,33 @@ export const AmendmentDialog: React.FC<Props> = ({ contractId, initial, onClose,
     }
   };
 
+  const showOcrPanel = isEditing && initial;
+
   return (
-    <Modal isOpen onClose={onClose} title={isEditing ? 'Upravit dodatek' : 'Nový dodatek'} size="lg">
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={isEditing ? 'Upravit dodatek' : 'Nový dodatek'}
+      size={showOcrPanel ? 'full' : 'lg'}
+    >
+      <div
+        className={
+          showOcrPanel ? 'grid grid-cols-1 lg:grid-cols-2 gap-5 h-[78vh]' : ''
+        }
+      >
+        {showOcrPanel && (
+          <div className="min-h-0 overflow-hidden">
+            <MarkdownDocumentPanel
+              entityType="amendment"
+              entityId={initial.id}
+              entityLabel={`Dodatek č. ${initial.amendmentNo}`}
+              editable={false}
+              fitParent
+              enableSearch
+            />
+          </div>
+        )}
+        <div className={showOcrPanel ? 'overflow-y-auto pr-1' : ''}>
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
           <div className="rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs px-3 py-2">
@@ -132,6 +158,8 @@ export const AmendmentDialog: React.FC<Props> = ({ contractId, initial, onClose,
           </button>
         </div>
       </form>
+        </div>
+      </div>
     </Modal>
   );
 };

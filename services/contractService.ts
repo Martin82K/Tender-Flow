@@ -690,48 +690,4 @@ export const contractService = {
     if (error) throw error;
   },
 
-  // ============== DOCUMENT UPLOAD ==============
-
-  uploadContractDocument: async (file: File, contractId: string): Promise<string> => {
-    const fileExt = file.name.split('.').pop() || 'pdf';
-    const fileName = `${contractId}/${Date.now()}_${crypto.randomUUID()}.${fileExt}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('contract-documents')
-      .upload(fileName, file, {
-        cacheControl: '3600',
-        upsert: false,
-      });
-
-    if (uploadError) throw uploadError;
-
-    return `storage://contract-documents/${fileName}`;
-  },
-
-  resolveContractDocumentUrl: async (
-    documentRef: string,
-    expiresInSeconds = 900,
-  ): Promise<string> => {
-    if (!documentRef) return '';
-    if (/^https?:\/\//i.test(documentRef)) return documentRef;
-
-    let bucket = 'contract-documents';
-    let objectPath = documentRef;
-
-    const storagePrefixMatch = documentRef.match(/^storage:\/\/([^/]+)\/(.+)$/i);
-    if (storagePrefixMatch) {
-      bucket = storagePrefixMatch[1];
-      objectPath = storagePrefixMatch[2];
-    }
-
-    const { data, error } = await supabase.storage
-      .from(bucket)
-      .createSignedUrl(objectPath, expiresInSeconds);
-
-    if (error || !data?.signedUrl) {
-      throw error || new Error('Nepodařilo se vygenerovat signed URL dokumentu');
-    }
-
-    return data.signedUrl;
-  },
 };
