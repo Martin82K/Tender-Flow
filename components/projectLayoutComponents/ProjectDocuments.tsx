@@ -448,9 +448,6 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
                 linkValue={docsLinkValue}
                 onLinkValueChange={(val) => setDocsLinkValue(val)}
                 onSave={handleSaveDocs}
-                isDocHubConnected={canDocHub && isDocHubConnected}
-                docHubPdLink={canDocHub ? docHubProjectLinks?.pd || null : null}
-                docHubStructure={docHubStructure}
                 showModal={showModal}
                 onUpdate={onUpdate}
               />
