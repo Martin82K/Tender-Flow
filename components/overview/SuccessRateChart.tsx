@@ -1,5 +1,6 @@
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { formatDecimal } from '@/utils/formatters';
 
 interface SuccessRateChartProps {
   sodCount: number;
@@ -76,7 +77,7 @@ export const SuccessRateChart: React.FC<SuccessRateChartProps> = ({
         {/* Center text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
           <span className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums">
-            {successRate.toFixed(1)}%
+            {formatDecimal(successRate, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %
           </span>
           <span className="text-xs text-slate-500 dark:text-slate-400">úspěšnost</span>
         </div>

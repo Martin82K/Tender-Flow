@@ -2,7 +2,7 @@ import React from 'react';
 import type { ContractWithDetails } from '@/types';
 import { contractService } from '@/services/contractService';
 import { computeRetention } from '../../utils/retention';
-import { formatDate, formatMoney } from '../../utils/format';
+import { formatDate, formatMoney, formatPercent } from '../../utils/format';
 
 interface Props {
   contract: ContractWithDetails;
@@ -61,7 +61,7 @@ export const RetentionSection: React.FC<Props> = ({ contract, onRefresh }) => {
             </span>
           </h4>
           <div className="text-3xl font-bold text-slate-100 tabular-nums">
-            {breakdown.shortPercent} %
+            {formatPercent(breakdown.shortPercent)}
           </div>
           <div className="text-sm text-slate-400 tabular-nums">
             {formatMoney(breakdown.shortAmount, contract.currency)}
@@ -95,7 +95,7 @@ export const RetentionSection: React.FC<Props> = ({ contract, onRefresh }) => {
             </span>
           </h4>
           <div className="text-3xl font-bold text-slate-100 tabular-nums">
-            {breakdown.longPercent} %
+            {formatPercent(breakdown.longPercent)}
           </div>
           <div className="text-sm text-slate-400 tabular-nums">
             {formatMoney(breakdown.longAmount, contract.currency)}
@@ -123,7 +123,7 @@ export const RetentionSection: React.FC<Props> = ({ contract, onRefresh }) => {
       <div className="mt-3 px-3 py-2 rounded-lg bg-slate-950/60 border border-dashed border-slate-800 flex justify-between text-xs text-slate-300">
         <span>Celkem pozastávka</span>
         <strong className="tabular-nums">
-          {breakdown.totalPercent} % · {formatMoney(breakdown.totalAmount, contract.currency)}
+          {formatPercent(breakdown.totalPercent)} · {formatMoney(breakdown.totalAmount, contract.currency)}
         </strong>
       </div>
       <p className="text-[11.5px] text-slate-500 mt-2">

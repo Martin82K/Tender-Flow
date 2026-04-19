@@ -3,10 +3,14 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster';
 import { MAPS_CONFIG, MAP_LAYERS } from '@/config/maps';
+import { formatDecimal } from '@/utils/formatters';
 import { mapyApiService } from '../services/mapyApiService';
 import type { TileConfig } from '../services/mapyApiService';
 import { CZECH_REGIONS } from '../utils/czechRegions';
 import type { MapMarker, GeoPoint } from '../types';
+
+const fmtRating = (v: number) =>
+  formatDecimal(v, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 interface MapViewProps {
   center?: [number, number];
@@ -101,7 +105,7 @@ function buildPopupContent(marker: MapMarker): HTMLDivElement {
 
     const value = document.createElement('span');
     value.style.color = '#6B7280';
-    value.textContent = marker.rating.toFixed(1);
+    value.textContent = fmtRating(marker.rating);
     rating.appendChild(value);
     container.appendChild(rating);
   }
@@ -122,7 +126,7 @@ function createHighlightIcon(
   const ratingHtml = rating != null && rating > 0
     ? `<span style="display:inline-flex;align-items:center;gap:2px;margin-left:6px;padding:1px 5px;border-radius:10px;background:rgba(251,191,36,0.95);color:#78350F;font-weight:700;">
         <span style="font-size:10px;line-height:1;">★</span>
-        <span style="font-size:9px;line-height:1;">${rating.toFixed(1)}</span>
+        <span style="font-size:9px;line-height:1;">${fmtRating(rating)}</span>
        </span>`
     : '';
   const cardHtml = (safeLabel || specText)
@@ -421,7 +425,7 @@ export const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(
       leafletMarker.bindPopup(buildPopupContent(m));
       if (anyLabel) {
         const ratingHtml = showLabels && m.rating != null && m.rating > 0
-          ? `<span style="color:#F59E0B;margin-left:4px;">★${m.rating.toFixed(1)}</span>`
+          ? `<span style="color:#F59E0B;margin-left:4px;">★${fmtRating(m.rating)}</span>`
           : '';
         const nameHtml = showLabels
           ? `<div style="font-weight:600;">${escape(m.label || '')}${ratingHtml}</div>`

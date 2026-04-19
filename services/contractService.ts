@@ -435,6 +435,8 @@ export const contractService = {
     if (updates.deltaDeadline !== undefined) dbUpdates.delta_deadline = updates.deltaDeadline;
     if (updates.reason !== undefined) dbUpdates.reason = updates.reason;
     if (updates.documentUrl !== undefined) dbUpdates.document_url = updates.documentUrl;
+    if (updates.extractionJson !== undefined) dbUpdates.extraction_json = updates.extractionJson;
+    if (updates.extractionConfidence !== undefined) dbUpdates.extraction_confidence = updates.extractionConfidence;
 
     if (Object.keys(dbUpdates).length === 0) return;
 

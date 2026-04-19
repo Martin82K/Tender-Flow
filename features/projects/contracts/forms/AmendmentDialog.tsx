@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Modal } from '@/shared/ui/Modal';
+import { NumericInput } from '@/shared/ui/NumericInput';
 import { contractService } from '@/services/contractService';
 import type { ContractAmendment } from '@/types';
 
@@ -19,7 +20,7 @@ export const AmendmentDialog: React.FC<Props> = ({ contractId, initial, onClose,
   const [form, setForm] = useState({
     signedAt: initial?.signedAt?.slice(0, 10) ?? '',
     effectiveFrom: initial?.effectiveFrom?.slice(0, 10) ?? '',
-    deltaPrice: initial?.deltaPrice?.toString() ?? '',
+    deltaPrice: (initial?.deltaPrice ?? null) as number | null,
     deltaDeadline: initial?.deltaDeadline?.slice(0, 10) ?? '',
     reason: initial?.reason ?? '',
   });
@@ -31,7 +32,7 @@ export const AmendmentDialog: React.FC<Props> = ({ contractId, initial, onClose,
     setSubmitting(true);
     setError(null);
     try {
-      const delta = Number.parseFloat(form.deltaPrice.replace(',', '.')) || 0;
+      const delta = form.deltaPrice ?? 0;
       if (isEditing && initial) {
         await contractService.updateAmendment(initial.id, {
           signedAt: form.signedAt || undefined,
@@ -87,11 +88,11 @@ export const AmendmentDialog: React.FC<Props> = ({ contractId, initial, onClose,
           </div>
           <div>
             <label className={labelClass}>Změna ceny (+/−)</label>
-            <input
-              className={inputClass}
+            <NumericInput
               value={form.deltaPrice}
-              onChange={(e) => setForm((s) => ({ ...s, deltaPrice: e.target.value }))}
-              inputMode="decimal"
+              onChange={(v) => setForm((s) => ({ ...s, deltaPrice: v }))}
+              maxFractionDigits={2}
+              className="border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary"
               placeholder="0"
             />
           </div>

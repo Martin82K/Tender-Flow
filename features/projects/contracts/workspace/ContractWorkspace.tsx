@@ -104,8 +104,8 @@ export const ContractWorkspace: React.FC<Props> = ({ contract, onEditContract, o
           onNavigate={scrollToSection}
         />
         <div ref={scrollContainerRef} className="overflow-y-auto px-6 py-2">
-          <HeaderSection contract={contract} />
-          <OcrDocumentSection contract={contract} />
+          <HeaderSection contract={contract} onChanged={onRefresh} />
+          <OcrDocumentSection contract={contract} onRefresh={onRefresh} />
           <FinancialSection contract={contract} />
           <AmendmentsSection contract={contract} onRefresh={onRefresh} />
           <InvoicesSection contract={contract} onRefresh={onRefresh} />

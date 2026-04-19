@@ -1,5 +1,6 @@
 import React, { useCallback } from 'react';
 import type { RecommendationResult } from '../types';
+import { formatDecimal } from '@/utils/formatters';
 
 interface RecommendationCardProps {
   recommendation: RecommendationResult;
@@ -28,7 +29,10 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
 }) => {
   const { subcontractorId, companyName, specialization, distance, duration, score, rating } = recommendation;
 
-  const distanceKm = (distance / 1000).toFixed(1);
+  const distanceKm = formatDecimal(distance / 1000, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
   const durationMin = Math.round(duration / 60);
 
   const handleMouseEnter = useCallback(() => {
@@ -104,7 +108,9 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
           <span className="text-amber-400">
             {'★'.repeat(starsFull)}{'☆'.repeat(5 - starsFull)}
           </span>
-          <span className="text-slate-500 dark:text-slate-400">{rating.toFixed(1)}</span>
+          <span className="text-slate-500 dark:text-slate-400">
+            {formatDecimal(rating, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+          </span>
         </div>
       )}
 

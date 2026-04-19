@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import type { ContractWithDetails } from '@/types';
+import { formatDecimal } from '@/utils/formatters';
 import { addMonthsIso, daysUntil, formatDate, formatMoney } from '../utils/format';
 import { sumProjectRetention, computeRetention } from '../utils/retention';
 
@@ -162,7 +163,9 @@ export const ContractsDashboard: React.FC<Props> = ({ contracts }) => {
           Průměrné hodnocení
         </div>
         <div className="text-2xl font-bold text-amber-400 mt-1">
-          {stats.avgRating !== null ? `${stats.avgRating.toFixed(1)} ★` : '—'}
+          {stats.avgRating !== null
+            ? `${formatDecimal(stats.avgRating, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ★`
+            : '—'}
         </div>
       </div>
 

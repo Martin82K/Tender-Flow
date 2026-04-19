@@ -1,5 +1,6 @@
 import React from 'react';
 import { Trophy, Hammer, Archive, TrendingUp, FileCheck, Users } from 'lucide-react';
+import { formatDecimal } from '@/utils/formatters';
 
 interface StatusCardProps {
   type: 'tender' | 'realization' | 'archived';
@@ -124,7 +125,7 @@ export const StatusCard: React.FC<StatusCardProps> = ({
             Úspěšnost
           </span>
           <span className={`text-xs font-semibold ${config.color.accent}`}>
-            {successRate.toFixed(1)}%
+            {formatDecimal(successRate, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %
           </span>
         </div>
         <div className={`h-2 rounded-full ${config.color.progressBg} overflow-hidden`}>

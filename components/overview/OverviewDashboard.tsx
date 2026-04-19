@@ -20,6 +20,7 @@ import { StatusCard } from './StatusCard';
 import { SupplierBarChart } from './SupplierBarChart';
 import { SuccessRateChart } from './SuccessRateChart';
 import { SupplierTable } from './SupplierTable';
+import { formatDecimal } from '@/utils/formatters';
 import type { OverviewAnalytics } from '../../utils/overviewAnalytics';
 
 interface SupplierRow {
@@ -98,7 +99,7 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({
         />
         <KPICard
           title="Úspěšnost VŘ"
-          value={`${successRate.toFixed(1)}%`}
+          value={`${formatDecimal(successRate, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`}
           subtitle={`${analytics.totals.sodCount} SOD z ${analytics.totals.offerCount} nabídek`}
           icon={<Target className="w-6 h-6" />}
           color="blue"

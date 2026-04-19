@@ -13,6 +13,7 @@ import { shellAdapter } from '@/services/platformAdapter';
 import { isDesktop } from '@/services/platformAdapter';
 import { CZ_REGIONS } from '@/config/constants';
 import { useFeatures } from '@/context/FeatureContext';
+import { formatDecimal } from '@/utils/formatters';
 import { FEATURES } from '@/config/features';
 import { SubcontractorMapView } from '@features/maps/components/SubcontractorMapView';
 
@@ -1033,7 +1034,10 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                                                 >
                                                     <StarRating value={editingContact.vendorRatingAverage} readOnly size="sm" />
                                                     <span className="text-xs text-slate-500">
-                                                        {editingContact.vendorRatingAverage.toFixed(1)}
+                                                        {formatDecimal(editingContact.vendorRatingAverage, {
+                                                            minimumFractionDigits: 1,
+                                                            maximumFractionDigits: 1,
+                                                        })}
                                                     </span>
                                                 </div>
                                             ) : (
