@@ -34,7 +34,7 @@ let v2RpcsAvailable = (() => {
 })();
 
 export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
 
   const [currentPlan, setCurrentPlan] = useState<string>('free');
   const [enabledFeatures, setEnabledFeatures] = useState<FeatureKey[]>([]);
@@ -43,6 +43,14 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Fetch features from backend
   const fetchFeatures = useCallback(async () => {
+    // While auth is still resolving (e.g. right after a desktop reload),
+    // keep isLoading=true so gates that depend on currentPlan don't fire
+    // with a stale 'free' value before the real tier is fetched.
+    if (authLoading) {
+      setIsLoading(true);
+      return;
+    }
+
     if (!isAuthenticated || !user) {
       setEnabledFeatures([]);
       setCurrentPlan('free');
@@ -105,7 +113,7 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, user]);
+  }, [authLoading, isAuthenticated, user]);
 
   // Fetch features when auth state changes
   useEffect(() => {
