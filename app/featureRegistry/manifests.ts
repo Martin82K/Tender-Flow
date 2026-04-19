@@ -12,10 +12,19 @@ export const featureModuleRegistry: Record<View, FeatureModuleManifest> = {
   ...viewToManifest("dashboard", {
     id: "projects.dashboard",
     routes: [{ path: "/app/dashboard", view: "dashboard" }],
-    navItems: [{ id: "dashboard", label: "Command Center" }],
+    navItems: [{ id: "dashboard", label: "Přehled" }],
     requiredCapabilities: [FEATURES.MODULE_PROJECTS],
     mount: () =>
       import("@/features/dashboard").then((m) => ({ default: m.DashboardView })),
+    unmountSafeChecks: emptyChecks,
+  }),
+  ...viewToManifest("command-center", {
+    id: "command-center.main",
+    routes: [{ path: "/app/command-center", view: "command-center" }],
+    navItems: [{ id: "command-center", label: "Command Center" }],
+    requiredCapabilities: [FEATURES.MODULE_COMMAND_CENTER],
+    mount: () =>
+      import("@/features/command-center").then((m) => ({ default: m.CommandCenter })),
     unmountSafeChecks: emptyChecks,
   }),
   ...viewToManifest("project", {

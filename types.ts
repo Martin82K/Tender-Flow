@@ -1,5 +1,6 @@
 export type View =
   | "dashboard"
+  | "command-center"
   | "project"
   | "contacts"
   | "settings"
@@ -234,6 +235,19 @@ export interface UserPreferences {
   urlShortenerProvider?: "tinyurl" | "tfurl"; // Service provider for URL shortening
   autoShortenProjectDocs?: boolean; // Auto-shorten Project Documents links
   signature?: string; // HTML compatible signature
+  commandCenter?: CommandCenterUserPreferences;
+}
+
+export interface CommandCenterUserPreferences {
+  enabledModules?: Record<string, boolean>;
+  moduleSettings?: Record<string, Record<string, unknown>>;
+  filterState?: {
+    projectIds?: string[];
+    healthLevels?: Array<"ok" | "warn" | "crit">;
+    statuses?: Array<"tender" | "realization" | "archived">;
+    rangeDays?: 7 | 14 | 30 | 90;
+  };
+  lastUpdated?: string;
 }
 
 export interface UserEmailSignatureProfile {

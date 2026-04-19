@@ -9,6 +9,8 @@ export const ProjectManager = lazyFromManifest("project-management");
 
 export const Dashboard = lazyFromManifest("dashboard");
 
+export const CommandCenterView = lazyFromManifest("command-center");
+
 export const ProjectLayout = lazyFromManifest("project");
 
 export const Contacts = lazyFromManifest("contacts");
