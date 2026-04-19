@@ -1,6 +1,7 @@
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { CheckCircle2, Star, FileText, XCircle, Mail, Send } from 'lucide-react';
+import { formatDecimal } from '@/utils/formatters';
 
 interface StatusDistributionChartProps {
   sodCount: number;
@@ -33,14 +34,20 @@ export const StatusDistributionChart: React.FC<StatusDistributionChartProps> = (
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const item = payload[0];
-      const percentage = total > 0 ? ((item.value / total) * 100).toFixed(1) : '0';
+      const percentage =
+        total > 0
+          ? formatDecimal((item.value / total) * 100, {
+              minimumFractionDigits: 1,
+              maximumFractionDigits: 1,
+            })
+          : '0';
       return (
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-2 shadow-lg">
           <p className="text-sm font-medium text-slate-900 dark:text-white">
             {item.name}: {item.value}
           </p>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            {percentage}% z celkem
+            {percentage} % z celkem
           </p>
         </div>
       );
@@ -79,7 +86,10 @@ export const StatusDistributionChart: React.FC<StatusDistributionChartProps> = (
       <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2">
         {data.map((item) => {
           const Icon = item.icon;
-          const percentage = total > 0 ? ((item.value / total) * 100).toFixed(0) : '0';
+          const percentage =
+            total > 0
+              ? formatDecimal((item.value / total) * 100, { maximumFractionDigits: 0 })
+              : '0';
           return (
             <div key={item.name} className="flex items-center gap-2">
               <div 
@@ -93,8 +103,8 @@ export const StatusDistributionChart: React.FC<StatusDistributionChartProps> = (
               <span className="text-xs font-semibold text-slate-900 dark:text-white ml-auto">
                 {item.value}
               </span>
-              <span className="text-xs text-slate-400 w-8 text-right">
-                {percentage}%
+              <span className="text-xs text-slate-400 w-10 text-right">
+                {percentage} %
               </span>
             </div>
           );

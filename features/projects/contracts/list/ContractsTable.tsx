@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import type { ContractWithDetails } from '@/types';
 import { StatusPill } from './StatusPill';
-import { formatMoney, formatDate, addMonthsIso } from '../utils/format';
+import { formatMoney, formatDate, formatPercent, addMonthsIso } from '../utils/format';
 import { computeRetention } from '../utils/retention';
 
 const COLUMN_STORAGE_KEY = 'tf.contracts.tableColumns.v1';
@@ -210,7 +210,7 @@ export const ContractsTable: React.FC<Props> = ({ contracts, onSelect }) => {
                         return (
                           <td key={col} className="px-2.5 py-2.5 text-right text-blue-400 tabular-nums">
                             {retention.shortPercent > 0
-                              ? `${retention.shortPercent}% · ${formatMoney(retention.shortAmount, c.currency)}`
+                              ? `${formatPercent(retention.shortPercent)} · ${formatMoney(retention.shortAmount, c.currency)}`
                               : '—'}
                           </td>
                         );
@@ -218,7 +218,7 @@ export const ContractsTable: React.FC<Props> = ({ contracts, onSelect }) => {
                         return (
                           <td key={col} className="px-2.5 py-2.5 text-right text-purple-400 tabular-nums">
                             {retention.longPercent > 0
-                              ? `${retention.longPercent}% · ${formatMoney(retention.longAmount, c.currency)}`
+                              ? `${formatPercent(retention.longPercent)} · ${formatMoney(retention.longAmount, c.currency)}`
                               : '—'}
                           </td>
                         );

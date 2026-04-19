@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Subcontractor } from '@/types';
+import { formatDecimal } from '@/utils/formatters';
 import { getMarkerColor } from '../utils/markerColors';
 
 interface NearbyItem extends Subcontractor {
@@ -134,7 +135,10 @@ export function MapNearbyPanel({
                                 title="Vzdálenost a čas po silnici"
                               >
                                 <span className="material-symbols-outlined text-[12px]">directions_car</span>
-                                {(realRoute.distance / 1000).toFixed(1)} km · {formatDriveDuration(realRoute.duration)}
+                                {formatDecimal(realRoute.distance / 1000, {
+                                  minimumFractionDigits: 1,
+                                  maximumFractionDigits: 1,
+                                })} km · {formatDriveDuration(realRoute.duration)}
                               </span>
                             );
                           }
@@ -143,7 +147,10 @@ export function MapNearbyPanel({
                               className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 shrink-0 tabular-nums"
                               title={routesLoading ? 'Počítám trasu…' : 'Vzdušná vzdálenost'}
                             >
-                              {sub.distanceKm.toFixed(1)} km
+                              {formatDecimal(sub.distanceKm, {
+                                minimumFractionDigits: 1,
+                                maximumFractionDigits: 1,
+                              })} km
                               {routesLoading && <span className="ml-1 opacity-60">…</span>}
                             </span>
                           );
@@ -184,7 +191,12 @@ export function MapNearbyPanel({
                           <span className="text-amber-500">
                             {'★'.repeat(Math.round(sub.vendorRatingAverage))}
                           </span>
-                          <span className="text-slate-400">{sub.vendorRatingAverage.toFixed(1)}</span>
+                          <span className="text-slate-400">
+                            {formatDecimal(sub.vendorRatingAverage, {
+                              minimumFractionDigits: 1,
+                              maximumFractionDigits: 1,
+                            })}
+                          </span>
                         </div>
                       )}
                     </div>

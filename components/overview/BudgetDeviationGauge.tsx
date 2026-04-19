@@ -1,5 +1,6 @@
 import React from 'react';
 import { TrendingDown, TrendingUp, Minus, Target } from 'lucide-react';
+import { formatDecimal } from '@/utils/formatters';
 
 interface BudgetDeviationGaugeProps {
   avgDeviationPercent: number | null;
@@ -219,10 +220,12 @@ export const BudgetDeviationGauge: React.FC<BudgetDeviationGaugeProps> = ({
                 className="text-2xl font-bold tabular-nums tracking-tight"
                 style={{ color }}
               >
-                {avgDeviationPercent !== null 
-                  ? `${avgDeviationPercent > 0 ? '+' : ''}${avgDeviationPercent.toFixed(1)}%`
-                  : '-'
-                }
+                {avgDeviationPercent !== null
+                  ? `${avgDeviationPercent > 0 ? '+' : ''}${formatDecimal(avgDeviationPercent, {
+                      minimumFractionDigits: 1,
+                      maximumFractionDigits: 1,
+                    })} %`
+                  : '-'}
               </div>
             </div>
           </div>

@@ -2,6 +2,7 @@ import React from "react";
 import { createPortal } from "react-dom";
 import type { ProjectDetails } from "../types";
 import { useAuth } from "../context/AuthContext";
+import { formatDecimal, parseDecimal } from "@/utils/formatters";
 import {
   formatMoney,
   formatMoneyFull,
@@ -88,20 +89,9 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
   });
 
   const formatEditableNumber = (value: number): string =>
-    new Intl.NumberFormat("cs-CZ", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
-    }).format(value || 0);
+    formatDecimal(value || 0, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
-  const parseEditableNumber = (value: string): number => {
-    const normalized = value
-      .replace(/\u00A0/g, " ")
-      .replace(/\s/g, "")
-      .replace(",", ".")
-      .replace(/[^0-9.-]/g, "");
-    const parsed = Number.parseFloat(normalized);
-    return Number.isFinite(parsed) ? parsed : 0;
-  };
+  const parseEditableNumber = (value: string): number => parseDecimal(value) ?? 0;
 
   const [compactInvestorSodInput, setCompactInvestorSodInput] = React.useState("");
   const [compactAmendmentPriceInputs, setCompactAmendmentPriceInputs] =

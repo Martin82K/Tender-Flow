@@ -30,7 +30,10 @@ export const formatDate = (value?: string | null): string => {
 
 export const formatPercent = (value?: number | null): string => {
   if (value === null || value === undefined || !Number.isFinite(value)) return '—';
-  return `${value.toString().replace('.', ',')} %`;
+  return `${new Intl.NumberFormat('cs-CZ', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(value as number)} %`;
 };
 
 export const daysUntil = (value?: string | null): number | null => {
