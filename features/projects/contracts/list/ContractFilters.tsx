@@ -72,7 +72,7 @@ export const ContractFilters: React.FC<Props> = ({ active, onChange, counts }) =
           className={`px-3 py-1 rounded-full text-[11px] font-medium border transition ${
             isActive
               ? 'bg-primary/15 border-primary text-primary'
-              : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:bg-slate-800'
+              : 'bg-white dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
         >
           {f.label}

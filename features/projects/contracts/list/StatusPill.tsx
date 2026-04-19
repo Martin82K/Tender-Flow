@@ -4,19 +4,19 @@ import type { ContractStatus } from '@/types';
 const STATUS_STYLES: Record<ContractStatus, { label: string; className: string }> = {
   draft: {
     label: 'Rozpracováno',
-    className: 'text-blue-400',
+    className: 'text-blue-600 dark:text-blue-400',
   },
   active: {
     label: 'Aktivní',
-    className: 'text-green-400',
+    className: 'text-green-600 dark:text-green-400',
   },
   closed: {
     label: 'Uzavřeno',
-    className: 'text-slate-400',
+    className: 'text-slate-600 dark:text-slate-400',
   },
   cancelled: {
     label: 'Zrušeno',
-    className: 'text-red-400',
+    className: 'text-red-600 dark:text-red-400',
   },
 };
 

@@ -10,10 +10,10 @@ interface Props {
 }
 
 const STATUS_STYLE: Record<ContractInvoiceStatus, { label: string; className: string }> = {
-  paid: { label: 'Zaplaceno', className: 'bg-green-500/15 text-green-400' },
-  approved: { label: 'Schváleno', className: 'bg-blue-500/15 text-blue-400' },
-  issued: { label: 'Vystaveno', className: 'bg-amber-500/15 text-amber-400' },
-  overdue: { label: 'Po splatnosti', className: 'bg-red-500/15 text-red-400' },
+  paid: { label: 'Zaplaceno', className: 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400' },
+  approved: { label: 'Schváleno', className: 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400' },
+  issued: { label: 'Vystaveno', className: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400' },
+  overdue: { label: 'Po splatnosti', className: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400' },
 };
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -53,16 +53,16 @@ export const InvoicesSection: React.FC<Props> = ({ contract, onRefresh }) => {
   const remainingToInvoice = Math.max(0, (contract.currentTotal || 0) - (contract.invoicedSum || 0));
 
   return (
-    <section id="sec-faktury" className="py-4 border-b border-dashed border-slate-800">
-      <h3 className="text-[11px] uppercase tracking-widest text-slate-500 font-bold mb-3 flex items-center gap-2">
+    <section id="sec-faktury" className="py-4 border-b border-dashed border-slate-200 dark:border-slate-800">
+      <h3 className="text-[11px] uppercase tracking-widest text-slate-600 dark:text-slate-500 font-bold mb-3 flex items-center gap-2">
         Fakturace
-        <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] text-slate-200">
+        <span className="rounded-full bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-200 px-2 py-0.5 text-[10px]">
           {contract.invoices.length}
         </span>
       </h3>
 
       {contract.invoices.length === 0 ? (
-        <div className="text-xs text-slate-500 flex items-center gap-3">
+        <div className="text-xs text-slate-600 dark:text-slate-500 flex items-center gap-3">
           K této smlouvě zatím neexistují žádné faktury.
           <button
             type="button"
@@ -76,32 +76,32 @@ export const InvoicesSection: React.FC<Props> = ({ contract, onRefresh }) => {
         <>
           <div className="flex flex-wrap gap-4 mb-3">
             <div>
-              <div className="text-[10.5px] uppercase tracking-wider text-slate-500">Nafakturováno</div>
+              <div className="text-[10.5px] uppercase tracking-wider text-slate-600 dark:text-slate-500">Nafakturováno</div>
               <div className="text-sm font-semibold text-blue-400 tabular-nums">
                 {formatMoney(contract.invoicedSum, contract.currency)}
               </div>
             </div>
-            <div className="w-px bg-slate-800 self-stretch" />
+            <div className="w-px bg-slate-200 dark:bg-slate-800 self-stretch" />
             <div>
-              <div className="text-[10.5px] uppercase tracking-wider text-slate-500">Zaplaceno</div>
+              <div className="text-[10.5px] uppercase tracking-wider text-slate-600 dark:text-slate-500">Zaplaceno</div>
               <div className="text-sm font-semibold text-green-400 tabular-nums">
                 {formatMoney(contract.paidSum, contract.currency)}
               </div>
             </div>
-            <div className="w-px bg-slate-800 self-stretch" />
+            <div className="w-px bg-slate-200 dark:bg-slate-800 self-stretch" />
             <div>
-              <div className="text-[10.5px] uppercase tracking-wider text-slate-500">
+              <div className="text-[10.5px] uppercase tracking-wider text-slate-600 dark:text-slate-500">
                 Zbývá vyfakturovat
               </div>
-              <div className="text-sm font-semibold text-slate-100 tabular-nums">
+              <div className="text-sm font-semibold text-slate-900 dark:text-slate-100 tabular-nums">
                 {formatMoney(remainingToInvoice, contract.currency)}
               </div>
             </div>
             {contract.overdueSum > 0 && (
               <>
-                <div className="w-px bg-slate-800 self-stretch" />
+                <div className="w-px bg-slate-200 dark:bg-slate-800 self-stretch" />
                 <div>
-                  <div className="text-[10.5px] uppercase tracking-wider text-slate-500">
+                  <div className="text-[10.5px] uppercase tracking-wider text-slate-600 dark:text-slate-500">
                     Po splatnosti
                   </div>
                   <div className="text-sm font-semibold text-red-400 tabular-nums">
@@ -114,7 +114,7 @@ export const InvoicesSection: React.FC<Props> = ({ contract, onRefresh }) => {
 
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-slate-800 text-[10.5px] uppercase tracking-wider text-slate-500">
+              <tr className="border-b border-slate-200 dark:border-slate-800 text-[10.5px] uppercase tracking-wider text-slate-600 dark:text-slate-500">
                 <th className="text-left px-2.5 py-2">Č. faktury</th>
                 <th className="text-left px-2.5 py-2">DUZP</th>
                 <th className="text-left px-2.5 py-2">Splatnost</th>
@@ -128,11 +128,11 @@ export const InvoicesSection: React.FC<Props> = ({ contract, onRefresh }) => {
                 const effective = deriveStatus(inv);
                 const style = STATUS_STYLE[effective];
                 return (
-                  <tr key={inv.id} className="border-b border-slate-800">
-                    <td className="px-2.5 py-2 font-semibold text-slate-200">{inv.invoiceNumber}</td>
-                    <td className="px-2.5 py-2 text-slate-400">{formatDate(inv.issueDate)}</td>
-                    <td className="px-2.5 py-2 text-slate-400">{formatDate(inv.dueDate)}</td>
-                    <td className="px-2.5 py-2 text-right tabular-nums text-slate-200">
+                  <tr key={inv.id} className="border-b border-slate-200 dark:border-slate-800">
+                    <td className="px-2.5 py-2 font-semibold text-slate-900 dark:text-slate-200">{inv.invoiceNumber}</td>
+                    <td className="px-2.5 py-2 text-slate-600 dark:text-slate-400">{formatDate(inv.issueDate)}</td>
+                    <td className="px-2.5 py-2 text-slate-600 dark:text-slate-400">{formatDate(inv.dueDate)}</td>
+                    <td className="px-2.5 py-2 text-right tabular-nums text-slate-900 dark:text-slate-200">
                       {formatMoney(inv.amount, inv.currency)}
                     </td>
                     <td className="px-2.5 py-2">
@@ -147,7 +147,7 @@ export const InvoicesSection: React.FC<Props> = ({ contract, onRefresh }) => {
                         <button
                           type="button"
                           onClick={() => handlePaid(inv.id)}
-                          className="px-2 py-1 rounded hover:bg-slate-800 text-green-400 text-xs"
+                          className="px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-green-600 dark:text-green-400 text-xs"
                           title="Označit jako zaplacenou"
                         >
                           ✓
@@ -156,7 +156,7 @@ export const InvoicesSection: React.FC<Props> = ({ contract, onRefresh }) => {
                       <button
                         type="button"
                         onClick={() => openEdit(inv)}
-                        className="px-2 py-1 rounded hover:bg-slate-800 text-slate-400"
+                        className="px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"
                         title="Upravit"
                       >
                         ✎
@@ -164,7 +164,7 @@ export const InvoicesSection: React.FC<Props> = ({ contract, onRefresh }) => {
                       <button
                         type="button"
                         onClick={() => handleDelete(inv.id)}
-                        className="px-2 py-1 rounded hover:bg-slate-800 text-slate-400"
+                        className="px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"
                         title="Smazat"
                       >
                         ✕

@@ -104,16 +104,16 @@ export const ContractsTable: React.FC<Props> = ({ contracts, onSelect }) => {
           <button
             type="button"
             onClick={() => setConfigOpen((v) => !v)}
-            className="px-3 py-1.5 text-xs rounded-lg border border-slate-800 bg-slate-900/60 text-slate-300 hover:bg-slate-800"
+            className="px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
           >
             ⚙ Sloupce
           </button>
           {configOpen && (
-            <div className="absolute right-0 top-full mt-1 z-20 w-56 rounded-lg border border-slate-800 bg-slate-900 shadow-lg p-2 space-y-1">
+            <div className="absolute right-0 top-full mt-1 z-20 w-56 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-lg p-2 space-y-1">
               {DEFAULT_COLUMNS.map((col) => (
                 <label
                   key={col}
-                  className="flex items-center gap-2 px-2 py-1 rounded hover:bg-slate-800 text-xs text-slate-300 cursor-pointer"
+                  className="flex items-center gap-2 px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-xs text-slate-700 dark:text-slate-300 cursor-pointer"
                 >
                   <input
                     type="checkbox"
@@ -129,14 +129,14 @@ export const ContractsTable: React.FC<Props> = ({ contracts, onSelect }) => {
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-800 bg-slate-900/60 overflow-auto">
+      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 overflow-auto">
         <table className="w-full text-xs">
           <thead>
             <tr>
               {columnsOrdered.map((col) => (
                 <th
                   key={col}
-                  className="sticky top-0 bg-slate-900 text-[10.5px] uppercase tracking-wider text-slate-500 font-bold px-2.5 py-2.5 text-left border-b border-slate-800 whitespace-nowrap"
+                  className="sticky top-0 bg-slate-50 dark:bg-slate-900 text-[10.5px] uppercase tracking-wider text-slate-600 dark:text-slate-500 font-bold px-2.5 py-2.5 text-left border-b border-slate-200 dark:border-slate-800 whitespace-nowrap"
                 >
                   {COLUMN_LABELS[col]}
                 </th>
@@ -152,20 +152,20 @@ export const ContractsTable: React.FC<Props> = ({ contracts, onSelect }) => {
                 <tr
                   key={c.id}
                   onClick={() => onSelect(c.id)}
-                  className="cursor-pointer border-b border-slate-800 hover:bg-slate-800/40"
+                  className="cursor-pointer border-b border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800/40"
                 >
                   {columnsOrdered.map((col) => {
                     switch (col) {
                       case 'number':
                         return (
-                          <td key={col} className="px-2.5 py-2.5 font-semibold text-slate-200">
+                          <td key={col} className="px-2.5 py-2.5 font-semibold text-slate-900 dark:text-slate-200">
                             {c.contractNumber || '—'}
-                            <div className="font-normal text-[11px] text-slate-500">{c.title}</div>
+                            <div className="font-normal text-[11px] text-slate-600 dark:text-slate-500">{c.title}</div>
                           </td>
                         );
                       case 'vendor':
                         return (
-                          <td key={col} className="px-2.5 py-2.5 text-slate-300">
+                          <td key={col} className="px-2.5 py-2.5 text-slate-700 dark:text-slate-300">
                             {c.vendorName}
                           </td>
                         );
@@ -186,7 +186,7 @@ export const ContractsTable: React.FC<Props> = ({ contracts, onSelect }) => {
                           <td
                             key={col}
                             className={`px-2.5 py-2.5 text-right tabular-nums ${
-                              amendmentsDelta > 0 ? 'text-red-400 font-semibold' : 'text-slate-500'
+                              amendmentsDelta > 0 ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-slate-600 dark:text-slate-500'
                             }`}
                           >
                             {amendmentsDelta > 0
@@ -224,13 +224,13 @@ export const ContractsTable: React.FC<Props> = ({ contracts, onSelect }) => {
                         );
                       case 'warrantyEnd':
                         return (
-                          <td key={col} className="px-2.5 py-2.5 text-slate-300">
+                          <td key={col} className="px-2.5 py-2.5 text-slate-700 dark:text-slate-300">
                             {formatDate(warrantyEnd)}
                           </td>
                         );
                       case 'paymentTerms':
                         return (
-                          <td key={col} className="px-2.5 py-2.5 text-right text-slate-300 tabular-nums">
+                          <td key={col} className="px-2.5 py-2.5 text-right text-slate-700 dark:text-slate-300 tabular-nums">
                             {c.paymentTerms || '—'}
                           </td>
                         );

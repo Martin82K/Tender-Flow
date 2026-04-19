@@ -40,7 +40,7 @@ export const ContractsModule: React.FC<Props> = ({ projectId }) => {
   }
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-slate-950/40">
+    <div className="flex-1 flex flex-col min-h-0 bg-slate-50 dark:bg-slate-950/40">
       <div className="px-5 pt-4 flex items-center gap-1">
         <button
           type="button"
@@ -48,7 +48,7 @@ export const ContractsModule: React.FC<Props> = ({ projectId }) => {
           className={`px-3 py-1.5 text-xs rounded-lg flex items-center gap-2 font-semibold ${
             subView === 'dashboard'
               ? 'bg-primary/15 border border-primary text-primary'
-              : 'text-slate-400 hover:bg-slate-800 border border-transparent'
+              : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 border border-transparent'
           }`}
         >
           ▤ Dashboard
@@ -59,7 +59,7 @@ export const ContractsModule: React.FC<Props> = ({ projectId }) => {
           className={`px-3 py-1.5 text-xs rounded-lg flex items-center gap-2 font-semibold ${
             subView === 'smlouvy'
               ? 'bg-primary/15 border border-primary text-primary'
-              : 'text-slate-400 hover:bg-slate-800 border border-transparent'
+              : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 border border-transparent'
           }`}
         >
           📄 Smlouvy

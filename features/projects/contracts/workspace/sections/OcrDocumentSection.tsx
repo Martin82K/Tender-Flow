@@ -24,10 +24,10 @@ const ConfidencePill: React.FC<{ value: number | null | undefined }> = ({ value 
   const percent = Math.round((value as number) * 100);
   const color =
     percent >= 80
-      ? 'bg-emerald-500/15 text-emerald-400'
+      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400'
       : percent >= 50
-        ? 'bg-amber-500/15 text-amber-400'
-        : 'bg-red-500/15 text-red-400';
+        ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400'
+        : 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400';
   return (
     <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${color}`}>
       {percent} %
@@ -48,22 +48,22 @@ const DocumentRow: React.FC<{
 }> = ({ title, subtitle, ocrDone, confidence, busy, busyLabel, error, onPickFile, actionLabel }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   return (
-    <div className="rounded-xl bg-slate-950/60 border border-slate-800 p-3 space-y-2">
+    <div className="rounded-xl bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 p-3 space-y-2">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="min-w-0">
-          <div className="text-sm font-semibold text-slate-100 truncate">{title}</div>
-          {subtitle && <div className="text-[11px] text-slate-500 truncate">{subtitle}</div>}
+          <div className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">{title}</div>
+          {subtitle && <div className="text-[11px] text-slate-600 dark:text-slate-500 truncate">{subtitle}</div>}
         </div>
         <div className="flex items-center gap-2">
           {ocrDone ? (
             <>
-              <span className="rounded-full bg-emerald-500/15 text-emerald-400 px-2 py-0.5 text-[10px] font-semibold">
+              <span className="rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400 px-2 py-0.5 text-[10px] font-semibold">
                 OCR hotové
               </span>
               <ConfidencePill value={confidence} />
             </>
           ) : (
-            <span className="rounded-full bg-slate-500/15 text-slate-400 px-2 py-0.5 text-[10px] font-semibold">
+            <span className="rounded-full bg-slate-200 text-slate-600 dark:bg-slate-500/15 dark:text-slate-400 px-2 py-0.5 text-[10px] font-semibold">
               Bez OCR
             </span>
           )}
@@ -91,7 +91,7 @@ const DocumentRow: React.FC<{
         />
       </div>
       {error && (
-        <div className="rounded-md bg-red-500/10 border border-red-500/30 text-red-400 text-[11px] px-2.5 py-1.5">
+        <div className="rounded-md bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-400 text-[11px] px-2.5 py-1.5">
           {error}
         </div>
       )}
@@ -221,9 +221,9 @@ export const OcrDocumentSection: React.FC<Props> = ({ contract, onRefresh }) => 
   const isContractBusy = busy === 'contract';
 
   return (
-    <section id="sec-ocr" className="py-4 border-b border-dashed border-slate-800">
+    <section id="sec-ocr" className="py-4 border-b border-dashed border-slate-200 dark:border-slate-800">
       <div className="flex items-baseline justify-between gap-3 mb-3">
-        <h3 className="text-[11px] uppercase tracking-widest text-slate-500 font-bold">
+        <h3 className="text-[11px] uppercase tracking-widest text-slate-600 dark:text-slate-500 font-bold">
           OCR dokumenty
         </h3>
         {status && (
@@ -250,11 +250,11 @@ export const OcrDocumentSection: React.FC<Props> = ({ contract, onRefresh }) => 
         />
 
         <div>
-          <div className="text-[10.5px] uppercase tracking-wider text-slate-500 mb-2">
+          <div className="text-[10.5px] uppercase tracking-wider text-slate-600 dark:text-slate-500 mb-2">
             Dodatky ({amendments.length})
           </div>
           {amendments.length === 0 ? (
-            <div className="text-xs text-slate-500 italic">Žádné dodatky.</div>
+            <div className="text-xs text-slate-600 dark:text-slate-500 italic">Žádné dodatky.</div>
           ) : (
             <div className="space-y-2">
               {amendments.map((a) => {
@@ -286,7 +286,7 @@ export const OcrDocumentSection: React.FC<Props> = ({ contract, onRefresh }) => 
           )}
         </div>
 
-        <div className="pt-4 mt-2 border-t border-slate-800">
+        <div className="pt-4 mt-2 border-t border-slate-200 dark:border-slate-800">
           <MarkdownVersionsList
             entityType="contract"
             entityId={contract.id}
@@ -355,7 +355,7 @@ const MarkdownVersionsList: React.FC<MarkdownVersionsListProps> = ({
   return (
     <>
       <div className="flex items-baseline justify-between gap-3 mb-2">
-        <div className="text-[10.5px] uppercase tracking-wider text-slate-500">
+        <div className="text-[10.5px] uppercase tracking-wider text-slate-600 dark:text-slate-500">
           MD verze ({versions.length})
         </div>
         {versions.length > 0 && (
@@ -370,13 +370,13 @@ const MarkdownVersionsList: React.FC<MarkdownVersionsListProps> = ({
       </div>
 
       {loading ? (
-        <div className="text-[11px] text-slate-500 italic">Načítám…</div>
+        <div className="text-[11px] text-slate-600 dark:text-slate-500 italic">Načítám…</div>
       ) : loadError ? (
-        <div className="rounded-md bg-red-500/10 border border-red-500/30 text-red-400 text-[11px] px-2.5 py-1.5">
+        <div className="rounded-md bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-400 text-[11px] px-2.5 py-1.5">
           {loadError}
         </div>
       ) : versions.length === 0 ? (
-        <div className="text-[11px] text-slate-500 italic">
+        <div className="text-[11px] text-slate-600 dark:text-slate-500 italic">
           Žádné MD verze. Spuštěním OCR se vytvoří první verze.
         </div>
       ) : (
@@ -386,20 +386,20 @@ const MarkdownVersionsList: React.FC<MarkdownVersionsListProps> = ({
               <button
                 type="button"
                 onClick={() => setPreviewOpen(true)}
-                className="w-full flex items-center justify-between gap-3 rounded-lg border border-slate-800 bg-slate-950/60 px-3 py-2 text-left hover:bg-slate-900 hover:border-slate-700 transition"
+                className="w-full flex items-center justify-between gap-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/60 px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 transition"
               >
                 <div className="min-w-0 flex items-center gap-2">
-                  <span className="rounded-full bg-slate-800 text-slate-300 px-2 py-0.5 text-[10px] font-semibold">
+                  <span className="rounded-full bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 px-2 py-0.5 text-[10px] font-semibold">
                     v{v.versionNo}
                   </span>
                   <span className="rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[10px] font-semibold">
                     {SOURCE_KIND_LABEL[v.sourceKind]}
                   </span>
-                  <span className="text-xs text-slate-200 truncate">
+                  <span className="text-xs text-slate-900 dark:text-slate-200 truncate">
                     {v.sourceFileName || 'dokument.md'}
                   </span>
                 </div>
-                <span className="text-[10.5px] text-slate-500 whitespace-nowrap">
+                <span className="text-[10.5px] text-slate-600 dark:text-slate-500 whitespace-nowrap">
                   {formatMarkdownDateTime(v.createdAt)}
                 </span>
               </button>

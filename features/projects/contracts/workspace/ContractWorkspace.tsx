@@ -75,22 +75,22 @@ export const ContractWorkspace: React.FC<Props> = ({ contract, onEditContract, o
   }, [contract.id]);
 
   return (
-    <section className="flex flex-col rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden">
-      <div className="px-5 py-4 border-b border-slate-800 flex flex-col gap-2">
+    <section className="flex flex-col rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 overflow-hidden">
+      <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex flex-col gap-2">
         <div className="flex items-center gap-3 flex-wrap">
           <StatusPill status={contract.status} />
-          <div className="text-lg font-bold text-slate-100">{contract.title}</div>
+          <div className="text-lg font-bold text-slate-900 dark:text-slate-100">{contract.title}</div>
           <div className="ml-auto flex gap-2">
             <button
               type="button"
               onClick={onEditContract}
-              className="px-3 py-1.5 text-xs rounded-lg border border-slate-800 bg-slate-900 text-slate-200 hover:bg-slate-800"
+              className="px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
             >
               ✎ Upravit
             </button>
           </div>
         </div>
-        <div className="text-xs text-slate-500">
+        <div className="text-xs text-slate-600 dark:text-slate-500">
           {contract.contractNumber ? `${contract.contractNumber} · ` : ''}
           {contract.vendorName}
           {contract.vendorIco ? ` · IČ ${contract.vendorIco}` : ''}
