@@ -48,6 +48,13 @@ vi.mock("@/context/UIContext", () => ({
   }),
 }));
 
+vi.mock("@/context/FeatureContext", () => ({
+  useFeatures: () => ({
+    currentPlan: "pro",
+    isLoading: false,
+  }),
+}));
+
 vi.mock("@/hooks/useDesktop", () => ({
   useDesktop: () => ({ isDesktop: false }),
 }));

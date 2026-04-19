@@ -68,15 +68,13 @@ describe('AutoBackupService security', () => {
     const payload = '{"ok":true}';
     const savedPath = await service.saveBackup(payload, 'tenant', orgId);
 
-    const expectedFolder = path.resolve('/Users/tester/documents/Tender Flow/Backups');
-    expect(savedPath.startsWith(expectedFolder)).toBe(true);
+    expect(savedPath.startsWith(path.resolve(service.getBackupFolder()))).toBe(true);
     expect(savedPath.endsWith('.enc.json')).toBe(true);
-    // writeFile je volán pro šifrovaný backup i pro persist settings — stačí ověřit, že backup proběhl
-    expect(
-      fsMock.writeFile.mock.calls.some(([filePath]) =>
-        typeof filePath === 'string' && filePath.startsWith(expectedFolder),
-      ),
-    ).toBe(true);
+    expect(fsMock.writeFile).toHaveBeenCalledWith(
+      savedPath,
+      expect.stringMatching(/^TFENC1:/),
+      'utf-8',
+    );
 
     const content = await service.readBackup(savedPath);
     expect(content).toBe(payload);
