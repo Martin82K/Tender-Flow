@@ -5,7 +5,7 @@ import { PipelineFunnelModule } from "./PipelineFunnelModule";
 export const pipelineFunnelModule: CommandCenterModule = {
   id: "pipeline-funnel",
   title: "Pipeline funnel",
-  description: "Zastoupení poptávek ve fázích: nová → osloveni → nabídky → shortlist → SoD.",
+  description: "Zastoupení poptávek ve fázích: nová → osloveni → nabídky → užší výběr → SoD.",
   icon: "filter_list",
   zone: "tactical",
   defaultSize: { cols: 4, minCols: 3 },

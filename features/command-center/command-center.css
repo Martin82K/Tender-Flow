@@ -657,13 +657,17 @@
 
 .cc-queue-item__btn {
   display: grid;
-  grid-template-columns: 26px 1fr auto;
+  grid-template-columns: 26px minmax(0, 1fr) minmax(0, auto);
   gap: 10px;
   padding: 9px 12px;
   transition: background 0.12s ease;
   width: 100%;
   text-align: left;
   align-items: center;
+}
+
+.cc-queue-item__body {
+  min-width: 0;
 }
 
 .cc-queue-item__btn:hover {
@@ -692,12 +696,18 @@
   font-size: 12px;
   color: var(--cc-text);
   line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cc-queue-sub {
   font-size: 11px;
   color: var(--cc-text-faint);
   margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cc-queue-meta {
@@ -705,6 +715,9 @@
   font-size: 10px;
   text-align: right;
   white-space: nowrap;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cc-queue-meta__d {
@@ -943,6 +956,27 @@
   list-style: none;
   margin: 0;
   padding: 0;
+  max-height: 340px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--cc-line) transparent;
+}
+
+.cc-activity::-webkit-scrollbar {
+  width: 8px;
+}
+
+.cc-activity::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cc-activity::-webkit-scrollbar-thumb {
+  background: var(--cc-line);
+  border-radius: 4px;
+}
+
+.cc-activity::-webkit-scrollbar-thumb:hover {
+  background: var(--cc-text-faint);
 }
 
 .cc-activity__item {
@@ -1229,4 +1263,55 @@
     gap: 8px;
   }
   .cc-project-row > *:nth-child(n+3) { display: none; }
+}
+
+/* Light mode
+ * Theme je řízen třídou .dark na <html> (viz hooks/useTheme.ts).
+ * Když není přítomna, přepíšeme CSS proměnné na světlou paletu.
+ * Accent barvy (red/amber/green/blue/purple) zůstávají — mají kontrast v obou módech.
+ */
+html:not(.dark) .cc-root {
+  --cc-bg: #f5f6f8;
+  --cc-bg-2: #ffffff;
+  --cc-surface: #ffffff;
+  --cc-surface-2: #f7f8fa;
+  --cc-surface-3: #eef1f6;
+  --cc-line: #d7dce4;
+  --cc-line-soft: #e5e8ef;
+  --cc-text: #1c2333;
+  --cc-text-dim: #4a5468;
+  --cc-text-faint: #7b8499;
+
+  background-image:
+    radial-gradient(1200px 600px at 10% -10%, rgba(77, 159, 255, 0.09), transparent 60%),
+    radial-gradient(1000px 500px at 90% 110%, rgba(166, 110, 250, 0.06), transparent 60%);
+}
+
+html:not(.dark) .cc-alert-item {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+html:not(.dark) .cc-project-row {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.018), transparent);
+}
+
+html:not(.dark) .cc-project-row:hover {
+  background: rgba(77, 159, 255, 0.06);
+}
+
+html:not(.dark) .cc-queue-item__btn:hover {
+  background: rgba(77, 159, 255, 0.06);
+}
+
+html:not(.dark) .cc-matrix__cell--empty {
+  background: rgba(0, 0, 0, 0.025);
+  color: var(--cc-text-faint);
+}
+
+html:not(.dark) .cc-settings-overlay {
+  background: rgba(28, 35, 51, 0.32);
+}
+
+html:not(.dark) .cc-alert-strip::before {
+  background: repeating-linear-gradient(45deg, transparent 0 14px, rgba(255, 77, 94, 0.05) 14px 15px);
 }

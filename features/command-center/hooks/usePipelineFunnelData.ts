@@ -47,7 +47,7 @@ export const usePipelineFunnelData = (filter: CommandCenterFilterState): FunnelS
       { key: "new", label: "Nové", count: counts.new, tone: "blue" },
       { key: "contacted", label: "Osloveni", count: counts.contacted, tone: "purple" },
       { key: "offer", label: "Nabídky", count: counts.offer, tone: "amber" },
-      { key: "shortlist", label: "Shortlist", count: counts.shortlist, tone: "green" },
+      { key: "shortlist", label: "Užší výběr", count: counts.shortlist, tone: "green" },
       { key: "sod", label: "SoD", count: counts.sod, tone: "green" },
     ];
   }, [projects, allProjectDetails, filter]);
