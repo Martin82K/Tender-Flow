@@ -90,22 +90,23 @@ export const ContractForm: React.FC<ContractFormProps> = ({
       newErrors.vendorName = "Dodavatel je povinný";
     }
 
-    if (formData.basePrice && isNaN(parseFloat(formData.basePrice))) {
+    const parsedBasePrice = parseNumberInput(formData.basePrice);
+    if (formData.basePrice && parsedBasePrice === null) {
       newErrors.basePrice = "Neplatná částka";
     }
 
+    const parsedRetentionPercent = parseNumberInput(formData.retentionPercent);
     if (
       formData.retentionPercent &&
-      (isNaN(parseFloat(formData.retentionPercent)) ||
-        parseFloat(formData.retentionPercent) > 100)
+      (parsedRetentionPercent === null || parsedRetentionPercent > 100)
     ) {
       newErrors.retentionPercent = "Neplatné procento (0-100)";
     }
 
+    const parsedSiteSetupPercent = parseNumberInput(formData.siteSetupPercent);
     if (
       formData.siteSetupPercent &&
-      (isNaN(parseFloat(formData.siteSetupPercent)) ||
-        parseFloat(formData.siteSetupPercent) > 100)
+      (parsedSiteSetupPercent === null || parsedSiteSetupPercent > 100)
     ) {
       newErrors.siteSetupPercent = "Neplatné procento (0-100)";
     }
@@ -145,15 +146,15 @@ export const ContractForm: React.FC<ContractFormProps> = ({
         effectiveFrom: formData.effectiveFrom || undefined,
         effectiveTo: formData.effectiveTo || undefined,
         currency: formData.currency,
-        basePrice: parseFloat(formData.basePrice) || 0,
+        basePrice: parseNumberInput(formData.basePrice) || 0,
         retentionPercent: formData.retentionPercent
-          ? parseFloat(formData.retentionPercent)
+          ? (parseNumberInput(formData.retentionPercent) ?? undefined)
           : undefined,
         retentionAmount: formData.retentionAmount
-          ? parseFloat(formData.retentionAmount)
+          ? (parseNumberInput(formData.retentionAmount) ?? undefined)
           : undefined,
         siteSetupPercent: formData.siteSetupPercent
-          ? parseFloat(formData.siteSetupPercent)
+          ? (parseNumberInput(formData.siteSetupPercent) ?? undefined)
           : undefined,
         warrantyMonths: formData.warrantyMonths
           ? parseInt(formData.warrantyMonths)
