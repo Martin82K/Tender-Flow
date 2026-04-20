@@ -12,5 +12,7 @@ export const pipelineFunnelModule: CommandCenterModule = {
   enabledByDefault: true,
   priority: 1,
   requiredFeature: FEATURES.CC_ADVANCED_KPI,
+  autoHideWhenEmpty: true,
+  weightBySignal: true,
   component: PipelineFunnelModule,
 };

@@ -12,5 +12,6 @@ export const financeGaugeModule: CommandCenterModule = {
   enabledByDefault: true,
   priority: 2,
   requiredFeature: FEATURES.CC_ADVANCED_KPI,
+  autoHideWhenEmpty: true,
   component: FinanceGaugeModule,
 };

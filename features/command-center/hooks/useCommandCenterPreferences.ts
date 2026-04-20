@@ -13,6 +13,7 @@ const buildDefaultPreferences = (): CommandCenterPreferences => ({
   enabledModules: defaultEnabledModules(),
   moduleSettings: {},
   filterState: DEFAULT_FILTER_STATE,
+  autoLayout: true,
   lastUpdated: new Date().toISOString(),
 });
 
@@ -35,6 +36,7 @@ const mergePreferences = (
       ...defaults.filterState,
       ...(stored.filterState ?? {}),
     } as CommandCenterFilterState,
+    autoLayout: typeof stored.autoLayout === "boolean" ? stored.autoLayout : defaults.autoLayout,
     lastUpdated: stored.lastUpdated ?? defaults.lastUpdated,
   };
 };
@@ -45,6 +47,7 @@ export interface CommandCenterPreferencesApi {
   setModuleEnabled: (id: string, enabled: boolean) => void;
   setModuleSettings: (id: string, settings: Record<string, unknown>) => void;
   setFilterState: (next: Partial<CommandCenterFilterState>) => void;
+  setAutoLayout: (enabled: boolean) => void;
   resetToDefaults: () => void;
   isSaving: boolean;
 }
@@ -159,6 +162,15 @@ export const useCommandCenterPreferences = (): CommandCenterPreferencesApi => {
     [mutate]
   );
 
+  const setAutoLayout = useCallback(
+    (enabled: boolean) =>
+      mutate((prev) => ({
+        ...prev,
+        autoLayout: enabled,
+      })),
+    [mutate]
+  );
+
   const resetToDefaults = useCallback(() => {
     mutate(() => buildDefaultPreferences());
   }, [mutate]);
@@ -169,6 +181,7 @@ export const useCommandCenterPreferences = (): CommandCenterPreferencesApi => {
     setModuleEnabled,
     setModuleSettings,
     setFilterState,
+    setAutoLayout,
     resetToDefaults,
     isSaving,
   };

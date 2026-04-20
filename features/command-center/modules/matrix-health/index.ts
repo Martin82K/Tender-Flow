@@ -12,5 +12,6 @@ export const matrixHealthModule: CommandCenterModule = {
   enabledByDefault: true,
   priority: 0,
   requiredFeature: FEATURES.CC_MATRIX_HEALTH,
+  weightBySignal: true,
   component: MatrixHealthModule,
 };

@@ -358,6 +358,56 @@
   background: transparent;
 }
 
+.cc-btn--active {
+  border-color: var(--cc-blue);
+  color: var(--cc-text);
+  background: rgba(47, 111, 208, 0.12);
+}
+
+.cc-header__chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: var(--cc-text-dim);
+  background: var(--cc-surface-3);
+  border: 1px solid var(--cc-line-soft);
+  cursor: help;
+}
+
+.cc-zone__slot[data-signal="hot"] {
+  position: relative;
+}
+
+.cc-zone__slot[data-signal="hot"]::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: calc(var(--cc-radius) + 1px);
+  border: 1px solid rgba(255, 176, 59, 0.35);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.cc-zone__slot[data-signal="critical"] {
+  position: relative;
+}
+
+.cc-zone__slot[data-signal="critical"]::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: calc(var(--cc-radius) + 1px);
+  border: 1px solid rgba(255, 77, 94, 0.45);
+  box-shadow: 0 0 0 3px rgba(255, 77, 94, 0.08);
+  pointer-events: none;
+  z-index: 0;
+}
+
 /* KPI row */
 .cc-kpi-row {
   display: grid;

@@ -60,6 +60,27 @@ export const CommandCenterSettings: React.FC<CommandCenterSettingsProps> = ({
           </button>
         </div>
         <div className="cc-settings-panel__body">
+          <section className="cc-settings-zone">
+            <h3 className="cc-settings-zone__title">Chytrý auto-layout</h3>
+            <ul className="cc-settings-list">
+              <li className="cc-settings-item">
+                <div className="cc-settings-item__body">
+                  <div className="cc-settings-item__title">Automatické rozložení podle dat</div>
+                  <div className="cc-settings-item__desc">
+                    Moduly bez dat (prázdná kritická fronta, nulový rozpočet) se skryjí. Moduly s vysokou prioritou (mnoho kritických akcí) se zvětší.
+                  </div>
+                </div>
+                <label className="cc-switch">
+                  <input
+                    type="checkbox"
+                    checked={preferences.preferences.autoLayout !== false}
+                    onChange={(e) => preferences.setAutoLayout(e.target.checked)}
+                  />
+                  <span className="cc-switch__track" />
+                </label>
+              </li>
+            </ul>
+          </section>
           {grouped.map(({ zone, modules }) => (
             <section key={zone} className="cc-settings-zone">
               <h3 className="cc-settings-zone__title">{ZONE_LABEL[zone]}</h3>
