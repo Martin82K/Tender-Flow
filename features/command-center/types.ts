@@ -5,6 +5,7 @@ export type Zone =
   | "alert"
   | "kpi"
   | "filter"
+  | "portfolio"
   | "main-primary"
   | "main-secondary"
   | "tactical"

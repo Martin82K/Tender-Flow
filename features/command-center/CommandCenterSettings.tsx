@@ -14,6 +14,7 @@ const ZONE_LABEL: Record<Zone, string> = {
   alert: "Kritické akce",
   kpi: "KPI přehled",
   filter: "Filtr",
+  portfolio: "Portfolio zakázek",
   "main-primary": "Hlavní panel",
   "main-secondary": "Postranní panel",
   tactical: "Analýza",

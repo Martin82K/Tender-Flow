@@ -20,6 +20,12 @@ const severityBadgeClass: Record<string, string> = {
   info: "cc-queue-num--blue",
 };
 
+const severityCheckClass: Record<string, string> = {
+  critical: "cc-queue-check--red",
+  warning: "cc-queue-check--amber",
+  info: "cc-queue-check--blue",
+};
+
 const MAX_VISIBLE = 10;
 
 export const ActionQueueModule: React.FC<ModuleProps> = ({ filterState }) => {
@@ -74,7 +80,10 @@ export const ActionQueueModule: React.FC<ModuleProps> = ({ filterState }) => {
         ) : (
           <ol className="cc-queue">
             {items.map((item, index) => (
-              <li key={item.id} className="cc-queue-item">
+              <li
+                key={item.id}
+                className={`cc-queue-item${item.kind === "task" ? ` cc-queue-item--urgency-${item.severity}` : ""}`}
+              >
                 <button
                   type="button"
                   className="cc-queue-item__btn"
@@ -82,7 +91,7 @@ export const ActionQueueModule: React.FC<ModuleProps> = ({ filterState }) => {
                 >
                   {item.kind === "task" ? (
                     <span
-                      className={`cc-queue-check ${severityBadgeClass[item.severity] ?? ""}`}
+                      className={`cc-queue-check ${severityCheckClass[item.severity] ?? ""}`}
                       onClick={(e) => handleToggleTask(e, item.source)}
                       role="checkbox"
                       aria-checked="false"
