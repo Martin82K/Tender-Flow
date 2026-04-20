@@ -9,15 +9,6 @@ const viewToManifest = <T extends View>(view: T, manifest: FeatureModuleManifest
 }) as Record<T, FeatureModuleManifest>;
 
 export const featureModuleRegistry: Record<View, FeatureModuleManifest> = {
-  ...viewToManifest("dashboard", {
-    id: "projects.dashboard",
-    routes: [{ path: "/app/dashboard", view: "dashboard" }],
-    navItems: [{ id: "dashboard", label: "Přehled" }],
-    requiredCapabilities: [FEATURES.MODULE_PROJECTS],
-    mount: () =>
-      import("@/features/dashboard").then((m) => ({ default: m.DashboardView })),
-    unmountSafeChecks: emptyChecks,
-  }),
   ...viewToManifest("command-center", {
     id: "command-center.main",
     routes: [{ path: "/app/command-center", view: "command-center" }],

@@ -26,10 +26,10 @@ const HelpContext = createContext<HelpContextValue | null>(null);
 
 function parseViewFromPath(pathname: string): { view: View | null; tab: ProjectTab | null } {
   const parts = pathname.replace(/^\/app\/?/, "").split("/");
-  const segment = parts[0] || "dashboard";
+  const segment = parts[0] || "command-center";
 
   const viewMap: Record<string, View> = {
-    dashboard: "dashboard",
+    "command-center": "command-center",
     project: "project",
     contacts: "contacts",
     settings: "settings",

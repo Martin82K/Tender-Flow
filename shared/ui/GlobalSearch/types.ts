@@ -3,7 +3,7 @@ import type { Project, ProjectDetails, Subcontractor } from "@/types";
 export type SearchCategory = "projects" | "contacts" | "categories";
 
 export interface SearchNavigateTarget {
-  view: "dashboard" | "project" | "contacts" | "project-management" | "project-overview";
+  view: "command-center" | "project" | "contacts" | "project-management" | "project-overview";
   projectId?: string;
   tab?: "overview" | "tender-plan" | "pipeline" | "schedule" | "documents" | "contracts";
   categoryId?: string;

@@ -91,7 +91,8 @@ export const CommandCenterShell: React.FC<CommandCenterShellProps> = ({
   const renderZone = (zone: Zone) => {
     const mods = activeModulesByZone.get(zone) ?? [];
     if (mods.length === 0) return null;
-    const isFullWidth = zone === "alert" || zone === "kpi" || zone === "filter";
+    const isFullWidth =
+      zone === "alert" || zone === "kpi" || zone === "filter";
     const isTactical = zone === "tactical";
     const isMainPair = zone === "main-primary" || zone === "main-secondary";
     const isTemporalPair = zone === "temporal-primary" || zone === "temporal-secondary";

@@ -24,13 +24,6 @@ export const SIDEBAR_NAVIGATION: NavItemConfig[] = [
     feature: FEATURES.MODULE_COMMAND_CENTER,
   },
   {
-    id: 'dashboard',
-    label: 'Přehled',
-    icon: 'dashboard',
-    view: 'dashboard',
-    feature: FEATURES.MODULE_DASHBOARD,
-  },
-  {
     id: 'contacts',
     label: 'Subdodavatelé',
     icon: 'handshake',

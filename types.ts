@@ -1,5 +1,4 @@
 export type View =
-  | "dashboard"
   | "command-center"
   | "project"
   | "contacts"
