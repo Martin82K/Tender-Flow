@@ -105,6 +105,23 @@ const mapInvoice = (row: Record<string, unknown>): ContractInvoice => ({
 
 const todayIso = (): string => new Date().toISOString().slice(0, 10);
 
+const sanitizeDocumentUrl = (value: string | null | undefined): string | null => {
+  if (!value) return null;
+
+  const trimmedValue = value.trim();
+  if (!trimmedValue) return null;
+
+  try {
+    const parsed = new URL(trimmedValue);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return null;
+    }
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+};
+
 const deriveInvoiceStatus = (invoice: ContractInvoice): ContractInvoiceStatus => {
   if (invoice.status === 'issued' && invoice.dueDate && invoice.dueDate < todayIso()) {
     return 'overdue';
@@ -321,7 +338,7 @@ export const contractService = {
         scope_summary: contract.scopeSummary || null,
         source: contract.source,
         source_bid_id: contract.sourceBidId || null,
-        document_url: contract.documentUrl || null,
+        document_url: sanitizeDocumentUrl(contract.documentUrl),
         extraction_confidence: contract.extractionConfidence || null,
         extraction_json: contract.extractionJson || null,
         owner_id: user.id,
@@ -378,7 +395,9 @@ export const contractService = {
     if (updates.warrantyMonths !== undefined) dbUpdates.warranty_months = updates.warrantyMonths;
     if (updates.paymentTerms !== undefined) dbUpdates.payment_terms = updates.paymentTerms;
     if (updates.scopeSummary !== undefined) dbUpdates.scope_summary = updates.scopeSummary;
-    if (updates.documentUrl !== undefined) dbUpdates.document_url = updates.documentUrl;
+    if (updates.documentUrl !== undefined) {
+      dbUpdates.document_url = sanitizeDocumentUrl(updates.documentUrl);
+    }
     if (updates.extractionConfidence !== undefined) dbUpdates.extraction_confidence = updates.extractionConfidence;
     if (updates.extractionJson !== undefined) dbUpdates.extraction_json = updates.extractionJson;
     if (updates.vendorId !== undefined) dbUpdates.vendor_id = updates.vendorId;

@@ -12,6 +12,22 @@ import { MarkdownDocumentPanel } from '@/shared/contracts/MarkdownDocumentPanel'
 import { Modal } from '@/shared/ui/Modal';
 import { formatDate } from '../../utils/format';
 
+const getSafeDocumentUrl = (value: string | undefined): string | null => {
+  if (!value) return null;
+  const trimmedValue = value.trim();
+  if (!trimmedValue) return null;
+
+  try {
+    const parsed = new URL(trimmedValue);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return null;
+    }
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+};
+
 interface Props {
   contract: ContractWithDetails;
   onRefresh: () => Promise<void> | void;
@@ -45,7 +61,21 @@ const DocumentRow: React.FC<{
   error?: string | null;
   onPickFile: (file: File) => void;
   actionLabel: string;
-}> = ({ title, subtitle, ocrDone, confidence, busy, busyLabel, error, onPickFile, actionLabel }) => {
+  documentUrl?: string | null;
+  hasDocument?: boolean;
+}> = ({
+  title,
+  subtitle,
+  ocrDone,
+  confidence,
+  busy,
+  busyLabel,
+  error,
+  onPickFile,
+  actionLabel,
+  documentUrl,
+  hasDocument,
+}) => {
   const inputRef = useRef<HTMLInputElement>(null);
   return (
     <div className="rounded-xl bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 p-3 space-y-2">
@@ -89,6 +119,20 @@ const DocumentRow: React.FC<{
             if (inputRef.current) inputRef.current.value = '';
           }}
         />
+        {documentUrl ? (
+          <a
+            href={documentUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+          >
+            Otevřít dokument
+          </a>
+        ) : hasDocument ? (
+          <div className="px-3 py-1.5 rounded-lg border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 text-xs">
+            Odkaz na dokument je neplatný.
+          </div>
+        ) : null}
       </div>
       {error && (
         <div className="rounded-md bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-400 text-[11px] px-2.5 py-1.5">
@@ -104,6 +148,8 @@ export const OcrDocumentSection: React.FC<Props> = ({ contract, onRefresh }) => 
   const [status, setStatus] = useState<string>('');
   const [error, setError] = useState<Record<string, string>>({});
   const [markdownRefreshKey, setMarkdownRefreshKey] = useState(0);
+  const hasDocument = Boolean(contract.documentUrl);
+  const safeDocumentUrl = getSafeDocumentUrl(contract.documentUrl);
 
   const amendments = useMemo<ContractAmendment[]>(
     () => [...contract.amendments].sort((a, b) => a.amendmentNo - b.amendmentNo),
@@ -247,6 +293,8 @@ export const OcrDocumentSection: React.FC<Props> = ({ contract, onRefresh }) => 
           actionLabel={
             contract.extractionConfidence != null ? 'Spustit OCR znovu' : 'Vybrat dokument a spustit OCR'
           }
+          documentUrl={safeDocumentUrl}
+          hasDocument={hasDocument}
         />
 
         <div>
