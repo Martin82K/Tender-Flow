@@ -1,3 +1,5 @@
+import { formatDecimal } from '@/utils/formatters';
+
 interface MapRoutePanelProps {
   distanceMeters?: number;
   durationSeconds?: number;
@@ -10,7 +12,9 @@ interface MapRoutePanelProps {
 function formatDistance(meters: number): string {
   if (meters < 1000) return `${Math.round(meters)} m`;
   const km = meters / 1000;
-  return km >= 100 ? `${Math.round(km)} km` : `${km.toFixed(1)} km`;
+  return km >= 100
+    ? `${formatDecimal(km, { maximumFractionDigits: 0 })} km`
+    : `${formatDecimal(km, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km`;
 }
 
 function formatDuration(seconds: number): string {

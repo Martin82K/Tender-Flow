@@ -55,14 +55,14 @@ export const ContractsListPage: React.FC<Props> = ({ projectId, contracts, refre
       <ContractsHeadline contracts={contracts} />
 
       <div className="flex items-center gap-3 px-5 py-3">
-        <div className="inline-flex rounded-lg border border-slate-800 bg-slate-900/60 p-1">
+        <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-1">
           <button
             type="button"
             onClick={() => setViewMode('split')}
             className={`px-3 py-1.5 text-xs rounded-md font-semibold transition ${
               viewMode === 'split'
                 ? 'bg-primary/15 text-primary'
-                : 'text-slate-400 hover:text-slate-100'
+                : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100'
             }`}
           >
             ◫ Split
@@ -73,7 +73,7 @@ export const ContractsListPage: React.FC<Props> = ({ projectId, contracts, refre
             className={`px-3 py-1.5 text-xs rounded-md font-semibold transition ${
               viewMode === 'table'
                 ? 'bg-primary/15 text-primary'
-                : 'text-slate-400 hover:text-slate-100'
+                : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100'
             }`}
           >
             ▦ Tabulka
@@ -91,7 +91,7 @@ export const ContractsListPage: React.FC<Props> = ({ projectId, contracts, refre
 
       <div className="flex-1 min-h-0 px-5 pb-5">
         {contracts.length === 0 ? (
-          <div className="h-full rounded-xl border border-dashed border-slate-800 grid place-items-center text-sm text-slate-500">
+          <div className="h-full rounded-xl border border-dashed border-slate-300 dark:border-slate-800 grid place-items-center text-sm text-slate-600 dark:text-slate-500">
             Zatím nemáte žádné smlouvy. Klikněte na „+ Nová smlouva“ pro založení první.
           </div>
         ) : viewMode === 'split' ? (
@@ -108,7 +108,7 @@ export const ContractsListPage: React.FC<Props> = ({ projectId, contracts, refre
                 onRefresh={refresh}
               />
             ) : (
-              <div className="rounded-xl border border-slate-800 grid place-items-center text-sm text-slate-500">
+              <div className="rounded-xl border border-slate-200 dark:border-slate-800 grid place-items-center text-sm text-slate-600 dark:text-slate-500">
                 Vyberte smlouvu v levém panelu.
               </div>
             )}

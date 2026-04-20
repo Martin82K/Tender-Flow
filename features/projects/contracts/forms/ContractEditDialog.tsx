@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Modal } from '@/shared/ui/Modal';
+import { NumericInput } from '@/shared/ui/NumericInput';
+import { MarkdownDocumentPanel } from '@/shared/contracts/MarkdownDocumentPanel';
 import { contractService } from '@/services/contractService';
 import type {
   Contract,
@@ -17,13 +19,12 @@ interface Props {
 
 const inputClass =
   'w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary';
+const numericInputClass =
+  'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary';
 const labelClass = 'block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1';
 
-const toNumberOrUndef = (v: string): number | undefined => {
-  if (!v.trim()) return undefined;
-  const parsed = Number.parseFloat(v.replace(',', '.'));
-  return Number.isFinite(parsed) ? parsed : undefined;
-};
+const toUndef = (v: number | null): number | undefined =>
+  v === null || !Number.isFinite(v) ? undefined : v;
 
 export const ContractEditDialog: React.FC<Props> = ({
   projectId,
@@ -41,17 +42,17 @@ export const ContractEditDialog: React.FC<Props> = ({
     status: (contract?.status ?? 'draft') as ContractStatus,
     signedAt: contract?.signedAt?.slice(0, 10) ?? '',
     currency: contract?.currency ?? 'CZK',
-    basePrice: contract?.basePrice?.toString() ?? '',
-    retentionShortPercent: contract?.retentionShortPercent?.toString() ?? '',
-    retentionShortAmount: contract?.retentionShortAmount?.toString() ?? '',
+    basePrice: (contract?.basePrice ?? null) as number | null,
+    retentionShortPercent: (contract?.retentionShortPercent ?? null) as number | null,
+    retentionShortAmount: (contract?.retentionShortAmount ?? null) as number | null,
     retentionShortReleaseOn: contract?.retentionShortReleaseOn?.slice(0, 10) ?? '',
     retentionShortStatus: (contract?.retentionShortStatus ?? 'held') as ContractRetentionStatus,
-    retentionLongPercent: contract?.retentionLongPercent?.toString() ?? '',
-    retentionLongAmount: contract?.retentionLongAmount?.toString() ?? '',
+    retentionLongPercent: (contract?.retentionLongPercent ?? null) as number | null,
+    retentionLongAmount: (contract?.retentionLongAmount ?? null) as number | null,
     retentionLongReleaseOn: contract?.retentionLongReleaseOn?.slice(0, 10) ?? '',
     retentionLongStatus: (contract?.retentionLongStatus ?? 'held') as ContractRetentionStatus,
-    siteSetupPercent: contract?.siteSetupPercent?.toString() ?? '',
-    warrantyMonths: contract?.warrantyMonths?.toString() ?? '',
+    siteSetupPercent: (contract?.siteSetupPercent ?? null) as number | null,
+    warrantyMonths: (contract?.warrantyMonths ?? null) as number | null,
     paymentTerms: contract?.paymentTerms ?? '',
     scopeSummary: contract?.scopeSummary ?? '',
   });
@@ -80,17 +81,20 @@ export const ContractEditDialog: React.FC<Props> = ({
         status: form.status,
         signedAt: form.signedAt || undefined,
         currency: form.currency,
-        basePrice: toNumberOrUndef(form.basePrice) ?? 0,
-        retentionShortPercent: toNumberOrUndef(form.retentionShortPercent),
-        retentionShortAmount: toNumberOrUndef(form.retentionShortAmount),
+        basePrice: toUndef(form.basePrice) ?? 0,
+        retentionShortPercent: toUndef(form.retentionShortPercent),
+        retentionShortAmount: toUndef(form.retentionShortAmount),
         retentionShortReleaseOn: form.retentionShortReleaseOn || undefined,
         retentionShortStatus: form.retentionShortStatus,
-        retentionLongPercent: toNumberOrUndef(form.retentionLongPercent),
-        retentionLongAmount: toNumberOrUndef(form.retentionLongAmount),
+        retentionLongPercent: toUndef(form.retentionLongPercent),
+        retentionLongAmount: toUndef(form.retentionLongAmount),
         retentionLongReleaseOn: form.retentionLongReleaseOn || undefined,
         retentionLongStatus: form.retentionLongStatus,
-        siteSetupPercent: toNumberOrUndef(form.siteSetupPercent),
-        warrantyMonths: form.warrantyMonths ? Number.parseInt(form.warrantyMonths, 10) : undefined,
+        siteSetupPercent: toUndef(form.siteSetupPercent),
+        warrantyMonths:
+          form.warrantyMonths !== null && Number.isFinite(form.warrantyMonths)
+            ? Math.round(form.warrantyMonths)
+            : undefined,
         paymentTerms: form.paymentTerms || undefined,
         scopeSummary: form.scopeSummary || undefined,
         source: 'manual' as const,
@@ -109,13 +113,35 @@ export const ContractEditDialog: React.FC<Props> = ({
     }
   };
 
+  const showOcrPanel = isEditing && contract;
+
   return (
     <Modal
       isOpen
       onClose={onClose}
       title={isEditing ? 'Upravit smlouvu' : 'Nová smlouva'}
-      size="2xl"
+      size={showOcrPanel ? 'full' : '2xl'}
     >
+      <div
+        className={
+          showOcrPanel
+            ? 'grid grid-cols-1 lg:grid-cols-2 gap-5 h-[78vh]'
+            : ''
+        }
+      >
+        {showOcrPanel && (
+          <div className="min-h-0 overflow-hidden">
+            <MarkdownDocumentPanel
+              entityType="contract"
+              entityId={contract.id}
+              entityLabel={contract.title || contract.vendorName || 'Smlouva'}
+              editable={false}
+              fitParent
+              enableSearch
+            />
+          </div>
+        )}
+        <div className={showOcrPanel ? 'overflow-y-auto pr-1' : ''}>
       <form onSubmit={handleSubmit} className="space-y-5">
         {error && (
           <div className="rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs px-3 py-2">
@@ -185,11 +211,13 @@ export const ContractEditDialog: React.FC<Props> = ({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className={labelClass}>Cena díla (bez DPH)</label>
-            <input
-              className={inputClass}
+            <NumericInput
               value={form.basePrice}
-              onChange={(e) => handleChange('basePrice', e.target.value)}
-              inputMode="decimal"
+              onChange={(v) => handleChange('basePrice', v)}
+              allowNegative={false}
+              maxFractionDigits={2}
+              className={numericInputClass}
+              suffix={form.currency}
             />
           </div>
           <div>
@@ -206,11 +234,13 @@ export const ContractEditDialog: React.FC<Props> = ({
           </div>
           <div>
             <label className={labelClass}>Zařízení staveniště (%)</label>
-            <input
-              className={inputClass}
+            <NumericInput
               value={form.siteSetupPercent}
-              onChange={(e) => handleChange('siteSetupPercent', e.target.value)}
-              inputMode="decimal"
+              onChange={(v) => handleChange('siteSetupPercent', v)}
+              allowNegative={false}
+              maxFractionDigits={2}
+              className={numericInputClass}
+              suffix="%"
             />
           </div>
         </div>
@@ -228,22 +258,26 @@ export const ContractEditDialog: React.FC<Props> = ({
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className={labelClass}>%</label>
-                  <input
-                    className={inputClass}
+                  <NumericInput
                     value={form.retentionShortPercent}
-                    onChange={(e) => handleChange('retentionShortPercent', e.target.value)}
-                    inputMode="decimal"
+                    onChange={(v) => handleChange('retentionShortPercent', v)}
+                    allowNegative={false}
+                    maxFractionDigits={2}
+                    className={numericInputClass}
                     placeholder="7"
+                    suffix="%"
                   />
                 </div>
                 <div>
                   <label className={labelClass}>Částka</label>
-                  <input
-                    className={inputClass}
+                  <NumericInput
                     value={form.retentionShortAmount}
-                    onChange={(e) => handleChange('retentionShortAmount', e.target.value)}
-                    inputMode="decimal"
+                    onChange={(v) => handleChange('retentionShortAmount', v)}
+                    allowNegative={false}
+                    maxFractionDigits={2}
+                    className={numericInputClass}
                     placeholder="vypočítá se"
+                    suffix={form.currency}
                   />
                 </div>
                 <div>
@@ -278,22 +312,26 @@ export const ContractEditDialog: React.FC<Props> = ({
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className={labelClass}>%</label>
-                  <input
-                    className={inputClass}
+                  <NumericInput
                     value={form.retentionLongPercent}
-                    onChange={(e) => handleChange('retentionLongPercent', e.target.value)}
-                    inputMode="decimal"
+                    onChange={(v) => handleChange('retentionLongPercent', v)}
+                    allowNegative={false}
+                    maxFractionDigits={2}
+                    className={numericInputClass}
                     placeholder="3"
+                    suffix="%"
                   />
                 </div>
                 <div>
                   <label className={labelClass}>Částka</label>
-                  <input
-                    className={inputClass}
+                  <NumericInput
                     value={form.retentionLongAmount}
-                    onChange={(e) => handleChange('retentionLongAmount', e.target.value)}
-                    inputMode="decimal"
+                    onChange={(v) => handleChange('retentionLongAmount', v)}
+                    allowNegative={false}
+                    maxFractionDigits={2}
+                    className={numericInputClass}
                     placeholder="vypočítá se"
+                    suffix={form.currency}
                   />
                 </div>
                 <div>
@@ -330,11 +368,13 @@ export const ContractEditDialog: React.FC<Props> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className={labelClass}>Záruční doba (měsíce)</label>
-            <input
-              className={inputClass}
+            <NumericInput
               value={form.warrantyMonths}
-              onChange={(e) => handleChange('warrantyMonths', e.target.value)}
-              inputMode="numeric"
+              onChange={(v) => handleChange('warrantyMonths', v)}
+              allowNegative={false}
+              maxFractionDigits={0}
+              className={numericInputClass}
+              suffix="měs."
             />
           </div>
           <div>
@@ -375,6 +415,8 @@ export const ContractEditDialog: React.FC<Props> = ({
           </button>
         </div>
       </form>
+        </div>
+      </div>
     </Modal>
   );
 };

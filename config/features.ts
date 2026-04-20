@@ -40,6 +40,11 @@ export const FEATURES = {
   MAPS_RECOMMENDATIONS: 'maps_recommendations',
   MAPS_ROUTING: 'maps_routing',
   MAPS_BULK_GEOCODE: 'maps_bulk_geocode',
+
+  // Command Center
+  MODULE_COMMAND_CENTER: 'module_command_center',
+  CC_MATRIX_HEALTH: 'cc_matrix_health',
+  CC_ADVANCED_KPI: 'cc_advanced_kpi',
 } as const;
 
 export type FeatureKey = typeof FEATURES[keyof typeof FEATURES];
@@ -74,6 +79,7 @@ export const PLANS = {
       FEATURES.EXPORT_EXCEL,
       FEATURES.URL_SHORTENER,
       FEATURES.MODULE_MAPS,
+      FEATURES.MODULE_COMMAND_CENTER,
     ]
   },
   PRO: {
@@ -99,6 +105,9 @@ export const PLANS = {
       FEATURES.MAPS_RECOMMENDATIONS,
       FEATURES.MAPS_ROUTING,
       FEATURES.MAPS_BULK_GEOCODE,
+      FEATURES.MODULE_COMMAND_CENTER,
+      FEATURES.CC_MATRIX_HEALTH,
+      FEATURES.CC_ADVANCED_KPI,
     ]
   },
   ENTERPRISE: {

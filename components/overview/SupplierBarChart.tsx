@@ -1,5 +1,6 @@
 import React from 'react';
 import { Building2, Coins } from 'lucide-react';
+import { formatDecimal } from '@/utils/formatters';
 
 interface BarItem {
   label: string;
@@ -47,7 +48,7 @@ const colorVariants = {
 
 export const SupplierBarChart: React.FC<SupplierBarChartProps> = ({
   items,
-  valueFormatter = (v) => v.toLocaleString('cs-CZ'),
+  valueFormatter = (v) => formatDecimal(v),
   color = 'emerald',
   showIcon = true,
   maxItems,

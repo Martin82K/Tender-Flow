@@ -1,4 +1,5 @@
 import type { Subcontractor } from '@/types';
+import { formatDecimal } from '@/utils/formatters';
 import { getMarkerColor } from '../utils/markerColors';
 
 interface MapInfoCardProps {
@@ -74,7 +75,9 @@ export function MapInfoCard({
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-amber-500 text-sm">star</span>
               <span className="text-amber-500">{stars}</span>
-              <span className="text-slate-400">{rating!.toFixed(1)}</span>
+              <span className="text-slate-400">
+                {formatDecimal(rating!, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+              </span>
             </div>
           )}
 
@@ -82,7 +85,9 @@ export function MapInfoCard({
           {distanceKm != null && (
             <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
               <span className="material-symbols-outlined text-sm">straighten</span>
-              <span>{distanceKm.toFixed(1)} km</span>
+              <span>
+                {formatDecimal(distanceKm, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km
+              </span>
             </div>
           )}
 

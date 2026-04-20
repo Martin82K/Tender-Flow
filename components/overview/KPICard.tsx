@@ -1,5 +1,6 @@
 import React from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { formatDecimal } from '@/utils/formatters';
 
 interface KPICardProps {
   title: string;
@@ -119,7 +120,13 @@ export const KPICard: React.FC<KPICardProps> = ({
           {trend && (
             <div className={`mt-2 flex items-center gap-1 text-xs font-medium ${getTrendColor()}`}>
               {getTrendIcon()}
-              <span>{Math.abs(trend.value).toFixed(1)}%</span>
+              <span>
+                {formatDecimal(Math.abs(trend.value), {
+                  minimumFractionDigits: 1,
+                  maximumFractionDigits: 1,
+                })}
+                {' %'}
+              </span>
               <span className="text-slate-400 font-normal ml-1">{trend.label}</span>
             </div>
           )}

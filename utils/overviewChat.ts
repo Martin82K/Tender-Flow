@@ -1,7 +1,9 @@
 import type { OverviewAnalytics } from "./overviewAnalytics";
 import { formatMoney } from "./overviewAnalytics";
+import { formatDecimal } from "./formatters";
 
-const formatPercent = (value: number) => `${(value * 100).toFixed(1)} %`;
+const formatPercent = (value: number) =>
+  `${formatDecimal(value * 100, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`;
 
 export const buildOverviewChatContext = (
   analytics: OverviewAnalytics,

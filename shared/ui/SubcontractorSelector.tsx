@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from "react"
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Subcontractor, StatusConfig } from "@/types";
 import { StarRating } from "@/shared/ui/StarRating";
+import { formatDecimal } from "@/utils/formatters";
 
 // Column visibility configuration
 type ColumnId = 'specializace' | 'kontakt' | 'telefon' | 'ico' | 'region' | 'hodnoceni' | 'stav';
@@ -301,7 +302,10 @@ const VirtualizedContactTable: React.FC<VirtualizedContactTableProps> = ({
                         >
                           <StarRating value={contact.vendorRatingAverage} readOnly size="sm" />
                           <span className="text-xs text-slate-500">
-                            {contact.vendorRatingAverage.toFixed(1)}
+                            {formatDecimal(contact.vendorRatingAverage, {
+                              minimumFractionDigits: 1,
+                              maximumFractionDigits: 1,
+                            })}
                           </span>
                         </div>
                       ) : (

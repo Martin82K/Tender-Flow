@@ -17,8 +17,15 @@ export interface NavItemConfig {
 
 export const SIDEBAR_NAVIGATION: NavItemConfig[] = [
   {
+    id: 'command-center',
+    label: 'Command Center',
+    icon: 'radar',
+    view: 'command-center',
+    feature: FEATURES.MODULE_COMMAND_CENTER,
+  },
+  {
     id: 'dashboard',
-    label: 'Dashboard',
+    label: 'Přehled',
     icon: 'dashboard',
     view: 'dashboard',
     feature: FEATURES.MODULE_DASHBOARD,

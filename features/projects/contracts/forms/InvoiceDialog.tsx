@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Modal } from '@/shared/ui/Modal';
+import { NumericInput } from '@/shared/ui/NumericInput';
 import { contractService } from '@/services/contractService';
 import type {
   ContractInvoice,
@@ -30,7 +31,7 @@ export const InvoiceDialog: React.FC<Props> = ({ contract, initial, onClose, onS
     invoiceNumber: initial?.invoiceNumber ?? '',
     issueDate: initial?.issueDate?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
     dueDate: initial?.dueDate?.slice(0, 10) ?? defaultDueDate(),
-    amount: initial?.amount?.toString() ?? '',
+    amount: (initial?.amount ?? null) as number | null,
     currency: initial?.currency ?? contract.currency ?? 'CZK',
     status: (initial?.status ?? 'issued') as ContractInvoiceStatus,
     paidAt: initial?.paidAt?.slice(0, 10) ?? '',
@@ -46,8 +47,8 @@ export const InvoiceDialog: React.FC<Props> = ({ contract, initial, onClose, onS
       setError('Číslo faktury je povinné.');
       return;
     }
-    const amount = Number.parseFloat(form.amount.replace(',', '.'));
-    if (!Number.isFinite(amount) || amount <= 0) {
+    const amount = form.amount;
+    if (amount === null || !Number.isFinite(amount) || amount <= 0) {
       setError('Částka musí být kladné číslo.');
       return;
     }
@@ -132,11 +133,13 @@ export const InvoiceDialog: React.FC<Props> = ({ contract, initial, onClose, onS
           </div>
           <div>
             <label className={labelClass}>Částka *</label>
-            <input
-              className={inputClass}
+            <NumericInput
               value={form.amount}
-              onChange={(e) => setForm((s) => ({ ...s, amount: e.target.value }))}
-              inputMode="decimal"
+              onChange={(v) => setForm((s) => ({ ...s, amount: v }))}
+              allowNegative={false}
+              maxFractionDigits={2}
+              className="border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              suffix={form.currency}
               required
             />
           </div>

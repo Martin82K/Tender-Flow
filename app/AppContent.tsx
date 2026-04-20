@@ -27,6 +27,7 @@ import {
 import type { FatalIncidentNotice } from "@/shared/types/incidents";
 import {
   AppLazyFallback,
+  CommandCenterView,
   Contacts,
   Dashboard,
   ProjectLayout,
@@ -264,6 +265,12 @@ export const AppContent: React.FC = () => {
 
   const renderCurrentView = () => {
     switch (currentView) {
+      case "command-center":
+        return (
+          <RequireFeature feature={FEATURES.MODULE_COMMAND_CENTER}>
+            <CommandCenterView />
+          </RequireFeature>
+        );
       case "dashboard":
         return (
           <Dashboard
