@@ -40,6 +40,11 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [enabledFeatures, setEnabledFeatures] = useState<FeatureKey[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const lastRefreshRef = useRef<number>(0);
+  const hasFetchedRef = useRef(false);
+  const lastFetchedUserRef = useRef<string | null>(null);
+
+  const userId = user?.id;
+  const userRole = user?.role;
 
   // Fetch features from backend
   const fetchFeatures = useCallback(async () => {
@@ -51,23 +56,43 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return;
     }
 
-    if (!isAuthenticated || !user) {
+    if (!isAuthenticated || !userId) {
       setEnabledFeatures([]);
       setCurrentPlan('free');
       setIsLoading(false);
+      hasFetchedRef.current = true;
+      lastFetchedUserRef.current = null;
       return;
+    }
+
+    // Detect user switch — force a fresh loading gate and drop stale features
+    // from the previous identity so RequireFeature cannot briefly render the
+    // other user's entitlements.
+    const isUserSwitch =
+      lastFetchedUserRef.current !== null && lastFetchedUserRef.current !== userId;
+    if (isUserSwitch) {
+      setEnabledFeatures([]);
+      setCurrentPlan('free');
     }
 
     // Demo mode has no Supabase auth session, so backend RPC feature checks will fail.
     // Use a local "demo plan" feature set (acts like a subscription tier for demo).
-    if (user.role === 'demo') {
+    if (userRole === 'demo') {
       setIsLoading(false);
       setEnabledFeatures([...PLANS.FREE.features] as FeatureKey[]);
       setCurrentPlan('demo');
+      hasFetchedRef.current = true;
+      lastFetchedUserRef.current = userId;
       return;
     }
 
-    setIsLoading(true);
+    // Only show the loading gate on the very first fetch or after a user switch.
+    // Background refreshes for the same user keep the previous feature set so
+    // RequireFeature doesn't flash through the "Ověřuji dostupnost funkce..."
+    // placeholder on every preference save.
+    if (!hasFetchedRef.current || isUserSwitch) {
+      setIsLoading(true);
+    }
     try {
       let features: { key: string; name: string; description: string | null; category: string | null }[];
       let tier: string;
@@ -112,8 +137,10 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setCurrentPlan('free');
     } finally {
       setIsLoading(false);
+      hasFetchedRef.current = true;
+      lastFetchedUserRef.current = userId;
     }
-  }, [authLoading, isAuthenticated, user]);
+  }, [authLoading, isAuthenticated, userId, userRole]);
 
   // Fetch features when auth state changes
   useEffect(() => {
@@ -122,9 +149,9 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Periodic refresh to keep subscription tier validated against database
   useEffect(() => {
-    if (!isAuthenticated || !user) return;
+    if (!isAuthenticated || !userId) return;
     // Skip for demo mode
-    if (user.role === 'demo') return;
+    if (userRole === 'demo') return;
 
     const interval = setInterval(() => {
       const timeSinceLastRefresh = Date.now() - lastRefreshRef.current;
@@ -135,7 +162,7 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }, SUBSCRIPTION_REFRESH_INTERVAL);
 
     return () => clearInterval(interval);
-  }, [isAuthenticated, user, fetchFeatures]);
+  }, [isAuthenticated, userId, userRole, fetchFeatures]);
 
   // Check if user has a specific feature (checks against backend-loaded list)
   const hasFeature = useCallback((feature: FeatureKey): boolean => {

@@ -1,6 +1,5 @@
 import type { View, ProjectTab } from "@/types";
 import type { HelpEntry } from "../types";
-import { dashboardHelp } from "./dashboard";
 import { projectHelp } from "./project";
 import { contactsHelp } from "./contacts";
 import { projectManagerHelp } from "./projectManager";
@@ -8,7 +7,6 @@ import { projectOverviewHelp } from "./projectOverview";
 import { settingsHelp } from "./settings";
 
 const ALL_ENTRIES: HelpEntry[] = [
-  ...dashboardHelp,
   ...projectHelp,
   ...contactsHelp,
   ...projectManagerHelp,

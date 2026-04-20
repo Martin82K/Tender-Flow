@@ -14,7 +14,6 @@
     "components/ConstructionBackground.tsx",
     "components/Contacts.tsx",
     "components/ContactsImportWizard.tsx",
-    "components/Dashboard.tsx",
     "components/DeleteConfirmationModal.tsx",
     "components/EmailWhitelistManagement.tsx",
     "components/Header.tsx",

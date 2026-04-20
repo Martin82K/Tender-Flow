@@ -52,6 +52,14 @@ export interface ModuleSettingsProps {
   onSettingsChange: (next: Record<string, unknown>) => void;
 }
 
+export type ModuleSignalLevel = "empty" | "normal" | "hot" | "critical";
+
+export interface ModuleSignal {
+  level: ModuleSignalLevel;
+  count: number;
+  hint?: string;
+}
+
 export interface CommandCenterModule {
   id: string;
   title: string;
@@ -64,12 +72,15 @@ export interface CommandCenterModule {
   priority: number;
   component: ComponentType<ModuleProps>;
   settingsComponent?: ComponentType<ModuleSettingsProps>;
+  autoHideWhenEmpty?: boolean;
+  weightBySignal?: boolean;
 }
 
 export interface CommandCenterPreferences {
   enabledModules: Record<string, boolean>;
   moduleSettings: Record<string, Record<string, unknown>>;
   filterState?: Partial<CommandCenterFilterState>;
+  autoLayout?: boolean;
   lastUpdated: string;
 }
 

@@ -10,5 +10,6 @@ export const alertStripModule: CommandCenterModule = {
   defaultSize: { cols: 12 },
   enabledByDefault: true,
   priority: 0,
+  autoHideWhenEmpty: true,
   component: AlertStripModule,
 };

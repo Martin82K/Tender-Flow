@@ -10,5 +10,7 @@ export const actionQueueModule: CommandCenterModule = {
   defaultSize: { cols: 4 },
   enabledByDefault: true,
   priority: 0,
+  autoHideWhenEmpty: true,
+  weightBySignal: true,
   component: ActionQueueModule,
 };

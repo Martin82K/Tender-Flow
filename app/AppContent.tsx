@@ -29,7 +29,6 @@ import {
   AppLazyFallback,
   CommandCenterView,
   Contacts,
-  Dashboard,
   ProjectLayout,
   ProjectManager,
   ProjectOverview,
@@ -61,7 +60,7 @@ export const AppContent: React.FC = () => {
   const { state, actions } = useAppData(showUiModal);
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [currentView, setCurrentView] = useState<View>("dashboard");
+  const [currentView, setCurrentView] = useState<View>("command-center");
   const [activeProjectTab, setActiveProjectTab] = useState<string>("overview");
   const [activePipelineCategoryId, setActivePipelineCategoryId] = useState<string | null>(null);
   const [isLegalAcceptanceSaving, setIsLegalAcceptanceSaving] = useState(false);
@@ -271,15 +270,6 @@ export const AppContent: React.FC = () => {
             <CommandCenterView />
           </RequireFeature>
         );
-      case "dashboard":
-        return (
-          <Dashboard
-            projects={state.projects}
-            projectDetails={state.allProjectDetails}
-            onUpdateProjectDetails={actions.handleUpdateProjectDetails}
-            onNavigateToProject={handleNavigateToProject}
-          />
-        );
       case "project":
         if (!state.selectedProjectId) {
           return (
@@ -421,12 +411,9 @@ export const AppContent: React.FC = () => {
         );
       default:
         return (
-          <Dashboard
-            projects={state.projects}
-            projectDetails={state.allProjectDetails}
-            onUpdateProjectDetails={actions.handleUpdateProjectDetails}
-            onNavigateToProject={handleNavigateToProject}
-          />
+          <RequireFeature feature={FEATURES.MODULE_COMMAND_CENTER}>
+            <CommandCenterView />
+          </RequireFeature>
         );
     }
   };

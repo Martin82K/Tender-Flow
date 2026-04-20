@@ -7,7 +7,6 @@ import { actionQueueModule } from "./modules/action-queue";
 import { matrixHealthModule } from "./modules/matrix-health";
 import { pipelineFunnelModule } from "./modules/pipeline-funnel";
 import { financeGaugeModule } from "./modules/finance-gauge";
-import { timeline14dModule } from "./modules/timeline-14d";
 import { activityFeedModule } from "./modules/activity-feed";
 
 export const MODULES: CommandCenterModule[] = [
@@ -19,7 +18,6 @@ export const MODULES: CommandCenterModule[] = [
   matrixHealthModule,
   pipelineFunnelModule,
   financeGaugeModule,
-  timeline14dModule,
   activityFeedModule,
 ];
 

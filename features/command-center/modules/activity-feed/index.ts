@@ -10,5 +10,6 @@ export const activityFeedModule: CommandCenterModule = {
   defaultSize: { cols: 4, minCols: 3 },
   enabledByDefault: true,
   priority: 0,
+  autoHideWhenEmpty: true,
   component: ActivityFeedModule,
 };
