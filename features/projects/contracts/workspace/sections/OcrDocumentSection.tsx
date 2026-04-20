@@ -2,8 +2,25 @@ import React from 'react';
 import type { ContractWithDetails } from '@/types';
 import { formatDate } from '../../utils/format';
 
+const getSafeDocumentUrl = (value: string | undefined): string | null => {
+  if (!value) return null;
+  const trimmedValue = value.trim();
+  if (!trimmedValue) return null;
+
+  try {
+    const parsed = new URL(trimmedValue);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return null;
+    }
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+};
+
 export const OcrDocumentSection: React.FC<{ contract: ContractWithDetails }> = ({ contract }) => {
   const hasDocument = Boolean(contract.documentUrl);
+  const safeDocumentUrl = getSafeDocumentUrl(contract.documentUrl);
   const confidence = contract.extractionConfidence ?? null;
 
   return (
@@ -43,14 +60,20 @@ export const OcrDocumentSection: React.FC<{ contract: ContractWithDetails }> = (
                 OCR
               </span>
             </div>
-            <a
-              href={contract.documentUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900 text-slate-200 text-xs text-center hover:bg-slate-800"
-            >
-              ↓ Otevřít dokument
-            </a>
+            {safeDocumentUrl ? (
+              <a
+                href={safeDocumentUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900 text-slate-200 text-xs text-center hover:bg-slate-800"
+              >
+                ↓ Otevřít dokument
+              </a>
+            ) : (
+              <div className="px-3 py-1.5 rounded-lg border border-red-900 bg-red-950/50 text-red-300 text-xs text-center">
+                Odkaz na dokument je neplatný.
+              </div>
+            )}
             {confidence !== null && (
               <div className="text-[11px] text-slate-500">
                 Parser confidence: {(confidence * 100).toFixed(0)} %
