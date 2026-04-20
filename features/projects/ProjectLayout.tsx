@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Header } from "@/shared/ui/Header";
 import { NotificationBell } from "@features/notifications/ui/NotificationBell";
 import { HelpButton } from "@features/help";
+import { TaskCreateButton } from "@features/tasks";
 import { Pipeline } from "@/shared/ui/projects/Pipeline";
 import { TenderPlan } from "@/shared/ui/projects/TenderPlan";
 import { ProjectSchedule } from "@/shared/ui/projects/ProjectSchedule";
@@ -144,7 +145,12 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
         subtitle="Detail stavby"
         onSearchChange={setSearchQuery}
         searchPlaceholder="Hledat v projektu..."
-        helpSlot={<HelpButton />}
+        helpSlot={
+          <div className="flex items-center gap-1">
+            <TaskCreateButton projectId={projectId} />
+            <HelpButton />
+          </div>
+        }
         notificationSlot={<NotificationBell />}
       >
         <div className="flex items-center gap-4">
