@@ -168,7 +168,7 @@ export const CommandCenterShell: React.FC<CommandCenterShellProps> = ({
     const mods = activeModulesByZone.get(zone) ?? [];
     if (mods.length === 0) return null;
     const isFullWidth =
-      zone === "alert" || zone === "kpi" || zone === "filter";
+      zone === "alert" || zone === "kpi" || zone === "filter" || zone === "portfolio";
     const isTactical = zone === "tactical";
 
     if (isFullWidth) {
@@ -263,6 +263,7 @@ export const CommandCenterShell: React.FC<CommandCenterShellProps> = ({
           {renderZone("alert")}
           {renderZone("kpi")}
           {renderZone("filter")}
+          {renderZone("portfolio")}
 
           {(mainPrimary.length > 0 || mainSecondary.length > 0) && (
             <div

@@ -10,6 +10,7 @@ import { usePipelineFunnelData } from "./usePipelineFunnelData";
 import { useFinanceGaugeData } from "./useFinanceGaugeData";
 import { useActivityFeedData } from "./useActivityFeedData";
 import { useProjectsPanelData } from "./useProjectsPanelData";
+import { useCalendarData } from "./useCalendarData";
 
 export type ModuleSignalMap = Record<string, ModuleSignal>;
 
@@ -46,6 +47,7 @@ export const useModuleSignals = (filter: CommandCenterFilterState): ModuleSignal
   const finance = useFinanceGaugeData(filter);
   const activity = useActivityFeedData(filter);
   const projects = useProjectsPanelData(filter);
+  const calendar = useCalendarData(filter);
 
   return useMemo(() => {
     const criticalActions = derivedActions.filter((a) => a.severity === "critical").length;
@@ -124,6 +126,12 @@ export const useModuleSignals = (filter: CommandCenterFilterState): ModuleSignal
 
     const alwaysOn: ModuleSignal = { level: "normal", count: 0 };
 
+    const calendarEvents: ModuleSignal = {
+      level: calendar.length === 0 ? "normal" : "normal",
+      count: calendar.length,
+      hint: calendar.length > 0 ? `${calendar.length} nadcházejících` : undefined,
+    };
+
     return {
       "alert-strip": alertStrip,
       "action-queue": actionQueue,
@@ -132,8 +140,9 @@ export const useModuleSignals = (filter: CommandCenterFilterState): ModuleSignal
       "finance-gauge": financeGauge,
       "activity-feed": activityFeed,
       "projects-panel": projectsPanel,
+      "calendar": calendarEvents,
       "kpi-row": alwaysOn,
       "filter-bar": alwaysOn,
     };
-  }, [derivedActions, matrix, pipeline, finance, activity, projects]);
+  }, [derivedActions, matrix, pipeline, finance, activity, projects, calendar]);
 };

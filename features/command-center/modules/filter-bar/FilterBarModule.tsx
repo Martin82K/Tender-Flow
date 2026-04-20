@@ -49,62 +49,65 @@ export const FilterBarModule: React.FC<ModuleProps> = ({ filterState, onFilterCh
   return (
     <div className="cc-filterbar">
       <span className="cc-filterbar__label">FILTR</span>
-      <span className="cc-filterbar__sep" aria-hidden />
-      <div className="cc-filterbar__group" aria-label="Zakázky">
-        {projects.slice(0, 8).map((project) => {
-          const active = filterState.projectIds.includes(project.id);
-          return (
-            <button
-              key={project.id}
-              type="button"
-              className={`cc-chip ${active ? "cc-chip--active cc-chip--blue" : ""}`}
-              onClick={() => toggleProject(project.id)}
-            >
-              {project.name}
-            </button>
-          );
-        })}
-        {projects.length === 0 && (
-          <span className="cc-filterbar__muted">Žádné zakázky</span>
-        )}
+      <div className="cc-filterbar__group">
+        <span className="cc-filterbar__group-label">Zakázky</span>
+        <div className="cc-filterbar__group-chips">
+          {projects.slice(0, 8).map((project) => {
+            const active = filterState.projectIds.includes(project.id);
+            return (
+              <button
+                key={project.id}
+                type="button"
+                className={`cc-chip${active ? " cc-chip--active" : ""}`}
+                onClick={() => toggleProject(project.id)}
+              >
+                {project.name}
+              </button>
+            );
+          })}
+          {projects.length === 0 && (
+            <span className="cc-filterbar__muted">Žádné zakázky</span>
+          )}
+        </div>
       </div>
-      <span className="cc-filterbar__sep" aria-hidden />
-      <div className="cc-filterbar__group" aria-label="Zdraví">
-        {HEALTH_OPTIONS.map((opt) => {
-          const active = filterState.healthLevels.includes(opt.value);
-          return (
+      <div className="cc-filterbar__group">
+        <span className="cc-filterbar__group-label">Zdraví</span>
+        <div className="cc-filterbar__group-chips">
+          {HEALTH_OPTIONS.map((opt) => {
+            const active = filterState.healthLevels.includes(opt.value);
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                className={`cc-chip cc-chip--${opt.tone}${active ? " cc-chip--active" : ""}`}
+                onClick={() => toggleHealth(opt.value)}
+              >
+                <span className="cc-chip__dot" aria-hidden />
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <div className="cc-filterbar__group">
+        <span className="cc-filterbar__group-label">Rozsah</span>
+        <div className="cc-filterbar__group-chips">
+          {RANGE_OPTIONS.map((opt) => (
             <button
               key={opt.value}
               type="button"
-              className={`cc-chip cc-chip--${opt.tone} ${active ? "cc-chip--active" : ""}`}
-              onClick={() => toggleHealth(opt.value)}
+              className={`cc-chip${filterState.rangeDays === opt.value ? " cc-chip--active" : ""}`}
+              onClick={() => onFilterChange({ rangeDays: opt.value })}
             >
-              <span className="cc-chip__dot" aria-hidden />
               {opt.label}
             </button>
-          );
-        })}
-      </div>
-      <span className="cc-filterbar__sep" aria-hidden />
-      <div className="cc-filterbar__group" aria-label="Rozsah">
-        {RANGE_OPTIONS.map((opt) => (
-          <button
-            key={opt.value}
-            type="button"
-            className={`cc-chip ${filterState.rangeDays === opt.value ? "cc-chip--active cc-chip--blue" : ""}`}
-            onClick={() => onFilterChange({ rangeDays: opt.value })}
-          >
-            {opt.label}
-          </button>
-        ))}
+          ))}
+        </div>
       </div>
       {hasActive && (
-        <>
-          <span className="cc-filterbar__sep" aria-hidden />
-          <button type="button" className="cc-chip cc-chip--ghost" onClick={clearFilters}>
-            Zrušit filtry
-          </button>
-        </>
+        <button type="button" className="cc-chip cc-chip--ghost cc-filterbar__clear" onClick={clearFilters}>
+          Zrušit filtry
+        </button>
       )}
     </div>
   );

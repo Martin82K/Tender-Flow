@@ -3,6 +3,7 @@ import { alertStripModule } from "./modules/alert-strip";
 import { kpiRowModule } from "./modules/kpi-row";
 import { filterBarModule } from "./modules/filter-bar";
 import { projectsPanelModule } from "./modules/projects-panel";
+import { calendarModule } from "./modules/calendar";
 import { actionQueueModule } from "./modules/action-queue";
 import { matrixHealthModule } from "./modules/matrix-health";
 import { pipelineFunnelModule } from "./modules/pipeline-funnel";
@@ -14,6 +15,7 @@ export const MODULES: CommandCenterModule[] = [
   kpiRowModule,
   filterBarModule,
   projectsPanelModule,
+  calendarModule,
   actionQueueModule,
   matrixHealthModule,
   pipelineFunnelModule,
@@ -25,6 +27,7 @@ export const ZONE_ORDER: Zone[] = [
   "alert",
   "kpi",
   "filter",
+  "portfolio",
   "main-primary",
   "main-secondary",
   "tactical",

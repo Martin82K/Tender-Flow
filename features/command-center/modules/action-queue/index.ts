@@ -7,7 +7,7 @@ export const actionQueueModule: CommandCenterModule = {
   description: "Číslovaný seznam top akcí, které je třeba vyřešit teď — derivované z aktuálního stavu.",
   icon: "task_alt",
   zone: "main-secondary",
-  defaultSize: { cols: 4 },
+  defaultSize: { cols: 6, minCols: 4 },
   enabledByDefault: true,
   priority: 0,
   autoHideWhenEmpty: true,
