@@ -37,17 +37,23 @@ serve(async (req) => {
     // For tighter security, we should use createClient and getUser.
 
     // 2. Parse Request Body
-    const { to, subject, data, template }: {
-      to: string | string[],
-      subject?: string,
-      data?: any,
-      template?: string
-    } = await req.json();
+    const {
+      to,
+      subject,
+      html,
+      text,
+      from,
+      cc,
+      bcc,
+      reply_to,
+      data,
+      template,
+    }: EmailRequest & { data?: any; template?: string } = await req.json();
 
-    if (!to || !template) {
+    if (!to) {
       return new Response(
         JSON.stringify({
-          error: "Missing required fields: to, template",
+          error: "Missing required field: to",
         }),
         {
           status: 400,
@@ -71,9 +77,10 @@ serve(async (req) => {
       );
     }
 
-    // Build HTML based on template type
-    let htmlContent = "";
-    let emailSubject = "";
+    // Build email content either from template payload or from legacy subject/html payload.
+    let htmlContent = html ?? "";
+    let textContent = text;
+    let emailSubject = subject ?? "";
     const userName = data?.name || "uživateli";
     const loginUrl = data?.loginUrl || "https://tenderflow.cz/login";
 
@@ -209,10 +216,20 @@ serve(async (req) => {
   </table>
 </body>
 </html>`;
-    } else {
+    } else if (template) {
       return new Response(
         JSON.stringify({ error: `Unknown template: ${template}` }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    } else if (!emailSubject || (!htmlContent && !textContent)) {
+      return new Response(
+        JSON.stringify({
+          error: "Missing required fields for legacy payload: subject and html/text",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -224,10 +241,14 @@ serve(async (req) => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "Martin z Tender Flow <martin@mail.tenderflow.cz>",
+        from: from ?? DEFAULT_FROM,
         to,
+        cc,
+        bcc,
+        reply_to,
         subject: emailSubject,
-        html: htmlContent
+        html: htmlContent || undefined,
+        text: textContent,
       }),
     });
 
