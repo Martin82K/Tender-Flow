@@ -701,7 +701,10 @@ export async function ensureStructure(
                 parentPath: string,
                 context: { category?: { id: string, title: string }, supplier?: { id: string, name: string } }
             ) => {
-                if (!item.enabled) return;
+                if (!item.enabled) {
+                    logs.push(`⊘ Přeskočeno (vypnuto uživatelem): ${item.name}`);
+                    return;
+                }
 
                 // Handle placeholders replacements in the name
                 let finalName = item.name;

@@ -1,5 +1,5 @@
 import React from "react";
-import logo from "@/assets/logo.png";
+import logo from "@/assets/logo.svg";
 import { Link, navigate } from "@/shared/routing/router";
 import { APP_VERSION } from "@/config/version";
 import "@/features/public/ui/landing-apex.css";

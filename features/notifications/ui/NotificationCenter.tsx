@@ -58,7 +58,10 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   anchorRef,
 }) => {
   const [activeFilter, setActiveFilter] = useState<NotificationCategory | "all">("all");
+  const [confirmDismissAll, setConfirmDismissAll] = useState(false);
+  const [isDismissingAll, setIsDismissingAll] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+  const confirmResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Close on click outside
   useEffect(() => {
@@ -124,6 +127,46 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     }
   }, [onRefresh]);
 
+  const clearConfirmResetTimer = useCallback(() => {
+    if (confirmResetTimerRef.current) {
+      clearTimeout(confirmResetTimerRef.current);
+      confirmResetTimerRef.current = null;
+    }
+  }, []);
+
+  const handleDismissAll = useCallback(async () => {
+    if (!confirmDismissAll) {
+      setConfirmDismissAll(true);
+      clearConfirmResetTimer();
+      confirmResetTimerRef.current = setTimeout(() => {
+        setConfirmDismissAll(false);
+        confirmResetTimerRef.current = null;
+      }, 4000);
+      return;
+    }
+    clearConfirmResetTimer();
+    setIsDismissingAll(true);
+    try {
+      await notificationApi.dismissAll();
+      onRefresh();
+    } catch (error) {
+      console.error("Failed to dismiss all notifications:", error);
+    } finally {
+      setIsDismissingAll(false);
+      setConfirmDismissAll(false);
+    }
+  }, [confirmDismissAll, clearConfirmResetTimer, onRefresh]);
+
+  // Reset confirm state when panel closes and cleanup timer on unmount
+  useEffect(() => {
+    if (!isOpen) {
+      clearConfirmResetTimer();
+      setConfirmDismissAll(false);
+    }
+  }, [isOpen, clearConfirmResetTimer]);
+
+  useEffect(() => clearConfirmResetTimer, [clearConfirmResetTimer]);
+
   if (!isOpen) return null;
 
   const panel = (
@@ -137,18 +180,38 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       className="w-96 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl z-[100] animate-in fade-in zoom-in-95 duration-150"
     >
       {/* Header */}
-      <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+      <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
         <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
           Notifikace
         </span>
-        {unreadCount > 0 && (
-          <button
-            onClick={handleMarkAllRead}
-            className="text-xs text-primary hover:text-primary/80 font-medium transition-colors"
-          >
-            Označit vše jako přečtené
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {unreadCount > 0 && (
+            <button
+              onClick={handleMarkAllRead}
+              className="text-xs text-primary hover:text-primary/80 font-medium transition-colors"
+            >
+              Označit vše jako přečtené
+            </button>
+          )}
+          {notifications.length > 0 && (
+            <button
+              onClick={handleDismissAll}
+              disabled={isDismissingAll}
+              className={`text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                confirmDismissAll
+                  ? "text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                  : "text-slate-500 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400"
+              }`}
+              title={confirmDismissAll ? "Klikněte znovu pro potvrzení" : "Odstranit všechny notifikace"}
+            >
+              {isDismissingAll
+                ? "Odstraňuji…"
+                : confirmDismissAll
+                  ? "Opravdu odstranit?"
+                  : "Odstranit vše"}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Filter tabs */}

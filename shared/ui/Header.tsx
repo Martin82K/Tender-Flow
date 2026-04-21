@@ -17,6 +17,11 @@ interface HeaderProps {
   helpSlot?: React.ReactNode;
   /** Slot for notification bell + dropdown (rendered by caller) */
   notificationSlot?: React.ReactNode;
+  /**
+   * When true, render title/subtitle on a second row BELOW children (menu) so
+   * long titles don't compete with the menu for horizontal space.
+   */
+  titleBelow?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -28,6 +33,7 @@ export const Header: React.FC<HeaderProps> = ({
   showSearch = true,
   helpSlot,
   notificationSlot,
+  titleBelow = false,
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -39,49 +45,103 @@ export const Header: React.FC<HeaderProps> = ({
 
   const useLocalFilter = Boolean(onSearchChange);
 
+  const titleBlock = (
+    <div className="flex flex-col gap-0.5 min-w-0">
+      <h1 className="text-slate-900 dark:text-white text-lg font-extrabold tracking-tight leading-tight truncate">
+        {title}
+      </h1>
+      {subtitle && (
+        <p className="text-slate-500 dark:text-slate-400 text-xs font-medium leading-normal truncate">
+          {subtitle}
+        </p>
+      )}
+    </div>
+  );
+
+  const actionsBlock = (
+    <div
+      className="flex items-center gap-4"
+      style={{ WebkitAppRegion: "no-drag" } as any}
+    >
+      {children}
+      <div className="flex items-center gap-3">
+        {showSearch && (
+          useLocalFilter ? (
+            <div className="hidden md:flex h-10 w-64 items-center rounded-xl bg-slate-100/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 px-3 focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+              <span className="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[18px]">
+                filter_list
+              </span>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={handleSearchChange}
+                placeholder={searchPlaceholder}
+                className="flex-1 bg-transparent border-none focus:ring-0 text-sm text-slate-900 dark:text-slate-200 placeholder-slate-400/70 ml-2"
+              />
+            </div>
+          ) : (
+            <HeaderGlobalSearch />
+          )
+        )}
+        {helpSlot}
+        {notificationSlot}
+      </div>
+    </div>
+  );
+
+  if (titleBelow) {
+    return (
+      <header
+        className="whitespace-nowrap border-b border-slate-200 dark:border-slate-800 pl-14 pr-6 md:px-8 pt-3 pb-3 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl sticky top-0 z-30 shrink-0 select-none shadow-sm"
+        style={{ WebkitAppRegion: "drag" } as any}
+      >
+        <div className="flex items-center justify-between">
+          <div
+            className="flex items-center gap-4 min-w-0"
+            style={{ WebkitAppRegion: "no-drag" } as any}
+          >
+            {children}
+          </div>
+          <div
+            className="flex items-center gap-3"
+            style={{ WebkitAppRegion: "no-drag" } as any}
+          >
+            {showSearch && (
+              useLocalFilter ? (
+                <div className="hidden md:flex h-10 w-64 items-center rounded-xl bg-slate-100/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 px-3 focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                  <span className="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[18px]">
+                    filter_list
+                  </span>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                    placeholder={searchPlaceholder}
+                    className="flex-1 bg-transparent border-none focus:ring-0 text-sm text-slate-900 dark:text-slate-200 placeholder-slate-400/70 ml-2"
+                  />
+                </div>
+              ) : (
+                <HeaderGlobalSearch />
+              )
+            )}
+            {helpSlot}
+            {notificationSlot}
+          </div>
+        </div>
+        <div className="mt-5">
+          {titleBlock}
+        </div>
+      </header>
+    );
+  }
+
   return (
     <header
       className="flex items-center justify-between whitespace-nowrap border-b border-slate-200 dark:border-slate-800 pl-14 pr-6 md:px-8 py-4 bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl sticky top-0 z-30 shrink-0 select-none shadow-sm"
       style={{ WebkitAppRegion: "drag" } as any}
     >
-      <div className="flex flex-col gap-0.5 min-w-0">
-        <h1 className="text-slate-900 dark:text-white text-lg font-extrabold tracking-tight leading-tight truncate">
-          {title}
-        </h1>
-        {subtitle && (
-          <p className="text-slate-500 dark:text-slate-400 text-xs font-medium leading-normal truncate">
-            {subtitle}
-          </p>
-        )}
-      </div>
-      <div
-        className="flex items-center gap-4"
-        style={{ WebkitAppRegion: "no-drag" } as any}
-      >
-        {children}
-        <div className="flex items-center gap-3">
-          {showSearch && (
-            useLocalFilter ? (
-              <div className="hidden md:flex h-10 w-64 items-center rounded-xl bg-slate-100/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 px-3 focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-                <span className="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[18px]">
-                  filter_list
-                </span>
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={handleSearchChange}
-                  placeholder={searchPlaceholder}
-                  className="flex-1 bg-transparent border-none focus:ring-0 text-sm text-slate-900 dark:text-slate-200 placeholder-slate-400/70 ml-2"
-                />
-              </div>
-            ) : (
-              <HeaderGlobalSearch />
-            )
-          )}
-          {helpSlot}
-          {notificationSlot}
-        </div>
-      </div>
+      {titleBlock}
+      {actionsBlock}
     </header>
   );
 };

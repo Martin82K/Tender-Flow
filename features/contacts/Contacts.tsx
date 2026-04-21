@@ -5,7 +5,7 @@ import { HelpButton } from "@features/help";
 import { StarRating } from '@/shared/ui/StarRating';
 import { AutocompleteInput } from '@/shared/ui/AutocompleteInput';
 import { Subcontractor, StatusConfig } from '@/types';
-import { findCompanyRegistrationDetails } from '@/services/geminiService';
+import { findCompanyRegistrationDetails, lookupCompanyRegistrations } from '@/services/geminiService';
 import { SubcontractorSelector } from '@/shared/ui/SubcontractorSelector';
 import { ConfirmationModal } from '@/shared/ui/ConfirmationModal';
 import { validateSubcontractorCompanyName } from '@/shared/dochub/subcontractorNameRules';
@@ -13,8 +13,10 @@ import { shellAdapter } from '@/services/platformAdapter';
 import { isDesktop } from '@/services/platformAdapter';
 import { CZ_REGIONS } from '@/config/constants';
 import { useFeatures } from '@/context/FeatureContext';
+import { formatDecimal } from '@/utils/formatters';
 import { FEATURES } from '@/config/features';
 import { SubcontractorMapView } from '@features/maps/components/SubcontractorMapView';
+import { SubcontractorCardsView } from '@features/contacts/ui/SubcontractorCardsView';
 
 interface ContactsProps {
     statuses: StatusConfig[];
@@ -28,8 +30,9 @@ interface ContactsProps {
 }
 
 export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContactsChange, onAddContact, onUpdateContact, onBulkUpdateContacts, onDeleteContacts, isAdmin = false }) => {
-    // View mode: list or map
-    const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+    // View mode: cards | list | map
+    type ViewMode = 'cards' | 'list' | 'map';
+    const [viewMode, setViewMode] = useState<ViewMode>('list');
     const { hasFeature } = useFeatures();
     const hasMapFeature = hasFeature(FEATURES.MODULE_MAPS);
 
@@ -98,8 +101,16 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
 
     // --- Auto-fill registration data for contacts with IČO but missing region/address ---
     const autoFillProcessedRef = useRef<Set<string>>(new Set());
-
     const autoFillRunningRef = useRef(false);
+
+    // 30 dní TTL: ARES data firem se mění zřídka, ale občasný recheck zachytí změny.
+    const ARES_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+    const isAresCacheFresh = (checkedAt?: string): boolean => {
+        if (!checkedAt) return false;
+        const ts = Date.parse(checkedAt);
+        if (!Number.isFinite(ts)) return false;
+        return Date.now() - ts < ARES_CACHE_TTL_MS;
+    };
 
     const autoFillRegistrationForContacts = useCallback(async (contactsToLookup: Subcontractor[]) => {
         if (contactsToLookup.length === 0 || autoFillRunningRef.current) return;
@@ -110,13 +121,20 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
 
         try {
             const queryList = contactsToLookup.map(c => ({ id: c.id, company: c.company, ico: c.ico }));
-            const registrationMap = await findCompanyRegistrationDetails(queryList);
+            const lookupMap = await lookupCompanyRegistrations(queryList);
+            const nowIso = new Date().toISOString();
 
             const changedContacts: Subcontractor[] = [];
             for (const c of contactsToLookup) {
-                const registration = registrationMap[c.id];
-                if (!registration) continue;
+                const result = lookupMap[c.id];
+                if (!result || result.status === 'error') continue;
 
+                if (result.status === 'not_found') {
+                    changedContacts.push({ ...c, aresCheckedAt: nowIso, aresNotFound: true });
+                    continue;
+                }
+
+                const registration = result.details;
                 const nextRegion = registration.region && !isBlankLookupValue(registration.region)
                     ? registration.region : c.region;
                 const nextAddress = registration.address && !isBlankLookupValue(registration.address)
@@ -124,13 +142,14 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                 const nextCity = registration.city && !isBlankLookupValue(registration.city)
                     ? registration.city : c.city;
 
-                const regionChanged = (isBlankLookupValue(c.region) ? '' : c.region?.trim() || '') !== (isBlankLookupValue(nextRegion) ? '' : nextRegion?.trim() || '');
-                const addressChanged = (isBlankLookupValue(c.address) ? '' : c.address?.trim() || '') !== (isBlankLookupValue(nextAddress) ? '' : nextAddress?.trim() || '');
-                const cityChanged = (isBlankLookupValue(c.city) ? '' : c.city?.trim() || '') !== (isBlankLookupValue(nextCity) ? '' : nextCity?.trim() || '');
-
-                if (regionChanged || addressChanged || cityChanged) {
-                    changedContacts.push({ ...c, region: nextRegion, address: nextAddress, city: nextCity });
-                }
+                changedContacts.push({
+                    ...c,
+                    region: nextRegion,
+                    address: nextAddress,
+                    city: nextCity,
+                    aresCheckedAt: nowIso,
+                    aresNotFound: false,
+                });
             }
 
             if (changedContacts.length > 0) {
@@ -143,12 +162,14 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
         }
     }, [onBulkUpdateContacts]);
 
-    // Auto-fill once on mount — run only for contacts not yet processed
+    // Auto-fill once on mount — skip contacts s čerstvou cache nebo s ARES 404 flagem
     useEffect(() => {
         const needsLookup = contacts.filter(c =>
             !!c.ico &&
             c.ico !== '-' &&
             (isBlankLookupValue(c.region) || isBlankLookupValue(c.address) || isBlankLookupValue(c.city)) &&
+            !c.aresNotFound &&
+            !isAresCacheFresh(c.aresCheckedAt) &&
             !autoFillProcessedRef.current.has(c.id)
         );
 
@@ -582,24 +603,41 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                             </button>
                         </div>
                     ) : null}
-                    {hasMapFeature && (
-                        <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
+                    <div
+                        role="tablist"
+                        aria-label="Režim zobrazení"
+                        className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5"
+                    >
+                        <button
+                            role="tab"
+                            aria-selected={viewMode === 'cards'}
+                            onClick={() => setViewMode('cards')}
+                            className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${viewMode === 'cards' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                        >
+                            <span className="material-symbols-outlined text-[16px]">grid_view</span>
+                            Karty
+                        </button>
+                        <button
+                            role="tab"
+                            aria-selected={viewMode === 'list'}
+                            onClick={() => setViewMode('list')}
+                            className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                        >
+                            <span className="material-symbols-outlined text-[16px]">list</span>
+                            Seznam
+                        </button>
+                        {hasMapFeature && (
                             <button
-                                onClick={() => setViewMode('list')}
-                                className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
-                            >
-                                <span className="material-symbols-outlined text-[16px]">list</span>
-                                Seznam
-                            </button>
-                            <button
+                                role="tab"
+                                aria-selected={viewMode === 'map'}
                                 onClick={() => setViewMode('map')}
                                 className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${viewMode === 'map' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                             >
                                 <span className="material-symbols-outlined text-[16px]">map</span>
                                 Mapa
                             </button>
-                        </div>
-                    )}
+                        )}
+                    </div>
                     <button
                         data-help-id="contacts-add"
                         onClick={handleOpenAddModal}
@@ -611,7 +649,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                 </div>
             </Header>
 
-            {viewMode === 'list' ? (
+            {viewMode === 'list' && (
                 <div data-help-id="contacts-list" className="p-6 lg:p-10 flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
                     <SubcontractorSelector
                         contacts={contacts}
@@ -623,7 +661,21 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                         className="flex-1 min-h-0"
                     />
                 </div>
-            ) : (
+            )}
+            {viewMode === 'cards' && (
+                <div data-help-id="contacts-cards" className="p-6 lg:p-10 flex-1 flex flex-col min-h-0 min-w-0 overflow-auto">
+                    <SubcontractorCardsView
+                        contacts={contacts}
+                        statuses={statuses}
+                        selectedIds={selectedIds}
+                        onSelectionChange={setSelectedIds}
+                        onFilteredContactsChange={setFilteredContacts}
+                        onEditContact={handleOpenEditModal}
+                        className="flex-1 min-h-0"
+                    />
+                </div>
+            )}
+            {viewMode === 'map' && (
                 <div className="flex-1 min-h-0">
                     <SubcontractorMapView
                         contacts={contacts}
@@ -1015,7 +1067,10 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                                                 >
                                                     <StarRating value={editingContact.vendorRatingAverage} readOnly size="sm" />
                                                     <span className="text-xs text-slate-500">
-                                                        {editingContact.vendorRatingAverage.toFixed(1)}
+                                                        {formatDecimal(editingContact.vendorRatingAverage, {
+                                                            minimumFractionDigits: 1,
+                                                            maximumFractionDigits: 1,
+                                                        })}
                                                     </span>
                                                 </div>
                                             ) : (

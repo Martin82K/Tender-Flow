@@ -1,10 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Bid, DemandCategory, DocHubStructureV1, Subcontractor } from "@/types";
 import { insertBids } from "@/features/projects/api";
 import { getDemoData, saveDemoData } from "@/services/demoData";
 import { invokeAuthedFunction } from "@/services/functionsClient";
 import { ensureStructure } from "@/services/fileSystemService";
-import { buildHierarchyTree, resolveDocHubStructureV1 } from "@/utils/docHub";
+import { isDesktop } from "@/services/platformAdapter";
+import {
+  buildHierarchyTree,
+  ensureExtraHierarchy,
+  resolveDocHubStructureV1,
+} from "@/utils/docHub";
 
 interface ShowAlertArgs {
   title: string;
@@ -42,7 +47,13 @@ export const usePipelineSubcontractorSelection = ({
   const [isSubcontractorModalOpen, setIsSubcontractorModalOpen] =
     useState(false);
   const [isSubcontractorModalMaximized, setIsSubcontractorModalMaximized] =
-    useState(false);
+    useState(true);
+
+  useEffect(() => {
+    if (isSubcontractorModalOpen) {
+      setIsSubcontractorModalMaximized(true);
+    }
+  }, [isSubcontractorModalOpen]);
   const [selectedSubcontractorIds, setSelectedSubcontractorIds] = useState<
     Set<string>
   >(new Set());
@@ -125,10 +136,35 @@ export const usePipelineSubcontractorSelection = ({
           } else {
             console.log("Successfully inserted bids:", data);
 
-            if (isDocHubEnabled) {
-              const provider = projectDataDocHubProvider;
-              if (provider === "onedrive") {
-                const localSuppliers: Record<string, Array<{ id: string; name: string }>> = {};
+            const provider = projectDataDocHubProvider;
+            console.info("[DocHub] bid-added auto-create eval", {
+              isDocHubEnabled,
+              provider: provider ?? null,
+              isDesktop,
+              docHubRoot: docHubRoot || "(empty)",
+              newSupplierCount: newBids.length,
+            });
+
+            if (!isDocHubEnabled) {
+              console.info(
+                "[DocHub] Skipping auto-create: DocHub is not enabled or docHubRoot is empty",
+              );
+            } else if (provider === "onedrive") {
+              if (!isDesktop) {
+                console.warn(
+                  "[DocHub] Cannot auto-create local folders from web — desktop app required",
+                );
+                showAlert({
+                  title: "Složky nelze vytvořit",
+                  message:
+                    "Pro automatické vytváření složek dodavatelů spusťte Tender Flow Desktop. Ve webovém prohlížeči nelze zapisovat do lokálního souborového systému.",
+                  variant: "info",
+                });
+              } else {
+                const localSuppliers: Record<
+                  string,
+                  Array<{ id: string; name: string }>
+                > = {};
                 localSuppliers[activeCategory.id] = newBids.map((bid) => ({
                   id: bid.subcontractorId,
                   name: bid.companyName,
@@ -138,8 +174,16 @@ export const usePipelineSubcontractorSelection = ({
                   projectDataDocHubStructureV1 || undefined,
                 );
                 const hierarchyTree = buildHierarchyTree(
-                  structure.extraHierarchy || [],
+                  ensureExtraHierarchy(structure.extraHierarchy),
                 );
+
+                console.info("[DocHub] Calling ensureStructure for new bids", {
+                  rootPath: docHubRoot,
+                  categoryId: activeCategory.id,
+                  suppliers: localSuppliers[activeCategory.id],
+                });
+
+                console.info("[DocHub] hierarchyTree being used:", hierarchyTree);
 
                 ensureStructure({
                   rootPath: docHubRoot,
@@ -150,6 +194,16 @@ export const usePipelineSubcontractorSelection = ({
                   suppliers: localSuppliers,
                   hierarchy: hierarchyTree,
                 }).then((res) => {
+                  console.info("[DocHub] ensureStructure result", {
+                    success: res.success,
+                    createdCount: res.createdCount,
+                    reusedCount: res.reusedCount,
+                    error: res.error,
+                  });
+                  console.info("[DocHub] ensureStructure step-by-step logs:");
+                  for (const line of res.logs || []) {
+                    console.info("  " + line);
+                  }
                   if (!res.success) {
                     console.error("Auto-create folders failed:", res.error);
                     showAlert({
@@ -159,16 +213,25 @@ export const usePipelineSubcontractorSelection = ({
                     });
                   }
                 });
-              } else if (
-                provider === "gdrive" ||
-                provider === "onedrive_cloud"
-              ) {
-                invokeAuthedFunction("dochub-autocreate", {
-                  body: { projectId: projectDataId },
-                }).catch((err) =>
-                  console.error("Cloud auto-create trigger failed:", err),
-                );
               }
+            } else if (provider === "gdrive" || provider === "onedrive_cloud") {
+              console.info("[DocHub] Triggering cloud auto-create");
+              invokeAuthedFunction("dochub-autocreate", {
+                body: { projectId: projectDataId },
+              }).catch((err) =>
+                console.error("Cloud auto-create trigger failed:", err),
+              );
+            } else {
+              console.warn(
+                "[DocHub] Unknown or missing provider — auto-create skipped",
+                { provider },
+              );
+              showAlert({
+                title: "DocHub není připojen",
+                message:
+                  "Projekt nemá nastaveného poskytovatele DocHub (Google Drive / Tender Flow Desktop). Složky dodavatelů se nevytvoří automaticky. Nastavte provider v záložce Dokumenty.",
+                variant: "info",
+              });
             }
           }
         }

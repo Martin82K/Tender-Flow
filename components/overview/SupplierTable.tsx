@@ -1,5 +1,6 @@
 import React from 'react';
 import { Star, StarOff, Award, TrendingUp, Building2 } from 'lucide-react';
+import { formatDecimal } from '@/utils/formatters';
 
 interface SupplierRow {
   id: string;
@@ -20,7 +21,7 @@ interface SupplierTableProps {
 
 const getRatingLabel = (rating?: number) => {
   if (!rating || rating <= 0) return 'Bez hodnocení';
-  return rating.toFixed(1).replace('.', ',');
+  return formatDecimal(rating, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 };
 
 const getSuccessRateColor = (rate: number) => {
@@ -134,7 +135,10 @@ export const SupplierTable: React.FC<SupplierTableProps> = ({
                           })}
                         </div>
                         <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                          {supplier.rating.toFixed(1).replace('.', ',')}
+                          {formatDecimal(supplier.rating, {
+                            minimumFractionDigits: 1,
+                            maximumFractionDigits: 1,
+                          })}
                         </span>
                         {supplier.ratingCount ? (
                           <span className="text-xs text-slate-400">
@@ -170,7 +174,7 @@ export const SupplierTable: React.FC<SupplierTableProps> = ({
                       ${getSuccessRateColor(successRate)}
                     `}>
                       <TrendingUp className="w-3 h-3" />
-                      {successRate.toFixed(0)}%
+                      {formatDecimal(successRate, { maximumFractionDigits: 0 })} %
                     </span>
                   </td>
 

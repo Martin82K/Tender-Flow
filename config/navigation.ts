@@ -17,11 +17,11 @@ export interface NavItemConfig {
 
 export const SIDEBAR_NAVIGATION: NavItemConfig[] = [
   {
-    id: 'dashboard',
-    label: 'Dashboard',
-    icon: 'dashboard',
-    view: 'dashboard',
-    feature: FEATURES.MODULE_DASHBOARD,
+    id: 'command-center',
+    label: 'Command Center',
+    icon: 'radar',
+    view: 'command-center',
+    feature: FEATURES.MODULE_COMMAND_CENTER,
   },
   {
     id: 'contacts',

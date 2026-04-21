@@ -4,7 +4,7 @@ import { AuthCard } from "./AuthCard";
 import { Link, navigate, useLocation } from "@/shared/routing/router";
 import { isDesktop, platformAdapter } from "@/services/platformAdapter";
 import { Fingerprint } from "lucide-react";
-import logo from "@/assets/logo.png";
+import logo from "@/assets/logo.svg";
 import "@/features/public/ui/landing-apex.css";
 import "@/features/auth/ui/auth-apex.css";
 
@@ -98,7 +98,7 @@ export const LoginPage: React.FC = () => {
             <button className="btn-login" onClick={() => navigate(registerHref)}>
               Vytvořit účet
             </button>
-            <button className="btn-start" onClick={() => navigate("/")}>
+            <button className="auth-nav-back" onClick={() => navigate("/")}>
               Zpět
             </button>
           </div>

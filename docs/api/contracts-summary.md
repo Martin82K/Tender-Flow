@@ -54,6 +54,7 @@ Pokud parametr chybí:
     "signedAt": "2026-02-01",
     "effectiveFrom": "2026-02-05",
     "effectiveTo": "2026-12-20",
+    "completionDate": "2026-12-15",
     "scopeSummary": "Vzduchotechnika a související montáže"
   }
 ]
@@ -77,6 +78,8 @@ Pokud parametr chybí:
   Podíl zařízení staveniště v procentech
 - `paymentTerms`
   Splatnost nebo text platebních podmínek
+- `completionDate`
+  Datum skutečného dokončení / předání díla — slouží jako počátek záruční doby
 
 ## Fallbacky
 

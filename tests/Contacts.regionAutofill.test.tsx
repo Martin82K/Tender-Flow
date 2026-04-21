@@ -5,11 +5,13 @@ import type { Subcontractor, StatusConfig } from "../types";
 
 const mockState = vi.hoisted(() => ({
   findCompanyRegistrationDetails: vi.fn(),
+  lookupCompanyRegistrations: vi.fn(),
   onBulkUpdateContacts: vi.fn(),
 }));
 
 vi.mock("@/services/geminiService", () => ({
   findCompanyRegistrationDetails: mockState.findCompanyRegistrationDetails,
+  lookupCompanyRegistrations: mockState.lookupCompanyRegistrations,
 }));
 
 vi.mock("@/shared/ui/Header", () => ({
@@ -112,6 +114,7 @@ describe("Contacts auto-fill regions", () => {
     mockState.onBulkUpdateContacts.mockResolvedValue(undefined);
     // Default: auto-fill on mount returns empty (no ARES results) so it doesn't interfere with manual tests
     mockState.findCompanyRegistrationDetails.mockResolvedValue({});
+    mockState.lookupCompanyRegistrations.mockResolvedValue({});
   });
 
   it("přeskočí placeholder region a zobrazí informaci, když AI vrátí jen pomlčku", async () => {
@@ -128,7 +131,7 @@ describe("Contacts auto-fill regions", () => {
     );
 
     // Wait for auto-fill on mount to complete, then set mock for manual action
-    await vi.waitFor(() => expect(mockState.findCompanyRegistrationDetails).toHaveBeenCalled());
+    await vi.waitFor(() => expect(mockState.lookupCompanyRegistrations).toHaveBeenCalled());
     mockState.findCompanyRegistrationDetails.mockResolvedValue({
       "c-1": { region: "-", address: "-" },
     });
@@ -159,7 +162,7 @@ describe("Contacts auto-fill regions", () => {
     );
 
     // Wait for auto-fill on mount to complete, then set mock for manual action
-    await vi.waitFor(() => expect(mockState.findCompanyRegistrationDetails).toHaveBeenCalled());
+    await vi.waitFor(() => expect(mockState.lookupCompanyRegistrations).toHaveBeenCalled());
     mockState.findCompanyRegistrationDetails.mockResolvedValue({
       "c-1": { region: "Praha", address: "Ulice 1, Praha" },
       "c-2": { region: "-", address: "-" },
@@ -194,7 +197,7 @@ describe("Contacts auto-fill regions", () => {
     );
 
     // Wait for auto-fill on mount to complete, then set mock for manual card lookup
-    await vi.waitFor(() => expect(mockState.findCompanyRegistrationDetails).toHaveBeenCalled());
+    await vi.waitFor(() => expect(mockState.lookupCompanyRegistrations).toHaveBeenCalled());
     mockState.findCompanyRegistrationDetails.mockImplementation(async (items: Array<{ id: string }>) => ({
       [items[0].id]: {
         region: "Karlovarský kraj",

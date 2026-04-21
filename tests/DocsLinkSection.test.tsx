@@ -40,9 +40,6 @@ describe('DocsLinkSection', () => {
         linkValue: '',
         onLinkValueChange: vi.fn(),
         onSave: vi.fn(),
-        isDocHubConnected: false,
-        docHubPdLink: null,
-        docHubStructure: { pd: 'pd_folder' } as any,
         showModal: vi.fn(),
         onUpdate: vi.fn(),
     };
@@ -101,12 +98,6 @@ describe('DocsLinkSection', () => {
                 }),
             ],
         });
-    });
-
-    it('shows DocHub link if connected', () => {
-        render(<DocsLinkSection {...defaultProps} isDocHubConnected={true} docHubPdLink="https://dochub.com/pd" />);
-        expect(screen.getByText('DocHub /pd_folder')).toBeInTheDocument();
-        expect(screen.getByText('Otevřít')).toBeInTheDocument();
     });
 
     it('auto-shortens when preference is enabled and URL is public', async () => {

@@ -35,7 +35,7 @@ const PLAN_DEFS: { tier: PlanTier; label: string; accent: string; perSeatLabel: 
     label: 'Free',
     accent: 'slate',
     perSeatLabel: '1 uživatel, 1 projekt',
-    features: ['Dashboard', 'Základní projekty', 'Kontakty', 'URL Shortener'],
+    features: ['Command Center', 'Základní projekty', 'Kontakty', 'URL Shortener'],
     highlighted: [],
   },
   {

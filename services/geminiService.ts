@@ -8,6 +8,11 @@ type CompanyRegistrationDetail = {
   address?: string;
   city?: string;
 };
+
+export type CompanyRegistrationLookupResult =
+  | { status: "found"; details: CompanyRegistrationDetail }
+  | { status: "not_found" }
+  | { status: "error" };
 type WebsiteLookupContact = { id: string; company: string; ico?: string };
 type AresEconomicSubjectResponse = {
   sidlo?: {
@@ -175,43 +180,45 @@ export const getAiSuggestion = async (contextData: string): Promise<string> => {
   }
 };
 
-export const findCompanyRegistrationDetails = async (
+export const lookupCompanyRegistrations = async (
   contacts: RegistrationLookupContact[],
-): Promise<Record<string, CompanyRegistrationDetail>> => {
+): Promise<Record<string, CompanyRegistrationLookupResult>> => {
+  const result: Record<string, CompanyRegistrationLookupResult> = {};
   try {
-    const lookups = await Promise.all(
+    await Promise.all(
       contacts.map(async (contact) => {
         const ico = normalizeIco(contact.ico);
-        if (!ico) {
-          return null;
-        }
-
+        if (!ico) return;
         try {
           const details = await fetchCompanyRegistrationFromAres(ico);
-          if (!details) {
-            return null;
-          }
-          return [contact.id, details] as const;
+          result[contact.id] = details
+            ? { status: "found", details }
+            : { status: "not_found" };
         } catch (error) {
           console.error("ARES registration lookup failed", {
             ico,
             company: sanitizeLogText(contact.company, 80),
             error: summarizeErrorForLog(error),
           });
-          return null;
+          result[contact.id] = { status: "error" };
         }
       }),
     );
-
-    return lookups.reduce<Record<string, CompanyRegistrationDetail>>((acc, entry) => {
-      if (!entry) return acc;
-      acc[entry[0]] = entry[1];
-      return acc;
-    }, {});
   } catch (error) {
     console.error("ARES registration lookup error:", summarizeErrorForLog(error));
-    return {};
   }
+  return result;
+};
+
+export const findCompanyRegistrationDetails = async (
+  contacts: RegistrationLookupContact[],
+): Promise<Record<string, CompanyRegistrationDetail>> => {
+  const lookup = await lookupCompanyRegistrations(contacts);
+  const out: Record<string, CompanyRegistrationDetail> = {};
+  for (const [id, r] of Object.entries(lookup)) {
+    if (r.status === "found") out[id] = r.details;
+  }
+  return out;
 };
 
 export const findCompanyRegions = async (contacts: RegistrationLookupContact[]): Promise<Record<string, string>> => {

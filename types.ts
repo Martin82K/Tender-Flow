@@ -1,5 +1,5 @@
 export type View =
-  | "dashboard"
+  | "command-center"
   | "project"
   | "contacts"
   | "settings"
@@ -53,6 +53,9 @@ export interface Subcontractor {
   longitude?: number;
   geocodedAt?: string;
 
+  aresCheckedAt?: string;
+  aresNotFound?: boolean;
+
   // Legacy fields for backward compatibility / migration
   name?: string;
   phone?: string;
@@ -81,6 +84,7 @@ export interface DemandCategory {
   deadline?: string; // Termín pro podání nabídky (ISO date string)
   realizationStart?: string; // Termín realizace - začátek (ISO date string)
   realizationEnd?: string; // Termín realizace - konec (ISO date string)
+  createdAt?: string; // Datum vytvoření poptávky (ISO timestamp) — pro pravidlo 14 dní bez nabídek
 }
 
 import type { DocHubStructureV1 as _DocHubStructureV1 } from "@/utils/docHub";
@@ -230,6 +234,19 @@ export interface UserPreferences {
   urlShortenerProvider?: "tinyurl" | "tfurl"; // Service provider for URL shortening
   autoShortenProjectDocs?: boolean; // Auto-shorten Project Documents links
   signature?: string; // HTML compatible signature
+  commandCenter?: CommandCenterUserPreferences;
+}
+
+export interface CommandCenterUserPreferences {
+  enabledModules?: Record<string, boolean>;
+  moduleSettings?: Record<string, Record<string, unknown>>;
+  filterState?: {
+    projectIds?: string[];
+    healthLevels?: Array<"ok" | "warn" | "crit">;
+    statuses?: Array<"tender" | "realization" | "archived">;
+    rangeDays?: 7 | 14 | 30 | 90;
+  };
+  lastUpdated?: string;
 }
 
 export interface UserEmailSignatureProfile {
@@ -348,6 +365,10 @@ export type ContractMarkdownEntityType = 'contract' | 'amendment';
 export type ContractMarkdownSourceKind = 'ocr' | 'manual_edit' | 'manual_upload' | 'import';
 export type ContractMarkdownAccessKind = 'view' | 'download' | 'export';
 
+export type ContractRetentionStatus = 'held' | 'released';
+
+export type ContractInvoiceStatus = 'issued' | 'approved' | 'paid' | 'overdue';
+
 export interface Contract {
   id: string;
   projectId: string;
@@ -362,12 +383,27 @@ export interface Contract {
   signedAt?: string;
   effectiveFrom?: string;
   effectiveTo?: string;
+  /** Datum skutečného dokončení / předání díla. Slouží jako počátek záruky. */
+  completionDate?: string;
 
   currency: string;
   basePrice: number;
 
+  /** @deprecated Nahrazeno retentionShortPercent / retentionLongPercent. Ponecháno pro zpětnou kompatibilitu. */
   retentionPercent?: number;
+  /** @deprecated Nahrazeno retentionShortAmount / retentionLongAmount. */
   retentionAmount?: number;
+
+  retentionShortPercent?: number;
+  retentionShortAmount?: number;
+  retentionShortReleaseOn?: string;
+  retentionShortStatus?: ContractRetentionStatus;
+
+  retentionLongPercent?: number;
+  retentionLongAmount?: number;
+  retentionLongReleaseOn?: string;
+  retentionLongStatus?: ContractRetentionStatus;
+
   siteSetupPercent?: number;
   warrantyMonths?: number;
   paymentTerms?: string;
@@ -427,12 +463,33 @@ export interface ContractDrawdown {
   createdAt?: string;
 }
 
+export interface ContractInvoice {
+  id: string;
+  contractId: string;
+  invoiceNumber: string;
+  issueDate: string;
+  dueDate: string;
+  amount: number;
+  currency: string;
+  status: ContractInvoiceStatus;
+  paidAt?: string;
+  documentUrl?: string;
+  note?: string;
+  createdBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface ContractWithDetails extends Contract {
   amendments: ContractAmendment[];
   drawdowns: ContractDrawdown[];
+  invoices: ContractInvoice[];
   currentTotal: number; // basePrice + sum(amendments.deltaPrice)
   approvedSum: number;  // sum(drawdowns.approvedAmount)
   remaining: number;    // currentTotal - approvedSum
+  invoicedSum: number;  // sum(invoices.amount)
+  paidSum: number;      // sum(invoices.amount where status='paid')
+  overdueSum: number;   // sum(invoices.amount where status='overdue' nebo issued && dueDate < today)
 }
 
 export interface ContractSummaryDto {
@@ -455,6 +512,7 @@ export interface ContractSummaryDto {
   signedAt?: string;
   effectiveFrom?: string;
   effectiveTo?: string;
+  completionDate?: string;
   scopeSummary?: string;
 }
 

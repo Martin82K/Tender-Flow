@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { AuthCard } from "./AuthCard";
 import { Link, navigate, useLocation } from "@/shared/routing/router";
 import { authService } from "@/services/authService";
-import logo from "@/assets/logo.png";
+import logo from "@/assets/logo.svg";
 import "@/features/public/ui/landing-apex.css";
 import "@/features/auth/ui/auth-apex.css";
 
@@ -72,7 +72,7 @@ export const ResetPasswordPage: React.FC = () => {
             <button className="btn-login" onClick={() => navigate("/login")}>
               Přihlásit se
             </button>
-            <button className="btn-start" onClick={() => navigate("/")}>
+            <button className="auth-nav-back" onClick={() => navigate("/")}>
               Zpět
             </button>
           </div>

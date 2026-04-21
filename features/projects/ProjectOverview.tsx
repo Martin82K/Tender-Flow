@@ -13,6 +13,7 @@ import {
   YAxis,
 } from "recharts";
 import { formatMoney } from "@/utils/overviewAnalytics";
+import { formatDecimal } from "@/utils/formatters";
 import { getOfferStatusMeta } from "@/utils/offerStatus";
 import { exportSupplierAnalysisToPDF } from "@/services/exportService";
 import type { Project, ProjectDetails } from "@/types";
@@ -87,7 +88,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
   } = useProjectOverviewController({ projects, projectDetails });
 
   const formatMillions = (value: number) =>
-    `${(value / 1_000_000).toFixed(1).replace(".", ",")} mil.`;
+    `${formatDecimal(value / 1_000_000, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} mil.`;
 
   const chartRef = useRef<HTMLDivElement | null>(null);
 
@@ -131,7 +132,8 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
     void exportWithChart();
   };
 
-  const formatPercent = (value: number) => `${value.toFixed(1).replace(".", ",")} %`;
+  const formatPercent = (value: number) =>
+    `${formatDecimal(value, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`;
 
   const formatAvgDiff = (value: number | null, label: string) => {
     if (value === null) {
@@ -539,7 +541,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
                       Úspěšnost
                     </div>
                     <div className="mt-2 text-xl font-bold text-slate-900 dark:text-white tabular-nums">
-                      {selectedSupplierSummary.successRate.toFixed(1).replace(".", ",")}%
+                      {formatPercent(selectedSupplierSummary.successRate)}
                     </div>
                     <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                       {selectedSupplierSummary.sodCount} z {selectedSupplierSummary.offerCount} nabídek

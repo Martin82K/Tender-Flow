@@ -3,7 +3,7 @@ import { Link, useLocation, navigate } from "@/shared/routing/router";
 import { useAuth } from "../context/AuthContext";
 import { APP_VERSION } from "../config/version";
 import { PRICING_CONFIG } from "../services/billingService";
-import logo from "@/assets/logo.png";
+import logo from "@/assets/logo.svg";
 import "@/features/public/ui/landing-apex.css";
 
 /** Animated counter that counts up from 0 to `target` when visible. */

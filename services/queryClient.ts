@@ -25,6 +25,19 @@ const MAX_AUTH_ERRORS_BEFORE_LOGOUT = 3;
 let authErrorResetTimer: ReturnType<typeof setTimeout> | null = null;
 
 /**
+ * Resetuje počítadlo auth chyb. Volá se z AuthContext při úspěšném
+ * TOKEN_REFRESHED / SIGNED_IN, aby přechodné chyby během obnovy tokenu
+ * (např. po přihlášení na jiném zařízení) neakumulovaly práh.
+ */
+export const resetAuthErrorCount = (): void => {
+    authErrorCount = 0;
+    if (authErrorResetTimer) {
+        clearTimeout(authErrorResetTimer);
+        authErrorResetTimer = null;
+    }
+};
+
+/**
  * Handle auth errors globally - clear session if too many consecutive auth errors
  */
 const handleQueryError = (error: unknown) => {
@@ -51,12 +64,15 @@ const handleQueryError = (error: unknown) => {
             authErrorCount = 0;
         }, 30000);
 
-        // If too many auth errors, clear session and redirect to login
+        // If too many auth errors, clear session and redirect to login.
+        // Tichý redirect bez fatal modálu — uživatel je přesměrován
+        // na login a případná přechodná chyba při token-refreshi
+        // ho nevystraší zbytečným incident kódem.
         if (authErrorCount >= MAX_AUTH_ERRORS_BEFORE_LOGOUT) {
             console.error('[QueryClient] Too many auth errors, clearing session...');
             authErrorCount = 0;
             void logIncident({
-                severity: "error",
+                severity: "warn",
                 source: "react-query",
                 category: "network",
                 code: "QUERY_AUTH_ERROR_THRESHOLD",
@@ -65,7 +81,6 @@ const handleQueryError = (error: unknown) => {
                     operation: "react_query.auth_threshold",
                     retry_count: MAX_AUTH_ERRORS_BEFORE_LOGOUT,
                 },
-                notifyUser: true,
             });
 
             void authSessionService.invalidateAuthState({

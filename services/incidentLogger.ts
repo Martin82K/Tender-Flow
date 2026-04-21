@@ -309,40 +309,58 @@ const normalizeUnknownError = (value: unknown): { message: string; stack: string
   };
 };
 
+const isTransientAuthMessage = (message: string): boolean => {
+  const m = message.toLowerCase();
+  return (
+    m.includes("refresh token") ||
+    m.includes("invalid refresh") ||
+    m.includes("refresh_token_not_found") ||
+    m.includes("jwt expired") ||
+    m.includes("jwt") && m.includes("expired") ||
+    m.includes("auth session missing") ||
+    m.includes("not authenticated") ||
+    (m.includes("401") && m.includes("unauth"))
+  );
+};
+
 export const initIncidentGlobalHandlers = (): void => {
   if (initializedGlobalHandlers || typeof window === "undefined") return;
   initializedGlobalHandlers = true;
 
   window.addEventListener("error", (event) => {
+    const message = event.message || "Unhandled window error";
+    const transient = isTransientAuthMessage(message);
     void logIncident({
-      severity: "error",
+      severity: transient ? "warn" : "error",
       source: "renderer",
-      category: "runtime",
-      code: "WINDOW_ERROR",
-      message: event.message || "Unhandled window error",
+      category: transient ? "auth" : "runtime",
+      code: transient ? "AUTH_TRANSIENT_WINDOW_ERROR" : "WINDOW_ERROR",
+      message,
       stack: event.error?.stack ? String(event.error.stack) : null,
       context: {
         route: getCurrentRoute(),
         operation: "window.error",
       },
-      notifyUser: true,
+      notifyUser: !transient,
     });
   });
 
   window.addEventListener("unhandledrejection", (event) => {
     const normalized = normalizeUnknownError(event.reason);
+    const message = normalized.message || "Unhandled promise rejection";
+    const transient = isTransientAuthMessage(message);
     void logIncident({
-      severity: "error",
+      severity: transient ? "warn" : "error",
       source: "renderer",
-      category: "runtime",
-      code: "UNHANDLED_REJECTION",
-      message: normalized.message || "Unhandled promise rejection",
+      category: transient ? "auth" : "runtime",
+      code: transient ? "AUTH_TRANSIENT_REJECTION" : "UNHANDLED_REJECTION",
+      message,
       stack: normalized.stack,
       context: {
         route: getCurrentRoute(),
         operation: "window.unhandledrejection",
       },
-      notifyUser: true,
+      notifyUser: !transient,
     });
   });
 

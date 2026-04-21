@@ -5,7 +5,7 @@ import { Link, navigate, useLocation } from "@/shared/routing/router";
 import { authService } from "@/services/authService";
 import { getCurrentLegalAcceptanceInput } from "@/shared/legal/legalDocumentVersions";
 import { getLegalDocumentUrl } from "@/shared/legal/legalDocumentLinks";
-import logo from "@/assets/logo.png";
+import logo from "@/assets/logo.svg";
 import "@/features/public/ui/landing-apex.css";
 import "@/features/auth/ui/auth-apex.css";
 
@@ -90,7 +90,7 @@ export const RegisterPage: React.FC = () => {
             <button className="btn-login" onClick={() => navigate(loginHref)}>
               Přihlásit se
             </button>
-            <button className="btn-start" onClick={() => navigate("/")}>
+            <button className="auth-nav-back" onClick={() => navigate("/")}>
               Zpět
             </button>
           </div>
@@ -106,6 +106,9 @@ export const RegisterPage: React.FC = () => {
           <input
             type="text"
             placeholder="Jméno a Příjmení"
+            name="name"
+            id="name"
+            autoComplete="name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="auth-input"
@@ -114,6 +117,9 @@ export const RegisterPage: React.FC = () => {
           <input
             type="email"
             placeholder="Email"
+            name="email"
+            id="email"
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="auth-input"
@@ -122,6 +128,9 @@ export const RegisterPage: React.FC = () => {
           <input
             type="password"
             placeholder="Heslo"
+            name="new-password"
+            id="new-password"
+            autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="auth-input"
@@ -130,6 +139,9 @@ export const RegisterPage: React.FC = () => {
           <input
             type="password"
             placeholder="Potvrzení hesla"
+            name="confirm-password"
+            id="confirm-password"
+            autoComplete="new-password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             className="auth-input"

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { platformAdapter, isDesktop } from "../services/platformAdapter";
 import { View, Project, ProjectTab } from "../types";
-import logo from "../assets/logo.png";
+import logo from "../assets/logo.svg";
 import { SIDEBAR_NAVIGATION } from "../config/navigation";
 import { FEATURES, type FeatureKey } from "../config/features";
 import { useFeatures } from "../context/FeatureContext";
@@ -367,7 +367,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     </span>
 
                     {/* Project Name */}
-                    <span className="relative z-10 break-words flex-1 truncate">
+                    <span className="relative z-10 flex-1 break-words whitespace-normal leading-snug">
                       {project.name}
                     </span>
 

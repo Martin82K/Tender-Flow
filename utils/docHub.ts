@@ -230,9 +230,57 @@ export const getDocHubTenderLinks = (
 };
 
 /**
+ * Returns the hierarchy to use for path/structure resolution.
+ * Falls back to DEFAULT_DOCHUB_HIERARCHY when none is stored on the project.
+ * This keeps auto-create (ensureStructure) and "Otevřít složku" aligned even before
+ * the user explicitly saves a custom structure.
+ */
+export const ensureExtraHierarchy = (
+  hierarchy?: DocHubHierarchyItem[] | null
+): DocHubHierarchyItem[] =>
+  hierarchy && hierarchy.length > 0 ? hierarchy : DEFAULT_DOCHUB_HIERARCHY;
+
+/**
+ * Walks a flat hierarchy array (as stored in docHubStructureV1.extraHierarchy)
+ * and returns the chain of ancestors that lead to the first enabled node matching
+ * the predicate, ending with the matched node itself.
+ *
+ * Works with flat+depth representation: the nearest preceding item with depth-1
+ * is the parent, then depth-2, and so on.
+ */
+export const findHierarchyAncestors = (
+  hierarchy: DocHubHierarchyItem[],
+  predicate: (item: DocHubHierarchyItem) => boolean
+): DocHubHierarchyItem[] => {
+  const matchIndex = hierarchy.findIndex(
+    (item) => predicate(item) && item.enabled !== false
+  );
+  if (matchIndex === -1) return [];
+
+  const matched = hierarchy[matchIndex];
+  const path: DocHubHierarchyItem[] = [];
+  let targetDepth = (matched.depth ?? 0) - 1;
+
+  for (let i = matchIndex - 1; i >= 0 && targetDepth >= 0; i--) {
+    const item = hierarchy[i];
+    if (item.enabled === false) continue;
+    if ((item.depth ?? 0) === targetDepth) {
+      path.unshift(item);
+      targetDepth--;
+    }
+  }
+  path.push(matched);
+  return path;
+};
+
+/**
  * Desktop-specific version that builds path from saved hierarchy structure.
  * This reads the actual folder names from extraHierarchy and preserves diacritics.
- * Path is built by traversing: root -> tenders folder -> category folder -> supplier folder
+ *
+ * Crucially, it walks the WHOLE ancestor chain from `supplier` node upward,
+ * so any intermediate folders configured by the user (e.g. "Poptavky",
+ * "Dokumentace") are included in the path. This keeps the open-folder action
+ * aligned with ensureStructure, which builds the same tree on disk.
  */
 export const getDocHubTenderLinksDesktop = (
   root: string,
@@ -241,43 +289,43 @@ export const getDocHubTenderLinksDesktop = (
   overrides?: Partial<DocHubStructureV1> | null
 ): string => {
   const structure = overrides || {};
-  const hierarchy = (structure as any).extraHierarchy as DocHubHierarchyItem[] | undefined;
-
-  // Clean segment - only remove Windows-invalid chars, preserve diacritics
-  const cleanSegment = (value: string): string => {
-    return value.replace(/[<>:"|?*]/g, "").trim();
-  };
-
-  // If no hierarchy, fall back to simple structure
-  if (!hierarchy || hierarchy.length === 0) {
-    console.log('[DocHub] No hierarchy found, using simple fallback structure');
-    const tendersFolder = "03_Vyberova_rizeni"; // Default
-    return joinDocHubPath(root, tendersFolder, cleanSegment(tenderTitle), cleanSegment(supplierName));
-  }
-
-  // Find tenders folder from hierarchy (key === 'tenders')
-  const tendersItem = hierarchy.find(item => item.key === 'tenders' && item.enabled !== false);
-  const tendersFolder = tendersItem?.name || "03_Vyberova_rizeni";
-
-  console.log('[DocHub] Building path from hierarchy:', {
-    tendersFolder,
-    tenderTitle,
-    supplierName,
-    hierarchyKeys: hierarchy.map(h => `${h.key}:${h.name}@depth${h.depth}`)
-  });
-
-  // Path: root / tenders folder / category title / supplier name
-  // Supplier is directly under category (no intermediate folders like Poptavky)
-  const fullPath = joinDocHubPath(
-    root,
-    tendersFolder,
-    cleanSegment(tenderTitle),
-    cleanSegment(supplierName)
+  const hierarchy = ensureExtraHierarchy(
+    (structure as any).extraHierarchy as DocHubHierarchyItem[] | undefined
   );
 
-  console.log('[DocHub] Final desktop path:', fullPath);
+  const cleanSegment = (value: string): string =>
+    value.replace(/[<>:"|?*]/g, "").trim();
 
-  return fullPath;
+  const supplierPath = findHierarchyAncestors(
+    hierarchy,
+    (item) => item.key === "supplier" || item.name.includes("{Název dodavatele}")
+  );
+
+  // Safety fallback — if hierarchy has no supplier node at all
+  if (supplierPath.length === 0) {
+    const tendersItem = hierarchy.find(
+      (item) => item.key === "tenders" && item.enabled !== false
+    );
+    const tendersFolder = tendersItem?.name || "03_Vyberova_rizeni";
+    return joinDocHubPath(
+      root,
+      tendersFolder,
+      cleanSegment(tenderTitle),
+      cleanSegment(supplierName)
+    );
+  }
+
+  const segments = supplierPath.map((item) => {
+    if (item.key === "category" || item.name.includes("{Název VŘ}")) {
+      return cleanSegment(tenderTitle);
+    }
+    if (item.key === "supplier" || item.name.includes("{Název dodavatele}")) {
+      return cleanSegment(supplierName);
+    }
+    return cleanSegment(item.name);
+  });
+
+  return joinDocHubPath(root, ...segments);
 };
 
 /**

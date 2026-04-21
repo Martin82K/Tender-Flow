@@ -20,6 +20,7 @@ interface SubcontractorSelectorModalProps {
     onConfirm: () => void;
     onAddContact: (name: string) => void;
     onEditContact: (contact: Subcontractor) => void;
+    projectPosition?: { lat: number; lng: number } | null;
 }
 
 export const SubcontractorSelectorModal: React.FC<SubcontractorSelectorModalProps> = ({
@@ -34,6 +35,7 @@ export const SubcontractorSelectorModal: React.FC<SubcontractorSelectorModalProp
     onConfirm,
     onAddContact,
     onEditContact,
+    projectPosition,
     className, // Just in case, though not in original interface but good practice
 }) => {
     if (!isOpen) return null;
@@ -79,6 +81,7 @@ export const SubcontractorSelectorModal: React.FC<SubcontractorSelectorModalProp
                         onSelectionChange={onSelectionChange}
                         onAddContact={onAddContact}
                         onEditContact={onEditContact}
+                        projectPosition={projectPosition}
                         className="flex-1 min-h-0"
                     />
                 </div>

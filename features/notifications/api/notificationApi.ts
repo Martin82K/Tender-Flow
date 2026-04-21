@@ -18,6 +18,10 @@ export const notificationApi = {
     return notificationService.dismiss(notificationId);
   },
 
+  async dismissAll(): Promise<number> {
+    return notificationService.dismissAll();
+  },
+
   async insert(params: {
     targetUserId: string;
     type: string;

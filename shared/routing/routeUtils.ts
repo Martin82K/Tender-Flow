@@ -24,8 +24,8 @@ export const buildAppUrl = (
     }
 ): string => {
     switch (view) {
-        case "dashboard":
-            return `${APP_BASE}/dashboard`;
+        case "command-center":
+            return `${APP_BASE}/command-center`;
         case "contacts":
             return `${APP_BASE}/contacts`;
         case "settings": {
@@ -42,7 +42,7 @@ export const buildAppUrl = (
         case "url-shortener":
             return `${APP_BASE}/url-shortener`;
         case "project": {
-            if (!opts?.projectId) return `${APP_BASE}/dashboard`;
+            if (!opts?.projectId) return `${APP_BASE}/command-center`;
             const params = new URLSearchParams();
             if (opts.tab) params.set("tab", opts.tab);
             if (opts.categoryId) params.set("categoryId", opts.categoryId);
@@ -51,7 +51,7 @@ export const buildAppUrl = (
             return `${APP_BASE}/project/${encodeURIComponent(opts.projectId)}${qs ? `?${qs}` : ""}`;
         }
         default:
-            return `${APP_BASE}/dashboard`;
+            return `${APP_BASE}/command-center`;
     }
 };
 
@@ -61,7 +61,7 @@ export const buildAppUrl = (
 export type ParsedAppRoute =
     | { isApp: false }
     | { isApp: true; redirectTo: string }
-    | { isApp: true; view: "dashboard" | "contacts" | "settings" | "project-management" | "project-overview" | "url-shortener" }
+    | { isApp: true; view: "command-center" | "contacts" | "settings" | "project-management" | "project-overview" | "url-shortener" }
     | {
         isApp: true;
         view: "project";
@@ -78,11 +78,11 @@ export const parseAppRoute = (pathname: string, search: string): ParsedAppRoute 
     if (parts[0] !== "app") return { isApp: false as const };
 
     if (parts.length === 1) {
-        return { isApp: true as const, redirectTo: `${APP_BASE}/dashboard` };
+        return { isApp: true as const, redirectTo: `${APP_BASE}/command-center` };
     }
 
     const sub = parts[1];
-    if (sub === "dashboard") return { isApp: true as const, view: "dashboard" as const };
+    if (sub === "command-center") return { isApp: true as const, view: "command-center" as const };
     if (sub === "contacts") return { isApp: true as const, view: "contacts" as const };
     if (sub === "settings") return { isApp: true as const, view: "settings" as const };
     if (sub === "projects") return { isApp: true as const, view: "project-management" as const };
@@ -103,5 +103,5 @@ export const parseAppRoute = (pathname: string, search: string): ParsedAppRoute 
         };
     }
 
-    return { isApp: true as const, redirectTo: `${APP_BASE}/dashboard` };
+    return { isApp: true as const, redirectTo: `${APP_BASE}/command-center` };
 };

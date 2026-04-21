@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Header } from "@/shared/ui/Header";
 import { NotificationBell } from "@features/notifications/ui/NotificationBell";
 import { HelpButton } from "@features/help";
+import { TaskCreateButton } from "@features/tasks";
 import { Pipeline } from "@/shared/ui/projects/Pipeline";
 import { TenderPlan } from "@/shared/ui/projects/TenderPlan";
 import { ProjectSchedule } from "@/shared/ui/projects/ProjectSchedule";
@@ -15,7 +16,7 @@ import {
 } from "@/types";
 import { ProjectOverviewNew } from "@/shared/ui/projects/ProjectOverviewNew";
 import { ProjectDocuments } from "@/shared/ui/projects/ProjectDocuments";
-import { Contracts } from "@/shared/ui/projects/Contracts";
+import { ContractsModule } from "@features/projects/contracts/ContractsModule";
 import { useFeatures } from "@/context/FeatureContext";
 import { FEATURES } from "@/config/features";
 import { ProjectMapView } from "@features/maps/components/ProjectMapView";
@@ -142,9 +143,15 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
       <Header
         title={project.title}
         subtitle="Detail stavby"
+        titleBelow
         onSearchChange={setSearchQuery}
         searchPlaceholder="Hledat v projektu..."
-        helpSlot={<HelpButton />}
+        helpSlot={
+          <div className="flex items-center gap-1">
+            <TaskCreateButton projectId={projectId} />
+            <HelpButton />
+          </div>
+        }
         notificationSlot={<NotificationBell />}
       >
         <div className="flex items-center gap-4">
@@ -165,12 +172,12 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
           </div>
 
           {/* Desktop horizontal tabs */}
-          <div data-help-id="project-tabs" className="hidden md:flex items-center gap-1.5 bg-slate-100 dark:bg-slate-950/50 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800">
+          <div data-help-id="project-tabs" className="hidden md:flex items-center gap-1.5 bg-slate-100 dark:bg-slate-950/50 p-1 rounded-2xl border border-slate-200 dark:border-slate-800">
             {visibleTabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => onTabChange(tab.id as ProjectTab)}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all duration-300 ${activeTab === tab.id
+                className={`flex items-center gap-2 px-5 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all duration-300 ${activeTab === tab.id
                   ? 'bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700'
                   : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
                   }`}
@@ -256,7 +263,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
           <ProjectDocuments project={project} onUpdate={onUpdateDetails} />
         )}
         {activeTab === "contracts" && (
-          <Contracts projectId={projectId} projectDetails={project} />
+          <ContractsModule projectId={projectId} />
         )}
       </div>
     </div>

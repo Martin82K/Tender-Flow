@@ -3,8 +3,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { PublicHeader } from "@/features/public/ui/PublicHeader";
 
-vi.mock("@/assets/logo.png", () => ({
-  default: "logo.png",
+vi.mock("@/assets/logo.svg", () => ({
+  default: "logo.svg",
 }));
 
 vi.mock("@/shared/routing/router", () => ({

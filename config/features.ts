@@ -4,7 +4,6 @@
  */
 export const FEATURES = {
   // Core Modules
-  MODULE_DASHBOARD: 'module_dashboard',
   MODULE_PROJECTS: 'module_projects',
   MODULE_CONTACTS: 'module_contacts',
   MODULE_PIPELINE: 'module_pipeline',
@@ -40,6 +39,14 @@ export const FEATURES = {
   MAPS_RECOMMENDATIONS: 'maps_recommendations',
   MAPS_ROUTING: 'maps_routing',
   MAPS_BULK_GEOCODE: 'maps_bulk_geocode',
+
+  // Command Center
+  MODULE_COMMAND_CENTER: 'module_command_center',
+  CC_MATRIX_HEALTH: 'cc_matrix_health',
+  CC_ADVANCED_KPI: 'cc_advanced_kpi',
+
+  // Tasks (TODO V1)
+  MODULE_TASKS: 'module_tasks',
 } as const;
 
 export type FeatureKey = typeof FEATURES[keyof typeof FEATURES];
@@ -53,18 +60,17 @@ export const PLANS = {
     id: 'free',
     label: 'Free',
     features: [
-      FEATURES.MODULE_DASHBOARD,
       FEATURES.MODULE_PROJECTS, // Limited probably in real SaaS logic
       FEATURES.MODULE_CONTACTS,
       FEATURES.URL_SHORTENER,
       FEATURES.MODULE_MAPS,
+      FEATURES.MODULE_COMMAND_CENTER,
     ]
   },
   STARTER: {
     id: 'starter',
     label: 'Starter',
     features: [
-      FEATURES.MODULE_DASHBOARD,
       FEATURES.MODULE_PROJECTS,
       FEATURES.MODULE_CONTACTS,
       FEATURES.MODULE_PIPELINE,
@@ -74,13 +80,14 @@ export const PLANS = {
       FEATURES.EXPORT_EXCEL,
       FEATURES.URL_SHORTENER,
       FEATURES.MODULE_MAPS,
+      FEATURES.MODULE_COMMAND_CENTER,
+      FEATURES.MODULE_TASKS,
     ]
   },
   PRO: {
     id: 'pro',
     label: 'Professional',
     features: [
-      FEATURES.MODULE_DASHBOARD,
       FEATURES.MODULE_PROJECTS,
       FEATURES.MODULE_CONTACTS,
       FEATURES.MODULE_PIPELINE,
@@ -99,6 +106,10 @@ export const PLANS = {
       FEATURES.MAPS_RECOMMENDATIONS,
       FEATURES.MAPS_ROUTING,
       FEATURES.MAPS_BULK_GEOCODE,
+      FEATURES.MODULE_COMMAND_CENTER,
+      FEATURES.CC_MATRIX_HEALTH,
+      FEATURES.CC_ADVANCED_KPI,
+      FEATURES.MODULE_TASKS,
     ]
   },
   ENTERPRISE: {

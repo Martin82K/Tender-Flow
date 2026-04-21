@@ -19,7 +19,7 @@ import { isDesktop, platformAdapter } from "../services/platformAdapter";
 import {
   authSessionService,
 } from "../services/authSessionService";
-import { queryClient } from "../services/queryClient";
+import { queryClient, resetAuthErrorCount } from "../services/queryClient";
 import { logIncident, setIncidentContext } from "@/services/incidentLogger";
 import { navigate } from "../shared/routing/router";
 import { authSessionStore } from "@infra/auth/authSessionStore";
@@ -323,6 +323,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         event === "SESSION_SYNC"
       ) {
         if (session) {
+          // Nový / obnovený token → přechodné auth chyby z předchozího
+          // tokenu již nejsou relevantní. Reset zabrání přesměrování na
+          // login kvůli requestům, které se vypálily během obnovy.
+          resetAuthErrorCount();
           const token = (session as any)?.access_token || null;
           if (
             (event === "SIGNED_IN" || event === "INITIAL_SESSION") &&

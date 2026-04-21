@@ -120,6 +120,8 @@ export const useUpdateContactMutation = () => {
             if (updates.regions !== undefined) dbUpdates.regions = updates.regions;
             if (updates.status !== undefined) dbUpdates.status_id = updates.status;
             if (updates.contacts !== undefined) dbUpdates.contacts = updates.contacts;
+            if (updates.aresCheckedAt !== undefined) dbUpdates.ares_checked_at = updates.aresCheckedAt;
+            if (updates.aresNotFound !== undefined) dbUpdates.ares_not_found = updates.aresNotFound;
 
             const { error } = await dbAdapter.from("subcontractors").update(dbUpdates).eq("id", id);
             if (error) throw error;
@@ -297,6 +299,8 @@ export const useBulkUpdateContactsMutation = () => {
                 if (data.latitude !== undefined) dbUpdates.latitude = data.latitude;
                 if (data.longitude !== undefined) dbUpdates.longitude = data.longitude;
                 if (data.geocodedAt !== undefined) dbUpdates.geocoded_at = data.geocodedAt;
+                if (data.aresCheckedAt !== undefined) dbUpdates.ares_checked_at = data.aresCheckedAt;
+                if (data.aresNotFound !== undefined) dbUpdates.ares_not_found = data.aresNotFound;
 
                 const { error } = await dbAdapter.from("subcontractors").update(dbUpdates).eq("id", id);
                 if (error) throw error;

@@ -29,7 +29,9 @@ VÝSTUP MUSÍ BÝT VALIDNÍ JSON v tomto formátu:
     "effectiveTo": "YYYY-MM-DD",
     "basePrice": 123456.00,
     "currency": "CZK",
-    "retentionPercent": 5.0,
+    "retentionShortPercent": 5.0,
+    "retentionLongPercent": 5.0,
+    "retentionTotalPercent": 10.0,
     "siteSetupPercent": 2.0,
     "warrantyMonths": 60,
     "paymentTerms": "30 dní od doručení faktury",
@@ -45,7 +47,9 @@ VÝSTUP MUSÍ BÝT VALIDNÍ JSON v tomto formátu:
     "effectiveTo": 0.70,
     "basePrice": 0.85,
     "currency": 0.99,
-    "retentionPercent": 0.75,
+    "retentionShortPercent": 0.75,
+    "retentionLongPercent": 0.75,
+    "retentionTotalPercent": 0.60,
     "siteSetupPercent": 0.70,
     "warrantyMonths": 0.80,
     "paymentTerms": 0.70,
@@ -59,7 +63,7 @@ PRAVIDLA:
 3. Pro pole, která nelze nalézt, nastav confidence na 0.0.
 4. basePrice musí být číslo bez měny (pouze numerická hodnota).
 5. Datumy vždy v formátu YYYY-MM-DD.
-  6. Hledej tyto alternativní názvy:
+6. Hledej tyto alternativní názvy:
    - vendorName: "zhotovitel", "dodavatel", "poskytovatel"
    - vendorIco: "IČ", "IČO", "IČ zhotovitele", "IČ dodavatele"
    - basePrice: "cena díla", "celková cena", "smluvní cena", "cena za dílo", "činí"
@@ -68,6 +72,26 @@ PRAVIDLA:
    - Ignoruj DPH, pokud je uvedeno "bez DPH".
    - siteSetupPercent: "zařízení staveniště", "ZS", "ZS (%)", "zařízení staveniště (%)".
 7. Pokud je cena uvedena i slovně, použij ji pro kontrolu řádu, ale extrahuj číslo.
+
+POZASTÁVKA (zádržné) — KLÍČOVÉ:
+Smlouvy používají různé formulace, např.:
+- "pozastávka 10 % (7 % do převzetí, 3 % do konce záruky)"
+- "zádržné 5 % + 5 %"
+- "jistota za dobu realizace 8 %, za záruku 2 %"
+- "pozastávka 10 %, z toho 5 % uvolněno po převzetí, 5 % do konce záruky"
+- "pozastávka krátkodobá 7 %, dlouhodobá 3 %"
+
+Extrahuj DVĚ hodnoty samostatně:
+- retentionShortPercent — část, která se uvolňuje při/po převzetí díla (krátkodobá)
+- retentionLongPercent  — část, která se drží do konce záruční doby (dlouhodobá)
+- retentionTotalPercent — pouze pokud je explicitně uveden součet a split nelze určit
+
+Pokud je ve smlouvě uvedena pouze jedna hodnota bez specifikace:
+- pokud smlouva zmiňuje "do převzetí" / "po dokončení" / "do kolaudace" → krátkodobá
+- pokud "do konce záruky" / "záruční" / "po uplynutí záruky" → dlouhodobá
+- pokud nerozlišuje → přiřaď do krátkodobá, dlouhodobou vynech
+
+Vrať confidence skóre ZVLÁŠŤ pro retentionShortPercent i retentionLongPercent (0.0–1.0).
 
 TEXT SMLOUVY:
 `;
@@ -466,6 +490,94 @@ function extractPercentNearKeywords(text: string, keywords: string[]): number | 
   return null;
 }
 
+/**
+ * Najde hodnotu procenta NEJBLIŽŠÍ keywordu (před ním i za ním).
+ * Preferuje hodnotu TĚSNĚ před keywordem, pokud existuje v rámci window.
+ */
+function findNearestPercent(
+  normalized: string,
+  lower: string,
+  keywords: string[],
+  window = 80,
+): number | null {
+  let bestValue: number | null = null;
+  let bestDistance = Infinity;
+
+  for (const keyword of keywords) {
+    let index = lower.indexOf(keyword);
+    while (index !== -1) {
+      const keywordEnd = index + keyword.length;
+      const start = Math.max(0, index - window);
+      const end = Math.min(normalized.length, keywordEnd + window);
+      const windowText = normalized.slice(start, end);
+
+      const regex = /(\d{1,3}(?:[.,]\d{1,2})?)\s*%/g;
+      let m: RegExpExecArray | null;
+      while ((m = regex.exec(windowText)) !== null) {
+        const absolutePos = start + m.index;
+        const value = normalizePercent(m[1]);
+        if (value === null) continue;
+        const distance =
+          absolutePos < index
+            ? index - (absolutePos + m[0].length)
+            : absolutePos - keywordEnd;
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestValue = value;
+        }
+      }
+
+      index = lower.indexOf(keyword, index + keyword.length);
+    }
+  }
+
+  return bestValue;
+}
+
+/**
+ * Heuristic fallback: hledá dvojici pozastávek v textu.
+ * Vrací { short, long } — jedno nebo obě mohou být null.
+ */
+export function extractRetentionSplit(
+  text: string,
+): { short: number | null; long: number | null } {
+  const normalized = text.replace(/\s+/g, ' ');
+  const lower = normalized.toLowerCase();
+
+  const shortKeywords = [
+    'do převzetí',
+    'do prevzeti',
+    'po převzetí',
+    'po prevzeti',
+    'po dokončení',
+    'po dokonceni',
+    'do kolaudace',
+    'krátkodobá',
+    'kratkodoba',
+    'za dobu realizace',
+    'realizace díla',
+  ];
+  const longKeywords = [
+    'do konce záruky',
+    'do konce zaruky',
+    'do konce záruční',
+    'do konce zarucni',
+    'záruční doby',
+    'zarucni doby',
+    'po uplynutí záruky',
+    'po uplynuti zaruky',
+    'dlouhodobá',
+    'dlouhodoba',
+    'za záruku',
+    'za zaruku',
+  ];
+
+  const shortValue = findNearestPercent(normalized, lower, shortKeywords);
+  const longValue = findNearestPercent(normalized, lower, longKeywords);
+
+  return { short: shortValue, long: longValue };
+}
+
 function normalizeIco(raw: string): string | null {
   const digits = raw.replace(/\D/g, '');
   if (digits.length !== 8) return null;
@@ -555,6 +667,62 @@ export const contractExtractionService = {
         }
         confidence.basePrice = Math.max(confidence.basePrice || 0, 0.45);
       }
+    }
+
+    // Fallback split retention — pokud AI vrátil jen totalPercent nebo nic, zkusíme heuristiku
+    const rawExtra = parsed.fields as unknown as Record<string, unknown>;
+    const rawShort = rawExtra.retentionShortPercent;
+    const rawLong = rawExtra.retentionLongPercent;
+    const rawTotal = rawExtra.retentionTotalPercent;
+
+    if (typeof rawShort === 'number' && Number.isFinite(rawShort)) {
+      (fields as Record<string, unknown>).retentionShortPercent = rawShort;
+    }
+    if (typeof rawLong === 'number' && Number.isFinite(rawLong)) {
+      (fields as Record<string, unknown>).retentionLongPercent = rawLong;
+    }
+
+    const hasShort = typeof (fields as Record<string, unknown>).retentionShortPercent === 'number';
+    const hasLong = typeof (fields as Record<string, unknown>).retentionLongPercent === 'number';
+
+    if (!hasShort && !hasLong) {
+      const heuristic = extractRetentionSplit(text);
+      if (heuristic.short !== null) {
+        (fields as Record<string, unknown>).retentionShortPercent = heuristic.short;
+        confidence.retentionShortPercent = Math.max(
+          confidence.retentionShortPercent || 0,
+          0.45,
+        );
+      }
+      if (heuristic.long !== null) {
+        (fields as Record<string, unknown>).retentionLongPercent = heuristic.long;
+        confidence.retentionLongPercent = Math.max(
+          confidence.retentionLongPercent || 0,
+          0.45,
+        );
+      }
+      if (
+        heuristic.short === null &&
+        heuristic.long === null &&
+        typeof rawTotal === 'number' &&
+        Number.isFinite(rawTotal)
+      ) {
+        // OCR nerozlišil — vložíme total do krátkodobé, dlouhodobou necháme prázdnou
+        (fields as Record<string, unknown>).retentionShortPercent = rawTotal;
+        confidence.retentionShortPercent = Math.max(
+          confidence.retentionShortPercent || 0,
+          0.35,
+        );
+      }
+    }
+
+    // Backfill zpětné kompatibility pro staré retentionPercent (aby starý UI nevybuchl)
+    if (
+      (fields.retentionPercent === undefined || !Number.isFinite(fields.retentionPercent)) &&
+      typeof (fields as Record<string, unknown>).retentionShortPercent === 'number'
+    ) {
+      fields.retentionPercent = (fields as Record<string, unknown>)
+        .retentionShortPercent as number;
     }
 
     if (

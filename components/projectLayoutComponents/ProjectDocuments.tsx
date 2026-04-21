@@ -41,7 +41,13 @@ const parseMoney = (valueStr: string): number => {
 };
 
 const formatMoney = (val: number): string => {
-  if (val >= 1000000) return (val / 1000000).toFixed(1) + "M Kč";
+  if (val >= 1000000) {
+    return (
+      new Intl.NumberFormat("cs-CZ", { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(
+        val / 1000000,
+      ) + "M Kč"
+    );
+  }
   return new Intl.NumberFormat("cs-CZ", {
     style: "currency",
     currency: "CZK",
@@ -442,9 +448,6 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
                 linkValue={docsLinkValue}
                 onLinkValueChange={(val) => setDocsLinkValue(val)}
                 onSave={handleSaveDocs}
-                isDocHubConnected={canDocHub && isDocHubConnected}
-                docHubPdLink={canDocHub ? docHubProjectLinks?.pd || null : null}
-                docHubStructure={docHubStructure}
                 showModal={showModal}
                 onUpdate={onUpdate}
               />

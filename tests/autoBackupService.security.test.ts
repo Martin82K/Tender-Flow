@@ -29,6 +29,7 @@ vi.mock('electron', () => ({
     isPackaged: false,
     getPath: vi.fn((name: string) => {
       if (name === 'userData') return '/Users/tester/user-data';
+      if (name === 'documents') return '/Users/tester/documents';
       if (name === 'exe') return '/Applications/TenderFlow/TenderFlow.exe';
       return '/tmp';
     }),

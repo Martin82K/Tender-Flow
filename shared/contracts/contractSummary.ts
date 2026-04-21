@@ -101,6 +101,7 @@ export const mapContractWithDetailsToSummaryDto = (
   signedAt: contract.signedAt,
   effectiveFrom: contract.effectiveFrom,
   effectiveTo: contract.effectiveTo,
+  completionDate: contract.completionDate,
   scopeSummary: contract.scopeSummary,
 });
 
