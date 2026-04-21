@@ -4,7 +4,11 @@ import { insertBids } from "@/features/projects/api";
 import { getDemoData, saveDemoData } from "@/services/demoData";
 import { invokeAuthedFunction } from "@/services/functionsClient";
 import { ensureStructure } from "@/services/fileSystemService";
-import { buildHierarchyTree, resolveDocHubStructureV1 } from "@/utils/docHub";
+import {
+  buildHierarchyTree,
+  ensureExtraHierarchy,
+  resolveDocHubStructureV1,
+} from "@/utils/docHub";
 
 interface ShowAlertArgs {
   title: string;
@@ -138,7 +142,7 @@ export const usePipelineSubcontractorSelection = ({
                   projectDataDocHubStructureV1 || undefined,
                 );
                 const hierarchyTree = buildHierarchyTree(
-                  structure.extraHierarchy || [],
+                  ensureExtraHierarchy(structure.extraHierarchy),
                 );
 
                 ensureStructure({

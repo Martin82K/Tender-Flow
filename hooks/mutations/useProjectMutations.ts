@@ -8,7 +8,7 @@ import { OVERVIEW_TENANT_DATA_KEY } from "../queries/useOverviewTenantDataQuery"
 import { getDemoData, saveDemoData } from "../../services/demoData";
 import { invokeAuthedFunction } from "../../services/functionsClient";
 import { ensureStructure } from "../../services/fileSystemService";
-import { buildHierarchyTree, isProbablyUrl, resolveDocHubStructureV1 } from "../../utils/docHub";
+import { buildHierarchyTree, ensureExtraHierarchy, isProbablyUrl, resolveDocHubStructureV1 } from "../../utils/docHub";
 import { cloneTenderToRealization } from "@/features/projects/api/projectCloneApi";
 import {
     emitCategoryStatusNotification,
@@ -549,7 +549,7 @@ export const useAddCategoryMutation = () => {
                 projectDetails.docHubRootLink
             ) {
                 const structure = resolveDocHubStructureV1(projectDetails.docHubStructureV1 || undefined);
-                const hierarchyTree = buildHierarchyTree(structure.extraHierarchy || []);
+                const hierarchyTree = buildHierarchyTree(ensureExtraHierarchy(structure.extraHierarchy));
                 const suppliers: Record<string, Array<{ id: string; name: string }>> = {
                     [category.id]: [],
                 };

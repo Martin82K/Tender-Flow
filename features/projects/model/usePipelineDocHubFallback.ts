@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { invokeAuthedFunction } from "@/services/functionsClient";
 import { collectFallbackSuppliers } from "@/shared/dochub/fallbackSelection";
 import { ensureStructure } from "@/services/fileSystemService";
-import { buildHierarchyTree } from "@/utils/docHub";
+import { buildHierarchyTree, ensureExtraHierarchy } from "@/utils/docHub";
 import type { Bid, ProjectDetails } from "@/types";
 import { getSafeFallbackProjectId as getSafeFallbackProjectIdModel } from "./pipelineModel";
 
@@ -73,7 +73,9 @@ export const usePipelineDocHubFallback = ({
 
       const provider = projectData.docHubProvider;
       if (provider === "onedrive") {
-        const hierarchyTree = buildHierarchyTree(docHubStructure.extraHierarchy || []);
+        const hierarchyTree = buildHierarchyTree(
+          ensureExtraHierarchy(docHubStructure.extraHierarchy),
+        );
         const result = await ensureStructure({
           rootPath: docHubRoot,
           structure: docHubStructure,
@@ -144,7 +146,9 @@ export const usePipelineDocHubFallback = ({
 
       const provider = projectData.docHubProvider;
       if (provider === "onedrive") {
-        const hierarchyTree = buildHierarchyTree(docHubStructure.extraHierarchy || []);
+        const hierarchyTree = buildHierarchyTree(
+          ensureExtraHierarchy(docHubStructure.extraHierarchy),
+        );
         const result = await ensureStructure({
           rootPath: docHubRoot,
           structure: docHubStructure,
