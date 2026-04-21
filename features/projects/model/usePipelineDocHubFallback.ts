@@ -16,6 +16,7 @@ interface UsePipelineDocHubFallbackInput {
   docHubStructure: ReturnType<typeof import("@/utils/docHub").resolveDocHubStructureV1>;
   userRole?: string;
   fallbackEnabledFlag: boolean;
+  activeCategoryId?: string | null;
 }
 
 export const usePipelineDocHubFallback = ({
@@ -28,11 +29,13 @@ export const usePipelineDocHubFallback = ({
   docHubStructure,
   userRole,
   fallbackEnabledFlag,
+  activeCategoryId,
 }: UsePipelineDocHubFallbackInput) => {
   const projectFallbackRunRef = useRef<{ projectId: string | null; done: boolean }>({
     projectId: null,
     done: false,
   });
+  const categoryFallbackRunRef = useRef<{ key: string | null }>({ key: null });
   const fallbackInFlightRef = useRef<Set<string>>(new Set());
 
   const getSafeFallbackProjectId = () =>
@@ -228,6 +231,28 @@ export const usePipelineDocHubFallback = ({
     projectFallbackRunRef.current.done = true;
     void runDocHubFallbackForProject("pipeline-open");
   }, [projectId, isDocHubEnabled, docHubRoot, userRole, projectData.docHubProvider]);
+
+  // Category-level check: whenever the user opens a specific VŘ (pipeline detail),
+  // re-verify supplier folders for every bid in that category. This covers the
+  // case where a bid was added in another tab / session and the project-level
+  // check has already run once for this mount.
+  useEffect(() => {
+    if (!activeCategoryId) return;
+    if (!isDocHubFallbackEnabled()) return;
+
+    const runKey = `${projectId}:${activeCategoryId}`;
+    if (categoryFallbackRunRef.current.key === runKey) return;
+    categoryFallbackRunRef.current.key = runKey;
+
+    void runDocHubFallbackForCategory(activeCategoryId, "category-open");
+  }, [
+    activeCategoryId,
+    projectId,
+    isDocHubEnabled,
+    docHubRoot,
+    userRole,
+    projectData.docHubProvider,
+  ]);
 
   return {
     runDocHubFallbackForCategory,

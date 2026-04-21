@@ -211,6 +211,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
     docHubStructure,
     userRole: user?.role,
     fallbackEnabledFlag: DOCHUB_FALLBACK_ENABLED,
+    activeCategoryId: activeCategory?.id ?? null,
   });
 
   const {
