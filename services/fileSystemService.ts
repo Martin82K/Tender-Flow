@@ -679,7 +679,6 @@ export async function ensureStructure(
 
             // Helper function to create a folder
             const ensureFolder = async (folderPath: string): Promise<void> => {
-                console.log("[ensureStructure] ensureFolder:", folderPath);
                 const exists = await fileSystemAdapter.folderExists(folderPath);
                 if (exists) {
                     logs.push(`✓ Složka existuje: ${folderPath}`);
@@ -702,19 +701,8 @@ export async function ensureStructure(
                 parentPath: string,
                 context: { category?: { id: string, title: string }, supplier?: { id: string, name: string } }
             ) => {
-                console.log("[ensureStructure] processItem", {
-                    key: item.key,
-                    name: item.name,
-                    enabled: item.enabled,
-                    depth: item.depth,
-                    childCount: item.children?.length ?? 0,
-                    parentPath,
-                    ctxCat: context.category?.title,
-                    ctxSup: context.supplier?.name,
-                });
-
                 if (!item.enabled) {
-                    console.log("[ensureStructure] skip — disabled", item.name);
+                    logs.push(`⊘ Přeskočeno (vypnuto uživatelem): ${item.name}`);
                     return;
                 }
 
@@ -728,12 +716,9 @@ export async function ensureStructure(
                     } else {
                         // If we hit a category node but have no category context, we must iterate all categories
                         if (request.categories) {
-                            console.log("[ensureStructure] category placeholder — iterate", request.categories.length, "categories");
                             for (const cat of request.categories) {
                                 await processItem(item, parentPath, { ...context, category: cat });
                             }
-                        } else {
-                            console.log("[ensureStructure] category placeholder but no request.categories");
                         }
                         return; // Stop processing this abstract node, we processed instances
                     }
@@ -747,15 +732,9 @@ export async function ensureStructure(
                         // If we hit a supplier node but have no supplier context, we must iterate suppliers for the current category
                         if (context.category && request.suppliers) {
                             const suppliers = request.suppliers[context.category.id] || [];
-                            console.log("[ensureStructure] supplier placeholder — iterate", suppliers.length, "suppliers for category", context.category.id);
                             for (const sup of suppliers) {
                                 await processItem(item, parentPath, { ...context, supplier: sup });
                             }
-                        } else {
-                            console.log("[ensureStructure] supplier placeholder but no context.category or request.suppliers", {
-                                hasCategory: !!context.category,
-                                hasSuppliers: !!request.suppliers,
-                            });
                         }
                         return; // Stop processing this abstract node
                     }
@@ -771,12 +750,9 @@ export async function ensureStructure(
 
                 // Process children
                 if (item.children && item.children.length > 0) {
-                    console.log("[ensureStructure] recurse into", item.children.length, "children of", item.name);
                     for (const child of item.children) {
                         await processItem(child, finalPath, context);
                     }
-                } else {
-                    console.log("[ensureStructure] leaf — no children for", item.name);
                 }
             };
 
@@ -786,13 +762,6 @@ export async function ensureStructure(
 
             // First ensure root exists
             await ensureFolder(request.rootPath);
-
-            console.log("[ensureStructure] Starting hierarchy walk", {
-                rootPath: request.rootPath,
-                rootItemCount: request.hierarchy?.length ?? 0,
-                categoryCount: request.categories?.length ?? 0,
-                supplierMapKeys: request.suppliers ? Object.keys(request.suppliers) : [],
-            });
 
             if (request.hierarchy) {
                 for (const rootItem of request.hierarchy) {

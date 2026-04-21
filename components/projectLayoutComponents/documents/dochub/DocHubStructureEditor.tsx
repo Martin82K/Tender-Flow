@@ -40,6 +40,35 @@ export const DocHubStructureEditor: React.FC<DocHubStructureEditorProps> = ({ st
     // Use structureDraft as effective structure since hook syncs it with project
     const effectiveStructure = structureDraft;
 
+    // Detect configuration issues that block auto-create of supplier folders.
+    // If the `supplier` node exists but any of its ancestors is disabled, the
+    // ensureStructure walk will stop at the disabled parent and no supplier
+    // folder will ever be created. Same goes for a disabled `category` (VŘ)
+    // or `tenders` node. We surface this as a prominent warning so the user
+    // can fix it instead of wondering why nothing happens.
+    const disabledBlockers: string[] = (() => {
+        const blockers: string[] = [];
+        const supplierIndex = hierarchyDraft.findIndex((item) => item.key === "supplier");
+        if (supplierIndex === -1) return blockers;
+
+        const supplierItem = hierarchyDraft[supplierIndex];
+        if (supplierItem.enabled === false) {
+            blockers.push(`${supplierItem.name} (dodavatel)`);
+        }
+
+        let targetDepth = (supplierItem.depth ?? 0) - 1;
+        for (let i = supplierIndex - 1; i >= 0 && targetDepth >= 0; i--) {
+            const parent = hierarchyDraft[i];
+            if ((parent.depth ?? 0) === targetDepth) {
+                if (parent.enabled === false) {
+                    blockers.push(parent.name);
+                }
+                targetDepth--;
+            }
+        }
+        return blockers;
+    })();
+
     return (
         <div className="flex flex-col gap-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -113,7 +142,21 @@ export const DocHubStructureEditor: React.FC<DocHubStructureEditorProps> = ({ st
             {isEditingStructure && (
                 <div className="bg-slate-100 dark:bg-slate-950/30 border border-slate-300 dark:border-slate-700/50 rounded-xl p-4">
 
-
+                    {disabledBlockers.length > 0 && (
+                        <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+                            <span className="material-symbols-outlined text-[18px] mt-0.5">warning</span>
+                            <div className="flex-1">
+                                <div className="font-semibold">
+                                    Složky dodavatelů se nebudou automaticky vytvářet
+                                </div>
+                                <div className="mt-0.5">
+                                    Tyto uzly v hierarchii jsou vypnuté a blokují cestu ke složce dodavatele:
+                                    <span className="font-semibold"> {disabledBlockers.join(", ")}</span>.
+                                    Klikněte na <span className="material-symbols-outlined text-[12px] align-middle">visibility_off</span> u každé složky pro zapnutí, nebo použijte tlačítko "Výchozí" níže pro reset na výchozí šablonu.
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="grid grid-cols-1 gap-4">
                         {/* Tree preview */}
