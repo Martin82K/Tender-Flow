@@ -367,7 +367,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     </span>
 
                     {/* Project Name */}
-                    <span className="relative z-10 break-words flex-1 truncate">
+                    <span className="relative z-10 flex-1 break-words whitespace-normal leading-snug">
                       {project.name}
                     </span>
 
