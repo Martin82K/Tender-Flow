@@ -41,6 +41,7 @@ export const ContractEditDialog: React.FC<Props> = ({
     vendorIco: contract?.vendorIco ?? '',
     status: (contract?.status ?? 'draft') as ContractStatus,
     signedAt: contract?.signedAt?.slice(0, 10) ?? '',
+    completionDate: contract?.completionDate?.slice(0, 10) ?? '',
     currency: contract?.currency ?? 'CZK',
     basePrice: (contract?.basePrice ?? null) as number | null,
     retentionShortPercent: (contract?.retentionShortPercent ?? null) as number | null,
@@ -80,6 +81,7 @@ export const ContractEditDialog: React.FC<Props> = ({
         contractNumber: form.contractNumber || undefined,
         status: form.status,
         signedAt: form.signedAt || undefined,
+        completionDate: form.completionDate || undefined,
         currency: form.currency,
         basePrice: toUndef(form.basePrice) ?? 0,
         retentionShortPercent: toUndef(form.retentionShortPercent),
@@ -205,6 +207,16 @@ export const ContractEditDialog: React.FC<Props> = ({
               value={form.signedAt}
               onChange={(e) => handleChange('signedAt', e.target.value)}
             />
+          </div>
+          <div>
+            <label className={labelClass}>Termín dokončení díla</label>
+            <input
+              type="date"
+              className={inputClass}
+              value={form.completionDate}
+              onChange={(e) => handleChange('completionDate', e.target.value)}
+            />
+            <p className="mt-1 text-[11px] text-slate-500">Počátek záruční doby (předání díla).</p>
           </div>
         </div>
 

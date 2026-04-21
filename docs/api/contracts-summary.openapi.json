@@ -80,6 +80,7 @@
                     "signedAt": "2026-02-01",
                     "effectiveFrom": "2026-02-05",
                     "effectiveTo": "2026-12-20",
+                    "completionDate": "2026-12-15",
                     "scopeSummary": "Vzduchotechnika a související montáže"
                   }
                 ]
@@ -153,6 +154,7 @@
           "signedAt": { "type": ["string", "null"], "format": "date" },
           "effectiveFrom": { "type": ["string", "null"], "format": "date" },
           "effectiveTo": { "type": ["string", "null"], "format": "date" },
+          "completionDate": { "type": ["string", "null"], "format": "date" },
           "scopeSummary": { "type": ["string", "null"] }
         }
       }

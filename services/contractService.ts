@@ -27,6 +27,7 @@ const mapContract = (row: Record<string, unknown>): Contract => ({
   signedAt: row.signed_at as string | undefined,
   effectiveFrom: row.effective_from as string | undefined,
   effectiveTo: row.effective_to as string | undefined,
+  completionDate: row.completion_date as string | undefined,
   currency: row.currency as string,
   basePrice: parseFloat(row.base_price as string) || 0,
   retentionPercent: row.retention_percent ? parseFloat(row.retention_percent as string) : undefined,
@@ -320,6 +321,7 @@ export const contractService = {
         signed_at: contract.signedAt || null,
         effective_from: contract.effectiveFrom || null,
         effective_to: contract.effectiveTo || null,
+        completion_date: contract.completionDate || null,
         currency: contract.currency || 'CZK',
         base_price: contract.basePrice,
         retention_percent: contract.retentionPercent ?? null,
@@ -380,6 +382,7 @@ export const contractService = {
     if (updates.signedAt !== undefined) dbUpdates.signed_at = updates.signedAt;
     if (updates.effectiveFrom !== undefined) dbUpdates.effective_from = updates.effectiveFrom;
     if (updates.effectiveTo !== undefined) dbUpdates.effective_to = updates.effectiveTo;
+    if (updates.completionDate !== undefined) dbUpdates.completion_date = updates.completionDate || null;
     if (updates.basePrice !== undefined) dbUpdates.base_price = updates.basePrice;
     if (updates.retentionPercent !== undefined) dbUpdates.retention_percent = updates.retentionPercent;
     if (updates.retentionAmount !== undefined) dbUpdates.retention_amount = updates.retentionAmount;

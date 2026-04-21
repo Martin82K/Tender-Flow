@@ -383,6 +383,8 @@ export interface Contract {
   signedAt?: string;
   effectiveFrom?: string;
   effectiveTo?: string;
+  /** Datum skutečného dokončení / předání díla. Slouží jako počátek záruky. */
+  completionDate?: string;
 
   currency: string;
   basePrice: number;
@@ -510,6 +512,7 @@ export interface ContractSummaryDto {
   signedAt?: string;
   effectiveFrom?: string;
   effectiveTo?: string;
+  completionDate?: string;
   scopeSummary?: string;
 }
 
