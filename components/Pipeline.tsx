@@ -70,14 +70,6 @@ interface PipelineProps {
 
 type PipelineViewMode = "grid" | "table";
 export type InquiryGenerationKind = PipelineInquiryGenerationKind;
-const rawDocHubFallbackFlag =
-  import.meta.env.VITE_DOCHUB_FALLBACK_ENABLED?.trim().toLowerCase();
-const DOCHUB_FALLBACK_ENABLED =
-  rawDocHubFallbackFlag === undefined ||
-  (rawDocHubFallbackFlag !== "false" &&
-    rawDocHubFallbackFlag !== "0" &&
-    rawDocHubFallbackFlag !== "off" &&
-    rawDocHubFallbackFlag !== "no");
 
 export const getTemplateLinksForInquiryKind = (
   project: ProjectDetails,
@@ -210,7 +202,6 @@ export const Pipeline: React.FC<PipelineProps> = ({
     isDocHubEnabled,
     docHubStructure,
     userRole: user?.role,
-    fallbackEnabledFlag: DOCHUB_FALLBACK_ENABLED,
     activeCategoryId: activeCategory?.id ?? null,
   });
 

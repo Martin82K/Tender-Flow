@@ -177,6 +177,8 @@ export const usePipelineSubcontractorSelection = ({
                   suppliers: localSuppliers[activeCategory.id],
                 });
 
+                console.info("[DocHub] hierarchyTree being used:", hierarchyTree);
+
                 ensureStructure({
                   rootPath: docHubRoot,
                   structure,
@@ -192,6 +194,10 @@ export const usePipelineSubcontractorSelection = ({
                     reusedCount: res.reusedCount,
                     error: res.error,
                   });
+                  console.info("[DocHub] ensureStructure step-by-step logs:");
+                  for (const line of res.logs || []) {
+                    console.info("  " + line);
+                  }
                   if (!res.success) {
                     console.error("Auto-create folders failed:", res.error);
                     showAlert({

@@ -15,7 +15,6 @@ interface UsePipelineDocHubFallbackInput {
   isDocHubEnabled: boolean;
   docHubStructure: ReturnType<typeof import("@/utils/docHub").resolveDocHubStructureV1>;
   userRole?: string;
-  fallbackEnabledFlag: boolean;
   activeCategoryId?: string | null;
 }
 
@@ -28,7 +27,6 @@ export const usePipelineDocHubFallback = ({
   isDocHubEnabled,
   docHubStructure,
   userRole,
-  fallbackEnabledFlag,
   activeCategoryId,
 }: UsePipelineDocHubFallbackInput) => {
   const projectFallbackRunRef = useRef<{ projectId: string | null; done: boolean }>({
@@ -43,7 +41,6 @@ export const usePipelineDocHubFallback = ({
 
   const isDocHubFallbackEnabled = () => {
     const enabled =
-      fallbackEnabledFlag &&
       isDocHubEnabled &&
       docHubRoot.length > 0 &&
       userRole !== "demo" &&
@@ -52,7 +49,6 @@ export const usePipelineDocHubFallback = ({
 
     if (!enabled) {
       console.info("[DocHub fallback] Skipped — conditions not met", {
-        fallbackEnabledFlag,
         isDocHubEnabled,
         docHubRootPresent: docHubRoot.length > 0,
         userRole,
