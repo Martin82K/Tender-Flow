@@ -3,6 +3,7 @@ import { Subcontractor } from "@/types";
 import {
   ContactsFilterState,
   EMPTY_FILTER_STATE,
+  GeoPoint,
   filterContacts,
   hasActiveFilters,
 } from "./contactsFiltersLogic";
@@ -16,19 +17,23 @@ export interface UseContactsFiltersResult {
   setSpecialization: (value: string) => void;
   setStatus: (value: string) => void;
   setRegion: (value: string) => void;
+  setDistanceKm: (value: number | null) => void;
   clear: () => void;
   specializations: string[];
   filteredContacts: Subcontractor[];
   hasActive: boolean;
+  projectPosition: GeoPoint | null;
 }
 
 export function useContactsFilters(
   contacts: Subcontractor[],
+  projectPosition?: GeoPoint | null,
 ): UseContactsFiltersResult {
   const [searchText, setSearchText] = useState("");
   const [specialization, setSpecialization] = useState<string>("all");
   const [status, setStatus] = useState<string>("all");
   const [region, setRegion] = useState<string>("all");
+  const [distanceKm, setDistanceKmState] = useState<number | null>(null);
 
   const [debouncedSearch, setDebouncedSearch] = useState("");
   useEffect(() => {
@@ -36,14 +41,31 @@ export function useContactsFilters(
     return () => clearTimeout(t);
   }, [searchText]);
 
+  const setDistanceKm = useCallback((value: number | null) => {
+    setDistanceKmState(value);
+  }, []);
+
+  // Pokud projekt přijde bez souřadnic, distanční filtr nemá smysl udržovat aktivní
+  useEffect(() => {
+    if (!projectPosition && distanceKm !== null) {
+      setDistanceKmState(null);
+    }
+  }, [projectPosition, distanceKm]);
+
   const state: ContactsFilterState = useMemo(
-    () => ({ searchText, specialization, status, region }),
-    [searchText, specialization, status, region],
+    () => ({ searchText, specialization, status, region, distanceKm }),
+    [searchText, specialization, status, region, distanceKm],
   );
 
   const debouncedState: ContactsFilterState = useMemo(
-    () => ({ searchText: debouncedSearch, specialization, status, region }),
-    [debouncedSearch, specialization, status, region],
+    () => ({
+      searchText: debouncedSearch,
+      specialization,
+      status,
+      region,
+      distanceKm,
+    }),
+    [debouncedSearch, specialization, status, region, distanceKm],
   );
 
   const specializations = useMemo(() => {
@@ -52,8 +74,8 @@ export function useContactsFilters(
   }, [contacts]);
 
   const filteredContacts = useMemo(
-    () => filterContacts(contacts, debouncedState),
-    [contacts, debouncedState],
+    () => filterContacts(contacts, debouncedState, projectPosition ?? null),
+    [contacts, debouncedState, projectPosition],
   );
 
   const clear = useCallback(() => {
@@ -61,6 +83,7 @@ export function useContactsFilters(
     setSpecialization("all");
     setStatus("all");
     setRegion("all");
+    setDistanceKmState(null);
   }, []);
 
   return {
@@ -70,10 +93,12 @@ export function useContactsFilters(
     setSpecialization,
     setStatus,
     setRegion,
+    setDistanceKm,
     clear,
     specializations,
     filteredContacts,
     hasActive: hasActiveFilters(state) || hasActiveFilters(debouncedState),
+    projectPosition: projectPosition ?? null,
   };
 }
 

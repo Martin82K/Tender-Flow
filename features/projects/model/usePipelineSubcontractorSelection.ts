@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Bid, DemandCategory, DocHubStructureV1, Subcontractor } from "@/types";
 import { insertBids } from "@/features/projects/api";
 import { getDemoData, saveDemoData } from "@/services/demoData";
@@ -47,7 +47,13 @@ export const usePipelineSubcontractorSelection = ({
   const [isSubcontractorModalOpen, setIsSubcontractorModalOpen] =
     useState(false);
   const [isSubcontractorModalMaximized, setIsSubcontractorModalMaximized] =
-    useState(false);
+    useState(true);
+
+  useEffect(() => {
+    if (isSubcontractorModalOpen) {
+      setIsSubcontractorModalMaximized(true);
+    }
+  }, [isSubcontractorModalOpen]);
   const [selectedSubcontractorIds, setSelectedSubcontractorIds] = useState<
     Set<string>
   >(new Set());

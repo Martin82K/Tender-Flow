@@ -19,6 +19,8 @@ function make(partial: Partial<Subcontractor>): Subcontractor {
     region: partial.region,
     ico: partial.ico,
     vendorRatingAverage: partial.vendorRatingAverage,
+    latitude: partial.latitude,
+    longitude: partial.longitude,
   } as Subcontractor;
 }
 
@@ -115,8 +117,40 @@ describe("contactsFiltersLogic", () => {
       specialization: "Elektro",
       status: "busy",
       region: "JHM",
+      distanceKm: null,
     });
     expect(res).toEqual([b]);
+  });
+
+  it("filtruje podle vzdálenosti od stavby", () => {
+    const projectPosition = { lat: 50.0875, lng: 14.4213 }; // Praha
+    const near = make({
+      id: "near",
+      company: "Blízká",
+      latitude: 50.10,
+      longitude: 14.45,
+    });
+    const far = make({
+      id: "far",
+      company: "Daleká",
+      latitude: 49.20,
+      longitude: 16.61, // Brno (~190 km)
+    });
+    const noCoords = make({ id: "noc", company: "Bez souřadnic" });
+
+    const within50 = filterContacts(
+      [near, far, noCoords],
+      { ...EMPTY_FILTER_STATE, distanceKm: 50 },
+      projectPosition,
+    );
+    expect(within50.map((r) => r.id)).toEqual(["near"]);
+
+    // Bez projectPosition se distanční filtr neaplikuje
+    const withoutPos = filterContacts(
+      [near, far, noCoords],
+      { ...EMPTY_FILTER_STATE, distanceKm: 50 },
+    );
+    expect(withoutPos).toHaveLength(3);
   });
 
   it("hasActiveFilters detekuje libovolný aktivní filtr", () => {

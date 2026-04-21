@@ -462,6 +462,8 @@ interface SubcontractorSelectorProps {
   onEditContact?: (contact: Subcontractor) => void;
   onAddContact?: (name: string) => void;
   className?: string;
+  /** When provided, enables the "Nejblíže ke stavbě" distance filter */
+  projectPosition?: { lat: number; lng: number } | null;
 }
 
 export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
@@ -473,8 +475,9 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
   onEditContact,
   onAddContact,
   className,
+  projectPosition,
 }) => {
-  const filters = useContactsFilters(contacts);
+  const filters = useContactsFilters(contacts, projectPosition);
 
   // Column visibility
   const [visibleColumns, setVisibleColumns] =
@@ -582,6 +585,8 @@ export const SubcontractorSelector: React.FC<SubcontractorSelectorProps> = ({
         onSpecializationChange={filters.setSpecialization}
         onStatusChange={filters.setStatus}
         onRegionChange={filters.setRegion}
+        onDistanceChange={filters.setDistanceKm}
+        hasProjectPosition={!!filters.projectPosition}
         onClear={filters.clear}
         trailingSlot={
           <div className="relative" ref={columnMenuRef}>

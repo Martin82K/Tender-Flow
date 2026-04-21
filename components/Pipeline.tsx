@@ -810,6 +810,11 @@ export const Pipeline: React.FC<PipelineProps> = ({
           onConfirm={() => handleAddSubcontractors(localContacts)}
           onAddContact={handleCreateContactRequest}
           onEditContact={setEditingContact}
+          projectPosition={
+            projectData.latitude != null && projectData.longitude != null
+              ? { lat: projectData.latitude, lng: projectData.longitude }
+              : null
+          }
         />
         {(isCreateContactModalOpen || editingContact) && (
           <CreateContactModal
