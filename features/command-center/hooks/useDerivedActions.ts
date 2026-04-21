@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useAppData } from "@/hooks/useAppData";
 import { useUI } from "@/context/UIContext";
 import { buildAppUrl } from "@shared/routing/routeUtils";
+import { useAllContractsQuery } from "@features/projects/contracts/hooks/useAllContractsQuery";
 import type { CommandCenterFilterState, DerivedAction } from "@features/command-center/types";
 import { matchesFilter } from "./filterUtils";
 
@@ -10,6 +11,8 @@ const DEMAND_LIMIT_DAYS = 14;
 const CONTRACT_PENDING_DAYS = 3;
 const SUPPLIER_RESPONSE_DAYS = 6;
 const MIN_SUPPLIERS_PER_CATEGORY = 3;
+const INVOICE_DUE_SOON_DAYS = 14;
+const RETENTION_RELEASE_SOON_DAYS = 14;
 
 const toDate = (value?: string): Date | null => {
   if (!value) return null;
@@ -27,8 +30,23 @@ export const useDerivedActions = (filter?: CommandCenterFilterState): DerivedAct
   const { state } = useAppData(showUiModal);
   const { projects, allProjectDetails } = state;
 
+  const activeProjectIds = useMemo(
+    () => projects.filter((p) => p.status !== "archived").map((p) => p.id),
+    [projects],
+  );
+  const { data: allContracts = [] } = useAllContractsQuery(activeProjectIds);
+
+  const contractsByProject = useMemo(() => {
+    const map: Record<string, typeof allContracts> = {};
+    for (const c of allContracts) {
+      (map[c.projectId] ??= []).push(c);
+    }
+    return map;
+  }, [allContracts]);
+
   return useMemo(() => {
     const now = new Date();
+    const today = now.toISOString().slice(0, 10);
     const actions: DerivedAction[] = [];
 
     for (const project of projects) {
@@ -36,6 +54,112 @@ export const useDerivedActions = (filter?: CommandCenterFilterState): DerivedAct
       if (filter && !matchesFilter(project, filter)) continue;
 
       const details = allProjectDetails[project.id];
+      const projectContracts = contractsByProject[project.id] ?? [];
+
+      for (const contract of projectContracts) {
+        for (const inv of contract.invoices ?? []) {
+          const dueDate = toDate(inv.dueDate);
+          if (!dueDate) continue;
+          const daysToDue = diffInDays(dueDate, now);
+          const isOverdue =
+            inv.status === "overdue" ||
+            (inv.status === "issued" && inv.dueDate < today);
+
+          if (isOverdue && inv.status !== "paid") {
+            actions.push({
+              id: `invoice-overdue-${inv.id}`,
+              severity: "critical",
+              title: `Faktura ${inv.invoiceNumber} je ${Math.abs(daysToDue)} d po splatnosti`,
+              subtitle: contract.title,
+              projectId: project.id,
+              projectName: project.name,
+              dueAt: dueDate.toISOString(),
+              actionUrl: buildAppUrl("project", {
+                projectId: project.id,
+                tab: "contracts",
+              }),
+            });
+          } else if (
+            (inv.status === "issued" || inv.status === "approved") &&
+            daysToDue >= 0 &&
+            daysToDue <= INVOICE_DUE_SOON_DAYS
+          ) {
+            actions.push({
+              id: `invoice-due-${inv.id}`,
+              severity: daysToDue <= 3 ? "warning" : "info",
+              title:
+                daysToDue === 0
+                  ? `Splatnost ${inv.invoiceNumber} dnes`
+                  : `Splatnost ${inv.invoiceNumber} za ${daysToDue} d`,
+              subtitle: contract.title,
+              projectId: project.id,
+              projectName: project.name,
+              dueAt: dueDate.toISOString(),
+              actionUrl: buildAppUrl("project", {
+                projectId: project.id,
+                tab: "contracts",
+              }),
+            });
+          }
+        }
+
+        if (
+          contract.retentionShortStatus !== "released" &&
+          contract.retentionShortReleaseOn
+        ) {
+          const releaseDate = toDate(contract.retentionShortReleaseOn);
+          if (releaseDate) {
+            const daysTo = diffInDays(releaseDate, now);
+            if (daysTo >= 0 && daysTo <= RETENTION_RELEASE_SOON_DAYS) {
+              actions.push({
+                id: `retention-short-${contract.id}`,
+                severity: daysTo <= 3 ? "warning" : "info",
+                title:
+                  daysTo === 0
+                    ? "Uvolnění krátk. pozastávky dnes"
+                    : `Uvolnění krátk. pozastávky za ${daysTo} d`,
+                subtitle: contract.title,
+                projectId: project.id,
+                projectName: project.name,
+                dueAt: releaseDate.toISOString(),
+                actionUrl: buildAppUrl("project", {
+                  projectId: project.id,
+                  tab: "contracts",
+                }),
+              });
+            }
+          }
+        }
+
+        if (
+          contract.retentionLongStatus !== "released" &&
+          contract.retentionLongReleaseOn
+        ) {
+          const releaseDate = toDate(contract.retentionLongReleaseOn);
+          if (releaseDate) {
+            const daysTo = diffInDays(releaseDate, now);
+            if (daysTo >= 0 && daysTo <= RETENTION_RELEASE_SOON_DAYS) {
+              actions.push({
+                id: `retention-long-${contract.id}`,
+                severity: daysTo <= 3 ? "warning" : "info",
+                title:
+                  daysTo === 0
+                    ? "Uvolnění dlouh. pozastávky dnes"
+                    : `Uvolnění dlouh. pozastávky za ${daysTo} d`,
+                subtitle: contract.title,
+                projectId: project.id,
+                projectName: project.name,
+                dueAt: releaseDate.toISOString(),
+                actionUrl: buildAppUrl("project", {
+                  projectId: project.id,
+                  tab: "contracts",
+                }),
+              });
+            }
+          }
+        }
+      }
+
       if (!details) continue;
 
       const categories = details.categories ?? [];
@@ -200,5 +324,5 @@ export const useDerivedActions = (filter?: CommandCenterFilterState): DerivedAct
       const bDue = b.dueAt ? new Date(b.dueAt).getTime() : Number.POSITIVE_INFINITY;
       return aDue - bDue;
     });
-  }, [projects, allProjectDetails, filter]);
+  }, [projects, allProjectDetails, contractsByProject, filter]);
 };

@@ -262,6 +262,65 @@ export const contractService = {
     });
   },
 
+  listContractsByProjectIds: async (projectIds: string[]): Promise<ContractWithDetails[]> => {
+    if (projectIds.length === 0) return [];
+
+    const { data: contracts, error } = await supabase
+      .from('contracts')
+      .select('*')
+      .in('project_id', projectIds)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    if (!contracts?.length) return [];
+
+    const contractIds = contracts.map(c => c.id);
+
+    const [amendmentsRes, drawdownsRes, invoicesRes] = await Promise.all([
+      supabase.from('contract_amendments').select('*').in('contract_id', contractIds).order('amendment_no', { ascending: true }),
+      supabase.from('contract_drawdowns').select('*').in('contract_id', contractIds).order('period', { ascending: true }),
+      supabase.from('contract_invoices').select('*').in('contract_id', contractIds).order('due_date', { ascending: true }),
+    ]);
+
+    const amendmentsByContract: Record<string, ContractAmendment[]> = {};
+    const drawdownsByContract: Record<string, ContractDrawdown[]> = {};
+    const invoicesByContract: Record<string, ContractInvoice[]> = {};
+
+    (amendmentsRes.data || []).forEach(a => {
+      (amendmentsByContract[a.contract_id] ??= []).push(mapAmendment(a));
+    });
+    (drawdownsRes.data || []).forEach(d => {
+      (drawdownsByContract[d.contract_id] ??= []).push(mapDrawdown(d));
+    });
+    (invoicesRes.data || []).forEach(i => {
+      (invoicesByContract[i.contract_id] ??= []).push(mapInvoice(i));
+    });
+
+    return contracts.map(c => {
+      const contract = mapContract(c);
+      const amendments = amendmentsByContract[c.id] || [];
+      const drawdowns = drawdownsByContract[c.id] || [];
+      const invoices = invoicesByContract[c.id] || [];
+
+      const currentTotal = contract.basePrice + amendments.reduce((sum, a) => sum + a.deltaPrice, 0);
+      const approvedSum = drawdowns.reduce((sum, d) => sum + d.approvedAmount, 0);
+      const { invoicedSum, paidSum, overdueSum } = computeInvoiceAggregates(invoices);
+
+      return {
+        ...contract,
+        amendments,
+        drawdowns,
+        invoices,
+        currentTotal,
+        approvedSum,
+        remaining: currentTotal - approvedSum,
+        invoicedSum,
+        paidSum,
+        overdueSum,
+      };
+    });
+  },
+
   getContractById: async (contractId: string): Promise<ContractWithDetails | null> => {
     const { data: contract, error } = await supabase
       .from('contracts')

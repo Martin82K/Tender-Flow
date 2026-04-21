@@ -76,7 +76,7 @@ export const InvoicesSection: React.FC<Props> = ({ contract, onRefresh }) => {
         <>
           <div className="flex flex-wrap gap-4 mb-3">
             <div>
-              <div className="text-[10.5px] uppercase tracking-wider text-slate-600 dark:text-slate-500">Nafakturováno</div>
+              <div className="text-[10.5px] uppercase tracking-wider text-slate-600 dark:text-slate-500">Vyfakturováno</div>
               <div className="text-sm font-semibold text-blue-400 tabular-nums">
                 {formatMoney(contract.invoicedSum, contract.currency)}
               </div>
@@ -112,69 +112,118 @@ export const InvoicesSection: React.FC<Props> = ({ contract, onRefresh }) => {
             )}
           </div>
 
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-800 text-[10.5px] uppercase tracking-wider text-slate-600 dark:text-slate-500">
-                <th className="text-left px-2.5 py-2">Č. faktury</th>
-                <th className="text-left px-2.5 py-2">DUZP</th>
-                <th className="text-left px-2.5 py-2">Splatnost</th>
-                <th className="text-right px-2.5 py-2">Částka</th>
-                <th className="text-left px-2.5 py-2">Stav</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {contract.invoices.map((inv) => {
-                const effective = deriveStatus(inv);
-                const style = STATUS_STYLE[effective];
-                return (
-                  <tr key={inv.id} className="border-b border-slate-200 dark:border-slate-800">
-                    <td className="px-2.5 py-2 font-semibold text-slate-900 dark:text-slate-200">{inv.invoiceNumber}</td>
-                    <td className="px-2.5 py-2 text-slate-600 dark:text-slate-400">{formatDate(inv.issueDate)}</td>
-                    <td className="px-2.5 py-2 text-slate-600 dark:text-slate-400">{formatDate(inv.dueDate)}</td>
-                    <td className="px-2.5 py-2 text-right tabular-nums text-slate-900 dark:text-slate-200">
-                      {formatMoney(inv.amount, inv.currency)}
-                    </td>
-                    <td className="px-2.5 py-2">
-                      <span
-                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10.5px] font-semibold ${style.className}`}
-                      >
-                        {style.label}
-                      </span>
-                    </td>
-                    <td className="px-2.5 py-2 text-right whitespace-nowrap">
-                      {effective !== 'paid' && (
-                        <button
-                          type="button"
-                          onClick={() => handlePaid(inv.id)}
-                          className="px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-green-600 dark:text-green-400 text-xs"
-                          title="Označit jako zaplacenou"
-                        >
-                          ✓
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => openEdit(inv)}
-                        className="px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"
-                        title="Upravit"
-                      >
-                        ✎
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(inv.id)}
-                        className="px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"
-                        title="Smazat"
-                      >
-                        ✕
-                      </button>
-                    </td>
+          {(() => {
+            const retentionPercent =
+              (contract.retentionShortPercent ?? 0) + (contract.retentionLongPercent ?? 0);
+            const retentionRatio = retentionPercent / 100;
+
+            let totalAmount = 0;
+            let totalRetention = 0;
+            let totalSettled = 0;
+
+            const rows = contract.invoices.map((inv) => {
+              const effective = deriveStatus(inv);
+              const isPaid = effective === 'paid';
+              const retention = isPaid ? Math.round(inv.amount * retentionRatio) : null;
+              const settled = isPaid && retention !== null ? inv.amount - retention : null;
+              totalAmount += inv.amount;
+              if (retention !== null) totalRetention += retention;
+              if (settled !== null) totalSettled += settled;
+              return { inv, effective, isPaid, retention, settled };
+            });
+
+            return (
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-800 text-[10.5px] uppercase tracking-wider text-slate-600 dark:text-slate-500">
+                    <th className="text-left px-2.5 py-2">Č. faktury</th>
+                    <th className="text-left px-2.5 py-2">DUZP</th>
+                    <th className="text-left px-2.5 py-2">Splatnost</th>
+                    <th className="text-right px-2.5 py-2">Částka</th>
+                    <th className="text-right px-2.5 py-2" title={`Krátkodobá + dlouhodobá pozastávka (${retentionPercent.toFixed(2).replace(/\.?0+$/, '')} %)`}>
+                      Pozastávka
+                    </th>
+                    <th className="text-right px-2.5 py-2">Uhrazeno</th>
+                    <th className="text-left px-2.5 py-2">Stav</th>
+                    <th />
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                </thead>
+                <tbody>
+                  {rows.map(({ inv, effective, retention, settled }) => {
+                    const style = STATUS_STYLE[effective];
+                    return (
+                      <tr key={inv.id} className="border-b border-slate-200 dark:border-slate-800">
+                        <td className="px-2.5 py-2 font-semibold text-slate-900 dark:text-slate-200">{inv.invoiceNumber}</td>
+                        <td className="px-2.5 py-2 text-slate-600 dark:text-slate-400">{formatDate(inv.issueDate)}</td>
+                        <td className="px-2.5 py-2 text-slate-600 dark:text-slate-400">{formatDate(inv.dueDate)}</td>
+                        <td className="px-2.5 py-2 text-right tabular-nums text-slate-900 dark:text-slate-200">
+                          {formatMoney(inv.amount, inv.currency)}
+                        </td>
+                        <td className="px-2.5 py-2 text-right tabular-nums text-amber-600 dark:text-amber-400">
+                          {retention !== null ? formatMoney(retention, inv.currency) : '—'}
+                        </td>
+                        <td className="px-2.5 py-2 text-right tabular-nums text-green-600 dark:text-green-400 font-semibold">
+                          {settled !== null ? formatMoney(settled, inv.currency) : '—'}
+                        </td>
+                        <td className="px-2.5 py-2">
+                          <span
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10.5px] font-semibold ${style.className}`}
+                          >
+                            {style.label}
+                          </span>
+                        </td>
+                        <td className="px-2.5 py-2 text-right whitespace-nowrap">
+                          {effective !== 'paid' && (
+                            <button
+                              type="button"
+                              onClick={() => handlePaid(inv.id)}
+                              className="px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-green-600 dark:text-green-400 text-xs"
+                              title="Označit jako zaplacenou"
+                            >
+                              ✓
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => openEdit(inv)}
+                            className="px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"
+                            title="Upravit"
+                          >
+                            ✎
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(inv.id)}
+                            className="px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"
+                            title="Smazat"
+                          >
+                            ✕
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-slate-100/60 dark:bg-slate-800/40 text-[11px] font-semibold">
+                    <td className="px-2.5 py-2 uppercase tracking-wider text-slate-700 dark:text-slate-300" colSpan={3}>
+                      Celkem ({rows.length})
+                    </td>
+                    <td className="px-2.5 py-2 text-right tabular-nums text-slate-900 dark:text-slate-100">
+                      {formatMoney(totalAmount, contract.currency)}
+                    </td>
+                    <td className="px-2.5 py-2 text-right tabular-nums text-amber-600 dark:text-amber-400">
+                      {formatMoney(totalRetention, contract.currency)}
+                    </td>
+                    <td className="px-2.5 py-2 text-right tabular-nums text-green-600 dark:text-green-400">
+                      {formatMoney(totalSettled, contract.currency)}
+                    </td>
+                    <td className="px-2.5 py-2" colSpan={2} />
+                  </tr>
+                </tfoot>
+              </table>
+            );
+          })()}
           <div className="mt-3">
             <button
               type="button"

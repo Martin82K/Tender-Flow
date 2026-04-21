@@ -176,7 +176,7 @@ export const ContractsDashboard: React.FC<Props> = ({ contracts }) => {
         <div className="flex gap-5 flex-wrap text-xs">
           <span className="text-slate-700 dark:text-slate-300 flex items-center gap-2">
             <span className="w-2.5 h-2.5 bg-blue-500 rounded-sm" />
-            Nafakturováno · <strong>{formatMoney(stats.invoiced)}</strong>
+            Vyfakturováno · <strong>{formatMoney(stats.invoiced)}</strong>
           </span>
           <span className="text-slate-700 dark:text-slate-300 flex items-center gap-2">
             <span className="w-2.5 h-2.5 bg-green-500 rounded-sm" />

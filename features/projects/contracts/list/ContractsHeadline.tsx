@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import type { ContractWithDetails } from '@/types';
-import { formatMoney, daysUntil } from '../utils/format';
+import { formatMoney } from '../utils/format';
 import { sumProjectRetention } from '../utils/retention';
 
 interface Props {
@@ -36,38 +36,8 @@ export const ContractsHeadline: React.FC<Props> = ({ contracts }) => {
     };
   }, [contracts]);
 
-  const alerts = useMemo(() => {
-    const items: { text: string; color: 'red' | 'amber' | 'blue' | 'green' }[] = [];
-    for (const c of contracts) {
-      for (const inv of c.invoices || []) {
-        const dueIn = daysUntil(inv.dueDate);
-        if (inv.status === 'overdue' || (inv.status === 'issued' && dueIn !== null && dueIn < 0)) {
-          items.push({
-            text: `Faktura ${inv.invoiceNumber} je ${Math.abs(dueIn ?? 0)} dní po splatnosti`,
-            color: 'red',
-          });
-        } else if (inv.status === 'issued' && dueIn !== null && dueIn >= 0 && dueIn <= 14) {
-          items.push({
-            text: `Splatnost ${inv.invoiceNumber} za ${dueIn} dní`,
-            color: 'amber',
-          });
-        }
-      }
-      if (c.retentionShortStatus !== 'released' && c.retentionShortReleaseOn) {
-        const d = daysUntil(c.retentionShortReleaseOn);
-        if (d !== null && d >= 0 && d <= 14) {
-          items.push({
-            text: `Uvolnění poz. krátk. · ${c.title} · za ${d} dní`,
-            color: 'amber',
-          });
-        }
-      }
-    }
-    return items.slice(0, 4);
-  }, [contracts]);
-
   return (
-    <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 px-5 pt-5">
+    <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 px-5 pt-5">
       <div className="rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-4 flex flex-col gap-1.5">
         <div className="text-[10.5px] uppercase tracking-wider text-slate-600 dark:text-slate-500 font-semibold">
           Hodnota smluv
@@ -94,7 +64,7 @@ export const ContractsHeadline: React.FC<Props> = ({ contracts }) => {
             <div className="text-[17px] font-bold text-blue-400 tabular-nums">
               {formatMoney(stats.invoiced)}
             </div>
-            <div className="text-[10px] uppercase tracking-wide text-slate-600 dark:text-slate-500">Nafakturováno</div>
+            <div className="text-[10px] uppercase tracking-wide text-slate-600 dark:text-slate-500">Vyfakturováno</div>
           </div>
           <div>
             <div className="text-[17px] font-bold text-green-400 tabular-nums">
@@ -133,33 +103,6 @@ export const ContractsHeadline: React.FC<Props> = ({ contracts }) => {
         </div>
       </div>
 
-      <div className="rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-4 flex flex-col gap-1.5">
-        <div className="text-[10.5px] uppercase tracking-wider text-slate-600 dark:text-slate-500 font-semibold">
-          Alerty · 14 dní
-        </div>
-        <div className="flex flex-col gap-1 mt-1">
-          {alerts.length === 0 ? (
-            <span className="text-[11.5px] text-slate-600 dark:text-slate-500">Žádné otevřené alerty.</span>
-          ) : (
-            alerts.map((a, idx) => (
-              <div key={idx} className="flex items-center gap-2 text-[11.5px] text-slate-700 dark:text-slate-300">
-                <span
-                  className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-                    a.color === 'red'
-                      ? 'bg-red-500'
-                      : a.color === 'amber'
-                        ? 'bg-amber-500'
-                        : a.color === 'blue'
-                          ? 'bg-blue-500'
-                          : 'bg-green-500'
-                  }`}
-                />
-                <span className="truncate">{a.text}</span>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
     </section>
   );
 };
