@@ -29,6 +29,11 @@ vi.mock("@/hooks/useAppData", () => ({
   useAppData: () => ({ state, actions: {} }),
 }));
 
+vi.mock("@features/projects/contracts/hooks/useAllContractsQuery", () => ({
+  useAllContractsQuery: () => ({ data: [] }),
+  ALL_CONTRACTS_QUERY_KEY: ["contracts", "all"],
+}));
+
 import { useDerivedActions } from "@features/command-center/hooks/useDerivedActions";
 
 const daysAgo = (days: number) => {

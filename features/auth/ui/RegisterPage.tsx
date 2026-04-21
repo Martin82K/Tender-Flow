@@ -90,7 +90,7 @@ export const RegisterPage: React.FC = () => {
             <button className="btn-login" onClick={() => navigate(loginHref)}>
               Přihlásit se
             </button>
-            <button className="btn-start" onClick={() => navigate("/")}>
+            <button className="auth-nav-back" onClick={() => navigate("/")}>
               Zpět
             </button>
           </div>

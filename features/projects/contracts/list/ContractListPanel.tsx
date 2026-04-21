@@ -95,7 +95,7 @@ export const ContractListPanel: React.FC<Props> = ({ contracts, selectedId, onSe
                     style={{ width: `${pct}%` }}
                   />
                 </div>
-                <div className="text-[10.5px] text-slate-600 dark:text-slate-500 mt-0.5">Nafakturováno {pct} %</div>
+                <div className="text-[10.5px] text-slate-600 dark:text-slate-500 mt-0.5">Vyfakturováno {pct} %</div>
               </button>
             );
           })

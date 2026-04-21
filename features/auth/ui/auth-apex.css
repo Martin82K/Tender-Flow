@@ -173,39 +173,41 @@
   width: 100%;
   padding: 0.8125rem 1rem;
   border-radius: 12px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  color: var(--white);
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #f5f5f7;
   font-size: 0.875rem;
   font-family: var(--font);
   font-weight: 400;
   outline: none;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 .auth-input::placeholder {
-  color: var(--gray-2);
+  color: #6b6b80;
+}
+.auth-input:hover:not(:focus) {
+  border-color: rgba(255, 255, 255, 0.15);
 }
 .auth-input:focus {
-  border-color: var(--border-orange);
-  background: var(--surface-hover);
-  box-shadow: 0 0 0 3px var(--orange-glow);
+  border-color: #ff8a33;
+  background: rgba(255, 138, 51, 0.04);
+  box-shadow: 0 0 0 4px rgba(255, 138, 51, 0.18);
 }
 .auth-input:-webkit-autofill,
 .auth-input:-webkit-autofill:hover,
 .auth-input:-webkit-autofill:focus,
 .auth-input:-webkit-autofill:active {
-  -webkit-text-fill-color: var(--white) !important;
-  caret-color: var(--white);
-  -webkit-box-shadow: 0 0 0 1000px var(--bg-card) inset !important;
-  box-shadow: 0 0 0 1000px var(--bg-card) inset !important;
-  border: 1px solid var(--border) !important;
-  background-clip: content-box !important;
+  -webkit-text-fill-color: #f5f5f7 !important;
+  caret-color: #f5f5f7;
+  -webkit-box-shadow: 0 0 0 1000px #0e1118 inset !important;
+  box-shadow: 0 0 0 1000px #0e1118 inset !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
   transition: background-color 9999s ease-out 0s, color 9999s ease-out 0s;
 }
 .auth-input:-webkit-autofill:focus {
-  border-color: var(--border-orange) !important;
-  box-shadow: 0 0 0 1000px var(--bg-card) inset, 0 0 0 3px var(--orange-glow) !important;
-  -webkit-box-shadow: 0 0 0 1000px var(--bg-card) inset, 0 0 0 3px var(--orange-glow) !important;
+  border: 1px solid #ff8a33 !important;
+  -webkit-box-shadow: 0 0 0 1000px #0e1118 inset, 0 0 0 4px rgba(255, 138, 51, 0.18) !important;
+  box-shadow: 0 0 0 1000px #0e1118 inset, 0 0 0 4px rgba(255, 138, 51, 0.18) !important;
 }
 
 .auth-checkbox {
@@ -383,6 +385,25 @@
 .auth-btn-icon {
   width: 20px;
   height: 20px;
+}
+
+/* ═══════════ NAV BACK (subtle outlined) ═══════════ */
+.auth-nav-back {
+  padding: 0.5rem 1.125rem;
+  background: transparent;
+  border: 1px solid var(--border-hover);
+  border-radius: 10px;
+  color: var(--gray-1);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, background-color 0.2s;
+}
+.auth-nav-back:hover {
+  border-color: var(--border-orange);
+  color: var(--white);
+  background: var(--surface-hover);
 }
 
 /* ═══════════ DIVIDER ═══════════ */
