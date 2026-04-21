@@ -45,6 +45,12 @@ export const notificationService = {
     return data ?? false;
   },
 
+  dismissAll: async (): Promise<number> => {
+    const { data, error } = await supabase.rpc("dismiss_all_notifications");
+    if (error) throw new Error(error.message);
+    return typeof data === "number" ? data : 0;
+  },
+
   insert: async (params: {
     targetUserId: string;
     type: string;

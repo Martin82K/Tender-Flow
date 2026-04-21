@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { invokeAuthedFunction } from "@/services/functionsClient";
 import { collectFallbackSuppliers } from "@/shared/dochub/fallbackSelection";
 import { ensureStructure } from "@/services/fileSystemService";
-import { buildHierarchyTree } from "@/utils/docHub";
+import { buildHierarchyTree, ensureExtraHierarchy } from "@/utils/docHub";
 import type { Bid, ProjectDetails } from "@/types";
 import { getSafeFallbackProjectId as getSafeFallbackProjectIdModel } from "./pipelineModel";
 
@@ -15,7 +15,7 @@ interface UsePipelineDocHubFallbackInput {
   isDocHubEnabled: boolean;
   docHubStructure: ReturnType<typeof import("@/utils/docHub").resolveDocHubStructureV1>;
   userRole?: string;
-  fallbackEnabledFlag: boolean;
+  activeCategoryId?: string | null;
 }
 
 export const usePipelineDocHubFallback = ({
@@ -27,24 +27,38 @@ export const usePipelineDocHubFallback = ({
   isDocHubEnabled,
   docHubStructure,
   userRole,
-  fallbackEnabledFlag,
+  activeCategoryId,
 }: UsePipelineDocHubFallbackInput) => {
   const projectFallbackRunRef = useRef<{ projectId: string | null; done: boolean }>({
     projectId: null,
     done: false,
   });
+  const categoryFallbackRunRef = useRef<{ key: string | null }>({ key: null });
   const fallbackInFlightRef = useRef<Set<string>>(new Set());
 
   const getSafeFallbackProjectId = () =>
     getSafeFallbackProjectIdModel(projectId, projectData.id);
 
-  const isDocHubFallbackEnabled = () =>
-    fallbackEnabledFlag &&
-    isDocHubEnabled &&
-    docHubRoot.length > 0 &&
-    userRole !== "demo" &&
-    !!projectData.docHubProvider &&
-    !!getSafeFallbackProjectId();
+  const isDocHubFallbackEnabled = () => {
+    const enabled =
+      isDocHubEnabled &&
+      docHubRoot.length > 0 &&
+      userRole !== "demo" &&
+      !!projectData.docHubProvider &&
+      !!getSafeFallbackProjectId();
+
+    if (!enabled) {
+      console.info("[DocHub fallback] Skipped — conditions not met", {
+        isDocHubEnabled,
+        docHubRootPresent: docHubRoot.length > 0,
+        userRole,
+        provider: projectData.docHubProvider ?? null,
+        safeProjectId: getSafeFallbackProjectId(),
+      });
+    }
+
+    return enabled;
+  };
 
   const runDocHubFallbackForProject = async (reason: string) => {
     if (!isDocHubFallbackEnabled()) return;
@@ -69,17 +83,37 @@ export const usePipelineDocHubFallback = ({
         bidsByCategory: bids,
       });
 
+      console.info("[DocHub fallback] Project run", {
+        reason,
+        projectId: fallbackProjectId,
+        categoryCount: categoriesForEnsure.length,
+        supplierCountByCategory: Object.fromEntries(
+          Object.entries(suppliersByCategory).map(([k, v]) => [k, v.length]),
+        ),
+        provider: projectData.docHubProvider,
+      });
+
       if (categoriesForEnsure.length === 0) return;
 
       const provider = projectData.docHubProvider;
       if (provider === "onedrive") {
-        const hierarchyTree = buildHierarchyTree(docHubStructure.extraHierarchy || []);
+        const hierarchyTree = buildHierarchyTree(
+          ensureExtraHierarchy(docHubStructure.extraHierarchy),
+        );
         const result = await ensureStructure({
           rootPath: docHubRoot,
           structure: docHubStructure,
           categories: categoriesForEnsure,
           suppliers: suppliersByCategory,
           hierarchy: hierarchyTree,
+        });
+
+        console.info("[DocHub fallback] Project ensureStructure done", {
+          reason,
+          success: result.success,
+          createdCount: result.createdCount,
+          reusedCount: result.reusedCount,
+          error: result.error,
         });
 
         if (!result.success) {
@@ -140,17 +174,36 @@ export const usePipelineDocHubFallback = ({
         categoryIds: [categoryId],
       });
 
+      console.info("[DocHub fallback] Category run", {
+        reason,
+        projectId: fallbackProjectId,
+        categoryId,
+        supplierCount: suppliersByCategory[categoryId]?.length ?? 0,
+        provider: projectData.docHubProvider,
+      });
+
       if (categoriesForEnsure.length === 0) return;
 
       const provider = projectData.docHubProvider;
       if (provider === "onedrive") {
-        const hierarchyTree = buildHierarchyTree(docHubStructure.extraHierarchy || []);
+        const hierarchyTree = buildHierarchyTree(
+          ensureExtraHierarchy(docHubStructure.extraHierarchy),
+        );
         const result = await ensureStructure({
           rootPath: docHubRoot,
           structure: docHubStructure,
           categories: categoriesForEnsure,
           suppliers: suppliersByCategory,
           hierarchy: hierarchyTree,
+        });
+
+        console.info("[DocHub fallback] Category ensureStructure done", {
+          reason,
+          categoryId,
+          success: result.success,
+          createdCount: result.createdCount,
+          reusedCount: result.reusedCount,
+          error: result.error,
         });
 
         if (!result.success) {
@@ -224,6 +277,28 @@ export const usePipelineDocHubFallback = ({
     projectFallbackRunRef.current.done = true;
     void runDocHubFallbackForProject("pipeline-open");
   }, [projectId, isDocHubEnabled, docHubRoot, userRole, projectData.docHubProvider]);
+
+  // Category-level check: whenever the user opens a specific VŘ (pipeline detail),
+  // re-verify supplier folders for every bid in that category. This covers the
+  // case where a bid was added in another tab / session and the project-level
+  // check has already run once for this mount.
+  useEffect(() => {
+    if (!activeCategoryId) return;
+    if (!isDocHubFallbackEnabled()) return;
+
+    const runKey = `${projectId}:${activeCategoryId}`;
+    if (categoryFallbackRunRef.current.key === runKey) return;
+    categoryFallbackRunRef.current.key = runKey;
+
+    void runDocHubFallbackForCategory(activeCategoryId, "category-open");
+  }, [
+    activeCategoryId,
+    projectId,
+    isDocHubEnabled,
+    docHubRoot,
+    userRole,
+    projectData.docHubProvider,
+  ]);
 
   return {
     runDocHubFallbackForCategory,

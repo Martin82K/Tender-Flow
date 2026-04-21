@@ -50,6 +50,10 @@ export const HeaderSection: React.FC<Props> = ({ contract, onChanged }) => {
           <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">{formatDate(contract.signedAt)}</div>
         </div>
         <div>
+          <div className="text-[10.5px] uppercase tracking-wider text-slate-600 dark:text-slate-500">Termín dokončení</div>
+          <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">{formatDate(contract.completionDate)}</div>
+        </div>
+        <div>
           <div className="text-[10.5px] uppercase tracking-wider text-slate-600 dark:text-slate-500">Hodnocení</div>
           <button
             type="button"

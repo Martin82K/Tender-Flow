@@ -16,6 +16,7 @@ import { useFeatures } from '@/context/FeatureContext';
 import { formatDecimal } from '@/utils/formatters';
 import { FEATURES } from '@/config/features';
 import { SubcontractorMapView } from '@features/maps/components/SubcontractorMapView';
+import { SubcontractorCardsView } from '@features/contacts/ui/SubcontractorCardsView';
 
 interface ContactsProps {
     statuses: StatusConfig[];
@@ -29,8 +30,9 @@ interface ContactsProps {
 }
 
 export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContactsChange, onAddContact, onUpdateContact, onBulkUpdateContacts, onDeleteContacts, isAdmin = false }) => {
-    // View mode: list or map
-    const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+    // View mode: cards | list | map
+    type ViewMode = 'cards' | 'list' | 'map';
+    const [viewMode, setViewMode] = useState<ViewMode>('list');
     const { hasFeature } = useFeatures();
     const hasMapFeature = hasFeature(FEATURES.MODULE_MAPS);
 
@@ -601,24 +603,41 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                             </button>
                         </div>
                     ) : null}
-                    {hasMapFeature && (
-                        <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
+                    <div
+                        role="tablist"
+                        aria-label="Režim zobrazení"
+                        className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5"
+                    >
+                        <button
+                            role="tab"
+                            aria-selected={viewMode === 'cards'}
+                            onClick={() => setViewMode('cards')}
+                            className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${viewMode === 'cards' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                        >
+                            <span className="material-symbols-outlined text-[16px]">grid_view</span>
+                            Karty
+                        </button>
+                        <button
+                            role="tab"
+                            aria-selected={viewMode === 'list'}
+                            onClick={() => setViewMode('list')}
+                            className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                        >
+                            <span className="material-symbols-outlined text-[16px]">list</span>
+                            Seznam
+                        </button>
+                        {hasMapFeature && (
                             <button
-                                onClick={() => setViewMode('list')}
-                                className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
-                            >
-                                <span className="material-symbols-outlined text-[16px]">list</span>
-                                Seznam
-                            </button>
-                            <button
+                                role="tab"
+                                aria-selected={viewMode === 'map'}
                                 onClick={() => setViewMode('map')}
                                 className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${viewMode === 'map' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                             >
                                 <span className="material-symbols-outlined text-[16px]">map</span>
                                 Mapa
                             </button>
-                        </div>
-                    )}
+                        )}
+                    </div>
                     <button
                         data-help-id="contacts-add"
                         onClick={handleOpenAddModal}
@@ -630,7 +649,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                 </div>
             </Header>
 
-            {viewMode === 'list' ? (
+            {viewMode === 'list' && (
                 <div data-help-id="contacts-list" className="p-6 lg:p-10 flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
                     <SubcontractorSelector
                         contacts={contacts}
@@ -642,7 +661,21 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                         className="flex-1 min-h-0"
                     />
                 </div>
-            ) : (
+            )}
+            {viewMode === 'cards' && (
+                <div data-help-id="contacts-cards" className="p-6 lg:p-10 flex-1 flex flex-col min-h-0 min-w-0 overflow-auto">
+                    <SubcontractorCardsView
+                        contacts={contacts}
+                        statuses={statuses}
+                        selectedIds={selectedIds}
+                        onSelectionChange={setSelectedIds}
+                        onFilteredContactsChange={setFilteredContacts}
+                        onEditContact={handleOpenEditModal}
+                        className="flex-1 min-h-0"
+                    />
+                </div>
+            )}
+            {viewMode === 'map' && (
                 <div className="flex-1 min-h-0">
                     <SubcontractorMapView
                         contacts={contacts}
