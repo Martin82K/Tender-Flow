@@ -16,8 +16,20 @@ import {
     emitProjectArchivedNotification,
 } from "@features/notifications/api/notificationEmitter";
 
-// Helper for DocHub Sync
-const syncDocHubCategory = async (projectId: string, action: "upsert" | "archive", categoryId: string, categoryTitle?: string) => {
+// Helper for DocHub Sync — cloud providers only.
+// The edge function decrypts OAuth tokens, which don't exist for the local
+// "onedrive" (Tender Flow Desktop) provider and would fail with "Decryption failed".
+const syncDocHubCategory = async (
+    projectId: string,
+    action: "upsert" | "archive",
+    categoryId: string,
+    categoryTitle?: string,
+    provider?: string | null,
+) => {
+    if (!provider || provider === "onedrive") {
+        // Local provider uses native filesystem (ensureStructure); no backend sync needed.
+        return;
+    }
     try {
         await invokeAuthedFunction("dochub-sync-category", {
             body: { projectId, categoryId, categoryTitle, action },
@@ -537,11 +549,17 @@ export const useAddCategoryMutation = () => {
             });
             if (error) throw error;
 
-            // Sync DocHub
-            syncDocHubCategory(projectId, "upsert", category.id, category.title);
+            // Sync DocHub (cloud providers only — skipped for local "onedrive")
+            const projectDetails = queryClient.getQueryData<ProjectDetails>(PROJECT_DETAILS_KEYS.detail(projectId));
+            syncDocHubCategory(
+                projectId,
+                "upsert",
+                category.id,
+                category.title,
+                projectDetails?.docHubProvider ?? null,
+            );
 
             // AUTO-CREATE: local provider (Tender Flow Desktop)
-            const projectDetails = queryClient.getQueryData<ProjectDetails>(PROJECT_DETAILS_KEYS.detail(projectId));
             if (
                 projectDetails &&
                 projectDetails.docHubEnabled &&
@@ -616,8 +634,15 @@ export const useEditCategoryMutation = () => {
 
             if (error) throw error;
 
-            // Sync DocHub
-            syncDocHubCategory(projectId, "upsert", category.id, category.title);
+            // Sync DocHub (cloud providers only — skipped for local "onedrive")
+            const editProjectDetails = queryClient.getQueryData<ProjectDetails>(PROJECT_DETAILS_KEYS.detail(projectId));
+            syncDocHubCategory(
+                projectId,
+                "upsert",
+                category.id,
+                category.title,
+                editProjectDetails?.docHubProvider ?? null,
+            );
 
             // Emit notification for category status change
             if (user?.id) {
@@ -672,8 +697,15 @@ export const useDeleteCategoryMutation = () => {
             const { error } = await dbAdapter.from("demand_categories").delete().eq("id", categoryId).eq("project_id", projectId);
             if (error) throw error;
 
-            // Sync DocHub (Archive)
-            syncDocHubCategory(projectId, "archive", categoryId);
+            // Sync DocHub (Archive) — cloud providers only; skipped for local "onedrive"
+            const delProjectDetails = queryClient.getQueryData<ProjectDetails>(PROJECT_DETAILS_KEYS.detail(projectId));
+            syncDocHubCategory(
+                projectId,
+                "archive",
+                categoryId,
+                undefined,
+                delProjectDetails?.docHubProvider ?? null,
+            );
 
         },
         onMutate: async ({ projectId, categoryId }) => {
