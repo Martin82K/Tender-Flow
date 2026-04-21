@@ -41,13 +41,28 @@ export const usePipelineDocHubFallback = ({
   const getSafeFallbackProjectId = () =>
     getSafeFallbackProjectIdModel(projectId, projectData.id);
 
-  const isDocHubFallbackEnabled = () =>
-    fallbackEnabledFlag &&
-    isDocHubEnabled &&
-    docHubRoot.length > 0 &&
-    userRole !== "demo" &&
-    !!projectData.docHubProvider &&
-    !!getSafeFallbackProjectId();
+  const isDocHubFallbackEnabled = () => {
+    const enabled =
+      fallbackEnabledFlag &&
+      isDocHubEnabled &&
+      docHubRoot.length > 0 &&
+      userRole !== "demo" &&
+      !!projectData.docHubProvider &&
+      !!getSafeFallbackProjectId();
+
+    if (!enabled) {
+      console.info("[DocHub fallback] Skipped — conditions not met", {
+        fallbackEnabledFlag,
+        isDocHubEnabled,
+        docHubRootPresent: docHubRoot.length > 0,
+        userRole,
+        provider: projectData.docHubProvider ?? null,
+        safeProjectId: getSafeFallbackProjectId(),
+      });
+    }
+
+    return enabled;
+  };
 
   const runDocHubFallbackForProject = async (reason: string) => {
     if (!isDocHubFallbackEnabled()) return;
@@ -72,6 +87,16 @@ export const usePipelineDocHubFallback = ({
         bidsByCategory: bids,
       });
 
+      console.info("[DocHub fallback] Project run", {
+        reason,
+        projectId: fallbackProjectId,
+        categoryCount: categoriesForEnsure.length,
+        supplierCountByCategory: Object.fromEntries(
+          Object.entries(suppliersByCategory).map(([k, v]) => [k, v.length]),
+        ),
+        provider: projectData.docHubProvider,
+      });
+
       if (categoriesForEnsure.length === 0) return;
 
       const provider = projectData.docHubProvider;
@@ -85,6 +110,14 @@ export const usePipelineDocHubFallback = ({
           categories: categoriesForEnsure,
           suppliers: suppliersByCategory,
           hierarchy: hierarchyTree,
+        });
+
+        console.info("[DocHub fallback] Project ensureStructure done", {
+          reason,
+          success: result.success,
+          createdCount: result.createdCount,
+          reusedCount: result.reusedCount,
+          error: result.error,
         });
 
         if (!result.success) {
@@ -145,6 +178,14 @@ export const usePipelineDocHubFallback = ({
         categoryIds: [categoryId],
       });
 
+      console.info("[DocHub fallback] Category run", {
+        reason,
+        projectId: fallbackProjectId,
+        categoryId,
+        supplierCount: suppliersByCategory[categoryId]?.length ?? 0,
+        provider: projectData.docHubProvider,
+      });
+
       if (categoriesForEnsure.length === 0) return;
 
       const provider = projectData.docHubProvider;
@@ -158,6 +199,15 @@ export const usePipelineDocHubFallback = ({
           categories: categoriesForEnsure,
           suppliers: suppliersByCategory,
           hierarchy: hierarchyTree,
+        });
+
+        console.info("[DocHub fallback] Category ensureStructure done", {
+          reason,
+          categoryId,
+          success: result.success,
+          createdCount: result.createdCount,
+          reusedCount: result.reusedCount,
+          error: result.error,
         });
 
         if (!result.success) {
