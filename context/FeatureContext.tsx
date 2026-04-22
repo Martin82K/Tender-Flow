@@ -39,6 +39,12 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [currentPlan, setCurrentPlan] = useState<string>('free');
   const [enabledFeatures, setEnabledFeatures] = useState<FeatureKey[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  // Tracks which user the current enabledFeatures/currentPlan actually belong to.
+  // Used to derive an "effective" isLoading that correctly reports true during
+  // the render window between an auth transition and the first completed fetch
+  // for the new user — otherwise consumers (e.g. desktop plan blocker) would see
+  // stale state (`currentPlan='free'` left over from a prior logout cleanup).
+  const [fetchedForUserId, setFetchedForUserId] = useState<string | null>(null);
   const lastRefreshRef = useRef<number>(0);
   const hasFetchedRef = useRef(false);
   const lastFetchedUserRef = useRef<string | null>(null);
@@ -62,6 +68,7 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setIsLoading(false);
       hasFetchedRef.current = true;
       lastFetchedUserRef.current = null;
+      setFetchedForUserId(null);
       return;
     }
 
@@ -83,6 +90,7 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setCurrentPlan('demo');
       hasFetchedRef.current = true;
       lastFetchedUserRef.current = userId;
+      setFetchedForUserId(userId);
       return;
     }
 
@@ -139,6 +147,7 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setIsLoading(false);
       hasFetchedRef.current = true;
       lastFetchedUserRef.current = userId;
+      setFetchedForUserId(userId);
     }
   }, [authLoading, isAuthenticated, userId, userRole]);
 
@@ -171,12 +180,21 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return enabledFeatures.includes(feature);
   }, [enabledFeatures, currentPlan]);
 
+  // Derive the effective loading flag during render.  When the authenticated
+  // user doesn't match the user the current feature set was fetched for, the
+  // data is stale (e.g. leftover "free" plan from a prior logout cleanup) and
+  // we must report isLoading=true until the fresh fetch completes.  Without
+  // this gate the AppContent desktop plan blocker can fire with a stale plan
+  // and redirect the user to the subscription page right after login.
+  const isFeatureDataStale = isAuthenticated && !!userId && userId !== fetchedForUserId;
+  const effectiveIsLoading = isLoading || isFeatureDataStale;
+
   return (
     <FeatureContext.Provider value={{
       enabledFeatures,
       currentPlan,
       hasFeature,
-      isLoading,
+      isLoading: effectiveIsLoading,
       refetchFeatures: fetchFeatures
     }}>
       {children}
