@@ -5,8 +5,46 @@
             "destination": "/api/$1"
         },
         {
-            "source": "/((?!api/).*)",
+            "source": "/((?!api/|robots\\.txt|sitemap\\.xml|llms\\.txt|site\\.webmanifest|favicon\\.png|apple-touch-icon\\.png|android-chrome-.*\\.png).*)",
             "destination": "/index.html"
+        }
+    ],
+    "headers": [
+        {
+            "source": "/(.*)",
+            "headers": [
+                { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
+                { "key": "Content-Security-Policy", "value": "frame-ancestors 'self'" },
+                { "key": "X-Robots-Tag", "value": "index, follow, max-snippet:-1, max-image-preview:large" }
+            ]
+        },
+        {
+            "source": "/robots.txt",
+            "headers": [
+                { "key": "Content-Type", "value": "text/plain; charset=utf-8" },
+                { "key": "Cache-Control", "value": "public, max-age=3600" }
+            ]
+        },
+        {
+            "source": "/sitemap.xml",
+            "headers": [
+                { "key": "Content-Type", "value": "application/xml; charset=utf-8" },
+                { "key": "Cache-Control", "value": "public, max-age=3600" }
+            ]
+        },
+        {
+            "source": "/llms.txt",
+            "headers": [
+                { "key": "Content-Type", "value": "text/plain; charset=utf-8" },
+                { "key": "Cache-Control", "value": "public, max-age=3600" }
+            ]
+        },
+        {
+            "source": "/site.webmanifest",
+            "headers": [
+                { "key": "Content-Type", "value": "application/manifest+json; charset=utf-8" },
+                { "key": "Cache-Control", "value": "public, max-age=3600" }
+            ]
         }
     ]
 }
