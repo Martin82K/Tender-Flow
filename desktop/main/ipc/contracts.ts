@@ -129,6 +129,7 @@ export interface IpcContractMap {
   "backup:openFolder": { args: []; result: { success: boolean; error?: string } };
   "backup:clean": { args: []; result: number };
   "auth:setAuthenticated": { args: [authenticated: boolean]; result: void };
+  "app:setThemeSource": { args: [source: 'light' | 'dark' | 'system']; result: void };
 }
 
 export type IpcChannel = keyof IpcContractMap;

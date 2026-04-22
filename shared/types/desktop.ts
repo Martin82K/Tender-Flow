@@ -78,6 +78,7 @@ export interface AppAPI {
     quit: () => Promise<void>;
     openUserManual: () => Promise<void>;
     getUserDataPath: () => Promise<string>;
+    setThemeSource: (source: 'light' | 'dark' | 'system') => Promise<void>;
 }
 
 export interface StorageAPI {

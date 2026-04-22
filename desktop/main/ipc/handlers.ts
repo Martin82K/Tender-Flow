@@ -1,4 +1,4 @@
-import { ipcMain, dialog, shell, app, BrowserWindow } from 'electron';
+import { ipcMain, dialog, shell, app, BrowserWindow, nativeTheme } from 'electron';
 import * as fs from 'fs/promises';
 import * as http from 'http';
 import * as crypto from 'crypto';
@@ -269,6 +269,11 @@ export function registerIpcHandlers(mainWindow?: BrowserWindow): void {
 
     ipcMain.handle('app:getUserDataPath', async (): Promise<string> => {
         return app.getPath('userData');
+    });
+
+    ipcMain.handle('app:setThemeSource', async (_, source: 'light' | 'dark' | 'system'): Promise<void> => {
+        if (source !== 'light' && source !== 'dark' && source !== 'system') return;
+        nativeTheme.themeSource = source;
     });
 
     // --- STORAGE (auth required) ---
