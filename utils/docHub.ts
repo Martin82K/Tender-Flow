@@ -247,6 +247,12 @@ export const ensureExtraHierarchy = (
  *
  * Works with flat+depth representation: the nearest preceding item with depth-1
  * is the parent, then depth-2, and so on.
+ *
+ * Handles gaps in the ancestor chain: if a depth-level is missing (user deleted
+ * the node) or disabled, we continue looking for parents at shallower depths
+ * instead of getting stuck. Example: if `Poptavky` (depth 2) is disabled but
+ * `category` (depth 1) and `tenders` (depth 0) are enabled, we still collect
+ * those two as ancestors of `supplier` (depth 3).
  */
 export const findHierarchyAncestors = (
   hierarchy: DocHubHierarchyItem[],
@@ -263,11 +269,25 @@ export const findHierarchyAncestors = (
 
   for (let i = matchIndex - 1; i >= 0 && targetDepth >= 0; i--) {
     const item = hierarchy[i];
-    if (item.enabled === false) continue;
-    if ((item.depth ?? 0) === targetDepth) {
-      path.unshift(item);
-      targetDepth--;
+    const itemDepth = item.depth ?? 0;
+
+    // Walking backward: once we see an item shallower than targetDepth, we've
+    // exited the subtree where a targetDepth ancestor could live. Snap targetDepth
+    // down so we don't miss ancestors at even shallower levels.
+    if (itemDepth < targetDepth) {
+      targetDepth = itemDepth;
     }
+
+    if (itemDepth !== targetDepth) continue;
+
+    if (item.enabled === false) {
+      // Disabled ancestor at current target: skip it and look one level higher.
+      targetDepth--;
+      continue;
+    }
+
+    path.unshift(item);
+    targetDepth--;
   }
   path.push(matched);
   return path;
@@ -301,8 +321,15 @@ export const getDocHubTenderLinksDesktop = (
     (item) => item.key === "supplier" || item.name.includes("{Název dodavatele}")
   );
 
-  // Safety fallback — if hierarchy has no supplier node at all
-  if (supplierPath.length === 0) {
+  // Safety fallback — if hierarchy has no supplier node at all, OR the
+  // walk collapsed to just the supplier (meaning ancestors were all
+  // disabled/missing and the supplier was left at depth 0). In both cases we
+  // want a sensible default of {tenders}/{category}/{supplier} so users don't
+  // end up with a path like "{root}/{supplier}" that skips the tender context.
+  const needsFallback =
+    supplierPath.length === 0 ||
+    (supplierPath.length === 1 && (supplierPath[0].depth ?? 0) === 0);
+  if (needsFallback) {
     const tendersItem = hierarchy.find(
       (item) => item.key === "tenders" && item.enabled !== false
     );

@@ -59,6 +59,30 @@ describe("findHierarchyAncestors", () => {
     const path = findHierarchyAncestors(hierarchy, (i) => i.key === "supplier");
     expect(path.map((i) => i.id)).toEqual(["t", "c", "p", "s"]);
   });
+
+  it("continues climbing when the only ancestor at a depth is disabled", () => {
+    // Regression: user disabled Poptavky (depth 2) but left supplier at depth 3.
+    // Old logic got stuck hunting depth 2 and returned [supplier] only.
+    const hierarchy: DocHubHierarchyItem[] = [
+      { id: "t", key: "tenders", name: "03_VR", enabled: true, depth: 0 },
+      { id: "c", key: "category", name: "{Název VŘ}", enabled: true, depth: 1 },
+      { id: "p", key: "tendersInquiries", name: "Poptavky", enabled: false, depth: 2 },
+      { id: "s", key: "supplier", name: "{Název dodavatele}", enabled: true, depth: 3 },
+    ];
+    const path = findHierarchyAncestors(hierarchy, (i) => i.key === "supplier");
+    expect(path.map((i) => i.id)).toEqual(["t", "c", "s"]);
+  });
+
+  it("continues climbing when a depth level is missing entirely from hierarchy", () => {
+    // Regression: user removed Poptavky node but forgot to bump supplier depth.
+    const hierarchy: DocHubHierarchyItem[] = [
+      { id: "t", key: "tenders", name: "03_VR", enabled: true, depth: 0 },
+      { id: "c", key: "category", name: "{Název VŘ}", enabled: true, depth: 1 },
+      { id: "s", key: "supplier", name: "{Název dodavatele}", enabled: true, depth: 3 },
+    ];
+    const path = findHierarchyAncestors(hierarchy, (i) => i.key === "supplier");
+    expect(path.map((i) => i.id)).toEqual(["t", "c", "s"]);
+  });
 });
 
 describe("getDocHubTenderLinksDesktop", () => {
@@ -159,6 +183,46 @@ describe("getDocHubTenderLinksDesktop", () => {
     );
     expect(path).toBe(
       "C:\\Stavby\\26017 - Fibichova\\_TF\\03_CUSTOM\\CatX\\SupY"
+    );
+  });
+
+  it("builds path with tenders+category even when Poptavky is disabled", () => {
+    // Regression for the reported bug: user's project had Poptavky disabled
+    // but supplier stayed at depth 3. Old code returned "{root}\{supplier}"
+    // (missing tenders + category segments). Fix should restore the full path.
+    const disabledPoptavky: DocHubHierarchyItem[] = [
+      { id: "t", key: "tenders", name: "03_Vyberova_rizeni", enabled: true, depth: 0 },
+      { id: "c", key: "category", name: "{Název VŘ}", enabled: true, depth: 1 },
+      { id: "p", key: "tendersInquiries", name: "Poptavky", enabled: false, depth: 2 },
+      { id: "s", key: "supplier", name: "{Název dodavatele}", enabled: true, depth: 3 },
+    ];
+    const path = getDocHubTenderLinksDesktop(
+      ROOT,
+      "01 Betony",
+      "FRISCHBETON sro Praha",
+      { extraHierarchy: disabledPoptavky } as any
+    );
+    expect(path).toBe(
+      "C:\\Stavby\\26017 - Fibichova\\_TF\\03_Vyberova_rizeni\\01 Betony\\FRISCHBETON sro Praha"
+    );
+  });
+
+  it("falls back to tenders/category/supplier when ancestors collapse to just supplier at root", () => {
+    // Defensive: if a project somehow ends up with supplier at depth 0 and no
+    // other ancestors (e.g. corrupted structure), we still want a sensible path
+    // instead of "{root}/{supplier}".
+    const onlySupplier: DocHubHierarchyItem[] = [
+      { id: "t", key: "tenders", name: "03_Vyberova_rizeni", enabled: true, depth: 0 },
+      { id: "s", key: "supplier", name: "{Název dodavatele}", enabled: true, depth: 0 },
+    ];
+    const path = getDocHubTenderLinksDesktop(
+      ROOT,
+      "01 Betony",
+      "FRISCHBETON sro Praha",
+      { extraHierarchy: onlySupplier } as any
+    );
+    expect(path).toBe(
+      "C:\\Stavby\\26017 - Fibichova\\_TF\\03_Vyberova_rizeni\\01 Betony\\FRISCHBETON sro Praha"
     );
   });
 });
