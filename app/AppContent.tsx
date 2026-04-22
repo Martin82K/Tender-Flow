@@ -137,6 +137,7 @@ export const AppContent: React.FC = () => {
   const isDesktopPlanBlocked =
     isDesktop &&
     isAuthenticated &&
+    !authLoading &&
     !isFeaturesLoading &&
     !desktopAllowedTiers.includes(currentPlan as (typeof desktopAllowedTiers)[number]);
   const webAppUrl = "https://tenderflow.cz";
