@@ -240,7 +240,17 @@ export const appAdapter = {
         if (isDesktop && window.electronAPI) {
             return window.electronAPI.app.openUserManual();
         }
-    }
+    },
+
+    async setThemeSource(source: 'light' | 'dark' | 'system'): Promise<void> {
+        if (isDesktop && window.electronAPI?.app?.setThemeSource) {
+            try {
+                await window.electronAPI.app.setThemeSource(source);
+            } catch (e) {
+                console.warn('[appAdapter] setThemeSource failed:', e);
+            }
+        }
+    },
 };
 
 /**

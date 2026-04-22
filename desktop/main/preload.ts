@@ -119,6 +119,9 @@ const electronAPI: ElectronAPI = {
 
         getUserDataPath: (): Promise<string> =>
             ipcRenderer.invoke('app:getUserDataPath'),
+
+        setThemeSource: (source: 'light' | 'dark' | 'system'): Promise<void> =>
+            invokeTyped('app:setThemeSource', source),
     },
 
     // Secure storage (for tokens)

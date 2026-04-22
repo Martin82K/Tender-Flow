@@ -245,18 +245,18 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
             {viewMode === 'table' ? (
                 <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl overflow-hidden">
                     <div className="overflow-x-auto">
-                        <table className="min-w-[900px] w-full text-sm">
+                        <table className="min-w-[900px] w-full text-sm table-fixed">
                             <thead className="bg-slate-100 dark:bg-slate-950/40 border-b border-slate-200 dark:border-slate-700/40">
                                 <tr className="text-left text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                                    <th className="px-4 py-3">Stav</th>
-                                    <th className="px-4 py-3">Poptávka</th>
-                                    <th className="px-4 py-3">Termín</th>
-                                    <th className="px-4 py-3">Realizace</th>
-                                    <th className="px-4 py-3 text-right">Cena</th>
-                                    <th className="px-4 py-3 text-right">Poptáno</th>
-                                    <th className="px-4 py-3 text-right">CN</th>
-                                    <th className="px-4 py-3 text-right">Smlouvy</th>
-                                    <th className="px-4 py-3 text-right">Akce</th>
+                                    <th className="px-3 py-3 w-[110px]">Stav</th>
+                                    <th className="px-3 py-3">Poptávka</th>
+                                    <th className="px-3 py-3 w-[110px]">Termín</th>
+                                    <th className="px-3 py-3 w-[170px]">Realizace</th>
+                                    <th className="px-3 py-3 text-right w-[110px]">Cena</th>
+                                    <th className="px-3 py-3 text-right w-[90px]">Poptáno</th>
+                                    <th className="px-3 py-3 text-right w-[60px]">CN</th>
+                                    <th className="px-3 py-3 text-right w-[90px]">Smlouvy</th>
+                                    <th className="px-3 py-3 text-right w-[140px]">Akce</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200 dark:divide-slate-700/40">
@@ -277,26 +277,26 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
                                             onClick={() => handleRowClick(category)}
                                             onDoubleClick={() => handleRowDoubleClick(category)}
                                         >
-                                            <td className="px-4 py-3">
+                                            <td className="px-3 py-3">
                                                 <span className={`inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-bold uppercase ${statusClass[normalizedStatus]}`}>
                                                     {statusLabels[normalizedStatus]}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-3">
+                                            <td className="px-3 py-3">
                                                 <div className="font-bold text-slate-900 dark:text-white">{category.title}</div>
                                                 {category.description && (
-                                                    <div className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1">{category.description}</div>
+                                                    <div className="text-xs text-slate-500 dark:text-slate-400">{category.description}</div>
                                                 )}
                                             </td>
-                                            <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{deadline}</td>
-                                            <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{realization}</td>
-                                            <td className="px-4 py-3 text-right font-semibold text-slate-900 dark:text-white">{price}</td>
-                                            <td className="px-4 py-3 text-right text-slate-700 dark:text-slate-200">{stats.bidCount}</td>
-                                            <td className="px-4 py-3 text-right text-slate-700 dark:text-slate-200">{stats.priceOfferCount}</td>
-                                            <td className="px-4 py-3 text-right text-slate-700 dark:text-slate-200">
+                                            <td className="px-3 py-3 text-slate-600 dark:text-slate-300">{deadline}</td>
+                                            <td className="px-3 py-3 text-slate-600 dark:text-slate-300">{realization}</td>
+                                            <td className="px-3 py-3 text-right font-semibold text-slate-900 dark:text-white">{price}</td>
+                                            <td className="px-3 py-3 text-right text-slate-700 dark:text-slate-200">{stats.bidCount}</td>
+                                            <td className="px-3 py-3 text-right text-slate-700 dark:text-slate-200">{stats.priceOfferCount}</td>
+                                            <td className="px-3 py-3 text-right text-slate-700 dark:text-slate-200">
                                                 {stats.sodBidsCount > 0 ? `${stats.contractedCount}/${stats.sodBidsCount}` : '—'}
                                             </td>
-                                            <td className="px-4 py-3">
+                                            <td className="px-3 py-3">
                                                 <div className="flex justify-end gap-2">
                                                     <button
                                                         type="button"
