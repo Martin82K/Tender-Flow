@@ -6,6 +6,7 @@
 import { useState, useEffect } from "react";
 import { hexToRgb, mixHexColors } from "../utils/helpers";
 import type { User } from "../types";
+import { appAdapter } from "../services/platformAdapter";
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -101,6 +102,10 @@ export const useTheme = (options: UseThemeOptions = {}): UseThemeReturn => {
         };
 
         applyTheme();
+
+        // Sync Electron's nativeTheme so the Windows/macOS title bar matches the app theme
+        // instead of following the OS dark/light mode setting.
+        void appAdapter.setThemeSource(theme);
 
         // Listen for system changes if theme is system
         if (theme === 'system') {

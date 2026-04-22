@@ -1,12 +1,13 @@
 {
   "name": "tender-flow",
   "private": true,
-  "version": "1.6.0",
+  "version": "1.6.1",
   "type": "module",
   "main": "desktop/dist/main.js",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/prerender-public.mjs",
+    "build:web": "vite build && node scripts/prerender-public.mjs",
     "build:user-manual": "node scripts/build-user-manual.mjs",
     "build:icons": "node scripts/generate-icons.mjs",
     "preview": "vite preview",

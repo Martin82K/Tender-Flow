@@ -50,6 +50,21 @@ const COLUMN_LABELS: Record<ColumnId, string> = {
   rating: 'Hodnocení',
 };
 
+const COLUMN_ALIGN: Record<ColumnId, 'left' | 'right'> = {
+  number: 'left',
+  vendor: 'left',
+  status: 'left',
+  total: 'right',
+  amendments: 'right',
+  invoiced: 'right',
+  paid: 'right',
+  retentionShort: 'right',
+  retentionLong: 'right',
+  warrantyEnd: 'left',
+  paymentTerms: 'right',
+  rating: 'left',
+};
+
 const readColumnPrefs = (): ColumnId[] => {
   if (typeof window === 'undefined') return DEFAULT_COLUMNS;
   try {
@@ -136,7 +151,9 @@ export const ContractsTable: React.FC<Props> = ({ contracts, onSelect }) => {
               {columnsOrdered.map((col) => (
                 <th
                   key={col}
-                  className="sticky top-0 bg-slate-50 dark:bg-slate-900 text-[10.5px] uppercase tracking-wider text-slate-600 dark:text-slate-500 font-bold px-2.5 py-2.5 text-left border-b border-slate-200 dark:border-slate-800 whitespace-nowrap"
+                  className={`sticky top-0 bg-slate-50 dark:bg-slate-900 text-[10.5px] uppercase tracking-wider text-slate-600 dark:text-slate-500 font-bold px-2.5 py-2.5 border-b border-slate-200 dark:border-slate-800 whitespace-nowrap ${
+                    COLUMN_ALIGN[col] === 'right' ? 'text-right' : 'text-left'
+                  }`}
                 >
                   {COLUMN_LABELS[col]}
                 </th>

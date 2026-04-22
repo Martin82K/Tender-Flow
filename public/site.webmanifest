@@ -1,19 +1,27 @@
 {
-    "name": "Tender Flow",
+    "name": "Tender Flow — CRM pro stavební tendry",
     "short_name": "Tender Flow",
+    "description": "CRM platforma pro řízení stavebních tendrů, subdodavatelů a AI analýzu smluv.",
+    "lang": "cs",
+    "start_url": "/",
+    "scope": "/",
     "icons": [
         {
             "src": "/android-chrome-192x192.png",
             "sizes": "192x192",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any maskable"
         },
         {
             "src": "/android-chrome-512x512.png",
             "sizes": "512x512",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any maskable"
         }
     ],
-    "theme_color": "#000000",
-    "background_color": "#000000",
-    "display": "standalone"
+    "theme_color": "#ff8a33",
+    "background_color": "#111827",
+    "display": "standalone",
+    "orientation": "any",
+    "categories": ["business", "productivity"]
 }

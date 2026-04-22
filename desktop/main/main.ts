@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, shell, session, nativeImage } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, shell, session, nativeImage, nativeTheme } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import { registerIpcHandlers } from './ipc/handlers';
@@ -112,6 +112,10 @@ function createWindow(): void {
         show: false, // Show when ready
         backgroundColor: '#0f172a', // Match app dark theme
     });
+
+    // Initial theme source — will be updated from renderer once useTheme resolves.
+    // Defaults to 'dark' to match the app's dark backgroundColor and avoid a light flash.
+    nativeTheme.themeSource = 'dark';
 
 
     // Set dock icon on macOS
