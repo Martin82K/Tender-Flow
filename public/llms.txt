@@ -1,0 +1,71 @@
+# Tender Flow
+
+> Česká CRM platforma pro řízení stavebních tendrů, nabídkových řízení a subdodavatelských vztahů. Kombinuje pipeline tendrů, správu kontaktů, AI analýzu smluv, dokumentový hub, harmonogram a reporting. Dostupná jako webová i nativní desktopová aplikace pro Windows a macOS. Cílový trh: Česká republika a Slovensko.
+
+## Klíčové informace
+
+- **Název:** Tender Flow (TenderFlow)
+- **Webová stránka:** https://tenderflow.cz/
+- **Kontakt:** info@tenderflow.cz
+- **Jazyk aplikace:** čeština
+- **Kategorie:** CRM, Construction Management, Tender Management
+- **Cílová skupina:** stavební firmy, generální dodavatelé, projektoví manažeři, kalkulanti
+- **Platforma:** web (libovolný prohlížeč), desktop (Windows, macOS)
+- **Cenová politika:** freemium (Starter), placené tarify Pro a Enterprise, 14 dní Pro zdarma bez kreditní karty, platby přes GoPay
+- **Bezpečnost:** GDPR compliant, Row Level Security (PostgreSQL), šifrování v klidu i při přenosu, DPA k dispozici
+
+## Funkce
+
+### Pipeline stavebních tendrů
+Vizuální Kanban board pro sledování nabídkových řízení od první poptávky po podepsání smlouvy. Automatické notifikace, deadliny a přehled win rate v reálném čase.
+
+### AI analýza smluv a objednávek
+Automatické čtení naskenovaných smluv, objednávek a nabídek pomocí OCR a integrovaného AI modelu. Extrakce klíčových parametrů subdodávek — šetří hodiny ručního pročítání.
+
+### CRM subdodavatelů
+360° pohled na každého dodavatele: historie spolupráce, hodnocení, kontaktní osoby, přehled nabídek. Auto-doplnění základních údajů z veřejných českých rejstříků podle IČ.
+
+### Dokumentový hub (Složkomat)
+Centralizovaná správa projektové dokumentace s automaticky generovanou standardizovanou strukturou složek. Podporuje Google Drive, OneDrive a lokální disk.
+
+### Harmonogram
+Ganttův diagram s milníky, závislostmi mezi úkoly a týmovou kolaborací v reálném čase.
+
+### Excel nástroje
+Merge více listů do jednoho souboru a unlock uzamčených listů — navrženo pro kalkulanty pracující s daty od subdodavatelů.
+
+### Reporting a export
+Exporty do PDF, Excelu a CSV jedním klikem. Přehled objemu tendrů, aktivních projektů a win rate.
+
+## Omezení a pravidla
+
+- Nabídka musí být odeslána do 14 dnů od vytvoření poptávky.
+- Maximum 5 dodavatelů na jednu poptávkovou kategorii.
+
+## Často kladené dotazy
+
+**Pro koho je Tender Flow určený?**
+Pro české a slovenské stavební firmy, generální dodavatele, projektové manažery a kalkulanty, kteří řídí nabídková řízení a subdodavatele.
+
+**Je k dispozici zkušební verze?**
+Ano, Pro tarif lze vyzkoušet 14 dní zdarma bez zadávání kreditní karty. Pro přístup stačí registrace na https://tenderflow.cz/register.
+
+**Funguje aplikace offline?**
+Nativní desktopová verze poskytuje plnou funkčnost včetně lokální synchronizace. Webová verze vyžaduje připojení.
+
+**Jaké jsou integrace?**
+Google Drive, OneDrive a lokální souborový systém pro dokumenty. Platby přes GoPay. MCP server pro integraci s AI agenty.
+
+**Jak jsou chráněna data?**
+Row Level Security na úrovni databáze, šifrování v klidu i při přenosu, GDPR compliance, auditní logy. Zpracovatelská doložka (DPA) k dispozici na https://tenderflow.cz/dpa.
+
+## Odkazy
+
+- [Hlavní stránka](https://tenderflow.cz/)
+- [Registrace (14 dní zdarma)](https://tenderflow.cz/register)
+- [Přihlášení](https://tenderflow.cz/login)
+- [Obchodní podmínky](https://tenderflow.cz/terms)
+- [Ochrana osobních údajů](https://tenderflow.cz/privacy)
+- [Zásady cookies](https://tenderflow.cz/cookies)
+- [Zpracovatelská doložka (DPA)](https://tenderflow.cz/dpa)
+- [Provozovatel](https://tenderflow.cz/imprint)
