@@ -90,10 +90,6 @@ serve(async (req) => {
     // 2. Parse Request Body
     const {
       to,
-      subject,
-      html,
-      text,
-      from,
       cc,
       bcc,
       reply_to,
@@ -128,10 +124,9 @@ serve(async (req) => {
       );
     }
 
-    // Build content: prefer template-rendered HTML, fall back to caller-supplied html/text.
-    let htmlContent = html ?? "";
-    const textContent = text;
-    let emailSubject = subject ?? "";
+    // Build content only from trusted server templates.
+    let htmlContent = "";
+    let emailSubject = "";
     const safeUserName = escapeHtml(String(data?.name || "uživateli"));
     const loginUrl = sanitizeUrl(data?.loginUrl, "https://tenderflow.cz/login");
 
@@ -272,10 +267,10 @@ serve(async (req) => {
         JSON.stringify({ error: `Unknown template: ${template}` }),
         { status: 400, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
       );
-    } else if (!emailSubject || (!htmlContent && !textContent)) {
+    } else {
       return new Response(
         JSON.stringify({
-          error: "Missing required fields for legacy payload: subject and html/text",
+          error: "Missing required field: template",
         }),
         {
           status: 400,
@@ -292,14 +287,13 @@ serve(async (req) => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: from ?? DEFAULT_FROM,
+        from: DEFAULT_FROM,
         to,
         cc,
         bcc,
         reply_to,
         subject: emailSubject,
         html: htmlContent || undefined,
-        text: textContent,
       }),
     });
 
