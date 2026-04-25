@@ -455,7 +455,7 @@ export const buildComparisonWorkbook = async (
       const celCell = zadaniSheet.getCell(zadaniItem.radek, colCelkem);
       celCell.value = {
         formula: `${letterJcena}${zadaniItem.radek}*${colLetter(quantityCol)}${zadaniItem.radek}`,
-      };
+      } as ExcelJS.CellFormulaValue;
       celCell.font = { name: 'Arial', size: 10 };
       celCell.numFmt = NUMBER_FORMAT;
       celCell.fill = headerFill;
@@ -464,16 +464,16 @@ export const buildComparisonWorkbook = async (
 
     const recapCell = zadaniSheet.getCell(recapRow, colCelkem);
     const recapTerms = parsedZadani.kRows.map((rowIndex) => `${letterCelkem}${rowIndex}`);
-    recapCell.value = recapTerms.length
+    recapCell.value = (recapTerms.length
       ? { formula: recapTerms.join('+') }
-      : { formula: '0' };
+      : { formula: '0' }) as ExcelJS.CellFormulaValue;
     recapCell.font = { name: 'Arial', size: 10, bold: true };
     recapCell.numFmt = NUMBER_FORMAT;
     recapCell.fill = totalFill;
     recapCell.border = BORDER_THIN;
 
     const sumCell = zadaniSheet.getCell(sumRow, colCelkem);
-    sumCell.value = { formula: `${letterCelkem}${recapRow}` };
+    sumCell.value = { formula: `${letterCelkem}${recapRow}` } as ExcelJS.CellFormulaValue;
     sumCell.font = {
       name: 'Arial',
       size: 11,
