@@ -15,6 +15,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { View } from "@/types";
 import { platformAdapter } from "@/services/platformAdapter";
 import { useDesktopMcpTokenSync } from "@app/hooks/useDesktopMcpTokenSync";
+import { usePosthogIdentity } from "@app/hooks/usePosthogIdentity";
 import { useRouteStateSync } from "@app/hooks/useRouteStateSync";
 import { useStuckLoadingRecovery } from "@app/hooks/useStuckLoadingRecovery";
 import { AuthGate } from "@app/views/AuthGate";
@@ -132,6 +133,7 @@ export const AppContent: React.FC = () => {
   }, [showUiModal]);
 
   useDesktopMcpTokenSync();
+  usePosthogIdentity();
 
   const desktopAllowedTiers = ["pro", "enterprise", "admin"] as const;
   const isDesktopPlanBlocked =
