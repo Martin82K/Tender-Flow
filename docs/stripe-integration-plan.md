@@ -173,7 +173,7 @@ Jiná schema změna není potřeba — vše ostatní je multi-provider ready.
 | `STRIPE_WEBHOOK_SECRET` | `whsec_…` | HMAC ověření user webhooků |
 | `STRIPE_ORG_WEBHOOK_SECRET` | `whsec_…` | HMAC ověření org webhooků (samostatný endpoint = samostatný secret) |
 | `STRIPE_API_URL` | `https://api.stripe.com/v1` (default) | Pro test override |
-| `STRIPE_API_VERSION` | `2025-04-30.acacia` | Stripe API version (zachytit v request header) |
+| `STRIPE_API_VERSION` | `2026-04-22.dahlia` | Stripe API version (zachytit v request header) |
 | `STRIPE_PRICE_ID_STARTER_MONTHLY` | `price_1Q…` | Price ID per-seat starter monthly |
 | `STRIPE_PRICE_ID_STARTER_YEARLY` | `price_1Q…` | Price ID per-seat starter yearly |
 | `STRIPE_PRICE_ID_PRO_MONTHLY` | `price_1Q…` | Price ID per-seat pro monthly |

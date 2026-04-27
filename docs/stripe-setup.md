@@ -68,7 +68,7 @@ V `Developers → Webhooks → Add endpoint` vytvoř **dva separátní endpointy
 | Endpoint URL | `https://<SUPABASE_PROJECT_REF>.functions.supabase.co/stripe-webhook` |
 | Description (volitelné) | `Tender Flow user subscriptions` |
 | Events to send | `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_succeeded`, `invoice.payment_failed` |
-| API version | nech default (`2025-04-30.acacia` nebo novější — náš kód nezávisí na konkrétní verzi, pošle se přes `Stripe-Version` header z env) |
+| API version | nech default (`2026-04-22.dahlia` nebo novější — náš kód nezávisí na konkrétní verzi, pošle se přes `Stripe-Version` header z env) |
 
 Po vytvoření klikni `Reveal` u **Signing secret** → zkopíruj `whsec_…` → uložíš ho jako `STRIPE_WEBHOOK_SECRET` (viz dále).
 
@@ -125,7 +125,7 @@ npx supabase secrets set \
 | `STRIPE_PRICE_ID_PRO_MONTHLY` | ✅ | `price_1Q…` | sekce 1.2 |
 | `STRIPE_PRICE_ID_PRO_YEARLY` | ✅ | `price_1Q…` | sekce 1.2 |
 | `STRIPE_API_URL` | ⛔ | (default `https://api.stripe.com/v1`) | volitelné, jen pro testovací override |
-| `STRIPE_API_VERSION` | ⛔ | (default `2025-04-30.acacia`) | volitelné, jen pro pinning starší verze |
+| `STRIPE_API_VERSION` | ⛔ | (default `2026-04-22.dahlia`) | volitelné, jen pro pinning starší verze |
 | `SITE_URL` | ✅ (sdílené s GoPay) | `https://app.tenderflow.cz` | redirect URL allowlist |
 | `ALLOWED_CHECKOUT_ORIGINS` | volitelné (sdílené s GoPay) | `https://app.tenderflow.cz,https://staging.tenderflow.cz` | redirect URL allowlist |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | ✅ (existuje) | – | běžné Supabase secrets |

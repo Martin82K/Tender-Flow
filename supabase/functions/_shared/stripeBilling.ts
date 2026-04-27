@@ -13,7 +13,12 @@ import type { Tier } from "./stripeHelpers.ts";
 // --- Konfigurace ---
 
 const DEFAULT_API_URL = "https://api.stripe.com/v1";
-const DEFAULT_API_VERSION = "2025-04-30.acacia";
+// Stripe API verze. `2025-04-30.acacia` neexistuje (acacia skončila před 2025);
+// aktuální named releases jsou basil → clover → dahlia. Override přes env, jinak
+// pinujeme na poslední dahlia (2026-04-22), ke které je kód testován. Account API
+// version v Stripe Dashboardu nemusí být stejná — Stripe-Version header má vždy
+// přednost před account default.
+const DEFAULT_API_VERSION = "2026-04-22.dahlia";
 const MAX_FETCH_RETRIES = 3;
 const RETRY_BASE_DELAY_MS = 250;
 
