@@ -103,7 +103,15 @@ export const LandingPage: React.FC = () => {
             className="logo-group"
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           >
-            <img src={logo} alt="TenderFlow" className="logo-img" />
+            <img
+              src={logo}
+              alt="TenderFlow — CRM pro stavební tendry"
+              className="logo-img"
+              width={32}
+              height={32}
+              decoding="async"
+              fetchPriority="high"
+            />
             <div className="logo-text">
               TenderFlow
             </div>
@@ -696,7 +704,15 @@ export const LandingPage: React.FC = () => {
           <div className="footer-top">
             <div>
               <div className="footer-brand">
-                <img src={logo} alt="TenderFlow" className="logo-img" />
+                <img
+                  src={logo}
+                  alt="TenderFlow"
+                  className="logo-img"
+                  width={32}
+                  height={32}
+                  loading="lazy"
+                  decoding="async"
+                />
                 <div className="footer-brand-name">TenderFlow</div>
               </div>
               <p className="footer-about">
