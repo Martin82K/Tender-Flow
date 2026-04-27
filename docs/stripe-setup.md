@@ -18,7 +18,7 @@
 
 ## 1. Stripe Dashboard — produkty a ceny
 
-> Stripe Price ID je statický (přiřazený k produktu). My ho čteme z env varu `STRIPE_PRICE_*`. Postup je v test mode i v live mode identický — jen se přepneš v levém horním rohu Dashboardu.
+> Stripe Price ID je statický (přiřazený k produktu). My ho čteme z env varu `STRIPE_PRICE_ID_*`. Postup je v test mode i v live mode identický — jen se přepneš v levém horním rohu Dashboardu.
 
 ### 1.1 Vytvoř dva produkty
 
@@ -38,10 +38,10 @@ Pro každý produkt klikni `Add another price` → vyber **Recurring** → **Sta
 
 | Produkt | Price | Amount | Billing period | Stripe Price ID env var |
 |---|---|---|---|---|
-| Starter | Monthly | **399.00 CZK** | Monthly (1 mo) | `STRIPE_PRICE_STARTER_MONTHLY` |
-| Starter | Yearly | **3 830.40 CZK** | Yearly (1 yr) | `STRIPE_PRICE_STARTER_YEARLY` |
-| Pro | Monthly | **499.00 CZK** | Monthly (1 mo) | `STRIPE_PRICE_PRO_MONTHLY` |
-| Pro | Yearly | **4 790.00 CZK** | Yearly (1 yr) | `STRIPE_PRICE_PRO_YEARLY` |
+| Starter | Monthly | **399.00 CZK** | Monthly (1 mo) | `STRIPE_PRICE_ID_STARTER_MONTHLY` |
+| Starter | Yearly | **3 830.40 CZK** | Yearly (1 yr) | `STRIPE_PRICE_ID_STARTER_YEARLY` |
+| Pro | Monthly | **499.00 CZK** | Monthly (1 mo) | `STRIPE_PRICE_ID_PRO_MONTHLY` |
+| Pro | Yearly | **4 790.00 CZK** | Yearly (1 yr) | `STRIPE_PRICE_ID_PRO_YEARLY` |
 
 **Důležité:**
 - Částka v Dashboardu se zadává v **majoritní jednotce** (399.00 CZK), Stripe API ji interně drží v haléřích (39 900). Náš kód v `_shared/stripeHelpers.ts:24` má pricing v haléřích jako sanity check pro audit, ale **skutečnou částku účtuje Stripe podle Price ID** — Dashboard hodnota je zdroj pravdy. Když nastavíš 399.00 CZK, sedí to.
@@ -109,10 +109,10 @@ npx supabase secrets set \
   STRIPE_SECRET_KEY=sk_test_… \
   STRIPE_WEBHOOK_SECRET=whsec_… \
   STRIPE_ORG_WEBHOOK_SECRET=whsec_… \
-  STRIPE_PRICE_STARTER_MONTHLY=price_… \
-  STRIPE_PRICE_STARTER_YEARLY=price_… \
-  STRIPE_PRICE_PRO_MONTHLY=price_… \
-  STRIPE_PRICE_PRO_YEARLY=price_…
+  STRIPE_PRICE_ID_STARTER_MONTHLY=price_… \
+  STRIPE_PRICE_ID_STARTER_YEARLY=price_… \
+  STRIPE_PRICE_ID_PRO_MONTHLY=price_… \
+  STRIPE_PRICE_ID_PRO_YEARLY=price_…
 ```
 
 | Env var | Povinné? | Příklad | Zdroj |
@@ -120,10 +120,10 @@ npx supabase secrets set \
 | `STRIPE_SECRET_KEY` | ✅ | `sk_test_51Qab…` / `sk_live_51Qab…` | `Developers → API keys → Secret key` |
 | `STRIPE_WEBHOOK_SECRET` | ✅ | `whsec_abc…` | endpoint `stripe-webhook` (sekce 2.1) |
 | `STRIPE_ORG_WEBHOOK_SECRET` | ✅ | `whsec_xyz…` | endpoint `stripe-org-webhook` (sekce 2.2) |
-| `STRIPE_PRICE_STARTER_MONTHLY` | ✅ | `price_1Q…` | sekce 1.2 |
-| `STRIPE_PRICE_STARTER_YEARLY` | ✅ | `price_1Q…` | sekce 1.2 |
-| `STRIPE_PRICE_PRO_MONTHLY` | ✅ | `price_1Q…` | sekce 1.2 |
-| `STRIPE_PRICE_PRO_YEARLY` | ✅ | `price_1Q…` | sekce 1.2 |
+| `STRIPE_PRICE_ID_STARTER_MONTHLY` | ✅ | `price_1Q…` | sekce 1.2 |
+| `STRIPE_PRICE_ID_STARTER_YEARLY` | ✅ | `price_1Q…` | sekce 1.2 |
+| `STRIPE_PRICE_ID_PRO_MONTHLY` | ✅ | `price_1Q…` | sekce 1.2 |
+| `STRIPE_PRICE_ID_PRO_YEARLY` | ✅ | `price_1Q…` | sekce 1.2 |
 | `STRIPE_API_URL` | ⛔ | (default `https://api.stripe.com/v1`) | volitelné, jen pro testovací override |
 | `STRIPE_API_VERSION` | ⛔ | (default `2025-04-30.acacia`) | volitelné, jen pro pinning starší verze |
 | `SITE_URL` | ✅ (sdílené s GoPay) | `https://app.tenderflow.cz` | redirect URL allowlist |

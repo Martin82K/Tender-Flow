@@ -54,10 +54,10 @@ describe("stripeHelpers — getStripePlanLabel", () => {
 
 describe("stripeHelpers — getStripePriceId", () => {
   const env: Record<string, string | undefined> = {
-    STRIPE_PRICE_STARTER_MONTHLY: "price_starter_monthly_123",
-    STRIPE_PRICE_STARTER_YEARLY: "price_starter_yearly_456",
-    STRIPE_PRICE_PRO_MONTHLY: "price_pro_monthly_789",
-    STRIPE_PRICE_PRO_YEARLY: "price_pro_yearly_000",
+    STRIPE_PRICE_ID_STARTER_MONTHLY: "price_starter_monthly_123",
+    STRIPE_PRICE_ID_STARTER_YEARLY: "price_starter_yearly_456",
+    STRIPE_PRICE_ID_PRO_MONTHLY: "price_pro_monthly_789",
+    STRIPE_PRICE_ID_PRO_YEARLY: "price_pro_yearly_000",
   };
   const getter = (key: string) => env[key];
 
@@ -92,7 +92,7 @@ describe("stripeHelpers — getStripePriceId", () => {
 
   it("default getter nepadá v Vitest prostředí (Deno.env neexistuje)", () => {
     // V Vitest běží Node, Deno globální není definován. Bez explicit env vars:
-    // metoda musí vrátit null (process.env nedefinuje STRIPE_PRICE_*).
+    // metoda musí vrátit null (process.env nedefinuje STRIPE_PRICE_ID_*).
     expect(getStripePriceId("starter", "monthly")).toBeNull();
   });
 });

@@ -174,10 +174,10 @@ Jiná schema změna není potřeba — vše ostatní je multi-provider ready.
 | `STRIPE_ORG_WEBHOOK_SECRET` | `whsec_…` | HMAC ověření org webhooků (samostatný endpoint = samostatný secret) |
 | `STRIPE_API_URL` | `https://api.stripe.com/v1` (default) | Pro test override |
 | `STRIPE_API_VERSION` | `2025-04-30.acacia` | Stripe API version (zachytit v request header) |
-| `STRIPE_PRICE_STARTER_MONTHLY` | `price_1Q…` | Price ID per-seat starter monthly |
-| `STRIPE_PRICE_STARTER_YEARLY` | `price_1Q…` | Price ID per-seat starter yearly |
-| `STRIPE_PRICE_PRO_MONTHLY` | `price_1Q…` | Price ID per-seat pro monthly |
-| `STRIPE_PRICE_PRO_YEARLY` | `price_1Q…` | Price ID per-seat pro yearly |
+| `STRIPE_PRICE_ID_STARTER_MONTHLY` | `price_1Q…` | Price ID per-seat starter monthly |
+| `STRIPE_PRICE_ID_STARTER_YEARLY` | `price_1Q…` | Price ID per-seat starter yearly |
+| `STRIPE_PRICE_ID_PRO_MONTHLY` | `price_1Q…` | Price ID per-seat pro monthly |
+| `STRIPE_PRICE_ID_PRO_YEARLY` | `price_1Q…` | Price ID per-seat pro yearly |
 | `SITE_URL` | (existuje) | Allowlist pro redirect URLs |
 | `ALLOWED_CHECKOUT_ORIGINS` | (existuje) | Allowlist pro redirect URLs |
 
@@ -298,7 +298,7 @@ Jiná schema změna není potřeba — vše ostatní je multi-provider ready.
 **A1 — `_shared/stripeHelpers.ts` (pure helpery)**
 - `calculateStripeAmount(tier, period, quantity)` — částka v haléřích × seats (mirror gopay ceník)
 - `getStripePlanLabel(tier, period)` — lokalizovaná popiska plánu
-- `getStripePriceId(tier, period, envGetter?)` — mapování → env var (`STRIPE_PRICE_*`); validuje `price_…` prefix; `enterprise` vždy `null` (žádný self-checkout)
+- `getStripePriceId(tier, period, envGetter?)` — mapování → env var (`STRIPE_PRICE_ID_*`); validuje `price_…` prefix; `enterprise` vždy `null` (žádný self-checkout)
 - `mapStripeSubscriptionStatusToInternal(stripeStatus)` — pokrývá všech 8 Stripe statusů (`active`, `trialing`, `past_due`, `canceled`, `unpaid`, `incomplete`, `incomplete_expired`, `paused`); neznámý status → `expired` (defenzivní default)
 - `validateStripeId(value, kind)` — kontroluje prefix (`cus_`, `sub_`, `cs_`, `evt_`, `price_`, `in_`, `pi_`), max 255 znaků, alfanumerika + underscore (test/live module IDs)
 - `parseStripeMetadata(metadata)` — bezpečný parser pro `userId`, `orgId`, `tier`, `billingPeriod`, `seats`; ignoruje neznámé/nevalidní hodnoty

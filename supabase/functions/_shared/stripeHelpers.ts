@@ -77,12 +77,12 @@ const defaultEnvGetter: EnvGetter = (key) => {
 
 const PRICE_ENV_MAP: Record<Tier, Record<BillingPeriod, string | null>> = {
   starter: {
-    monthly: "STRIPE_PRICE_STARTER_MONTHLY",
-    yearly: "STRIPE_PRICE_STARTER_YEARLY",
+    monthly: "STRIPE_PRICE_ID_STARTER_MONTHLY",
+    yearly: "STRIPE_PRICE_ID_STARTER_YEARLY",
   },
   pro: {
-    monthly: "STRIPE_PRICE_PRO_MONTHLY",
-    yearly: "STRIPE_PRICE_PRO_YEARLY",
+    monthly: "STRIPE_PRICE_ID_PRO_MONTHLY",
+    yearly: "STRIPE_PRICE_ID_PRO_YEARLY",
   },
   enterprise: { monthly: null, yearly: null }, // enterprise nemá self-checkout
 };
