@@ -5,7 +5,7 @@
             "destination": "/api/$1"
         },
         {
-            "source": "/((?!api/|robots\\.txt|sitemap\\.xml|llms\\.txt|site\\.webmanifest|favicon\\.png|apple-touch-icon\\.png|android-chrome-.*\\.png).*)",
+            "source": "/((?!api/|assets/|screenshots/|forms/|robots\\.txt|sitemap\\.xml|llms\\.txt|site\\.webmanifest|favicon\\.png|apple-touch-icon\\.png|android-chrome-.*\\.png).*)",
             "destination": "/index.html"
         }
     ],
@@ -15,7 +15,11 @@
             "headers": [
                 { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
                 { "key": "Content-Security-Policy", "value": "frame-ancestors 'self'" },
-                { "key": "X-Robots-Tag", "value": "index, follow, max-snippet:-1, max-image-preview:large" }
+                { "key": "X-Robots-Tag", "value": "index, follow, max-snippet:-1, max-image-preview:large" },
+                { "key": "X-Content-Type-Options", "value": "nosniff" },
+                { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+                { "key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains" },
+                { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(self), payment=(self), interest-cohort=()" }
             ]
         },
         {
@@ -44,6 +48,18 @@
             "headers": [
                 { "key": "Content-Type", "value": "application/manifest+json; charset=utf-8" },
                 { "key": "Cache-Control", "value": "public, max-age=3600" }
+            ]
+        },
+        {
+            "source": "/screenshots/(.*)",
+            "headers": [
+                { "key": "Cache-Control", "value": "public, max-age=604800, stale-while-revalidate=86400" }
+            ]
+        },
+        {
+            "source": "/assets/(.*)",
+            "headers": [
+                { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
             ]
         }
     ]

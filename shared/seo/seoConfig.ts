@@ -1,6 +1,6 @@
 export const SITE_URL = "https://tenderflow.cz";
 export const SITE_NAME = "Tender Flow";
-export const DEFAULT_OG_IMAGE = `${SITE_URL}/screenshots/kanban.png`;
+export const DEFAULT_OG_IMAGE = `${SITE_URL}/og-image.png`;
 
 export type SeoMeta = {
   title: string;
@@ -12,9 +12,9 @@ export type SeoMeta = {
 
 export const DEFAULT_SEO: SeoMeta = {
   title:
-    "Tender Flow — CRM pro stavební tendry, subdodavatele a AI analýzu smluv",
+    "Tender Flow — Platforma přípravy a vedení staveb | Stavební tendry, subdodavatelé, AI",
   description:
-    "Tender Flow je česká CRM platforma pro řízení stavebních tendrů: pipeline nabídek, správa subdodavatelů, AI čtení smluv a objednávek, dokumentový hub a harmonogram. Web i desktop aplikace. 14 dní zdarma.",
+    "Tender Flow je česká platforma pro přípravu a vedení staveb: stavební tendry, výběrová řízení, správa subdodavatelů, AI analýza smluv a objednávek, dokumentový hub a harmonogram. Web i desktop. 14 dní zdarma.",
   canonical: `${SITE_URL}/`,
   image: DEFAULT_OG_IMAGE,
 };
@@ -24,21 +24,21 @@ export const ROUTE_SEO: Record<string, SeoMeta> = {
   "/login": {
     title: "Přihlášení | Tender Flow",
     description:
-      "Přihlaste se do Tender Flow — CRM platformy pro řízení stavebních tendrů, subdodavatelů a projektové dokumentace.",
+      "Přihlaste se do Tender Flow — platformy přípravy a vedení staveb, stavebních tendrů a subdodavatelů.",
     canonical: `${SITE_URL}/login`,
     noindex: true,
   },
   "/register": {
     title: "Registrace — 14 dní zdarma | Tender Flow",
     description:
-      "Vytvořte si účet v Tender Flow a vyzkoušejte 14 dní zdarma bez kreditní karty. CRM pro stavební tendry, subdodavatele a AI analýzu smluv.",
+      "Vytvořte si účet v Tender Flow a vyzkoušejte 14 dní zdarma bez kreditní karty. Platforma pro přípravu a vedení staveb, stavební tendry a AI analýzu smluv.",
     canonical: `${SITE_URL}/register`,
     noindex: true,
   },
   "/forgot-password": {
     title: "Obnova hesla | Tender Flow",
     description:
-      "Zapomněli jste heslo? Obnovte si přístup do Tender Flow — CRM platformy pro řízení stavebních tendrů.",
+      "Zapomněli jste heslo? Obnovte si přístup do Tender Flow — platformy přípravy a vedení staveb.",
     canonical: `${SITE_URL}/forgot-password`,
     noindex: true,
   },
