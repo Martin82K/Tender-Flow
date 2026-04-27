@@ -63,6 +63,11 @@ describe('isRedirectUrlSafe', () => {
     expect(isRedirectUrlSafe('https://gw.sandbox.gopay.com/gp/pay/12345')).toBe(true);
   });
 
+  it('allows Stripe Checkout (test + live)', () => {
+    expect(isRedirectUrlSafe('https://checkout.stripe.com/c/pay/cs_test_a1B2c3')).toBe(true);
+    expect(isRedirectUrlSafe('https://checkout.stripe.com/c/pay/cs_live_a1B2c3')).toBe(true);
+  });
+
   it('allows Google OAuth', () => {
     expect(isRedirectUrlSafe('https://accounts.google.com/o/oauth2/auth?client_id=123')).toBe(true);
   });
