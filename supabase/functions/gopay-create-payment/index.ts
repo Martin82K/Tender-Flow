@@ -4,6 +4,7 @@ import {
   type BillingPeriod,
   type Tier,
   createPayment,
+  generateOrderNumber,
   getNotificationUrl,
   getPlanAmount,
   getPlanDescription,
@@ -72,7 +73,7 @@ Deno.serve(async (req) => {
 
     const userId = userData.user.id;
     const userEmail = userData.user.email || "";
-    const orderNumber = `TF-${userId.slice(0, 8)}-${tier}-${Date.now()}`;
+    const orderNumber = generateOrderNumber("TF", userId, tier);
 
     // Create GoPay payment with recurrence
     const paymentResponse = await createPayment({

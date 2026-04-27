@@ -1,10 +1,11 @@
 /**
- * Billing Service - GoPay Payment Gateway Integration
+ * Billing Service — user-level předplatné.
  *
- * Handles payment creation, subscription management, and sync via GoPay.
+ * Routuje volání přes `paymentProviderService` (provider-aware: gopay | stripe).
+ * Tenhle modul drží jen UI-friendly error mapping a pricing config.
  */
 
-import { invokeAuthedFunction } from './functionsClient';
+import { paymentProviderService } from './paymentProviderService';
 import type { SubscriptionTier } from '@/types';
 
 // Types for billing operations
@@ -50,7 +51,10 @@ const mapBillingErrorToUserMessage = (rawError?: string): string => {
     if (
         normalized.includes('not configured') ||
         normalized.includes('gopay_goid') ||
-        normalized.includes('gopay_client')
+        normalized.includes('gopay_client') ||
+        normalized.includes('stripe_secret_key') ||
+        normalized.includes('stripe_price_') ||
+        normalized.includes('stripe_webhook_secret')
     ) {
         return 'Platební brána není správně nakonfigurovaná. Kontaktujte prosím podporu.';
     }
@@ -63,11 +67,14 @@ const mapBillingErrorToUserMessage = (rawError?: string): string => {
         return 'Vaše relace vypršela. Přihlaste se znovu a opakujte akci.';
     }
 
-    if (normalized.includes('oauth') || normalized.includes('token')) {
+    if (normalized.includes('oauth') || normalized.includes('token') || normalized.includes('invalid api key')) {
         return 'Chyba autentizace platební brány. Zkuste to prosím znovu.';
     }
 
-    if (normalized.includes('no active subscription')) {
+    if (
+        normalized.includes('no active subscription') ||
+        normalized.includes('no stripe subscription found')
+    ) {
         return 'Nebylo nalezeno aktivní předplatné.';
     }
 
@@ -146,26 +153,23 @@ export const PRICING_CONFIG = {
 
 export const billingService = {
     /**
-     * Create a GoPay payment for subscription purchase.
-     * Returns a payment URL to redirect the user to GoPay's hosted checkout.
+     * Create a checkout session for subscription purchase via active provider.
+     * Returns a payment URL to redirect the user to provider's hosted checkout.
      */
     createCheckoutSession: async (
         request: CheckoutSessionRequest
     ): Promise<CheckoutSessionResponse> => {
         try {
-            const result = await invokeAuthedFunction<{
-                success: boolean;
-                paymentUrl?: string;
-                paymentId?: string;
-                error?: string;
-            }>(
-                'gopay-create-payment',
-                { body: request },
-            );
+            const result = await paymentProviderService.createUserCheckoutSession({
+                tier: request.tier,
+                billingPeriod: request.billingPeriod,
+                successUrl: request.successUrl,
+                cancelUrl: request.cancelUrl,
+            });
 
             return {
                 success: result.success,
-                checkoutUrl: result.paymentUrl,
+                checkoutUrl: result.checkoutUrl ?? result.paymentUrl,
                 paymentUrl: result.paymentUrl,
                 paymentId: result.paymentId,
                 error: result.error ? mapBillingErrorToUserMessage(result.error) : undefined,
@@ -179,7 +183,7 @@ export const billingService = {
     },
 
     /**
-     * Cancel recurring payments via GoPay.
+     * Cancel recurring payments via active provider.
      * Subscription remains active until the current period ends.
      */
     cancelRecurrence: async (): Promise<{
@@ -188,10 +192,7 @@ export const billingService = {
         error?: string;
     }> => {
         try {
-            return await invokeAuthedFunction(
-                'gopay-cancel-subscription',
-                { body: {} },
-            );
+            return await paymentProviderService.cancelUserSubscription();
         } catch (error) {
             return {
                 success: false,
@@ -201,7 +202,7 @@ export const billingService = {
     },
 
     /**
-     * Force sync subscription data from GoPay.
+     * Force sync subscription data from active provider.
      * Use when webhook data is stale or missing.
      */
     syncSubscription: async (): Promise<{
@@ -217,10 +218,7 @@ export const billingService = {
         error?: string;
     }> => {
         try {
-            return await invokeAuthedFunction(
-                'gopay-sync-subscription',
-                { body: {} },
-            );
+            return await paymentProviderService.syncUserSubscription();
         } catch (error) {
             return {
                 success: false,

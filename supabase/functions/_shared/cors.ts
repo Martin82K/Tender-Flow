@@ -1,7 +1,16 @@
 // ---------------------------------------------------------------------------
 // Allowed origins for CORS.  Requests from unknown origins get the first
 // entry as a safe default (browsers will block the response).
+//
+// Sjednoceno s `stripeBilling.ts` / `gopayBilling.ts` (validateAllowedRedirectUrl):
+//   - produkční domény (statické)
+//   - Vercel preview deploymenty (regex)
+//   - localhost / 127.0.0.1 dev origins
+//   - SITE_URL a ALLOWED_CHECKOUT_ORIGINS env (volitelné, pro flexibilitu)
 // ---------------------------------------------------------------------------
+
+declare const Deno: { env: { get(key: string): string | undefined } };
+
 const ALLOWED_ORIGINS: string[] = [
   "https://tenderflow.cz",
   "https://www.tenderflow.cz",
@@ -12,8 +21,39 @@ const ALLOWED_ORIGIN_PATTERNS: RegExp[] = [
   /^https:\/\/tender-flow-[a-z0-9-]+\.vercel\.app$/,
 ];
 
+// Lokální dev origins (Vite default 3000 / 5173, sjednoceno se stripeBilling.ts).
+const DEV_ALLOWED_ORIGINS: string[] = [
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+];
+
+const normalizeOrigin = (value: string): string => {
+  try {
+    return new URL(value.trim()).origin;
+  } catch {
+    return "";
+  }
+};
+
+const getDynamicAllowedOrigins = (): string[] => {
+  const siteOrigin = normalizeOrigin(Deno.env.get("SITE_URL") || "");
+  const configured = (Deno.env.get("ALLOWED_CHECKOUT_ORIGINS") || "")
+    .split(",")
+    .map((entry) => normalizeOrigin(entry))
+    .filter(Boolean);
+  return [
+    ...DEV_ALLOWED_ORIGINS,
+    ...(siteOrigin ? [siteOrigin] : []),
+    ...configured,
+  ];
+};
+
 function isOriginAllowed(origin: string): boolean {
+  if (!origin) return false;
   if (ALLOWED_ORIGINS.includes(origin)) return true;
+  if (getDynamicAllowedOrigins().includes(origin)) return true;
   return ALLOWED_ORIGIN_PATTERNS.some((p) => p.test(origin));
 }
 

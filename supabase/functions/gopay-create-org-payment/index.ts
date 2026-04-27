@@ -4,6 +4,7 @@ import {
   type BillingPeriod,
   type Tier,
   createPayment,
+  generateOrderNumber,
   getNotificationUrl,
   getPlanAmount,
   getPlanDescription,
@@ -88,7 +89,7 @@ Deno.serve(async (req) => {
       return json(403, { error: "Only organization owner or admin can manage billing" });
     }
 
-    const orderNumber = `TF-ORG-${orgId.slice(0, 8)}-${tier}-${Date.now()}`;
+    const orderNumber = generateOrderNumber("TF-ORG", orgId, tier);
     const description = `${getPlanDescription(tier, billingPeriod)} (${seats} seats)`;
 
     // Create GoPay payment with recurrence
