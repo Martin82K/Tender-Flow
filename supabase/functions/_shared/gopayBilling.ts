@@ -1,7 +1,21 @@
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-export type BillingPeriod = "monthly" | "yearly";
-export type Tier = "starter" | "pro" | "enterprise";
+// Re-export pure helperů (původní importy z `gopayBilling.ts` v Edge Functions zůstávají funkční).
+export {
+  type BillingPeriod,
+  type Tier,
+  calculateExpiresAt,
+  generateOrderNumber,
+  getAdditionalParam,
+  getPlanAmount,
+  getPlanDescription,
+  getRecurrenceEndDate,
+  getRecurrencePeriod,
+  isValidPaymentId,
+  shouldInitializeStartedAt,
+} from "./gopayHelpers.ts";
+
+import type { BillingPeriod, Tier } from "./gopayHelpers.ts";
 
 // --- OAuth2 Token Management ---
 
@@ -186,33 +200,8 @@ export const refundPayment = (
 ): Promise<unknown> =>
   gopayFetch("POST", `/payments/payment/${paymentId}/refund`, { amount });
 
-// --- Plan Configuration ---
-
-const PLAN_PRICES: Record<Tier, { monthly: number; yearly: number }> = {
-  starter: { monthly: 39900, yearly: 383040 }, // In hellers: 399 CZK / 3830.40 CZK
-  pro: { monthly: 49900, yearly: 479000 },     // 499 CZK / 4790 CZK
-  enterprise: { monthly: 0, yearly: 0 },        // Custom pricing
-};
-
-const PLAN_LABELS: Record<Tier, string> = {
-  starter: "Tender Flow Starter",
-  pro: "Tender Flow Pro",
-  enterprise: "Tender Flow Enterprise",
-};
-
-export const getPlanAmount = (tier: Tier, period: BillingPeriod): number =>
-  PLAN_PRICES[tier]?.[period] ?? 0;
-
-export const getPlanDescription = (tier: Tier, period: BillingPeriod): string =>
-  `${PLAN_LABELS[tier] ?? tier} (${period === "yearly" ? "roční" : "měsíční"})`;
-
-export const getRecurrenceCycle = (period: BillingPeriod): "MONTH" | "MONTH" =>
-  "MONTH"; // GoPay doesn't have YEAR cycle, so yearly = 12 months
-
-export const getRecurrencePeriod = (period: BillingPeriod): number =>
-  period === "yearly" ? 12 : 1;
-
-export const getRecurrenceEndDate = (): string => "2030-12-31";
+// Plan konfigurace, recurrence helpery, generátory order_number a validace paymentId
+// jsou v `gopayHelpers.ts` (re-exportováno na začátku tohoto souboru).
 
 // --- URL Validation (ported from stripeBilling.ts) ---
 
@@ -318,11 +307,3 @@ export const getNotificationUrl = (): string => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
   return `${supabaseUrl}/functions/v1/gopay-webhook`;
 };
-
-// --- GoPay additional_params helpers ---
-
-export const getAdditionalParam = (
-  params: Array<{ name: string; value: string }> | undefined,
-  name: string,
-): string | undefined =>
-  params?.find((p) => p.name === name)?.value;

@@ -168,6 +168,7 @@
     "services/notificationService.ts",
     "services/organizationService.ts",
     "services/overviewChatService.ts",
+    "services/paymentProviderService.ts",
     "services/platformAdapter.ts",
     "services/projectService.ts",
     "services/queryClient.ts",
