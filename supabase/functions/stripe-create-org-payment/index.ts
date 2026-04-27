@@ -134,11 +134,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Reuse existujícího Stripe customer ID, jen pokud organizace má Stripe historii.
-    // Ostatní providers (gopay) ukládají vlastní payment ID — nesmíme ho použít jako customer.
+    // Reuse existujícího Stripe customer ID, jen pokud `billing_customer_id` má prefix
+    // `cus_` (= Stripe). GoPay ukládá do stejného sloupce numerické payment ID, takže
+    // `validateStripeId(..., "customer")` ho spolehlivě odfiltruje. `organizations`
+    // tabulka nemá sloupec `billing_provider` (na rozdíl od `user_profiles`) — viz
+    // shodný přístup ve `stripe-org-webhook` (resolveOrgIdByCustomer).
     const { data: org, error: orgError } = await service
       .from("organizations")
-      .select("billing_customer_id, billing_provider")
+      .select("billing_customer_id")
       .eq("id", orgId)
       .maybeSingle();
 
@@ -151,14 +154,11 @@ Deno.serve(async (req) => {
       return json(404, { error: "Organization not found" });
     }
 
-    const reuseCustomerId =
-      (org as { billing_provider?: string | null }).billing_provider === "stripe" &&
-      validateStripeId(
-        (org as { billing_customer_id?: string | null }).billing_customer_id ?? null,
-        "customer",
-      )
-        ? ((org as { billing_customer_id?: string | null }).billing_customer_id as string)
-        : undefined;
+    const existingCustomerId =
+      (org as { billing_customer_id?: string | null }).billing_customer_id ?? null;
+    const reuseCustomerId = validateStripeId(existingCustomerId, "customer")
+      ? (existingCustomerId as string)
+      : undefined;
 
     const idempotencyKey =
       `stripe-create-org-${orgId}-${tier}-${billingPeriod}-${seats}-${crypto.randomUUID()}`;
