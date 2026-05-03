@@ -7,8 +7,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { getOrgSubscription, getOrgSeatUsage } from '../api/orgBillingService';
-import { getOrgBillingHistory } from '../api/orgBillingService';
-import { formatOrgPrice } from '../api/orgBillingActions';
 import { getTierLabel, getTierBadgeClass } from '@/config/subscriptionTiers';
 import { organizationService } from '@/services/organizationService';
 import type { OrgSubscriptionInfo, OrgSeatUsage, OrgSubTab } from '../model/types';
@@ -34,8 +32,6 @@ const formatMinutes = (minutes: number | null | undefined): string => {
 export const OrgOverviewTab: React.FC<OrgOverviewTabProps> = ({
   orgId,
   orgName,
-  isOwner,
-  onNavigate,
 }) => {
   const [subscription, setSubscription] = useState<OrgSubscriptionInfo | null>(null);
   const [seatUsage, setSeatUsage] = useState<OrgSeatUsage | null>(null);
@@ -82,6 +78,9 @@ export const OrgOverviewTab: React.FC<OrgOverviewTabProps> = ({
   const effectiveTier = subscription.overrideTier || subscription.tier;
   const isOverridden = !!subscription.overrideTier;
   const seatPercent = seatUsage ? Math.round((seatUsage.billableSeats / seatUsage.maxSeats) * 100) : 0;
+  const licenseChangeHref = `mailto:martin@tenderflow.cz?subject=${encodeURIComponent(`Změna počtu licencí - ${orgName}`)}&body=${encodeURIComponent(
+    `Dobrý den,\n\nrádi bychom upravili počet Enterprise licencí pro organizaci ${orgName}.\n\nAktuální využití: ${seatUsage?.billableSeats ?? 0}/${seatUsage?.maxSeats ?? 0} licencí.\n\nProsím kontaktujte nás s dalším postupem.\n`,
+  )}`;
 
   return (
     <section className="space-y-6">
@@ -105,28 +104,25 @@ export const OrgOverviewTab: React.FC<OrgOverviewTabProps> = ({
             </span>
           </div>
           <p className="text-sm text-slate-500 mt-1">
-            {subscription.billingPeriod === 'yearly' ? 'Roční' : 'Měsíční'} předplatné
-            {subscription.expiresAt && (
-              <> · Aktivní do <strong className="text-primary">{new Date(subscription.expiresAt).toLocaleDateString('cs-CZ')}</strong></>
+            Smluvní Enterprise účet
+            {(subscription.billingPeriodEnd || subscription.expiresAt) && (
+              <> · Aktivní do <strong className="text-primary">{new Date(subscription.billingPeriodEnd || subscription.expiresAt || '').toLocaleDateString('cs-CZ')}</strong></>
             )}
             {seatUsage && (
-              <> · {seatUsage.billableSeats}/{seatUsage.maxSeats} míst obsazeno</>
+              <> · {seatUsage.billableSeats}/{seatUsage.maxSeats} licencí obsazeno</>
             )}
           </p>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => onNavigate('billing')}
+        <div className="flex flex-col sm:items-end gap-2">
+          <a
+            href={licenseChangeHref}
             className="px-4 py-2 text-sm font-semibold rounded-lg bg-gradient-to-r from-primary to-primary/90 text-white hover:opacity-90 transition-opacity"
           >
-            Upgradovat
-          </button>
-          <button
-            onClick={() => onNavigate('billing')}
-            className="px-4 py-2 text-sm font-medium rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-          >
-            Spravovat
-          </button>
+            Změnit počet licencí
+          </a>
+          <div className="text-sm text-slate-500 dark:text-slate-400 sm:text-right">
+            Změny licencí nastavuje poskytovatel služby.
+          </div>
         </div>
       </div>
 
@@ -135,10 +131,10 @@ export const OrgOverviewTab: React.FC<OrgOverviewTabProps> = ({
         <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50 rounded-xl p-5">
           <div className="flex justify-between items-center mb-3">
             <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300">
-              Obsazenost míst
+              Obsazenost licencí
             </h4>
             <span className="text-sm text-slate-500">
-              <strong className="text-primary">{seatUsage.billableSeats}</strong> z {seatUsage.maxSeats} míst
+              <strong className="text-primary">{seatUsage.billableSeats}</strong> z {seatUsage.maxSeats} licencí
             </span>
           </div>
           <div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
@@ -148,7 +144,7 @@ export const OrgOverviewTab: React.FC<OrgOverviewTabProps> = ({
             />
           </div>
           <div className="mt-2 text-xs text-slate-400">
-            <span>{seatUsage.availableSeats} volná místa</span>
+            <span>{seatUsage.availableSeats} volných licencí</span>
           </div>
         </div>
       )}
@@ -159,21 +155,21 @@ export const OrgOverviewTab: React.FC<OrgOverviewTabProps> = ({
         <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50 rounded-xl p-5">
           <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
             <span className="material-symbols-outlined text-[18px] text-slate-400">calendar_today</span>
-            Další platba
+            Smluvní období
           </h4>
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-slate-500">Datum</span>
               <span className="font-medium text-slate-700 dark:text-slate-300">
-                {subscription.expiresAt
-                  ? new Date(subscription.expiresAt).toLocaleDateString('cs-CZ')
+                {subscription.billingPeriodEnd || subscription.expiresAt
+                  ? new Date(subscription.billingPeriodEnd || subscription.expiresAt || '').toLocaleDateString('cs-CZ')
                   : '—'}
               </span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-slate-500">Způsob</span>
+              <span className="text-slate-500">Fakturace</span>
               <span className="font-medium text-slate-700 dark:text-slate-300">
-                {subscription.billingCustomerId ? 'GoPay (karta)' : '—'}
+                Smluvně
               </span>
             </div>
           </div>

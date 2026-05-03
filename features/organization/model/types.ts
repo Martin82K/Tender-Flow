@@ -12,10 +12,13 @@ export interface OrgSubscriptionInfo {
   orgId: string;
   orgName: string;
   tier: SubscriptionTierId;
-  status: 'active' | 'trial' | 'cancelled' | 'expired' | 'pending';
+  status: 'trial' | 'active' | 'past_due' | 'paused' | 'canceled' | 'cancelled' | 'expired' | 'pending';
   maxSeats: number;
   usedSeats: number;
   billingPeriod: 'monthly' | 'yearly';
+  billingPeriodStart: string | null;
+  billingPeriodEnd: string | null;
+  billingContact: string | null;
   billingCustomerId: string | null;
   expiresAt: string | null;
   /** Override fields (admin-granted tier upgrade) */

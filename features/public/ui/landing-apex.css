@@ -236,6 +236,14 @@
 .landing-apex .btn-price-orange{background:var(--orange);border:none;color:var(--bg)}
 .landing-apex .btn-price-orange:hover{box-shadow:0 12px 40px var(--orange-glow-strong);transform:translateY(-1px)}
 .landing-apex .price-note{text-align:center;margin-top:2.5rem;font-size:0.75rem;color:var(--gray-2)}
+.landing-apex .pricing-toggle{display:none}
+.landing-apex .pricing-grid{grid-template-columns:minmax(0,760px);justify-content:center}
+.landing-apex .pricing-grid .price-card:nth-child(3){padding:3rem;max-width:760px}
+.landing-apex .enterprise-pricing-actions{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:.25rem}
+.landing-apex .enterprise-pricing-cta,.landing-apex .enterprise-pricing-secondary{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:.8rem 1.1rem;border-radius:12px;font-size:.8125rem;font-weight:700;text-decoration:none;transition:all .25s var(--ease);font-family:var(--font);cursor:pointer}
+.landing-apex .enterprise-pricing-cta{background:var(--orange);color:var(--bg);border:1px solid var(--orange)}
+.landing-apex .enterprise-pricing-secondary{background:transparent;color:var(--gray-0);border:1px solid var(--border)}
+.landing-apex .enterprise-pricing-cta:hover,.landing-apex .enterprise-pricing-secondary:hover{transform:translateY(-1px);border-color:var(--border-hover)}
 
 /* ═══════════ TESTIMONIALS ═══════════ */
 .landing-apex .testi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;margin-top:4rem}

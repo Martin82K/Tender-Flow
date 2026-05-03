@@ -110,13 +110,16 @@ describe('isRedirectUrlSafe', () => {
 });
 
 describe('redirect validation is applied in billing components', () => {
-  it('OrgBillingTab validates checkout URL before redirect', () => {
+  it('OrgBillingTab performs no unvalidated external redirect', () => {
+    // Self-service Stripe checkout was removed (Enterprise is sales-assisted).
+    // This guards against re-introducing an unvalidated location redirect.
     const source = fs.readFileSync(
       path.resolve('features/organization/ui/OrgBillingTab.tsx'),
       'utf-8',
     );
-    expect(source).toContain('isRedirectUrlSafe');
-    expect(source).toContain('Neplatná platební URL');
+    const stripped = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+    expect(stripped).not.toMatch(/window\.location\.(href|assign|replace)\s*=?/);
+    expect(stripped).not.toMatch(/location\.(href|assign|replace)\s*=/);
   });
 
   it('SubscriptionSettings validates checkout URL before redirect', () => {

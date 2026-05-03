@@ -59,7 +59,8 @@ export const orgSubscriptionRpc = {
       .from('organizations')
       .select(`
         id, name, subscription_tier, subscription_status, max_seats,
-        billing_customer_id, billing_period, expires_at,
+        billing_customer_id, billing_period, billing_period_start, billing_period_end,
+        billing_contact, expires_at,
         override_tier, override_expires_at, override_reason
       `)
       .eq('id', orgId)
@@ -172,6 +173,9 @@ export const orgSubscriptionRpc = {
       billable_seats: number;
       total_members: number;
       billing_period: string | null;
+      billing_period_start: string | null;
+      billing_period_end: string | null;
+      billing_contact: string | null;
       expires_at: string | null;
       override_tier: string | null;
       override_expires_at: string | null;
@@ -188,12 +192,22 @@ export const orgSubscriptionRpc = {
     tier: string | null,
     maxSeats: number | null,
     reason: string | null,
+    status?: string | null,
+    billingPeriod?: string | null,
+    billingPeriodStart?: string | null,
+    billingPeriodEnd?: string | null,
+    billingContact?: string | null,
   ) => {
     const { error } = await supabase.rpc('admin_update_org_subscription', {
       target_org_id: orgId,
       new_tier: tier,
       new_max_seats: maxSeats,
       p_reason: reason,
+      new_status: status ?? null,
+      new_billing_period: billingPeriod ?? null,
+      new_billing_period_start: billingPeriodStart || null,
+      new_billing_period_end: billingPeriodEnd || null,
+      new_billing_contact: billingContact ?? null,
     });
     if (error) throw error;
   },

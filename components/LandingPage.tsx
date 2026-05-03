@@ -478,17 +478,18 @@ export const LandingPage: React.FC = () => {
               className="sec-title"
               style={{ margin: "0 auto 0.75rem" }}
             >
-              Transparentn&iacute; ceny,{" "}
+              Firemn&iacute; licence,{" "}
               <span className="serif">
-                ž&aacute;dn&eacute; skryt&eacute; poplatky
+                domluven&eacute; na m&iacute;ru
               </span>
             </h2>
             <p
               className="sec-desc"
               style={{ margin: "0 auto 2rem", textAlign: "center" }}
             >
-              Zrušen&iacute; kdykoliv. Platba kartou, Apple Pay, Google Pay
-              a bankovn&iacute;m převodem.
+              TenderFlow teď nabízíme jako Enterprise řešení pro stavební
+              firmy. Fakturaci, období a počet licencí nastavíme po firemní
+              konzultaci.
             </p>
           </div>
           <div className="pricing-toggle">
@@ -510,7 +511,7 @@ export const LandingPage: React.FC = () => {
           </div>
           <div className="pricing-grid">
             {/* Starter */}
-            <div className="price-card">
+            <div className="price-card" hidden>
               <div className="price-tier">
                 <div className="tier-icon starter">&#9889;</div>
                 <div className="tier-name">Starter</div>
@@ -532,7 +533,7 @@ export const LandingPage: React.FC = () => {
             </div>
 
             {/* Pro */}
-            <div className="price-card popular">
+            <div className="price-card popular" hidden>
               <div className="popular-badge">14 dn&iacute; zdarma</div>
               <div className="price-tier">
                 <div className="tier-icon pro">&#9889;</div>
@@ -557,14 +558,17 @@ export const LandingPage: React.FC = () => {
             </div>
 
             {/* Enterprise */}
-            <div className="price-card">
+            <div className="price-card popular">
+              <div className="popular-badge">Enterprise only</div>
               <div className="price-tier">
                 <div className="tier-icon enterprise">&#9670;</div>
                 <div className="tier-name">Enterprise</div>
               </div>
               <div className="price-amount custom">Na m&iacute;ru</div>
               <div className="price-desc">
-                Pro velk&eacute; organizace s vlastn&iacute;mi potřebami
+                Pro stavební firmy, které chtějí řídit tendry, obchodní
+                pipeline, dokumenty, reporting a týmové licence v jednom
+                firemním systému.
               </div>
               <div className="price-divider" />
               <ul className="price-features">
@@ -574,11 +578,27 @@ export const LandingPage: React.FC = () => {
                   </li>
                 ))}
               </ul>
+              <div className="price-divider" />
+              <div className="enterprise-pricing-actions">
+                <a
+                  className="enterprise-pricing-cta"
+                  href="mailto:martin@tenderflow.cz?subject=Enterprise%20TenderFlow%20demo"
+                >
+                  Domluvit firemn&iacute; konzultaci
+                </a>
+                <button
+                  type="button"
+                  className="enterprise-pricing-secondary"
+                  onClick={handleDemo}
+                >
+                  Vyzkoušet demo
+                </button>
+              </div>
             </div>
           </div>
           <p className="price-note">
-            Platby běž&iacute; přes GoPay. Apple Pay, Google Pay a bankovn&iacute;
-            převody se zobraz&iacute; automaticky.
+            Starter a Pro tarify jsou pozastavené. Enterprise fakturace
+            probíhá smluvně podle období a počtu licencí.
           </p>
         </div>
       </section>
@@ -730,7 +750,7 @@ export const LandingPage: React.FC = () => {
             <div className="footer-col">
               <h4>Společnost</h4>
               <Link to="/imprint">Provozovatel</Link>
-              <a href="mailto:info@tenderflow.cz">Kontakt</a>
+              <a href="mailto:martin@tenderflow.cz">Kontakt</a>
             </div>
             <div className="footer-col">
               <h4>Pr&aacute;vn&iacute;</h4>

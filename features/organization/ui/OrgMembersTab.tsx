@@ -72,6 +72,14 @@ export const OrgMembersTab: React.FC<OrgMembersTabProps> = ({
 
   const handleAddMember = async () => {
     if (!manualAddEmail.trim()) return;
+    if (seatUsage && seatUsage.availableSeats <= 0) {
+      showAlert({
+        title: 'Limit licencí',
+        message: 'Všechna místa jsou obsazena. Nejdřív změňte počet Enterprise licencí.',
+        variant: 'danger',
+      });
+      return;
+    }
     try {
       await organizationService.addOrganizationMemberByEmail(orgId, manualAddEmail.trim(), 'member');
       showAlert({ title: 'Hotovo', message: 'Člen byl přidán do organizace.', variant: 'success' });
@@ -116,6 +124,14 @@ export const OrgMembersTab: React.FC<OrgMembersTabProps> = ({
 
   const handleActivateMember = async (member: OrganizationMember) => {
     const label = member.display_name || member.email;
+    if (seatUsage && seatUsage.availableSeats <= 0) {
+      showAlert({
+        title: 'Limit licencí',
+        message: 'Člena nelze aktivovat, protože jsou obsazena všechna místa.',
+        variant: 'danger',
+      });
+      return;
+    }
     setProcessingMemberId(member.user_id);
     try {
       await organizationService.activateOrganizationMember(orgId, member.user_id);
@@ -207,6 +223,14 @@ export const OrgMembersTab: React.FC<OrgMembersTabProps> = ({
   };
 
   const handleApproveRequest = async (requestId: string) => {
+    if (seatUsage && seatUsage.availableSeats <= 0) {
+      showAlert({
+        title: 'Limit licencí',
+        message: 'Žádost nelze schválit, protože jsou obsazena všechna místa.',
+        variant: 'danger',
+      });
+      return;
+    }
     setProcessingRequestId(requestId);
     try {
       await organizationService.approveJoinRequest(requestId);
@@ -240,6 +264,8 @@ export const OrgMembersTab: React.FC<OrgMembersTabProps> = ({
       (m.display_name || '').toLowerCase().includes(q)
     );
   });
+
+  const seatsFull = !!seatUsage && seatUsage.availableSeats <= 0;
 
   /** Can the current user manage this member (deactivate/remove)? */
   const canManageMember = (member: OrganizationMember): boolean => {
@@ -289,7 +315,8 @@ export const OrgMembersTab: React.FC<OrgMembersTabProps> = ({
               />
               <button
                 onClick={handleAddMember}
-                className="px-4 py-2 text-sm font-semibold rounded-lg bg-gradient-to-r from-primary to-primary/90 text-white hover:opacity-90 transition-opacity"
+                disabled={seatsFull}
+                className="px-4 py-2 text-sm font-semibold rounded-lg bg-gradient-to-r from-primary to-primary/90 text-white hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 + Přidat
               </button>
