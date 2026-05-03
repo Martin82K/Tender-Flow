@@ -2,9 +2,53 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { Link, useLocation, navigate } from "@/shared/routing/router";
 import { useAuth } from "../context/AuthContext";
 import { APP_VERSION } from "../config/version";
-import { PRICING_CONFIG } from "../services/billingService";
 import logo from "@/assets/logo.svg";
 import "@/features/public/ui/landing-apex.css";
+
+const ENTERPRISE_FEATURE_GROUPS: ReadonlyArray<{
+  title: string;
+  items: ReadonlyArray<string>;
+}> = [
+  {
+    title: "Tendry & projekty",
+    items: [
+      "Neomezené projekty",
+      "Plán výběrových řízení",
+      "Importy VŘ",
+      "Harmonogram měsíc / týden / den",
+      "Modul subdodavatelé",
+      "Hodnocení dodavatelů",
+      "Sdílení projektů v týmu",
+      "Archivace projektů",
+      "Základní i detailní reporty",
+    ],
+  },
+  {
+    title: "Dokumenty & AI",
+    items: [
+      "Modul Smlouvy",
+      "OCR čtení dokumentů (AI)",
+      "Složkomat — automatizace složek",
+      "Excel Indexer — podklady pro VŘ",
+      "Excel Merger — spojování listů",
+      "Excel Unlocker",
+      "Export do Excel",
+      "Export do PDF",
+    ],
+  },
+  {
+    title: "Platforma & integrace",
+    items: [
+      "Desktopová aplikace",
+      "Automatické aktualizace v aplikaci",
+      "Okamžitý přístup k novinkám",
+      "Pokročilé integrace",
+      "Geokódování kontaktů",
+      "Integrace mapy s kontakty",
+      "Onboarding asistence",
+    ],
+  },
+];
 
 /** Animated counter that counts up from 0 to `target` when visible. */
 const AnimatedCounter: React.FC<{ target: number; suffix?: string }> = ({
@@ -51,24 +95,12 @@ const AnimatedCounter: React.FC<{ target: number; suffix?: string }> = ({
 
 export const LandingPage: React.FC = () => {
   const { hash } = useLocation();
-  const { loginAsDemo, user } = useAuth();
-  const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">(
-    "monthly",
-  );
+  const { loginAsDemo } = useAuth();
 
   const handleDemo = useCallback(() => {
     loginAsDemo();
     navigate("/app", { replace: true });
   }, [loginAsDemo]);
-
-  const buildCheckoutPath = (tier: "starter" | "pro" | "enterprise") =>
-    `/app/settings?tab=user&subTab=subscription&checkout=true&plan=${tier}&billingPeriod=${billingPeriod}`;
-
-  const buildPricingCtaHref = (tier: "starter" | "pro" | "enterprise") => {
-    const checkoutPath = buildCheckoutPath(tier);
-    if (user) return checkoutPath;
-    return `/register?next=${encodeURIComponent(checkoutPath)}`;
-  };
 
   const scrollToSection = useCallback((id: string) => {
     const el = document.getElementById(id);
@@ -84,15 +116,6 @@ export const LandingPage: React.FC = () => {
       el.scrollIntoView({ behavior: "smooth", block: "start" }),
     );
   }, [hash]);
-
-  const starterPrice = PRICING_CONFIG.starter.monthlyPrice / 100;
-  const starterYearlyMonthly = Math.round(
-    PRICING_CONFIG.starter.yearlyPrice! / 100 / 12,
-  );
-  const proPrice = PRICING_CONFIG.pro.monthlyPrice / 100;
-  const proYearlyMonthly = Math.round(
-    PRICING_CONFIG.pro.yearlyPrice! / 100 / 12,
-  );
 
   return (
     <div className="landing-apex">
@@ -487,118 +510,75 @@ export const LandingPage: React.FC = () => {
               className="sec-desc"
               style={{ margin: "0 auto 2rem", textAlign: "center" }}
             >
-              TenderFlow teď nabízíme jako Enterprise řešení pro stavební
-              firmy. Fakturaci, období a počet licencí nastavíme po firemní
-              konzultaci.
+              TenderFlow nab&iacute;z&iacute;me v&yacute;hradně jako Enterprise
+              řešen&iacute; pro stavebn&iacute; firmy. Cenu, fakturačn&iacute;
+              obdob&iacute; a počet licenc&iacute; sestavujeme na m&iacute;ru
+              po firemn&iacute; konzultaci.
             </p>
           </div>
-          <div className="pricing-toggle">
-            <div className="toggle-wrap">
-              <button
-                className={`toggle-btn${billingPeriod === "monthly" ? " active" : ""}`}
-                onClick={() => setBillingPeriod("monthly")}
-              >
-                Měs&iacute;čně
-              </button>
-              <button
-                className={`toggle-btn${billingPeriod === "yearly" ? " active" : ""}`}
-                onClick={() => setBillingPeriod("yearly")}
-              >
-                Ročně
-              </button>
-            </div>
-            <span className="save-badge">2 měs&iacute;ce zdarma</span>
-          </div>
-          <div className="pricing-grid">
-            {/* Starter */}
-            <div className="price-card" hidden>
-              <div className="price-tier">
-                <div className="tier-icon starter">&#9889;</div>
-                <div className="tier-name">Starter</div>
-              </div>
-              <div className="price-amount">
-                {billingPeriod === "monthly" ? starterPrice : starterYearlyMonthly}
-                <span className="currency">Kč</span>
-                <span className="period">/m</span>
-              </div>
-              <div className="price-desc">Pro jednotlivce a mal&eacute; t&yacute;my</div>
-              <div className="price-divider" />
-              <ul className="price-features">
-                {PRICING_CONFIG.starter.features.map((f) => (
-                  <li key={f}>
-                    <span className="pf-check on">&#10003;</span> {f}
-                  </li>
-                ))}
-              </ul>
-            </div>
 
-            {/* Pro */}
-            <div className="price-card popular" hidden>
-              <div className="popular-badge">14 dn&iacute; zdarma</div>
-              <div className="price-tier">
-                <div className="tier-icon pro">&#9889;</div>
-                <div className="tier-name">Pro</div>
-              </div>
-              <div className="price-amount">
-                {billingPeriod === "monthly" ? proPrice : proYearlyMonthly}
-                <span className="currency">Kč</span>
-                <span className="period">/m</span>
-              </div>
-              <div className="price-desc">
-                Pro profesion&aacute;ln&iacute; stavebn&iacute; firmy
-              </div>
-              <div className="price-divider" />
-              <ul className="price-features">
-                {PRICING_CONFIG.pro.features.map((f) => (
-                  <li key={f}>
-                    <span className="pf-check on">&#10003;</span> {f}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Enterprise */}
-            <div className="price-card popular">
-              <div className="popular-badge">Enterprise only</div>
-              <div className="price-tier">
+          <div className="enterprise-card">
+            <div className="enterprise-card-head">
+              <div className="enterprise-card-tier">
                 <div className="tier-icon enterprise">&#9670;</div>
-                <div className="tier-name">Enterprise</div>
+                <span>Enterprise</span>
               </div>
-              <div className="price-amount custom">Na m&iacute;ru</div>
-              <div className="price-desc">
-                Pro stavební firmy, které chtějí řídit tendry, obchodní
-                pipeline, dokumenty, reporting a týmové licence v jednom
-                firemním systému.
-              </div>
-              <div className="price-divider" />
-              <ul className="price-features">
-                {PRICING_CONFIG.enterprise.features.map((f) => (
-                  <li key={f}>
-                    <span className="pf-check on">&#10003;</span> {f}
-                  </li>
-                ))}
-              </ul>
-              <div className="price-divider" />
-              <div className="enterprise-pricing-actions">
-                <a
-                  className="enterprise-pricing-cta"
-                  href="mailto:martin@tenderflow.cz?subject=Enterprise%20TenderFlow%20demo"
-                >
-                  Domluvit firemn&iacute; konzultaci
-                </a>
-                <button
-                  type="button"
-                  className="enterprise-pricing-secondary"
-                  onClick={handleDemo}
-                >
-                  Vyzkoušet demo
-                </button>
+              <div className="enterprise-card-price">
+                <span className="price-amount custom">Na m&iacute;ru</span>
+                <span className="enterprise-card-price-note">
+                  podle počtu licenc&iacute; a obdob&iacute;
+                </span>
               </div>
             </div>
+
+            <p className="enterprise-card-lead">
+              Kompletn&iacute; platforma pro ř&iacute;zen&iacute; tendrů,
+              obchodn&iacute; pipeline, dokumentů, reportingu a t&yacute;mov&yacute;ch
+              licenc&iacute; v jednom firemn&iacute;m syst&eacute;mu — včetně
+              všech modulů a AI funkc&iacute;.
+            </p>
+
+            <div className="price-divider" />
+
+            <div className="enterprise-feature-grid">
+              {ENTERPRISE_FEATURE_GROUPS.map((group) => (
+                <div key={group.title} className="enterprise-feature-col">
+                  <div className="enterprise-feature-col-title">
+                    {group.title}
+                  </div>
+                  <ul className="price-features">
+                    {group.items.map((item) => (
+                      <li key={item}>
+                        <span className="pf-check on">&#10003;</span> {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+
+            <div className="price-divider" />
+
+            <div className="enterprise-pricing-actions">
+              <a
+                className="enterprise-pricing-cta"
+                href="mailto:martin@tenderflow.cz?subject=Enterprise%20TenderFlow%20demo"
+              >
+                Domluvit firemn&iacute; konzultaci
+              </a>
+              <button
+                type="button"
+                className="enterprise-pricing-secondary"
+                onClick={handleDemo}
+              >
+                Vyzkoušet demo
+              </button>
+            </div>
           </div>
+
           <p className="price-note">
-            Starter a Pro tarify jsou pozastavené. Enterprise fakturace
-            probíhá smluvně podle období a počtu licencí.
+            Enterprise fakturace prob&iacute;h&aacute; smluvně bankovn&iacute;m
+            převodem podle dohodnut&eacute;ho obdob&iacute; a počtu licenc&iacute;.
           </p>
         </div>
       </section>
