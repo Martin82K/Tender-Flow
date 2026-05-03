@@ -63,6 +63,11 @@ describe('isRedirectUrlSafe', () => {
     expect(isRedirectUrlSafe('https://gw.sandbox.gopay.com/gp/pay/12345')).toBe(true);
   });
 
+  it('allows Stripe Checkout (test + live)', () => {
+    expect(isRedirectUrlSafe('https://checkout.stripe.com/c/pay/cs_test_a1B2c3')).toBe(true);
+    expect(isRedirectUrlSafe('https://checkout.stripe.com/c/pay/cs_live_a1B2c3')).toBe(true);
+  });
+
   it('allows Google OAuth', () => {
     expect(isRedirectUrlSafe('https://accounts.google.com/o/oauth2/auth?client_id=123')).toBe(true);
   });
@@ -105,13 +110,16 @@ describe('isRedirectUrlSafe', () => {
 });
 
 describe('redirect validation is applied in billing components', () => {
-  it('OrgBillingTab validates checkout URL before redirect', () => {
+  it('OrgBillingTab performs no unvalidated external redirect', () => {
+    // Self-service Stripe checkout was removed (Enterprise is sales-assisted).
+    // This guards against re-introducing an unvalidated location redirect.
     const source = fs.readFileSync(
       path.resolve('features/organization/ui/OrgBillingTab.tsx'),
       'utf-8',
     );
-    expect(source).toContain('isRedirectUrlSafe');
-    expect(source).toContain('Neplatná platební URL');
+    const stripped = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+    expect(stripped).not.toMatch(/window\.location\.(href|assign|replace)\s*=?/);
+    expect(stripped).not.toMatch(/location\.(href|assign|replace)\s*=/);
   });
 
   it('SubscriptionSettings validates checkout URL before redirect', () => {

@@ -106,6 +106,9 @@ export const SIGNATURE_FONT_OPTIONS = [
 ] as const;
 
 export const SIGNATURE_FONT_SIZE_OPTIONS = [
+  { value: "9px", label: "9 px" },
+  { value: "10px", label: "10 px" },
+  { value: "11px", label: "11 px" },
   { value: "12px", label: "12 px" },
   { value: "13px", label: "13 px" },
   { value: "14px", label: "14 px" },
@@ -161,7 +164,7 @@ export const buildEmailSignature = ({
   const baseFontSize = sanitizeFontSize(branding?.fontSize);
   const baseSizeNum = parseInt(baseFontSize, 10) || 16;
   const nameFontSize = `${baseSizeNum + 2}px`;
-  const disclaimerFontSize = `${Math.max(baseSizeNum - 4, 10)}px`;
+  const disclaimerFontSize = `${Math.max(Math.round(baseSizeNum * 0.75), 8)}px`;
 
   const personLine = signatureName
     ? [
@@ -193,18 +196,18 @@ export const buildEmailSignature = ({
       ? `<div style="margin-top:10px;font-size:${baseFontSize};line-height:1.5;">${contactLine}</div>`
       : "",
     emailLogoUrl || companyBlockParts.length > 0
-      ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-top:28px;border-collapse:collapse;"><tr>${
+      ? `<div style="margin-top:28px;overflow:hidden;">${
           emailLogoUrl
-            ? `<td valign="top" style="padding-right:24px;padding-bottom:12px;"><img src="${escapeHtml(emailLogoUrl)}" alt="${escapeHtml(companyName || "Emailové logo")}" style="display:block;max-width:320px;max-height:90px;height:auto;width:auto;" /></td>`
+            ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="left" width="240" style="width:240px;border-collapse:collapse;mso-table-lspace:0pt;mso-table-rspace:0pt;"><tr><td valign="top" align="left" style="padding:0 24px 0 0;"><img src="${escapeHtml(emailLogoUrl)}" alt="${escapeHtml(companyName || "Emailové logo")}" width="216" style="display:block;width:216px;max-width:216px;height:auto;border:0;outline:none;text-decoration:none;" /></td></tr></table>`
             : ""
         }${
           companyBlockParts.length > 0
-            ? `<td valign="top" style="${emailLogoUrl ? "border-left:1px solid #d1d5db;padding-left:24px;" : ""}font-size:${baseFontSize};line-height:1.5;">${companyBlockParts.join("")}</td>`
+            ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="left" style="border-collapse:collapse;mso-table-lspace:0pt;mso-table-rspace:0pt;"><tr><td valign="top" align="left" style="${emailLogoUrl ? "border-left:1px solid #d1d5db;padding-left:24px;" : ""}font-size:${baseFontSize};line-height:1.5;color:#1f2937;">${companyBlockParts.join("")}</td></tr></table>`
             : ""
-        }</tr></table>`
+        }<br clear="all" style="clear:both;line-height:0;font-size:0;mso-hide:all;" /></div>`
       : "",
     disclaimerHtml
-      ? `<div style="margin-top:24px;font-size:${disclaimerFontSize};line-height:1.8;color:#6b7280;font-style:italic;">${disclaimerHtml}</div>`
+      ? `<div style="clear:both;margin-top:24px;font-size:${disclaimerFontSize};line-height:1.8;color:#6b7280;font-style:italic;">${disclaimerHtml}</div>`
       : "",
     `</div>`,
   ].filter(Boolean);

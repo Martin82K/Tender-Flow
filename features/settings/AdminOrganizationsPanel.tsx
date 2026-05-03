@@ -7,6 +7,11 @@ type OrgRow = Awaited<ReturnType<typeof orgSubscriptionRpc.getAllOrganizationsAd
 interface EditState {
   tier: string;
   maxSeats: number;
+  status: string;
+  billingPeriod: string;
+  billingPeriodStart: string;
+  billingPeriodEnd: string;
+  billingContact: string;
   reason: string;
 }
 
@@ -15,7 +20,16 @@ export const AdminOrganizationsPanel: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [editingOrgId, setEditingOrgId] = useState<string | null>(null);
-  const [editState, setEditState] = useState<EditState>({ tier: '', maxSeats: 1, reason: '' });
+  const [editState, setEditState] = useState<EditState>({
+    tier: '',
+    maxSeats: 1,
+    status: 'active',
+    billingPeriod: 'yearly',
+    billingPeriodStart: '',
+    billingPeriodEnd: '',
+    billingContact: '',
+    reason: '',
+  });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -40,6 +54,11 @@ export const AdminOrganizationsPanel: React.FC = () => {
     setEditState({
       tier: org.override_tier || org.subscription_tier || 'free',
       maxSeats: org.max_seats,
+      status: org.subscription_status || 'active',
+      billingPeriod: org.billing_period || 'yearly',
+      billingPeriodStart: org.billing_period_start?.slice(0, 10) || '',
+      billingPeriodEnd: (org.billing_period_end || org.expires_at)?.slice(0, 10) || '',
+      billingContact: org.billing_contact || '',
       reason: org.override_reason || '',
     });
     setMessage(null);
@@ -58,6 +77,11 @@ export const AdminOrganizationsPanel: React.FC = () => {
         editState.tier || null,
         editState.maxSeats,
         editState.reason || null,
+        editState.status || null,
+        editState.billingPeriod || null,
+        editState.billingPeriodStart || null,
+        editState.billingPeriodEnd || null,
+        editState.billingContact || null,
       );
       setEditingOrgId(null);
       await loadOrgs();
@@ -74,7 +98,8 @@ export const AdminOrganizationsPanel: React.FC = () => {
     o.org_name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const tiers = getDisplayTiers();
+  const tiers = getDisplayTiers().filter((tier) => tier.id === 'free' || tier.id === 'enterprise');
+  const statusOptions = ['trial', 'active', 'past_due', 'paused', 'canceled'];
 
   return (
     <section className="bg-white dark:bg-slate-950 dark:bg-gradient-to-br dark:from-slate-900/80 dark:to-slate-950/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl mb-8">
@@ -122,7 +147,7 @@ export const AdminOrganizationsPanel: React.FC = () => {
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px]">
+          <table className="w-full min-w-[1180px]">
             <thead>
               <tr className="border-b border-slate-200 dark:border-slate-700/50">
                 <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
@@ -141,6 +166,12 @@ export const AdminOrganizationsPanel: React.FC = () => {
                   Status
                 </th>
                 <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
+                  Období
+                </th>
+                <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
+                  Billing kontakt
+                </th>
+                <th className="text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
                   Akce
                 </th>
               </tr>
@@ -148,7 +179,7 @@ export const AdminOrganizationsPanel: React.FC = () => {
             <tbody>
               {filteredOrgs.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-8 text-slate-500 italic">
+                  <td colSpan={8} className="text-center py-8 text-slate-500 italic">
                     Žádné organizace nenalezeny
                   </td>
                 </tr>
@@ -231,15 +262,80 @@ export const AdminOrganizationsPanel: React.FC = () => {
 
                       {/* Status */}
                       <td className="py-3 px-2">
-                        <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full ${
-                          org.subscription_status === 'active'
-                            ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
-                            : org.subscription_status === 'trial'
-                            ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                            : 'bg-slate-100 dark:bg-slate-700/50 text-slate-500'
-                        }`}>
-                          {org.subscription_status || 'active'}
-                        </span>
+                        {isEditing ? (
+                          <select
+                            value={editState.status}
+                            onChange={(e) => setEditState(s => ({ ...s, status: e.target.value }))}
+                            className="rounded-lg bg-white dark:bg-slate-700/50 border border-slate-300 dark:border-slate-600/50 px-2 py-1.5 text-sm text-slate-900 dark:text-white focus:border-primary/50 focus:outline-none min-w-[120px]"
+                          >
+                            {statusOptions.map((status) => (
+                              <option key={status} value={status}>{status}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full ${
+                            org.subscription_status === 'active'
+                              ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
+                              : org.subscription_status === 'trial'
+                              ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                              : org.subscription_status === 'past_due'
+                              ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                              : 'bg-slate-100 dark:bg-slate-700/50 text-slate-500'
+                          }`}>
+                            {org.subscription_status || 'active'}
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Contract period */}
+                      <td className="py-3 px-2">
+                        {isEditing ? (
+                          <div className="flex items-center gap-1">
+                            <select
+                              value={editState.billingPeriod}
+                              onChange={(e) => setEditState(s => ({ ...s, billingPeriod: e.target.value }))}
+                              className="rounded-lg bg-white dark:bg-slate-700/50 border border-slate-300 dark:border-slate-600/50 px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:border-primary/50 focus:outline-none"
+                            >
+                              <option value="monthly">monthly</option>
+                              <option value="yearly">yearly</option>
+                            </select>
+                            <input
+                              type="date"
+                              value={editState.billingPeriodStart}
+                              onChange={(e) => setEditState(s => ({ ...s, billingPeriodStart: e.target.value }))}
+                              className="rounded-lg bg-white dark:bg-slate-700/50 border border-slate-300 dark:border-slate-600/50 px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:border-primary/50 focus:outline-none"
+                            />
+                            <input
+                              type="date"
+                              value={editState.billingPeriodEnd}
+                              onChange={(e) => setEditState(s => ({ ...s, billingPeriodEnd: e.target.value }))}
+                              className="rounded-lg bg-white dark:bg-slate-700/50 border border-slate-300 dark:border-slate-600/50 px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:border-primary/50 focus:outline-none"
+                            />
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-600 dark:text-slate-400">
+                            {(org.billing_period_start || org.billing_period_end || org.expires_at)
+                              ? `${org.billing_period_start ? new Date(org.billing_period_start).toLocaleDateString('cs-CZ') : '-'} - ${new Date(org.billing_period_end || org.expires_at || '').toLocaleDateString('cs-CZ')}`
+                              : '-'}
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Billing contact */}
+                      <td className="py-3 px-2">
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editState.billingContact}
+                            onChange={(e) => setEditState(s => ({ ...s, billingContact: e.target.value }))}
+                            placeholder="finance@firma.cz"
+                            className="w-44 rounded-lg bg-white dark:bg-slate-700/50 border border-slate-300 dark:border-slate-600/50 px-2 py-1.5 text-xs text-slate-900 dark:text-white focus:border-primary/50 focus:outline-none"
+                          />
+                        ) : (
+                          <span className="text-xs text-slate-600 dark:text-slate-400">
+                            {org.billing_contact || '-'}
+                          </span>
+                        )}
                       </td>
 
                       {/* Actions */}

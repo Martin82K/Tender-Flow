@@ -1,13 +1,13 @@
 /**
  * Organization Billing Actions
  *
- * Actions for org-level GoPay checkout, cancellation, and sync.
- * Calls org-specific Edge Functions.
+ * Actions for org-level checkout, cancellation, and sync.
+ * Routuje volání přes paymentProviderService (gopay | stripe).
  */
 
-import { invokeAuthedFunction } from '@/services/functionsClient';
 import type { SubscriptionTierId } from '@/config/subscriptionTiers';
 import { PRICING_CONFIG } from '@/services/billingService';
+import { paymentProviderService } from '@/services/paymentProviderService';
 
 interface OrgCheckoutResponse {
   success: boolean;
@@ -18,7 +18,7 @@ interface OrgCheckoutResponse {
 }
 
 /**
- * Create a GoPay payment for an organization subscription.
+ * Create a payment for an organization subscription via active provider.
  */
 export const createOrgCheckout = async (args: {
   orgId: string;
@@ -28,38 +28,35 @@ export const createOrgCheckout = async (args: {
   successPath: string;
   cancelPath: string;
 }): Promise<OrgCheckoutResponse> => {
-  const result = await invokeAuthedFunction<OrgCheckoutResponse>(
-    'gopay-create-org-payment',
-    {
-      body: {
-        orgId: args.orgId,
-        tier: args.tier,
-        billingPeriod: args.billingPeriod,
-        seats: args.seats,
-        successUrl: args.successPath,
-        cancelUrl: args.cancelPath,
-      },
-    },
-  );
-  return result;
+  const result = await paymentProviderService.createOrgCheckoutSession({
+    orgId: args.orgId,
+    tier: args.tier,
+    billingPeriod: args.billingPeriod,
+    seats: args.seats,
+    successUrl: args.successPath,
+    cancelUrl: args.cancelPath,
+  });
+  return {
+    success: result.success,
+    checkoutUrl: result.checkoutUrl ?? result.paymentUrl,
+    paymentUrl: result.paymentUrl,
+    paymentId: result.paymentId,
+    error: result.error,
+  };
 };
 
 /**
  * Cancel org recurring subscription.
  */
 export const cancelOrgSubscription = async (orgId: string): Promise<{ success: boolean; error?: string }> => {
-  return invokeAuthedFunction('gopay-cancel-org-subscription', {
-    body: { orgId },
-  });
+  return paymentProviderService.cancelOrgSubscription(orgId);
 };
 
 /**
- * Force-sync org subscription from GoPay.
+ * Force-sync org subscription from active provider.
  */
 export const syncOrgSubscription = async (orgId: string): Promise<{ success: boolean; error?: string }> => {
-  return invokeAuthedFunction('gopay-sync-org-subscription', {
-    body: { orgId },
-  });
+  return paymentProviderService.syncOrgSubscription(orgId);
 };
 
 /**

@@ -6,9 +6,9 @@ const DESKTOP_DEV_CSP_HOSTS = new Set([
 export const buildDesktopCsp = (isDev: boolean): string => {
     const scriptSrc = [
         "'self'",
-        // unsafe-inline + unsafe-eval only in dev mode (Vite HMR requires both)
-        // Production relies on external scripts only — no inline scripts allowed
-        ...(isDev ? ["'unsafe-inline'", "'unsafe-eval'"] : []),
+        // Tailwind Play CDN runtime requires 'unsafe-eval'; 'unsafe-inline' only in dev (Vite HMR)
+        "'unsafe-eval'",
+        ...(isDev ? ["'unsafe-inline'"] : []),
         'https://cdn.tailwindcss.com',
     ].join(' ');
 

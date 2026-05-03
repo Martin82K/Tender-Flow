@@ -1,48 +1,74 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+        xmlns:xhtml="http://www.w3.org/1999/xhtml"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
 
   <url>
     <loc>https://tenderflow.cz/</loc>
-    <lastmod>2026-04-22</lastmod>
+    <lastmod>2026-04-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <xhtml:link rel="alternate" hreflang="cs" href="https://tenderflow.cz/" />
     <xhtml:link rel="alternate" hreflang="sk" href="https://tenderflow.cz/" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://tenderflow.cz/" />
+    <image:image>
+      <image:loc>https://tenderflow.cz/og-image.png</image:loc>
+      <image:title>Tender Flow — Platforma přípravy a vedení staveb</image:title>
+      <image:caption>Logo platformy Tender Flow pro přípravu a vedení staveb</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://tenderflow.cz/screenshots/kanban.png</image:loc>
+      <image:title>Pipeline stavebních tendrů (Kanban) v Tender Flow</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://tenderflow.cz/screenshots/harmonogram.png</image:loc>
+      <image:title>Ganttův harmonogram s milníky a závislostmi</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://tenderflow.cz/screenshots/slozkomat.png</image:loc>
+      <image:title>Složkomat — dokumentový hub stavby</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://tenderflow.cz/screenshots/vyberove-rizeni.png</image:loc>
+      <image:title>Výběrové řízení v Tender Flow</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://tenderflow.cz/screenshots/prehled-poptavek.png</image:loc>
+      <image:title>Přehled poptávek v Tender Flow</image:title>
+    </image:image>
   </url>
 
   <url>
     <loc>https://tenderflow.cz/terms</loc>
-    <lastmod>2026-04-22</lastmod>
+    <lastmod>2026-04-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
 
   <url>
     <loc>https://tenderflow.cz/privacy</loc>
-    <lastmod>2026-04-22</lastmod>
+    <lastmod>2026-04-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
 
   <url>
     <loc>https://tenderflow.cz/cookies</loc>
-    <lastmod>2026-04-22</lastmod>
+    <lastmod>2026-04-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
   </url>
 
   <url>
     <loc>https://tenderflow.cz/dpa</loc>
-    <lastmod>2026-04-22</lastmod>
+    <lastmod>2026-04-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
 
   <url>
     <loc>https://tenderflow.cz/imprint</loc>
-    <lastmod>2026-04-22</lastmod>
+    <lastmod>2026-04-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>

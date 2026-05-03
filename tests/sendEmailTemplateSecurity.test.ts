@@ -17,7 +17,7 @@ describe("send-email template security", () => {
     expect(source).toContain("const safeUserName = escapeHtml(String(data?.name || \"uživateli\"));");
     expect(source).toContain("const loginUrl = sanitizeUrl(data?.loginUrl, \"https://tenderflow.cz/login\");");
     expect(source).toContain("const resetLink = sanitizeUrl(data?.resetLink, \"#\");");
-    expect(source).toContain("from: from ?? DEFAULT_FROM,");
+    expect(source).toContain("from: DEFAULT_FROM,");
     expect(source).not.toContain("from: \"Martin z Tender Flow <martin@mail.tenderflow.cz>\",");
   });
 });

@@ -5,11 +5,15 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="google-site-verification" content="u3Lb962xdlyTpUXDOIkWeGOAbEvK7jj0HVuyUfB6f24" />
+  <!-- Bing Webmaster Tools verification — vyplnit po registraci na https://www.bing.com/webmasters -->
+  <!-- <meta name="msvalidate.01" content="REPLACE_WITH_BING_TOKEN" /> -->
+  <!-- Seznam.cz Webmaster verification — vyplnit po registraci na https://search.seznam.cz/webmaster/ -->
+  <!-- <meta name="seznam-wmt" content="REPLACE_WITH_SEZNAM_TOKEN" /> -->
 
   <!-- Primary SEO -->
-  <title>Tender Flow — CRM pro stavební tendry, subdodavatele a AI analýzu smluv</title>
-  <meta name="description" content="Tender Flow je česká CRM platforma pro řízení stavebních tendrů: pipeline nabídek, správa subdodavatelů, AI čtení smluv a objednávek, dokumentový hub a harmonogram. Web i desktop aplikace. 14 dní zdarma." />
-  <meta name="keywords" content="CRM stavebnictví, tendry, výběrová řízení, subdodavatelé, nabídková řízení, AI analýza smluv, pipeline tendrů, stavební projekty, software pro stavaře, tendr software, řízení tendrů" />
+  <title>Tender Flow — Platforma přípravy a vedení staveb | Stavební tendry, subdodavatelé, AI</title>
+  <meta name="description" content="Tender Flow je česká platforma pro přípravu a vedení staveb: stavební tendry, výběrová řízení, správa subdodavatelů, AI analýza smluv a objednávek, dokumentový hub a harmonogram. Web i desktop. 14 dní zdarma." />
+  <meta name="keywords" content="příprava staveb, vedení staveb, stavební tendry, platforma přípravy staveb, výběrová řízení, subdodavatelé, nabídková řízení, AI analýza smluv, pipeline tendrů, projektové řízení staveb, stavební software, software pro stavaře" />
   <meta name="author" content="Tender Flow" />
   <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
   <meta name="googlebot" content="index, follow" />
@@ -28,21 +32,21 @@
   <meta property="og:locale" content="cs_CZ" />
   <meta property="og:locale:alternate" content="sk_SK" />
   <meta property="og:url" content="https://tenderflow.cz/" />
-  <meta property="og:title" content="Tender Flow — CRM pro stavební tendry a subdodavatele" />
-  <meta property="og:description" content="Kompletní platforma pro řízení nabídkových řízení, subdodavatelů a projektové dokumentace. Pipeline tendrů, AI analýza smluv, dokumentový hub, harmonogram. 14 dní zdarma." />
-  <meta property="og:image" content="https://tenderflow.cz/screenshots/kanban.png" />
-  <meta property="og:image:secure_url" content="https://tenderflow.cz/screenshots/kanban.png" />
+  <meta property="og:title" content="Tender Flow — Platforma přípravy a vedení staveb" />
+  <meta property="og:description" content="Česká platforma pro přípravu a vedení staveb: stavební tendry, subdodavatelé, AI analýza smluv, dokumentový hub a harmonogram. 14 dní zdarma." />
+  <meta property="og:image" content="https://tenderflow.cz/og-image.png" />
+  <meta property="og:image:secure_url" content="https://tenderflow.cz/og-image.png" />
   <meta property="og:image:type" content="image/png" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
-  <meta property="og:image:alt" content="Tender Flow dashboard s pipeline stavebních tendrů" />
+  <meta property="og:image:width" content="1024" />
+  <meta property="og:image:height" content="1024" />
+  <meta property="og:image:alt" content="Logo Tender Flow — platforma přípravy a vedení staveb" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Tender Flow — CRM pro stavební tendry a subdodavatele" />
-  <meta name="twitter:description" content="Pipeline tendrů, AI čtení smluv, CRM subdodavatelů, dokumentový hub. Web i desktop. 14 dní zdarma." />
-  <meta name="twitter:image" content="https://tenderflow.cz/screenshots/kanban.png" />
-  <meta name="twitter:image:alt" content="Tender Flow dashboard" />
+  <meta name="twitter:title" content="Tender Flow — Platforma přípravy a vedení staveb" />
+  <meta name="twitter:description" content="Stavební tendry, subdodavatelé, AI čtení smluv, dokumentový hub. Web i desktop. 14 dní zdarma." />
+  <meta name="twitter:image" content="https://tenderflow.cz/og-image.png" />
+  <meta name="twitter:image:alt" content="Logo Tender Flow" />
 
   <!-- Theme / PWA -->
   <meta name="theme-color" content="#000000" />
@@ -55,23 +59,117 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
 
+  <!-- Performance: DNS pre-resolution pro externí hosty -->
+  <link rel="dns-prefetch" href="//cdn.tailwindcss.com" />
+  <link rel="dns-prefetch" href="//fonts.googleapis.com" />
+  <link rel="dns-prefetch" href="//fonts.gstatic.com" />
+
   <!-- JSON-LD: Organization -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "Organization",
-    "name": "Tender Flow",
-    "alternateName": "TenderFlow",
+    "@id": "https://tenderflow.cz/#organization",
+    "name": "TenderFlow s.r.o.",
+    "alternateName": ["Tender Flow", "TenderFlow"],
     "url": "https://tenderflow.cz/",
-    "logo": "https://tenderflow.cz/favicon.png",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://tenderflow.cz/favicon.png",
+      "width": 512,
+      "height": 512
+    },
     "email": "info@tenderflow.cz",
-    "description": "Česká CRM platforma pro řízení stavebních tendrů, subdodavatelů a nabídkových řízení s integrovanou AI analýzou smluv.",
+    "description": "Česká platforma pro přípravu a vedení staveb: stavební tendry, výběrová řízení, správa subdodavatelů, AI analýza smluv a objednávek, dokumentový hub a harmonogram.",
+    "slogan": "Příprava a vedení staveb. Přehledně.",
+    "knowsAbout": [
+      "Příprava staveb",
+      "Vedení staveb",
+      "Stavební tendry",
+      "Výběrová řízení ve stavebnictví",
+      "Subdodavatelské vztahy",
+      "AI analýza smluv a objednávek",
+      "Projektové řízení staveb",
+      "GDPR compliance",
+      "Construction project management"
+    ],
     "areaServed": [
       { "@type": "Country", "name": "Czech Republic" },
       { "@type": "Country", "name": "Slovakia" }
     ],
+    "address": {
+      "@type": "PostalAddress",
+      "addressCountry": "CZ"
+    },
+    "contactPoint": [
+      {
+        "@type": "ContactPoint",
+        "contactType": "customer support",
+        "email": "info@tenderflow.cz",
+        "availableLanguage": ["Czech", "Slovak"],
+        "areaServed": ["CZ", "SK"]
+      },
+      {
+        "@type": "ContactPoint",
+        "contactType": "sales",
+        "email": "info@tenderflow.cz",
+        "availableLanguage": ["Czech", "Slovak"],
+        "areaServed": ["CZ", "SK"]
+      }
+    ],
     "sameAs": [
       "https://tenderflow.cz/"
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: WebSite — bez SearchAction (veřejná search funkce není dostupná) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "@id": "https://tenderflow.cz/#website",
+    "url": "https://tenderflow.cz/",
+    "name": "Tender Flow",
+    "description": "Platforma přípravy a vedení staveb — stavební tendry, subdodavatelé, AI analýza smluv.",
+    "inLanguage": "cs-CZ",
+    "publisher": { "@id": "https://tenderflow.cz/#organization" }
+  }
+  </script>
+
+  <!-- JSON-LD: WebPage (home) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "@id": "https://tenderflow.cz/#webpage",
+    "url": "https://tenderflow.cz/",
+    "name": "Tender Flow — Platforma přípravy a vedení staveb",
+    "description": "Česká platforma pro přípravu a vedení staveb: stavební tendry, výběrová řízení, správa subdodavatelů, AI analýza smluv a objednávek, dokumentový hub a harmonogram.",
+    "inLanguage": "cs-CZ",
+    "isPartOf": { "@id": "https://tenderflow.cz/#website" },
+    "about": { "@id": "https://tenderflow.cz/#software" },
+    "primaryImageOfPage": {
+      "@type": "ImageObject",
+      "url": "https://tenderflow.cz/og-image.png",
+      "width": 1024,
+      "height": 1024
+    }
+  }
+  </script>
+
+  <!-- JSON-LD: BreadcrumbList — kořen pro hlavní stránku -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Tender Flow",
+        "item": "https://tenderflow.cz/"
+      }
     ]
   }
   </script>
@@ -81,30 +179,81 @@
   {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
+    "@id": "https://tenderflow.cz/#software",
     "name": "Tender Flow",
     "applicationCategory": "BusinessApplication",
-    "applicationSubCategory": "CRM, Construction Management",
+    "applicationSubCategory": "Construction Project Management, Tender Management, Subcontractor Management",
     "operatingSystem": "Web, Windows, macOS",
     "url": "https://tenderflow.cz/",
-    "description": "CRM platforma pro stavební tendry: pipeline nabídkových řízení, správa subdodavatelů, AI analýza smluv a objednávek, dokumentový hub, Ganttův harmonogram a reporting.",
+    "image": "https://tenderflow.cz/og-image.png",
+    "description": "Platforma přípravy a vedení staveb: pipeline stavebních tendrů, výběrová řízení, správa subdodavatelů, AI analýza smluv a objednávek, dokumentový hub, Ganttův harmonogram a reporting.",
     "inLanguage": "cs",
     "softwareVersion": "latest",
+    "publisher": { "@id": "https://tenderflow.cz/#organization" },
     "offers": [
       {
         "@type": "Offer",
-        "name": "Starter",
+        "name": "Starter — měsíční",
+        "price": "399",
         "priceCurrency": "CZK",
         "category": "Subscription",
         "availability": "https://schema.org/InStock",
-        "url": "https://tenderflow.cz/register"
+        "url": "https://tenderflow.cz/register",
+        "priceSpecification": {
+          "@type": "UnitPriceSpecification",
+          "price": "399",
+          "priceCurrency": "CZK",
+          "unitCode": "MON",
+          "billingIncrement": 1
+        }
       },
       {
         "@type": "Offer",
-        "name": "Pro",
+        "name": "Starter — roční (sleva 20 %)",
+        "price": "319",
         "priceCurrency": "CZK",
         "category": "Subscription",
         "availability": "https://schema.org/InStock",
-        "url": "https://tenderflow.cz/register"
+        "url": "https://tenderflow.cz/register",
+        "priceSpecification": {
+          "@type": "UnitPriceSpecification",
+          "price": "319",
+          "priceCurrency": "CZK",
+          "unitCode": "MON",
+          "billingIncrement": 12
+        }
+      },
+      {
+        "@type": "Offer",
+        "name": "Pro — měsíční (14 dní zdarma)",
+        "price": "499",
+        "priceCurrency": "CZK",
+        "category": "Subscription",
+        "availability": "https://schema.org/InStock",
+        "url": "https://tenderflow.cz/register",
+        "priceSpecification": {
+          "@type": "UnitPriceSpecification",
+          "price": "499",
+          "priceCurrency": "CZK",
+          "unitCode": "MON",
+          "billingIncrement": 1
+        }
+      },
+      {
+        "@type": "Offer",
+        "name": "Pro — roční (sleva 20 %)",
+        "price": "399",
+        "priceCurrency": "CZK",
+        "category": "Subscription",
+        "availability": "https://schema.org/InStock",
+        "url": "https://tenderflow.cz/register",
+        "priceSpecification": {
+          "@type": "UnitPriceSpecification",
+          "price": "399",
+          "priceCurrency": "CZK",
+          "unitCode": "MON",
+          "billingIncrement": 12
+        }
       },
       {
         "@type": "Offer",
@@ -112,7 +261,8 @@
         "priceCurrency": "CZK",
         "category": "Subscription",
         "availability": "https://schema.org/InStock",
-        "url": "mailto:info@tenderflow.cz"
+        "url": "mailto:info@tenderflow.cz",
+        "description": "Cena na míru podle potřeb organizace. Kontaktujte nás pro nabídku."
       }
     ],
     "featureList": [
@@ -140,7 +290,7 @@
         "name": "Co je Tender Flow?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Tender Flow je česká CRM platforma navržená specificky pro řízení stavebních tendrů, nabídkových řízení a subdodavatelských vztahů. Kombinuje pipeline tendrů, správu kontaktů, AI analýzu smluv, dokumentový hub a harmonogram."
+          "text": "Tender Flow je česká platforma pro přípravu a vedení staveb — od poptávek a stavebních tendrů přes výběrová řízení a správu subdodavatelů až po smlouvy, harmonogram a dokumentaci stavby. Kombinuje pipeline tendrů, AI analýzu smluv, dokumentový hub Složkomat a Ganttův harmonogram do jednoho nástroje."
         }
       },
       {
@@ -148,7 +298,7 @@
         "name": "Pro koho je Tender Flow určený?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Pro české a slovenské stavební firmy, generální dodavatele, projektové manažery a kalkulanty, kteří řídí nabídková řízení a subdodavatele. Funguje pro jednotlivce, malé týmy i velké organizace."
+          "text": "Pro české a slovenské stavební firmy, generální dodavatele, přípraváře staveb, projektové manažery, stavbyvedoucí a kalkulanty, kteří připravují a vedou stavby — od nabídkových řízení po předání díla. Funguje pro jednotlivce, malé týmy i velké organizace."
         }
       },
       {
@@ -182,6 +332,98 @@
           "@type": "Answer",
           "text": "Tender Flow je GDPR compliant, data jsou chráněna přes Row Level Security na úrovni databáze, šifrování v klidu i při přenosu a auditní logy přístupů. K dispozici je zpracovatelská smlouva (DPA)."
         }
+      },
+      {
+        "@type": "Question",
+        "name": "Čím se Tender Flow liší od běžného CRM nebo stavebního softwaru?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Tender Flow není generické CRM — je to platforma navržená specificky pro přípravu a vedení staveb. Pracuje s pojmy poptávka, výběrové řízení, subdodavatel, nabídka, smlouva, harmonogram a předání díla. Obsahuje stavební workflow (pipeline tendrů, OCR smluv, Ganttův harmonogram, Excel nástroje pro kalkulanty), které generická CRM (Salesforce, HubSpot, Pipedrive) ani projektové nástroje (Asana, Monday) nenabízí. Oproti zahraničním stavebním ERP je cenově dostupný a v češtině."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Jaké jsou integrace s dalšími nástroji?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Tender Flow se napojuje na Google Drive, OneDrive a lokální souborový systém pro správu dokumentů. Platby běží přes GoPay (karta, Apple Pay, Google Pay, bankovní převod). K dispozici je MCP (Model Context Protocol) server pro integraci s AI agenty, který umožňuje read-only přístup k projektům, tendrům a kontaktům."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Jaké formáty exportu Tender Flow podporuje?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Tender Flow podporuje export do PDF, Excelu (XLSX) a CSV jedním klikem. Pro práci s Excel soubory od subdodavatelů jsou dostupné nástroje Excel Merger (spojování listů) a Excel Unlocker (odemknutí uzamčených listů)."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Funguje Tender Flow offline?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Nativní desktopová verze pro Windows a macOS poskytuje plnou funkčnost a synchronizuje data při připojení. Webová verze vyžaduje aktivní připojení k internetu."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Jak Tender Flow zrychluje práci s tendry?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "AI analýza smluv automaticky extrahuje klíčové parametry z naskenovaných PDF objednávek a smluv (cena, termín, sankce, záruky), čímž odpadá ruční pročítání. Pipeline v Kanban stylu poskytuje okamžitý přehled o stavu všech nabídek. Auto-doplnění informací o subdodavatelích z veřejných rejstříků podle IČ šetří čas oproti ručnímu vyplňování."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Kde mohu Tender Flow vyzkoušet zdarma?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Tarif Pro lze vyzkoušet 14 dní zdarma bez kreditní karty na https://tenderflow.cz/register. K dispozici je také živé demo bez registrace přímo z hlavní stránky https://tenderflow.cz/."
+        }
+      }
+    ]
+  }
+  </script>
+
+  <!-- JSON-LD: HowTo — jak začít s Tender Flow (GEO friendly, citovatelné kroky) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": "Jak začít s Tender Flow za 5 minut",
+    "description": "Postupný návod, jak nastavit Tender Flow a importovat první stavební tender.",
+    "totalTime": "PT5M",
+    "step": [
+      {
+        "@type": "HowToStep",
+        "position": 1,
+        "name": "Registrace zdarma",
+        "text": "Vytvořte si účet na https://tenderflow.cz/register. Tarif Pro lze vyzkoušet 14 dní zdarma bez kreditní karty.",
+        "url": "https://tenderflow.cz/register"
+      },
+      {
+        "@type": "HowToStep",
+        "position": 2,
+        "name": "Vytvoření prvního projektu",
+        "text": "V dashboardu klikněte na 'Nový projekt', zadejte název, investora a základní parametry stavby. Volitelně připojte Google Drive nebo OneDrive složku."
+      },
+      {
+        "@type": "HowToStep",
+        "position": 3,
+        "name": "Import subdodavatelů",
+        "text": "Přidejte subdodavatele do CRM modulu — stačí zadat IČ a Tender Flow doplní informace z veřejných českých rejstříků automaticky."
+      },
+      {
+        "@type": "HowToStep",
+        "position": 4,
+        "name": "Vytvoření poptávky",
+        "text": "V projektu vytvořte poptávkové kategorie a přiřaďte k nim subdodavatele. Maximum 5 dodavatelů na jednu kategorii. Nabídku je třeba odeslat do 14 dnů od vytvoření poptávky."
+      },
+      {
+        "@type": "HowToStep",
+        "position": 5,
+        "name": "Sledování pipeline a AI analýza",
+        "text": "V Kanban pipeline sledujte fáze nabídek (nové, v jednání, vyhrané, prohrané). Naskenované smlouvy nahrávejte do dokumentového hubu — AI z nich automaticky vyextrahuje klíčové parametry."
       }
     ]
   }
@@ -284,12 +526,14 @@
     <noscript>
       <div class="seo-fallback">
         <header>
-          <h1>Tender Flow — CRM pro stavební tendry a subdodavatele</h1>
+          <h1>Tender Flow — Platforma přípravy a vedení staveb</h1>
           <p>
-            Kompletní platforma pro řízení nabídkových řízení, subdodavatelů
-            a projektové dokumentace. Od správy kontaktů k poptávce až po
-            zápisy, přehledy a smlouvy. Dostupná jako webová i nativní
-            desktopová aplikace pro Windows a macOS.
+            Česká platforma pro přípravu a vedení staveb od první poptávky
+            přes výběrová řízení a subdodavatelské nabídky až po smlouvy,
+            harmonogram a dokumentaci stavby. Stavební tendry, AI analýza
+            smluv, Složkomat a Ganttův harmonogram v jednom nástroji.
+            Dostupná jako webová i nativní desktopová aplikace pro Windows
+            a macOS.
           </p>
           <p>
             <a href="/register">Vyzkoušet 14 dní zdarma</a> ·
@@ -371,10 +615,10 @@
         <section>
           <h2>Pro koho je Tender Flow</h2>
           <p>
-            Moderní CRM platforma pro české a slovenské stavební firmy,
-            generální dodavatele, projektové manažery a kalkulanty, kteří
-            řídí nabídková řízení a subdodavatele. Funguje pro jednotlivce,
-            malé týmy i velké organizace.
+            Platforma přípravy a vedení staveb pro české a slovenské
+            stavební firmy, generální dodavatele, přípraváře staveb,
+            projektové manažery, stavbyvedoucí a kalkulanty. Funguje pro
+            jednotlivce, malé týmy i velké organizace.
           </p>
         </section>
 

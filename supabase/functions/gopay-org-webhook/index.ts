@@ -3,6 +3,7 @@ import { createServiceClient } from "../_shared/supabase.ts";
 import {
   getAdditionalParam,
   getPaymentStatus,
+  isValidPaymentId,
 } from "../_shared/gopayBilling.ts";
 
 const json = (status: number, body: unknown) =>
@@ -99,8 +100,8 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const paymentId = body.id ? String(body.id) : null;
 
-    if (!paymentId) {
-      return json(400, { error: "Missing payment ID" });
+    if (!isValidPaymentId(paymentId)) {
+      return json(400, { error: "Invalid or missing payment ID" });
     }
 
     // Get payment status from GoPay
