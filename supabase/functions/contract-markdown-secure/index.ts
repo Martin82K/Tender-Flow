@@ -68,19 +68,6 @@ type ErrorCode =
   | "MD_LEGACY_MIGRATION_FAILED"
   | "MD_CONTENT_UNREADABLE";
 
-const json = (status: number, body: unknown) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { ...buildCorsHeaders(req), "content-type": "application/json" },
-  });
-
-const jsonError = (
-  status: number,
-  error: string,
-  code: ErrorCode,
-  requestId: string,
-) => json(status, { error, code, requestId });
-
 const asEntityType = (value: unknown): EntityType | null =>
   value === "contract" || value === "amendment" ? value : null;
 
@@ -206,6 +193,19 @@ Deno.serve(async (req) => {
   if (cors) return cors;
 
   const requestId = req.headers.get("x-request-id")?.trim() || crypto.randomUUID();
+
+  const json = (status: number, body: unknown) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...buildCorsHeaders(req), "content-type": "application/json" },
+    });
+
+  const jsonError = (
+    status: number,
+    error: string,
+    code: ErrorCode,
+    rid: string,
+  ) => json(status, { error, code, requestId: rid });
 
   try {
     const authed = createAuthedUserClient(req);
