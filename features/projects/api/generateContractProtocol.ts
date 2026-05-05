@@ -254,10 +254,13 @@ export const generateContractProtocol = async (
   }
 
   const templateArrayBuffer = await templateResponse.arrayBuffer();
-  const templateBytes = new Uint8Array(templateArrayBuffer);
+  const templateBuffer =
+    typeof Buffer !== "undefined"
+      ? Buffer.from(templateArrayBuffer)
+      : new Uint8Array(templateArrayBuffer);
 
   const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(templateBytes);
+  await workbook.xlsx.load(templateBuffer);
 
   const worksheet = workbook.worksheets[0];
   if (!worksheet) {
