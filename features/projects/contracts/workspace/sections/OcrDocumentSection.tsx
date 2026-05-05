@@ -172,7 +172,12 @@ export const OcrDocumentSection: React.FC<Props> = ({ contract, onRefresh }) => 
     try {
       const result = await contractExtractionService.extractFromDocument(file, setStatus);
 
-      if (result.rawText && result.rawText.trim().length > 0) {
+      if (!result.rawText || result.rawText.trim().length === 0) {
+        setErr(
+          'contract',
+          'OCR nevrátil žádný text — MD verze smlouvy nebyla uložena.',
+        );
+      } else {
         try {
           await contractService.createMarkdownVersion({
             entityType: 'contract',
@@ -185,7 +190,12 @@ export const OcrDocumentSection: React.FC<Props> = ({ contract, onRefresh }) => 
             metadata: { confidence: result.confidence || {} },
           });
         } catch (mdErr) {
-          console.warn('Nepodařilo se uložit MD verzi smlouvy:', mdErr);
+          console.error('Nepodařilo se uložit MD verzi smlouvy:', mdErr);
+          const detail = mdErr instanceof Error ? mdErr.message : String(mdErr);
+          setErr(
+            'contract',
+            `MD verze smlouvy se neuložila: ${detail}. Strukturovaná data byla uložena.`,
+          );
         }
       }
 
@@ -222,7 +232,12 @@ export const OcrDocumentSection: React.FC<Props> = ({ contract, onRefresh }) => 
     try {
       const result = await contractExtractionService.extractAmendmentFromDocument(file);
 
-      if (result.rawText && result.rawText.trim().length > 0) {
+      if (!result.rawText || result.rawText.trim().length === 0) {
+        setErr(
+          key,
+          'OCR nevrátil žádný text — MD verze dodatku nebyla uložena.',
+        );
+      } else {
         try {
           await contractService.createMarkdownVersion({
             entityType: 'amendment',
@@ -235,7 +250,12 @@ export const OcrDocumentSection: React.FC<Props> = ({ contract, onRefresh }) => 
             metadata: { confidence: result.confidence || {} },
           });
         } catch (mdErr) {
-          console.warn('Nepodařilo se uložit MD verzi dodatku:', mdErr);
+          console.error('Nepodařilo se uložit MD verzi dodatku:', mdErr);
+          const detail = mdErr instanceof Error ? mdErr.message : String(mdErr);
+          setErr(
+            key,
+            `MD verze dodatku se neuložila: ${detail}. Strukturovaná data byla uložena.`,
+          );
         }
       }
 
