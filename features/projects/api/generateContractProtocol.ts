@@ -4,7 +4,7 @@ import autoTable from "jspdf-autotable";
 
 import { RobotoRegularBase64 } from "@/fonts/roboto-regular";
 import { organizationService } from "@features/organization/api";
-import { contractService } from "@/services/contractService";
+import { contractQueriesApi } from "@features/projects/contracts/api";
 import { dbAdapter } from "@/services/dbAdapter";
 import type { ProjectDetails } from "@/types";
 
@@ -97,11 +97,11 @@ interface PreparedContractProtocol {
   definition: ReturnType<typeof getContractProtocolDefinition>;
   draft: ContractProtocolDraft;
   context: {
-    contract: Awaited<ReturnType<typeof contractService.getContractById>>;
+    contract: Awaited<ReturnType<typeof contractQueriesApi.getContractById>>;
     projectDetails: ProjectDetails;
     today: Date;
   };
-  contract: NonNullable<Awaited<ReturnType<typeof contractService.getContractById>>>;
+  contract: NonNullable<Awaited<ReturnType<typeof contractQueriesApi.getContractById>>>;
 }
 
 const prepareContractProtocol = async (
@@ -111,7 +111,7 @@ const prepareContractProtocol = async (
 
   const contract =
     input.contractSnapshot ||
-    (await contractService.getContractById(input.contractId));
+    (await contractQueriesApi.getContractById(input.contractId));
 
   if (!contract) {
     throw new Error("Smlouva pro vytvoření protokolu nebyla nalezena.");

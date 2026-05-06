@@ -474,6 +474,12 @@
   - přechodové import vazby: `108 -> 107`.
 - Bezpečnostní dopad: ukládání OCR výsledků a MD verzí používá stejné payloady i contract service; OCR extraction provider zůstává beze změny pro samostatný další řez.
 
+### Contract protocol query API import
+- `generateContractProtocol` používá `contractQueriesApi.getContractById` místo přímého importu `contractService`.
+- Očekávaný audit dopad proti stavu po contract OCR markdown API řezu:
+  - přechodové import vazby: `107 -> 106`.
+- Bezpečnostní dopad: načtení smlouvy pro protokol dál používá stejnou contract service; XLSX/PDF generování, logo URL i snapshot fallback se nemění.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`

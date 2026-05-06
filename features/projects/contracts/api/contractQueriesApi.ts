@@ -2,6 +2,12 @@ import { contractService } from "@/services/contractService";
 import type { ContractWithDetails } from "@/types";
 
 export const contractQueriesApi = {
+  getContractById(
+    ...args: Parameters<typeof contractService.getContractById>
+  ): ReturnType<typeof contractService.getContractById> {
+    return contractService.getContractById(...args);
+  },
+
   listContractsByProjectIds(projectIds: string[]): Promise<ContractWithDetails[]> {
     return contractService.listContractsByProjectIds(projectIds);
   },
