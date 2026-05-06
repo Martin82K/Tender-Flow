@@ -401,6 +401,13 @@
   - přechodové import vazby: `128 -> 125`.
 - Bezpečnostní dopad: zachována stejná auth service implementace, reset token flow i desktop platform guardy; změna nepřidává nové oprávnění, persistence ani práci se secrets.
 
+### Notifications realtime API wrapper
+- `features/notifications/api/notificationApi.ts` vlastní Realtime subscription wrapper `subscribeToUserNotifications`.
+- `features/notifications/hooks/useNotificationSubscription.ts` používá feature API místo přímého importu `notificationService`.
+- Očekávaný audit dopad proti stavu po auth feature API řezu:
+  - přechodové import vazby: `125 -> 124`.
+- Bezpečnostní dopad: Supabase Realtime filter i cleanup kanálu zůstávají beze změny, ale klient zůstává skrytý za feature API; změna nepřidává nové oprávnění, persistence ani práci se secrets.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`
