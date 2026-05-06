@@ -180,6 +180,15 @@
     - `shared -> components`: `8 -> 7`,
     - `shared/ui` temporary shims: `8 -> 7`,
     - přechodové import vazby: `203 -> 202`
+- `shared/ui/overview/{SupplierTable,SupplierBarChart,StatusDistributionChart,BudgetDeviationGauge}.tsx`:
+  - obsahují skutečné implementace místo re-exportů z `components/overview`
+  - legacy `components/overview/*` soubory zůstávají jen compatibility shimy pro staré importy
+  - `tests/OverviewSharedComponents.test.tsx` pokrývá základní render tabulky, bar chartu, status distribuce a budget gauge
+  - `tests/architecture.boundaries.test.ts` hlídá, že se tyto soubory nevrátí mezi temporary shimy
+  - audit dopad proti stavu po StatusCard řezu:
+    - `shared -> components`: `7 -> 3`,
+    - `shared/ui` temporary shims: `7 -> 3`,
+    - přechodové import vazby: `202 -> 198`
 
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
