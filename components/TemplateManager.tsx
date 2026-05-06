@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import DOMPurify from 'dompurify';
 import { Template, ProjectDetails } from '../types';
-import { TEMPLATE_VARIABLES, getPreviewData, processTemplate, renderTemplateHtml } from '../utils/templateUtils';
+import { TEMPLATE_VARIABLES, getPreviewData, processTemplate, renderTemplateHtml } from '@/shared/email/templateUtils';
 import { getTemplates, saveTemplate, deleteTemplate as serviceDeleteTemplate } from '../services/templateService';
 import { ConfirmationModal } from './ConfirmationModal';
 

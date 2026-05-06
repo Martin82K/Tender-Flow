@@ -275,6 +275,15 @@
   - přechodové import vazby: `180 -> 177`.
 - Bezpečnostní dopad: zachované role/status mapování bez rozšíření oprávnění, nového IO, persistence nebo externích volání.
 
+### Shared email template utils
+- Template helpery byly přesunuty do:
+  - `shared/email/templateUtils.ts`.
+- Legacy `utils/templateUtils.ts` zůstává kompatibilní re-export.
+- `features/projects/model/usePipelineCommunicationActions.ts` a `components/TemplateManager.tsx` používají shared helper přímo.
+- Očekávaný audit dopad proti stavu po shared organization helper řezu:
+  - přechodové import vazby: `177 -> 176`.
+- Bezpečnostní dopad: zachována existující DOMPurify sanitizace podpisu i whitelist tagů/atributů; žádné nové IO, persistence ani externí volání.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`
