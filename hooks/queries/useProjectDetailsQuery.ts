@@ -35,6 +35,7 @@ const fetchProjectDetails = async (projectId: string): Promise<ProjectDetails> =
         financialsRes,
         amendmentsRes,
         internalAmendmentsRes,
+        investorInvoicesRes,
     ] = await Promise.all([
         withRetry<any>(async () => await dbAdapter.from("projects").select("*").eq("id", projectId).single()),
         withRetry<any>(async () => await dbAdapter.from("demand_categories").select("*").eq("project_id", projectId)),
@@ -42,6 +43,7 @@ const fetchProjectDetails = async (projectId: string): Promise<ProjectDetails> =
         withRetry<any>(async () => await dbAdapter.from("project_investor_financials").select("*").eq("project_id", projectId).maybeSingle()),
         withRetry<any>(async () => await dbAdapter.from("project_amendments").select("*").eq("project_id", projectId)),
         withRetry<any>(async () => await dbAdapter.from("project_internal_amendments").select("*").eq("project_id", projectId)),
+        withRetry<any>(async () => await dbAdapter.from("project_investor_invoices").select("*").eq("project_id", projectId).order("due_date", { ascending: true })),
     ]);
 
     if (projectRes.error) throw projectRes.error;
@@ -51,6 +53,7 @@ const fetchProjectDetails = async (projectId: string): Promise<ProjectDetails> =
     if (financialsRes.error) throw financialsRes.error;
     if (amendmentsRes.error) throw amendmentsRes.error;
     if (internalAmendmentsRes.error) throw internalAmendmentsRes.error;
+    if (investorInvoicesRes.error) throw investorInvoicesRes.error;
 
     const project = projectRes.data;
     const categories: DemandCategory[] = (categoriesRes.data || []).map((c: any) => ({
@@ -74,6 +77,7 @@ const fetchProjectDetails = async (projectId: string): Promise<ProjectDetails> =
     const financialsData = financialsRes.data;
     const amendmentsData = (amendmentsRes.data || []) as any[];
     const internalAmendmentsData = (internalAmendmentsRes.data || []) as any[];
+    const investorInvoicesData = (investorInvoicesRes.data || []) as any[];
 
     // 2. Fetch Bids for these categories
     const categoryIds = categories.map(c => c.id);
@@ -172,13 +176,24 @@ const fetchProjectDetails = async (projectId: string): Promise<ProjectDetails> =
                 insurance: contractData.insurance_percent ?? 0,
             }
             : undefined,
-        investorFinancials: financialsData
+        investorFinancials: financialsData || amendmentsData.length > 0 || investorInvoicesData.length > 0
             ? {
-                sodPrice: financialsData.sod_price || 0,
+                sodPrice: financialsData?.sod_price || 0,
                 amendments: amendmentsData.map((a) => ({
                     id: a.id,
                     label: a.label,
                     price: a.price || 0,
+                })),
+                invoices: investorInvoicesData.map((invoice) => ({
+                    id: invoice.id,
+                    invoiceNumber: invoice.invoice_number || "",
+                    issueDate: invoice.issue_date || "",
+                    dueDate: invoice.due_date || "",
+                    amount: invoice.amount || 0,
+                    currency: invoice.currency || "CZK",
+                    status: invoice.status || "issued",
+                    paidAt: invoice.paid_at || undefined,
+                    note: invoice.note || undefined,
                 })),
             }
             : undefined,

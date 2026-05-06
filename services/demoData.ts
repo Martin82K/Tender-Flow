@@ -352,7 +352,28 @@ export const DEMO_PROJECT_DETAILS: ProjectDetails = {
     sodPrice: 18500000,
     amendments: [
       { id: 'amend-1', label: 'Dodatek č.1 - Změna dispozice', price: 450000 }
-    ]
+    ],
+    invoices: [
+      {
+        id: 'demo-investor-invoice-1',
+        invoiceNumber: 'INV-2025-001',
+        issueDate: '2025-02-28',
+        dueDate: '2025-03-30',
+        amount: 3200000,
+        currency: 'CZK',
+        status: 'paid',
+        paidAt: '2025-03-24',
+      },
+      {
+        id: 'demo-investor-invoice-2',
+        invoiceNumber: 'INV-2025-002',
+        issueDate: '2025-04-30',
+        dueDate: '2025-05-30',
+        amount: 2800000,
+        currency: 'CZK',
+        status: 'issued',
+      },
+    ],
   },
   bids: DEMO_BIDS
 };
