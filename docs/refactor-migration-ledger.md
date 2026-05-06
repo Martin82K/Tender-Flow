@@ -415,6 +415,13 @@
   - přechodové import vazby: `124 -> 123`.
 - Bezpečnostní dopad: stávající Web/Electron permission flow a fallback zůstávají v `platformAdapter`; změna nepřidává nové oprávnění, persistence ani práci se secrets.
 
+### Backup local adapter API wrappers
+- `features/backup/api/backupService.ts` exportuje lokální backup wrappery pro dostupnost, nastavení, seznam záloh, plánovaný čas a otevření složky.
+- `features/backup/ui/BackupSettings.tsx` a `features/backup/hooks/useAutoBackupScheduler.ts` používají backup API místo přímého importu `platformAdapter`.
+- Očekávaný audit dopad proti stavu po notifications desktop API řezu:
+  - přechodové import vazby: `123 -> 121`.
+- Bezpečnostní dopad: Electron backup guardy, plánování i lokální souborové operace zůstávají ve stejném platform adaptéru; změna nepřidává nové oprávnění, persistence ani práci se secrets.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`

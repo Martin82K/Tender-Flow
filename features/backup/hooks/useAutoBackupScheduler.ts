@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { backupAdapter } from '@/services/platformAdapter';
 import { backupService } from '../api/backupService';
 
 const CHECK_INTERVAL_MS = 60_000;
@@ -20,7 +19,7 @@ export const useAutoBackupScheduler = (): void => {
 
     useEffect(() => {
         if (!isAuthenticated || !orgId) return;
-        if (!backupAdapter.isAvailable()) return;
+        if (!backupService.isLocalBackupAvailable()) return;
 
         let cancelled = false;
 
@@ -29,7 +28,7 @@ export const useAutoBackupScheduler = (): void => {
 
             let settings;
             try {
-                settings = await backupAdapter.getSettings();
+                settings = await backupService.getLocalSettings();
             } catch (error) {
                 console.error('[AutoBackupScheduler] Failed to read settings:', error);
                 return;

@@ -1,5 +1,6 @@
 import { dbAdapter } from '@/services/dbAdapter';
 import { backupAdapter } from '@/services/platformAdapter';
+import type { BackupFileEntry, BackupSettingsInfo } from '@/shared/types/desktop';
 import type { BackupManifest, ContactsBackupManifest, AnyBackupManifest, RestoreSummary, BackupHistoryEntry } from '../model/backupTypes';
 
 /**
@@ -7,6 +8,30 @@ import type { BackupManifest, ContactsBackupManifest, AnyBackupManifest, Restore
  * and local file storage via platform adapter (desktop only).
  */
 export const backupService = {
+    isLocalBackupAvailable(): boolean {
+        return backupAdapter.isAvailable();
+    },
+
+    async getLocalSettings(): Promise<BackupSettingsInfo> {
+        return backupAdapter.getSettings();
+    },
+
+    async listLocalBackups(): Promise<BackupFileEntry[]> {
+        return backupAdapter.list();
+    },
+
+    async setLocalBackupEnabled(enabled: boolean): Promise<void> {
+        return backupAdapter.setEnabled(enabled);
+    },
+
+    async setLocalBackupScheduledTime(time: string): Promise<void> {
+        return backupAdapter.setScheduledTime(time);
+    },
+
+    async openLocalBackupFolder(): Promise<void> {
+        return backupAdapter.openFolder();
+    },
+
     /**
      * Export user backup (all data owned by current user in the org).
      */
