@@ -325,6 +325,7 @@ export const AppContent: React.FC = () => {
               statuses={state.contactStatuses}
               onUpdateContact={actions.handleUpdateContact}
               initialPipelineCategoryId={activePipelineCategoryId ?? undefined}
+              currentUserId={user?.id}
               onNavigateToPipeline={(catId) => {
                 setActiveProjectTab("pipeline");
                 setActivePipelineCategoryId(catId);

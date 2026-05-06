@@ -14,7 +14,7 @@ const { billingServiceMock } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("@/services/billingService", () => ({
+vi.mock("@infra/billing/billingService", () => ({
   billingService: billingServiceMock,
   PRICING_CONFIG: {
     starter: { monthlyPrice: 39900, yearlyPrice: 383040 },
@@ -23,7 +23,7 @@ vi.mock("@/services/billingService", () => ({
   },
 }));
 
-vi.mock("@/services/userSubscriptionService", () => ({
+vi.mock("@infra/billing/userSubscriptionService", () => ({
   userSubscriptionService: {
     requestTierUpgrade: vi.fn(),
     cancelSubscription: vi.fn(),

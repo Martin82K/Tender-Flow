@@ -1,1 +1,14 @@
-export { shortenUrl, getUserLinks as getMyUrls, deleteShortUrl as deleteUrl } from "@/services/urlShortenerService";
+export {
+  deleteShortUrl,
+  deleteShortUrl as deleteUrl,
+  getUserLinks,
+  getUserLinks as getMyUrls,
+  getUserLinkStats,
+  shortenUrl,
+  shortenUrlWithAlias,
+} from "@/services/urlShortenerService";
+export type {
+  ShortenResult,
+  UserLink,
+  UserLinkStats,
+} from "@/services/urlShortenerService";

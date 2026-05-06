@@ -10,7 +10,7 @@ vi.mock("@/services/contractService", () => ({
   },
 }));
 
-vi.mock("@/services/dbAdapter", () => ({
+vi.mock("@infra/db/dbAdapter", () => ({
   dbAdapter: {
     from: fromMock,
   },

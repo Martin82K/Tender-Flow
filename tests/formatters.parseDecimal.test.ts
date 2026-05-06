@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { formatDecimal, formatPercentValue, parseDecimal } from '@/utils/formatters';
+import {
+  formatDecimal,
+  formatPercentValue,
+  parseDecimal,
+  parseFormattedNumber,
+} from '@/shared/formatting/decimalFormatters';
+import { parseFormattedNumber as parseFormattedNumberFromLegacy } from '@/utils/formatters';
 
 describe('parseDecimal', () => {
   it('parsuje český formát s čárkou', () => {
@@ -77,6 +83,20 @@ describe('formatPercentValue', () => {
   it('vrátí pomlčku pro neplatné', () => {
     expect(formatPercentValue(null)).toBe('—');
     expect(formatPercentValue(undefined)).toBe('—');
+  });
+});
+
+describe('parseFormattedNumber', () => {
+  it('vrací číslo pro formátovaný vstup', () => {
+    expect(parseFormattedNumber('1 234,56 Kč')).toBe(1234.56);
+  });
+
+  it('vrací nulu pro neparsovatelný vstup kvůli legacy kompatibilitě', () => {
+    expect(parseFormattedNumber('abc')).toBe(0);
+  });
+
+  it('zůstává dostupný přes legacy formatters entrypoint', () => {
+    expect(parseFormattedNumberFromLegacy('1 000')).toBe(1000);
   });
 });
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { dbAdapter } from "../../services/dbAdapter";
+import { dbAdapter } from "@infra/db/dbAdapter";
 // Default AI Prompts
 const DEFAULT_PROMPT_ACHIEVEMENTS = `Jsi kreativní analytik stavebních projektů. Vygeneruj 4-5 UNIKÁTNÍCH achievement-style insights ve stylu herních úspěchů. Buď kreativní - každé volání má být jiné!
 

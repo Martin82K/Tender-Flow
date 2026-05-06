@@ -4,7 +4,8 @@ import { describe, expect, it } from "vitest";
 
 const css = readFileSync(join(process.cwd(), "index.css"), "utf8");
 const sidebarSource = readFileSync(join(process.cwd(), "components/Sidebar.tsx"), "utf8");
-const tenderPlanSource = readFileSync(join(process.cwd(), "components/TenderPlan.tsx"), "utf8");
+const tenderPlanSource = readFileSync(join(process.cwd(), "features/projects/ui/TenderPlan.tsx"), "utf8");
+const projectOverviewSource = readFileSync(join(process.cwd(), "features/projects/ui/ProjectOverviewNew.tsx"), "utf8");
 const pipelineSource = readFileSync(join(process.cwd(), "components/Pipeline.tsx"), "utf8");
 const modalSource = readFileSync(join(process.cwd(), "shared/ui/Modal.tsx"), "utf8");
 const categoryFormModalSource = readFileSync(join(process.cwd(), "components/pipelineComponents/CategoryFormModal.tsx"), "utf8");
@@ -77,9 +78,11 @@ describe("industrial skin tokens", () => {
   it("industrial průřez zachová canvas i pro Plán VŘ a Pipeline", () => {
     expect(tenderPlanSource).toContain("tf-tender-plan-view");
     expect(tenderPlanSource).toContain('data-help-id="tender-plan-add"');
+    expect(projectOverviewSource).toContain("tf-project-overview");
     expect(pipelineSource).toContain("tf-pipeline-view");
     expect(css).toContain(".tf-tender-plan-view");
     expect(css).toContain(".tf-pipeline-view");
+    expect(css).toContain(".tf-project-overview");
     expect(css).toContain('html[data-skin="industrial"] .tf-tender-plan-view');
     expect(css).toContain('html[data-skin="industrial"] .tf-pipeline-view');
   });

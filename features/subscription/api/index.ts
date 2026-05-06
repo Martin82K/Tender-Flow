@@ -6,6 +6,12 @@ export {
   getEffectiveUserTier,
   getEnabledFeaturesV2,
   formatSubscriptionExpirationDate,
+  listSubscriptionFeatures,
+  listSubscriptionTierFlags,
+  setSubscriptionTierFlag,
+  createSubscriptionFeature,
+  updateSubscriptionFeature,
+  deleteSubscriptionFeature,
 } from "./subscriptionState";
 export {
   requestPlanChange,

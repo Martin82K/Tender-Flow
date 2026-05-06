@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { buildOverviewChatContext } from "../utils/overviewChat";
-import type { OverviewAnalytics } from "../utils/overviewAnalytics";
+import type { OverviewAnalytics } from "@/shared/overview/overviewAnalytics";
 
 describe("buildOverviewChatContext", () => {
   it("includes totals and top suppliers", () => {

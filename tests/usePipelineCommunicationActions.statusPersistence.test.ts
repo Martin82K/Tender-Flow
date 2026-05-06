@@ -28,7 +28,7 @@ const {
   mockDownloadEmlFile: vi.fn(),
 }));
 
-vi.mock("../services/platformAdapter", () => ({
+vi.mock("@infra/platform/platformAdapter", () => ({
   default: mockPlatformAdapter,
 }));
 

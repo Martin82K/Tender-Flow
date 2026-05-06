@@ -4,8 +4,9 @@ import { NotificationBell } from "@features/notifications/ui/NotificationBell";
 import { HelpButton } from "@features/help";
 import { TaskCreateButton } from "@features/tasks";
 import { Pipeline } from "@/shared/ui/projects/Pipeline";
-import { TenderPlan } from "@/shared/ui/projects/TenderPlan";
+import { TenderPlan } from "@/features/projects/ui/TenderPlan";
 import { ProjectSchedule } from "@/features/projects/ui/ProjectSchedule";
+import { ProjectOverviewNew } from "@/features/projects/ui/ProjectOverviewNew";
 import {
   ProjectTab,
   ProjectDetails,
@@ -14,7 +15,6 @@ import {
   Subcontractor,
   StatusConfig,
 } from "@/types";
-import { ProjectOverviewNew } from "@/shared/ui/projects/ProjectOverviewNew";
 import { ProjectDocuments } from "@/shared/ui/projects/ProjectDocuments";
 import { ContractsModule } from "@features/projects/contracts/ContractsModule";
 import { useFeatures } from "@/context/FeatureContext";
@@ -41,6 +41,7 @@ interface ProjectLayoutProps {
   onNavigateToPipeline?: (categoryId: string) => void;
   onCategoryNavigate?: (categoryId: string | null) => void;
   skin?: ThemeSkin;
+  currentUserId?: string;
 }
 
 export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
@@ -60,6 +61,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
   onNavigateToPipeline,
   onCategoryNavigate,
   skin = "industrial",
+  currentUserId,
 }) => {
   const project = projectDetails;
   const [searchQuery, setSearchQuery] = useState("");
@@ -227,9 +229,10 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
             onUpdate={onUpdateDetails}
             onAddressChanged={handleAddressChanged}
             variant="compact"
-            skin={skin}
             searchQuery={searchQuery}
             onNavigateToPipeline={handleLocalNavigateToPipeline}
+            currentUserId={currentUserId}
+            skin={skin}
           />
         )}
         {activeTab === "tender-plan" && (

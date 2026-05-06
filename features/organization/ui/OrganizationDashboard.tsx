@@ -11,7 +11,7 @@ import React, { useEffect, useState } from 'react';
 import {
   organizationService,
   type OrganizationSummary,
-} from '@/services/organizationService';
+} from '@features/organization/api';
 import type { OrgSubTab } from '../model/types';
 import { OrgOverviewTab } from './OrgOverviewTab';
 import { OrgMembersTab } from './OrgMembersTab';

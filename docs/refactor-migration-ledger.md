@@ -65,6 +65,23 @@
   - zadne nove `features -> legacy services` kvuli presunu export API do `features/projects/api`.
 - Bezpecnostni dopad: runtime chovani exportu harmonogramu zustalo stejne; zmena nepridava nove externi integrace ani nepracuje se secrets.
 
+### TenderPlan shared shim removal
+- Implementace planu vyberovych rizeni presunuta:
+  - `components/TenderPlan.tsx` -> `features/projects/ui/TenderPlan.tsx`.
+- Feature-local import/export API doplneno:
+  - `features/projects/api/tenderPlanExportApi.ts`.
+- `features/projects/model/useTenderPlanController.ts` uz neimportuje import Excelu z legacy `services/exportService`.
+- Legacy compatibility shim zustal:
+  - `components/TenderPlan.tsx`.
+- Odstranen shared shim:
+  - `shared/ui/projects/TenderPlan.tsx`.
+- `features/projects/ProjectLayout.tsx` importuje TenderPlan primo z `features/projects/ui/TenderPlan`.
+- Ocekavany audit dopad proti stavu po ProjectSchedule rezu:
+  - `shared -> components`: `10 -> 9`,
+  - `shared/ui` temporary shims: `10 -> 9`,
+  - prechodove import vazby: `206 -> 204`.
+- Bezpecnostni dopad: Excel import/export zustava klientsky nad `xlsx`, bez novych externich volani a bez prace se secrets; feature UI pouziva sdilene modaly misto legacy `components`.
+
 ## 2026-02-18
 
 ### Auth/session
@@ -145,6 +162,379 @@
   - odstranění plánováno: `2026-04-30`
 - `components/Header.tsx`, `components/SubcontractorSelector.tsx`, `components/DeleteConfirmationModal.tsx`:
   - doplněn compatibility shim banner s removal date `2026-04-30`
+
+### Overview shared primitive hard-cut
+- `shared/ui/overview/KPICard.tsx`:
+  - obsahuje skutečnou implementaci KPI karty místo re-exportu z `components/overview`
+  - legacy `components/overview/KPICard.tsx` zůstává jen compatibility shim pro staré importy
+  - `tests/architecture.boundaries.test.ts` hlídá, že se `shared/ui/overview/KPICard.tsx` nevrátí mezi temporary shimy
+  - audit dopad proti stavu po TenderPlan řezu:
+    - `shared -> components`: `9 -> 8`,
+    - `shared/ui` temporary shims: `9 -> 8`,
+    - přechodové import vazby: `204 -> 203`
+- `shared/ui/overview/StatusCard.tsx`:
+  - obsahuje skutečnou implementaci status karty místo re-exportu z `components/overview`
+  - legacy `components/overview/StatusCard.tsx` zůstává jen compatibility shim pro staré importy
+  - `tests/architecture.boundaries.test.ts` hlídá, že se `shared/ui/overview/StatusCard.tsx` nevrátí mezi temporary shimy
+  - audit dopad proti stavu po KPICard řezu:
+    - `shared -> components`: `8 -> 7`,
+    - `shared/ui` temporary shims: `8 -> 7`,
+    - přechodové import vazby: `203 -> 202`
+- `shared/ui/overview/{SupplierTable,SupplierBarChart,StatusDistributionChart,BudgetDeviationGauge}.tsx`:
+  - obsahují skutečné implementace místo re-exportů z `components/overview`
+  - legacy `components/overview/*` soubory zůstávají jen compatibility shimy pro staré importy
+  - `tests/OverviewSharedComponents.test.tsx` pokrývá základní render tabulky, bar chartu, status distribuce a budget gauge
+  - `tests/architecture.boundaries.test.ts` hlídá, že se tyto soubory nevrátí mezi temporary shimy
+  - audit dopad proti stavu po StatusCard řezu:
+    - `shared -> components`: `7 -> 3`,
+    - `shared/ui` temporary shims: `7 -> 3`,
+    - přechodové import vazby: `202 -> 198`
+
+### ProjectOverviewNew shared shim removal
+- Implementace přehledu projektu přesunuta:
+  - `components/ProjectOverviewNew.tsx` -> `features/projects/ui/ProjectOverviewNew.tsx`.
+- Legacy `components/ProjectOverviewNew.tsx` zůstává jako compatibility wrapper:
+  - doplňuje `currentUserId` z `AuthContext` pro staré importy,
+  - skutečné UI deleguje do `features/projects/ui/ProjectOverviewNew`.
+- `features/projects/ProjectLayout.tsx` importuje `ProjectOverviewNew` přímo z feature UI.
+- `app/AppContent.tsx` předává `currentUserId={user?.id}`, takže feature UI nemusí importovat legacy auth context.
+- Odstraněn shared shim:
+  - `shared/ui/projects/ProjectOverviewNew.tsx`.
+- `tests/ProjectOverviewNew.compactEdit.test.tsx` testuje feature komponentu přímo.
+- Očekávaný audit dopad proti stavu po overview charts řezu:
+  - `shared -> components`: `3 -> 2`,
+  - `shared/ui` temporary shims: `3 -> 2`,
+  - přechodové import vazby zůstaly `198`, protože přesun do `features/projects/ui` zviditelnil existující formátovací závislost jako `features -> legacy utils`.
+- Bezpečnostní dopad: `ProjectOverviewNew` už neimportuje auth context přímo; `currentUserId` se předává z `AppContent` přes `ProjectLayout`. Změna nepřidává nové externí volání, persistence ani práci se secrets.
+
+### Shared decimal formatters
+- Decimal helpery přesunuty do shared vrstvy:
+  - `shared/formatting/decimalFormatters.ts`.
+- Legacy `utils/formatters.ts` zůstává kompatibilní entrypoint:
+  - re-exportuje `parseDecimal`, `formatDecimal`, `formatPercentValue`,
+  - `parseFormattedNumber` dál používá stejnou implementaci.
+- `features/projects/ui/ProjectOverviewNew.tsx` a `shared/ui/overview/*` používají shared formattery přímo.
+- Očekávaný audit dopad proti stavu po ProjectOverviewNew řezu:
+  - přechodové import vazby: `198 -> 197`,
+  - bez změny `shared/ui` temporary shimů.
+- Bezpečnostní dopad: čistý přesun deterministického parsování/formátování bez nového IO, externích volání nebo práce se secrets.
+
+### Feature decimal formatter imports
+- Feature soubory používající jen `formatDecimal`/`parseDecimal` byly přepojeny na:
+  - `shared/formatting/decimalFormatters.ts`.
+- Legacy `utils/formatters.ts` zůstává pro staré importy a pro funkce, které ještě nebyly přesunuté (`parseFormattedNumber`, money/chart helpery).
+- Očekávaný audit dopad proti stavu po shared decimal formatter řezu:
+  - přechodové import vazby: `197 -> 187`,
+  - `features -> legacy utils` sníženo o deset importů.
+- Bezpečnostní dopad: import-only refactor bez změny parsovací logiky, síťových volání, persistence nebo autorizace.
+
+### Shared parseFormattedNumber
+- `parseFormattedNumber` byl přesunut do:
+  - `shared/formatting/decimalFormatters.ts`.
+- Legacy `utils/formatters.ts` ho dál re-exportuje pro staré importy.
+- `features/projects/model/usePipelineBidActions.ts` používá shared formatter přímo.
+- Očekávaný audit dopad proti stavu po feature decimal import řezu:
+  - přechodové import vazby: `187 -> 186`.
+- Bezpečnostní dopad: zachované parsovací chování (`null -> 0`) bez nového IO, externích volání, persistence nebo autorizace.
+
+### Shared offer status metadata
+- Metadata stavů nabídek byla přesunuta do:
+  - `shared/offers/offerStatus.ts`.
+- Legacy `utils/offerStatus.ts` zůstává kompatibilní re-export.
+- `features/projects/ProjectOverview.tsx` a `services/exportService.ts` používají shared helper přímo.
+- Očekávaný audit dopad proti stavu po shared parseFormattedNumber řezu:
+  - přechodové import vazby: `186 -> 185`.
+- Bezpečnostní dopad: přesun statické mapy popisků a CSS tříd bez nového IO, externích volání, persistence nebo autorizace.
+
+### Shared overview analytics
+- Analytické modelové helpery byly přesunuty do:
+  - `shared/overview/overviewAnalytics.ts`,
+  - `shared/overview/supplierFilters.ts`.
+- Legacy `utils/overviewAnalytics.ts` a `utils/supplierFilters.ts` zůstávají kompatibilní re-exporty.
+- Feature overview controller/model a `ProjectOverview` používají shared helpery přímo.
+- `services/exportService.ts`, `utils/overviewChat.ts` a legacy overview dashboard používají shared typy/helpery přímo.
+- Očekávaný audit dopad proti stavu po shared offer status řezu:
+  - přechodové import vazby: `185 -> 181`.
+- Bezpečnostní dopad: přesun čistých výpočtů a filtrů bez nového IO, externích volání, persistence nebo autorizace.
+
+### Shared admin access helper
+- `isUserAdmin` byl přesunut do:
+  - `shared/auth/adminAccess.ts`.
+- Legacy `utils/helpers.ts` ho dál re-exportuje.
+- `features/projects/model/useProjectOverviewController.ts` používá shared helper přímo.
+- Očekávaný audit dopad proti stavu po shared overview analytics řezu:
+  - přechodové import vazby: `181 -> 180`.
+- Bezpečnostní dopad: zachován existující whitelist bez rozšíření oprávnění; jde pouze o přesun klientské helper funkce bez nového IO, persistence nebo externích volání.
+
+### Shared organization role helpers
+- Helpery pro role, stav žádosti a label uživatele byly přesunuty do:
+  - `shared/organization/organizationUtils.ts`.
+- Legacy `utils/organizationUtils.ts` zůstává kompatibilní re-export.
+- `features/organization/ui/OrgMembersTab.tsx`, `features/settings/OrganizationSettings.tsx` a `features/settings/ProfileSettings.tsx` používají shared helpery přímo.
+- Očekávaný audit dopad proti stavu po shared admin access řezu:
+  - přechodové import vazby: `180 -> 177`.
+- Bezpečnostní dopad: zachované role/status mapování bez rozšíření oprávnění, nového IO, persistence nebo externích volání.
+
+### Shared email template utils
+- Template helpery byly přesunuty do:
+  - `shared/email/templateUtils.ts`.
+- Legacy `utils/templateUtils.ts` zůstává kompatibilní re-export.
+- `features/projects/model/usePipelineCommunicationActions.ts` a `components/TemplateManager.tsx` používají shared helper přímo.
+- Očekávaný audit dopad proti stavu po shared organization helper řezu:
+  - přechodové import vazby: `177 -> 176`.
+- Bezpečnostní dopad: zachována existující DOMPurify sanitizace podpisu i whitelist tagů/atributů; žádné nové IO, persistence ani externí volání.
+
+### Shared DocHub helpers
+- DocHub helpery byly přesunuty do:
+  - `shared/dochub/docHub.ts`.
+- Legacy `utils/docHub.ts` zůstává kompatibilní re-export.
+- Pipeline feature modely používají shared helpery přímo.
+- `types.ts` bere DocHub typ ze shared vrstvy.
+- Očekávaný audit dopad proti stavu po shared email template řezu:
+  - přechodové import vazby: `176 -> 171`.
+- Bezpečnostní dopad: zachována existující URL safety validace proti lokálním/private hostům a stejné path sanitizační helpery; žádné nové IO, persistence ani externí volání.
+
+### Shared Excel indexer helpers
+- Excel indexer helpery byly přesunuty do:
+  - `shared/tools/excel/indexMatcher.ts`,
+  - `shared/tools/excel/fillOddily.ts`.
+- Legacy `utils/indexMatcher.ts` a `utils/fillOddily.ts` zůstávají kompatibilní re-exporty.
+- `features/settings/ExcelIndexerSettings.tsx` a `features/settings/IndexMatcherSettings.tsx` používají shared helpery přímo.
+- Očekávaný audit dopad proti stavu po shared DocHub řezu:
+  - přechodové import vazby: `171 -> 168`.
+- Bezpečnostní dopad: zachováno lokální zpracování workbooku bez nových síťových volání, persistence nebo práce se secrets; přidány testy pro normalizaci kódů a zápis oddílů.
+
+### Shared Excel unlock zip helper
+- Excel unlock ZIP helper byl přesunut do:
+  - `shared/tools/excel/excelUnlockZip.ts`.
+- Legacy `utils/excelUnlockZip.ts` zůstává kompatibilní re-export.
+- `features/settings/ExcelUnlockerProSettings.tsx` a `features/settings/ToolsSettings.tsx` používají shared helper přímo.
+- Očekávaný audit dopad proti stavu po shared Excel indexer řezu:
+  - přechodové import vazby: `168 -> 166`.
+- Bezpečnostní dopad: zachováno lokální zpracování XLSX ZIP archivu bez síťových volání, persistence nebo secrets; přidán test pro odstranění `sheetProtection` z reálného ExcelJS workbooku.
+
+### Feature API barrel cleanup
+- `features/projects/api/index.ts` přestal re-exportovat legacy `projectService` a mutation hooky.
+- `features/contacts/api/index.ts` přestal re-exportovat legacy contact mutation hooky; zatím zůstává prázdný kompatibilní module entrypoint.
+- Feature runtime API exporty (`pipelineApi`, tender plan, schedule, clone, contract protocol) zůstaly beze změny.
+- Očekávaný audit dopad proti stavu po shared Excel unlock řezu:
+  - přechodové import vazby: `166 -> 163`.
+- Bezpečnostní dopad: odstranění nepoužívaných re-exportů bez nové logiky, IO, persistence nebo externích volání.
+
+### Infra desktop updater hook
+- Desktop updater hook byl přesunut do:
+  - `infra/desktop/useElectronUpdater.ts`.
+- Legacy `hooks/useElectronUpdater.ts` zůstává kompatibilní re-export.
+- `features/settings/ProfileSettings.tsx` a `components/UpdateNotification.tsx` používají infra hook přímo.
+- Očekávaný audit dopad proti stavu po feature API barrel cleanup řezu:
+  - přechodové import vazby: `163 -> 162`.
+- Bezpečnostní dopad: zachované volání `updaterAdapter` bez nové sítě, persistence nebo oprávnění; desktop-only chování zůstává za platform adapterem.
+
+### Shared project query keys
+- `PROJECT_KEYS` byly přesunuty do:
+  - `shared/queryKeys/projectKeys.ts`.
+- Legacy `hooks/queries/useProjectsQuery.ts` je dál re-exportuje kvůli kompatibilitě.
+- `features/projects/ProjectManager.tsx` používá shared query keys přímo.
+- Očekávaný audit dopad proti stavu po infra desktop updater řezu:
+  - přechodové import vazby: `162 -> 161`.
+- Bezpečnostní dopad: čistý přesun konstant cache klíčů bez nové logiky, IO, persistence nebo externích volání.
+
+### Command Center portfolio state hook
+- Read-only portfolio data pro Command Center byla zúžena do:
+  - `features/projects/model/useProjectPortfolioState.ts`.
+- Command Center moduly už neimportují globální legacy `useAppData` jen kvůli `projects` a `allProjectDetails`.
+- Z Command Center datových hooků byly odstraněny zbytečné `UIContext` importy používané pouze pro předání `showUiModal`.
+- Očekávaný audit dopad proti stavu po shared project query keys řezu:
+  - přechodové import vazby: `161 -> 141`.
+- Bezpečnostní dopad: zachováno čtení přes existující React Query hooky; žádná nová mutace, síťová cesta, persistence, oprávnění ani práce se secrets.
+
+### Projects list state hook
+- Read-only seznam zakázek byl zúžen do:
+  - `features/projects/model/useProjectsState.ts`.
+- `features/projects/model/useProjectPortfolioState.ts` používá `useProjectsState` pro seznam a doplňuje jen detaily portfolia.
+- `features/tasks/ui/TaskFormModal.tsx` už neimportuje legacy `useProjectsQuery` a pro select zakázky používá jen list state bez načítání detailů.
+- Očekávaný audit dopad proti stavu po Command Center portfolio řezu:
+  - přechodové import vazby: `141 -> 140`.
+- Bezpečnostní dopad: čisté přesměrování čtení existujícího query výsledku bez nové mutace, externího volání, persistence, oprávnění nebo práce se secrets.
+
+### Tools URL shortener API import
+- `features/tools/api/index.ts` exportuje kompletní URL shortener API používané UI.
+- `features/tools/UrlShortener.tsx` už neimportuje legacy `services/urlShortenerService` přímo a používá feature API entrypoint.
+- Očekávaný audit dopad proti stavu po projects list state řezu:
+  - přechodové import vazby: `140 -> 139`.
+- Bezpečnostní dopad: URL validace, sanitizace chyb a Supabase/TinyURL flow zůstávají ve stejné service implementaci; změna nepřidává nové síťové volání, persistence ani práci se secrets.
+
+### Settings service API imports
+- `features/settings/api/index.ts` exportuje typy pro organization a user management API.
+- Settings UI soubory pro email test, user management, whitelist, organizace a profil používají feature API entrypoint místo přímých importů z legacy services.
+- Očekávaný audit dopad proti stavu po tools URL shortener řezu:
+  - přechodové import vazby: `139 -> 133`.
+- Bezpečnostní dopad: zachována stejná service implementace a oprávnění; změna pouze centralizuje import boundary bez nových volání, persistence nebo práce se secrets.
+
+### Organization service API imports
+- Přidán přechodový organization API entrypoint:
+  - `features/organization/api/index.ts`.
+- Organization dashboard a taby pro overview, members a branding používají feature API místo přímých importů z legacy `organizationService`.
+- Očekávaný audit dopad proti stavu po settings service API řezu:
+  - přechodové import vazby: `133 -> 130`.
+- Bezpečnostní dopad: zachována stejná organization service implementace, role checks a storage limity; změna nepřidává nové volání, persistence ani práci se secrets.
+
+### Subscription features API wrappers
+- `features/subscription/api/subscriptionState.ts` exportuje admin wrappery pro správu feature flags a subscription feature definic.
+- `features/settings/SubscriptionFeaturesManagement.tsx` používá subscription feature API místo přímého importu `subscriptionFeaturesService`.
+- Očekávaný audit dopad proti stavu po organization service API řezu:
+  - přechodové import vazby: `130 -> 129`.
+- Bezpečnostní dopad: zachována stejná Supabase service implementace a fails-closed subscription logika; změna pouze centralizuje volání bez nových oprávnění, persistence nebo práce se secrets.
+
+### Settings incident admin API wrappers
+- `features/settings/api/complianceAdminService.ts` exportuje wrappery pro incident admin list/purge flow.
+- `features/settings/IncidentLogsAdmin.tsx` používá settings API entrypoint místo přímého importu `incidentAdminService`.
+- Očekávaný audit dopad proti stavu po subscription features API řezu:
+  - přechodové import vazby: `129 -> 128`.
+- Bezpečnostní dopad: zachována stejná RPC service implementace včetně limitů purge okna; změna nepřidává nové volání, persistence ani práci se secrets.
+
+### Auth feature API imports
+- Přidán přechodový auth API entrypoint:
+  - `features/auth/api/index.ts`.
+- Auth UI stránky a admin registration settings používají feature API místo přímých importů `authService` a `platformAdapter`.
+- Očekávaný audit dopad proti stavu po settings incident admin API řezu:
+  - přechodové import vazby: `128 -> 125`.
+- Bezpečnostní dopad: zachována stejná auth service implementace, reset token flow i desktop platform guardy; změna nepřidává nové oprávnění, persistence ani práci se secrets.
+
+### Notifications realtime API wrapper
+- `features/notifications/api/notificationApi.ts` vlastní Realtime subscription wrapper `subscribeToUserNotifications`.
+- `features/notifications/hooks/useNotificationSubscription.ts` používá feature API místo přímého importu `notificationService`.
+- Očekávaný audit dopad proti stavu po auth feature API řezu:
+  - přechodové import vazby: `125 -> 124`.
+- Bezpečnostní dopad: Supabase Realtime filter i cleanup kanálu zůstávají beze změny, ale klient zůstává skrytý za feature API; změna nepřidává nové oprávnění, persistence ani práci se secrets.
+
+### Notifications desktop API wrapper
+- `features/notifications/api/notificationApi.ts` vlastní desktop notification wrappery pro permission request a zobrazení systémové notifikace.
+- `features/notifications/hooks/useNotifications.ts` a `features/settings/NotificationSettings.tsx` používají notifications API místo přímého importu `platformAdapter`.
+- Očekávaný audit dopad proti stavu po notifications realtime API řezu:
+  - přechodové import vazby: `124 -> 123`.
+- Bezpečnostní dopad: stávající Web/Electron permission flow a fallback zůstávají v `platformAdapter`; změna nepřidává nové oprávnění, persistence ani práci se secrets.
+
+### Backup local adapter API wrappers
+- `features/backup/api/backupService.ts` exportuje lokální backup wrappery pro dostupnost, nastavení, seznam záloh, plánovaný čas a otevření složky.
+- `features/backup/ui/BackupSettings.tsx` a `features/backup/hooks/useAutoBackupScheduler.ts` používají backup API místo přímého importu `platformAdapter`.
+- Očekávaný audit dopad proti stavu po notifications desktop API řezu:
+  - přechodové import vazby: `123 -> 121`.
+- Bezpečnostní dopad: Electron backup guardy, plánování i lokální souborové operace zůstávají ve stejném platform adaptéru; změna nepřidává nové oprávnění, persistence ani práci se secrets.
+
+### Settings feature usage API wrapper
+- Přidán `features/settings/api/featureUsageApi.ts` jako settings boundary pro usage tracking.
+- Excel Indexer, Excel Merger a Excel Unlocker settings používají settings API místo přímého importu `featureUsageService`.
+- Očekávaný audit dopad proti stavu po backup local adapter API řezu:
+  - přechodové import vazby: `121 -> 119`.
+- Bezpečnostní dopad: cookie consent gate, RPC i sanitizované logování zůstávají ve stejné legacy service; změna nepřidává nové telemetry pole mimo původní payloady ani práci se secrets.
+
+### Projects organization API imports
+- Project contract protocol generation a pipeline communication actions používají `@features/organization/api` místo přímého importu `organizationService`.
+- Očekávaný audit dopad proti stavu po settings feature usage API řezu:
+  - přechodové import vazby: `119 -> 117`.
+- Bezpečnostní dopad: logo URL a email branding flow zůstávají ve stejné organization service včetně expiračních URL parametrů; změna nepřidává nové volání, persistence ani práci se secrets.
+
+### Project manager organization API import
+- `features/projects/ProjectManager.tsx` používá `@features/organization/api` pro načtení členů organizace při předání vlastnictví stavby.
+- Očekávaný audit dopad proti stavu po projects organization API řezu:
+  - přechodové import vazby: `117 -> 116`.
+- Bezpečnostní dopad: předání vlastnictví dál používá stejnou organization service a stejné filtrování aktivních členů; změna nepřidává nové oprávnění, persistence ani práci se secrets.
+
+### Projects export API wrapper
+- Přidán `features/projects/api/projectExportApi.ts` jako project boundary pro export poptávek a supplier analysis PDF.
+- `features/projects/ProjectOverview.tsx` a `features/projects/model/usePipelineCommunicationActions.ts` používají project export API místo přímého importu `exportService`.
+- Očekávaný audit dopad proti stavu po ProjectManager organization API řezu:
+  - přechodové import vazby: `116 -> 115`.
+- Bezpečnostní dopad: export payloady, generování souborů a PDF/Excel implementace zůstávají ve stejné legacy service; změna nepřidává nové síťové volání, persistence ani práci se secrets.
+
+### Contract query API wrapper
+- Přidán `features/projects/contracts/api/contractQueriesApi.ts` pro čtení contract dat.
+- Contract query hooky používají contracts API místo přímého importu `contractService`.
+- Očekávaný audit dopad proti stavu po projects export API řezu:
+  - přechodové import vazby: `115 -> 114`.
+- Bezpečnostní dopad: čtení smluv dál používá stejnou contract service a React Query cache klíče se nemění; změna nepřidává nové volání, persistence ani práci se secrets.
+
+### Contract form mutation API wrapper
+- Přidán `features/projects/contracts/api/contractMutationsApi.ts` pro contract form mutace.
+- Amendment, invoice, contract edit a vendor rating dialogy používají contracts API místo přímého importu `contractService`.
+- Očekávaný audit dopad proti stavu po contract query API řezu:
+  - přechodové import vazby: `114 -> 111`.
+- Bezpečnostní dopad: create/update payloady zůstávají beze změny a mutace dál běží přes stejnou contract service; změna nepřidává nové oprávnění, persistence ani práci se secrets.
+
+### Contract workspace mutation API imports
+- Contract workspace sekce pro dodatky, faktury a pozastávky používají `contractMutationsApi`.
+- Očekávaný audit dopad proti stavu po contract form mutation API řezu:
+  - přechodové import vazby: `111 -> 108`.
+- Bezpečnostní dopad: delete/paid/release akce dál používají stejnou contract service; potvrzení mazání, refresh callbacky a error handling se nemění.
+
+### Contract OCR markdown API imports
+- `OcrDocumentSection` používá contracts API pro MD verze a contract/amendment update po OCR.
+- Očekávaný audit dopad proti stavu po contract workspace mutation API řezu:
+  - přechodové import vazby: `108 -> 107`.
+- Bezpečnostní dopad: ukládání OCR výsledků a MD verzí používá stejné payloady i contract service; OCR extraction provider zůstává beze změny pro samostatný další řez.
+
+### Contract protocol query API import
+- `generateContractProtocol` používá `contractQueriesApi.getContractById` místo přímého importu `contractService`.
+- Očekávaný audit dopad proti stavu po contract OCR markdown API řezu:
+  - přechodové import vazby: `107 -> 106`.
+- Bezpečnostní dopad: načtení smlouvy pro protokol dál používá stejnou contract service; XLSX/PDF generování, logo URL i snapshot fallback se nemění.
+
+### Infra functions client boundary
+- Přidána `infra/functions/functionsClient.ts` fasáda pro Supabase Edge Function volání.
+- Mapy proxy, DocHub pipeline flow a AI API test používají infra klient místo přímého importu `services/functionsClient`.
+- Očekávaný audit dopad proti stavu po contract protocol query API řezu:
+  - přechodové import vazby: `106 -> 101`.
+- Bezpečnostní dopad: auth token, timeouty, retry, idempotency key a incident logging zůstávají v původním klientu; změna jen přesouvá import hranici do `infra`.
+
+### Infra platform adapter boundary
+- Přidána `infra/platform/platformAdapter.ts` fasáda pro desktop/platform adaptér.
+- Auth API, notification API, backup local API, contacts shell akce, pipeline DocHub/communication flow a desktop settings používají infra platform import.
+- Očekávaný audit dopad proti stavu po infra functions client řezu:
+  - přechodové import vazby: `101 -> 91`.
+- Bezpečnostní dopad: IPC, `window.electronAPI` guardy, desktop permission flow, backup adapter i shell open flow zůstávají v původním adapteru; změna jen sjednocuje integrační hranici v `infra`.
+
+### Infra file system boundary
+- Přidána `infra/files/fileSystemService.ts` fasáda pro lokální filesystem a DocHub storage operace.
+- Pipeline bid, category navigation, DocHub actions/fallback a subcontractor selection modely používají infra filesystem import.
+- Očekávaný audit dopad proti stavu po infra platform adapter řezu:
+  - přechodové import vazby: `91 -> 86`.
+- Bezpečnostní dopad: validace názvů složek, incident logging, desktop-only guardy a cloud fallback volání zůstávají v původním service; změna nemění filesystem oprávnění ani payloady.
+
+### Infra incident logger boundary
+- Přidána `infra/diagnostics/incidentLogger.ts` fasáda pro diagnostické logování.
+- Pipeline category navigation a DocHub actions modely používají infra logger místo přímého importu `services/incidentLogger`.
+- Očekávaný audit dopad proti stavu po infra file system řezu:
+  - přechodové import vazby: `86 -> 84`.
+- Bezpečnostní dopad: sanitizace zpráv, context allowlist, queue storage i Supabase persist flow zůstávají v původním loggeru; změna nemění logované hodnoty ani rozsah incident contextu.
+
+### Project demo data API boundary
+- Přidána `features/projects/api/projectDemoDataApi.ts` fasáda pro demo data persistence.
+- Pipeline bid status, bid actions, contacts controller a subcontractor selection modely používají project demo API místo přímého importu `services/demoData`.
+- Očekávaný audit dopad proti stavu po infra incident logger řezu:
+  - přechodové import vazby: `84 -> 81`.
+- Bezpečnostní dopad: demo data storage klíče, serializace i seed data zůstávají v původním service; změna nezasahuje produkční Supabase persistence ani auth.
+
+### Infra db adapter boundary
+- Přidána `infra/db/dbAdapter.ts` fasáda pro Supabase query/RPC adapter.
+- Backup API, project clone/protocol API, tasks API, AI settings a compliance admin service používají infra DB adapter místo přímého importu `services/dbAdapter`.
+- Očekávaný audit dopad proti stavu po project demo data API řezu:
+  - přechodové import vazby: `81 -> 75`.
+- Bezpečnostní dopad: Supabase klient, RPC fallback, auth session token pro `rpcRest` i error payload handling zůstávají v původním adapteru; změna nepřidává nové dotazy ani RLS obcházení.
+
+### Infra export service boundary
+- Přidána `infra/export/exportService.ts` fasáda pro CSV/XLSX/PDF/Markdown exporty.
+- Project export API a Settings import/export UI používají infra export import místo přímého importu `services/exportService`.
+- Očekávaný audit dopad proti stavu po infra DB adapter řezu:
+  - přechodové import vazby: `75 -> 73`.
+- Bezpečnostní dopad: CSV sanitizace, PDF/Markdown generování a download/open flow zůstávají v původním export service; změna nemění obsah exportů ani práci se soubory.
+
+### Infra billing services boundary
+- Přidány `infra/billing/*` fasády pro billing, payment provider, subscription features a user subscription service.
+- Subscription billing actions, organization billing actions a subscription state API používají infra billing importy místo přímých importů legacy services.
+- Očekávaný audit dopad proti stavu po infra export service řezu:
+  - přechodové import vazby: `73 -> 67`.
+- Bezpečnostní dopad: Stripe/checkout payloady, org billing provider routing, tier/feature lookup a subscription mutation flow zůstávají v původních services; změna nepřidává nové redirect URL ani platební oprávnění.
 
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:

@@ -513,7 +513,8 @@ html[data-skin="industrial"] .tf-schedule-view {
 }
 
 html[data-skin="industrial"] .tf-tender-plan-view,
-html[data-skin="industrial"] .tf-pipeline-view {
+html[data-skin="industrial"] .tf-pipeline-view,
+html[data-skin="industrial"] .tf-project-overview {
   background: transparent !important;
   color: var(--tf-skin-text);
 }

@@ -1,13 +1,13 @@
-import { invokeAuthedFunction } from "@/services/functionsClient";
-import { folderExists } from "@/services/fileSystemService";
-import { logIncident } from "@/services/incidentLogger";
-import platformAdapter from "@/services/platformAdapter";
+import { invokeAuthedFunction } from "@infra/functions/functionsClient";
+import { folderExists } from "@infra/files/fileSystemService";
+import { logIncident } from "@infra/diagnostics/incidentLogger";
+import platformAdapter from "@infra/platform/platformAdapter";
 import {
   getDocHubTenderLinks,
   getDocHubTenderLinksDesktop,
   isProbablyUrl,
   slugifyDocHubSegmentStrict,
-} from "@/utils/docHub";
+} from "@/shared/dochub/docHub";
 import type { Bid, DemandCategory, ProjectDetails } from "@/types";
 
 interface ShowAlertArgs {
@@ -22,7 +22,7 @@ interface UsePipelineDocHubActionsInput {
   projectData: ProjectDetails;
   projectDetails: ProjectDetails;
   docHubRoot: string;
-  docHubStructure: ReturnType<typeof import("@/utils/docHub").resolveDocHubStructureV1>;
+  docHubStructure: ReturnType<typeof import("@/shared/dochub/docHub").resolveDocHubStructureV1>;
   isDocHubEnabled: boolean;
   showAlert: (args: ShowAlertArgs) => void;
   resolveDesktopTenderFolderPath: (categoryTitle: string) => Promise<string | null>;
@@ -63,7 +63,7 @@ export const usePipelineDocHubActions = ({
     if (isDocHubEnabled && !isProbablyUrl(path)) {
       try {
         const { fileSystemAdapter, isDesktop } =
-          await import("@/services/platformAdapter");
+          await import("@infra/platform/platformAdapter");
         console.log("[DocHub] isDesktop:", isDesktop);
         if (isDesktop) {
           console.log(

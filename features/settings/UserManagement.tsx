@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import {
   userManagementService,
-  UserWithProfile,
-} from "@/services/userManagementService";
+  type UserWithProfile,
+} from "@features/settings/api";
 import { useUI } from "@/context/UIContext";
 import { getTierLabel, getTierBadgeClass } from "@/config/subscriptionTiers";
 

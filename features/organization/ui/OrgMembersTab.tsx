@@ -10,9 +10,9 @@ import {
   organizationService,
   type OrganizationMember,
   type OrganizationJoinRequest,
-} from '@/services/organizationService';
+} from '@features/organization/api';
 import { getOrgSeatUsage } from '../api/orgBillingService';
-import { formatOrgRole, isOrgOwnerRole } from '@/utils/organizationUtils';
+import { formatOrgRole, isOrgOwnerRole } from '@/shared/organization/organizationUtils';
 import { useUI } from '@/context/UIContext';
 import type { OrgSeatUsage } from '../model/types';
 

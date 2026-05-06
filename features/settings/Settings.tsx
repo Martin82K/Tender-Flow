@@ -7,7 +7,7 @@ import { navigate, useLocation } from "@/shared/routing/router";
 import {
   exportContactsToXLSX,
   exportContactsToCSV,
-} from "@/services/exportService";
+} from "@infra/export/exportService";
 
 // Sub-components
 import { AdminSettings } from "@/features/settings/AdminSettings";

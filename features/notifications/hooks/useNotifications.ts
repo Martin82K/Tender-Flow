@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { desktopNotificationAdapter } from "@/services/platformAdapter";
 import type { AppNotification } from "../types";
 import { notificationApi } from "../api/notificationApi";
 import { useNotificationSubscription } from "./useNotificationSubscription";
@@ -54,7 +53,7 @@ export const useNotifications = (enabled: boolean = true): UseNotificationsRetur
       });
       // Show desktop notification for warning/success/error types
       if (notification.type === "warning" || notification.type === "success" || notification.type === "error") {
-        void desktopNotificationAdapter.show(notification.title, notification.body ?? undefined);
+        void notificationApi.showDesktopNotification(notification.title, notification.body ?? undefined);
       }
     },
   });

@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { dbAdapter } from "../../services/dbAdapter";
 import { ActiveProjectStatus, Project, ProjectDetails, DemandCategory, ProjectStatus } from "../../types";
 import { useAuth } from "../../context/AuthContext";
-import { PROJECT_KEYS } from "../queries/useProjectsQuery";
+import { PROJECT_KEYS } from "@/shared/queryKeys/projectKeys";
 import { PROJECT_DETAILS_KEYS } from "../queries/useProjectDetailsQuery";
 import { OVERVIEW_TENANT_DATA_KEY } from "../queries/useOverviewTenantDataQuery";
 import { getDemoData, saveDemoData } from "../../services/demoData";

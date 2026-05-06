@@ -82,10 +82,16 @@ Mít přesnou mapu zbývajícího dluhu, který už není zachycený jen pravidl
 ### Kandidáti
 
 - `shared/ui/projects/Pipeline.tsx`
-- `shared/ui/projects/ProjectOverviewNew.tsx`
+- `shared/ui/projects/ProjectOverviewNew.tsx` — hotovo, implementace je ve `features/projects/ui/ProjectOverviewNew.tsx`, legacy wrapper zůstává v `components/ProjectOverviewNew.tsx`
 - `shared/ui/projects/ProjectSchedule.tsx` — hotovo, implementace je ve `features/projects/ui/ProjectSchedule.tsx`, legacy export zůstává v `components/ProjectSchedule.tsx`
-- `shared/ui/projects/TenderPlan.tsx`
+- `shared/ui/projects/TenderPlan.tsx` — hotovo, implementace je ve `features/projects/ui/TenderPlan.tsx`, legacy export zůstává v `components/TenderPlan.tsx`
 - `shared/ui/projects/ProjectDocuments.tsx`
+- `shared/ui/overview/KPICard.tsx` — hotovo, implementace je ve `shared/ui/overview/KPICard.tsx`, legacy export zůstává v `components/overview/KPICard.tsx`
+- `shared/ui/overview/StatusCard.tsx` — hotovo, implementace je ve `shared/ui/overview/StatusCard.tsx`, legacy export zůstává v `components/overview/StatusCard.tsx`
+- `shared/ui/overview/SupplierTable.tsx` — hotovo, implementace je ve `shared/ui/overview/SupplierTable.tsx`, legacy export zůstává v `components/overview/SupplierTable.tsx`
+- `shared/ui/overview/SupplierBarChart.tsx` — hotovo, implementace je ve `shared/ui/overview/SupplierBarChart.tsx`, legacy export zůstává v `components/overview/SupplierBarChart.tsx`
+- `shared/ui/overview/StatusDistributionChart.tsx` — hotovo, implementace je ve `shared/ui/overview/StatusDistributionChart.tsx`, legacy export zůstává v `components/overview/StatusDistributionChart.tsx`
+- `shared/ui/overview/BudgetDeviationGauge.tsx` — hotovo, implementace je ve `shared/ui/overview/BudgetDeviationGauge.tsx`, legacy export zůstává v `components/overview/BudgetDeviationGauge.tsx`
 - `shared/ui/overview/*`
 
 ### Postup

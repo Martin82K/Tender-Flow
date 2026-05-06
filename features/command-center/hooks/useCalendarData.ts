@@ -1,10 +1,9 @@
 import { useMemo } from "react";
-import { useAppData } from "@/hooks/useAppData";
-import { useUI } from "@/context/UIContext";
 import { useAuth } from "@/context/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { listTasks } from "@features/tasks/api/tasksApi";
 import { TASK_KEYS } from "@features/tasks/hooks/useTasksQuery";
+import { useProjectPortfolioState } from "@features/projects/model/useProjectPortfolioState";
 import { buildAppUrl } from "@shared/routing/routeUtils";
 import type { CommandCenterFilterState } from "@features/command-center/types";
 import type { Task } from "@features/tasks/types";
@@ -49,10 +48,8 @@ const startOfDay = (d: Date): Date => {
 };
 
 export const useCalendarData = (filter: CommandCenterFilterState): CalendarEvent[] => {
-  const { showUiModal } = useUI();
-  const { state } = useAppData(showUiModal);
   const { user } = useAuth();
-  const { projects, allProjectDetails } = state;
+  const { projects, allProjectDetails } = useProjectPortfolioState();
 
   const tasksQuery = useQuery({
     queryKey: TASK_KEYS.list(user?.id, { completed: false }),

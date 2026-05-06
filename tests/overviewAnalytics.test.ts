@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { buildOverviewAnalytics, parseMoneyValue } from "../utils/overviewAnalytics";
+import { buildOverviewAnalytics, parseMoneyValue } from "@/shared/overview/overviewAnalytics";
+import { parseMoneyValue as parseMoneyValueFromLegacy } from "../utils/overviewAnalytics";
 import type { Project, ProjectDetails } from "../types";
 
 describe("overviewAnalytics", () => {
@@ -7,6 +8,7 @@ describe("overviewAnalytics", () => {
     expect(parseMoneyValue("1 200 000 Kč")).toBe(1200000);
     expect(parseMoneyValue("1.5M")).toBe(1500000);
     expect(parseMoneyValue("250k")).toBe(250000);
+    expect(parseMoneyValueFromLegacy("1 200 000 Kč")).toBe(1200000);
   });
 
   it("builds supplier stats, category profit and trends", () => {

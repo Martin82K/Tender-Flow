@@ -232,4 +232,4 @@ export function UpdateNotification({
     return null;
 }
 
-export { useElectronUpdater } from '@/hooks/useElectronUpdater';
+export { useElectronUpdater } from '@/infra/desktop/useElectronUpdater';
