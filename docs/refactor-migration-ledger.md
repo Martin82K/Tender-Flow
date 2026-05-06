@@ -408,6 +408,13 @@
   - přechodové import vazby: `125 -> 124`.
 - Bezpečnostní dopad: Supabase Realtime filter i cleanup kanálu zůstávají beze změny, ale klient zůstává skrytý za feature API; změna nepřidává nové oprávnění, persistence ani práci se secrets.
 
+### Notifications desktop API wrapper
+- `features/notifications/api/notificationApi.ts` vlastní desktop notification wrappery pro permission request a zobrazení systémové notifikace.
+- `features/notifications/hooks/useNotifications.ts` a `features/settings/NotificationSettings.tsx` používají notifications API místo přímého importu `platformAdapter`.
+- Očekávaný audit dopad proti stavu po notifications realtime API řezu:
+  - přechodové import vazby: `124 -> 123`.
+- Bezpečnostní dopad: stávající Web/Electron permission flow a fallback zůstávají v `platformAdapter`; změna nepřidává nové oprávnění, persistence ani práci se secrets.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`

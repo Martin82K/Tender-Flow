@@ -3,9 +3,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const notificationServiceMock = vi.hoisted(() => ({
   getSupabaseClient: vi.fn(),
 }));
+const desktopNotificationAdapterMock = vi.hoisted(() => ({
+  requestPermission: vi.fn(),
+  show: vi.fn(),
+}));
 
 vi.mock("@/services/notificationService", () => ({
   notificationService: notificationServiceMock,
+}));
+vi.mock("@/services/platformAdapter", () => ({
+  desktopNotificationAdapter: desktopNotificationAdapterMock,
 }));
 
 import { notificationApi } from "../features/notifications/api/notificationApi";
@@ -14,6 +21,17 @@ import type { AppNotification } from "../features/notifications/types";
 describe("notificationApi realtime subscriptions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("deleguje desktop notification operace do platform adaptéru", async () => {
+    desktopNotificationAdapterMock.requestPermission.mockResolvedValue(true);
+    desktopNotificationAdapterMock.show.mockResolvedValue(undefined);
+
+    await expect(notificationApi.requestDesktopPermission()).resolves.toBe(true);
+    await notificationApi.showDesktopNotification("Titulek", "Tělo");
+
+    expect(desktopNotificationAdapterMock.requestPermission).toHaveBeenCalledOnce();
+    expect(desktopNotificationAdapterMock.show).toHaveBeenCalledWith("Titulek", "Tělo");
   });
 
   it("subscribes to user notifications and cleans up the realtime channel", () => {

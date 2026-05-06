@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { desktopNotificationAdapter } from "@/services/platformAdapter";
+import { notificationApi } from "@features/notifications/api/notificationApi";
 import { notificationPreferencesApi } from "@features/notifications/api/notificationPreferencesApi";
 import type { NotificationPreferences } from "@features/notifications/types";
 import { DEFAULT_NOTIFICATION_PREFERENCES } from "@features/notifications/types";
@@ -78,9 +78,7 @@ export const NotificationSettings: React.FC = () => {
       }
     })();
     // Check desktop notification permission
-    if ("Notification" in window) {
-      setDesktopPermission(Notification.permission === "granted");
-    }
+    setDesktopPermission(notificationApi.hasDesktopPermission());
   }, []);
 
   const handleToggle = useCallback(async (key: keyof NotificationPreferences, value: boolean) => {
@@ -98,7 +96,7 @@ export const NotificationSettings: React.FC = () => {
   }, [prefs]);
 
   const handleRequestDesktopPermission = useCallback(async () => {
-    const granted = await desktopNotificationAdapter.requestPermission();
+    const granted = await notificationApi.requestDesktopPermission();
     setDesktopPermission(granted);
     if (granted) {
       await handleToggle("desktop_notifications", true);

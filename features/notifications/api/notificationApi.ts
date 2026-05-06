@@ -1,4 +1,5 @@
 import { notificationService } from "@/services/notificationService";
+import { desktopNotificationAdapter } from "@/services/platformAdapter";
 import type { AppNotification, NotificationCategory, NotificationPreferences } from "../types";
 
 interface NotificationSubscriptionOptions {
@@ -47,6 +48,18 @@ export const notificationApi = {
 
   async savePreferences(prefs: Partial<NotificationPreferences>): Promise<boolean> {
     return notificationService.savePreferences(prefs as Record<string, any>);
+  },
+
+  hasDesktopPermission(): boolean {
+    return "Notification" in window && Notification.permission === "granted";
+  },
+
+  async requestDesktopPermission(): Promise<boolean> {
+    return desktopNotificationAdapter.requestPermission();
+  },
+
+  async showDesktopNotification(title: string, body?: string): Promise<void> {
+    return desktopNotificationAdapter.show(title, body);
   },
 
   subscribeToUserNotifications({
