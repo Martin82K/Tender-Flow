@@ -72,7 +72,7 @@ describe("SubscriptionSettings billing flow", () => {
     syncSubscriptionMock.mockResolvedValue({ success: true });
   });
 
-  it("does not fallback to requestPlanChange when GoPay checkout fails but billing is configured", async () => {
+  it("does not fallback to requestPlanChange when Stripe checkout fails but billing is configured", async () => {
     isBillingConfiguredMock.mockReturnValue(true);
     createCheckoutSessionMock.mockResolvedValue({
       success: false,
@@ -94,7 +94,7 @@ describe("SubscriptionSettings billing flow", () => {
     expect(requestPlanChangeMock).not.toHaveBeenCalled();
   });
 
-  it("shows error when GoPay checkout fails", async () => {
+  it("shows error when Stripe checkout fails", async () => {
     isBillingConfiguredMock.mockReturnValue(true);
     createCheckoutSessionMock.mockResolvedValue({
       success: false,

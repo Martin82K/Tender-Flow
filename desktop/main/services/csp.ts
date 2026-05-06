@@ -38,20 +38,13 @@ export const buildDesktopCsp = (isDev: boolean): string => {
         'wss://*.supabase.co',
         'wss://*.supabase.in',
         'https://ares.gov.cz',
-        'https://gw.sandbox.gopay.com',
-        'https://gate.gopay.cz',
-        'https://*.gopay.com',
-        'https://*.gopay.cz',
         'https://fonts.googleapis.com',
         'https://fonts.gstatic.com',
     ].join(' ');
 
     const frameSrc = [
         "'self'",
-        'https://gw.sandbox.gopay.com',
-        'https://gate.gopay.cz',
-        'https://*.gopay.com',
-        'https://*.gopay.cz',
+        'https://checkout.stripe.com',
     ].join(' ');
 
     return [

@@ -1,7 +1,7 @@
 /**
  * Billing Service — user-level předplatné.
  *
- * Routuje volání přes `paymentProviderService` (provider-aware: gopay | stripe).
+ * Routuje volání přes Stripe-only `paymentProviderService`.
  * Tenhle modul drží jen UI-friendly error mapping a pricing config.
  */
 
@@ -50,8 +50,6 @@ const mapBillingErrorToUserMessage = (rawError?: string): string => {
 
     if (
         normalized.includes('not configured') ||
-        normalized.includes('gopay_goid') ||
-        normalized.includes('gopay_client') ||
         normalized.includes('stripe_secret_key') ||
         normalized.includes('stripe_price_') ||
         normalized.includes('stripe_webhook_secret')

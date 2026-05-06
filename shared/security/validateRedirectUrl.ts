@@ -5,10 +5,6 @@
  */
 
 const ALLOWED_REDIRECT_HOSTS: string[] = [
-  // GoPay payment gateway
-  'gw.gopay.com',
-  'gw.sandbox.gopay.com',
-  'gate.gopay.cz',
   // Stripe Checkout (test i live mód, oba na stejném hostu)
   'checkout.stripe.com',
   // Google OAuth

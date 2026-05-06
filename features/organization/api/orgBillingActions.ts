@@ -2,7 +2,7 @@
  * Organization Billing Actions
  *
  * Actions for org-level checkout, cancellation, and sync.
- * Routuje volání přes paymentProviderService (gopay | stripe).
+ * Routuje volání přes Stripe-only paymentProviderService.
  */
 
 import type { SubscriptionTierId } from '@/config/subscriptionTiers';
