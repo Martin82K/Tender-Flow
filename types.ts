@@ -87,7 +87,7 @@ export interface DemandCategory {
   createdAt?: string; // Datum vytvoření poptávky (ISO timestamp) — pro pravidlo 14 dní bez nabídek
 }
 
-import type { DocHubStructureV1 as _DocHubStructureV1 } from "@/utils/docHub";
+import type { DocHubStructureV1 as _DocHubStructureV1 } from "@/shared/dochub/docHub";
 export type DocHubStructureV1 = _DocHubStructureV1;
 
 export type BidStatus =

@@ -7,7 +7,7 @@ import {
   getTendersFolderName,
   joinDocHubPath,
   slugifyDocHubSegmentStrict,
-} from "@/utils/docHub";
+} from "@/shared/dochub/docHub";
 import { sanitizeFolderSegment } from "./pipelineModel";
 
 interface UsePipelineCategoryNavigationInput {

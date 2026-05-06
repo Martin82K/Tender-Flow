@@ -13,7 +13,7 @@ import {
 import {
   getDocHubTenderLinks,
   resolveDocHubStructureV1,
-} from "@/utils/docHub";
+} from "@/shared/dochub/docHub";
 import {
   persistBidStatusChange,
   updateBidStatusInMemory,

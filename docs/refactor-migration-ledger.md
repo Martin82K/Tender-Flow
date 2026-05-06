@@ -284,6 +284,16 @@
   - přechodové import vazby: `177 -> 176`.
 - Bezpečnostní dopad: zachována existující DOMPurify sanitizace podpisu i whitelist tagů/atributů; žádné nové IO, persistence ani externí volání.
 
+### Shared DocHub helpers
+- DocHub helpery byly přesunuty do:
+  - `shared/dochub/docHub.ts`.
+- Legacy `utils/docHub.ts` zůstává kompatibilní re-export.
+- Pipeline feature modely používají shared helpery přímo.
+- `types.ts` bere DocHub typ ze shared vrstvy.
+- Očekávaný audit dopad proti stavu po shared email template řezu:
+  - přechodové import vazby: `176 -> 171`.
+- Bezpečnostní dopad: zachována existující URL safety validace proti lokálním/private hostům a stejné path sanitizační helpery; žádné nové IO, persistence ani externí volání.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`

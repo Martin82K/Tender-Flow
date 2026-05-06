@@ -9,7 +9,7 @@ import {
   buildHierarchyTree,
   ensureExtraHierarchy,
   resolveDocHubStructureV1,
-} from "@/utils/docHub";
+} from "@/shared/dochub/docHub";
 
 interface ShowAlertArgs {
   title: string;
