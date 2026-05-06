@@ -468,6 +468,12 @@
   - přechodové import vazby: `111 -> 108`.
 - Bezpečnostní dopad: delete/paid/release akce dál používají stejnou contract service; potvrzení mazání, refresh callbacky a error handling se nemění.
 
+### Contract OCR markdown API imports
+- `OcrDocumentSection` používá contracts API pro MD verze a contract/amendment update po OCR.
+- Očekávaný audit dopad proti stavu po contract workspace mutation API řezu:
+  - přechodové import vazby: `108 -> 107`.
+- Bezpečnostní dopad: ukládání OCR výsledků a MD verzí používá stejné payloady i contract service; OCR extraction provider zůstává beze změny pro samostatný další řez.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`

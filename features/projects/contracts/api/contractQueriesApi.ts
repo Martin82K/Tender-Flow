@@ -9,4 +9,10 @@ export const contractQueriesApi = {
   getContractsByProject(projectId: string): Promise<ContractWithDetails[]> {
     return contractService.getContractsByProject(projectId);
   },
+
+  getMarkdownVersions(
+    ...args: Parameters<typeof contractService.getMarkdownVersions>
+  ): ReturnType<typeof contractService.getMarkdownVersions> {
+    return contractService.getMarkdownVersions(...args);
+  },
 };

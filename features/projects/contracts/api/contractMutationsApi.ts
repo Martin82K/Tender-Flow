@@ -43,6 +43,12 @@ export const contractMutationsApi = {
     return contractService.updateInvoice(...args);
   },
 
+  createMarkdownVersion(
+    ...args: Parameters<typeof contractService.createMarkdownVersion>
+  ): ReturnType<typeof contractService.createMarkdownVersion> {
+    return contractService.createMarkdownVersion(...args);
+  },
+
   deleteInvoice(
     ...args: Parameters<typeof contractService.deleteInvoice>
   ): ReturnType<typeof contractService.deleteInvoice> {
