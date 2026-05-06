@@ -339,6 +339,15 @@
   - přechodové import vazby: `162 -> 161`.
 - Bezpečnostní dopad: čistý přesun konstant cache klíčů bez nové logiky, IO, persistence nebo externích volání.
 
+### Command Center portfolio state hook
+- Read-only portfolio data pro Command Center byla zúžena do:
+  - `features/projects/model/useProjectPortfolioState.ts`.
+- Command Center moduly už neimportují globální legacy `useAppData` jen kvůli `projects` a `allProjectDetails`.
+- Z Command Center datových hooků byly odstraněny zbytečné `UIContext` importy používané pouze pro předání `showUiModal`.
+- Očekávaný audit dopad proti stavu po shared project query keys řezu:
+  - přechodové import vazby: `161 -> 141`.
+- Bezpečnostní dopad: zachováno čtení přes existující React Query hooky; žádná nová mutace, síťová cesta, persistence, oprávnění ani práce se secrets.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`

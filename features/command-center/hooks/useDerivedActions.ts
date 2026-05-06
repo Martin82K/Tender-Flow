@@ -1,8 +1,7 @@
 import { useMemo } from "react";
-import { useAppData } from "@/hooks/useAppData";
-import { useUI } from "@/context/UIContext";
 import { buildAppUrl } from "@shared/routing/routeUtils";
 import { useAllContractsQuery } from "@features/projects/contracts/hooks/useAllContractsQuery";
+import { useProjectPortfolioState } from "@features/projects/model/useProjectPortfolioState";
 import type { CommandCenterFilterState, DerivedAction } from "@features/command-center/types";
 import { matchesFilter } from "./filterUtils";
 
@@ -26,9 +25,7 @@ const diffInDays = (target: Date, reference: Date): number =>
 const severityOrder = { critical: 0, warning: 1, info: 2 } as const;
 
 export const useDerivedActions = (filter?: CommandCenterFilterState): DerivedAction[] => {
-  const { showUiModal } = useUI();
-  const { state } = useAppData(showUiModal);
-  const { projects, allProjectDetails } = state;
+  const { projects, allProjectDetails } = useProjectPortfolioState();
 
   const activeProjectIds = useMemo(
     () => projects.filter((p) => p.status !== "archived").map((p) => p.id),
