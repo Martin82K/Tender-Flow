@@ -58,4 +58,20 @@ describe("InvestorBillingPage", () => {
       }),
     });
   });
+
+  it("má stabilní kotvy pro industrial skin investor fakturace", () => {
+    const { container } = render(
+      <InvestorBillingPage
+        projectDetails={projectDetails}
+        onUpdateDetails={vi.fn()}
+      />,
+    );
+
+    expect(container.querySelector("[data-help-id='contracts-investor-page']")).toBeInTheDocument();
+    expect(container.querySelectorAll("[data-help-id='contracts-investor-kpi-card']")).toHaveLength(4);
+    expect(container.querySelector("[data-help-id='contracts-investor-panel']")).toBeInTheDocument();
+    expect(container.querySelector("[data-help-id='contracts-investor-empty']")).toBeInTheDocument();
+    expect(screen.getByText("+ Přidat fakturu")).toHaveAttribute("data-help-id", "contracts-investor-add-invoice");
+    expect(screen.getByText("Uložit")).toHaveAttribute("data-help-id", "contracts-investor-save");
+  });
 });

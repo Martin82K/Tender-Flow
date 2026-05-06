@@ -1,6 +1,7 @@
 import React from "react";
 import { createPortal } from "react-dom";
 import type { ProjectDetails } from "@/types";
+import type { ThemeSkin } from "@/hooks/useTheme";
 import { formatDecimal, parseDecimal } from "@/shared/formatting/decimalFormatters";
 import {
   formatMoney,
@@ -18,6 +19,7 @@ export interface ProjectOverviewProps {
   searchQuery?: string;
   onNavigateToPipeline?: (categoryId: string) => void;
   currentUserId?: string;
+  skin?: ThemeSkin;
 }
 
 export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
@@ -28,6 +30,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
   searchQuery = "",
   onNavigateToPipeline,
   currentUserId,
+  skin = "classic",
 }) => {
   const {
     contract,
@@ -112,6 +115,42 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
     React.useState("");
   const [compactInternalAmendmentPriceInputs, setCompactInternalAmendmentPriceInputs] =
     React.useState<Record<string, string>>({});
+  const isIndustrialSkin = skin === "industrial";
+
+  const handleCopyShareUrl = React.useCallback(() => {
+    const shareUrl = `${window.location.origin}${window.location.pathname}`;
+    void navigator.clipboard?.writeText(shareUrl).catch(() => undefined);
+  }, []);
+
+  const getDemandFilterButtonClass = (active: boolean) =>
+    isIndustrialSkin
+      ? [
+          "border-b px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] transition-colors",
+          active
+            ? "border-[#ff8a33] text-[#b03a05]"
+            : "border-transparent text-slate-500 hover:border-[#ffb15c] hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100",
+        ].join(" ")
+      : [
+          "px-4 py-2 text-[11px] font-black uppercase tracking-tighter rounded-xl transition-all",
+          active
+            ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+            : "text-slate-500 hover:text-slate-900 dark:hover:text-white",
+        ].join(" ");
+
+  const demandFilterShellClass = isIndustrialSkin
+    ? "flex items-center gap-5 border-b border-slate-200/70 dark:border-slate-700/70"
+    : "flex items-center gap-1.5 bg-slate-100 dark:bg-slate-950/50 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800";
+
+  const demandTableClass = [
+    isIndustrialSkin ? "industrial-demand-table" : "",
+    "bg-white/60 dark:bg-slate-900/40 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-3xl mt-8 shadow-sm",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const columnsButtonClass = isIndustrialSkin
+    ? "flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white border-b border-transparent hover:border-[#ffb15c] transition-colors text-[11px] font-semibold uppercase tracking-[0.08em]"
+    : "flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-xl border border-slate-200 dark:border-slate-800 transition-colors shadow-sm text-[11px] font-black uppercase tracking-tighter";
 
   const amendmentsCount = investor.amendments.length;
   const amendmentsTotal = investor.amendments.reduce(
@@ -1038,7 +1077,22 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
   );
 
   return (
-    <div className="flex flex-col gap-8 p-4 md:p-8 w-full bg-slate-50 dark:bg-slate-950 animate-fadeIn">
+    <div className="tf-project-overview flex flex-col gap-8 p-4 md:p-8 w-full bg-slate-50 dark:bg-slate-950 animate-fadeIn">
+      {isIndustrialSkin ? (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={handleCopyShareUrl}
+            className="industrial-share-button inline-flex items-center gap-2 rounded-lg border border-[#d8c8aa] bg-[#fffaf1]/85 px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-[#2d261c] shadow-sm transition-colors hover:border-[#ff9b3d] hover:text-[#b03a05] dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100"
+          >
+            <span className="material-symbols-outlined text-[18px]">
+              ios_share
+            </span>
+            Sdílet stavbu
+          </button>
+        </div>
+      ) : null}
+
       {/* Top Row: 4 KPI Cards */}
       <div data-help-id="overview-kpi-cards" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* 1. Rozpočet (Investor) */}
@@ -1811,7 +1865,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
 
       {/* Demand Categories Overview Table */}
       {project.categories.length > 0 && (
-            <div data-help-id="overview-demand-table" className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-3xl mt-8 shadow-sm">
+            <div data-help-id="overview-demand-table" className={demandTableClass}>
               <div className="px-8 py-6 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between flex-wrap gap-4">
                 <div>
                   <h3 className="text-lg font-black text-slate-900 dark:text-white leading-none mb-1">
@@ -1823,51 +1877,39 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                 </div>
 
                 {/* Filter Buttons */}
-                <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-950/50 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800">
+                <div className={demandFilterShellClass}>
                   <button
                     onClick={() => setDemandFilter("all")}
-                    className={`px-4 py-2 text-[11px] font-black uppercase tracking-tighter rounded-xl transition-all ${
-                      demandFilter === "all"
-                        ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                        : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                    }`}
+                    data-active={demandFilter === "all" ? "true" : "false"}
+                    className={getDemandFilterButtonClass(demandFilter === "all")}
                   >
                     Vše ({allCount})
                   </button>
                   <button
                     onClick={() => setDemandFilter("open")}
-                    className={`px-4 py-2 text-[11px] font-black uppercase tracking-tighter rounded-xl transition-all ${
-                      demandFilter === "open"
-                        ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/20"
-                        : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                    }`}
+                    data-active={demandFilter === "open" ? "true" : "false"}
+                    className={getDemandFilterButtonClass(demandFilter === "open")}
                   >
                     Poptávané ({openCount})
                   </button>
                   <button
                     onClick={() => setDemandFilter("closed")}
-                    className={`px-4 py-2 text-[11px] font-black uppercase tracking-tighter rounded-xl transition-all ${
-                      demandFilter === "closed"
-                        ? "bg-teal-500/10 text-teal-600 dark:text-teal-400 ring-1 ring-teal-500/20"
-                        : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                    }`}
+                    data-active={demandFilter === "closed" ? "true" : "false"}
+                    className={getDemandFilterButtonClass(demandFilter === "closed")}
                   >
                     Ukončené ({closedCount})
                   </button>
                   <button
                     onClick={() => setDemandFilter("sod")}
-                    className={`px-4 py-2 text-[11px] font-black uppercase tracking-tighter rounded-xl transition-all ${
-                      demandFilter === "sod"
-                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/20"
-                        : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                    }`}
+                    data-active={demandFilter === "sod" ? "true" : "false"}
+                    className={getDemandFilterButtonClass(demandFilter === "sod")}
                   >
                     Zasmluvněné ({sodCount})
                   </button>
 
                   {/* Column Visibility Dropdown */}
                   <div className="relative group/columns">
-                    <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-xl border border-slate-200 dark:border-slate-800 transition-colors shadow-sm text-[11px] font-black uppercase tracking-tighter">
+                    <button className={columnsButtonClass}>
                       <span className="material-symbols-outlined text-lg">
                         view_column
                       </span>

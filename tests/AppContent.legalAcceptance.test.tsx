@@ -103,6 +103,9 @@ vi.mock("@/hooks/useTheme", () => ({
     setTheme: vi.fn(),
     primaryColor: "#607AFB",
     setPrimaryColor: vi.fn(),
+    uiScale: 1,
+    setUiScale: vi.fn(),
+    resetUiScale: vi.fn(),
   }),
 }));
 

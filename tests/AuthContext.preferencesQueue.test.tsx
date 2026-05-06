@@ -11,6 +11,10 @@ const mockState = vi.hoisted(() => ({
   unsubscribe: vi.fn(),
 }));
 
+const demoState = vi.hoisted(() => ({
+  isDemoSession: vi.fn(),
+}));
+
 vi.mock("../services/authService", () => ({
   authService: {
     login: vi.fn(),
@@ -23,8 +27,19 @@ vi.mock("../services/authService", () => ({
 }));
 
 vi.mock("../services/demoData", () => ({
-  isDemoSession: vi.fn().mockReturnValue(false),
-  DEMO_USER: null,
+  isDemoSession: demoState.isDemoSession,
+  DEMO_USER: {
+    id: "demo-user",
+    name: "Demo Uživatel",
+    email: "demo@example.com",
+    role: "demo",
+    preferences: {
+      theme: "system",
+      primaryColor: "#607AFB",
+      backgroundColor: "#f5f6f8",
+      uiScale: 1,
+    },
+  },
   endDemoSession: vi.fn(),
   startDemoSession: vi.fn(),
 }));
@@ -97,6 +112,7 @@ const QueueHarness: React.FC = () => {
 describe("AuthContext preferences queue", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    demoState.isDemoSession.mockReturnValue(false);
     mockState.getCurrentUser.mockResolvedValue({
       id: "user-1",
       name: "Test User",
@@ -183,5 +199,27 @@ describe("AuthContext preferences queue", () => {
       expect(screen.getByTestId("theme").textContent).toBe("dark");
       expect(screen.getByTestId("shorten").textContent).toBe("true");
     });
+  });
+
+  it("demo preference ukládá jen lokálně bez volání backendu", async () => {
+    demoState.isDemoSession.mockReturnValue(true);
+
+    render(
+      <AuthProvider>
+        <QueueHarness />
+      </AuthProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("loading").textContent).toBe("false");
+    });
+
+    fireEvent.click(screen.getByText("Spustit"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("theme").textContent).toBe("dark");
+      expect(screen.getByTestId("shorten").textContent).toBe("true");
+    });
+    expect(mockState.updateUserPreferences).not.toHaveBeenCalled();
   });
 });

@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import './index.css';
 import App from './App';
 import { initIncidentGlobalHandlers } from './services/incidentLogger';
 import { initRuntimeDiagnostics, logRuntimeEvent } from './infra/diagnostics/runtimeDiagnostics';

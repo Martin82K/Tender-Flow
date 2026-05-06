@@ -170,9 +170,9 @@ export const InvestorBillingPage: React.FC<Props> = ({
   }
 
   return (
-    <div className="flex-1 min-h-0 overflow-auto p-5">
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-        <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900/60">
+    <div data-help-id="contracts-investor-page" className="flex-1 min-h-0 overflow-auto p-5">
+      <div data-help-id="contracts-investor-kpis" className="grid grid-cols-1 gap-3 md:grid-cols-4">
+        <div data-help-id="contracts-investor-kpi-card" className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900/60">
           <div className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-500">
             Rozpočet investora
           </div>
@@ -183,7 +183,7 @@ export const InvestorBillingPage: React.FC<Props> = ({
             dodatky {formatMoney(totals.amendmentsTotal)}
           </div>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900/60">
+        <div data-help-id="contracts-investor-kpi-card" className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900/60">
           <div className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-500">
             Fakturováno
           </div>
@@ -191,7 +191,7 @@ export const InvestorBillingPage: React.FC<Props> = ({
             {formatMoney(totals.invoiced)}
           </div>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900/60">
+        <div data-help-id="contracts-investor-kpi-card" className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900/60">
           <div className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-500">
             Uhrazeno
           </div>
@@ -199,7 +199,7 @@ export const InvestorBillingPage: React.FC<Props> = ({
             {formatMoney(totals.paid)}
           </div>
         </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900/60">
+        <div data-help-id="contracts-investor-kpi-card" className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900/60">
           <div className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-500">
             Zbývá fakturovat
           </div>
@@ -209,7 +209,7 @@ export const InvestorBillingPage: React.FC<Props> = ({
         </div>
       </div>
 
-      <div className="mt-3 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900/60">
+      <div data-help-id="contracts-investor-panel" className="mt-3 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900/60">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
@@ -223,6 +223,7 @@ export const InvestorBillingPage: React.FC<Props> = ({
             <button
               type="button"
               onClick={addInvoice}
+              data-help-id="contracts-investor-add-invoice"
               className="rounded-lg border border-primary/40 px-3 py-2 text-xs font-semibold text-primary transition hover:border-primary hover:bg-primary/10"
             >
               + Přidat fakturu
@@ -230,6 +231,7 @@ export const InvestorBillingPage: React.FC<Props> = ({
             <button
               type="button"
               onClick={save}
+              data-help-id="contracts-investor-save"
               className="rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white transition hover:bg-primary-dark"
             >
               Uložit
@@ -245,7 +247,7 @@ export const InvestorBillingPage: React.FC<Props> = ({
 
         <div className="mt-4 space-y-2">
           {invoices.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-600 dark:border-slate-800 dark:text-slate-500">
+            <div data-help-id="contracts-investor-empty" className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-600 dark:border-slate-800 dark:text-slate-500">
               Zatím není zadaná žádná faktura na investora.
             </div>
           ) : (

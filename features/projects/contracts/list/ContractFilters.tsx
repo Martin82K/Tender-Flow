@@ -60,7 +60,7 @@ interface Props {
 }
 
 export const ContractFilters: React.FC<Props> = ({ active, onChange, counts }) => (
-  <div className="flex flex-wrap gap-1.5">
+  <div data-help-id="contracts-list-filters" className="flex flex-wrap gap-1.5">
     {FILTERS.map((f) => {
       const count = counts?.[f.key];
       const isActive = active === f.key;
@@ -69,6 +69,7 @@ export const ContractFilters: React.FC<Props> = ({ active, onChange, counts }) =
           key={f.key}
           type="button"
           onClick={() => onChange(f.key)}
+          data-active={isActive ? 'true' : 'false'}
           className={`px-3 py-1 rounded-full text-[11px] font-medium border transition ${
             isActive
               ? 'bg-primary/15 border-primary text-primary'

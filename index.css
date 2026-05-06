@@ -1,11 +1,32 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/forms";
+@plugin "@tailwindcss/container-queries";
+@source "./app/**/*.{js,ts,jsx,tsx}";
+@source "./components/**/*.{js,ts,jsx,tsx}";
+@source "./context/**/*.{js,ts,jsx,tsx}";
+@source "./features/**/*.{js,ts,jsx,tsx}";
+@source "./hooks/**/*.{js,ts,jsx,tsx}";
+@source "./infra/**/*.{js,ts,jsx,tsx}";
+@source "./shared/**/*.{js,ts,jsx,tsx}";
+@source "./services/**/*.{js,ts,jsx,tsx}";
+@source "./utils/**/*.{js,ts,jsx,tsx}";
+@source "./*.{js,ts,jsx,tsx}";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-primary: rgb(var(--tf-color-primary-rgb));
+  --color-background-light: var(--tf-color-background-light);
+  --color-background-dark: var(--tf-color-background-dark);
+  --font-display: Inter, sans-serif;
+}
 
 :root {
   /* Brand Primary Color: #607AFB -> HSL(229, 95%, 69%) */
   --primary-h: 229;
   --primary-s: 95%;
   --primary-l: 69%;
-  --color-primary: 96 122 251;
+  --tf-color-primary-rgb: 96 122 251;
+  --color-primary: rgb(var(--tf-color-primary-rgb));
   /* RGB for Tailwind opacity modifier compatibility */
 
   /* Refined Grays - slate-based but tuned */
@@ -19,9 +40,101 @@
   /* Slate 700 */
 
   --color-background: #f8fafc;
+  --tf-color-background-light: #f8fafc;
+  --tf-color-background-dark: #0f172a;
   --color-background-light: #f8fafc;
   --color-background-dark: #0f172a;
+  --tf-ui-scale: 1;
+  --tf-skin-bg: #f8fafc;
+  --tf-skin-surface: #ffffff;
+  --tf-skin-surface-muted: #f1f5f9;
+  --tf-skin-surface-deep: #e2e8f0;
+  --tf-skin-card: #ffffff;
+  --tf-skin-text: #0f172a;
+  --tf-skin-text-2: #334155;
+  --tf-skin-muted: #64748b;
+  --tf-skin-muted-2: #94a3b8;
+  --tf-skin-line: #e2e8f0;
+  --tf-skin-line-2: #cbd5e1;
+  --tf-skin-grid: rgba(96, 122, 251, 0.08);
+  --tf-skin-grid-2: rgba(96, 122, 251, 0.12);
+  --tf-skin-accent: #14b8a6;
+  --tf-skin-accent-2: #607afb;
+  --tf-skin-orange: #f59e0b;
+  --tf-skin-orange-deep: #b45309;
+  --tf-skin-green: #10b981;
+  --tf-skin-blue: #3b82f6;
   /* Slate 50 for light mode */
+}
+
+html.dark {
+  --tf-skin-bg: #0f172a;
+  --tf-skin-surface: #0f172a;
+  --tf-skin-surface-muted: #1e293b;
+  --tf-skin-surface-deep: #020617;
+  --tf-skin-card: #111827;
+  --tf-skin-text: #f8fafc;
+  --tf-skin-text-2: #cbd5e1;
+  --tf-skin-muted: #94a3b8;
+  --tf-skin-muted-2: #64748b;
+  --tf-skin-line: #1e293b;
+  --tf-skin-line-2: #334155;
+  --tf-skin-grid: rgba(96, 122, 251, 0.08);
+  --tf-skin-grid-2: rgba(96, 122, 251, 0.14);
+  --tf-skin-accent: #2dd4bf;
+  --tf-skin-accent-2: #818cf8;
+  --tf-skin-orange: #f59e0b;
+  --tf-skin-orange-deep: #fbbf24;
+  --tf-skin-green: #34d399;
+  --tf-skin-blue: #60a5fa;
+}
+
+html[data-skin="industrial"] {
+  --tf-skin-bg: #f6f4ee;
+  --tf-skin-surface: #faf6ee;
+  --tf-skin-surface-muted: #ece8de;
+  --tf-skin-surface-deep: #e6e0d2;
+  --tf-skin-card: #ffffff;
+  --tf-skin-text: #14110a;
+  --tf-skin-text-2: #3a352a;
+  --tf-skin-muted: #6e6757;
+  --tf-skin-muted-2: #9c9684;
+  --tf-skin-line: rgba(20, 16, 8, 0.1);
+  --tf-skin-line-2: rgba(20, 16, 8, 0.18);
+  --tf-skin-grid: rgba(255, 138, 51, 0.1);
+  --tf-skin-grid-2: rgba(255, 138, 51, 0.18);
+  --tf-skin-accent: #ff8a33;
+  --tf-skin-accent-2: #b03a05;
+  --tf-skin-orange: #ff8a33;
+  --tf-skin-orange-deep: #b03a05;
+  --tf-skin-green: #58c69a;
+  --tf-skin-blue: #5da6ff;
+  --tf-skin-rose: #f06d7c;
+  --tf-skin-amber: #fbbf24;
+  color-scheme: light;
+}
+
+html.dark[data-skin="industrial"] {
+  --tf-skin-bg: #11151b;
+  --tf-skin-surface: #181b22;
+  --tf-skin-surface-muted: #20252e;
+  --tf-skin-surface-deep: #0d1117;
+  --tf-skin-card: #181b22;
+  --tf-skin-text: #f4f1ea;
+  --tf-skin-text-2: #c9c4b8;
+  --tf-skin-muted: #a49d90;
+  --tf-skin-muted-2: #777064;
+  --tf-skin-line: rgba(255, 255, 255, 0.1);
+  --tf-skin-line-2: rgba(255, 255, 255, 0.18);
+  --tf-skin-grid: rgba(255, 138, 51, 0.08);
+  --tf-skin-grid-2: rgba(255, 138, 51, 0.13);
+  --tf-skin-accent: #21c7b8;
+  --tf-skin-accent-2: #7aa2ff;
+  --tf-skin-orange: #ff9f1a;
+  --tf-skin-orange-deep: #ff8a33;
+  --tf-skin-green: #58c69a;
+  --tf-skin-blue: #5da6ff;
+  color-scheme: dark;
 }
 
 /* Professional Card Utility */
@@ -48,6 +161,808 @@
   background-size: initial !important;
 }
 
+html[data-skin="industrial"] body {
+  background: var(--tf-skin-bg);
+  color: var(--tf-skin-text);
+  font-family: Roboto, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+html[data-skin="industrial"] .tf-app-shell {
+  background: var(--tf-skin-bg) !important;
+  color: var(--tf-skin-text);
+}
+
+html[data-skin="industrial"] .tf-app-main,
+html[data-skin="industrial"] .tf-project-shell {
+  background-color: var(--tf-skin-bg) !important;
+  background-image:
+    linear-gradient(var(--tf-skin-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--tf-skin-grid) 1px, transparent 1px),
+    linear-gradient(var(--tf-skin-grid-2) 1px, transparent 1px),
+    linear-gradient(90deg, var(--tf-skin-grid-2) 1px, transparent 1px) !important;
+  background-position:
+    -1px -1px,
+    -1px -1px,
+    -1px -1px,
+    -1px -1px !important;
+  background-size:
+    24px 24px,
+    24px 24px,
+    120px 120px,
+    120px 120px !important;
+  color: var(--tf-skin-text);
+}
+
+html.dark[data-skin="industrial"] .tf-app-shell,
+html.dark[data-skin="industrial"] .tf-app-main {
+  background-color: var(--tf-skin-bg) !important;
+}
+
+html[data-skin="industrial"] .tf-sidebar {
+  background: var(--tf-skin-surface-deep) !important;
+  border-color: var(--tf-skin-line) !important;
+  box-shadow: none !important;
+}
+
+html.dark[data-skin="industrial"] .tf-sidebar {
+  background: color-mix(in srgb, var(--tf-skin-surface-deep) 92%, #000 8%) !important;
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.04);
+}
+
+html[data-skin="industrial"] .tf-sidebar-brand {
+  border-color: var(--tf-skin-line);
+}
+
+html[data-skin="industrial"] .tf-brand-title {
+  color: var(--tf-skin-text);
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+html[data-skin="industrial"] .tf-brand-edition {
+  color: var(--tf-skin-orange);
+  letter-spacing: 0.14em;
+}
+
+html[data-skin="industrial"] .tf-sidebar-nav summary,
+html[data-skin="industrial"] .tf-sidebar-nav button,
+html[data-skin="industrial"] .tf-sidebar-nav a {
+  border-radius: 6px;
+  color: var(--tf-skin-text-2);
+  font-weight: 500;
+}
+
+html[data-skin="industrial"] .tf-sidebar-nav summary:hover,
+html[data-skin="industrial"] .tf-sidebar-nav button:hover,
+html[data-skin="industrial"] .tf-sidebar-nav a:hover {
+  background: color-mix(in srgb, var(--tf-skin-orange) 10%, transparent) !important;
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin="industrial"] .tf-sidebar .text-primary {
+  color: var(--tf-skin-orange-deep) !important;
+}
+
+html[data-skin="industrial"] .tf-sidebar .bg-primary\/10,
+html[data-skin="industrial"] .tf-sidebar .bg-primary\/15 {
+  background-color: color-mix(in srgb, var(--tf-skin-orange) 14%, transparent) !important;
+}
+
+html[data-skin="industrial"] .tf-sidebar .border-primary,
+html[data-skin="industrial"] .tf-sidebar .border-primary\/30,
+html[data-skin="industrial"] .tf-sidebar .border-primary\/50 {
+  border-color: color-mix(in srgb, var(--tf-skin-orange) 45%, transparent) !important;
+}
+
+html[data-skin="industrial"] .tf-topbar {
+  background: color-mix(in srgb, var(--tf-skin-bg) 88%, transparent) !important;
+  border-color: var(--tf-skin-line) !important;
+  box-shadow: none !important;
+}
+
+html.dark[data-skin="industrial"] .tf-topbar {
+  background: color-mix(in srgb, var(--tf-skin-surface) 90%, transparent);
+  box-shadow: 0 12px 34px -28px rgba(0, 0, 0, 0.9);
+}
+
+html[data-skin="industrial"] .tf-topbar h1 {
+  color: var(--tf-skin-text);
+  font-weight: 800;
+}
+
+html[data-skin="industrial"] .tf-topbar p {
+  color: var(--tf-skin-muted);
+  font-weight: 500;
+}
+
+html[data-skin="industrial"] .tf-topbar [data-help-id="project-tabs"] {
+  gap: 0.25rem;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+html[data-skin="industrial"] .tf-topbar [data-help-id="project-tabs"] button {
+  min-height: 2.25rem;
+  border-radius: 4px;
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  color: var(--tf-skin-muted) !important;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+html[data-skin="industrial"] .tf-topbar [data-help-id="project-tabs"] button[data-active="true"] {
+  color: var(--tf-skin-orange-deep) !important;
+  box-shadow: inset 0 -2px 0 var(--tf-skin-orange) !important;
+}
+
+html[data-skin="industrial"] .tf-topbar .text-primary {
+  color: var(--tf-skin-orange-deep) !important;
+}
+
+html[data-skin="industrial"] .tf-topbar [class*="bg-slate-100"],
+html[data-skin="industrial"] .tf-topbar [class*="bg-white"] {
+  background-color: color-mix(in srgb, var(--tf-skin-surface-muted) 72%, transparent) !important;
+  border-color: var(--tf-skin-line) !important;
+}
+
+.tf-skin-script {
+  font-family: "Instrument Serif", Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.industrial-overview {
+  background: transparent;
+  color: var(--tf-skin-text);
+}
+
+.industrial-panel {
+  border: 1px solid var(--tf-skin-line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--tf-skin-surface) 72%, transparent);
+  box-shadow: none;
+}
+
+.industrial-kpi-card {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+html.dark[data-skin="industrial"] .industrial-kpi-card,
+html.dark[data-skin="industrial"] .industrial-panel {
+  box-shadow: 0 12px 32px -26px rgba(0, 0, 0, 0.9);
+}
+
+html[data-skin="industrial"] .industrial-hero {
+  border-color: var(--tf-skin-line-2) !important;
+}
+
+html[data-skin="industrial"] .industrial-share-button {
+  background: var(--tf-skin-surface) !important;
+  border-color: var(--tf-skin-line-2) !important;
+  border-radius: 6px !important;
+  color: var(--tf-skin-text) !important;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+html[data-skin="industrial"] .industrial-share-button:hover {
+  border-color: color-mix(in srgb, var(--tf-skin-orange) 40%, transparent) !important;
+  color: var(--tf-skin-orange-deep) !important;
+}
+
+html[data-skin="industrial"] .industrial-overview h2,
+html[data-skin="industrial"] .industrial-overview h3 {
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin="industrial"] .industrial-overview p {
+  color: var(--tf-skin-muted);
+}
+
+html[data-skin="industrial"] [data-help-id="overview-kpi-cards"] {
+  gap: 2rem !important;
+}
+
+html[data-skin="industrial"] [data-help-id="overview-kpi-cards"] .industrial-kpi-card:nth-child(1) > .absolute {
+  background: var(--tf-skin-blue) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="overview-kpi-cards"] .industrial-kpi-card:nth-child(2) > .absolute {
+  background: var(--tf-violet, #818cf8) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="overview-kpi-cards"] .industrial-kpi-card:nth-child(3) > .absolute {
+  background: var(--tf-skin-green) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="overview-kpi-cards"] .industrial-kpi-card:nth-child(4) > .absolute {
+  background: var(--tf-skin-orange) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="overview-kpi-cards"] .industrial-kpi-card span {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+html[data-skin="industrial"] [data-help-id="overview-demand-table"] {
+  background: color-mix(in srgb, var(--tf-skin-surface) 84%, transparent) !important;
+  border-color: var(--tf-skin-line) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+
+html[data-skin="industrial"] [data-help-id="overview-demand-table"] button {
+  border-radius: 0 !important;
+}
+
+.industrial-overview .font-black {
+  font-weight: 650;
+}
+
+.industrial-overview .font-extrabold,
+.industrial-overview .font-bold {
+  font-weight: 600;
+}
+
+html[data-skin="industrial"] .industrial-demand-filterbar,
+html[data-skin="industrial"] [data-help-id="pipeline-filters"],
+html[data-skin="industrial"] [data-help-id="pipeline-view-toggle"],
+html[data-skin="industrial"] [data-help-id="schedule-controls"] > div {
+  background: transparent !important;
+  border-color: transparent !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+
+html[data-skin="industrial"] .industrial-demand-filterbar button,
+html[data-skin="industrial"] [data-help-id="pipeline-filters"] button,
+html[data-skin="industrial"] [data-help-id="pipeline-view-toggle"] button,
+html[data-skin="industrial"] [data-help-id="schedule-controls"] > div button {
+  background: transparent !important;
+  border-color: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: var(--tf-skin-muted) !important;
+  font-size: 0.65625rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+html[data-skin="industrial"] .industrial-demand-filterbar button[data-active="true"],
+html[data-skin="industrial"] [data-help-id="pipeline-filters"] button[class*="bg-primary"],
+html[data-skin="industrial"] [data-help-id="pipeline-filters"] button[class*="bg-amber"],
+html[data-skin="industrial"] [data-help-id="pipeline-filters"] button[class*="bg-teal"],
+html[data-skin="industrial"] [data-help-id="pipeline-filters"] button[class*="bg-emerald"],
+html[data-skin="industrial"] [data-help-id="pipeline-view-toggle"] button[class*="bg-primary"],
+html[data-skin="industrial"] [data-help-id="schedule-controls"] > div button[class*="bg-primary"] {
+  border-bottom: 1px solid var(--tf-skin-orange) !important;
+  color: var(--tf-skin-orange-deep) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="schedule-controls"] > button,
+html[data-skin="industrial"] [data-help-id="schedule-controls"] > label,
+html[data-skin="industrial"] [data-help-id="schedule-export"] > button,
+html[data-skin="industrial"] [data-help-id="pipeline-add-category"],
+html[data-skin="industrial"] .tf-account-menu > button {
+  background: var(--tf-skin-surface) !important;
+  border-color: var(--tf-skin-line-2) !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  color: var(--tf-skin-text-2) !important;
+  font-weight: 650;
+}
+
+html[data-skin="industrial"] [data-help-id="pipeline-add-category"] {
+  background: linear-gradient(180deg, #ffb052 0%, var(--tf-skin-orange) 100%) !important;
+  border-color: color-mix(in srgb, var(--tf-skin-orange) 72%, var(--tf-skin-text) 14%) !important;
+  color: #1f1306 !important;
+}
+
+html[data-skin="industrial"] [data-help-id="pipeline-add-category"]:hover {
+  background: linear-gradient(180deg, var(--tf-skin-orange) 0%, color-mix(in srgb, var(--tf-skin-orange) 82%, var(--tf-skin-text) 18%) 100%) !important;
+  color: #fff8ed !important;
+}
+
+html[data-skin="industrial"] [data-help-id="schedule-export"] [class*="absolute"],
+html[data-skin="industrial"] .tf-account-menu [role="menu"] {
+  background: var(--tf-skin-surface) !important;
+  border-color: var(--tf-skin-line-2) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 18px 42px -32px rgba(20, 16, 8, 0.45) !important;
+  color: var(--tf-skin-text) !important;
+}
+
+html.dark[data-skin="industrial"] [data-help-id="schedule-export"] [class*="absolute"],
+html.dark[data-skin="industrial"] .tf-account-menu [role="menu"] {
+  box-shadow: 0 18px 42px -28px rgba(0, 0, 0, 0.85) !important;
+}
+
+html[data-skin="industrial"] .tf-account-menu [role="menu"] [class*="border-slate"],
+html[data-skin="industrial"] [data-help-id="schedule-export"] [class*="border-slate"] {
+  border-color: var(--tf-skin-line) !important;
+}
+
+html[data-skin="industrial"] .tf-account-menu [role="menu"] button,
+html[data-skin="industrial"] [data-help-id="schedule-export"] button {
+  color: var(--tf-skin-text-2) !important;
+  border-radius: 6px !important;
+}
+
+html[data-skin="industrial"] .tf-account-menu [role="menu"] button:hover,
+html[data-skin="industrial"] [data-help-id="schedule-export"] button:hover {
+  background: color-mix(in srgb, var(--tf-skin-orange) 10%, transparent) !important;
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin="industrial"] .tf-schedule-view {
+  background: transparent !important;
+  color: var(--tf-skin-text);
+}
+
+html[data-skin="industrial"] .tf-tender-plan-view,
+html[data-skin="industrial"] .tf-pipeline-view,
+html[data-skin="industrial"] .tf-project-overview {
+  background: transparent !important;
+  color: var(--tf-skin-text);
+}
+
+html[data-skin="industrial"] .tf-schedule-view h2 {
+  color: var(--tf-skin-text) !important;
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+html[data-skin="industrial"] .tf-schedule-view p,
+html[data-skin="industrial"] .tf-schedule-view [class*="text-slate-500"],
+html[data-skin="industrial"] .tf-schedule-view [class*="text-slate-400"] {
+  color: var(--tf-skin-muted) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="schedule-gantt"],
+html[data-skin="industrial"] [data-help-id="pipeline-overview-table"] {
+  background: color-mix(in srgb, var(--tf-skin-surface) 82%, transparent) !important;
+  border-color: var(--tf-skin-line) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+
+html[data-skin="industrial"] .tf-schedule-view [class*="bg-white"],
+html[data-skin="industrial"] .tf-schedule-view [class*="bg-slate-50"],
+html[data-skin="industrial"] .tf-schedule-view [class*="bg-slate-100"],
+html[data-skin="industrial"] .tf-schedule-view [class*="bg-slate-200"],
+html[data-skin="industrial"] .tf-schedule-view [class*="bg-slate-800"],
+html[data-skin="industrial"] .tf-schedule-view [class*="bg-slate-900"],
+html[data-skin="industrial"] .tf-schedule-view [class*="bg-slate-950"],
+html[data-skin="industrial"] .tf-pipeline-overview [class*="bg-white"],
+html[data-skin="industrial"] .tf-pipeline-overview [class*="bg-slate-50"],
+html[data-skin="industrial"] .tf-pipeline-overview [class*="bg-slate-100"],
+html[data-skin="industrial"] .tf-pipeline-overview [class*="bg-slate-200"],
+html[data-skin="industrial"] .tf-pipeline-overview [class*="bg-slate-800"],
+html[data-skin="industrial"] .tf-pipeline-overview [class*="bg-slate-900"],
+html[data-skin="industrial"] .tf-pipeline-overview [class*="bg-slate-950"] {
+  background-color: color-mix(in srgb, var(--tf-skin-surface) 76%, transparent) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="pipeline-category-card"] > [role="button"],
+html[data-skin="industrial"] [data-help-id="pipeline-category-card"] > button,
+html[data-skin="industrial"] [data-help-id="pipeline-kanban"] [data-help-id^="kanban-col"],
+html[data-skin="industrial"] [data-help-id="pipeline-kanban"] [draggable="true"],
+html[data-skin="industrial"] [data-help-id="kanban-info-bar"] + div,
+html[data-skin="industrial"] [data-help-id="tender-plan-table"],
+html[data-skin="industrial"] [data-help-id="tender-plan-tools"] {
+  background: color-mix(in srgb, var(--tf-skin-surface) 82%, transparent) !important;
+  border-color: var(--tf-skin-line) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="pipeline-kanban"] [data-help-id^="kanban-col"] > div:first-child,
+html[data-skin="industrial"] [data-help-id="tender-plan-table"] thead tr,
+html[data-skin="industrial"] [data-help-id="tender-plan-tools"] [class*="bg-slate-50"],
+html[data-skin="industrial"] [data-help-id="tender-plan-tools"] [class*="bg-slate-800"] {
+  background: color-mix(in srgb, var(--tf-skin-surface-muted) 64%, transparent) !important;
+  border-color: var(--tf-skin-line) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="pipeline-kanban"] [data-help-id^="kanban-col"] h2,
+html[data-skin="industrial"] [data-help-id="tender-plan-table"] th,
+html[data-skin="industrial"] .tf-tender-plan-view h2,
+html[data-skin="industrial"] .tf-tender-plan-view h3,
+html[data-skin="industrial"] .tf-tender-plan-view h4,
+html[data-skin="industrial"] .tf-pipeline-view h2,
+html[data-skin="industrial"] .tf-pipeline-view h3 {
+  color: var(--tf-skin-text) !important;
+  font-weight: 650 !important;
+  letter-spacing: 0;
+}
+
+html[data-skin="industrial"] .tf-tender-plan-view p,
+html[data-skin="industrial"] .tf-tender-plan-view [class*="text-slate-500"],
+html[data-skin="industrial"] .tf-pipeline-view [class*="text-slate-500"],
+html[data-skin="industrial"] .tf-pipeline-view [class*="text-slate-400"] {
+  color: var(--tf-skin-muted) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="tender-plan-sidebar"] nav button:not([data-help-id="tender-plan-add"]) {
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: var(--tf-skin-muted) !important;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+html[data-skin="industrial"] [data-help-id="tender-plan-sidebar"] nav button:not([data-help-id="tender-plan-add"]):hover,
+html[data-skin="industrial"] [data-help-id="tender-plan-sidebar"] nav button:not([data-help-id="tender-plan-add"])[class*="text-primary"] {
+  border-left: 2px solid var(--tf-skin-orange) !important;
+  color: var(--tf-skin-orange-deep) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="tender-plan-add"],
+html[data-skin="industrial"] [data-help-id="kanban-add-supplier"],
+html[data-skin="industrial"] .tf-modal-panel button[class*="bg-primary"],
+html[data-skin="industrial"] .tf-pipeline-modal-panel button[class*="bg-primary"] {
+  background: linear-gradient(180deg, #ffb052 0%, var(--tf-skin-orange) 100%) !important;
+  border-color: color-mix(in srgb, var(--tf-skin-orange) 72%, var(--tf-skin-text) 14%) !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  color: #1f1306 !important;
+  font-weight: 650 !important;
+}
+
+html[data-skin="industrial"] [data-help-id="tender-plan-add"]:hover,
+html[data-skin="industrial"] [data-help-id="kanban-add-supplier"]:hover,
+html[data-skin="industrial"] .tf-modal-panel button[class*="bg-primary"]:hover,
+html[data-skin="industrial"] .tf-pipeline-modal-panel button[class*="bg-primary"]:hover {
+  background: linear-gradient(180deg, var(--tf-skin-orange) 0%, color-mix(in srgb, var(--tf-skin-orange) 82%, var(--tf-skin-text) 18%) 100%) !important;
+  color: #fff8ed !important;
+}
+
+html[data-skin="industrial"] [data-help-id="tender-plan-tools"] button,
+html[data-skin="industrial"] [data-help-id="kanban-export"] > button,
+html[data-skin="industrial"] [data-help-id="kanban-export"] [class*="fixed w-56"],
+html[data-skin="industrial"] [data-help-id="pipeline-category-card"] > button {
+  background: var(--tf-skin-surface) !important;
+  border-color: var(--tf-skin-line-2) !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  color: var(--tf-skin-text-2) !important;
+}
+
+html[data-skin="industrial"] .tf-tender-plan-view input,
+html[data-skin="industrial"] .tf-tender-plan-view select,
+html[data-skin="industrial"] .tf-tender-plan-view textarea {
+  background: color-mix(in srgb, var(--tf-skin-surface-muted) 72%, transparent) !important;
+  border-color: var(--tf-skin-line-2) !important;
+  border-radius: 6px !important;
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin="industrial"] .tf-modal-overlay {
+  background: color-mix(in srgb, var(--tf-skin-text) 62%, transparent) !important;
+  backdrop-filter: blur(7px);
+}
+
+html[data-skin="industrial"] .tf-modal-panel {
+  background: color-mix(in srgb, var(--tf-skin-surface) 94%, transparent) !important;
+  border-color: var(--tf-skin-line-2) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 22px 54px -34px rgba(20, 16, 8, 0.58) !important;
+  color: var(--tf-skin-text) !important;
+}
+
+html.dark[data-skin="industrial"] .tf-modal-panel {
+  box-shadow: 0 22px 54px -30px rgba(0, 0, 0, 0.88) !important;
+}
+
+html[data-skin="industrial"] .tf-modal-header,
+html[data-skin="industrial"] .tf-modal-footer,
+html[data-skin="industrial"] .tf-modal-panel [class*="border-slate"] {
+  border-color: var(--tf-skin-line) !important;
+}
+
+html[data-skin="industrial"] .tf-modal-footer,
+html[data-skin="industrial"] .tf-pipeline-modal-panel form > div:last-child,
+html[data-skin="industrial"] .tf-pipeline-modal-panel [class*="bg-slate-50"],
+html[data-skin="industrial"] .tf-pipeline-modal-panel [class*="bg-slate-800"] {
+  background: color-mix(in srgb, var(--tf-skin-surface-muted) 54%, transparent) !important;
+}
+
+html[data-skin="industrial"] .tf-modal-panel h2,
+html[data-skin="industrial"] .tf-modal-panel h3,
+html[data-skin="industrial"] .tf-modal-panel h4 {
+  color: var(--tf-skin-text) !important;
+  font-weight: 650 !important;
+}
+
+html[data-skin="industrial"] .tf-modal-panel p,
+html[data-skin="industrial"] .tf-modal-panel label,
+html[data-skin="industrial"] .tf-modal-panel [class*="text-slate-500"],
+html[data-skin="industrial"] .tf-modal-panel [class*="text-slate-400"] {
+  color: var(--tf-skin-muted) !important;
+}
+
+html[data-skin="industrial"] .tf-modal-panel :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea),
+html[data-skin="industrial"] .tf-pipeline-modal-panel :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  background: color-mix(in srgb, var(--tf-skin-surface-muted) 72%, transparent) !important;
+  border-color: var(--tf-skin-line-2) !important;
+  border-radius: 6px !important;
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin="industrial"] .tf-modal-panel :where(input, textarea)::placeholder,
+html[data-skin="industrial"] .tf-pipeline-modal-panel :where(input, textarea)::placeholder {
+  color: var(--tf-skin-muted-2) !important;
+}
+
+html[data-skin="industrial"] .tf-modal-panel button[class*="bg-white"],
+html[data-skin="industrial"] .tf-modal-panel button[class*="bg-slate"],
+html[data-skin="industrial"] .tf-pipeline-modal-panel button[class*="bg-white"],
+html[data-skin="industrial"] .tf-pipeline-modal-panel button[class*="bg-slate"] {
+  background: var(--tf-skin-surface) !important;
+  border-color: var(--tf-skin-line-2) !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  color: var(--tf-skin-text-2) !important;
+}
+
+html[data-skin="industrial"] .tf-schedule-view [class*="border-slate"],
+html[data-skin="industrial"] .tf-pipeline-overview [class*="border-slate"] {
+  border-color: var(--tf-skin-line) !important;
+}
+
+html[data-skin="industrial"] .tf-schedule-view [class*="text-slate-900"],
+html[data-skin="industrial"] .tf-schedule-view [class*="text-white"],
+html[data-skin="industrial"] .tf-pipeline-overview [class*="text-slate-900"],
+html[data-skin="industrial"] .tf-pipeline-overview [class*="text-white"] {
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin="industrial"] .tf-pipeline-overview [class*="rounded-2xl"],
+html[data-skin="industrial"] .tf-pipeline-overview [class*="rounded-xl"],
+html[data-skin="industrial"] .tf-schedule-view [class*="rounded-2xl"],
+html[data-skin="industrial"] .tf-schedule-view [class*="rounded-xl"] {
+  border-radius: 8px !important;
+}
+
+html[data-skin="industrial"] .tf-pipeline-overview [class*="font-black"],
+html[data-skin="industrial"] .tf-pipeline-overview [class*="font-bold"],
+html[data-skin="industrial"] .tf-schedule-view [class*="font-black"],
+html[data-skin="industrial"] .tf-schedule-view [class*="font-bold"] {
+  font-weight: 600 !important;
+}
+
+html[data-skin="industrial"] .tf-contracts-module {
+  background: transparent !important;
+  color: var(--tf-skin-text);
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-subtabs"],
+html[data-skin="industrial"] [data-help-id="contracts-view-toggle"],
+html[data-skin="industrial"] [data-help-id="contracts-list-filters"] {
+  background: transparent !important;
+  border-color: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-subtabs"] button,
+html[data-skin="industrial"] [data-help-id="contracts-view-toggle"] button,
+html[data-skin="industrial"] [data-help-id="contracts-list-filters"] button {
+  background: transparent !important;
+  border-color: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: var(--tf-skin-muted) !important;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-subtabs"] button[data-active="true"],
+html[data-skin="industrial"] [data-help-id="contracts-view-toggle"] button[data-active="true"],
+html[data-skin="industrial"] [data-help-id="contracts-list-filters"] button[data-active="true"] {
+  border-bottom: 1px solid var(--tf-skin-orange) !important;
+  color: var(--tf-skin-orange-deep) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-create"],
+html[data-skin="industrial"] [data-help-id="contracts-table-columns"] > button,
+html[data-skin="industrial"] [data-help-id="contract-detail-header"] button {
+  background: var(--tf-skin-surface) !important;
+  border-color: var(--tf-skin-line-2) !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  color: var(--tf-skin-text-2) !important;
+  font-weight: 650;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-create"]:hover,
+html[data-skin="industrial"] [data-help-id="contracts-table-columns"] > button:hover,
+html[data-skin="industrial"] [data-help-id="contract-detail-header"] button:hover {
+  border-color: color-mix(in srgb, var(--tf-skin-orange) 45%, transparent) !important;
+  color: var(--tf-skin-orange-deep) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-kpi-strip"] {
+  gap: 1rem !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-kpi-card"],
+html[data-skin="industrial"] [data-help-id="contracts-investor-kpi-card"],
+html[data-skin="industrial"] [data-help-id="contracts-list-rail"],
+html[data-skin="industrial"] [data-help-id="contract-detail-shell"],
+html[data-skin="industrial"] [data-help-id="contracts-table"],
+html[data-skin="industrial"] [data-help-id="contracts-investor-panel"] {
+  background: color-mix(in srgb, var(--tf-skin-surface) 82%, transparent) !important;
+  border-color: var(--tf-skin-line) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-kpi-card"] {
+  border-left: 3px solid color-mix(in srgb, var(--tf-skin-orange) 70%, transparent) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-investor-kpi-card"] {
+  border-left: 3px solid color-mix(in srgb, var(--tf-skin-orange) 66%, transparent) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-kpi-card"] [class*="uppercase"],
+html[data-skin="industrial"] [data-help-id="contracts-investor-kpi-card"] [class*="uppercase"],
+html[data-skin="industrial"] [data-help-id="contracts-table"] th,
+html[data-skin="industrial"] [data-help-id="contract-detail-rail"] button {
+  color: var(--tf-skin-muted) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.08em;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-kpi-card"] [class*="text-xl"],
+html[data-skin="industrial"] [data-help-id="contracts-kpi-card"] [class*="text-[17px]"],
+html[data-skin="industrial"] [data-help-id="contracts-investor-kpi-card"] [class*="text-2xl"],
+html[data-skin="industrial"] [data-help-id="contracts-list-rail"] [class*="font-semibold"],
+html[data-skin="industrial"] [data-help-id="contract-detail-header"] [class*="font-bold"],
+html[data-skin="industrial"] [data-help-id="contracts-table"] td[class*="font-semibold"] {
+  color: var(--tf-skin-text) !important;
+  font-weight: 650 !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-investor-kpis"] {
+  gap: 1rem !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-investor-panel"] h3 {
+  color: var(--tf-skin-text) !important;
+  font-weight: 650 !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-investor-panel"] p,
+html[data-skin="industrial"] [data-help-id="contracts-investor-panel"] [class*="text-slate-600"],
+html[data-skin="industrial"] [data-help-id="contracts-investor-panel"] [class*="text-slate-500"] {
+  color: var(--tf-skin-muted) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-investor-add-invoice"],
+html[data-skin="industrial"] [data-help-id="contracts-investor-save"] {
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  font-weight: 650 !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-investor-add-invoice"] {
+  background: var(--tf-skin-surface) !important;
+  border-color: var(--tf-skin-line-2) !important;
+  color: var(--tf-skin-orange-deep) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-investor-save"] {
+  background: linear-gradient(180deg, #ffb052 0%, var(--tf-skin-orange) 100%) !important;
+  border-color: color-mix(in srgb, var(--tf-skin-orange) 72%, var(--tf-skin-text) 14%) !important;
+  color: #1f1306 !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-investor-save"]:hover {
+  background: linear-gradient(180deg, var(--tf-skin-orange) 0%, color-mix(in srgb, var(--tf-skin-orange) 82%, var(--tf-skin-text) 18%) 100%) !important;
+  color: #fff8ed !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-investor-empty"] {
+  background: color-mix(in srgb, var(--tf-skin-surface-muted) 38%, transparent) !important;
+  border-color: var(--tf-skin-line) !important;
+  border-radius: 8px !important;
+  color: var(--tf-skin-muted) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-list-search"] {
+  background: color-mix(in srgb, var(--tf-skin-surface-muted) 70%, transparent) !important;
+  border-color: var(--tf-skin-line) !important;
+  border-radius: 6px !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-list-search"] input {
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-list-search"] input::placeholder {
+  color: var(--tf-skin-muted-2) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-list-rail"] button[data-active="true"] {
+  background: color-mix(in srgb, var(--tf-skin-orange) 9%, transparent) !important;
+  border-left-color: var(--tf-skin-orange) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-list-rail"] button:hover,
+html[data-skin="industrial"] [data-help-id="contracts-table"] tr:hover {
+  background: color-mix(in srgb, var(--tf-skin-orange) 7%, transparent) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contract-detail-with-rail"] {
+  grid-template-columns: minmax(132px, 156px) minmax(0, 1fr);
+}
+
+html[data-skin="industrial"] [data-help-id="contract-detail-rail"] {
+  background: color-mix(in srgb, var(--tf-skin-surface-muted) 64%, transparent) !important;
+  border-color: var(--tf-skin-line) !important;
+  border-radius: 0 !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contract-detail-rail"] button {
+  background: transparent !important;
+  border-left: 2px solid transparent;
+  border-radius: 0 !important;
+  color: var(--tf-skin-muted) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contract-detail-rail"] button[data-active="true"] {
+  border-left-color: var(--tf-skin-orange);
+  color: var(--tf-skin-orange-deep) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contract-detail-rail"] button span[class*="rounded-full"] {
+  background: transparent !important;
+  color: var(--tf-skin-muted) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-table"] th,
+html[data-skin="industrial"] [data-help-id="contracts-table"] [class*="bg-slate-50"],
+html[data-skin="industrial"] [data-help-id="contracts-table"] [class*="bg-slate-900"] {
+  background: color-mix(in srgb, var(--tf-skin-surface-muted) 72%, transparent) !important;
+}
+
+html[data-skin="industrial"] .tf-contracts-module [class*="border-slate"] {
+  border-color: var(--tf-skin-line) !important;
+}
+
+html[data-skin="industrial"] .tf-contracts-module [class*="text-slate-900"],
+html[data-skin="industrial"] .tf-contracts-module [class*="text-slate-100"],
+html[data-skin="industrial"] .tf-contracts-module [class*="text-white"] {
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin="industrial"] .tf-contracts-module [class*="text-slate-700"],
+html[data-skin="industrial"] .tf-contracts-module [class*="text-slate-600"],
+html[data-skin="industrial"] .tf-contracts-module [class*="text-slate-500"],
+html[data-skin="industrial"] .tf-contracts-module [class*="text-slate-400"] {
+  color: var(--tf-skin-muted) !important;
+}
+
 
 /* Navigation Pill with Subtle Gradient */
 .nav-pill {
@@ -68,13 +983,15 @@
 .nav-pill-active {
   background: linear-gradient(
     90deg,
-    rgb(var(--color-primary) / 0.1) 0%,
-    rgb(var(--color-primary) / 0.2) 50%,
-    rgb(var(--color-primary) / 0.1) 100%
+    rgb(var(--tf-color-primary-rgb) / 0.1) 0%,
+    rgb(var(--tf-color-primary-rgb) / 0.2) 50%,
+    rgb(var(--tf-color-primary-rgb) / 0.1) 100%
   );
   background-size: 200% auto;
   animation: shimmer 8s linear infinite;
-  @apply text-primary border border-primary/10 shadow-[0_1px_2px_rgba(0, 0, 0, 0.05)];
+  color: var(--color-primary);
+  border: 1px solid rgb(var(--tf-color-primary-rgb) / 0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 /* Professional Card with "Lift" Effect */
@@ -86,7 +1003,7 @@
   @apply border-primary/20 dark:border-primary/20 shadow-md -translate-y-[2px];
   box-shadow:
     0 12px 30px -10px rgba(0, 0, 0, 0.1),
-    0 0 0 1px rgb(var(--color-primary) / 0.15);
+    0 0 0 1px rgb(var(--tf-color-primary-rgb) / 0.15);
 }
 
 .card-polished:active {

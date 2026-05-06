@@ -3,15 +3,21 @@
  * Native implementation for merging Excel sheets with formatting preservation
  * Originally from: https://github.com/Martin82K/ExcelMerger-Pro
  */
-import ExcelJS from 'exceljs';
 import { HeaderMapping } from './excelMergerTypes';
 import { supabase } from './supabase';
+import type ExcelJS from 'exceljs';
+
+const loadExcelJS = async () => {
+  const module = await import('exceljs');
+  return module.default;
+};
 
 export class ExcelService {
   /**
    * Analyzes an uploaded Excel file to extract sheet names and basic info.
    */
   static async analyzeFile(file: File): Promise<string[]> {
+    const ExcelJS = await loadExcelJS();
     const workbook = new ExcelJS.Workbook();
     const arrayBuffer = await file.arrayBuffer();
     await workbook.xlsx.load(arrayBuffer);
@@ -82,6 +88,7 @@ export class ExcelService {
     freezeHeader: boolean = false,
     showGridlines: boolean = true
   ): Promise<Blob> {
+    const ExcelJS = await loadExcelJS();
     onProgress?.('Načítám zdrojový soubor a analyzuji strukturu...');
     onProgressUpdate?.(1);
     const sourceWorkbook = new ExcelJS.Workbook();

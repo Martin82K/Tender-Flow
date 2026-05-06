@@ -48,40 +48,46 @@ export const ContractsModule: React.FC<Props> = ({
   }
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-slate-50 dark:bg-slate-950/40">
-      <div className="px-5 pt-4 flex items-center gap-1">
+    <div className="tf-contracts-module flex-1 flex flex-col min-h-0 bg-slate-50 dark:bg-slate-950/40">
+      <div data-help-id="contracts-subtabs" className="px-5 pt-4 flex items-center gap-1">
         <button
           type="button"
           onClick={() => setSubView('dashboard')}
+          data-active={subView === 'dashboard' ? 'true' : 'false'}
           className={`px-3 py-1.5 text-xs rounded-lg flex items-center gap-2 font-semibold ${
             subView === 'dashboard'
               ? 'bg-primary/15 border border-primary text-primary'
               : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 border border-transparent'
-          }`}
+            }`}
         >
-          ▤ Dashboard
+          <span className="material-symbols-outlined text-[16px]">space_dashboard</span>
+          Dashboard
         </button>
         <button
           type="button"
           onClick={() => setSubView('smlouvy')}
+          data-active={subView === 'smlouvy' ? 'true' : 'false'}
           className={`px-3 py-1.5 text-xs rounded-lg flex items-center gap-2 font-semibold ${
             subView === 'smlouvy'
               ? 'bg-primary/15 border border-primary text-primary'
               : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 border border-transparent'
-          }`}
+            }`}
         >
-          📄 Smlouvy
+          <span className="material-symbols-outlined text-[16px]">description</span>
+          Smlouvy
         </button>
         <button
           type="button"
           onClick={() => setSubView('investor')}
+          data-active={subView === 'investor' ? 'true' : 'false'}
           className={`px-3 py-1.5 text-xs rounded-lg flex items-center gap-2 font-semibold ${
             subView === 'investor'
               ? 'bg-primary/15 border border-primary text-primary'
               : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 border border-transparent'
-          }`}
+            }`}
         >
-          ◉ Investor
+          <span className="material-symbols-outlined text-[16px]">account_balance</span>
+          Investor
         </button>
       </div>
 

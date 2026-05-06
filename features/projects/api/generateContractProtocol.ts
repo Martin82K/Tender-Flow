@@ -1,4 +1,3 @@
-import ExcelJS from "exceljs";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -21,6 +20,11 @@ import {
   buildContractProtocolDraft,
   sanitizeProtocolFileName,
 } from "../model/contractProtocolUtils";
+
+const loadExcelJS = async () => {
+  const module = await import("exceljs");
+  return module.default;
+};
 
 const registerRobotoFont = (doc: jsPDF): void => {
   doc.addFileToVFS("Roboto-Regular.ttf", RobotoRegularBase64);
@@ -259,6 +263,7 @@ export const generateContractProtocol = async (
       ? Buffer.from(templateArrayBuffer)
       : new Uint8Array(templateArrayBuffer);
 
+  const ExcelJS = await loadExcelJS();
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(templateBuffer);
 

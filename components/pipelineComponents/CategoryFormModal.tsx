@@ -148,8 +148,8 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
   const submitLabel = mode === "create" ? "Vytvořit poptávku" : "Uložit změny";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white dark:bg-gradient-to-br dark:from-slate-800 dark:to-slate-900 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 dark:border-slate-700/50 flex flex-col max-h-[90vh]">
+    <div data-help-id="pipeline-category-form-modal" className="tf-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="tf-modal-panel tf-pipeline-modal-panel bg-white dark:bg-gradient-to-br dark:from-slate-800 dark:to-slate-900 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 dark:border-slate-700/50 flex flex-col max-h-[90vh]">
         <div className="p-6 border-b border-slate-200 dark:border-slate-700/50 flex justify-between items-center shrink-0">
           <h3 className="text-lg font-bold text-slate-900 dark:text-white">
             {title}

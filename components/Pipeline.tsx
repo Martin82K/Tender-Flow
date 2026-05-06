@@ -374,12 +374,13 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
     // --- DETAIL VIEW (PIPELINE) ---
     return (
-      <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950">
+      <div className="tf-pipeline-view flex flex-col h-full bg-slate-50 dark:bg-slate-950">
         {alertModalNode}
         <Header
           title={activeCategory.title}
           subtitle={`${projectData.title} > Průběh výběrového řízení`}
           showSearch={false}
+          showAccountMenu={false}
         >
           <button
             onClick={() => {
@@ -854,7 +855,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
 
   // --- LIST VIEW (OVERVIEW) ---
   return (
-    <div className="flex flex-col h-full bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen">
+    <div className="tf-pipeline-view flex flex-col h-full bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen">
       {alertModalNode}
       <PipelineOverview
         categories={projectData.categories}

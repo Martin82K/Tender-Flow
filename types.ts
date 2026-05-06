@@ -241,11 +241,13 @@ export interface ProjectDetails {
 
 export interface UserPreferences {
   theme: "light" | "dark" | "system";
+  skin?: "classic" | "industrial";
   primaryColor: string;
   backgroundColor: string;
   emailClientMode?: "mailto" | "eml"; // 'mailto' = Text, 'eml' = File/HTML
   urlShortenerProvider?: "tinyurl" | "tfurl"; // Service provider for URL shortening
   autoShortenProjectDocs?: boolean; // Auto-shorten Project Documents links
+  uiScale?: number; // Global UI scale, sanitized before applying to CSS
   signature?: string; // HTML compatible signature
   commandCenter?: CommandCenterUserPreferences;
 }
@@ -270,6 +272,7 @@ export interface UserEmailSignatureProfile {
   signaturePhoneSecondary: string | null;
   signatureEmail: string | null;
   signatureGreeting: string | null;
+  avatarPath?: string | null;
 }
 
 export interface OrganizationEmailBranding {

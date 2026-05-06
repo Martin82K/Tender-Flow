@@ -115,7 +115,7 @@ export const ContractsTable: React.FC<Props> = ({ contracts, onSelect }) => {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex justify-end">
-        <div className="relative">
+        <div data-help-id="contracts-table-columns" className="relative">
           <button
             type="button"
             onClick={() => setConfigOpen((v) => !v)}
@@ -144,7 +144,7 @@ export const ContractsTable: React.FC<Props> = ({ contracts, onSelect }) => {
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 overflow-auto">
+      <div data-help-id="contracts-table" className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 overflow-auto">
         <table className="w-full text-xs">
           <thead>
             <tr>

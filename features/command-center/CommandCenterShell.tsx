@@ -15,6 +15,7 @@ import {
 } from "@features/command-center/hooks/useModuleSignals";
 import { CommandCenterSettings } from "@features/command-center/CommandCenterSettings";
 import { ModuleErrorBoundary } from "@features/command-center/shell/ModuleErrorBoundary";
+import { useAccountMenu } from "@/shared/ui/AccountMenuContext";
 
 const GRID_COLS = 12;
 
@@ -79,6 +80,7 @@ export const CommandCenterShell: React.FC<CommandCenterShellProps> = ({
   emptyState,
 }) => {
   const { hasFeature } = useFeatures();
+  const accountMenu = useAccountMenu();
   const preferences = useCommandCenterPreferences();
   const [isSettingsOpen, setSettingsOpen] = useState(false);
   const [moduleSettingsOpenFor, setModuleSettingsOpenFor] = useState<string | null>(null);
@@ -253,6 +255,7 @@ export const CommandCenterShell: React.FC<CommandCenterShellProps> = ({
           >
             ⚙ Rozložení
           </button>
+          {accountMenu}
         </div>
       </header>
 

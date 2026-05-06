@@ -459,8 +459,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
               role: "user",
               preferences: {
                 theme: "system",
+                skin: "industrial",
                 primaryColor: "#607AFB",
                 backgroundColor: "#f5f6f8",
+                uiScale: 1,
               },
             } as User);
           }, timeoutMs)
@@ -673,6 +675,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   const updatePreferences = async (preferences: any) => {
+    if (isDemoSession() || user?.role === "demo") {
+      setUser((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          preferences: {
+            ...prev.preferences,
+            ...preferences,
+          },
+        };
+      });
+      return;
+    }
+
     const queuedUpdate = preferencesUpdateQueueRef.current
       .catch(() => undefined)
       .then(async () => {
