@@ -379,6 +379,13 @@
   - přechodové import vazby: `133 -> 130`.
 - Bezpečnostní dopad: zachována stejná organization service implementace, role checks a storage limity; změna nepřidává nové volání, persistence ani práci se secrets.
 
+### Subscription features API wrappers
+- `features/subscription/api/subscriptionState.ts` exportuje admin wrappery pro správu feature flags a subscription feature definic.
+- `features/settings/SubscriptionFeaturesManagement.tsx` používá subscription feature API místo přímého importu `subscriptionFeaturesService`.
+- Očekávaný audit dopad proti stavu po organization service API řezu:
+  - přechodové import vazby: `130 -> 129`.
+- Bezpečnostní dopad: zachována stejná Supabase service implementace a fails-closed subscription logika; změna pouze centralizuje volání bez nových oprávnění, persistence nebo práce se secrets.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`

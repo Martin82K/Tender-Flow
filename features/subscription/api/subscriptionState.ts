@@ -2,6 +2,11 @@ import { subscriptionFeaturesService } from "@/services/subscriptionFeaturesServ
 import { userSubscriptionService } from "@/services/userSubscriptionService";
 import type { FeatureAccessSnapshot, SubscriptionSnapshot } from "../model/types";
 import type { EffectiveTierResult } from "@/features/organization/model/types";
+import type {
+  SubscriptionFeature,
+  SubscriptionTier,
+  SubscriptionTierFeatureFlag,
+} from "@/types";
 import { orgSubscriptionRpc } from "@/infra/org-billing/orgSubscriptionRpc";
 
 export const getSubscriptionState = async (): Promise<SubscriptionSnapshot> => {
@@ -32,6 +37,37 @@ export const getEnabledFeatures = async (): Promise<
 > => {
   return subscriptionFeaturesService.getUserEnabledFeatures();
 };
+
+export const listSubscriptionFeatures = async (): Promise<SubscriptionFeature[]> =>
+  subscriptionFeaturesService.listFeatures();
+
+export const listSubscriptionTierFlags = async (): Promise<SubscriptionTierFeatureFlag[]> =>
+  subscriptionFeaturesService.listTierFlags();
+
+export const setSubscriptionTierFlag = async (
+  tier: SubscriptionTier,
+  featureKey: string,
+  enabled: boolean,
+): Promise<void> =>
+  subscriptionFeaturesService.setTierFlag(tier, featureKey, enabled);
+
+export const createSubscriptionFeature = async (feature: {
+  key: string;
+  name: string;
+  description?: string;
+  category?: string;
+  sortOrder?: number;
+}): Promise<void> =>
+  subscriptionFeaturesService.createFeature(feature);
+
+export const updateSubscriptionFeature = async (
+  key: string,
+  updates: Partial<Pick<SubscriptionFeature, "name" | "description" | "category" | "sortOrder">>,
+): Promise<void> =>
+  subscriptionFeaturesService.updateFeature(key, updates);
+
+export const deleteSubscriptionFeature = async (key: string): Promise<void> =>
+  subscriptionFeaturesService.deleteFeature(key);
 
 export const formatSubscriptionExpirationDate = (expiresAt: string | null): string =>
   userSubscriptionService.formatExpirationDate(expiresAt);
