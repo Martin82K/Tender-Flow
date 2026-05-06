@@ -219,6 +219,15 @@
   - bez změny `shared/ui` temporary shimů.
 - Bezpečnostní dopad: čistý přesun deterministického parsování/formátování bez nového IO, externích volání nebo práce se secrets.
 
+### Feature decimal formatter imports
+- Feature soubory používající jen `formatDecimal`/`parseDecimal` byly přepojeny na:
+  - `shared/formatting/decimalFormatters.ts`.
+- Legacy `utils/formatters.ts` zůstává pro staré importy a pro funkce, které ještě nebyly přesunuté (`parseFormattedNumber`, money/chart helpery).
+- Očekávaný audit dopad proti stavu po shared decimal formatter řezu:
+  - přechodové import vazby: `197 -> 187`,
+  - `features -> legacy utils` sníženo o deset importů.
+- Bezpečnostní dopad: import-only refactor bez změny parsovací logiky, síťových volání, persistence nebo autorizace.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`

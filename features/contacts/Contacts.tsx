@@ -13,7 +13,7 @@ import { shellAdapter } from '@/services/platformAdapter';
 import { isDesktop } from '@/services/platformAdapter';
 import { CZ_REGIONS } from '@/config/constants';
 import { useFeatures } from '@/context/FeatureContext';
-import { formatDecimal } from '@/utils/formatters';
+import { formatDecimal } from '@/shared/formatting/decimalFormatters';
 import { FEATURES } from '@/config/features';
 import { SubcontractorMapView } from '@features/maps/components/SubcontractorMapView';
 import { SubcontractorCardsView } from '@features/contacts/ui/SubcontractorCardsView';

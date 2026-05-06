@@ -13,7 +13,7 @@ import {
   YAxis,
 } from "recharts";
 import { formatMoney } from "@/utils/overviewAnalytics";
-import { formatDecimal } from "@/utils/formatters";
+import { formatDecimal } from "@/shared/formatting/decimalFormatters";
 import { getOfferStatusMeta } from "@/utils/offerStatus";
 import { exportSupplierAnalysisToPDF } from "@/services/exportService";
 import type { Project, ProjectDetails } from "@/types";
