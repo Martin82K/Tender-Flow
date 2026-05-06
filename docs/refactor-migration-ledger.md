@@ -48,6 +48,23 @@
   - tracked citlive root soubory: `0`.
 - Bezpecnostni dopad: zadny presun `.env*`; historicky patch zustal zachovan v archivu beze zmen obsahu a release metadata byla jen presunuta mimo root.
 
+### ProjectSchedule shared shim removal
+- Implementace harmonogramu presunuta:
+  - `components/ProjectSchedule.tsx` -> `features/projects/ui/ProjectSchedule.tsx`.
+- Export harmonogramu presunut mimo legacy services:
+  - `services/scheduleExportService.ts` -> `features/projects/api/projectScheduleExportApi.ts`.
+- Legacy compatibility shimy zustaly kvuli prechodove kompatibilite:
+  - `components/ProjectSchedule.tsx`,
+  - `services/scheduleExportService.ts`.
+- Odstranen shared shim:
+  - `shared/ui/projects/ProjectSchedule.tsx`.
+- `features/projects/ProjectLayout.tsx` importuje harmonogram primo z `features/projects/ui/ProjectSchedule`.
+- Ocekavany audit dopad:
+  - `shared -> components`: `11 -> 10`,
+  - `shared/ui` temporary shims: `11 -> 10`,
+  - zadne nove `features -> legacy services` kvuli presunu export API do `features/projects/api`.
+- Bezpecnostni dopad: runtime chovani exportu harmonogramu zustalo stejne; zmena nepridava nove externi integrace ani nepracuje se secrets.
+
 ## 2026-02-18
 
 ### Auth/session

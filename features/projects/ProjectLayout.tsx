@@ -5,7 +5,7 @@ import { HelpButton } from "@features/help";
 import { TaskCreateButton } from "@features/tasks";
 import { Pipeline } from "@/shared/ui/projects/Pipeline";
 import { TenderPlan } from "@/shared/ui/projects/TenderPlan";
-import { ProjectSchedule } from "@/shared/ui/projects/ProjectSchedule";
+import { ProjectSchedule } from "@/features/projects/ui/ProjectSchedule";
 import {
   ProjectTab,
   ProjectDetails,
