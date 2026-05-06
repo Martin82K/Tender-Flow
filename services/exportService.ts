@@ -11,7 +11,7 @@ import {
   StatusConfig,
   ContractSummaryDto,
 } from '../types';
-import type { SupplierOfferRef } from '../utils/overviewAnalytics';
+import type { SupplierOfferRef } from '../shared/overview/overviewAnalytics';
 import { getOfferStatusMeta } from '../shared/offers/offerStatus';
 import { RobotoRegularBase64 } from '../fonts/roboto-regular';
 import {

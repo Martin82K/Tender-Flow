@@ -1,5 +1,5 @@
 import type { Subcontractor } from "@/types";
-import type { OverviewAnalytics } from "@/utils/overviewAnalytics";
+import type { OverviewAnalytics } from "@/shared/overview/overviewAnalytics";
 
 export type OverviewSupplier = OverviewAnalytics["suppliers"][number];
 

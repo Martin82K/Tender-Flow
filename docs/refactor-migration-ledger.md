@@ -246,6 +246,17 @@
   - přechodové import vazby: `186 -> 185`.
 - Bezpečnostní dopad: přesun statické mapy popisků a CSS tříd bez nového IO, externích volání, persistence nebo autorizace.
 
+### Shared overview analytics
+- Analytické modelové helpery byly přesunuty do:
+  - `shared/overview/overviewAnalytics.ts`,
+  - `shared/overview/supplierFilters.ts`.
+- Legacy `utils/overviewAnalytics.ts` a `utils/supplierFilters.ts` zůstávají kompatibilní re-exporty.
+- Feature overview controller/model a `ProjectOverview` používají shared helpery přímo.
+- `services/exportService.ts`, `utils/overviewChat.ts` a legacy overview dashboard používají shared typy/helpery přímo.
+- Očekávaný audit dopad proti stavu po shared offer status řezu:
+  - přechodové import vazby: `185 -> 181`.
+- Bezpečnostní dopad: přesun čistých výpočtů a filtrů bez nového IO, externích volání, persistence nebo autorizace.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`

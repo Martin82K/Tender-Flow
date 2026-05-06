@@ -12,7 +12,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { formatMoney } from "@/utils/overviewAnalytics";
+import { formatMoney } from "@/shared/overview/overviewAnalytics";
 import { formatDecimal } from "@/shared/formatting/decimalFormatters";
 import { getOfferStatusMeta } from "@/shared/offers/offerStatus";
 import { exportSupplierAnalysisToPDF } from "@/services/exportService";

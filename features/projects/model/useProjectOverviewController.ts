@@ -4,8 +4,8 @@ import { useContactsQuery } from "@/hooks/queries/useContactsQuery";
 import { useOverviewTenantDataQuery } from "@/hooks/queries/useOverviewTenantDataQuery";
 import type { Project, ProjectDetails } from "@/types";
 import { isUserAdmin } from "@/utils/helpers";
-import { buildOverviewAnalytics } from "@/utils/overviewAnalytics";
-import { filterSuppliers } from "@/utils/supplierFilters";
+import { buildOverviewAnalytics } from "@/shared/overview/overviewAnalytics";
+import { filterSuppliers } from "@/shared/overview/supplierFilters";
 import { SECTION_DEFAULTS } from "@/features/projects/ui/OverviewSection";
 import {
   buildAverageBudgetDeviation,
