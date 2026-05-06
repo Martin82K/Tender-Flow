@@ -15,6 +15,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "audit:architecture": "node scripts/audit-architecture-debt.mjs",
     "check:boundaries": "node scripts/check-boundaries.mjs",
     "check:legacy-structure": "node scripts/check-legacy-structure.mjs",
     "desktop:install": "cd desktop && npm install --ignore-scripts",

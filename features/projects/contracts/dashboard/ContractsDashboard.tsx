@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import type { ContractWithDetails, ProjectDetails } from '@/types';
-import { formatDecimal } from '@/utils/formatters';
+import { formatDecimal } from '@/shared/formatting/decimalFormatters';
 import { addMonthsIso, daysUntil, formatDate, formatMoney } from '../utils/format';
 import { computeContractsDashboardStats } from './contractsDashboardModel';
 

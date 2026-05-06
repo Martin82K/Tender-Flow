@@ -5,7 +5,14 @@ import {
   getDisplayTiers,
   SubscriptionTierId,
 } from "@/config/subscriptionTiers";
-import { subscriptionFeaturesService } from "@/services/subscriptionFeaturesService";
+import {
+  createSubscriptionFeature,
+  deleteSubscriptionFeature,
+  listSubscriptionFeatures,
+  listSubscriptionTierFlags,
+  setSubscriptionTierFlag,
+  updateSubscriptionFeature,
+} from "@features/subscription/api";
 import { SubscriptionFeature } from "@/types";
 
 type FlagKey = `${SubscriptionTierId}:${string}`;
@@ -215,9 +222,9 @@ export const SubscriptionFeaturesManagement: React.FC = () => {
     const existing = features.find((feature) => feature.key === seed.key);
     if (existing) return existing;
 
-    await subscriptionFeaturesService.createFeature(seed);
+    await createSubscriptionFeature(seed);
     for (const tier of ALL_TIERS) {
-      await subscriptionFeaturesService.setTierFlag(
+      await setSubscriptionTierFlag(
         tier.id,
         seed.key,
         tier.id === "admin"
@@ -242,8 +249,8 @@ export const SubscriptionFeaturesManagement: React.FC = () => {
     setLoadError(null);
     try {
       const [loadedFeatures, loadedFlags] = await Promise.all([
-        subscriptionFeaturesService.listFeatures(),
-        subscriptionFeaturesService.listTierFlags(),
+        listSubscriptionFeatures(),
+        listSubscriptionTierFlags(),
       ]);
 
       const nextFlags: Record<FlagKey, boolean> = {};
@@ -404,7 +411,7 @@ export const SubscriptionFeaturesManagement: React.FC = () => {
       if (systemSeed) {
         await ensureFeatureExists(systemSeed);
       }
-      await subscriptionFeaturesService.setTierFlag(tier, featureKey, enabled);
+      await setSubscriptionTierFlag(tier, featureKey, enabled);
     } catch (e) {
       console.error("Failed to save flag:", e);
       setFlags((current) => ({ ...current, [flagKey]: !!previous }));
@@ -432,7 +439,7 @@ export const SubscriptionFeaturesManagement: React.FC = () => {
 
     setIsSavingFeature(true);
     try {
-      await subscriptionFeaturesService.updateFeature(editingFeature.key, {
+      await updateSubscriptionFeature(editingFeature.key, {
         name: editingFeature.isSystem ? editingFeature.name : editName.trim(),
         description: editDescription.trim() || null,
         category: editCategory.trim() || null,
@@ -475,7 +482,7 @@ export const SubscriptionFeaturesManagement: React.FC = () => {
 
     setDeletingKey(key);
     try {
-      await subscriptionFeaturesService.deleteFeature(key);
+      await deleteSubscriptionFeature(key);
       await loadAll();
       if (editingKey === key) closeEditPanel();
     } catch (e) {

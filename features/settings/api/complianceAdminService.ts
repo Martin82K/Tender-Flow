@@ -1,5 +1,10 @@
-import { dbAdapter } from "@/services/dbAdapter";
-import type { IncidentAdminItem } from "@/services/incidentAdminService";
+import { dbAdapter } from "@infra/db/dbAdapter";
+import {
+  getAppIncidentsAdmin as getAppIncidentsAdminService,
+  purgeOldAppIncidentsAdmin as purgeOldAppIncidentsAdminService,
+  type IncidentAdminFilter,
+  type IncidentAdminItem,
+} from "@/services/incidentAdminService";
 import {
   complianceBootstrapCrmRetentionReviews,
   complianceBootstrapProcessingActivities,
@@ -33,6 +38,15 @@ export interface ComplianceOverview {
   accessAuditEntries: AccessAuditEntry[];
   accessReviewReports: AccessReviewReport[];
 }
+
+export type { IncidentAdminFilter, IncidentAdminItem };
+
+export const getAppIncidentsAdmin = (
+  filter: IncidentAdminFilter = {},
+): Promise<IncidentAdminItem[]> => getAppIncidentsAdminService(filter);
+
+export const purgeOldAppIncidentsAdmin = (daysToKeep: number): Promise<number> =>
+  purgeOldAppIncidentsAdminService(daysToKeep);
 
 export interface AdminAuditEvent {
   actor: string;

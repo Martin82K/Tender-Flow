@@ -3,10 +3,6 @@ import { describe, expect, it, vi } from "vitest";
 import type { DemandCategory, Project, ProjectDetails, Bid } from "@/types";
 import type { CommandCenterFilterState } from "@features/command-center/types";
 
-const uiMock = {
-  showUiModal: vi.fn(),
-};
-
 const state = {
   projects: [] as Project[],
   allProjectDetails: {} as Record<string, ProjectDetails>,
@@ -21,12 +17,8 @@ const state = {
   isAdmin: false,
 };
 
-vi.mock("@/context/UIContext", () => ({
-  useUI: () => uiMock,
-}));
-
-vi.mock("@/hooks/useAppData", () => ({
-  useAppData: () => ({ state, actions: {} }),
+vi.mock("@features/projects/model/useProjectPortfolioState", () => ({
+  useProjectPortfolioState: () => state,
 }));
 
 vi.mock("@features/projects/contracts/hooks/useAllContractsQuery", () => ({

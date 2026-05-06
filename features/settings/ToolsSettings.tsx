@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { unlockExcelZip } from "@/utils/excelUnlockZip";
+import { unlockExcelZip } from "@/shared/tools/excel/excelUnlockZip";
 import { IndexMatcherSettings } from "./IndexMatcherSettings";
 import { AlertModal } from "@/shared/ui/AlertModal";
 

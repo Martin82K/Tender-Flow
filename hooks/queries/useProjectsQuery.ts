@@ -4,13 +4,9 @@ import { withRetry, withTimeout } from "../../utils/helpers";
 import { ActiveProjectStatus, Project } from "../../types";
 import { useAuth } from "../../context/AuthContext";
 import { getDemoData, DEMO_PROJECT } from "../../services/demoData";
+import { PROJECT_KEYS } from "@/shared/queryKeys/projectKeys";
 
-export const PROJECT_KEYS = {
-    all: ["projects"] as const,
-    list: () => [...PROJECT_KEYS.all, "list"] as const,
-    details: () => [...PROJECT_KEYS.all, "details"] as const,
-    detail: (id: string) => [...PROJECT_KEYS.details(), id] as const,
-};
+export { PROJECT_KEYS } from "@/shared/queryKeys/projectKeys";
 
 export const useProjectsQuery = () => {
     const { user } = useAuth();

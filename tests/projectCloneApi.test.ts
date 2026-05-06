@@ -5,7 +5,7 @@ const mocks = vi.hoisted(() => ({
   rpcRestMock: vi.fn(),
 }));
 
-vi.mock("@/services/dbAdapter", () => ({
+vi.mock("@infra/db/dbAdapter", () => ({
   dbAdapter: {
     rpcRest: mocks.rpcRestMock,
   },

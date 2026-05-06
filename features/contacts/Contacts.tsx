@@ -9,11 +9,10 @@ import { findCompanyRegistrationDetails, lookupCompanyRegistrations } from '@/se
 import { SubcontractorSelector } from '@/shared/ui/SubcontractorSelector';
 import { ConfirmationModal } from '@/shared/ui/ConfirmationModal';
 import { validateSubcontractorCompanyName } from '@/shared/dochub/subcontractorNameRules';
-import { shellAdapter } from '@/services/platformAdapter';
-import { isDesktop } from '@/services/platformAdapter';
+import { isDesktop, shellAdapter } from '@infra/platform/platformAdapter';
 import { CZ_REGIONS } from '@/config/constants';
 import { useFeatures } from '@/context/FeatureContext';
-import { formatDecimal } from '@/utils/formatters';
+import { formatDecimal } from '@/shared/formatting/decimalFormatters';
 import { FEATURES } from '@/config/features';
 import { SubcontractorMapView } from '@features/maps/components/SubcontractorMapView';
 import { SubcontractorCardsView } from '@features/contacts/ui/SubcontractorCardsView';

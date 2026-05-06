@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Modal } from '@/shared/ui/Modal';
 import { NumericInput } from '@/shared/ui/NumericInput';
-import { contractService } from '@/services/contractService';
+import { contractMutationsApi } from '../api';
 import type {
   ContractInvoice,
   ContractInvoiceStatus,
@@ -68,9 +68,9 @@ export const InvoiceDialog: React.FC<Props> = ({ contract, initial, onClose, onS
         note: form.note || undefined,
       };
       if (isEditing && initial) {
-        await contractService.updateInvoice(initial.id, payload);
+        await contractMutationsApi.updateInvoice(initial.id, payload);
       } else {
-        await contractService.createInvoice(payload);
+        await contractMutationsApi.createInvoice(payload);
       }
       await onSaved();
     } catch (err) {

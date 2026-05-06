@@ -1,19 +1,19 @@
 import type { Bid, BidStatus, DemandCategory, DocHubStructureV1 } from "@/types";
 import type { DragEvent } from "react";
-import { parseFormattedNumber } from "@/utils/formatters";
+import { parseFormattedNumber } from "@/shared/formatting/decimalFormatters";
 import {
   deleteBid,
   updateBid,
   updateBidContracted,
 } from "@/features/projects/api";
-import { getDemoData, saveDemoData } from "@/services/demoData";
+import { projectDemoDataApi } from "@features/projects/api/projectDemoDataApi";
 import {
   deleteFolder,
-} from "@/services/fileSystemService";
+} from "@infra/files/fileSystemService";
 import {
   getDocHubTenderLinks,
   resolveDocHubStructureV1,
-} from "@/utils/docHub";
+} from "@/shared/dochub/docHub";
 import {
   persistBidStatusChange,
   updateBidStatusInMemory,
@@ -133,7 +133,7 @@ export const usePipelineBidActions = ({
 
     try {
       if (userRole === "demo") {
-        const demoData = getDemoData();
+        const demoData = projectDemoDataApi.getDemoData();
         if (demoData && demoData.projectDetails[projectDataId]) {
           const projectBids = demoData.projectDetails[projectDataId].bids || {};
           const categoryBids = projectBids[activeCategory.id] || [];
@@ -142,7 +142,7 @@ export const usePipelineBidActions = ({
             categoryBids[index].contracted = newContracted;
             projectBids[activeCategory.id] = categoryBids;
             demoData.projectDetails[projectDataId].bids = projectBids;
-            saveDemoData(demoData);
+            projectDemoDataApi.saveDemoData(demoData);
           }
         }
         return;
@@ -188,7 +188,7 @@ export const usePipelineBidActions = ({
 
     try {
       if (userRole === "demo") {
-        const demoData = getDemoData();
+        const demoData = projectDemoDataApi.getDemoData();
         if (demoData && demoData.projectDetails[projectDataId]) {
           const projectBids = demoData.projectDetails[projectDataId].bids || {};
           const categoryBids = projectBids[activeCategory.id] || [];
@@ -199,7 +199,7 @@ export const usePipelineBidActions = ({
             categoryBids[index] = updatedBid;
             projectBids[activeCategory.id] = categoryBids;
             demoData.projectDetails[projectDataId].bids = projectBids;
-            saveDemoData(demoData);
+            projectDemoDataApi.saveDemoData(demoData);
           }
         }
         return;
@@ -230,14 +230,14 @@ export const usePipelineBidActions = ({
 
     try {
       if (userRole === "demo") {
-        const demoData = getDemoData();
+        const demoData = projectDemoDataApi.getDemoData();
         if (demoData && demoData.projectDetails[projectDataId]) {
           const projectBids = demoData.projectDetails[projectDataId].bids || {};
           projectBids[activeCategory.id] = (
             projectBids[activeCategory.id] || []
           ).filter((bid: Bid) => bid.id !== bidId);
           demoData.projectDetails[projectDataId].bids = projectBids;
-          saveDemoData(demoData);
+          projectDemoDataApi.saveDemoData(demoData);
         }
         return;
       }

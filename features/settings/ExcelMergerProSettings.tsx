@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from "react";
 import { ExcelService } from "../../services/excelMergerService";
 import { useUI } from "../../context/UIContext";
-import { trackFeatureUsage } from "../../services/featureUsageService";
-import platformAdapter from "../../services/platformAdapter";
+import { trackFeatureUsage } from "@features/settings/api";
+import platformAdapter from "@infra/platform/platformAdapter";
 
 // Dynamic desktop detection helper - must be called at runtime, not module load
 const checkIsDesktop = () => platformAdapter.isDesktop;

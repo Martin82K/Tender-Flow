@@ -6,7 +6,7 @@
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { organizationService } from '@/services/organizationService';
+import { organizationService } from '@features/organization/api';
 import { useUI } from '@/context/UIContext';
 import {
   buildEmailSignature,

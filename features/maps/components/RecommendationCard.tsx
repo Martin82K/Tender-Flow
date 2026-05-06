@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import type { RecommendationResult } from '../types';
-import { formatDecimal } from '@/utils/formatters';
+import { formatDecimal } from '@/shared/formatting/decimalFormatters';
 
 interface RecommendationCardProps {
   recommendation: RecommendationResult;

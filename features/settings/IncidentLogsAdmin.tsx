@@ -4,7 +4,7 @@ import {
   getAppIncidentsAdmin,
   type IncidentAdminItem,
   purgeOldAppIncidentsAdmin,
-} from "@/services/incidentAdminService";
+} from "@features/settings/api";
 
 const formatTs = (value: string): string => {
   try {

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Modal } from '@/shared/ui/Modal';
 import { NumericInput } from '@/shared/ui/NumericInput';
 import { MarkdownDocumentPanel } from '@/shared/contracts/MarkdownDocumentPanel';
-import { contractService } from '@/services/contractService';
+import { contractMutationsApi } from '../api';
 import type {
   Contract,
   ContractRetentionStatus,
@@ -103,9 +103,9 @@ export const ContractEditDialog: React.FC<Props> = ({
       } satisfies Omit<Contract, 'id' | 'createdAt' | 'updatedAt'>;
 
       if (isEditing && contract) {
-        await contractService.updateContract(contract.id, payload);
+        await contractMutationsApi.updateContract(contract.id, payload);
       } else {
-        await contractService.createContract(payload);
+        await contractMutationsApi.createContract(payload);
       }
       await onSaved();
     } catch (err) {

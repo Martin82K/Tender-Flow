@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Subcontractor } from '@/types';
-import { formatDecimal } from '@/utils/formatters';
+import { formatDecimal } from '@/shared/formatting/decimalFormatters';
 import { getMarkerColor } from '../utils/markerColors';
 
 interface NearbyItem extends Subcontractor {

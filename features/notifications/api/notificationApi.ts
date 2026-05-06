@@ -1,5 +1,12 @@
 import { notificationService } from "@/services/notificationService";
+import { desktopNotificationAdapter } from "@infra/platform/platformAdapter";
 import type { AppNotification, NotificationCategory, NotificationPreferences } from "../types";
+
+interface NotificationSubscriptionOptions {
+  userId: string;
+  onNewNotification: (notification: AppNotification) => void;
+  onSubscriptionError?: () => void;
+}
 
 export const notificationApi = {
   async getNotifications(limit: number = 20, category?: NotificationCategory): Promise<AppNotification[]> {
@@ -41,5 +48,48 @@ export const notificationApi = {
 
   async savePreferences(prefs: Partial<NotificationPreferences>): Promise<boolean> {
     return notificationService.savePreferences(prefs as Record<string, any>);
+  },
+
+  hasDesktopPermission(): boolean {
+    return "Notification" in window && Notification.permission === "granted";
+  },
+
+  async requestDesktopPermission(): Promise<boolean> {
+    return desktopNotificationAdapter.requestPermission();
+  },
+
+  async showDesktopNotification(title: string, body?: string): Promise<void> {
+    return desktopNotificationAdapter.show(title, body);
+  },
+
+  subscribeToUserNotifications({
+    userId,
+    onNewNotification,
+    onSubscriptionError,
+  }: NotificationSubscriptionOptions): () => void {
+    const supabase = notificationService.getSupabaseClient();
+    const channel = supabase
+      .channel(`notifications:${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload) => {
+          onNewNotification(payload.new as AppNotification);
+        },
+      )
+      .subscribe((status) => {
+        if (status === "CHANNEL_ERROR") {
+          onSubscriptionError?.();
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   },
 };

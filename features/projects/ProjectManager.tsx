@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { PROJECT_KEYS } from '@/hooks/queries/useProjectsQuery';
+import { PROJECT_KEYS } from '@/shared/queryKeys/projectKeys';
 import { Project, ProjectStatus } from '@/types';
 import { Header } from '@/shared/ui/Header';
 import { NotificationBell } from "@features/notifications/ui/NotificationBell";
 import { HelpButton } from "@features/help";
 import { projectService } from '@/services/projectService';
-import { organizationService, OrganizationMember } from '@/services/organizationService';
+import { organizationService } from '@features/organization/api';
+import type { OrganizationMember } from '@features/organization/api';
 import { useAuth } from '@/context/AuthContext';
 import { DeleteConfirmationModal } from '@/shared/ui/DeleteConfirmationModal';
 import { AlertModal } from '@/shared/ui/AlertModal';

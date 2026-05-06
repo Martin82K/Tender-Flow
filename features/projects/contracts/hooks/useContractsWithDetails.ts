@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { contractService } from '@/services/contractService';
+import { contractQueriesApi } from '../api';
 import type { ContractWithDetails } from '@/types';
 
 export interface UseContractsWithDetailsResult {
@@ -19,7 +19,7 @@ export const useContractsWithDetails = (
   const load = useCallback(async () => {
     try {
       setError(null);
-      const data = await contractService.getContractsByProject(projectId);
+      const data = await contractQueriesApi.getContractsByProject(projectId);
       setContracts(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Nepodařilo se načíst smlouvy');

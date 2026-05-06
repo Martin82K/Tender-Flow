@@ -1,4 +1,4 @@
-import { dbAdapter } from "@/services/dbAdapter";
+import { dbAdapter } from "@infra/db/dbAdapter";
 
 export interface CloneTenderToRealizationResult {
   projectId: string;

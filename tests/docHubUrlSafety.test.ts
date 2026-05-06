@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { isSafePublicHttpUrlForExternalShortener } from "../utils/docHub";
+import { isSafePublicHttpUrlForExternalShortener } from "@/shared/dochub/docHub";
+import { isSafePublicHttpUrlForExternalShortener as isSafePublicHttpUrlForExternalShortenerFromLegacy } from "../utils/docHub";
 
 describe("isSafePublicHttpUrlForExternalShortener", () => {
   it("allows public https url", () => {
     expect(
       isSafePublicHttpUrlForExternalShortener("https://example.com/path")
+    ).toBe(true);
+    expect(
+      isSafePublicHttpUrlForExternalShortenerFromLegacy("https://example.com/path")
     ).toBe(true);
   });
 

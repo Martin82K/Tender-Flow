@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { processTemplate, renderTemplateHtml } from "../utils/templateUtils";
+import { processTemplate, renderTemplateHtml } from "@/shared/email/templateUtils";
+import { processTemplate as processTemplateFromLegacy } from "../utils/templateUtils";
 import type { ProjectDetails } from "../types";
 
 const createProject = (
@@ -30,6 +31,10 @@ describe("templateUtils", () => {
     expect(html).toContain("<div class=\"signature\">");
     expect(html).toContain("<p>S pozdravem</p>");
     expect(html).toContain("<p><strong>Jan Novák</strong></p>");
+  });
+
+  it("zůstává dostupné přes legacy template utils entrypoint", () => {
+    expect(processTemplateFromLegacy("Ahoj {JMENO}", { "{JMENO}": "Jana" })).toBe("Ahoj Jana");
   });
 
   it("převede HTML podpis do textového fallbacku bez syrových tagů", () => {

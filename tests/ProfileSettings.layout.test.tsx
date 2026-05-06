@@ -54,7 +54,7 @@ vi.mock("../services/organizationService", () => ({
 
 vi.mock("../services/contactStatusService", () => contactStatusServiceMocks);
 
-vi.mock("@/hooks/useElectronUpdater", () => ({
+vi.mock("@/infra/desktop/useElectronUpdater", () => ({
   useElectronUpdater: () => ({
     checkForUpdates: vi.fn(),
     status: "not-available",

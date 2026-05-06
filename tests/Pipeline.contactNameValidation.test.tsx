@@ -28,7 +28,7 @@ vi.mock("../services/functionsClient", () => ({
   invokeAuthedFunction: vi.fn().mockResolvedValue({}),
 }));
 
-vi.mock("../services/fileSystemService", () => ({
+vi.mock("@infra/files/fileSystemService", () => ({
   ensureStructure: vi.fn().mockResolvedValue({
     success: true,
     rootPath: "/tmp/dochub",

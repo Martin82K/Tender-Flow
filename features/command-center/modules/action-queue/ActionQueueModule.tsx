@@ -2,8 +2,7 @@ import React, { useMemo, useState } from "react";
 import type { ModuleProps } from "@features/command-center/types";
 import { useDerivedActions } from "@features/command-center/hooks/useDerivedActions";
 import { navigate } from "@shared/routing/router";
-import { useUI } from "@/context/UIContext";
-import { useAppData } from "@/hooks/useAppData";
+import { useProjectPortfolioState } from "@features/projects/model/useProjectPortfolioState";
 import {
   mergeActionQueue,
   useTasksQuery,
@@ -32,15 +31,14 @@ export const ActionQueueModule: React.FC<ModuleProps> = ({ filterState }) => {
   const derived = useDerivedActions(filterState);
   const tasksQuery = useTasksQuery({ completed: false });
   const toggleTask = useToggleTaskMutation();
-  const { showUiModal } = useUI();
-  const { state } = useAppData(showUiModal);
+  const { projects } = useProjectPortfolioState();
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   const projectNames = useMemo(() => {
     const map: Record<string, string> = {};
-    for (const p of state.projects) map[p.id] = p.name;
+    for (const p of projects) map[p.id] = p.name;
     return map;
-  }, [state.projects]);
+  }, [projects]);
 
   const items = useMemo(
     () =>

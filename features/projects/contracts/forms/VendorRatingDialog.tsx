@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Modal } from '@/shared/ui/Modal';
 import { StarRating } from '@/shared/ui/StarRating';
-import { contractService } from '@/services/contractService';
+import { contractMutationsApi } from '../api';
 import { useAuth } from '@/context/AuthContext';
 import type { ContractWithDetails } from '@/types';
 
@@ -27,7 +27,7 @@ export const VendorRatingDialog: React.FC<Props> = ({ contract, onClose, onSaved
     setSubmitting(true);
     setError(null);
     try {
-      await contractService.updateContract(contract.id, {
+      await contractMutationsApi.updateContract(contract.id, {
         vendorRating: rating > 0 ? rating : null,
         vendorRatingNote: note.trim() || null,
         vendorRatingAt: rating > 0 ? new Date().toISOString() : null,
@@ -45,7 +45,7 @@ export const VendorRatingDialog: React.FC<Props> = ({ contract, onClose, onSaved
     setSubmitting(true);
     setError(null);
     try {
-      await contractService.updateContract(contract.id, {
+      await contractMutationsApi.updateContract(contract.id, {
         vendorRating: null,
         vendorRatingNote: null,
         vendorRatingAt: null,

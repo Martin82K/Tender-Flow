@@ -3,12 +3,8 @@ import {
   downloadEmlFile,
   generateEmlContent,
 } from "@/services/inquiryService";
-import { organizationService } from "@/services/organizationService";
-import {
-  exportToXLSX,
-  exportToMarkdown,
-  exportToPDF,
-} from "@/services/exportService";
+import { organizationService } from "@features/organization/api";
+import { projectExportApi } from "@features/projects/api/projectExportApi";
 import {
   getTemplateById,
   getDefaultTemplate,
@@ -18,8 +14,8 @@ import {
   appendSignatureToTemplate,
   buildEmailSignature,
 } from "@/shared/email/signature";
-import { processTemplate, renderTemplateHtml } from "@/utils/templateUtils";
-import platformAdapter from "@/services/platformAdapter";
+import { processTemplate, renderTemplateHtml } from "@/shared/email/templateUtils";
+import platformAdapter from "@infra/platform/platformAdapter";
 import type { Bid, DemandCategory, ProjectDetails, User } from "@/types";
 import type { PipelineInquiryGenerationKind } from "./pipelineModel";
 import {
@@ -256,13 +252,13 @@ export const usePipelineCommunicationActions = ({
     try {
       switch (format) {
         case "xlsx":
-          exportToXLSX(activeCategory, categoryBids, projectDetails);
+          projectExportApi.exportToXLSX(activeCategory, categoryBids, projectDetails);
           break;
         case "markdown":
-          exportToMarkdown(activeCategory, categoryBids, projectDetails);
+          projectExportApi.exportToMarkdown(activeCategory, categoryBids, projectDetails);
           break;
         case "pdf":
-          exportToPDF(activeCategory, categoryBids, projectDetails);
+          projectExportApi.exportToPDF(activeCategory, categoryBids, projectDetails);
           break;
       }
       setIsExportMenuOpen(false);

@@ -4,7 +4,7 @@ import { SubscriptionFeaturesManagement } from "./SubscriptionFeaturesManagement
 import { EmailWhitelistManagement } from "./EmailWhitelistManagement";
 import { AIApiTest } from "./AIApiTest";
 import { EmailTestPanel } from "./EmailTestPanel";
-import { authService } from "../../services/authService";
+import { authService } from "@features/auth/api";
 import { useUI } from "../../context/UIContext";
 
 interface AdminSettingsProps {

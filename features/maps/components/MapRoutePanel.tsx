@@ -1,4 +1,4 @@
-import { formatDecimal } from '@/utils/formatters';
+import { formatDecimal } from '@/shared/formatting/decimalFormatters';
 
 interface MapRoutePanelProps {
   distanceMeters?: number;

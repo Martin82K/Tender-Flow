@@ -4,8 +4,9 @@ import { NotificationBell } from "@features/notifications/ui/NotificationBell";
 import { HelpButton } from "@features/help";
 import { TaskCreateButton } from "@features/tasks";
 import { Pipeline } from "@/shared/ui/projects/Pipeline";
-import { TenderPlan } from "@/shared/ui/projects/TenderPlan";
-import { ProjectSchedule } from "@/shared/ui/projects/ProjectSchedule";
+import { TenderPlan } from "@/features/projects/ui/TenderPlan";
+import { ProjectSchedule } from "@/features/projects/ui/ProjectSchedule";
+import { ProjectOverviewNew } from "@/features/projects/ui/ProjectOverviewNew";
 import {
   ProjectTab,
   ProjectDetails,
@@ -14,7 +15,6 @@ import {
   Subcontractor,
   StatusConfig,
 } from "@/types";
-import { ProjectOverviewNew } from "@/shared/ui/projects/ProjectOverviewNew";
 import { ProjectDocuments } from "@/shared/ui/projects/ProjectDocuments";
 import { ContractsModule } from "@features/projects/contracts/ContractsModule";
 import { useFeatures } from "@/context/FeatureContext";
@@ -39,6 +39,7 @@ interface ProjectLayoutProps {
   initialPipelineCategoryId?: string;
   onNavigateToPipeline?: (categoryId: string) => void;
   onCategoryNavigate?: (categoryId: string | null) => void;
+  currentUserId?: string;
 }
 
 export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
@@ -57,6 +58,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
   initialPipelineCategoryId,
   onNavigateToPipeline,
   onCategoryNavigate,
+  currentUserId,
 }) => {
   const project = projectDetails;
   const [searchQuery, setSearchQuery] = useState("");
@@ -199,6 +201,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
             variant="compact"
             searchQuery={searchQuery}
             onNavigateToPipeline={handleLocalNavigateToPipeline}
+            currentUserId={currentUserId}
           />
         )}
         {activeTab === "tender-plan" && (

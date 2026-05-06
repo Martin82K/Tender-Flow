@@ -6,7 +6,7 @@ const mockEq = vi.fn(() => ({ single: mockSingle }));
 const mockSelect = vi.fn(() => ({ eq: mockEq, single: mockSingle }));
 const mockUpdate = vi.fn(() => ({ eq: vi.fn(async () => ({ error: null })) }));
 
-vi.mock("@/services/dbAdapter", () => ({
+vi.mock("@infra/db/dbAdapter", () => ({
   dbAdapter: {
     from: vi.fn(() => ({
       select: mockSelect,

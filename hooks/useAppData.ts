@@ -1,7 +1,8 @@
 import { useState, useCallback, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Project, ProjectDetails, DemandCategory, Bid, Subcontractor, StatusConfig } from "../types";
-import { useProjectsQuery, PROJECT_KEYS } from "./queries/useProjectsQuery";
+import { useProjectsQuery } from "./queries/useProjectsQuery";
+import { PROJECT_KEYS } from "@/shared/queryKeys/projectKeys";
 import { useContactsQuery, CONTACT_KEYS } from "./queries/useContactsQuery";
 import { useContactStatusesQuery, STATUS_KEYS } from "./queries/useContactStatusesQuery";
 import { useAllProjectDetailsQuery, PROJECT_DETAILS_KEYS } from "./queries/useProjectDetailsQuery";

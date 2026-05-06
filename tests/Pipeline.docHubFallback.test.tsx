@@ -25,7 +25,7 @@ vi.mock("@/services/functionsClient", () => ({
   invokeAuthedFunction: mocks.invokeAuthedFunction,
 }));
 
-vi.mock("@/services/fileSystemService", () => ({
+vi.mock("@infra/files/fileSystemService", () => ({
   ensureStructure: mocks.ensureStructure,
   deleteFolder: vi.fn().mockResolvedValue({ success: true }),
   folderExists: vi.fn().mockResolvedValue(false),

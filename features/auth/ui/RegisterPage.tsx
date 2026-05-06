@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { AuthCard } from "./AuthCard";
 import { Link, navigate, useLocation } from "@/shared/routing/router";
-import { authService } from "@/services/authService";
+import { authService } from "@features/auth/api";
 import { getCurrentLegalAcceptanceInput } from "@/shared/legal/legalDocumentVersions";
 import { getLegalDocumentUrl } from "@/shared/legal/legalDocumentLinks";
 import logo from "@/assets/logo.svg";

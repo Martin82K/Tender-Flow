@@ -1,6 +1,5 @@
 import { useMemo } from "react";
-import { useAppData } from "@/hooks/useAppData";
-import { useUI } from "@/context/UIContext";
+import { useProjectPortfolioState } from "@features/projects/model/useProjectPortfolioState";
 import type { CommandCenterFilterState } from "@features/command-center/types";
 import { matchesFilter } from "./filterUtils";
 
@@ -17,9 +16,7 @@ const parsePrice = (value?: string): number => {
 };
 
 export const useFinanceGaugeData = (filter: CommandCenterFilterState): FinanceGaugeData => {
-  const { showUiModal } = useUI();
-  const { state } = useAppData(showUiModal);
-  const { projects, allProjectDetails } = state;
+  const { projects, allProjectDetails } = useProjectPortfolioState();
 
   return useMemo(() => {
     let totalBudget = 0;

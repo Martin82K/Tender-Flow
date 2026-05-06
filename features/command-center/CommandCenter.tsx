@@ -1,6 +1,5 @@
 import React from "react";
-import { useAppData } from "@/hooks/useAppData";
-import { useUI } from "@/context/UIContext";
+import { useProjectPortfolioState } from "@features/projects/model/useProjectPortfolioState";
 import { navigate } from "@shared/routing/router";
 import { buildAppUrl } from "@shared/routing/routeUtils";
 import { CommandCenterShell } from "./CommandCenterShell";
@@ -27,9 +26,8 @@ const EmptyPortfolio: React.FC = () => (
 );
 
 export const CommandCenter: React.FC = () => {
-  const { showUiModal } = useUI();
-  const { state } = useAppData(showUiModal);
-  const activeProjects = state.projects.filter((p) => p.status !== "archived");
+  const { projects } = useProjectPortfolioState();
+  const activeProjects = projects.filter((p) => p.status !== "archived");
 
   return (
     <CommandCenterShell
