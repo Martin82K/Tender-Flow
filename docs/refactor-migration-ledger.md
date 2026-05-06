@@ -480,6 +480,13 @@
   - přechodové import vazby: `107 -> 106`.
 - Bezpečnostní dopad: načtení smlouvy pro protokol dál používá stejnou contract service; XLSX/PDF generování, logo URL i snapshot fallback se nemění.
 
+### Infra functions client boundary
+- Přidána `infra/functions/functionsClient.ts` fasáda pro Supabase Edge Function volání.
+- Mapy proxy, DocHub pipeline flow a AI API test používají infra klient místo přímého importu `services/functionsClient`.
+- Očekávaný audit dopad proti stavu po contract protocol query API řezu:
+  - přechodové import vazby: `106 -> 101`.
+- Bezpečnostní dopad: auth token, timeouty, retry, idempotency key a incident logging zůstávají v původním klientu; změna jen přesouvá import hranici do `infra`.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`

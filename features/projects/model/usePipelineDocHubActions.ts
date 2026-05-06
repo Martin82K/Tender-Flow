@@ -1,4 +1,4 @@
-import { invokeAuthedFunction } from "@/services/functionsClient";
+import { invokeAuthedFunction } from "@infra/functions/functionsClient";
 import { folderExists } from "@/services/fileSystemService";
 import { logIncident } from "@/services/incidentLogger";
 import platformAdapter from "@/services/platformAdapter";

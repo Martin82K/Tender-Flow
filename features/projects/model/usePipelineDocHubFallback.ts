@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { invokeAuthedFunction } from "@/services/functionsClient";
+import { invokeAuthedFunction } from "@infra/functions/functionsClient";
 import { collectFallbackSuppliers } from "@/shared/dochub/fallbackSelection";
 import { ensureStructure } from "@/services/fileSystemService";
 import { buildHierarchyTree, ensureExtraHierarchy } from "@/shared/dochub/docHub";
