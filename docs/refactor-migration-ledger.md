@@ -357,6 +357,13 @@
   - přechodové import vazby: `141 -> 140`.
 - Bezpečnostní dopad: čisté přesměrování čtení existujícího query výsledku bez nové mutace, externího volání, persistence, oprávnění nebo práce se secrets.
 
+### Tools URL shortener API import
+- `features/tools/api/index.ts` exportuje kompletní URL shortener API používané UI.
+- `features/tools/UrlShortener.tsx` už neimportuje legacy `services/urlShortenerService` přímo a používá feature API entrypoint.
+- Očekávaný audit dopad proti stavu po projects list state řezu:
+  - přechodové import vazby: `140 -> 139`.
+- Bezpečnostní dopad: URL validace, sanitizace chyb a Supabase/TinyURL flow zůstávají ve stejné service implementaci; změna nepřidává nové síťové volání, persistence ani práci se secrets.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`
