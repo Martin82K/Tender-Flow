@@ -6,8 +6,7 @@
  *
  * Logika:
  *   1) Auth user.
- *   2) Member-only: jakýkoli member orgu smí trigger sync (read-only operace, jen mirror
- *      gopay-sync-org-subscription, kde stačí membership bez owner/admin role).
+ *   2) Member-only: jakýkoli member orgu smí trigger sync (read-only operace).
  *   3) Načte org `billing_customer_id` (cus_…). Pokud chybí, nic nesynchronizovat.
  *   4) Najde aktivní subscription pro daný customer (`GET /subscriptions?customer=...`).
  *   5) Mapuje status, expires_at, tier, max_seats, billing_period.

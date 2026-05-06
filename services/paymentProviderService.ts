@@ -1,57 +1,30 @@
 /**
- * Payment Provider Service — globální router mezi GoPay a Stripe.
+ * Payment Provider Service — Stripe-only billing edge-function facade.
  *
- * Provider se vybírá z env varu `VITE_BILLING_PROVIDER` (`gopay` | `stripe`),
- * default = `gopay`. Žádný per-user/per-org switch.
- *
- * Tento modul je tenká abstrakce: rozhoduje pouze o tom, kterou edge funkci
- * zavolat a normalizuje response shape (Stripe používá `sessionId`, GoPay
- * `paymentId` — upstream kód vidí vždy `paymentId`).
- *
- * Nepřidává žádnou další logiku (žádné error mapování, žádné UI strings).
- * Konzumenti (`billingService.ts`, `features/organization/api/orgBillingActions.ts`)
- * si zachovávají vlastní user-friendly error mapping.
+ * Modul drží jen mapování klientských billing akcí na Stripe edge funkce a
+ * sjednocuje checkout response shape pro existující konzumenty.
  */
 
 import { invokeAuthedFunction } from './functionsClient';
 
-export type BillingProvider = 'gopay' | 'stripe';
-
-const SUPPORTED_PROVIDERS: readonly BillingProvider[] = ['gopay', 'stripe'];
-const DEFAULT_PROVIDER: BillingProvider = 'gopay';
-
 const FUNCTION_NAMES = {
-  gopay: {
-    createPayment: 'gopay-create-payment',
-    cancelSubscription: 'gopay-cancel-subscription',
-    syncSubscription: 'gopay-sync-subscription',
-    createOrgPayment: 'gopay-create-org-payment',
-    cancelOrgSubscription: 'gopay-cancel-org-subscription',
-    syncOrgSubscription: 'gopay-sync-org-subscription',
-  },
-  stripe: {
-    createPayment: 'stripe-create-payment',
-    cancelSubscription: 'stripe-cancel-subscription',
-    syncSubscription: 'stripe-sync-subscription',
-    createOrgPayment: 'stripe-create-org-payment',
-    cancelOrgSubscription: 'stripe-cancel-org-subscription',
-    syncOrgSubscription: 'stripe-sync-org-subscription',
-  },
+  createPayment: 'stripe-create-payment',
+  cancelSubscription: 'stripe-cancel-subscription',
+  syncSubscription: 'stripe-sync-subscription',
+  createOrgPayment: 'stripe-create-org-payment',
+  cancelOrgSubscription: 'stripe-cancel-org-subscription',
+  syncOrgSubscription: 'stripe-sync-org-subscription',
 } as const;
 
-type ProviderAction = keyof typeof FUNCTION_NAMES['gopay'];
+type ProviderAction = keyof typeof FUNCTION_NAMES;
 
-export const getActiveBillingProvider = (): BillingProvider => {
-  const raw = (import.meta.env.VITE_BILLING_PROVIDER || '').toString().trim().toLowerCase();
-  return (SUPPORTED_PROVIDERS as readonly string[]).includes(raw)
-    ? (raw as BillingProvider)
-    : DEFAULT_PROVIDER;
-};
+export type BillingProvider = 'stripe';
 
-const fnFor = (action: ProviderAction): string =>
-  FUNCTION_NAMES[getActiveBillingProvider()][action];
+export const getActiveBillingProvider = (): BillingProvider => 'stripe';
 
-// ---------- Shared types (response shape unified across providers) ----------
+const fnFor = (action: ProviderAction): string => FUNCTION_NAMES[action];
+
+// ---------- Shared types ----------
 
 export type CheckoutTier = 'starter' | 'pro' | 'enterprise';
 export type CheckoutBillingPeriod = 'monthly' | 'yearly';
@@ -101,7 +74,7 @@ export interface SyncSubscriptionResponse {
   error?: string;
 }
 
-// Stripe edge funkce vracejí `sessionId`; GoPay vrací `paymentId`. Sjednotíme upstream.
+// Stripe edge funkce vracejí `sessionId`; upstream zachovává historický `paymentId`.
 type RawCheckoutResponse = CheckoutResponse & { sessionId?: string };
 
 const normalizeCheckoutResponse = (raw: RawCheckoutResponse): CheckoutResponse => {

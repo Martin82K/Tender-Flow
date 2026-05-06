@@ -54,15 +54,6 @@ describe('password reset rate limiting', () => {
 // P2-10: Redirect URL validation
 // ---------------------------------------------------------------------------
 describe('isRedirectUrlSafe', () => {
-  it('allows GoPay production domains', () => {
-    expect(isRedirectUrlSafe('https://gw.gopay.com/gp/pay/12345')).toBe(true);
-    expect(isRedirectUrlSafe('https://gate.gopay.cz/api/payments')).toBe(true);
-  });
-
-  it('allows GoPay sandbox domain', () => {
-    expect(isRedirectUrlSafe('https://gw.sandbox.gopay.com/gp/pay/12345')).toBe(true);
-  });
-
   it('allows Stripe Checkout (test + live)', () => {
     expect(isRedirectUrlSafe('https://checkout.stripe.com/c/pay/cs_test_a1B2c3')).toBe(true);
     expect(isRedirectUrlSafe('https://checkout.stripe.com/c/pay/cs_live_a1B2c3')).toBe(true);
@@ -88,7 +79,7 @@ describe('isRedirectUrlSafe', () => {
 
   it('rejects unknown domains', () => {
     expect(isRedirectUrlSafe('https://evil.com/phishing')).toBe(false);
-    expect(isRedirectUrlSafe('https://gopay.com.evil.com/fake')).toBe(false);
+    expect(isRedirectUrlSafe('https://stripe.com.evil.com/fake')).toBe(false);
   });
 
   it('rejects javascript: protocol', () => {
@@ -100,7 +91,7 @@ describe('isRedirectUrlSafe', () => {
   });
 
   it('rejects HTTP (non-HTTPS) URLs', () => {
-    expect(isRedirectUrlSafe('http://gw.gopay.com/pay')).toBe(false);
+    expect(isRedirectUrlSafe('http://checkout.stripe.com/pay')).toBe(false);
   });
 
   it('rejects empty or malformed URLs', () => {

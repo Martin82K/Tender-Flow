@@ -11,7 +11,7 @@
  * Logika:
  *   1) Validace vstupu (orgId, tier, period, seats ≥ 1, redirect URL allowlist).
  *   2) Auth uživatele přes Supabase JWT.
- *   3) RBAC: musí být `owner` nebo `admin` dané organizace (mirror gopay-create-org-payment).
+ *   3) RBAC: musí být `owner` nebo `admin` dané organizace.
  *   4) Reuse existujícího Stripe customer ID, jen pokud organizace už má dřívější Stripe billing.
  *   5) Volání Stripe Checkout API: line_items s `quantity = seats`, metadata
  *      { userId, orgId, tier, billingPeriod, seats } na Session i Subscription objektu.
@@ -20,7 +20,7 @@
  * Důležité:
  *   - Customer/Subscription ID v DB se ukládají až ve webhooku `checkout.session.completed`
  *     (zpracovává `stripe-org-webhook`).
- *   - Enterprise tier nemá self-checkout (mirror chování GoPay).
+ *   - Enterprise tier nemá self-checkout.
  *   - Stripe per-seat = `quantity` na flat-priced line_item; price musí mít flat tier.
  */
 
@@ -134,10 +134,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Reuse existujícího Stripe customer ID, jen pokud `billing_customer_id` má prefix
-    // `cus_` (= Stripe). GoPay ukládá do stejného sloupce numerické payment ID, takže
-    // `validateStripeId(..., "customer")` ho spolehlivě odfiltruje. `organizations`
-    // tabulka nemá sloupec `billing_provider` (na rozdíl od `user_profiles`) — viz
+    // Reuse existujícího Stripe customer ID, jen pokud `billing_customer_id` má prefix `cus_`.
+    // `organizations` tabulka nemá sloupec `billing_provider` (na rozdíl od `user_profiles`) — viz
     // shodný přístup ve `stripe-org-webhook` (resolveOrgIdByCustomer).
     const { data: org, error: orgError } = await service
       .from("organizations")

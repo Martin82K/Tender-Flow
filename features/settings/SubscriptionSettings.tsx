@@ -190,7 +190,7 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
     setActionLoading(true);
     setMessage(null);
     try {
-      // Create payment via GoPay checkout
+      // Create payment via Stripe checkout
       const result = await createCheckoutSession({
         tier,
         billingPeriod,
@@ -928,8 +928,8 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = () => {
           </div>
 
           <p className="mt-5 text-[10px] text-slate-400 dark:text-slate-500 text-center">
-            Bezpečné platby přes GoPay. Apple Pay, Google Pay a bankovní
-            převody jsou dostupné podle zařízení a prohlížeče.
+            Bezpečné platby přes Stripe. Dostupnost platebních metod závisí na
+            zařízení, prohlížeči a nastavení Stripe účtu.
           </p>
         </div>
       )}

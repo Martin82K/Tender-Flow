@@ -2,8 +2,7 @@
  * Stripe API client + webhook signature verification (Deno Edge Functions).
  *
  * Pure helpery (mapping, validace, ceník) jsou v `stripeHelpers.ts` a re-exportujeme
- * je tady, aby Edge funkce stačil jeden import z `_shared/stripeBilling.ts` (mirror
- * struktury `gopayBilling.ts`).
+ * je tady, aby Edge funkce stačil jeden import z `_shared/stripeBilling.ts`.
  */
 
 export * from "./stripeHelpers.ts";
@@ -373,7 +372,7 @@ export const verifyStripeWebhookSignature = async (
   return { valid: false, reason: "Signature mismatch", timestamp };
 };
 
-// --- Redirect URL allowlist (sdílené chování s gopayBilling) ---
+// --- Redirect URL allowlist ---
 
 const DEV_ALLOWED_ORIGINS = [
   "http://localhost:3000",

@@ -35,7 +35,7 @@ export interface OrgBillingHistoryEntry {
   currency: string;
   seatsCount: number | null;
   tier: string | null;
-  gopayPaymentId: string | null;
+  externalPaymentId: string | null;
   status: 'pending' | 'paid' | 'failed' | 'refunded';
   createdAt: string;
 }

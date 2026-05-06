@@ -26,11 +26,7 @@
     "version:patch": "npm version patch --no-git-tag-version && node scripts/sync-version.mjs",
     "version:minor": "npm version minor --no-git-tag-version && node scripts/sync-version.mjs",
     "version:major": "npm version major --no-git-tag-version && node scripts/sync-version.mjs",
-    "release:prepare": "node scripts/prepare-release.mjs",
-    "deploy:gopay-webhook": "npx supabase functions deploy gopay-webhook --no-verify-jwt",
-    "deploy:gopay-payment": "npx supabase functions deploy gopay-create-payment",
-    "deploy:gopay-cancel": "npx supabase functions deploy gopay-cancel-subscription",
-    "deploy:gopay-sync": "npx supabase functions deploy gopay-sync-subscription"
+    "release:prepare": "node scripts/prepare-release.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.30.0",

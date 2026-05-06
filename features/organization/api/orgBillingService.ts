@@ -57,7 +57,7 @@ export const getOrgBillingHistory = async (
     currency: row.currency || 'CZK',
     seatsCount: row.seats_count,
     tier: row.tier,
-    gopayPaymentId: row.gopay_payment_id,
+    externalPaymentId: row.external_payment_id,
     status: row.status,
     createdAt: row.created_at,
   }));

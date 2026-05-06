@@ -50,8 +50,6 @@ const ALLOWED_EXTERNAL_HOSTS = new Set([
 
 const ALLOWED_PROXY_HOST_SUFFIXES = ['.supabase.co', '.supabase.in'];
 const ALLOWED_PROXY_HOSTS = new Set([
-    'gw.sandbox.gopay.com',
-    'gate.gopay.cz',
     'oauth2.googleapis.com',
     'accounts.google.com',
 ]);

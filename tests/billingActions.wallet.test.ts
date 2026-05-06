@@ -31,7 +31,7 @@ vi.mock("@/services/userSubscriptionService", () => ({
   },
 }));
 
-describe("billingActions (GoPay wrappers)", () => {
+describe("billingActions (Stripe checkout wrappers)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });

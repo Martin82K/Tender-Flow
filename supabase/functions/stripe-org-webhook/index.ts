@@ -16,9 +16,6 @@
  *   - customer.subscription.deleted    → status=expired, tier=free
  *   - invoice.payment_succeeded        → renewal: refresh expires_at + zápis do org_billing_history
  *   - invoice.payment_failed           → status=pending (mapping ze Stripe past_due)
- *
- * Schéma poznámka: `org_billing_history.gopay_payment_id` je legacy název — pro Stripe
- * tam ukládáme `subscription_id` (totéž rozhraní co GoPay payment ID, jen nový provider).
  */
 
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -101,8 +98,7 @@ const resolveOrgIdByCustomer = async (
   supabase: SupabaseClient,
   customerId: string,
 ): Promise<string | null> => {
-  // Org doesn't have `billing_provider` column — match jen přes customer_id (Stripe prefix
-  // garantuje, že to není GoPay payment ID, které má číselný ID).
+  // Org doesn't have `billing_provider` column — match jen přes Stripe customer_id prefix.
   const { data, error } = await supabase
     .from("organizations")
     .select("id")
@@ -267,15 +263,13 @@ const writeOrgBillingHistory = async (
     status: "paid" | "failed";
   },
 ) => {
-  // `gopay_payment_id` je legacy název sloupce — ukládáme tam Stripe subscription_id
-  // (stejné účel: identifikace platby v audit historii).
   const { error } = await supabase.from("org_billing_history").insert({
     organization_id: params.orgId,
     amount: params.amountMinor,
     currency: params.currency.toUpperCase(),
     seats_count: params.seats,
     tier: params.tier,
-    gopay_payment_id: params.subscriptionId,
+    external_payment_id: params.subscriptionId,
     status: params.status,
   });
 
