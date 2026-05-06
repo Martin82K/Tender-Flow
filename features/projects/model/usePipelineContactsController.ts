@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Subcontractor } from "@/types";
 import { insertSubcontractor, updateSubcontractor } from "@/features/projects/api";
-import { getDemoData, saveDemoData } from "@/services/demoData";
+import { projectDemoDataApi } from "@features/projects/api/projectDemoDataApi";
 import { validateSubcontractorCompanyName } from "@/shared/dochub/subcontractorNameRules";
 
 interface ShowAlertArgs {
@@ -62,10 +62,10 @@ export const usePipelineContactsController = ({
       }
 
       if (userRole === "demo") {
-        const demoData = getDemoData();
+        const demoData = projectDemoDataApi.getDemoData();
         if (demoData) {
           demoData.contacts = [...demoData.contacts, newContact];
-          saveDemoData(demoData);
+          projectDemoDataApi.saveDemoData(demoData);
         }
       } else {
         const { error } = await insertSubcontractor(newContact);
@@ -99,12 +99,12 @@ export const usePipelineContactsController = ({
       }
 
       if (userRole === "demo") {
-        const demoData = getDemoData();
+        const demoData = projectDemoDataApi.getDemoData();
         if (demoData) {
           demoData.contacts = demoData.contacts.map((contact: Subcontractor) =>
             contact.id === updatedContact.id ? updatedContact : contact,
           );
-          saveDemoData(demoData);
+          projectDemoDataApi.saveDemoData(demoData);
         }
       } else {
         const { error } = await updateSubcontractor(updatedContact);

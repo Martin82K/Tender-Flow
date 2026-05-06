@@ -508,6 +508,13 @@
   - přechodové import vazby: `86 -> 84`.
 - Bezpečnostní dopad: sanitizace zpráv, context allowlist, queue storage i Supabase persist flow zůstávají v původním loggeru; změna nemění logované hodnoty ani rozsah incident contextu.
 
+### Project demo data API boundary
+- Přidána `features/projects/api/projectDemoDataApi.ts` fasáda pro demo data persistence.
+- Pipeline bid status, bid actions, contacts controller a subcontractor selection modely používají project demo API místo přímého importu `services/demoData`.
+- Očekávaný audit dopad proti stavu po infra incident logger řezu:
+  - přechodové import vazby: `84 -> 81`.
+- Bezpečnostní dopad: demo data storage klíče, serializace i seed data zůstávají v původním service; změna nezasahuje produkční Supabase persistence ani auth.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`

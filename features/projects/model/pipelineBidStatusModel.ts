@@ -1,5 +1,5 @@
-import { getDemoData, saveDemoData } from "@/services/demoData";
 import { updateBidStatus } from "@/features/projects/api";
+import { projectDemoDataApi } from "@features/projects/api/projectDemoDataApi";
 import type { Bid, BidStatus } from "@/types";
 
 interface PersistBidStatusChangeInput {
@@ -44,7 +44,7 @@ export const persistBidStatusChange = async ({
   activeCategoryId,
 }: PersistBidStatusChangeInput) => {
   if (userRole === "demo") {
-    const demoData = getDemoData();
+    const demoData = projectDemoDataApi.getDemoData();
 
     if (!demoData || !demoData.projectDetails[projectDataId]) {
       return { error: null };
@@ -69,7 +69,7 @@ export const persistBidStatusChange = async ({
     );
 
     demoData.projectDetails[projectDataId].bids = nextBids;
-    saveDemoData(demoData);
+    projectDemoDataApi.saveDemoData(demoData);
     return { error: null };
   }
 
