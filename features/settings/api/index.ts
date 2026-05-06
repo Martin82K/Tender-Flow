@@ -16,6 +16,7 @@ export {
   getComplianceOverviewAdmin,
   purgeOldAppIncidentsAdmin,
 } from "./complianceAdminService";
+export { trackFeatureUsage } from "./featureUsageApi";
 export type {
   IncidentAdminFilter,
   IncidentAdminItem,

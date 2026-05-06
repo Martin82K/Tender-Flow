@@ -13,7 +13,7 @@ import {
   deleteAllIndexEntries,
   IndexEntry,
 } from "@/services/indexerService";
-import { trackFeatureUsage } from "@/services/featureUsageService";
+import { trackFeatureUsage } from "@features/settings/api";
 import { AlertModal } from "@/shared/ui/AlertModal";
 import { ConfirmationModal } from "@/shared/ui/ConfirmationModal";
 

@@ -23,7 +23,7 @@ vi.mock('@/shared/tools/excel/excelUnlockZip', () => ({
   unlockExcelZipWithStats: toolMocks.unlockExcelZipWithStats,
 }));
 
-vi.mock('../services/featureUsageService', () => ({
+vi.mock('@features/settings/api', () => ({
   trackFeatureUsage: trackingMocks.trackFeatureUsage,
 }));
 

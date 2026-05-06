@@ -422,6 +422,13 @@
   - přechodové import vazby: `123 -> 121`.
 - Bezpečnostní dopad: Electron backup guardy, plánování i lokální souborové operace zůstávají ve stejném platform adaptéru; změna nepřidává nové oprávnění, persistence ani práci se secrets.
 
+### Settings feature usage API wrapper
+- Přidán `features/settings/api/featureUsageApi.ts` jako settings boundary pro usage tracking.
+- Excel Indexer, Excel Merger a Excel Unlocker settings používají settings API místo přímého importu `featureUsageService`.
+- Očekávaný audit dopad proti stavu po backup local adapter API řezu:
+  - přechodové import vazby: `121 -> 119`.
+- Bezpečnostní dopad: cookie consent gate, RPC i sanitizované logování zůstávají ve stejné legacy service; změna nepřidává nové telemetry pole mimo původní payloady ani práci se secrets.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`

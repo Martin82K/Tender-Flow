@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { unlockExcelZipWithStats } from '@/shared/tools/excel/excelUnlockZip';
 import { useUI } from '../../context/UIContext';
-import { trackFeatureUsage } from '../../services/featureUsageService';
+import { trackFeatureUsage } from '@features/settings/api';
 
 export const ExcelUnlockerProSettings: React.FC = () => {
     const { showAlert } = useUI();
