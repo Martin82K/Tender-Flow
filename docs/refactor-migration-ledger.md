@@ -435,6 +435,12 @@
   - přechodové import vazby: `119 -> 117`.
 - Bezpečnostní dopad: logo URL a email branding flow zůstávají ve stejné organization service včetně expiračních URL parametrů; změna nepřidává nové volání, persistence ani práci se secrets.
 
+### Project manager organization API import
+- `features/projects/ProjectManager.tsx` používá `@features/organization/api` pro načtení členů organizace při předání vlastnictví stavby.
+- Očekávaný audit dopad proti stavu po projects organization API řezu:
+  - přechodové import vazby: `117 -> 116`.
+- Bezpečnostní dopad: předání vlastnictví dál používá stejnou organization service a stejné filtrování aktivních členů; změna nepřidává nové oprávnění, persistence ani práci se secrets.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`
