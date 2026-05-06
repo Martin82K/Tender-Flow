@@ -330,6 +330,15 @@
   - přechodové import vazby: `163 -> 162`.
 - Bezpečnostní dopad: zachované volání `updaterAdapter` bez nové sítě, persistence nebo oprávnění; desktop-only chování zůstává za platform adapterem.
 
+### Shared project query keys
+- `PROJECT_KEYS` byly přesunuty do:
+  - `shared/queryKeys/projectKeys.ts`.
+- Legacy `hooks/queries/useProjectsQuery.ts` je dál re-exportuje kvůli kompatibilitě.
+- `features/projects/ProjectManager.tsx` používá shared query keys přímo.
+- Očekávaný audit dopad proti stavu po infra desktop updater řezu:
+  - přechodové import vazby: `162 -> 161`.
+- Bezpečnostní dopad: čistý přesun konstant cache klíčů bez nové logiky, IO, persistence nebo externích volání.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`

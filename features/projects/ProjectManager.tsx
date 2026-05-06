@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { PROJECT_KEYS } from '@/hooks/queries/useProjectsQuery';
+import { PROJECT_KEYS } from '@/shared/queryKeys/projectKeys';
 import { Project, ProjectStatus } from '@/types';
 import { Header } from '@/shared/ui/Header';
 import { NotificationBell } from "@features/notifications/ui/NotificationBell";
