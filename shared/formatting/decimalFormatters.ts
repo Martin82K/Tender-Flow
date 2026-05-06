@@ -32,6 +32,14 @@ export const parseDecimal = (value: string | number | null | undefined): number 
 };
 
 /**
+ * Parsuje formátované číslo pro legacy místa, která očekávají číselnou nulu místo null.
+ */
+export const parseFormattedNumber = (value: string): number => {
+    const parsed = parseDecimal(value);
+    return parsed ?? 0;
+};
+
+/**
  * Formátuje desetinné číslo v českém formátu s desetinnou čárkou a mezerami mezi tisíci.
  */
 export const formatDecimal = (

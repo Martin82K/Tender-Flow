@@ -1,17 +1,14 @@
-/**
- * Centrální knihovna pro formátování čísel
- * Používá české formátování s oddělovači tisíců
- */
-import {
-    formatDecimal,
-    parseDecimal,
-} from '@/shared/formatting/decimalFormatters';
-
 export {
     formatDecimal,
     formatPercentValue,
     parseDecimal,
+    parseFormattedNumber,
 } from '@/shared/formatting/decimalFormatters';
+
+/**
+ * Centrální knihovna pro formátování čísel
+ * Používá české formátování s oddělovači tisíců
+ */
 
 /**
  * Formátuje číslo jako měnu v Kč s oddělovači tisíců
@@ -65,15 +62,6 @@ export const formatInputNumber = (value: number | string): string => {
     const num = typeof value === 'string' ? parseFloat(value.replace(/\s/g, '')) : value;
     if (isNaN(num)) return '';
     return formatNumber(num);
-};
-
-/**
- * Parsuje číslo ze stringu s oddělovači tisíců
- * @example parseFormattedNumber("1 000 000") => 1000000
- */
-export const parseFormattedNumber = (value: string): number => {
-    const parsed = parseDecimal(value);
-    return parsed ?? 0;
 };
 
 /**

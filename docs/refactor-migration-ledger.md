@@ -228,6 +228,15 @@
   - `features -> legacy utils` sníženo o deset importů.
 - Bezpečnostní dopad: import-only refactor bez změny parsovací logiky, síťových volání, persistence nebo autorizace.
 
+### Shared parseFormattedNumber
+- `parseFormattedNumber` byl přesunut do:
+  - `shared/formatting/decimalFormatters.ts`.
+- Legacy `utils/formatters.ts` ho dál re-exportuje pro staré importy.
+- `features/projects/model/usePipelineBidActions.ts` používá shared formatter přímo.
+- Očekávaný audit dopad proti stavu po feature decimal import řezu:
+  - přechodové import vazby: `187 -> 186`.
+- Bezpečnostní dopad: zachované parsovací chování (`null -> 0`) bez nového IO, externích volání, persistence nebo autorizace.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`

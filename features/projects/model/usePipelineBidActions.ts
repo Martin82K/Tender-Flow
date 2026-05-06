@@ -1,6 +1,6 @@
 import type { Bid, BidStatus, DemandCategory, DocHubStructureV1 } from "@/types";
 import type { DragEvent } from "react";
-import { parseFormattedNumber } from "@/utils/formatters";
+import { parseFormattedNumber } from "@/shared/formatting/decimalFormatters";
 import {
   deleteBid,
   updateBid,
