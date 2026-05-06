@@ -14,7 +14,7 @@ import {
 } from "recharts";
 import { formatMoney } from "@/utils/overviewAnalytics";
 import { formatDecimal } from "@/shared/formatting/decimalFormatters";
-import { getOfferStatusMeta } from "@/utils/offerStatus";
+import { getOfferStatusMeta } from "@/shared/offers/offerStatus";
 import { exportSupplierAnalysisToPDF } from "@/services/exportService";
 import type { Project, ProjectDetails } from "@/types";
 import html2canvas from "html2canvas";

@@ -12,7 +12,7 @@ import {
   ContractSummaryDto,
 } from '../types';
 import type { SupplierOfferRef } from '../utils/overviewAnalytics';
-import { getOfferStatusMeta } from '../utils/offerStatus';
+import { getOfferStatusMeta } from '../shared/offers/offerStatus';
 import { RobotoRegularBase64 } from '../fonts/roboto-regular';
 import {
   formatContractSummaryMoney,

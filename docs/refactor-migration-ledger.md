@@ -237,6 +237,15 @@
   - přechodové import vazby: `187 -> 186`.
 - Bezpečnostní dopad: zachované parsovací chování (`null -> 0`) bez nového IO, externích volání, persistence nebo autorizace.
 
+### Shared offer status metadata
+- Metadata stavů nabídek byla přesunuta do:
+  - `shared/offers/offerStatus.ts`.
+- Legacy `utils/offerStatus.ts` zůstává kompatibilní re-export.
+- `features/projects/ProjectOverview.tsx` a `services/exportService.ts` používají shared helper přímo.
+- Očekávaný audit dopad proti stavu po shared parseFormattedNumber řezu:
+  - přechodové import vazby: `186 -> 185`.
+- Bezpečnostní dopad: přesun statické mapy popisků a CSS tříd bez nového IO, externích volání, persistence nebo autorizace.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`
