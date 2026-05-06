@@ -393,6 +393,14 @@
   - přechodové import vazby: `129 -> 128`.
 - Bezpečnostní dopad: zachována stejná RPC service implementace včetně limitů purge okna; změna nepřidává nové volání, persistence ani práci se secrets.
 
+### Auth feature API imports
+- Přidán přechodový auth API entrypoint:
+  - `features/auth/api/index.ts`.
+- Auth UI stránky a admin registration settings používají feature API místo přímých importů `authService` a `platformAdapter`.
+- Očekávaný audit dopad proti stavu po settings incident admin API řezu:
+  - přechodové import vazby: `128 -> 125`.
+- Bezpečnostní dopad: zachována stejná auth service implementace, reset token flow i desktop platform guardy; změna nepřidává nové oprávnění, persistence ani práci se secrets.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`
