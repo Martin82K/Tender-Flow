@@ -82,7 +82,7 @@ Mít přesnou mapu zbývajícího dluhu, který už není zachycený jen pravidl
 ### Kandidáti
 
 - `shared/ui/projects/Pipeline.tsx`
-- `shared/ui/projects/ProjectOverviewNew.tsx`
+- `shared/ui/projects/ProjectOverviewNew.tsx` — hotovo, implementace je ve `features/projects/ui/ProjectOverviewNew.tsx`, legacy wrapper zůstává v `components/ProjectOverviewNew.tsx`
 - `shared/ui/projects/ProjectSchedule.tsx` — hotovo, implementace je ve `features/projects/ui/ProjectSchedule.tsx`, legacy export zůstává v `components/ProjectSchedule.tsx`
 - `shared/ui/projects/TenderPlan.tsx` — hotovo, implementace je ve `features/projects/ui/TenderPlan.tsx`, legacy export zůstává v `components/TenderPlan.tsx`
 - `shared/ui/projects/ProjectDocuments.tsx`

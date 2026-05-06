@@ -1,14 +1,8 @@
 import React from "react";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { ProjectOverviewNew } from "../components/ProjectOverviewNew";
+import { ProjectOverviewNew } from "@/features/projects/ui/ProjectOverviewNew";
 import type { ProjectDetails } from "../types";
-
-vi.mock("../context/AuthContext", () => ({
-  useAuth: () => ({
-    user: { id: "user-1" },
-  }),
-}));
 
 const buildProject = (): ProjectDetails => ({
   id: "project-1",
@@ -58,6 +52,7 @@ describe("ProjectOverviewNew compact editace", () => {
         project={buildProject()}
         onUpdate={onUpdate}
         variant="compact"
+        currentUserId="user-1"
       />,
     );
 

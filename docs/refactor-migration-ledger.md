@@ -190,6 +190,23 @@
     - `shared/ui` temporary shims: `7 -> 3`,
     - přechodové import vazby: `202 -> 198`
 
+### ProjectOverviewNew shared shim removal
+- Implementace přehledu projektu přesunuta:
+  - `components/ProjectOverviewNew.tsx` -> `features/projects/ui/ProjectOverviewNew.tsx`.
+- Legacy `components/ProjectOverviewNew.tsx` zůstává jako compatibility wrapper:
+  - doplňuje `currentUserId` z `AuthContext` pro staré importy,
+  - skutečné UI deleguje do `features/projects/ui/ProjectOverviewNew`.
+- `features/projects/ProjectLayout.tsx` importuje `ProjectOverviewNew` přímo z feature UI.
+- `app/AppContent.tsx` předává `currentUserId={user?.id}`, takže feature UI nemusí importovat legacy auth context.
+- Odstraněn shared shim:
+  - `shared/ui/projects/ProjectOverviewNew.tsx`.
+- `tests/ProjectOverviewNew.compactEdit.test.tsx` testuje feature komponentu přímo.
+- Očekávaný audit dopad proti stavu po overview charts řezu:
+  - `shared -> components`: `3 -> 2`,
+  - `shared/ui` temporary shims: `3 -> 2`,
+  - přechodové import vazby zůstaly `198`, protože přesun do `features/projects/ui` zviditelnil existující formátovací závislost jako `features -> legacy utils`.
+- Bezpečnostní dopad: `ProjectOverviewNew` už neimportuje auth context přímo; `currentUserId` se předává z `AppContent` přes `ProjectLayout`. Změna nepřidává nové externí volání, persistence ani práci se secrets.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`

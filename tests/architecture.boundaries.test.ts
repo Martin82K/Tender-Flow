@@ -79,6 +79,7 @@ describe("Architecture Guardrails", () => {
     expect(report.sharedUi.temporaryShims.map((item) => item.file)).not.toContain("shared/ui/overview/SupplierBarChart.tsx");
     expect(report.sharedUi.temporaryShims.map((item) => item.file)).not.toContain("shared/ui/overview/StatusDistributionChart.tsx");
     expect(report.sharedUi.temporaryShims.map((item) => item.file)).not.toContain("shared/ui/overview/BudgetDeviationGauge.tsx");
+    expect(report.sharedUi.temporaryShims.map((item) => item.file)).not.toContain("shared/ui/projects/ProjectOverviewNew.tsx");
     expect(report.sharedUi.primitives.every((item) => item.file.startsWith("shared/ui/"))).toBe(true);
     expect(report.largeFiles.every((item) => item.lines > 800)).toBe(true);
     expect(report.rootFiles.moveCandidates).toHaveLength(0);
