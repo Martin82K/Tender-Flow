@@ -5,7 +5,7 @@ import autoTable from "jspdf-autotable";
 import { RobotoRegularBase64 } from "@/fonts/roboto-regular";
 import { organizationService } from "@features/organization/api";
 import { contractQueriesApi } from "@features/projects/contracts/api";
-import { dbAdapter } from "@/services/dbAdapter";
+import { dbAdapter } from "@infra/db/dbAdapter";
 import type { ProjectDetails } from "@/types";
 
 import { getContractProtocolDefinition } from "../model/contractDocumentRegistry";

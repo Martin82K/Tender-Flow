@@ -19,7 +19,7 @@ const state = vi.hoisted(() => {
   };
 });
 
-vi.mock("@/services/dbAdapter", () => ({
+vi.mock("@infra/db/dbAdapter", () => ({
   dbAdapter: {
     from: state.from,
     rpc: state.rpc,

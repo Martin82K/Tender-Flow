@@ -515,6 +515,13 @@
   - přechodové import vazby: `84 -> 81`.
 - Bezpečnostní dopad: demo data storage klíče, serializace i seed data zůstávají v původním service; změna nezasahuje produkční Supabase persistence ani auth.
 
+### Infra db adapter boundary
+- Přidána `infra/db/dbAdapter.ts` fasáda pro Supabase query/RPC adapter.
+- Backup API, project clone/protocol API, tasks API, AI settings a compliance admin service používají infra DB adapter místo přímého importu `services/dbAdapter`.
+- Očekávaný audit dopad proti stavu po project demo data API řezu:
+  - přechodové import vazby: `81 -> 75`.
+- Bezpečnostní dopad: Supabase klient, RPC fallback, auth session token pro `rpcRest` i error payload handling zůstávají v původním adapteru; změna nepřidává nové dotazy ani RLS obcházení.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`

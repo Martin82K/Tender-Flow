@@ -1,4 +1,4 @@
-import { dbAdapter } from "@/services/dbAdapter";
+import { dbAdapter } from "@infra/db/dbAdapter";
 import {
   getAppIncidentsAdmin as getAppIncidentsAdminService,
   purgeOldAppIncidentsAdmin as purgeOldAppIncidentsAdminService,
