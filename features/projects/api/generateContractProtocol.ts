@@ -3,9 +3,9 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 import { RobotoRegularBase64 } from "@/fonts/roboto-regular";
+import { organizationService } from "@features/organization/api";
 import { contractService } from "@/services/contractService";
 import { dbAdapter } from "@/services/dbAdapter";
-import { organizationService } from "@/services/organizationService";
 import type { ProjectDetails } from "@/types";
 
 import { getContractProtocolDefinition } from "../model/contractDocumentRegistry";

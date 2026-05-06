@@ -429,6 +429,12 @@
   - přechodové import vazby: `121 -> 119`.
 - Bezpečnostní dopad: cookie consent gate, RPC i sanitizované logování zůstávají ve stejné legacy service; změna nepřidává nové telemetry pole mimo původní payloady ani práci se secrets.
 
+### Projects organization API imports
+- Project contract protocol generation a pipeline communication actions používají `@features/organization/api` místo přímého importu `organizationService`.
+- Očekávaný audit dopad proti stavu po settings feature usage API řezu:
+  - přechodové import vazby: `119 -> 117`.
+- Bezpečnostní dopad: logo URL a email branding flow zůstávají ve stejné organization service včetně expiračních URL parametrů; změna nepřidává nové volání, persistence ani práci se secrets.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`

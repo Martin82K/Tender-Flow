@@ -3,7 +3,7 @@ import {
   downloadEmlFile,
   generateEmlContent,
 } from "@/services/inquiryService";
-import { organizationService } from "@/services/organizationService";
+import { organizationService } from "@features/organization/api";
 import {
   exportToXLSX,
   exportToMarkdown,
