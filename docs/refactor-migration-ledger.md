@@ -321,6 +321,15 @@
   - přechodové import vazby: `166 -> 163`.
 - Bezpečnostní dopad: odstranění nepoužívaných re-exportů bez nové logiky, IO, persistence nebo externích volání.
 
+### Infra desktop updater hook
+- Desktop updater hook byl přesunut do:
+  - `infra/desktop/useElectronUpdater.ts`.
+- Legacy `hooks/useElectronUpdater.ts` zůstává kompatibilní re-export.
+- `features/settings/ProfileSettings.tsx` a `components/UpdateNotification.tsx` používají infra hook přímo.
+- Očekávaný audit dopad proti stavu po feature API barrel cleanup řezu:
+  - přechodové import vazby: `163 -> 162`.
+- Bezpečnostní dopad: zachované volání `updaterAdapter` bez nové sítě, persistence nebo oprávnění; desktop-only chování zůstává za platform adapterem.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`
