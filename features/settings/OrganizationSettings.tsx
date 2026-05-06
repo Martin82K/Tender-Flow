@@ -6,14 +6,14 @@ import React, { useEffect, useMemo, useState } from "react";
 import { sanitizeEmailDisclaimerHtml, buildEmailSignature } from "@/shared/email/signature";
 import {
   organizationService,
+  userManagementService,
   type OrganizationJoinRequest,
   type OrganizationMember,
   type OrganizationSummary,
   type OrganizationUnlockerTimeSavings,
-} from "../../services/organizationService";
+} from "@features/settings/api";
 import { useUI } from "../../context/UIContext";
 import { formatOrgRole, getUserLabel, getUserSortKey, isOrgOwnerRole } from "@/shared/organization/organizationUtils";
-import { userManagementService } from "../../services/userManagementService";
 
 const TIME_SAVINGS_DAYS_BACK = 30;
 const MINUTES_PER_UNLOCKED_SHEET = 2;

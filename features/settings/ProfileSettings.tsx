@@ -13,7 +13,7 @@ import { useUI } from "../../context/UIContext";
 import { useAuth } from "../../context/AuthContext";
 import { BiometricSettings } from "./BiometricSettings";
 import { useElectronUpdater } from "@/infra/desktop/useElectronUpdater";
-import { organizationService } from "../../services/organizationService";
+import { organizationService } from "@features/settings/api";
 import { formatOrgRequestStatus } from "@/shared/organization/organizationUtils";
 import { userProfileService } from "../../services/userProfileService";
 import { buildEmailSignature } from "@/shared/email/signature";

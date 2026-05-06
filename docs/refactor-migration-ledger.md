@@ -364,6 +364,13 @@
   - přechodové import vazby: `140 -> 139`.
 - Bezpečnostní dopad: URL validace, sanitizace chyb a Supabase/TinyURL flow zůstávají ve stejné service implementaci; změna nepřidává nové síťové volání, persistence ani práci se secrets.
 
+### Settings service API imports
+- `features/settings/api/index.ts` exportuje typy pro organization a user management API.
+- Settings UI soubory pro email test, user management, whitelist, organizace a profil používají feature API entrypoint místo přímých importů z legacy services.
+- Očekávaný audit dopad proti stavu po tools URL shortener řezu:
+  - přechodové import vazby: `139 -> 133`.
+- Bezpečnostní dopad: zachována stejná service implementace a oprávnění; změna pouze centralizuje import boundary bez nových volání, persistence nebo práce se secrets.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`

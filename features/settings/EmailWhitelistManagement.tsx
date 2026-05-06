@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { userManagementService, WhitelistedEmail } from '@/services/userManagementService';
+import { userManagementService, type WhitelistedEmail } from '@features/settings/api';
 import { useUI } from '@/context/UIContext';
 
 interface EmailWhitelistManagementProps {
