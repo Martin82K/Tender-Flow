@@ -3,19 +3,10 @@
  * Extracted from App.tsx for better modularity and reusability
  */
 
-// Admin emails for checking admin status
-const ADMIN_EMAILS: readonly string[] = [
-    "martinkalkus82@gmail.com",
-    "kalkus@baustav.cz",
-];
-
 /**
  * Check if user email belongs to an admin
  */
-export const isUserAdmin = (email: string | undefined): boolean => {
-    if (!email) return false;
-    return ADMIN_EMAILS.includes(email);
-};
+export { isUserAdmin } from "@/shared/auth/adminAccess";
 
 /**
  * Convert hex color to RGB string for CSS variables

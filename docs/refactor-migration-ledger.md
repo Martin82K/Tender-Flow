@@ -257,6 +257,15 @@
   - přechodové import vazby: `185 -> 181`.
 - Bezpečnostní dopad: přesun čistých výpočtů a filtrů bez nového IO, externích volání, persistence nebo autorizace.
 
+### Shared admin access helper
+- `isUserAdmin` byl přesunut do:
+  - `shared/auth/adminAccess.ts`.
+- Legacy `utils/helpers.ts` ho dál re-exportuje.
+- `features/projects/model/useProjectOverviewController.ts` používá shared helper přímo.
+- Očekávaný audit dopad proti stavu po shared overview analytics řezu:
+  - přechodové import vazby: `181 -> 180`.
+- Bezpečnostní dopad: zachován existující whitelist bez rozšíření oprávnění; jde pouze o přesun klientské helper funkce bez nového IO, persistence nebo externích volání.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`
