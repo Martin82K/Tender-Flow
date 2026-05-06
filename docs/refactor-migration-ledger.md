@@ -501,6 +501,13 @@
   - přechodové import vazby: `91 -> 86`.
 - Bezpečnostní dopad: validace názvů složek, incident logging, desktop-only guardy a cloud fallback volání zůstávají v původním service; změna nemění filesystem oprávnění ani payloady.
 
+### Infra incident logger boundary
+- Přidána `infra/diagnostics/incidentLogger.ts` fasáda pro diagnostické logování.
+- Pipeline category navigation a DocHub actions modely používají infra logger místo přímého importu `services/incidentLogger`.
+- Očekávaný audit dopad proti stavu po infra file system řezu:
+  - přechodové import vazby: `86 -> 84`.
+- Bezpečnostní dopad: sanitizace zpráv, context allowlist, queue storage i Supabase persist flow zůstávají v původním loggeru; změna nemění logované hodnoty ani rozsah incident contextu.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`

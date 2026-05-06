@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { DemandCategory, DocHubStructureV1 } from "@/types";
 import { folderExists } from "@infra/files/fileSystemService";
-import { logIncident } from "@/services/incidentLogger";
+import { logIncident } from "@infra/diagnostics/incidentLogger";
 import platformAdapter from "@infra/platform/platformAdapter";
 import {
   getTendersFolderName,

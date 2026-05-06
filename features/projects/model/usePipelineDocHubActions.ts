@@ -1,6 +1,6 @@
 import { invokeAuthedFunction } from "@infra/functions/functionsClient";
 import { folderExists } from "@infra/files/fileSystemService";
-import { logIncident } from "@/services/incidentLogger";
+import { logIncident } from "@infra/diagnostics/incidentLogger";
 import platformAdapter from "@infra/platform/platformAdapter";
 import {
   getDocHubTenderLinks,
