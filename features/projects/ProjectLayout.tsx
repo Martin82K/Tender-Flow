@@ -21,6 +21,7 @@ import { useFeatures } from "@/context/FeatureContext";
 import { FEATURES } from "@/config/features";
 import { ProjectMapView } from "@features/maps/components/ProjectMapView";
 import { geocodingService } from "@features/maps/services/geocodingService";
+import type { ThemeSkin } from "@/hooks/useTheme";
 // --- Main Layout Component ---
 
 interface ProjectLayoutProps {
@@ -39,6 +40,7 @@ interface ProjectLayoutProps {
   initialPipelineCategoryId?: string;
   onNavigateToPipeline?: (categoryId: string) => void;
   onCategoryNavigate?: (categoryId: string | null) => void;
+  skin?: ThemeSkin;
 }
 
 export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
@@ -57,6 +59,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
   initialPipelineCategoryId,
   onNavigateToPipeline,
   onCategoryNavigate,
+  skin = "industrial",
 }) => {
   const project = projectDetails;
   const [searchQuery, setSearchQuery] = useState("");
@@ -138,56 +141,83 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
 
   if (!project) return <div>Project not found</div>;
 
+  const projectStatusLabel: Record<NonNullable<ProjectDetails["status"]>, string> = {
+    tender: "V soutěži",
+    realization: "V realizaci",
+    archived: "Archiv",
+  };
+  const currentStatus = projectStatusLabel[project.status ?? "tender"];
+  const isIndustrialSkin = skin === "industrial";
+  const mobileTabsClass = isIndustrialSkin
+    ? "select-no-native-arrow w-full bg-[#faf6ee] border border-[rgba(20,16,8,0.14)] text-[#14110a] px-4 py-2 rounded-md text-xs font-bold uppercase tracking-wider focus:ring-2 focus:ring-[#ff8a33]/20"
+    : "select-no-native-arrow w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider focus:ring-2 focus:ring-primary/20";
+  const desktopTabsClass = isIndustrialSkin
+    ? "hidden min-w-max md:flex items-center gap-1.5 bg-transparent p-0 rounded-none border-0"
+    : "hidden min-w-max md:flex items-center gap-1.5 bg-slate-100 dark:bg-slate-950/50 p-1 rounded-2xl border border-slate-200 dark:border-slate-800";
+
+  const renderClassicTabs = () => (
+    <div className="flex w-full items-center">
+      <div className="relative w-full md:hidden">
+        <select
+          value={activeTab}
+          onChange={(e) => onTabChange(e.target.value as ProjectTab)}
+          className={mobileTabsClass}
+        >
+          {visibleTabs.map((tab) => (
+            <option key={tab.id} value={tab.id}>
+              {tab.label}
+            </option>
+          ))}
+        </select>
+        <span className={`material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-sm ${isIndustrialSkin ? "text-[#9c9684]" : "text-slate-400"}`}>expand_more</span>
+      </div>
+
+      <div data-help-id="project-tabs" className={desktopTabsClass}>
+        {visibleTabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => onTabChange(tab.id as ProjectTab)}
+            data-active={activeTab === tab.id ? "true" : "false"}
+            className={`flex items-center gap-2 px-3 lg:px-4 py-1.5 text-[11px] uppercase tracking-wider transition-all duration-200 ${isIndustrialSkin
+              ? activeTab === tab.id
+                ? "rounded-none border-b-2 border-[#ff8a33] text-[#b03a05] font-bold bg-transparent shadow-none ring-0"
+                : "rounded-none border-b-2 border-transparent text-[#6e6757] font-bold hover:text-[#14110a] bg-transparent"
+              : activeTab === tab.id
+                ? "rounded-xl bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700 font-black"
+                : "rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white font-black"
+              }`}
+          >
+            <span className="material-symbols-outlined text-[18px] opacity-70">{tab.icon}</span>
+            {tab.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
-    <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950">
+    <div className="tf-project-shell flex flex-col h-full bg-slate-50 dark:bg-slate-950">
       <Header
         title={project.title}
-        subtitle="Detail stavby"
-        titleBelow
+        subtitle={currentStatus}
+        skin={skin}
+        childrenBelow
         onSearchChange={setSearchQuery}
         searchPlaceholder="Hledat v projektu..."
         helpSlot={
           <div className="flex items-center gap-1">
-            <TaskCreateButton projectId={projectId} />
+            <TaskCreateButton
+              projectId={projectId}
+              className="inline-flex size-10 items-center justify-center rounded-xl border border-slate-200/60 bg-white/80 text-primary transition-all hover:bg-primary/10 dark:border-slate-700/60 dark:bg-slate-800/80"
+            >
+              <span className="sr-only">Úkol</span>
+            </TaskCreateButton>
             <HelpButton />
           </div>
         }
         notificationSlot={<NotificationBell />}
       >
-        <div className="flex items-center gap-4">
-          {/* Mobile dropdown tabs */}
-          <div className="md:hidden relative min-w-[140px]">
-            <select
-              value={activeTab}
-              onChange={(e) => onTabChange(e.target.value as ProjectTab)}
-              className="select-no-native-arrow w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-tighter focus:ring-2 focus:ring-primary/20"
-            >
-              {visibleTabs.map((tab) => (
-                <option key={tab.id} value={tab.id}>
-                  {tab.label}
-                </option>
-              ))}
-            </select>
-            <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-sm">expand_more</span>
-          </div>
-
-          {/* Desktop horizontal tabs */}
-          <div data-help-id="project-tabs" className="hidden md:flex items-center gap-1.5 bg-slate-100 dark:bg-slate-950/50 p-1 rounded-2xl border border-slate-200 dark:border-slate-800">
-            {visibleTabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => onTabChange(tab.id as ProjectTab)}
-                className={`flex items-center gap-2 px-5 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all duration-300 ${activeTab === tab.id
-                  ? 'bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700'
-                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-              >
-                <span className="material-symbols-outlined text-[18px] opacity-70">{tab.icon}</span>
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        {renderClassicTabs()}
       </Header>
 
       <div className="flex-1 overflow-auto flex flex-col">
@@ -197,6 +227,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
             onUpdate={onUpdateDetails}
             onAddressChanged={handleAddressChanged}
             variant="compact"
+            skin={skin}
             searchQuery={searchQuery}
             onNavigateToPipeline={handleLocalNavigateToPipeline}
           />

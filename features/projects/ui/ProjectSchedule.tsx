@@ -47,7 +47,7 @@ export const ProjectSchedule: React.FC<{ projectId: string; projectTitle?: strin
   });
 
   return (
-    <div className="p-4 lg:p-6 flex flex-col gap-4 flex-1 min-h-0 bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+    <div className="tf-schedule-view p-4 lg:p-6 flex flex-col gap-4 flex-1 min-h-0 bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <div className="w-full flex flex-col gap-4 flex-1 min-h-0">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">

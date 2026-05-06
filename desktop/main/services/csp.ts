@@ -6,10 +6,9 @@ const DESKTOP_DEV_CSP_HOSTS = new Set([
 export const buildDesktopCsp = (isDev: boolean): string => {
     const scriptSrc = [
         "'self'",
-        // Tailwind Play CDN runtime requires 'unsafe-eval'; 'unsafe-inline' only in dev (Vite HMR)
-        "'unsafe-eval'",
-        ...(isDev ? ["'unsafe-inline'"] : []),
-        'https://cdn.tailwindcss.com',
+        // Vite HMR injects inline runtime helpers in development.
+        // ExcelJS still uses Function() in the renderer dependency graph during dev.
+        ...(isDev ? ["'unsafe-inline'", "'unsafe-eval'"] : []),
     ].join(' ');
 
     const styleSrc = [

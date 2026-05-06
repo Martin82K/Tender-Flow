@@ -437,6 +437,7 @@ export const DEMO_USER = {
   preferences: {
     darkMode: true,
     primaryColor: '#607AFB',
-    backgroundColor: '#f5f6f8'
+    backgroundColor: '#f5f6f8',
+    uiScale: 1
   }
 };

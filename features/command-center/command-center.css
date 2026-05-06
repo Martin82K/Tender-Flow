@@ -26,9 +26,9 @@
   background: var(--cc-bg);
   color: var(--cc-text);
   font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
-  font-size: 13px;
+  font-size: 0.8125rem;
   line-height: 1.4;
-  padding: 14px 20px 40px;
+  padding: 0.75rem 1.125rem 2.25rem;
   min-height: 100%;
   background-image:
     radial-gradient(1200px 600px at 10% -10%, rgba(77, 159, 255, 0.06), transparent 60%),
@@ -42,7 +42,7 @@
   box-sizing: border-box;
 }
 
-.cc-root button {
+.cc-root button:not(.tf-account-menu *) {
   font-family: inherit;
   color: inherit;
   cursor: pointer;
@@ -55,7 +55,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 14px;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
 .cc-header__brand {
@@ -73,8 +74,10 @@
 
 .cc-header__actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .cc-stage {
@@ -329,8 +332,9 @@
 .cc-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
+  gap: 5px;
+  min-height: 30px;
+  padding: 5px 10px;
   border-radius: 6px;
   border: 1px solid var(--cc-line);
   background: var(--cc-surface);
@@ -369,7 +373,8 @@
 .cc-header__chip {
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
+  min-height: 28px;
+  padding: 3px 9px;
   border-radius: 999px;
   font-size: 10px;
   font-weight: 600;

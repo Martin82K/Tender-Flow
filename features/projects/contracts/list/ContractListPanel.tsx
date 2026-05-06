@@ -28,9 +28,9 @@ export const ContractListPanel: React.FC<Props> = ({ contracts, selectedId, onSe
   }, [contracts, filter, query]);
 
   return (
-    <aside className="flex flex-col rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 overflow-hidden">
+    <aside data-help-id="contracts-list-rail" className="flex flex-col rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 overflow-hidden">
       <div className="p-3 border-b border-slate-200 dark:border-slate-800 space-y-2">
-        <div className="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 px-3 py-2">
+        <div data-help-id="contracts-list-search" className="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 px-3 py-2">
           <span className="material-symbols-outlined text-slate-400 dark:text-slate-500 text-base">search</span>
           <input
             type="text"
@@ -60,6 +60,7 @@ export const ContractListPanel: React.FC<Props> = ({ contracts, selectedId, onSe
                 key={c.id}
                 type="button"
                 onClick={() => onSelect(c.id)}
+                data-active={isActive ? 'true' : 'false'}
                 className={`w-full text-left p-3 border-b border-slate-200 dark:border-slate-800 transition ${
                   isActive
                     ? 'bg-primary/10 border-l-[3px] border-l-primary pl-[9px]'

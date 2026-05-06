@@ -37,8 +37,8 @@ export const ContractsHeadline: React.FC<Props> = ({ contracts }) => {
   }, [contracts]);
 
   return (
-    <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 px-5 pt-5">
-      <div className="rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-4 flex flex-col gap-1.5">
+    <section data-help-id="contracts-kpi-strip" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 px-5 pt-5">
+      <div data-help-id="contracts-kpi-card" className="rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-4 flex flex-col gap-1.5">
         <div className="text-[10.5px] uppercase tracking-wider text-slate-600 dark:text-slate-500 font-semibold">
           Hodnota smluv
         </div>
@@ -55,7 +55,7 @@ export const ContractsHeadline: React.FC<Props> = ({ contracts }) => {
         </div>
       </div>
 
-      <div className="rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-4 flex flex-col gap-1.5">
+      <div data-help-id="contracts-kpi-card" className="rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-4 flex flex-col gap-1.5">
         <div className="text-[10.5px] uppercase tracking-wider text-slate-600 dark:text-slate-500 font-semibold">
           Peníze v pohybu
         </div>
@@ -81,7 +81,7 @@ export const ContractsHeadline: React.FC<Props> = ({ contracts }) => {
         </div>
       </div>
 
-      <div className="rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-4 flex flex-col gap-1.5">
+      <div data-help-id="contracts-kpi-card" className="rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-4 flex flex-col gap-1.5">
         <div className="text-[10.5px] uppercase tracking-wider text-slate-600 dark:text-slate-500 font-semibold">
           Drží se v pozastávce
         </div>

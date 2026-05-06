@@ -11,17 +11,18 @@ describe("desktop CSP", () => {
     expect(csp).toContain("frame-src");
     expect(csp).toContain("https://checkout.stripe.com");
     expect(csp).toContain("https://ares.gov.cz");
+    expect(csp).toContain("'unsafe-eval'");
   });
 
   it("keeps production policy without unsafe-eval or unsafe-inline", () => {
     const csp = buildDesktopCsp(false);
 
-    // 'unsafe-eval' is required because the Tailwind Play CDN evaluates JS at runtime
-    expect(csp).toContain("'unsafe-eval'");
     expect(csp).toContain("default-src 'self'");
+    expect(csp).not.toContain("'unsafe-eval'");
+    expect(csp).not.toContain("cdn.tailwindcss.com");
     // script-src must NOT contain unsafe-inline in production
-    expect(csp).toContain("script-src 'self' 'unsafe-eval' https://cdn.tailwindcss.com");
-    expect(csp).toContain("script-src-elem 'self' 'unsafe-eval' https://cdn.tailwindcss.com");
+    expect(csp).toContain("script-src 'self'");
+    expect(csp).toContain("script-src-elem 'self'");
     expect(csp).toContain("frame-src 'self' https://checkout.stripe.com");
     expect(csp).toContain("object-src 'none'");
     expect(csp).toContain("frame-ancestors 'none'");

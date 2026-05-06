@@ -29,10 +29,13 @@ import { BackupSettings } from "@/features/backup/ui/BackupSettings";
 
 import { useFeatures } from "@/context/FeatureContext";
 import { FEATURES } from "@/config/features";
+import type { ThemeSkin } from "@/hooks/useTheme";
 
 interface SettingsProps {
   theme: "light" | "dark" | "system";
+  skin: ThemeSkin;
   onSetTheme: (theme: "light" | "dark" | "system") => void;
+  onSetSkin: (skin: ThemeSkin) => void;
   primaryColor: string;
   onSetPrimaryColor: (color: string) => void;
 
@@ -51,7 +54,9 @@ interface SettingsProps {
 
 export const Settings: React.FC<SettingsProps> = ({
   theme,
+  skin,
   onSetTheme,
+  onSetSkin,
   primaryColor,
   onSetPrimaryColor,
   contactStatuses,
@@ -643,7 +648,9 @@ export const Settings: React.FC<SettingsProps> = ({
               {activeUserSubTab === "profile" && (
                 <ProfileSettings
                   theme={theme}
+                  skin={skin}
                   onSetTheme={onSetTheme}
+                  onSetSkin={onSetSkin}
                   primaryColor={primaryColor}
                   onSetPrimaryColor={onSetPrimaryColor}
                   contactStatuses={contactStatuses}

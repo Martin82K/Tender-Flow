@@ -56,7 +56,7 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
     });
 
     return (
-        <div className="p-6 lg:p-10 flex flex-col gap-6 overflow-y-auto h-full bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen">
+        <div className="tf-tender-plan-view p-6 lg:p-10 flex flex-col gap-6 overflow-y-auto h-full bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen">
             <div className="max-w-7xl mx-auto w-full">
                 {/* Header */}
                 <div className="flex items-center gap-3 mb-8 px-4 md:px-0">
@@ -74,6 +74,7 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
                     <aside data-help-id="tender-plan-sidebar" className="w-full md:w-64 flex-shrink-0">
                         <nav className="flex flex-col gap-2">
                             <button
+                                data-help-id="tender-plan-add"
                                 onClick={() => setIsAdding(true)}
                                 className="w-full px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white rounded-xl text-sm font-bold shadow-lg transition-all flex items-center justify-start gap-3 text-left my-2"
                             >

@@ -83,9 +83,14 @@ export const AppContent: React.FC = () => {
 
   const {
     theme,
+    skin,
+    setSkin,
     setTheme,
     primaryColor,
     setPrimaryColor,
+    uiScale,
+    setUiScale,
+    resetUiScale,
   } = useTheme({
     user,
     onPreferencesUpdate: (prefs) => updatePreferences(prefs),
@@ -341,6 +346,7 @@ export const AppContent: React.FC = () => {
                   }),
                 );
               }}
+              skin={skin}
             />
           </RequireFeature>
         );
@@ -363,7 +369,9 @@ export const AppContent: React.FC = () => {
         return (
           <Settings
             theme={theme}
+            skin={skin}
             onSetTheme={setTheme}
+            onSetSkin={setSkin}
             primaryColor={primaryColor}
             onSetPrimaryColor={setPrimaryColor}
             contactStatuses={state.contactStatuses}
@@ -454,6 +462,14 @@ export const AppContent: React.FC = () => {
         onProjectSelect={handleNavigateToProject}
         activeProjectTab={activeProjectTab}
         user={user}
+        theme={theme}
+        skin={skin}
+        onSetTheme={setTheme}
+        onSetSkin={setSkin}
+        uiScale={uiScale}
+        onSetUiScale={setUiScale}
+        onResetUiScale={resetUiScale}
+        onLogout={() => logout()}
         isBackgroundLoading={state.isBackgroundLoading}
         backgroundWarning={state.backgroundWarning}
         onReloadData={() => actions.loadInitialData(true)}

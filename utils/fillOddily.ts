@@ -12,7 +12,12 @@
  * 6. Preserve Excel formatting and styles
  */
 
-import ExcelJS from 'exceljs';
+import type ExcelJS from 'exceljs';
+
+const loadExcelJS = async () => {
+    const module = await import('exceljs');
+    return module.default;
+};
 
 // ============================================================================
 // Types
@@ -103,6 +108,7 @@ export async function fillOddily(
     onProgress?.(5, 'Načítám soubor...');
     onLog?.('Načítám Excel soubor...');
 
+    const ExcelJS = await loadExcelJS();
     let workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(buffer);
 

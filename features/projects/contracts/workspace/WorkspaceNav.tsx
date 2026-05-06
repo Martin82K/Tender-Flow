@@ -23,12 +23,13 @@ interface Props {
 }
 
 export const WorkspaceNav: React.FC<Props> = ({ sections, active, onNavigate }) => (
-  <nav className="bg-slate-50 dark:bg-slate-950/60 border-r border-slate-200 dark:border-slate-800 p-3 flex flex-col gap-1 overflow-y-auto">
+  <nav data-help-id="contract-detail-rail" className="bg-slate-50 dark:bg-slate-950/60 border-r border-slate-200 dark:border-slate-800 p-3 flex flex-col gap-1 overflow-y-auto">
     {sections.map((s) => (
       <button
         key={s.id}
         type="button"
         onClick={() => onNavigate(s.id)}
+        data-active={active === s.id ? 'true' : 'false'}
         className={`w-full text-left px-2.5 py-1.5 rounded-lg text-[12.5px] font-medium flex items-center gap-2 transition ${
           active === s.id
             ? 'bg-primary/15 text-primary'

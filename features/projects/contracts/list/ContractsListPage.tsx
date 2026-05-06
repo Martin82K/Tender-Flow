@@ -51,14 +51,15 @@ export const ContractsListPage: React.FC<Props> = ({ projectId, contracts, refre
   };
 
   return (
-    <div className="flex-1 flex flex-col min-h-0">
+    <div className="tf-contracts-list-page flex-1 flex flex-col min-h-0">
       <ContractsHeadline contracts={contracts} />
 
       <div className="flex items-center gap-3 px-5 py-3">
-        <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-1">
+        <div data-help-id="contracts-view-toggle" className="inline-flex rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-1">
           <button
             type="button"
             onClick={() => setViewMode('split')}
+            data-active={viewMode === 'split' ? 'true' : 'false'}
             className={`px-3 py-1.5 text-xs rounded-md font-semibold transition ${
               viewMode === 'split'
                 ? 'bg-primary/15 text-primary'
@@ -70,6 +71,7 @@ export const ContractsListPage: React.FC<Props> = ({ projectId, contracts, refre
           <button
             type="button"
             onClick={() => setViewMode('table')}
+            data-active={viewMode === 'table' ? 'true' : 'false'}
             className={`px-3 py-1.5 text-xs rounded-md font-semibold transition ${
               viewMode === 'table'
                 ? 'bg-primary/15 text-primary'
@@ -83,6 +85,7 @@ export const ContractsListPage: React.FC<Props> = ({ projectId, contracts, refre
         <button
           type="button"
           onClick={openCreate}
+          data-help-id="contracts-create"
           className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-primary/40 text-primary hover:bg-primary/10 hover:border-primary transition"
         >
           + Nová smlouva
@@ -95,7 +98,7 @@ export const ContractsListPage: React.FC<Props> = ({ projectId, contracts, refre
             Zatím nemáte žádné smlouvy. Klikněte na „+ Nová smlouva“ pro založení první.
           </div>
         ) : viewMode === 'split' ? (
-          <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-3 h-full min-h-[560px]">
+          <div data-help-id="contracts-split-layout" className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-3 h-full min-h-[560px]">
             <ContractListPanel
               contracts={contracts}
               selectedId={selectedId}

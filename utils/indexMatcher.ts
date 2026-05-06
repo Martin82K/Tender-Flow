@@ -13,7 +13,10 @@
  *    - Propagate description to subsequent rows until next code
  */
 
-import ExcelJS from 'exceljs';
+const loadExcelJS = async () => {
+  const module = await import('exceljs');
+  return module.default;
+};
 
 // ============================================================================
 // Types
@@ -161,6 +164,7 @@ export async function loadIndexFromBuffer(
   sheetName?: string,
   onLog?: LogReporter
 ): Promise<IndexMap> {
+  const ExcelJS = await loadExcelJS();
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(buffer);
 
@@ -234,6 +238,7 @@ export async function fillDescriptions(
   onProgress?.(5, 'Načítám rozpočtový soubor...');
   onLog?.('Načítám rozpočtový soubor...');
 
+  const ExcelJS = await loadExcelJS();
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(buffer);
 

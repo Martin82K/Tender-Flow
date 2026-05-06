@@ -96,7 +96,9 @@ describe("ProfileSettings layout", () => {
     render(
       <ProfileSettings
         theme="system"
+        skin="industrial"
         onSetTheme={vi.fn()}
+        onSetSkin={vi.fn()}
         primaryColor="#607AFB"
         onSetPrimaryColor={vi.fn()}
         contactStatuses={[]}

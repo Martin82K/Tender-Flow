@@ -1,8 +1,8 @@
 import * as XLSX from 'xlsx';
-import ExcelJS from 'exceljs';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { RobotoRegularBase64 } from '@/fonts/roboto-regular';
+import type { Fill } from 'exceljs';
 
 /**
  * Row data structure for schedule export
@@ -171,6 +171,7 @@ export async function exportScheduleWithTimelineToXLSX(
   mode: 'realization' | 'tender',
   zoom: 'month' | 'week' | 'day' = 'month'
 ): Promise<void> {
+  const { default: ExcelJS } = await import('exceljs');
   const workbook = new ExcelJS.Workbook();
   const modeLabel = mode === 'realization' ? 'Realizace' : 'Výběrová řízení';
   const zoomLabel = zoom === 'day' ? 'denní' : zoom === 'week' ? 'týdenní' : 'měsíční';
@@ -181,17 +182,17 @@ export async function exportScheduleWithTimelineToXLSX(
   const worksheet = workbook.addWorksheet(sheetName);
 
   // Define fill styles
-  const greenFill: ExcelJS.Fill = {
+  const greenFill: Fill = {
     type: 'pattern',
     pattern: 'solid',
     fgColor: { argb: 'FF10B981' } // Emerald green
   };
-  const headerFill: ExcelJS.Fill = {
+  const headerFill: Fill = {
     type: 'pattern',
     pattern: 'solid',
     fgColor: { argb: 'FF475569' } // Slate gray
   };
-  const lightGrayFill: ExcelJS.Fill = {
+  const lightGrayFill: Fill = {
     type: 'pattern',
     pattern: 'solid',
     fgColor: { argb: 'FFF1F5F9' } // Light slate

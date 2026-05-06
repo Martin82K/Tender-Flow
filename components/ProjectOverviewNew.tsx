@@ -18,6 +18,7 @@ interface ProjectOverviewProps {
   variant?: "full" | "compact";
   searchQuery?: string;
   onNavigateToPipeline?: (categoryId: string) => void;
+  skin?: "classic" | "industrial";
 }
 
 export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
@@ -27,7 +28,9 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
   variant = "full",
   searchQuery = "",
   onNavigateToPipeline,
+  skin = "classic",
 }) => {
+  const isIndustrialSkin = skin === "industrial";
   const { user } = useAuth();
   const {
     contract,
@@ -112,6 +115,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
     React.useState("");
   const [compactInternalAmendmentPriceInputs, setCompactInternalAmendmentPriceInputs] =
     React.useState<Record<string, string>>({});
+  const [linkCopied, setLinkCopied] = React.useState(false);
 
   const amendmentsCount = investor.amendments.length;
   const amendmentsTotal = investor.amendments.reduce(
@@ -126,6 +130,22 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
   const investorPaidTotal = investorInvoices
     .filter((invoice) => invoice.status === "paid")
     .reduce((sum, invoice) => sum + (invoice.amount || 0), 0);
+  const categoryCount = project.categories.length;
+  const progressPercent = Math.round((completedTasks / Math.max(1, categoryCount)) * 100);
+
+  const handleCopyProjectLink = async () => {
+    if (!navigator.clipboard || typeof window === "undefined") return;
+
+    const url = new URL(window.location.href);
+    url.search = "";
+    try {
+      await navigator.clipboard.writeText(url.toString());
+      setLinkCopied(true);
+      window.setTimeout(() => setLinkCopied(false), 1600);
+    } catch (error) {
+      console.error("Nepodařilo se zkopírovat odkaz na stavbu", error);
+    }
+  };
 
   React.useEffect(() => {
     if (!editingInvestor) return;
@@ -164,8 +184,8 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
   }, [editingInternal, internalForm.plannedCost, internalForm.internalAmendments]);
 
   const renderCompactDetails = () => (
-    <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 mb-6 shadow-sm">
-      <h3 className="text-base font-extrabold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+    <div className={isIndustrialSkin ? "industrial-panel mb-6 p-6" : "bg-white/60 dark:bg-slate-900/40 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 mb-6 shadow-sm"}>
+      <h3 className={isIndustrialSkin ? "text-base font-semibold text-[#14110a] dark:text-[#f4f1ea] mb-6 flex items-center gap-2" : "text-base font-extrabold text-slate-900 dark:text-white mb-6 flex items-center gap-2"}>
         <span className="material-symbols-outlined text-primary text-xl">
           info
         </span>
@@ -1037,54 +1057,131 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
     </div>
   );
 
+  const demandTableClass = isIndustrialSkin
+    ? "industrial-demand-table mt-8 border border-[rgba(20,16,8,0.12)] bg-[#faf6ee]/70 shadow-none backdrop-blur-sm"
+    : "bg-white/60 dark:bg-slate-900/40 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-3xl mt-8 shadow-sm";
+  const demandHeaderClass = isIndustrialSkin
+    ? "px-8 py-6 border-b border-[rgba(20,16,8,0.10)] flex items-center justify-between flex-wrap gap-4"
+    : "px-8 py-6 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between flex-wrap gap-4";
+  const demandFilterBarClass = isIndustrialSkin
+    ? "industrial-demand-filterbar flex flex-wrap items-center gap-x-5 gap-y-2 bg-transparent p-0 border-0"
+    : "flex items-center gap-1.5 bg-slate-100 dark:bg-slate-950/50 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800";
+  const getDemandFilterButtonClass = (filter: typeof demandFilter) => {
+    const active = demandFilter === filter;
+    if (isIndustrialSkin) {
+      return `px-0 py-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] border-b transition-colors ${
+        active
+          ? "border-[#ff8a33] text-[#b03a05]"
+          : "border-transparent text-[#6e6757] hover:text-[#3a352a]"
+      }`;
+    }
+
+    if (filter === "all") {
+      return `px-4 py-2 text-[11px] font-black uppercase tracking-tighter rounded-xl transition-all ${
+        active
+          ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+          : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+      }`;
+    }
+
+    const activeTone =
+      filter === "open"
+        ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/20"
+        : filter === "closed"
+          ? "bg-teal-500/10 text-teal-600 dark:text-teal-400 ring-1 ring-teal-500/20"
+          : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/20";
+
+    return `px-4 py-2 text-[11px] font-black uppercase tracking-tighter rounded-xl transition-all ${
+      active ? activeTone : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+    }`;
+  };
+  const columnButtonClass = isIndustrialSkin
+    ? "flex items-center gap-2 px-0 py-1.5 border-b border-transparent text-[#6e6757] transition-colors hover:border-[#ff8a33] hover:text-[#3a352a] text-[10.5px] font-semibold uppercase tracking-[0.08em]"
+    : "flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-xl border border-slate-200 dark:border-slate-800 transition-colors shadow-sm text-[11px] font-black uppercase tracking-tighter";
+  const columnDropdownClass = isIndustrialSkin
+    ? "absolute right-0 top-full mt-2 w-56 bg-[#faf6ee] border border-[rgba(20,16,8,0.14)] rounded-md shadow-lg p-3 opacity-0 invisible group-hover/columns:opacity-100 group-hover/columns:visible transition-all z-20"
+    : "absolute right-0 top-full mt-2 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl p-3 opacity-0 invisible group-hover/columns:opacity-100 group-hover/columns:visible transition-all z-20";
+  const columnLabelClass = isIndustrialSkin
+    ? "flex items-center gap-3 p-2 hover:bg-[#ff8a33]/10 rounded-md cursor-pointer"
+    : "flex items-center gap-3 p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer";
+  const columnCheckboxClass = isIndustrialSkin
+    ? "rounded border-[rgba(20,16,8,0.22)] text-[#b03a05] focus:ring-[#ff8a33]/30"
+    : "rounded text-primary focus:ring-primary";
+
   return (
-    <div className="flex flex-col gap-8 p-4 md:p-8 w-full bg-slate-50 dark:bg-slate-950 animate-fadeIn">
+    <div className={isIndustrialSkin ? "industrial-overview flex w-full flex-col gap-6 p-4 md:p-8 animate-fadeIn" : "flex flex-col gap-8 p-4 md:p-8 w-full bg-slate-50 dark:bg-slate-950 animate-fadeIn"}>
+      {isIndustrialSkin && (
+        <div className="industrial-hero flex flex-col gap-4 border-b border-[#ded6c7] pb-5 dark:border-white/10 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#b03a05] dark:text-[#ff8a33]">
+              Přehled stavby
+            </div>
+            <h2 className="mt-1 truncate text-2xl font-semibold text-[#14110a] dark:text-[#f4f1ea]">
+              {project.title}
+            </h2>
+            <p className="tf-skin-script mt-1 text-base text-[#6e6757] dark:text-[#8a8578]">
+              {[project.location, project.investor].filter(Boolean).join(" · ") || "Základní údaje a finanční stav projektu"}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleCopyProjectLink}
+              className="industrial-share-button inline-flex h-9 items-center gap-2 rounded-md border border-[#ded6c7] bg-white px-3 text-sm font-medium text-[#3a352a] transition-colors hover:border-[#ff8a33]/45 hover:text-[#b03a05] dark:border-white/10 dark:bg-[#181b22] dark:text-[#c9c4b8] dark:hover:text-[#ff8a33]"
+            >
+              <span className="material-symbols-outlined text-[18px]">ios_share</span>
+              {linkCopied ? "Odkaz zkopírován" : "Sdílet stavbu"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Top Row: 4 KPI Cards */}
       <div data-help-id="overview-kpi-cards" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* 1. Rozpočet (Investor) */}
-        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-sm hover:shadow-md transition-all">
+        <div className={isIndustrialSkin ? "industrial-kpi-card p-6 relative overflow-hidden transition-all" : "bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-sm hover:shadow-md transition-all"}>
           <div className="absolute top-0 left-0 h-full w-1 bg-blue-500" />
           <div className="flex flex-col gap-3 relative z-10">
-            <span className="text-xs uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400 font-bold">
+            <span className={isIndustrialSkin ? "text-xs uppercase tracking-[0.14em] text-blue-600 dark:text-blue-400 font-semibold" : "text-xs uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400 font-bold"}>
               Rozpočet
             </span>
-            <div className="text-3xl font-black text-slate-900 dark:text-white leading-none tabular-nums">
+            <div className={isIndustrialSkin ? "text-3xl font-semibold text-[#14110a] dark:text-[#f4f1ea] leading-none tabular-nums" : "text-3xl font-black text-slate-900 dark:text-white leading-none tabular-nums"}>
               {formatMoneyFull(totalBudget)}
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+            <p className={isIndustrialSkin ? "text-xs text-[#6e6757] dark:text-[#8a8578] font-normal" : "text-xs text-slate-500 dark:text-slate-400 font-medium"}>
               Celkový příjem od investora
             </p>
           </div>
         </div>
 
         {/* 2. Plánovaný Náklad */}
-        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-sm hover:shadow-md transition-all">
+        <div className={isIndustrialSkin ? "industrial-kpi-card p-6 relative overflow-hidden transition-all" : "bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-sm hover:shadow-md transition-all"}>
           <div className="absolute top-0 left-0 h-full w-1 bg-indigo-500" />
           <div className="flex flex-col gap-3 relative z-10">
-            <span className="text-xs uppercase tracking-[0.18em] text-indigo-600 dark:text-indigo-400 font-bold">
+            <span className={isIndustrialSkin ? "text-xs uppercase tracking-[0.14em] text-indigo-600 dark:text-indigo-400 font-semibold" : "text-xs uppercase tracking-[0.18em] text-indigo-600 dark:text-indigo-400 font-bold"}>
               Plán nákladů
             </span>
-            <div className="text-3xl font-black text-slate-900 dark:text-white leading-none tabular-nums">
+            <div className={isIndustrialSkin ? "text-3xl font-semibold text-[#14110a] dark:text-[#f4f1ea] leading-none tabular-nums" : "text-3xl font-black text-slate-900 dark:text-white leading-none tabular-nums"}>
               {totalPlannedCost > 0 ? formatMoneyFull(totalPlannedCost) : "-"}
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+            <p className={isIndustrialSkin ? "text-xs text-[#6e6757] dark:text-[#8a8578] font-normal" : "text-xs text-slate-500 dark:text-slate-400 font-medium"}>
               Interní cílový náklad stavby
             </p>
           </div>
         </div>
 
         {/* 3. Zasmluvněno */}
-        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-sm hover:shadow-md transition-all">
+        <div className={isIndustrialSkin ? "industrial-kpi-card p-6 relative overflow-hidden transition-all" : "bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-sm hover:shadow-md transition-all"}>
           <div className="absolute top-0 left-0 h-full w-1 bg-emerald-500" />
           <div className="flex flex-col gap-3 relative z-10">
-            <span className="text-xs uppercase tracking-[0.18em] text-emerald-600 dark:text-emerald-400 font-bold">
+            <span className={isIndustrialSkin ? "text-xs uppercase tracking-[0.14em] text-emerald-600 dark:text-emerald-400 font-semibold" : "text-xs uppercase tracking-[0.18em] text-emerald-600 dark:text-emerald-400 font-bold"}>
               Zasmluvněno
             </span>
-            <div className="text-3xl font-black text-emerald-600 dark:text-emerald-400 leading-none tabular-nums">
+            <div className={isIndustrialSkin ? "text-3xl font-semibold text-emerald-600 dark:text-emerald-400 leading-none tabular-nums" : "text-3xl font-black text-emerald-600 dark:text-emerald-400 leading-none tabular-nums"}>
               {formatMoneyFull(totalContractedCost)}
             </div>
             <p
-              className={`text-xs font-bold ${plannedBalance >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-500"}`}
+              className={`text-xs ${isIndustrialSkin ? "font-medium" : "font-bold"} ${plannedBalance >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-500"}`}
             >
               Rezerva: {plannedBalance >= 0 ? "+" : ""}
               {formatMoneyFull(plannedBalance)}
@@ -1093,32 +1190,29 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
         </div>
 
         {/* 4. Postup Zadávání */}
-        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-sm hover:shadow-md transition-all">
+        <div className={isIndustrialSkin ? "industrial-kpi-card p-6 relative overflow-hidden transition-all" : "bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-sm hover:shadow-md transition-all"}>
           <div className="absolute top-0 left-0 h-full w-1 bg-amber-500" />
           <div className="flex flex-col gap-3 relative z-10">
             <div className="flex items-center justify-between">
-              <span className="text-xs uppercase tracking-[0.18em] text-amber-600 dark:text-amber-400 font-bold">
+              <span className={isIndustrialSkin ? "text-xs uppercase tracking-[0.14em] text-amber-600 dark:text-amber-400 font-semibold" : "text-xs uppercase tracking-[0.18em] text-amber-600 dark:text-amber-400 font-bold"}>
                 Postup VŘ
               </span>
-              <span className="text-xs font-black text-amber-600 dark:text-amber-400">
-                {Math.round(
-                  (completedTasks / project.categories.length) * 100,
-                )}
-                %
+              <span className={isIndustrialSkin ? "text-xs font-semibold text-amber-600 dark:text-amber-400" : "text-xs font-black text-amber-600 dark:text-amber-400"}>
+                {progressPercent}%
               </span>
             </div>
-            <div className="text-3xl font-black text-slate-900 dark:text-white leading-none tabular-nums">
-              {completedTasks} / {project.categories.length}
+            <div className={isIndustrialSkin ? "text-3xl font-semibold text-[#14110a] dark:text-[#f4f1ea] leading-none tabular-nums" : "text-3xl font-black text-slate-900 dark:text-white leading-none tabular-nums"}>
+              {completedTasks} / {categoryCount}
             </div>
             <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
               <div
                 className="h-full bg-amber-500 rounded-full transition-all"
                 style={{
-                  width: `${Math.min(100, Math.round((completedTasks / Math.max(1, project.categories.length)) * 100))}%`,
+                  width: `${Math.min(100, progressPercent)}%`,
                 }}
               />
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+            <p className={isIndustrialSkin ? "text-xs text-[#6e6757] dark:text-[#8a8578] font-normal" : "text-xs text-slate-500 dark:text-slate-400 font-medium"}>
               Hotové subdodavatelské balíčky
             </p>
           </div>
@@ -1811,71 +1905,59 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
 
       {/* Demand Categories Overview Table */}
       {project.categories.length > 0 && (
-            <div data-help-id="overview-demand-table" className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-3xl mt-8 shadow-sm">
-              <div className="px-8 py-6 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between flex-wrap gap-4">
+            <div data-help-id="overview-demand-table" className={demandTableClass}>
+              <div className={demandHeaderClass}>
                 <div>
-                  <h3 className="text-lg font-black text-slate-900 dark:text-white leading-none mb-1">
+                  <h3 className={isIndustrialSkin ? "text-lg font-semibold text-[#14110a] dark:text-[#f4f1ea] leading-none mb-1" : "text-lg font-black text-slate-900 dark:text-white leading-none mb-1"}>
                     Přehled Poptávek
                   </h3>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                  <p className={isIndustrialSkin ? "text-[10px] text-[#9c9684] font-semibold uppercase tracking-[0.12em]" : "text-[10px] text-slate-500 font-bold uppercase tracking-widest"}>
                     Detailní rozpis balíčků
                   </p>
                 </div>
 
                 {/* Filter Buttons */}
-                <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-950/50 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800">
+                <div className={demandFilterBarClass}>
                   <button
                     onClick={() => setDemandFilter("all")}
-                    className={`px-4 py-2 text-[11px] font-black uppercase tracking-tighter rounded-xl transition-all ${
-                      demandFilter === "all"
-                        ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
-                        : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                    }`}
+                    data-active={demandFilter === "all" ? "true" : "false"}
+                    className={getDemandFilterButtonClass("all")}
                   >
                     Vše ({allCount})
                   </button>
                   <button
                     onClick={() => setDemandFilter("open")}
-                    className={`px-4 py-2 text-[11px] font-black uppercase tracking-tighter rounded-xl transition-all ${
-                      demandFilter === "open"
-                        ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/20"
-                        : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                    }`}
+                    data-active={demandFilter === "open" ? "true" : "false"}
+                    className={getDemandFilterButtonClass("open")}
                   >
                     Poptávané ({openCount})
                   </button>
                   <button
                     onClick={() => setDemandFilter("closed")}
-                    className={`px-4 py-2 text-[11px] font-black uppercase tracking-tighter rounded-xl transition-all ${
-                      demandFilter === "closed"
-                        ? "bg-teal-500/10 text-teal-600 dark:text-teal-400 ring-1 ring-teal-500/20"
-                        : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                    }`}
+                    data-active={demandFilter === "closed" ? "true" : "false"}
+                    className={getDemandFilterButtonClass("closed")}
                   >
                     Ukončené ({closedCount})
                   </button>
                   <button
                     onClick={() => setDemandFilter("sod")}
-                    className={`px-4 py-2 text-[11px] font-black uppercase tracking-tighter rounded-xl transition-all ${
-                      demandFilter === "sod"
-                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/20"
-                        : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                    }`}
+                    data-active={demandFilter === "sod" ? "true" : "false"}
+                    className={getDemandFilterButtonClass("sod")}
                   >
                     Zasmluvněné ({sodCount})
                   </button>
 
                   {/* Column Visibility Dropdown */}
                   <div className="relative group/columns">
-                    <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-xl border border-slate-200 dark:border-slate-800 transition-colors shadow-sm text-[11px] font-black uppercase tracking-tighter">
-                      <span className="material-symbols-outlined text-lg">
+                    <button className={columnButtonClass}>
+                      <span className={isIndustrialSkin ? "material-symbols-outlined text-[15px] leading-none" : "material-symbols-outlined text-lg"}>
                         view_column
                       </span>
                       Sloupce
                     </button>
 
-                    <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl p-3 opacity-0 invisible group-hover/columns:opacity-100 group-hover/columns:visible transition-all z-20">
-                      <div className="text-[10px] uppercase font-bold text-slate-400 mb-2 px-2">
+                    <div className={columnDropdownClass}>
+                      <div className={isIndustrialSkin ? "text-[10px] uppercase font-bold text-[#9c9684] mb-2 px-2 tracking-[0.12em]" : "text-[10px] uppercase font-bold text-slate-400 mb-2 px-2"}>
                         Zobrazit sloupce
                       </div>
                       <div className="space-y-1">
@@ -1889,7 +1971,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                         ] as const).map((col) => (
                           <label
                             key={col.id}
-                            className="flex items-center gap-3 p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
+                            className={columnLabelClass}
                           >
                             <input
                               type="checkbox"
@@ -1897,9 +1979,9 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                                 visibleColumns[col.id]
                               }
                               onChange={() => toggleColumn(col.id)}
-                              className="rounded text-primary focus:ring-primary"
+                              className={columnCheckboxClass}
                             />
-                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                            <span className={isIndustrialSkin ? "text-sm font-medium text-[#3a352a]" : "text-sm font-medium text-slate-700 dark:text-slate-300"}>
                               {col.label}
                             </span>
                           </label>

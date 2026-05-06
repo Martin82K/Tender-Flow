@@ -3,8 +3,12 @@ import { Sidebar } from '../Sidebar';
 import { ConfirmationModal } from '../ConfirmationModal';
 import { navigate } from '@/shared/routing/router';
 import { buildAppUrl } from '@/shared/routing/routeUtils';
+import { AccountMenuProvider } from '@/shared/ui/AccountMenuContext';
+import { UserAccountMenu } from '@/shared/ui/UserAccountMenu';
 import { Project, View, User } from '../../types';
 import platformAdapter from '../../services/platformAdapter';
+import { normalizeUiScale } from '@/hooks/useTheme';
+import type { ThemeMode, ThemeSkin } from '@/hooks/useTheme';
 
 interface MainLayoutProps {
     children: React.ReactNode;
@@ -33,6 +37,14 @@ interface MainLayoutProps {
 
     // Status
     user: User | null;
+    theme: ThemeMode;
+    skin: ThemeSkin;
+    onSetTheme: (theme: ThemeMode) => void;
+    onSetSkin: (skin: ThemeSkin) => void;
+    uiScale: number;
+    onSetUiScale: (scale: number) => void;
+    onResetUiScale: () => void;
+    onLogout: () => void | Promise<void>;
     isBackgroundLoading: boolean;
     backgroundWarning: string | null;
     onReloadData: (force: boolean) => void;
@@ -51,6 +63,14 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     onProjectSelect,
     activeProjectTab = 'overview',
     user,
+    theme,
+    skin,
+    onSetTheme,
+    onSetSkin,
+    uiScale,
+    onSetUiScale,
+    onResetUiScale,
+    onLogout,
     isBackgroundLoading,
     backgroundWarning,
     onReloadData,
@@ -78,8 +98,35 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         navigate(buildAppUrl(view));
     };
 
+    const accountMenu = (
+        <UserAccountMenu
+            user={user}
+            theme={theme}
+            skin={skin}
+            onSetTheme={onSetTheme}
+            onSetSkin={onSetSkin}
+            uiScale={uiScale}
+            onSetUiScale={onSetUiScale}
+            onResetUiScale={onResetUiScale}
+            onLogout={onLogout}
+        />
+    );
+
+    const normalizedUiScale = normalizeUiScale(uiScale);
+    const inverseUiScale = Number((100 / normalizedUiScale).toFixed(4));
+    const appShellStyle: React.CSSProperties = {
+        width: `${inverseUiScale}vw`,
+        height: `${inverseUiScale}dvh`,
+        transform: `scale(${normalizedUiScale})`,
+        transformOrigin: 'top left',
+    };
+
     return (
-        <div className="relative flex h-screen w-full flex-row overflow-hidden bg-background-light dark:bg-background-dark">
+        <div className="tf-app-viewport fixed inset-0 overflow-hidden bg-background-light dark:bg-background-dark">
+        <div
+            className="tf-app-shell relative flex flex-row overflow-hidden bg-background-light dark:bg-background-dark"
+            style={appShellStyle}
+        >
             <ConfirmationModal
                 isOpen={uiModal.isOpen}
                 title={uiModal.title}
@@ -99,75 +146,79 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                 onProjectSelect={onProjectSelect}
                 isOpen={isSidebarOpen}
                 onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+                skin={skin}
             />
-            <main
-                id="main-scroll-container" // Replaces mainScrollRef usage with ID or pass ref? Pass ref is better but ID is easier for decoupled components
-                className="flex-1 flex flex-col h-full min-h-0 overflow-y-auto overflow-x-hidden relative"
-            >
-                {/* Toggle Button for Mobile/Hidden Sidebar */}
+            <AccountMenuProvider accountMenu={accountMenu}>
+                <main
+                    id="main-scroll-container" // Replaces mainScrollRef usage with ID or pass ref? Pass ref is better but ID is easier for decoupled components
+                    className="tf-app-main flex-1 flex flex-col h-full min-h-0 overflow-y-auto overflow-x-hidden relative"
+                >
+                    {/* Toggle Button for Mobile/Hidden Sidebar */}
 
-                {(isBackgroundLoading || backgroundWarning) && (
-                    <div className="mx-4 mt-3 rounded-xl border border-slate-200/60 dark:border-slate-700/60 bg-white/80 dark:bg-slate-900/60 backdrop-blur px-4 py-3 flex items-start gap-3">
-                        {isBackgroundLoading ? (
-                            <span className="material-symbols-outlined animate-spin text-primary mt-0.5">progress_activity</span>
-                        ) : (
-                            <span className="material-symbols-outlined text-amber-500 mt-0.5">warning</span>
-                        )}
-                        <div className="min-w-0 flex-1">
-                            <div className="text-sm font-medium text-slate-900 dark:text-white">
-                                {isBackgroundLoading ? "Dotažuji data na pozadí…" : "Některá data se nepodařilo načíst"}
-                            </div>
-                            {backgroundWarning && (
-                                <div className="mt-1 text-xs text-slate-600 dark:text-slate-300 break-words">
-                                    {backgroundWarning}
+                    {(isBackgroundLoading || backgroundWarning) && (
+                        <div className="mx-4 mt-3 rounded-xl border border-slate-200/60 dark:border-slate-700/60 bg-white/80 dark:bg-slate-900/60 backdrop-blur px-4 py-3 flex items-start gap-3">
+                            {isBackgroundLoading ? (
+                                <span className="material-symbols-outlined animate-spin text-primary mt-0.5">progress_activity</span>
+                            ) : (
+                                <span className="material-symbols-outlined text-amber-500 mt-0.5">warning</span>
+                            )}
+                            <div className="min-w-0 flex-1">
+                                <div className="text-sm font-medium text-slate-900 dark:text-white">
+                                    {isBackgroundLoading ? "Dotažuji data na pozadí…" : "Některá data se nepodařilo načíst"}
                                 </div>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <button
-                                onClick={() => onReloadData(true)}
-                                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 text-white hover:bg-slate-800 dark:bg-white/15 dark:hover:bg-white/20 transition-colors"
-                            >
-                                Aktualizovat
-                            </button>
-                            {backgroundWarning && (
+                                {backgroundWarning && (
+                                    <div className="mt-1 text-xs text-slate-600 dark:text-slate-300 break-words">
+                                        {backgroundWarning}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="flex items-center gap-2">
                                 <button
-                                    onClick={onHideBackgroundWarning}
-                                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-200 hover:bg-slate-300 text-slate-900 dark:bg-white/10 dark:hover:bg-white/15 dark:text-white transition-colors"
+                                    onClick={() => onReloadData(true)}
+                                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 text-white hover:bg-slate-800 dark:bg-white/15 dark:hover:bg-white/20 transition-colors"
                                 >
-                                    Skrýt
+                                    Aktualizovat
                                 </button>
-                            )}
+                                {backgroundWarning && (
+                                    <button
+                                        onClick={onHideBackgroundWarning}
+                                        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-200 hover:bg-slate-300 text-slate-900 dark:bg-white/10 dark:hover:bg-white/15 dark:text-white transition-colors"
+                                    >
+                                        Skrýt
+                                    </button>
+                                )}
+                            </div>
                         </div>
-                    </div>
-                )}
+                    )}
 
-                <button
-                    onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                    className={`fixed top-3 left-3 z-40 flex items-center justify-center p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-sm transition-all hover:bg-slate-200 dark:hover:bg-slate-700 md:hidden ${isSidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
-                    title={isSidebarOpen ? "Schovat sidebar" : "Zobrazit sidebar"}
-                    aria-label={isSidebarOpen ? "Schovat sidebar" : "Zobrazit sidebar"}
-                >
-                    <span className="material-symbols-outlined text-[22px]">menu</span>
-                </button>
+                    <button
+                        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                        className={`fixed top-3 left-3 z-40 flex items-center justify-center p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-sm transition-all hover:bg-slate-200 dark:hover:bg-slate-700 md:hidden ${isSidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+                        title={isSidebarOpen ? "Schovat sidebar" : "Zobrazit sidebar"}
+                        aria-label={isSidebarOpen ? "Schovat sidebar" : "Zobrazit sidebar"}
+                    >
+                        <span className="material-symbols-outlined text-[22px]">menu</span>
+                    </button>
 
-                {/* Toggle Button for Desktop when Sidebar is hidden */}
-                <button
-                    onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                    className={`hidden md:flex fixed top-24 left-4 z-30 items-center justify-center p-1.5 rounded-lg bg-slate-800/80 text-white border border-slate-700/50 shadow-lg transition-all hover:bg-slate-700 ${isSidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
-                    title="Zobrazit sidebar"
-                >
-                    <span className="material-symbols-outlined text-[20px]">menu</span>
-                </button>
+                    {/* Toggle Button for Desktop when Sidebar is hidden */}
+                    <button
+                        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                        className={`hidden md:flex fixed top-24 left-4 z-30 items-center justify-center p-1.5 rounded-lg bg-slate-800/80 text-white border border-slate-700/50 shadow-lg transition-all hover:bg-slate-700 ${isSidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+                        title="Zobrazit sidebar"
+                    >
+                        <span className="material-symbols-outlined text-[20px]">menu</span>
+                    </button>
 
-                <Suspense fallback={
-                    <div className="flex items-center justify-center h-full">
-                        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
-                    </div>
-                }>
-                    {children}
-                </Suspense>
-            </main>
+                    <Suspense fallback={
+                        <div className="flex items-center justify-center h-full">
+                            <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
+                        </div>
+                    }>
+                        {children}
+                    </Suspense>
+                </main>
+            </AccountMenuProvider>
+        </div>
         </div>
     );
 };
