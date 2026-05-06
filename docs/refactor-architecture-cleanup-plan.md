@@ -87,6 +87,7 @@ Mít přesnou mapu zbývajícího dluhu, který už není zachycený jen pravidl
 - `shared/ui/projects/TenderPlan.tsx` — hotovo, implementace je ve `features/projects/ui/TenderPlan.tsx`, legacy export zůstává v `components/TenderPlan.tsx`
 - `shared/ui/projects/ProjectDocuments.tsx`
 - `shared/ui/overview/KPICard.tsx` — hotovo, implementace je ve `shared/ui/overview/KPICard.tsx`, legacy export zůstává v `components/overview/KPICard.tsx`
+- `shared/ui/overview/StatusCard.tsx` — hotovo, implementace je ve `shared/ui/overview/StatusCard.tsx`, legacy export zůstává v `components/overview/StatusCard.tsx`
 - `shared/ui/overview/*`
 
 ### Postup

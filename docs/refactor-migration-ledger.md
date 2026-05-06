@@ -172,6 +172,14 @@
     - `shared -> components`: `9 -> 8`,
     - `shared/ui` temporary shims: `9 -> 8`,
     - přechodové import vazby: `204 -> 203`
+- `shared/ui/overview/StatusCard.tsx`:
+  - obsahuje skutečnou implementaci status karty místo re-exportu z `components/overview`
+  - legacy `components/overview/StatusCard.tsx` zůstává jen compatibility shim pro staré importy
+  - `tests/architecture.boundaries.test.ts` hlídá, že se `shared/ui/overview/StatusCard.tsx` nevrátí mezi temporary shimy
+  - audit dopad proti stavu po KPICard řezu:
+    - `shared -> components`: `8 -> 7`,
+    - `shared/ui` temporary shims: `8 -> 7`,
+    - přechodové import vazby: `203 -> 202`
 
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
