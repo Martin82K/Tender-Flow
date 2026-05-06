@@ -313,6 +313,14 @@
   - přechodové import vazby: `168 -> 166`.
 - Bezpečnostní dopad: zachováno lokální zpracování XLSX ZIP archivu bez síťových volání, persistence nebo secrets; přidán test pro odstranění `sheetProtection` z reálného ExcelJS workbooku.
 
+### Feature API barrel cleanup
+- `features/projects/api/index.ts` přestal re-exportovat legacy `projectService` a mutation hooky.
+- `features/contacts/api/index.ts` přestal re-exportovat legacy contact mutation hooky; zatím zůstává prázdný kompatibilní module entrypoint.
+- Feature runtime API exporty (`pipelineApi`, tender plan, schedule, clone, contract protocol) zůstaly beze změny.
+- Očekávaný audit dopad proti stavu po shared Excel unlock řezu:
+  - přechodové import vazby: `166 -> 163`.
+- Bezpečnostní dopad: odstranění nepoužívaných re-exportů bez nové logiky, IO, persistence nebo externích volání.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`
