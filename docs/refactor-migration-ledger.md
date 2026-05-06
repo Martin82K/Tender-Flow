@@ -304,6 +304,15 @@
   - přechodové import vazby: `171 -> 168`.
 - Bezpečnostní dopad: zachováno lokální zpracování workbooku bez nových síťových volání, persistence nebo práce se secrets; přidány testy pro normalizaci kódů a zápis oddílů.
 
+### Shared Excel unlock zip helper
+- Excel unlock ZIP helper byl přesunut do:
+  - `shared/tools/excel/excelUnlockZip.ts`.
+- Legacy `utils/excelUnlockZip.ts` zůstává kompatibilní re-export.
+- `features/settings/ExcelUnlockerProSettings.tsx` a `features/settings/ToolsSettings.tsx` používají shared helper přímo.
+- Očekávaný audit dopad proti stavu po shared Excel indexer řezu:
+  - přechodové import vazby: `168 -> 166`.
+- Bezpečnostní dopad: zachováno lokální zpracování XLSX ZIP archivu bez síťových volání, persistence nebo secrets; přidán test pro odstranění `sheetProtection` z reálného ExcelJS workbooku.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`

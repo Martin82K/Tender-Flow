@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { unlockExcelZipWithStats } from '@/utils/excelUnlockZip';
+import { unlockExcelZipWithStats } from '@/shared/tools/excel/excelUnlockZip';
 import { useUI } from '../../context/UIContext';
 import { trackFeatureUsage } from '../../services/featureUsageService';
 
