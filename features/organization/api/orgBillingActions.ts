@@ -6,8 +6,8 @@
  */
 
 import type { SubscriptionTierId } from '@/config/subscriptionTiers';
-import { PRICING_CONFIG } from '@/services/billingService';
-import { paymentProviderService } from '@/services/paymentProviderService';
+import { PRICING_CONFIG } from '@infra/billing/billingService';
+import { paymentProviderService } from '@infra/billing/paymentProviderService';
 
 interface OrgCheckoutResponse {
   success: boolean;

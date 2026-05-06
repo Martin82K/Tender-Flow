@@ -529,6 +529,13 @@
   - přechodové import vazby: `75 -> 73`.
 - Bezpečnostní dopad: CSV sanitizace, PDF/Markdown generování a download/open flow zůstávají v původním export service; změna nemění obsah exportů ani práci se soubory.
 
+### Infra billing services boundary
+- Přidány `infra/billing/*` fasády pro billing, payment provider, subscription features a user subscription service.
+- Subscription billing actions, organization billing actions a subscription state API používají infra billing importy místo přímých importů legacy services.
+- Očekávaný audit dopad proti stavu po infra export service řezu:
+  - přechodové import vazby: `73 -> 67`.
+- Bezpečnostní dopad: Stripe/checkout payloady, org billing provider routing, tier/feature lookup a subscription mutation flow zůstávají v původních services; změna nepřidává nové redirect URL ani platební oprávnění.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`

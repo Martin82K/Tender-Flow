@@ -12,11 +12,11 @@ const subscriptionFeaturesServiceMock = vi.hoisted(() => ({
   getUserSubscriptionTier: vi.fn(),
 }));
 
-vi.mock("@/services/subscriptionFeaturesService", () => ({
+vi.mock("@infra/billing/subscriptionFeaturesService", () => ({
   subscriptionFeaturesService: subscriptionFeaturesServiceMock,
 }));
 
-vi.mock("@/services/userSubscriptionService", () => ({
+vi.mock("@infra/billing/userSubscriptionService", () => ({
   userSubscriptionService: {
     getSubscriptionStatus: vi.fn(),
     formatExpirationDate: vi.fn(),

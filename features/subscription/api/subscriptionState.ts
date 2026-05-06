@@ -1,5 +1,5 @@
-import { subscriptionFeaturesService } from "@/services/subscriptionFeaturesService";
-import { userSubscriptionService } from "@/services/userSubscriptionService";
+import { subscriptionFeaturesService } from "@infra/billing/subscriptionFeaturesService";
+import { userSubscriptionService } from "@infra/billing/userSubscriptionService";
 import type { FeatureAccessSnapshot, SubscriptionSnapshot } from "../model/types";
 import type { EffectiveTierResult } from "@/features/organization/model/types";
 import type {
