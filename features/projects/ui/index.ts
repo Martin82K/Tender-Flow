@@ -3,3 +3,4 @@ export { ProjectManager } from "../ProjectManager";
 export { ProjectOverview } from "../ProjectOverview";
 export { OverviewSection } from "./OverviewSection";
 export { ProjectSchedule } from "./ProjectSchedule";
+export { TenderPlan } from "./TenderPlan";

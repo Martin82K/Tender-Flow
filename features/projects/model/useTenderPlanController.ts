@@ -20,7 +20,7 @@ import {
   planTenderImport,
   TenderPlanViewMode,
 } from "./tenderPlanModel";
-import { importTenderPlanFromXLSX } from "@/services/exportService";
+import { importTenderPlanFromXLSX } from "@/features/projects/api/tenderPlanExportApi";
 
 interface ConfirmModalState {
   isOpen: boolean;

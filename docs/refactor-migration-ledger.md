@@ -65,6 +65,23 @@
   - zadne nove `features -> legacy services` kvuli presunu export API do `features/projects/api`.
 - Bezpecnostni dopad: runtime chovani exportu harmonogramu zustalo stejne; zmena nepridava nove externi integrace ani nepracuje se secrets.
 
+### TenderPlan shared shim removal
+- Implementace planu vyberovych rizeni presunuta:
+  - `components/TenderPlan.tsx` -> `features/projects/ui/TenderPlan.tsx`.
+- Feature-local import/export API doplneno:
+  - `features/projects/api/tenderPlanExportApi.ts`.
+- `features/projects/model/useTenderPlanController.ts` uz neimportuje import Excelu z legacy `services/exportService`.
+- Legacy compatibility shim zustal:
+  - `components/TenderPlan.tsx`.
+- Odstranen shared shim:
+  - `shared/ui/projects/TenderPlan.tsx`.
+- `features/projects/ProjectLayout.tsx` importuje TenderPlan primo z `features/projects/ui/TenderPlan`.
+- Ocekavany audit dopad proti stavu po ProjectSchedule rezu:
+  - `shared -> components`: `10 -> 9`,
+  - `shared/ui` temporary shims: `10 -> 9`,
+  - prechodove import vazby: `206 -> 204`.
+- Bezpecnostni dopad: Excel import/export zustava klientsky nad `xlsx`, bez novych externich volani a bez prace se secrets; feature UI pouziva sdilene modaly misto legacy `components`.
+
 ## 2026-02-18
 
 ### Auth/session
@@ -145,6 +162,16 @@
   - odstranění plánováno: `2026-04-30`
 - `components/Header.tsx`, `components/SubcontractorSelector.tsx`, `components/DeleteConfirmationModal.tsx`:
   - doplněn compatibility shim banner s removal date `2026-04-30`
+
+### Overview shared primitive hard-cut
+- `shared/ui/overview/KPICard.tsx`:
+  - obsahuje skutečnou implementaci KPI karty místo re-exportu z `components/overview`
+  - legacy `components/overview/KPICard.tsx` zůstává jen compatibility shim pro staré importy
+  - `tests/architecture.boundaries.test.ts` hlídá, že se `shared/ui/overview/KPICard.tsx` nevrátí mezi temporary shimy
+  - audit dopad proti stavu po TenderPlan řezu:
+    - `shared -> components`: `9 -> 8`,
+    - `shared/ui` temporary shims: `9 -> 8`,
+    - přechodové import vazby: `204 -> 203`
 
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:

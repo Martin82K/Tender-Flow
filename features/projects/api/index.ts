@@ -4,6 +4,7 @@ export * from "./projectCloneApi";
 export * from "./projectScheduleApi";
 export * from "./projectScheduleExportApi";
 export * from "./tenderPlanApi";
+export * from "./tenderPlanExportApi";
 export * from "./generateContractProtocol";
 export {
   useAddProjectMutation,

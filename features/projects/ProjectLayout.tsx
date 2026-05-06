@@ -4,7 +4,7 @@ import { NotificationBell } from "@features/notifications/ui/NotificationBell";
 import { HelpButton } from "@features/help";
 import { TaskCreateButton } from "@features/tasks";
 import { Pipeline } from "@/shared/ui/projects/Pipeline";
-import { TenderPlan } from "@/shared/ui/projects/TenderPlan";
+import { TenderPlan } from "@/features/projects/ui/TenderPlan";
 import { ProjectSchedule } from "@/features/projects/ui/ProjectSchedule";
 import {
   ProjectTab,
