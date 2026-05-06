@@ -1,9 +1,8 @@
 import { useMemo } from "react";
 import { useAllProjectDetailsQuery } from "@/hooks/queries/useProjectDetailsQuery";
-import { useProjectsQuery } from "@/hooks/queries/useProjectsQuery";
+import { useProjectsState } from "./useProjectsState";
 import type { Project, ProjectDetails } from "@/types";
 
-const EMPTY_PROJECTS: Project[] = [];
 const EMPTY_PROJECT_DETAILS: Record<string, ProjectDetails> = {};
 
 export interface ProjectPortfolioState {
@@ -14,8 +13,8 @@ export interface ProjectPortfolioState {
 }
 
 export const useProjectPortfolioState = (): ProjectPortfolioState => {
-  const projectsQuery = useProjectsQuery();
-  const projects = projectsQuery.data ?? EMPTY_PROJECTS;
+  const projectsState = useProjectsState();
+  const { projects } = projectsState;
   const detailsQuery = useAllProjectDetailsQuery(projects);
   const allProjectDetails = detailsQuery.data ?? EMPTY_PROJECT_DETAILS;
 
@@ -23,16 +22,16 @@ export const useProjectPortfolioState = (): ProjectPortfolioState => {
     () => ({
       projects,
       allProjectDetails,
-      isLoading: projectsQuery.isLoading || detailsQuery.isLoading,
-      isError: Boolean(projectsQuery.isError || detailsQuery.isError),
+      isLoading: projectsState.isLoading || detailsQuery.isLoading,
+      isError: projectsState.isError || Boolean(detailsQuery.isError),
     }),
     [
       allProjectDetails,
       detailsQuery.isError,
       detailsQuery.isLoading,
       projects,
-      projectsQuery.isError,
-      projectsQuery.isLoading,
+      projectsState.isError,
+      projectsState.isLoading,
     ],
   );
 };

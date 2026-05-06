@@ -348,6 +348,15 @@
   - přechodové import vazby: `161 -> 141`.
 - Bezpečnostní dopad: zachováno čtení přes existující React Query hooky; žádná nová mutace, síťová cesta, persistence, oprávnění ani práce se secrets.
 
+### Projects list state hook
+- Read-only seznam zakázek byl zúžen do:
+  - `features/projects/model/useProjectsState.ts`.
+- `features/projects/model/useProjectPortfolioState.ts` používá `useProjectsState` pro seznam a doplňuje jen detaily portfolia.
+- `features/tasks/ui/TaskFormModal.tsx` už neimportuje legacy `useProjectsQuery` a pro select zakázky používá jen list state bez načítání detailů.
+- Očekávaný audit dopad proti stavu po Command Center portfolio řezu:
+  - přechodové import vazby: `141 -> 140`.
+- Bezpečnostní dopad: čisté přesměrování čtení existujícího query výsledku bez nové mutace, externího volání, persistence, oprávnění nebo práce se secrets.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`
