@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import * as XLSX from "xlsx";
-import { fillDescriptions, IndexMap } from "@/utils/indexMatcher";
-import { fillOddily, FillOddilyResult } from "@/utils/fillOddily";
+import { fillDescriptions } from "@/shared/tools/excel/indexMatcher";
+import type { IndexMap } from "@/shared/tools/excel/indexMatcher";
+import { fillOddily } from "@/shared/tools/excel/fillOddily";
+import type { FillOddilyResult } from "@/shared/tools/excel/fillOddily";
 import {
   loadIndexEntries,
   addIndexEntry,

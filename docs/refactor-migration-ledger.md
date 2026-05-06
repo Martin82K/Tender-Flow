@@ -294,6 +294,16 @@
   - přechodové import vazby: `176 -> 171`.
 - Bezpečnostní dopad: zachována existující URL safety validace proti lokálním/private hostům a stejné path sanitizační helpery; žádné nové IO, persistence ani externí volání.
 
+### Shared Excel indexer helpers
+- Excel indexer helpery byly přesunuty do:
+  - `shared/tools/excel/indexMatcher.ts`,
+  - `shared/tools/excel/fillOddily.ts`.
+- Legacy `utils/indexMatcher.ts` a `utils/fillOddily.ts` zůstávají kompatibilní re-exporty.
+- `features/settings/ExcelIndexerSettings.tsx` a `features/settings/IndexMatcherSettings.tsx` používají shared helpery přímo.
+- Očekávaný audit dopad proti stavu po shared DocHub řezu:
+  - přechodové import vazby: `171 -> 168`.
+- Bezpečnostní dopad: zachováno lokální zpracování workbooku bez nových síťových volání, persistence nebo práce se secrets; přidány testy pro normalizaci kódů a zápis oddílů.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`
