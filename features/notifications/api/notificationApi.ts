@@ -1,5 +1,5 @@
 import { notificationService } from "@/services/notificationService";
-import { desktopNotificationAdapter } from "@/services/platformAdapter";
+import { desktopNotificationAdapter } from "@infra/platform/platformAdapter";
 import type { AppNotification, NotificationCategory, NotificationPreferences } from "../types";
 
 interface NotificationSubscriptionOptions {

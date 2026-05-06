@@ -1,7 +1,7 @@
 import { invokeAuthedFunction } from "@infra/functions/functionsClient";
 import { folderExists } from "@/services/fileSystemService";
 import { logIncident } from "@/services/incidentLogger";
-import platformAdapter from "@/services/platformAdapter";
+import platformAdapter from "@infra/platform/platformAdapter";
 import {
   getDocHubTenderLinks,
   getDocHubTenderLinksDesktop,
@@ -63,7 +63,7 @@ export const usePipelineDocHubActions = ({
     if (isDocHubEnabled && !isProbablyUrl(path)) {
       try {
         const { fileSystemAdapter, isDesktop } =
-          await import("@/services/platformAdapter");
+          await import("@infra/platform/platformAdapter");
         console.log("[DocHub] isDesktop:", isDesktop);
         if (isDesktop) {
           console.log(

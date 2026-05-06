@@ -11,7 +11,7 @@ const desktopNotificationAdapterMock = vi.hoisted(() => ({
 vi.mock("@/services/notificationService", () => ({
   notificationService: notificationServiceMock,
 }));
-vi.mock("@/services/platformAdapter", () => ({
+vi.mock("@infra/platform/platformAdapter", () => ({
   desktopNotificationAdapter: desktopNotificationAdapterMock,
 }));
 

@@ -1,5 +1,5 @@
 import { dbAdapter } from '@/services/dbAdapter';
-import { backupAdapter } from '@/services/platformAdapter';
+import { backupAdapter } from '@infra/platform/platformAdapter';
 import type { BackupFileEntry, BackupSettingsInfo } from '@/shared/types/desktop';
 import type { BackupManifest, ContactsBackupManifest, AnyBackupManifest, RestoreSummary, BackupHistoryEntry } from '../model/backupTypes';
 

@@ -15,7 +15,7 @@ import {
   buildEmailSignature,
 } from "@/shared/email/signature";
 import { processTemplate, renderTemplateHtml } from "@/shared/email/templateUtils";
-import platformAdapter from "@/services/platformAdapter";
+import platformAdapter from "@infra/platform/platformAdapter";
 import type { Bid, DemandCategory, ProjectDetails, User } from "@/types";
 import type { PipelineInquiryGenerationKind } from "./pipelineModel";
 import {

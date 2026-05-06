@@ -18,7 +18,7 @@ const backupAdapterMock = vi.hoisted(() => ({
 vi.mock("@/services/dbAdapter", () => ({
   dbAdapter: dbAdapterMock,
 }));
-vi.mock("@/services/platformAdapter", () => ({
+vi.mock("@infra/platform/platformAdapter", () => ({
   backupAdapter: backupAdapterMock,
 }));
 

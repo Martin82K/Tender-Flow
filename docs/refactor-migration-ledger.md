@@ -487,6 +487,13 @@
   - přechodové import vazby: `106 -> 101`.
 - Bezpečnostní dopad: auth token, timeouty, retry, idempotency key a incident logging zůstávají v původním klientu; změna jen přesouvá import hranici do `infra`.
 
+### Infra platform adapter boundary
+- Přidána `infra/platform/platformAdapter.ts` fasáda pro desktop/platform adaptér.
+- Auth API, notification API, backup local API, contacts shell akce, pipeline DocHub/communication flow a desktop settings používají infra platform import.
+- Očekávaný audit dopad proti stavu po infra functions client řezu:
+  - přechodové import vazby: `101 -> 91`.
+- Bezpečnostní dopad: IPC, `window.electronAPI` guardy, desktop permission flow, backup adapter i shell open flow zůstávají v původním adapteru; změna jen sjednocuje integrační hranici v `infra`.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`

@@ -4,7 +4,7 @@ import { insertBids } from "@/features/projects/api";
 import { getDemoData, saveDemoData } from "@/services/demoData";
 import { invokeAuthedFunction } from "@infra/functions/functionsClient";
 import { ensureStructure } from "@/services/fileSystemService";
-import { isDesktop } from "@/services/platformAdapter";
+import { isDesktop } from "@infra/platform/platformAdapter";
 import {
   buildHierarchyTree,
   ensureExtraHierarchy,
