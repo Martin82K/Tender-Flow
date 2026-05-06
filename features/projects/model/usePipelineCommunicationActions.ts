@@ -4,11 +4,7 @@ import {
   generateEmlContent,
 } from "@/services/inquiryService";
 import { organizationService } from "@features/organization/api";
-import {
-  exportToXLSX,
-  exportToMarkdown,
-  exportToPDF,
-} from "@/services/exportService";
+import { projectExportApi } from "@features/projects/api/projectExportApi";
 import {
   getTemplateById,
   getDefaultTemplate,
@@ -256,13 +252,13 @@ export const usePipelineCommunicationActions = ({
     try {
       switch (format) {
         case "xlsx":
-          exportToXLSX(activeCategory, categoryBids, projectDetails);
+          projectExportApi.exportToXLSX(activeCategory, categoryBids, projectDetails);
           break;
         case "markdown":
-          exportToMarkdown(activeCategory, categoryBids, projectDetails);
+          projectExportApi.exportToMarkdown(activeCategory, categoryBids, projectDetails);
           break;
         case "pdf":
-          exportToPDF(activeCategory, categoryBids, projectDetails);
+          projectExportApi.exportToPDF(activeCategory, categoryBids, projectDetails);
           break;
       }
       setIsExportMenuOpen(false);

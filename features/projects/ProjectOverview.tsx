@@ -15,7 +15,7 @@ import {
 import { formatMoney } from "@/shared/overview/overviewAnalytics";
 import { formatDecimal } from "@/shared/formatting/decimalFormatters";
 import { getOfferStatusMeta } from "@/shared/offers/offerStatus";
-import { exportSupplierAnalysisToPDF } from "@/services/exportService";
+import { projectExportApi } from "@features/projects/api/projectExportApi";
 import type { Project, ProjectDetails } from "@/types";
 import html2canvas from "html2canvas";
 import {
@@ -101,7 +101,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
 
     const exportWithChart = async () => {
       if (!chartRef.current) {
-        exportSupplierAnalysisToPDF(
+        projectExportApi.exportSupplierAnalysisToPDF(
           selectedSupplier.name,
           selectedSupplierSummary,
           selectedSupplierOffers,
@@ -116,7 +116,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
       });
       const dataUrl = canvas.toDataURL("image/png");
 
-      exportSupplierAnalysisToPDF(
+      projectExportApi.exportSupplierAnalysisToPDF(
         selectedSupplier.name,
         selectedSupplierSummary,
         selectedSupplierOffers,

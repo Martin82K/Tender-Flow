@@ -441,6 +441,13 @@
   - přechodové import vazby: `117 -> 116`.
 - Bezpečnostní dopad: předání vlastnictví dál používá stejnou organization service a stejné filtrování aktivních členů; změna nepřidává nové oprávnění, persistence ani práci se secrets.
 
+### Projects export API wrapper
+- Přidán `features/projects/api/projectExportApi.ts` jako project boundary pro export poptávek a supplier analysis PDF.
+- `features/projects/ProjectOverview.tsx` a `features/projects/model/usePipelineCommunicationActions.ts` používají project export API místo přímého importu `exportService`.
+- Očekávaný audit dopad proti stavu po ProjectManager organization API řezu:
+  - přechodové import vazby: `116 -> 115`.
+- Bezpečnostní dopad: export payloady, generování souborů a PDF/Excel implementace zůstávají ve stejné legacy service; změna nepřidává nové síťové volání, persistence ani práci se secrets.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`
