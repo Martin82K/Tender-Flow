@@ -11,4 +11,12 @@ export type {
   WhitelistedEmail,
 } from "@/services/userManagementService";
 export { emailService } from "@/services/emailService";
-export { getComplianceOverviewAdmin } from "./complianceAdminService";
+export {
+  getAppIncidentsAdmin,
+  getComplianceOverviewAdmin,
+  purgeOldAppIncidentsAdmin,
+} from "./complianceAdminService";
+export type {
+  IncidentAdminFilter,
+  IncidentAdminItem,
+} from "./complianceAdminService";

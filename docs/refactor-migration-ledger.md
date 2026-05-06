@@ -386,6 +386,13 @@
   - přechodové import vazby: `130 -> 129`.
 - Bezpečnostní dopad: zachována stejná Supabase service implementace a fails-closed subscription logika; změna pouze centralizuje volání bez nových oprávnění, persistence nebo práce se secrets.
 
+### Settings incident admin API wrappers
+- `features/settings/api/complianceAdminService.ts` exportuje wrappery pro incident admin list/purge flow.
+- `features/settings/IncidentLogsAdmin.tsx` používá settings API entrypoint místo přímého importu `incidentAdminService`.
+- Očekávaný audit dopad proti stavu po subscription features API řezu:
+  - přechodové import vazby: `129 -> 128`.
+- Bezpečnostní dopad: zachována stejná RPC service implementace včetně limitů purge okna; změna nepřidává nové volání, persistence ani práci se secrets.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`
