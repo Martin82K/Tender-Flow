@@ -6,13 +6,15 @@ import {
   getUserSortKey,
   isOrgAdminRole,
   isOrgOwnerRole,
-} from "../utils/organizationUtils";
+} from "@/shared/organization/organizationUtils";
+import { formatOrgRole as formatOrgRoleFromLegacy } from "../utils/organizationUtils";
 
 describe("formatOrgRole", () => {
   it("formats known roles", () => {
     expect(formatOrgRole("owner")).toBe("Vlastník");
     expect(formatOrgRole("admin")).toBe("Administrátor");
     expect(formatOrgRole("member")).toBe("Člen");
+    expect(formatOrgRoleFromLegacy("owner")).toBe("Vlastník");
   });
 
   it("handles unknown roles", () => {

@@ -266,6 +266,15 @@
   - přechodové import vazby: `181 -> 180`.
 - Bezpečnostní dopad: zachován existující whitelist bez rozšíření oprávnění; jde pouze o přesun klientské helper funkce bez nového IO, persistence nebo externích volání.
 
+### Shared organization role helpers
+- Helpery pro role, stav žádosti a label uživatele byly přesunuty do:
+  - `shared/organization/organizationUtils.ts`.
+- Legacy `utils/organizationUtils.ts` zůstává kompatibilní re-export.
+- `features/organization/ui/OrgMembersTab.tsx`, `features/settings/OrganizationSettings.tsx` a `features/settings/ProfileSettings.tsx` používají shared helpery přímo.
+- Očekávaný audit dopad proti stavu po shared admin access řezu:
+  - přechodové import vazby: `180 -> 177`.
+- Bezpečnostní dopad: zachované role/status mapování bez rozšíření oprávnění, nového IO, persistence nebo externích volání.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`

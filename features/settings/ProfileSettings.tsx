@@ -14,7 +14,7 @@ import { useAuth } from "../../context/AuthContext";
 import { BiometricSettings } from "./BiometricSettings";
 import { useElectronUpdater } from "@/hooks/useElectronUpdater";
 import { organizationService } from "../../services/organizationService";
-import { formatOrgRequestStatus } from "../../utils/organizationUtils";
+import { formatOrgRequestStatus } from "@/shared/organization/organizationUtils";
 import { userProfileService } from "../../services/userProfileService";
 import { buildEmailSignature } from "@/shared/email/signature";
 import type { UserEmailSignatureProfile } from "@/types";

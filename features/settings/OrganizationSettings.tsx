@@ -12,7 +12,7 @@ import {
   type OrganizationUnlockerTimeSavings,
 } from "../../services/organizationService";
 import { useUI } from "../../context/UIContext";
-import { formatOrgRole, getUserLabel, getUserSortKey, isOrgOwnerRole } from "../../utils/organizationUtils";
+import { formatOrgRole, getUserLabel, getUserSortKey, isOrgOwnerRole } from "@/shared/organization/organizationUtils";
 import { userManagementService } from "../../services/userManagementService";
 
 const TIME_SAVINGS_DAYS_BACK = 30;
