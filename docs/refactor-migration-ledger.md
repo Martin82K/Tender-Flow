@@ -36,6 +36,18 @@
   - `features/contacts/Contacts.tsx` (`1283` radku).
 - Bezpecnostni dopad: zmena je read-only audit bez runtime chovani; audit zamerne cte tracked nazvy root souboru pres `git ls-files` a nekopiruje ani nevypisuje obsah `.env*`.
 
+### Root hygiene archivace
+- Z korene repozitare presunuty historicke/root artefakty bez runtime referenci:
+  - `TAILWIND_V4_MIGRATION.md` -> `docs/tailwind-v4-migration.md`,
+  - `backup_before_split.patch` -> `archive/refactor/backup_before_split.patch`,
+  - `latest-win-downloaded.yml` -> `archive/release-artifacts/latest-win-downloaded.yml`.
+- `scripts/audit-architecture-debt.mjs` pri auditu tracked root souboru ignoruje indexove zaznamy, ktere uz v pracovnim stromu neexistuji; to drzi report spravne i behem rename/move rezu pred commitem.
+- Aktualni root hygiene snapshot:
+  - tracked root kandidati k presunu: `0`,
+  - tracked root kandidati k overeni: `3` (`dev-app-update.yml`, `metadata.json`, `server.js`),
+  - tracked citlive root soubory: `0`.
+- Bezpecnostni dopad: zadny presun `.env*`; historicky patch zustal zachovan v archivu beze zmen obsahu a release metadata byla jen presunuta mimo root.
+
 ## 2026-02-18
 
 ### Auth/session

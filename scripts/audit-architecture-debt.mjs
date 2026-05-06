@@ -121,7 +121,7 @@ const readTrackedFiles = () => {
     return execFileSync("git", ["ls-files"], { cwd: root, encoding: "utf8" })
       .split(/\r?\n/)
       .map((file) => file.trim())
-      .filter(Boolean);
+      .filter((file) => file && fs.existsSync(path.join(root, file)));
   } catch {
     return [];
   }

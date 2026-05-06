@@ -73,7 +73,7 @@ describe("Architecture Guardrails", () => {
     );
     expect(report.sharedUi.primitives.every((item) => item.file.startsWith("shared/ui/"))).toBe(true);
     expect(report.largeFiles.every((item) => item.lines > 800)).toBe(true);
-    expect(report.rootFiles.moveCandidates.some((item) => item.file === "TAILWIND_V4_MIGRATION.md")).toBe(true);
+    expect(report.rootFiles.moveCandidates).toHaveLength(0);
     expect(report.rootFiles.reviewCandidates.some((item) => item.file === "server.js")).toBe(true);
     expect(report.rootFiles.sensitiveTracked).toHaveLength(0);
   });

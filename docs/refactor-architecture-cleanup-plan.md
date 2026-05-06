@@ -246,9 +246,9 @@ Ignorovat nebo odstranit z pracovního stromu:
 
 ### Konkrétní kandidáti
 
-- `backup_before_split.patch`: přesun do `archive/` nebo odstranění po potvrzení, že už není potřeba.
-- `latest-win-downloaded.yml`: ověřit, zda je release artefakt; pravděpodobně nemá být tracked v kořeni.
-- `TAILWIND_V4_MIGRATION.md`: přesun do `docs/`.
+- `backup_before_split.patch`: hotovo, přesunuto do `archive/refactor/backup_before_split.patch`.
+- `latest-win-downloaded.yml`: hotovo, přesunuto do `archive/release-artifacts/latest-win-downloaded.yml`.
+- `TAILWIND_V4_MIGRATION.md`: hotovo, přesunuto do `docs/tailwind-v4-migration.md`.
 - `server.js`: zvážit přesun do `server/` až po ověření hosting konfigurací.
 - `App.tsx`, `index.tsx`, `index.css`, `types.ts`: ponechat do fáze, kdy se rozhodne o zavedení `src/` nebo rootless Vite layoutu. Podle současného `CLAUDE.md` projekt záměrně nepoužívá `src/`.
 
