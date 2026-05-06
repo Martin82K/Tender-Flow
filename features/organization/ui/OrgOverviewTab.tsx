@@ -8,9 +8,9 @@
 import React, { useEffect, useState } from 'react';
 import { getOrgSubscription, getOrgSeatUsage } from '../api/orgBillingService';
 import { getTierLabel, getTierBadgeClass } from '@/config/subscriptionTiers';
-import { organizationService } from '@/services/organizationService';
+import { organizationService } from '@features/organization/api';
 import type { OrgSubscriptionInfo, OrgSeatUsage, OrgSubTab } from '../model/types';
-import type { OrganizationUnlockerTimeSavings } from '@/services/organizationService';
+import type { OrganizationUnlockerTimeSavings } from '@features/organization/api';
 
 interface OrgOverviewTabProps {
   orgId: string;

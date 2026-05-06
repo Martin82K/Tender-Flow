@@ -371,6 +371,14 @@
   - přechodové import vazby: `139 -> 133`.
 - Bezpečnostní dopad: zachována stejná service implementace a oprávnění; změna pouze centralizuje import boundary bez nových volání, persistence nebo práce se secrets.
 
+### Organization service API imports
+- Přidán přechodový organization API entrypoint:
+  - `features/organization/api/index.ts`.
+- Organization dashboard a taby pro overview, members a branding používají feature API místo přímých importů z legacy `organizationService`.
+- Očekávaný audit dopad proti stavu po settings service API řezu:
+  - přechodové import vazby: `133 -> 130`.
+- Bezpečnostní dopad: zachována stejná organization service implementace, role checks a storage limity; změna nepřidává nové volání, persistence ani práci se secrets.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`
