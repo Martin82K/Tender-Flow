@@ -1,5 +1,41 @@
 # Refactor Migration Ledger
 
+## 2026-05-06
+
+### Architecture debt audit baseline
+- Novy audit skript: `scripts/audit-architecture-debt.mjs`.
+- Novy npm prikaz: `npm run audit:architecture`.
+- `tests/architecture.boundaries.test.ts` overuje JSON kontrakt auditu, klasifikaci shared UI shimu, root hygiene kategorie a nulovy pocet tracked citlivych root souboru.
+- Snapshot auditu:
+  - skenovano `491` code souboru,
+  - celkem `207` prechodovych import vazeb,
+  - `shared -> components`: `11`,
+  - `features -> legacy hooks`: `18`,
+  - `features -> legacy context`: `49`,
+  - `features -> legacy services`: `98`,
+  - `features -> legacy utils`: `31`,
+  - `shared/ui` temporary shims: `11`,
+  - `shared/ui` primitives: `42`,
+  - soubory nad `800` radku: `21`,
+  - tracked root kandidati k presunu: `3`,
+  - tracked root kandidati k overeni: `3`,
+  - tracked citlive root soubory: `0`.
+- Root hygiene kandidati k presunu:
+  - `TAILWIND_V4_MIGRATION.md`,
+  - `backup_before_split.patch`,
+  - `latest-win-downloaded.yml`.
+- Root hygiene kandidati k overeni pred presunem:
+  - `dev-app-update.yml`,
+  - `metadata.json`,
+  - `server.js`.
+- Nejvetsi soubory pro dalsi rezy:
+  - `features/settings/ComplianceAdmin.tsx` (`2444` radku),
+  - `components/ProjectOverviewNew.tsx` (`2265` radku),
+  - `features/settings/api/complianceAdminService.ts` (`1529` radku),
+  - `services/exportService.ts` (`1449` radku),
+  - `features/contacts/Contacts.tsx` (`1283` radku).
+- Bezpecnostni dopad: zmena je read-only audit bez runtime chovani; audit zamerne cte tracked nazvy root souboru pres `git ls-files` a nekopiruje ani nevypisuje obsah `.env*`.
+
 ## 2026-02-18
 
 ### Auth/session

@@ -40,6 +40,44 @@ describe("Architecture Guardrails", () => {
     }).not.toThrow();
   });
 
+  it("architecture debt audit reports the planned refactor categories", () => {
+    const output = execFileSync("node", ["scripts/audit-architecture-debt.mjs", "--json"], {
+      cwd: ROOT,
+      encoding: "utf8",
+      stdio: "pipe",
+    });
+    const report = JSON.parse(output) as {
+      dependencyFindings: Record<string, unknown[]>;
+      sharedUi: {
+        temporaryShims: Array<{ file: string; targets: string[] }>;
+        primitives: Array<{ file: string }>;
+      };
+      largeFiles: Array<{ file: string; lines: number }>;
+      rootFiles: {
+        moveCandidates: Array<{ file: string }>;
+        reviewCandidates: Array<{ file: string }>;
+        sensitiveTracked: string[];
+      };
+    };
+
+    expect(Object.keys(report.dependencyFindings).sort()).toEqual([
+      "features-to-legacy-context",
+      "features-to-legacy-hooks",
+      "features-to-legacy-services",
+      "features-to-legacy-utils",
+      "shared-to-components",
+    ]);
+    expect(report.sharedUi.temporaryShims.every((item) => item.file.startsWith("shared/ui/"))).toBe(true);
+    expect(report.sharedUi.temporaryShims.every((item) => item.targets.every((target) => target.startsWith("components/")))).toBe(
+      true,
+    );
+    expect(report.sharedUi.primitives.every((item) => item.file.startsWith("shared/ui/"))).toBe(true);
+    expect(report.largeFiles.every((item) => item.lines > 800)).toBe(true);
+    expect(report.rootFiles.moveCandidates.some((item) => item.file === "TAILWIND_V4_MIGRATION.md")).toBe(true);
+    expect(report.rootFiles.reviewCandidates.some((item) => item.file === "server.js")).toBe(true);
+    expect(report.rootFiles.sensitiveTracked).toHaveLength(0);
+  });
+
   it("has a single auth state listener in renderer + infra auth layer", () => {
     const files = AUTH_SCAN_ROOTS.flatMap((dir) => collectFiles(dir));
     const matches: string[] = [];
