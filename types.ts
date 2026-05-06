@@ -153,6 +153,19 @@ export interface Amendment {
 export interface InvestorFinancials {
   sodPrice: number; // Base contract price
   amendments: Amendment[];
+  invoices?: InvestorInvoice[];
+}
+
+export interface InvestorInvoice {
+  id: string;
+  invoiceNumber: string;
+  issueDate: string;
+  dueDate: string;
+  amount: number;
+  currency: string;
+  status: ContractInvoiceStatus;
+  paidAt?: string;
+  note?: string;
 }
 
 // Document link with label for multi-link document management

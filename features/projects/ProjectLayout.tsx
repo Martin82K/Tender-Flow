@@ -263,7 +263,11 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
           <ProjectDocuments project={project} onUpdate={onUpdateDetails} />
         )}
         {activeTab === "contracts" && (
-          <ContractsModule projectId={projectId} />
+          <ContractsModule
+            projectId={projectId}
+            projectDetails={project}
+            onUpdateDetails={onUpdateDetails}
+          />
         )}
       </div>
     </div>

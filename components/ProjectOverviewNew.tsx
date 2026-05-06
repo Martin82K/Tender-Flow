@@ -65,6 +65,9 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
     addAmendment,
     updateAmendment,
     removeAmendment,
+    addInvestorInvoice,
+    updateInvestorInvoice,
+    removeInvestorInvoice,
     addInternalAmendment,
     updateInternalAmendment,
     removeInternalAmendment,
@@ -103,6 +106,8 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
   const [compactInvestorSodInput, setCompactInvestorSodInput] = React.useState("");
   const [compactAmendmentPriceInputs, setCompactAmendmentPriceInputs] =
     React.useState<Record<string, string>>({});
+  const [compactInvestorInvoiceAmountInputs, setCompactInvestorInvoiceAmountInputs] =
+    React.useState<Record<string, string>>({});
   const [compactInternalPlannedCostInput, setCompactInternalPlannedCostInput] =
     React.useState("");
   const [compactInternalAmendmentPriceInputs, setCompactInternalAmendmentPriceInputs] =
@@ -113,6 +118,14 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
     (sum, amendment) => sum + (amendment.price || 0),
     0,
   );
+  const investorInvoices = investor.invoices || [];
+  const investorInvoicedTotal = investorInvoices.reduce(
+    (sum, invoice) => sum + (invoice.amount || 0),
+    0,
+  );
+  const investorPaidTotal = investorInvoices
+    .filter((invoice) => invoice.status === "paid")
+    .reduce((sum, invoice) => sum + (invoice.amount || 0), 0);
 
   React.useEffect(() => {
     if (!editingInvestor) return;
@@ -125,7 +138,15 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
         ]),
       ),
     );
-  }, [editingInvestor, investorForm.sodPrice, investorForm.amendments]);
+    setCompactInvestorInvoiceAmountInputs(
+      Object.fromEntries(
+        (investorForm.invoices || []).map((invoice) => [
+          invoice.id,
+          formatEditableNumber(invoice.amount || 0),
+        ]),
+      ),
+    );
+  }, [editingInvestor, investorForm.sodPrice, investorForm.amendments, investorForm.invoices]);
 
   React.useEffect(() => {
     if (!editingInternal) return;
@@ -346,10 +367,26 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                 {formatMoney(totalBudget)}
               </span>
             </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500 dark:text-slate-500 text-xs">
+                Fakturováno:
+              </span>
+              <span className="text-slate-900 dark:text-slate-200 font-bold text-xs">
+                {formatMoney(investorInvoicedTotal)}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500 dark:text-slate-500 text-xs">
+                Zaplaceno:
+              </span>
+              <span className="text-slate-900 dark:text-slate-200 font-bold text-xs">
+                {formatMoney(investorPaidTotal)}
+              </span>
+            </div>
           </div>
           {editingInvestor && createPortal(
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-fadeIn">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-5xl w-full max-h-[90vh] overflow-y-auto overflow-x-hidden shadow-2xl animate-fadeIn">
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">
                   Upravit finance investora
                 </h3>
@@ -462,6 +499,114 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                         add
                       </span>
                       Přidat dodatek
+                    </button>
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-500 font-bold mb-1.5 block">
+                      Fakturace na investora
+                    </label>
+                    <div className="space-y-2">
+                      {(investorForm.invoices || []).length > 0 && (
+                        <div className="hidden xl:grid xl:grid-cols-[minmax(150px,1.2fr)_145px_145px_minmax(135px,0.8fr)_140px_32px] gap-2 px-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                          <span>Číslo faktury</span>
+                          <span>Vystaveno</span>
+                          <span>Splatnost</span>
+                          <span className="text-right">Částka</span>
+                          <span>Stav</span>
+                          <span />
+                        </div>
+                      )}
+                      {(investorForm.invoices || []).map((invoice, idx) => (
+                        <div
+                          key={invoice.id}
+                          className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-[minmax(150px,1.2fr)_145px_145px_minmax(135px,0.8fr)_140px_32px] gap-2 items-center rounded-xl border border-slate-200 bg-slate-50/60 p-3 dark:border-slate-800 dark:bg-slate-950/30 xl:border-0 xl:bg-transparent xl:p-0 xl:dark:bg-transparent"
+                        >
+                          <input
+                            type="text"
+                            value={invoice.invoiceNumber}
+                            onChange={(e) =>
+                              updateInvestorInvoice(idx, "invoiceNumber", e.target.value)
+                            }
+                            className="w-full min-w-0 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white"
+                            placeholder="Číslo faktury"
+                          />
+                          <input
+                            type="date"
+                            value={invoice.issueDate}
+                            onChange={(e) =>
+                              updateInvestorInvoice(idx, "issueDate", e.target.value)
+                            }
+                            className="w-full min-w-0 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white"
+                          />
+                          <input
+                            type="date"
+                            value={invoice.dueDate}
+                            onChange={(e) =>
+                              updateInvestorInvoice(idx, "dueDate", e.target.value)
+                            }
+                            className="w-full min-w-0 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white"
+                          />
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={
+                              compactInvestorInvoiceAmountInputs[invoice.id] ??
+                              formatEditableNumber(invoice.amount || 0)
+                            }
+                            onChange={(e) => {
+                              setCompactInvestorInvoiceAmountInputs((prev) => ({
+                                ...prev,
+                                [invoice.id]: e.target.value,
+                              }));
+                              updateInvestorInvoice(
+                                idx,
+                                "amount",
+                                parseEditableNumber(e.target.value),
+                              );
+                            }}
+                            onBlur={() =>
+                              setCompactInvestorInvoiceAmountInputs((prev) => ({
+                                ...prev,
+                                [invoice.id]: formatEditableNumber(
+                                  (investorForm.invoices || [])[idx]?.amount || 0,
+                                ),
+                              }))
+                            }
+                            className="w-full min-w-0 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white text-right tabular-nums"
+                          />
+                          <select
+                            value={invoice.status}
+                            onChange={(e) =>
+                              updateInvestorInvoice(idx, "status", e.target.value)
+                            }
+                            className="w-full min-w-0 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white"
+                          >
+                            <option value="issued">Vystaveno</option>
+                            <option value="approved">Schváleno</option>
+                            <option value="paid">Zaplaceno</option>
+                            <option value="overdue">Po splatnosti</option>
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => removeInvestorInvoice(idx)}
+                            className="grid h-9 w-9 place-items-center justify-self-start rounded-lg text-red-500 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10 xl:justify-self-center"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">
+                              delete
+                            </span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={addInvestorInvoice}
+                      className="mt-2 text-xs flex items-center gap-1 text-primary hover:text-primary-dark transition-colors font-medium"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">
+                        add
+                      </span>
+                      Přidat fakturu investorovi
                     </button>
                   </div>
                   <div className="flex justify-end gap-3 mt-6">

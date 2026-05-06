@@ -34,6 +34,18 @@ const buildProject = (): ProjectDetails => ({
       { id: "a1", label: "Dodatek č.1", price: 6000000 },
       { id: "a2", label: "Dodatek č.2", price: 4000000 },
     ],
+    invoices: [
+      {
+        id: "ii1",
+        invoiceNumber: "FV-001",
+        issueDate: "2026-01-15",
+        dueDate: "2026-02-14",
+        amount: 1500000,
+        currency: "CZK",
+        status: "paid",
+        paidAt: "2026-02-10",
+      },
+    ],
   },
   plannedCost: 400000000,
 });
@@ -59,6 +71,7 @@ describe("ProjectOverviewNew compact editace", () => {
     expect(screen.getByText("Počet dodatků:")).toBeInTheDocument();
     expect(screen.getByText("Dodatky celkem:")).toBeInTheDocument();
     expect(screen.getAllByText("10 000 000 Kč").length).toBeGreaterThan(0);
+    expect(screen.getAllByDisplayValue("FV-001").length).toBeGreaterThan(0);
 
     const sodInput = screen.getByDisplayValue("410 000 000");
     fireEvent.change(sodInput, { target: { value: "420000000" } });
@@ -71,6 +84,18 @@ describe("ProjectOverviewNew compact editace", () => {
         amendments: [
           { id: "a1", label: "Dodatek č.1", price: 6000000 },
           { id: "a2", label: "Dodatek č.2", price: 4000000 },
+        ],
+        invoices: [
+          {
+            id: "ii1",
+            invoiceNumber: "FV-001",
+            issueDate: "2026-01-15",
+            dueDate: "2026-02-14",
+            amount: 1500000,
+            currency: "CZK",
+            status: "paid",
+            paidAt: "2026-02-10",
+          },
         ],
       },
     });

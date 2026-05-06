@@ -1,15 +1,23 @@
 import React, { useState } from 'react';
+import type { ProjectDetails } from '@/types';
 import { useContractsWithDetails } from './hooks/useContractsWithDetails';
 import { ContractsDashboard } from './dashboard/ContractsDashboard';
 import { ContractsListPage } from './list/ContractsListPage';
+import { InvestorBillingPage } from './investor/InvestorBillingPage';
 
-type SubView = 'dashboard' | 'smlouvy';
+type SubView = 'dashboard' | 'smlouvy' | 'investor';
 
 interface Props {
   projectId: string;
+  projectDetails?: ProjectDetails;
+  onUpdateDetails: (updates: Partial<ProjectDetails>) => void;
 }
 
-export const ContractsModule: React.FC<Props> = ({ projectId }) => {
+export const ContractsModule: React.FC<Props> = ({
+  projectId,
+  projectDetails,
+  onUpdateDetails,
+}) => {
   const [subView, setSubView] = useState<SubView>('smlouvy');
   const { contracts, loading, error, refresh } = useContractsWithDetails(projectId);
 
@@ -64,10 +72,26 @@ export const ContractsModule: React.FC<Props> = ({ projectId }) => {
         >
           📄 Smlouvy
         </button>
+        <button
+          type="button"
+          onClick={() => setSubView('investor')}
+          className={`px-3 py-1.5 text-xs rounded-lg flex items-center gap-2 font-semibold ${
+            subView === 'investor'
+              ? 'bg-primary/15 border border-primary text-primary'
+              : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 border border-transparent'
+          }`}
+        >
+          ◉ Investor
+        </button>
       </div>
 
       {subView === 'dashboard' ? (
-        <ContractsDashboard contracts={contracts} />
+        <ContractsDashboard contracts={contracts} projectDetails={projectDetails} />
+      ) : subView === 'investor' ? (
+        <InvestorBillingPage
+          projectDetails={projectDetails}
+          onUpdateDetails={onUpdateDetails}
+        />
       ) : (
         <ContractsListPage
           projectId={projectId}
