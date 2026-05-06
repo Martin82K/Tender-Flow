@@ -3,7 +3,7 @@ import {
   exportToMarkdown as exportToMarkdownLegacy,
   exportToPDF as exportToPDFLegacy,
   exportToXLSX as exportToXLSXLegacy,
-} from "@/services/exportService";
+} from "@infra/export/exportService";
 import type { Bid, DemandCategory, ProjectDetails } from "@/types";
 
 export const projectExportApi = {

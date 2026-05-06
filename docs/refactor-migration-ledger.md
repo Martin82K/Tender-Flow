@@ -522,6 +522,13 @@
   - přechodové import vazby: `81 -> 75`.
 - Bezpečnostní dopad: Supabase klient, RPC fallback, auth session token pro `rpcRest` i error payload handling zůstávají v původním adapteru; změna nepřidává nové dotazy ani RLS obcházení.
 
+### Infra export service boundary
+- Přidána `infra/export/exportService.ts` fasáda pro CSV/XLSX/PDF/Markdown exporty.
+- Project export API a Settings import/export UI používají infra export import místo přímého importu `services/exportService`.
+- Očekávaný audit dopad proti stavu po infra DB adapter řezu:
+  - přechodové import vazby: `75 -> 73`.
+- Bezpečnostní dopad: CSV sanitizace, PDF/Markdown generování a download/open flow zůstávají v původním export service; změna nemění obsah exportů ani práci se soubory.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`

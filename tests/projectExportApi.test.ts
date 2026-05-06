@@ -8,7 +8,7 @@ const exportServiceMock = vi.hoisted(() => ({
   exportToXLSX: vi.fn(),
 }));
 
-vi.mock("@/services/exportService", () => exportServiceMock);
+vi.mock("@infra/export/exportService", () => exportServiceMock);
 
 import { projectExportApi } from "../features/projects/api/projectExportApi";
 
