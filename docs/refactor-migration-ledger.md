@@ -494,6 +494,13 @@
   - přechodové import vazby: `101 -> 91`.
 - Bezpečnostní dopad: IPC, `window.electronAPI` guardy, desktop permission flow, backup adapter i shell open flow zůstávají v původním adapteru; změna jen sjednocuje integrační hranici v `infra`.
 
+### Infra file system boundary
+- Přidána `infra/files/fileSystemService.ts` fasáda pro lokální filesystem a DocHub storage operace.
+- Pipeline bid, category navigation, DocHub actions/fallback a subcontractor selection modely používají infra filesystem import.
+- Očekávaný audit dopad proti stavu po infra platform adapter řezu:
+  - přechodové import vazby: `91 -> 86`.
+- Bezpečnostní dopad: validace názvů složek, incident logging, desktop-only guardy a cloud fallback volání zůstávají v původním service; změna nemění filesystem oprávnění ani payloady.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`

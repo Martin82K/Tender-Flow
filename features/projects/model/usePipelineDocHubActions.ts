@@ -1,5 +1,5 @@
 import { invokeAuthedFunction } from "@infra/functions/functionsClient";
-import { folderExists } from "@/services/fileSystemService";
+import { folderExists } from "@infra/files/fileSystemService";
 import { logIncident } from "@/services/incidentLogger";
 import platformAdapter from "@infra/platform/platformAdapter";
 import {

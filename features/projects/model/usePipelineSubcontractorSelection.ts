@@ -3,7 +3,7 @@ import type { Bid, DemandCategory, DocHubStructureV1, Subcontractor } from "@/ty
 import { insertBids } from "@/features/projects/api";
 import { getDemoData, saveDemoData } from "@/services/demoData";
 import { invokeAuthedFunction } from "@infra/functions/functionsClient";
-import { ensureStructure } from "@/services/fileSystemService";
+import { ensureStructure } from "@infra/files/fileSystemService";
 import { isDesktop } from "@infra/platform/platformAdapter";
 import {
   buildHierarchyTree,

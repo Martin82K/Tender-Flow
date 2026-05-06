@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { invokeAuthedFunction } from "@infra/functions/functionsClient";
 import { collectFallbackSuppliers } from "@/shared/dochub/fallbackSelection";
-import { ensureStructure } from "@/services/fileSystemService";
+import { ensureStructure } from "@infra/files/fileSystemService";
 import { buildHierarchyTree, ensureExtraHierarchy } from "@/shared/dochub/docHub";
 import type { Bid, ProjectDetails } from "@/types";
 import { getSafeFallbackProjectId as getSafeFallbackProjectIdModel } from "./pipelineModel";
