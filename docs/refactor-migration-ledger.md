@@ -455,6 +455,13 @@
   - přechodové import vazby: `115 -> 114`.
 - Bezpečnostní dopad: čtení smluv dál používá stejnou contract service a React Query cache klíče se nemění; změna nepřidává nové volání, persistence ani práci se secrets.
 
+### Contract form mutation API wrapper
+- Přidán `features/projects/contracts/api/contractMutationsApi.ts` pro contract form mutace.
+- Amendment, invoice, contract edit a vendor rating dialogy používají contracts API místo přímého importu `contractService`.
+- Očekávaný audit dopad proti stavu po contract query API řezu:
+  - přechodové import vazby: `114 -> 111`.
+- Bezpečnostní dopad: create/update payloady zůstávají beze změny a mutace dál běží přes stejnou contract service; změna nepřidává nové oprávnění, persistence ani práci se secrets.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`

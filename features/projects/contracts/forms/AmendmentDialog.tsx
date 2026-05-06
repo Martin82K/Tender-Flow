@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Modal } from '@/shared/ui/Modal';
 import { NumericInput } from '@/shared/ui/NumericInput';
 import { MarkdownDocumentPanel } from '@/shared/contracts/MarkdownDocumentPanel';
-import { contractService } from '@/services/contractService';
+import { contractMutationsApi } from '../api';
 import type { ContractAmendment } from '@/types';
 
 interface Props {
@@ -35,7 +35,7 @@ export const AmendmentDialog: React.FC<Props> = ({ contractId, initial, onClose,
     try {
       const delta = form.deltaPrice ?? 0;
       if (isEditing && initial) {
-        await contractService.updateAmendment(initial.id, {
+        await contractMutationsApi.updateAmendment(initial.id, {
           signedAt: form.signedAt || undefined,
           effectiveFrom: form.effectiveFrom || undefined,
           deltaPrice: delta,
@@ -43,7 +43,7 @@ export const AmendmentDialog: React.FC<Props> = ({ contractId, initial, onClose,
           reason: form.reason || undefined,
         });
       } else {
-        await contractService.createAmendment({
+        await contractMutationsApi.createAmendment({
           contractId,
           signedAt: form.signedAt || undefined,
           effectiveFrom: form.effectiveFrom || undefined,
