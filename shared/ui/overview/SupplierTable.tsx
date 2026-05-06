@@ -1,6 +1,6 @@
 import React from 'react';
 import { Star, StarOff, Award, TrendingUp, Building2 } from 'lucide-react';
-import { formatDecimal } from '@/utils/formatters';
+import { formatDecimal } from '@/shared/formatting/decimalFormatters';
 
 interface SupplierRow {
   id: string;

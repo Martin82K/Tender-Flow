@@ -1,7 +1,7 @@
 import React from "react";
 import { createPortal } from "react-dom";
 import type { ProjectDetails } from "@/types";
-import { formatDecimal, parseDecimal } from "@/utils/formatters";
+import { formatDecimal, parseDecimal } from "@/shared/formatting/decimalFormatters";
 import {
   formatMoney,
   formatMoneyFull,

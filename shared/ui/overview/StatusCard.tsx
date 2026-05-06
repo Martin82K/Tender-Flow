@@ -1,6 +1,6 @@
 import React from 'react';
 import { Trophy, Hammer, Archive, TrendingUp, FileCheck, Users } from 'lucide-react';
-import { formatDecimal } from '@/utils/formatters';
+import { formatDecimal } from '@/shared/formatting/decimalFormatters';
 
 interface StatusCardProps {
   type: 'tender' | 'realization' | 'archived';

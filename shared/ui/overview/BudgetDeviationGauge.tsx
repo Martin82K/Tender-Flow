@@ -1,6 +1,6 @@
 import React from 'react';
 import { TrendingDown, TrendingUp, Minus, Target } from 'lucide-react';
-import { formatDecimal } from '@/utils/formatters';
+import { formatDecimal } from '@/shared/formatting/decimalFormatters';
 
 interface BudgetDeviationGaugeProps {
   avgDeviationPercent: number | null;

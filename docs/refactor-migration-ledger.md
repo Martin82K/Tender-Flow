@@ -207,6 +207,18 @@
   - přechodové import vazby zůstaly `198`, protože přesun do `features/projects/ui` zviditelnil existující formátovací závislost jako `features -> legacy utils`.
 - Bezpečnostní dopad: `ProjectOverviewNew` už neimportuje auth context přímo; `currentUserId` se předává z `AppContent` přes `ProjectLayout`. Změna nepřidává nové externí volání, persistence ani práci se secrets.
 
+### Shared decimal formatters
+- Decimal helpery přesunuty do shared vrstvy:
+  - `shared/formatting/decimalFormatters.ts`.
+- Legacy `utils/formatters.ts` zůstává kompatibilní entrypoint:
+  - re-exportuje `parseDecimal`, `formatDecimal`, `formatPercentValue`,
+  - `parseFormattedNumber` dál používá stejnou implementaci.
+- `features/projects/ui/ProjectOverviewNew.tsx` a `shared/ui/overview/*` používají shared formattery přímo.
+- Očekávaný audit dopad proti stavu po ProjectOverviewNew řezu:
+  - přechodové import vazby: `198 -> 197`,
+  - bez změny `shared/ui` temporary shimů.
+- Bezpečnostní dopad: čistý přesun deterministického parsování/formátování bez nového IO, externích volání nebo práce se secrets.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`

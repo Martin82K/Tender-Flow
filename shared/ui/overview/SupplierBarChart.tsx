@@ -1,6 +1,6 @@
 import React from 'react';
 import { Building2, Coins } from 'lucide-react';
-import { formatDecimal } from '@/utils/formatters';
+import { formatDecimal } from '@/shared/formatting/decimalFormatters';
 
 interface BarItem {
   label: string;
