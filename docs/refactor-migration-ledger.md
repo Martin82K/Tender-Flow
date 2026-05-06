@@ -448,6 +448,13 @@
   - přechodové import vazby: `116 -> 115`.
 - Bezpečnostní dopad: export payloady, generování souborů a PDF/Excel implementace zůstávají ve stejné legacy service; změna nepřidává nové síťové volání, persistence ani práci se secrets.
 
+### Contract query API wrapper
+- Přidán `features/projects/contracts/api/contractQueriesApi.ts` pro čtení contract dat.
+- Contract query hooky používají contracts API místo přímého importu `contractService`.
+- Očekávaný audit dopad proti stavu po projects export API řezu:
+  - přechodové import vazby: `115 -> 114`.
+- Bezpečnostní dopad: čtení smluv dál používá stejnou contract service a React Query cache klíče se nemění; změna nepřidává nové volání, persistence ani práci se secrets.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`
