@@ -1,6 +1,6 @@
 import React from 'react';
 import type { ContractWithDetails } from '@/types';
-import { contractService } from '@/services/contractService';
+import { contractMutationsApi } from '../../api';
 import { computeRetention } from '../../utils/retention';
 import { formatDate, formatMoney, formatPercent } from '../../utils/format';
 
@@ -36,7 +36,7 @@ export const RetentionSection: React.FC<Props> = ({ contract, onRefresh }) => {
 
   const release = async (kind: 'short' | 'long') => {
     try {
-      await contractService.releaseRetention(contract.id, kind);
+      await contractMutationsApi.releaseRetention(contract.id, kind);
       await onRefresh();
     } catch (err) {
       console.error('Failed to release retention', err);

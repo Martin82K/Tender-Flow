@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { ContractInvoice, ContractInvoiceStatus, ContractWithDetails } from '@/types';
-import { contractService } from '@/services/contractService';
+import { contractMutationsApi } from '../../api';
 import { InvoiceDialog } from '../../forms/InvoiceDialog';
 import { formatDate, formatMoney } from '../../utils/format';
 
@@ -40,13 +40,13 @@ export const InvoicesSection: React.FC<Props> = ({ contract, onRefresh }) => {
   };
 
   const handlePaid = async (id: string) => {
-    await contractService.markInvoicePaid(id);
+    await contractMutationsApi.markInvoicePaid(id);
     await onRefresh();
   };
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Smazat tuto fakturu?')) return;
-    await contractService.deleteInvoice(id);
+    await contractMutationsApi.deleteInvoice(id);
     await onRefresh();
   };
 

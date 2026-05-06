@@ -462,6 +462,12 @@
   - přechodové import vazby: `114 -> 111`.
 - Bezpečnostní dopad: create/update payloady zůstávají beze změny a mutace dál běží přes stejnou contract service; změna nepřidává nové oprávnění, persistence ani práci se secrets.
 
+### Contract workspace mutation API imports
+- Contract workspace sekce pro dodatky, faktury a pozastávky používají `contractMutationsApi`.
+- Očekávaný audit dopad proti stavu po contract form mutation API řezu:
+  - přechodové import vazby: `111 -> 108`.
+- Bezpečnostní dopad: delete/paid/release akce dál používají stejnou contract service; potvrzení mazání, refresh callbacky a error handling se nemění.
+
 ### Overview business logic extraction
 - `features/projects/ProjectOverview.tsx`:
   - analytické výpočty přesunuty do `features/projects/model/projectOverviewModel.ts`

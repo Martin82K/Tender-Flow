@@ -13,6 +13,12 @@ export const contractMutationsApi = {
     return contractService.updateAmendment(...args);
   },
 
+  deleteAmendment(
+    ...args: Parameters<typeof contractService.deleteAmendment>
+  ): ReturnType<typeof contractService.deleteAmendment> {
+    return contractService.deleteAmendment(...args);
+  },
+
   createContract(
     ...args: Parameters<typeof contractService.createContract>
   ): ReturnType<typeof contractService.createContract> {
@@ -35,5 +41,23 @@ export const contractMutationsApi = {
     ...args: Parameters<typeof contractService.updateInvoice>
   ): ReturnType<typeof contractService.updateInvoice> {
     return contractService.updateInvoice(...args);
+  },
+
+  deleteInvoice(
+    ...args: Parameters<typeof contractService.deleteInvoice>
+  ): ReturnType<typeof contractService.deleteInvoice> {
+    return contractService.deleteInvoice(...args);
+  },
+
+  markInvoicePaid(
+    ...args: Parameters<typeof contractService.markInvoicePaid>
+  ): ReturnType<typeof contractService.markInvoicePaid> {
+    return contractService.markInvoicePaid(...args);
+  },
+
+  releaseRetention(
+    ...args: Parameters<typeof contractService.releaseRetention>
+  ): ReturnType<typeof contractService.releaseRetention> {
+    return contractService.releaseRetention(...args);
   },
 };

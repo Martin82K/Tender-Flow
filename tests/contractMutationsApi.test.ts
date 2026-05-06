@@ -7,6 +7,10 @@ const contractServiceMock = vi.hoisted(() => ({
   updateContract: vi.fn(),
   createInvoice: vi.fn(),
   updateInvoice: vi.fn(),
+  deleteAmendment: vi.fn(),
+  deleteInvoice: vi.fn(),
+  markInvoicePaid: vi.fn(),
+  releaseRetention: vi.fn(),
 }));
 
 vi.mock("@/services/contractService", () => ({
@@ -27,6 +31,10 @@ describe("contractMutationsApi", () => {
     contractServiceMock.updateContract.mockResolvedValue({ id: "contract-1" });
     contractServiceMock.createInvoice.mockResolvedValue({ id: "invoice-1" });
     contractServiceMock.updateInvoice.mockResolvedValue({ id: "invoice-1" });
+    contractServiceMock.deleteAmendment.mockResolvedValue(undefined);
+    contractServiceMock.deleteInvoice.mockResolvedValue(undefined);
+    contractServiceMock.markInvoicePaid.mockResolvedValue(undefined);
+    contractServiceMock.releaseRetention.mockResolvedValue(undefined);
 
     await contractMutationsApi.createAmendment({ contractId: "contract-1" });
     await contractMutationsApi.updateAmendment("amendment-1", { reason: "Změna" });
@@ -34,6 +42,10 @@ describe("contractMutationsApi", () => {
     await contractMutationsApi.updateContract("contract-1", { title: "SOD 2" });
     await contractMutationsApi.createInvoice({ contractId: "contract-1", invoiceNumber: "FV-1", amount: 100 });
     await contractMutationsApi.updateInvoice("invoice-1", { amount: 200 });
+    await contractMutationsApi.deleteAmendment("amendment-1");
+    await contractMutationsApi.markInvoicePaid("invoice-1", "2026-05-06");
+    await contractMutationsApi.deleteInvoice("invoice-1");
+    await contractMutationsApi.releaseRetention("contract-1", "short");
 
     expect(contractServiceMock.createAmendment).toHaveBeenCalledWith({ contractId: "contract-1" });
     expect(contractServiceMock.updateAmendment).toHaveBeenCalledWith("amendment-1", { reason: "Změna" });
@@ -49,5 +61,9 @@ describe("contractMutationsApi", () => {
       amount: 100,
     });
     expect(contractServiceMock.updateInvoice).toHaveBeenCalledWith("invoice-1", { amount: 200 });
+    expect(contractServiceMock.deleteAmendment).toHaveBeenCalledWith("amendment-1");
+    expect(contractServiceMock.markInvoicePaid).toHaveBeenCalledWith("invoice-1", "2026-05-06");
+    expect(contractServiceMock.deleteInvoice).toHaveBeenCalledWith("invoice-1");
+    expect(contractServiceMock.releaseRetention).toHaveBeenCalledWith("contract-1", "short");
   });
 });
