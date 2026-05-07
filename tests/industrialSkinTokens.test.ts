@@ -17,6 +17,8 @@ const modalSource = readFileSync(join(process.cwd(), "shared/ui/Modal.tsx"), "ut
 const categoryFormModalSource = readFileSync(join(process.cwd(), "components/pipelineComponents/CategoryFormModal.tsx"), "utf8");
 const contractEditDialogSource = readFileSync(join(process.cwd(), "features/projects/contracts/forms/ContractEditDialog.tsx"), "utf8");
 const contractsDashboardSource = readFileSync(join(process.cwd(), "features/projects/contracts/dashboard/ContractsDashboard.tsx"), "utf8");
+const contractListPanelSource = readFileSync(join(process.cwd(), "features/projects/contracts/list/ContractListPanel.tsx"), "utf8");
+const contractWorkspaceSource = readFileSync(join(process.cwd(), "features/projects/contracts/workspace/ContractWorkspace.tsx"), "utf8");
 
 const cssBlockFor = (selector: string) => {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -84,6 +86,25 @@ describe("industrial skin tokens", () => {
     expect(css).toContain('html[data-skin="industrial"] [data-help-id="contracts-cashflow-bar"] > div:nth-child(4)');
     expect(css).toContain('html[data-skin="industrial"] [data-help-id="contracts-dashboard"] [class*="border-l-blue"]');
     expect(css).toContain("color-mix(in srgb, var(--tf-skin-orange) 78%, var(--tf-skin-surface) 22%)");
+  });
+
+  it("industrial přehled stavby používá nový krotší styl KPI z šablony", () => {
+    expect(projectOverviewSource).toContain("industrial-kpi-card");
+    expect(css).toContain('html[data-skin="industrial"] [data-help-id="overview-kpi-cards"] .industrial-kpi-card');
+    expect(css).toContain('html[data-skin="industrial"] [data-help-id="overview-kpi-cards"] .industrial-kpi-card > .absolute');
+    expect(css).toContain('font-size: clamp(1.75rem, 1.25rem + 0.9vw, 2.15rem) !important');
+    expect(css).toContain('html[data-skin="industrial"] [data-help-id="overview-kpi-cards"] .industrial-kpi-card [class*="text-emerald"]');
+    expect(css).toContain('html[data-skin="industrial"] [data-help-id="overview-kpi-cards"] .industrial-kpi-card [class*="bg-amber"]');
+  });
+
+  it("industrial smlouvy sjednocují list a detail mimo zelené/modré/fialové ostrůvky", () => {
+    expect(contractListPanelSource).toContain('data-help-id="contracts-list-rail"');
+    expect(contractListPanelSource).toContain("from-amber-500 to-green-500");
+    expect(contractWorkspaceSource).toContain('data-help-id="contract-detail-shell"');
+    expect(css).toContain('html[data-skin="industrial"] .tf-contracts-module [class*="text-green"]');
+    expect(css).toContain('html[data-skin="industrial"] .tf-contracts-module span[class*="bg-green"]');
+    expect(css).toContain('html[data-skin="industrial"] .tf-contracts-module [class*="bg-gradient-to-r"][class*="from-amber"][class*="to-green"]');
+    expect(css).toContain('html[data-skin="industrial"] [data-help-id="contract-detail-shell"] [id^="sec-"] [class*="bg-white"]');
   });
 
   it("plná industrial CTA drží teplou oranžovou akci bez zelené a cihlové výplně", () => {
