@@ -10,9 +10,12 @@ const projectOverviewSource = readFileSync(join(process.cwd(), "features/project
 const pipelineSource = readFileSync(join(process.cwd(), "components/Pipeline.tsx"), "utf8");
 const contactsSource = readFileSync(join(process.cwd(), "features/contacts/Contacts.tsx"), "utf8");
 const documentsSource = readFileSync(join(process.cwd(), "components/projectLayoutComponents/ProjectDocuments.tsx"), "utf8");
+const docsLinkSectionSource = readFileSync(join(process.cwd(), "components/projectLayoutComponents/documents/DocsLinkSection.tsx"), "utf8");
+const priceListsSectionSource = readFileSync(join(process.cwd(), "components/projectLayoutComponents/documents/PriceListsSection.tsx"), "utf8");
 const accountMenuSource = readFileSync(join(process.cwd(), "shared/ui/UserAccountMenu.tsx"), "utf8");
 const modalSource = readFileSync(join(process.cwd(), "shared/ui/Modal.tsx"), "utf8");
 const categoryFormModalSource = readFileSync(join(process.cwd(), "components/pipelineComponents/CategoryFormModal.tsx"), "utf8");
+const contractEditDialogSource = readFileSync(join(process.cwd(), "features/projects/contracts/forms/ContractEditDialog.tsx"), "utf8");
 
 const cssBlockFor = (selector: string) => {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -105,6 +108,32 @@ describe("industrial skin tokens", () => {
     expect(css).toContain('[data-help-id="contacts-cards"]');
     expect(css).toContain('html[data-skin="industrial"] .tf-documents-view');
     expect(css).toContain('[data-help-id="documents-sidebar"]');
+  });
+
+  it("industrial Dokumenty převádí zelené, modré a fialové bloky na jednotný papírový akcent", () => {
+    expect(documentsSource).toContain('data-help-id="documents-header-icon"');
+    expect(documentsSource).toContain('data-help-id="documents-tip"');
+    expect(documentsSource).toContain('data-help-id="dochub-setup-alert"');
+    expect(docsLinkSectionSource).toContain('data-help-id="documents-link-card"');
+    expect(docsLinkSectionSource).toContain('data-help-id="documents-save-link"');
+    expect(priceListsSectionSource).toContain('data-help-id="documents-price-list-card"');
+    expect(priceListsSectionSource).toContain('data-help-id="documents-dochub-quick-link"');
+    expect(css).toContain('[data-help-id="documents-link-card"]');
+    expect(css).toContain('[data-help-id="documents-dochub-quick-link"]');
+    expect(css).toContain('html[data-skin="industrial"] .tf-documents-view [class*="bg-emerald"]');
+    expect(css).toContain('html[data-skin="industrial"] .tf-documents-view [class*="bg-violet"]');
+    expect(css).toContain('html[data-skin="industrial"] .tf-documents-view button[class*="bg-emerald"]');
+    expect(css).toContain('html[data-skin="industrial"] .tf-documents-view button[class*="bg-violet"]');
+    expect(css).toContain("linear-gradient(180deg, #ffb052 0%, var(--tf-skin-orange) 100%)");
+  });
+
+  it("industrial sjednocuje pozastávkové bloky ve smluvních modálech", () => {
+    expect(contractEditDialogSource).toContain('data-help-id="contracts-retention-fields"');
+    expect(contractEditDialogSource).toContain('data-help-id="contracts-retention-short"');
+    expect(contractEditDialogSource).toContain('data-help-id="contracts-retention-long"');
+    expect(css).toContain('[data-help-id="contracts-retention-short"]');
+    expect(css).toContain('[data-help-id="contracts-retention-long"]');
+    expect(css).toContain('border-left-color: color-mix(in srgb, var(--tf-skin-orange) 72%, transparent) !important');
   });
 
   it("industrial uživatelské menu skinuje portálový panel a drží kompaktní velikost", () => {
