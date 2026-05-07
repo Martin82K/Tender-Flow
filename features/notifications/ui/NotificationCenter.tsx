@@ -172,6 +172,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   const panel = (
     <div
       ref={panelRef}
+      data-help-id="notification-center"
       style={
         anchor
           ? { position: "fixed", top: anchor.top, right: anchor.right }
@@ -180,7 +181,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       className="w-96 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl z-[100] animate-in fade-in zoom-in-95 duration-150"
     >
       {/* Header */}
-      <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
+      <div data-help-id="notification-center-header" className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
         <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
           Notifikace
         </span>
@@ -215,7 +216,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       </div>
 
       {/* Filter tabs */}
-      <div className="flex gap-1 px-3 py-2 border-b border-slate-100 dark:border-slate-800 overflow-x-auto">
+      <div data-help-id="notification-center-tabs" className="flex gap-1 px-3 py-2 border-b border-slate-100 dark:border-slate-800 overflow-x-auto">
         {FILTER_TABS.map((tab) => (
           <button
             key={tab}
@@ -232,7 +233,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       </div>
 
       {/* Content */}
-      <div className="max-h-96 overflow-y-auto">
+      <div data-help-id="notification-center-list" className="max-h-96 overflow-y-auto">
         {isLoading ? (
           <div className="p-6 text-center text-sm text-slate-500">
             <span className="material-symbols-outlined animate-spin text-[20px]">progress_activity</span>
@@ -249,7 +250,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
         ) : (
           (Object.entries(grouped) as [string, AppNotification[]][]).map(([label, items]) => (
             <div key={label}>
-              <div className="px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800/50">
+              <div data-help-id="notification-date-group" className="px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800/50">
                 {label}
               </div>
               {items.map((notification) => (

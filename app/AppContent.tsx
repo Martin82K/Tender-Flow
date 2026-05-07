@@ -389,6 +389,7 @@ export const AppContent: React.FC = () => {
         return (
           <ProjectManager
             projects={state.projects}
+            skin={skin}
             onAddProject={actions.handleAddProject}
             onDeleteProject={actions.handleDeleteProject}
             onCloneTenderToRealization={async (projectId) => {
@@ -412,6 +413,7 @@ export const AppContent: React.FC = () => {
             <ProjectOverview
               projects={state.projects}
               projectDetails={state.allProjectDetails}
+              skin={skin}
             />
           </RequireFeature>
         );

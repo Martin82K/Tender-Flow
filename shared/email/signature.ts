@@ -100,6 +100,7 @@ export const SIGNATURE_FONT_OPTIONS = [
   { value: "Tahoma, Geneva, Verdana, sans-serif", label: "Tahoma" },
   { value: "'Trebuchet MS', 'Lucida Grande', sans-serif", label: "Trebuchet MS" },
   { value: "Georgia, 'Times New Roman', Times, serif", label: "Georgia" },
+  { value: "'Instrument Serif', Georgia, 'Times New Roman', serif", label: "Instrument Serif" },
   { value: "'Times New Roman', Times, serif", label: "Times New Roman" },
   { value: "'Courier New', Courier, monospace", label: "Courier New" },
   { value: "Calibri, 'Segoe UI', sans-serif", label: "Calibri" },

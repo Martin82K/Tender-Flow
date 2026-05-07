@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useAccountMenu } from "@/shared/ui/AccountMenuContext";
 import { HeaderGlobalSearch } from "@/shared/ui/GlobalSearch";
+import { renderIndustrialProjectTitle } from "@/shared/ui/brandedTitle";
 import type { ThemeSkin } from "@/hooks/useTheme";
 
 interface HeaderProps {
@@ -95,8 +96,8 @@ export const Header: React.FC<HeaderProps> = ({
 
   const titleBlock = (
     <div className="flex min-w-0 flex-col gap-0.5">
-      <h1 className={titleClass}>
-        {title}
+      <h1 className={titleClass} aria-label={title}>
+        {renderIndustrialProjectTitle(title, isIndustrialSkin)}
       </h1>
       {subtitle && (
         <p className={subtitleClass}>

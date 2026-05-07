@@ -2,6 +2,7 @@ import React from "react";
 import { createPortal } from "react-dom";
 import type { ProjectDetails } from "@/types";
 import type { ThemeSkin } from "@/hooks/useTheme";
+import { renderIndustrialProjectTitle } from "@/shared/ui/brandedTitle";
 import { formatDecimal, parseDecimal } from "@/shared/formatting/decimalFormatters";
 import {
   formatMoney,
@@ -116,11 +117,6 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
   const [compactInternalAmendmentPriceInputs, setCompactInternalAmendmentPriceInputs] =
     React.useState<Record<string, string>>({});
   const isIndustrialSkin = skin === "industrial";
-
-  const handleCopyShareUrl = React.useCallback(() => {
-    const shareUrl = `${window.location.origin}${window.location.pathname}`;
-    void navigator.clipboard?.writeText(shareUrl).catch(() => undefined);
-  }, []);
 
   const getDemandFilterButtonClass = (active: boolean) =>
     isIndustrialSkin
@@ -1078,20 +1074,20 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
 
   return (
     <div className="tf-project-overview flex flex-col gap-8 p-4 md:p-8 w-full bg-slate-50 dark:bg-slate-950 animate-fadeIn">
-      {isIndustrialSkin ? (
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={handleCopyShareUrl}
-            className="industrial-share-button inline-flex items-center gap-2 rounded-lg border border-[#d8c8aa] bg-[#fffaf1]/85 px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-[#2d261c] shadow-sm transition-colors hover:border-[#ff9b3d] hover:text-[#b03a05] dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100"
-          >
-            <span className="material-symbols-outlined text-[18px]">
-              ios_share
-            </span>
-            Sdílet stavbu
-          </button>
+      <div
+        data-help-id="overview-section-heading"
+        className={isIndustrialSkin ? "industrial-section-heading" : "flex flex-col gap-1"}
+      >
+        <div className={isIndustrialSkin ? "industrial-section-kicker" : "text-xs font-black uppercase tracking-[0.18em] text-primary"}>
+          Přehled
         </div>
-      ) : null}
+        <h2
+          className={isIndustrialSkin ? "industrial-section-title" : "text-2xl font-black text-slate-900 dark:text-white"}
+          aria-label={project.title}
+        >
+          {renderIndustrialProjectTitle(project.title, isIndustrialSkin)}
+        </h2>
+      </div>
 
       {/* Top Row: 4 KPI Cards */}
       <div data-help-id="overview-kpi-cards" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

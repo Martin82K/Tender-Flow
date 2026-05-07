@@ -189,7 +189,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
                 : "rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white font-black"
               }`}
           >
-            <span className="material-symbols-outlined text-[18px] opacity-70">{tab.icon}</span>
+            <span className={`material-symbols-outlined opacity-70 ${isIndustrialSkin ? "text-[15px]" : "text-[18px]"}`}>{tab.icon}</span>
             {tab.label}
           </button>
         ))}

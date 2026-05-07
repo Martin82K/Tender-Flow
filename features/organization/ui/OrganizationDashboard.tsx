@@ -85,7 +85,7 @@ export const OrganizationDashboard: React.FC<OrganizationDashboardProps> = ({
   }
 
   return (
-    <div className="animate-fadeIn">
+    <div data-help-id="settings-organization-workspace" className="animate-fadeIn">
       {/* Org selector (if user is in multiple orgs) */}
       {organizations.length > 1 && (
         <div className="mb-6">
@@ -105,7 +105,7 @@ export const OrganizationDashboard: React.FC<OrganizationDashboardProps> = ({
 
       {/* Sub-tab navigation */}
       <div className="flex flex-col md:flex-row gap-8">
-        <aside className="w-full md:w-64 flex-shrink-0">
+        <aside data-help-id="settings-sidebar" className="w-full md:w-64 flex-shrink-0">
           <nav className="flex flex-col gap-2">
             {SUB_TABS.map(tab => (
               <button

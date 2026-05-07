@@ -13,6 +13,7 @@ import { DeleteConfirmationModal } from '@/shared/ui/DeleteConfirmationModal';
 import { AlertModal } from '@/shared/ui/AlertModal';
 import { ConfirmationModal } from '@/shared/ui/ConfirmationModal';
 import { useFeatures } from '@/context/FeatureContext';
+import type { ThemeSkin } from '@/hooks/useTheme';
 
 interface ProjectManagerProps {
     projects: Project[];
@@ -20,6 +21,7 @@ interface ProjectManagerProps {
     onDeleteProject: (id: string) => void;
     onCloneTenderToRealization: (id: string) => Promise<{ projectId: string }>;
     onArchiveProject: (id: string) => void;
+    skin?: ThemeSkin;
 }
 
 // Collapsible Archive Section Component
@@ -33,7 +35,7 @@ const ArchiveSection: React.FC<{
     const [isExpanded, setIsExpanded] = useState(false);
 
     return (
-        <section className="bg-white dark:bg-gradient-to-br dark:from-slate-900/50 dark:to-slate-950/50 backdrop-blur-xl border border-slate-200 dark:border-slate-700/30 rounded-2xl shadow-xl overflow-hidden">
+        <section data-help-id="pm-archive-section" className="bg-white dark:bg-gradient-to-br dark:from-slate-900/50 dark:to-slate-950/50 backdrop-blur-xl border border-slate-200 dark:border-slate-700/30 rounded-2xl shadow-xl overflow-hidden">
             {/* Collapsible Header */}
             <button
                 onClick={() => setIsExpanded(!isExpanded)}
@@ -95,12 +97,19 @@ const ArchiveSection: React.FC<{
     );
 };
 
+const formatSharedWithLabel = (sharedWith: string[]): string => {
+    if (sharedWith.length <= 2) return sharedWith.join(', ');
+
+    return `${sharedWith.slice(0, 2).join(', ')} +${sharedWith.length - 2}`;
+};
+
 export const ProjectManager: React.FC<ProjectManagerProps> = ({
     projects,
     onAddProject,
     onDeleteProject,
     onCloneTenderToRealization,
-    onArchiveProject
+    onArchiveProject,
+    skin = 'classic'
 }) => {
     const { user } = useAuth();
     const queryClient = useQueryClient();
@@ -597,8 +606,8 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
     };
 
     return (
-        <div className="flex flex-col h-full bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen overflow-y-auto">
-            <Header title="Správa Staveb" subtitle="Vytváření, archivace a sdílení projektů" helpSlot={<HelpButton />} notificationSlot={<NotificationBell />} />
+        <div className="tf-project-manager-view flex flex-col h-full bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen overflow-y-auto">
+            <Header title="Správa Staveb" subtitle="Vytváření, archivace a sdílení projektů" helpSlot={<HelpButton />} notificationSlot={<NotificationBell />} skin={skin} />
 
             <div className="p-6 lg:p-10 max-w-5xl mx-auto w-full pb-20">
 
@@ -695,7 +704,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                         {project.status === 'realization' ? 'R' : project.status === 'tender' ? 'S' : 'A'}
                                     </div>
                                     <div>
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex flex-wrap items-center gap-2">
                                             <h4 className="font-bold text-slate-900 dark:text-white text-sm">{project.name}</h4>
                                             {/* Ownership Badges */}
                                             {project.ownerId && project.ownerId !== user?.id && (
@@ -710,13 +719,15 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                             )}
                                             {/* Shared WITH Badge (For Owners) */}
                                             {project.ownerId === user?.id && project.sharedWith && project.sharedWith.length > 0 && (
-                                                <div
-                                                    className="bg-violet-500 dark:bg-violet-500/20 text-white dark:text-violet-400 text-[10px] px-2 py-0.5 rounded-lg border border-violet-600 dark:border-violet-500/30 hover:bg-violet-600 dark:hover:bg-violet-500/30 transition-colors cursor-pointer max-w-[200px] truncate"
+                                                <button
+                                                    type="button"
+                                                    data-help-id="pm-shared-with-badge"
+                                                    className="max-w-full sm:max-w-[32rem] truncate rounded-lg border border-blue-300 bg-blue-50 px-2 py-0.5 text-left text-[10px] font-semibold text-blue-900 transition-colors hover:bg-blue-100 dark:border-blue-500/30 dark:bg-blue-500/15 dark:text-blue-100 dark:hover:bg-blue-500/25"
                                                     onClick={(e) => { e.stopPropagation(); openShareModal(project.id); }}
                                                     title={`Sdíleno s: ${project.sharedWith.join(', ')}`}
                                                 >
-                                                    Sdíleno s: {project.sharedWith.join(', ')}
-                                                </div>
+                                                    Sdíleno s: {formatSharedWithLabel(project.sharedWith)}
+                                                </button>
                                             )}
                                         </div>
                                         <p className="text-xs text-slate-500">{project.location} • {
@@ -814,9 +825,9 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
 
             {/* Edit Modal */}
             {editingProject && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-gradient-to-br dark:from-slate-800 dark:to-slate-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 dark:border-slate-700/50">
-                        <div className="p-4 border-b border-slate-200 dark:border-slate-700/50 flex justify-between items-center">
+                <div data-help-id="pm-edit-modal" className="tf-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+                    <div className="tf-modal-panel bg-white dark:bg-gradient-to-br dark:from-slate-800 dark:to-slate-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 dark:border-slate-700/50">
+                        <div className="tf-modal-header p-4 border-b border-slate-200 dark:border-slate-700/50 flex justify-between items-center">
                             <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 <span className="material-symbols-outlined text-amber-400">edit</span>
                                 Upravit projekt
@@ -856,7 +867,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                     <option value="realization">Realizace (Výstavba)</option>
                                 </select>
                             </div>
-                            <div className="flex justify-end gap-3 pt-2">
+                            <div className="tf-modal-footer flex justify-end gap-3 pt-2">
                                 <button
                                     type="button"
                                     onClick={closeEditModal}
@@ -880,9 +891,9 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
 
             {/* Sharing Modal */}
             {sharingProjectId && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-gradient-to-br dark:from-slate-800 dark:to-slate-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 dark:border-slate-700/50">
-                        <div className="p-4 border-b border-slate-200 dark:border-slate-700/50 flex justify-between items-center">
+                <div data-help-id="pm-share-modal" className="tf-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+                    <div className="tf-modal-panel bg-white dark:bg-gradient-to-br dark:from-slate-800 dark:to-slate-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 dark:border-slate-700/50">
+                        <div className="tf-modal-header p-4 border-b border-slate-200 dark:border-slate-700/50 flex justify-between items-center">
                             <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 <span className="material-symbols-outlined text-blue-400">share</span>
                                 Sdílení projektu
@@ -980,9 +991,9 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
 
             {/* Transfer Ownership Modal */}
             {transferTarget && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-gradient-to-br dark:from-slate-800 dark:to-slate-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 dark:border-slate-700/50">
-                        <div className="p-4 border-b border-slate-200 dark:border-slate-700/50 flex justify-between items-center">
+                <div data-help-id="pm-transfer-modal" className="tf-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+                    <div className="tf-modal-panel bg-white dark:bg-gradient-to-br dark:from-slate-800 dark:to-slate-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 dark:border-slate-700/50">
+                        <div className="tf-modal-header p-4 border-b border-slate-200 dark:border-slate-700/50 flex justify-between items-center">
                             <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 <span className="material-symbols-outlined text-violet-400">swap_horiz</span>
                                 Předat vlastnictví
@@ -1048,7 +1059,7 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                 </div>
                             )}
 
-                            <div className="flex justify-end gap-3 pt-2">
+                            <div className="tf-modal-footer flex justify-end gap-3 pt-2">
                                 <button
                                     type="button"
                                     onClick={closeTransferModal}

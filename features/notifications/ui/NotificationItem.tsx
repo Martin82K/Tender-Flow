@@ -48,6 +48,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
 
   return (
     <div
+      data-help-id="notification-item"
       className={`group flex items-start gap-3 px-4 py-3 border-b border-slate-100 dark:border-slate-800 transition-colors ${
         notification.action_url ? "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50" : ""
       } ${isUnread ? "bg-primary/5" : ""}`}

@@ -263,6 +263,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       return (
         <details key={item.id} className="group" open>
           <summary
+            data-help-id="sidebar-nav-group-summary"
+            data-active={currentView === "project" ? "true" : "false"}
             className={`flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-lg transition-all cursor-pointer list-none ${
               currentView === "project"
                 ? activeNavClass
@@ -287,6 +289,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="flex flex-col mt-1 ml-2 gap-1">
             {/* Tlačítko Nová stavba */}
             <button
+              data-help-id="sidebar-new-project"
               onClick={() => {
                 onViewChange("project-management");
                 closeMobileMenu();
@@ -393,12 +396,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         return (
                           <button
                             key={tab.id}
+                            data-help-id="project-sidebar-tab"
                             onClick={(e) => {
                               e.stopPropagation();
                               onProjectSelect(project.id, tab.id);
                               closeMobileMenu();
                             }}
-                            className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs transition-colors ${
+                            className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-colors ${
                               isTabActiveReal
                                 ? isIndustrialSkin
                                   ? "text-[#b03a05] border-l-2 border-[#ff8a33] bg-transparent rounded-none font-semibold"
@@ -408,7 +412,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                   : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/30"
                             }`}
                           >
-                            <span className={`material-symbols-outlined shrink-0 leading-none ${isIndustrialSkin ? "text-[14px] w-4" : "text-[16px]"}`}>
+                            <span
+                              data-help-id="project-sidebar-tab-icon"
+                              className={`material-symbols-outlined shrink-0 leading-none ${isIndustrialSkin ? "text-[13px] w-3.5" : "text-[16px]"}`}
+                            >
                               {tab.icon}
                             </span>
                             <span>{tab.label}</span>
@@ -440,6 +447,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           }}
         >
           <summary
+            data-help-id="sidebar-nav-group-summary"
+            data-active={isItemActive ? "true" : "false"}
             className={`flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-lg transition-all cursor-pointer list-none ${
               isItemActive
                 ? activeNavClass
@@ -478,6 +487,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       return (
         <a
           key={item.id}
+          data-help-id="sidebar-nav-item"
+          data-active="false"
           href={item.href}
           target="_blank"
           rel="noopener noreferrer"
@@ -498,6 +509,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     return (
       <button
         key={item.id}
+        data-help-id="sidebar-nav-item"
+        data-active={isItemActive ? "true" : "false"}
+        aria-current={isItemActive ? "page" : undefined}
         onClick={() => {
           // Close parent group before navigation
           if (parentId) {
@@ -521,6 +535,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         }`}
       >
         <span
+          data-help-id="sidebar-nav-icon"
           className={`material-symbols-outlined shrink-0 text-[20px] ${
             isItemActive
               ? activeIconClass

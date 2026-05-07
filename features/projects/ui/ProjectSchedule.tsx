@@ -51,7 +51,10 @@ export const ProjectSchedule: React.FC<{ projectId: string; projectTitle?: strin
       <div className="w-full flex flex-col gap-4 flex-1 min-h-0">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="size-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-600/10 border border-purple-500/20 flex items-center justify-center">
+            <div
+              data-help-id="schedule-header-icon"
+              className="size-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-600/10 border border-purple-500/20 flex items-center justify-center"
+            >
               <span className="material-symbols-outlined text-purple-400 text-2xl">bar_chart</span>
             </div>
             <div>

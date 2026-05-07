@@ -1,5 +1,5 @@
 import React from "react";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ProjectOverviewNew } from "@/features/projects/ui/ProjectOverviewNew";
 import type { ProjectDetails } from "../types";
@@ -85,14 +85,54 @@ describe("ProjectOverviewNew compact editace", () => {
     expect(columnsButton.className).not.toContain("rounded-xl");
   });
 
-  it("industrial skin kopiruje odkaz bez query parametru", async () => {
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    Object.defineProperty(navigator, "clipboard", {
-      configurable: true,
-      value: { writeText },
-    });
-    window.history.pushState({}, "", "/app/project/project-1?token=secret");
+  it("industrial skin zobrazí nad KPI kartami název stavby s brandovým psacím písmem", () => {
+    const project = buildProject();
+    project.title = "REKO Bazén Aš";
 
+    render(
+      <ProjectOverviewNew
+        project={project}
+        onUpdate={() => undefined}
+        variant="compact"
+        skin="industrial"
+      />,
+    );
+
+    const heading = screen.getByRole("heading", { name: "REKO Bazén Aš" });
+    const headingBlock = heading.closest("[data-help-id='overview-section-heading']");
+    const scriptPart = within(heading).getByText("Bazén");
+    const kpiCards = screen.getByText("Rozpočet").closest("[data-help-id='overview-kpi-cards']");
+
+    expect(headingBlock).toHaveClass("industrial-section-heading");
+    expect(heading).toHaveClass("industrial-section-title");
+    expect(scriptPart).toHaveClass("tf-skin-script");
+    expect(screen.queryByRole("heading", { name: "Přehled stavby" })).not.toBeInTheDocument();
+    expect(kpiCards).toBeTruthy();
+    expect(heading.compareDocumentPosition(kpiCards as HTMLElement) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("industrial skin zvýrazní typ stavby psacím písmem i u ostatních projektů", () => {
+    const project = buildProject();
+    project.title = "25036 Statické zajištění silnice Oloví - Boučí, 2.etapa";
+
+    render(
+      <ProjectOverviewNew
+        project={project}
+        onUpdate={() => undefined}
+        variant="compact"
+        skin="industrial"
+      />,
+    );
+
+    const heading = screen.getByRole("heading", {
+      name: "25036 Statické zajištění silnice Oloví - Boučí, 2.etapa",
+    });
+    const scriptPart = within(heading).getByText("Statické zajištění silnice");
+
+    expect(scriptPart).toHaveClass("tf-skin-script");
+  });
+
+  it("industrial skin nezobrazuje rušivé tlačítko sdílení nad KPI kartami", () => {
     render(
       <ProjectOverviewNew
         project={buildProject()}
@@ -102,11 +142,7 @@ describe("ProjectOverviewNew compact editace", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Sdílet stavbu/i }));
-
-    await waitFor(() => {
-      expect(writeText).toHaveBeenCalledWith("http://localhost:3000/app/project/project-1");
-    });
+    expect(screen.queryByRole("button", { name: /Sdílet stavbu/i })).not.toBeInTheDocument();
   });
 
   it("otevře modal pro finance investora a uloží změnu", () => {

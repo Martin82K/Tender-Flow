@@ -68,10 +68,7 @@ export const OrgBrandingTab: React.FC<OrgBrandingTabProps> = ({ orgId, isAdminOr
           setDisclaimerHtml(branding.disclaimerHtml || '');
           setFontFamily(branding.fontFamily || DEFAULT_FONT_FAMILY);
           setFontSize(branding.fontSize || DEFAULT_FONT_SIZE);
-          const eLogoUrl = branding.emailLogoPath
-            ? await organizationService.getOrganizationLogoUrl(orgId).catch(() => null)
-            : null;
-          setEmailLogoUrl(eLogoUrl);
+          setEmailLogoUrl(branding.emailLogoUrl || null);
         }
       } catch (err) {
         console.error('[OrgBrandingTab] Failed to load:', err);
@@ -143,10 +140,9 @@ export const OrgBrandingTab: React.FC<OrgBrandingTabProps> = ({ orgId, isAdminOr
     try {
       validateLogoFile(file);
       setIsUploadingEmailLogo(true);
-      await organizationService.uploadOrganizationEmailLogo(orgId, file);
+      const result = await organizationService.uploadOrganizationEmailLogo(orgId, file);
       showAlert({ title: 'Hotovo', message: 'E-mailové logo bylo nahráno.', variant: 'success' });
-      const branding = await organizationService.getOrganizationEmailBranding(orgId);
-      setEmailLogoUrl(branding?.emailLogoPath ? 'loaded' : null);
+      setEmailLogoUrl(result.logoUrl);
     } catch (err: any) {
       showAlert({ title: 'Chyba', message: err?.message || 'Nepodařilo se nahrát e-mailové logo.', variant: 'danger' });
     } finally {

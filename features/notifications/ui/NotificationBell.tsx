@@ -42,6 +42,9 @@ export const NotificationBell: React.FC = () => {
       <button
         ref={buttonRef}
         onClick={handleToggle}
+        data-help-id="notification-bell"
+        aria-expanded={isOpen}
+        aria-label="Notifikace"
         className="relative flex items-center justify-center size-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:shadow-md transition-all"
       >
         <span className="material-symbols-outlined text-[20px]">notifications</span>

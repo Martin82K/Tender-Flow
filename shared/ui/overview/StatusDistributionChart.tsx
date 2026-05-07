@@ -21,12 +21,12 @@ export const StatusDistributionChart: React.FC<StatusDistributionChartProps> = (
   sentCount,
 }) => {
   const data = [
-    { name: 'SOD', value: sodCount, color: '#10B981', icon: CheckCircle2 },
-    { name: 'Užší výběr', value: shortlistCount, color: '#F59E0B', icon: Star },
-    { name: 'Nabídka', value: offerCount, color: '#0EA5E9', icon: FileText },
-    { name: 'Zamítnuto', value: rejectedCount, color: '#F43F5E', icon: XCircle },
-    { name: 'Oslovení', value: contactedCount, color: '#64748B', icon: Mail },
-    { name: 'Odesláno', value: sentCount, color: '#8B5CF6', icon: Send },
+    { name: 'SOD', value: sodCount, color: 'var(--tf-overview-status-sod, #10B981)', icon: CheckCircle2 },
+    { name: 'Užší výběr', value: shortlistCount, color: 'var(--tf-overview-status-shortlist, #F59E0B)', icon: Star },
+    { name: 'Nabídka', value: offerCount, color: 'var(--tf-overview-status-offer, #0EA5E9)', icon: FileText },
+    { name: 'Zamítnuto', value: rejectedCount, color: 'var(--tf-overview-status-rejected, #F43F5E)', icon: XCircle },
+    { name: 'Oslovení', value: contactedCount, color: 'var(--tf-overview-status-contacted, #64748B)', icon: Mail },
+    { name: 'Odesláno', value: sentCount, color: 'var(--tf-overview-status-sent, #8B5CF6)', icon: Send },
   ].filter(item => item.value > 0);
 
   const total = data.reduce((sum, item) => sum + item.value, 0);
@@ -56,7 +56,7 @@ export const StatusDistributionChart: React.FC<StatusDistributionChartProps> = (
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div data-help-id="overview-status-distribution-chart" className="flex flex-col h-full">
       <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-3 text-center">
         Rozdělení nabídek podle statusu
       </h4>

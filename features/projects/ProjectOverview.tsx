@@ -41,15 +41,18 @@ import {
   formatOfferDate,
 } from "@/features/projects/model/projectOverviewModel";
 import { useProjectOverviewController } from "@/features/projects/model/useProjectOverviewController";
+import type { ThemeSkin } from "@/hooks/useTheme";
 
 interface ProjectOverviewProps {
   projects: Project[];
   projectDetails: Record<string, ProjectDetails | undefined>;
+  skin?: ThemeSkin;
 }
 
 export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
   projects,
   projectDetails,
+  skin = "classic",
 }) => {
   const {
     tenantLoading,
@@ -146,9 +149,9 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto bg-slate-50 dark:bg-slate-950">
+    <div className="tf-project-overview-view flex flex-col h-full overflow-y-auto bg-slate-50 dark:bg-slate-950">
       <div className="no-print">
-        <Header title="Přehledy" subtitle="Analytika dodavatelů, výběrů a trendů" helpSlot={<HelpButton />} notificationSlot={<NotificationBell />} />
+        <Header title="Přehledy" subtitle="Analytika dodavatelů, výběrů a trendů" helpSlot={<HelpButton />} notificationSlot={<NotificationBell />} skin={skin} />
       </div>
 
       <div className="flex-1 space-y-6 p-6">
@@ -268,7 +271,7 @@ export const ProjectOverview: React.FC<ProjectOverviewProps> = ({
         </div>
 
         {/* Status Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div data-help-id="overview-status-cards" className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <StatusCard
             type="tender"
             awardedValue={analytics.totalsByStatus.tender.awardedValue}

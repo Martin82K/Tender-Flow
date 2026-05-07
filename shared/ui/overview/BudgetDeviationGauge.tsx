@@ -9,14 +9,13 @@ interface BudgetDeviationGaugeProps {
 export const BudgetDeviationGauge: React.FC<BudgetDeviationGaugeProps> = ({
   avgDeviationPercent,
 }) => {
-  // Determine color based on deviation - more vibrant colors
   const getColor = () => {
-    if (avgDeviationPercent === null) return '#64748B';
-    if (avgDeviationPercent <= -10) return '#059669'; // Strong green: very good
-    if (avgDeviationPercent <= -5) return '#10B981';  // Green: good
-    if (avgDeviationPercent <= 5) return '#F59E0B';   // Amber: acceptable
-    if (avgDeviationPercent <= 15) return '#F97316';  // Orange: caution
-    return '#EF4444'; // Red: bad
+    if (avgDeviationPercent === null) return 'var(--tf-overview-gauge-muted, #64748B)';
+    if (avgDeviationPercent <= -10) return 'var(--tf-overview-gauge-good-strong, #059669)';
+    if (avgDeviationPercent <= -5) return 'var(--tf-overview-gauge-good, #10B981)';
+    if (avgDeviationPercent <= 5) return 'var(--tf-overview-gauge-neutral, #F59E0B)';
+    if (avgDeviationPercent <= 15) return 'var(--tf-overview-gauge-warning, #F97316)';
+    return 'var(--tf-overview-gauge-danger, #EF4444)';
   };
 
   const getBgColor = () => {
@@ -81,7 +80,7 @@ export const BudgetDeviationGauge: React.FC<BudgetDeviationGaugeProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div data-help-id="overview-budget-deviation-gauge" className="flex flex-col h-full">
       <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-4 text-center">
         Průměrná nabídková cena proti smluvní ceně s investorem
       </h4>
@@ -113,30 +112,29 @@ export const BudgetDeviationGauge: React.FC<BudgetDeviationGaugeProps> = ({
                 {/* Background arc - darker for contrast */}
                 <path
                   d={describeArc(-90, 90, 55, 85)}
-                  fill="#CBD5E1"
+                  fill="var(--tf-overview-gauge-track, #CBD5E1)"
                   className="dark:fill-slate-600"
                 />
 
-                {/* Colored zones - more vibrant, no opacity */}
                 <path
                   d={describeArc(-90, -45, 55, 85)}
-                  fill="#10B981"
+                  fill="var(--tf-overview-gauge-good, #10B981)"
                 />
                 <path
                   d={describeArc(-45, -15, 55, 85)}
-                  fill="#34D399"
+                  fill="var(--tf-overview-gauge-good-soft, #34D399)"
                 />
                 <path
                   d={describeArc(-15, 15, 55, 85)}
-                  fill="#F59E0B"
+                  fill="var(--tf-overview-gauge-neutral, #F59E0B)"
                 />
                 <path
                   d={describeArc(15, 45, 55, 85)}
-                  fill="#F97316"
+                  fill="var(--tf-overview-gauge-warning, #F97316)"
                 />
                 <path
                   d={describeArc(45, 90, 55, 85)}
-                  fill="#EF4444"
+                  fill="var(--tf-overview-gauge-danger, #EF4444)"
                 />
 
                 {/* Tick marks */}

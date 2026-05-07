@@ -19,7 +19,7 @@ describe("Header layout", () => {
     );
 
     const header = screen.getByRole("banner");
-    const title = screen.getByText("REKO Bazén Aš");
+    const title = screen.getByRole("heading", { name: "REKO Bazén Aš" });
     const nav = screen.getByRole("navigation", { name: "Projektové sekce" });
 
     expect(header).toContainElement(title);
@@ -39,5 +39,39 @@ describe("Header layout", () => {
 
     expect(screen.getByRole("button", { name: "Email nevybraným" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Avatar" })).not.toBeInTheDocument();
+  });
+
+  it("v industriálním skinu zvýrazní Bazén psaným fontem", () => {
+    render(
+      <AccountMenuProvider accountMenu={null}>
+        <Header title="REKO Bazén Aš" showSearch={false} skin="industrial" />
+      </AccountMenuProvider>,
+    );
+
+    const title = screen.getByRole("heading", { name: "REKO Bazén Aš" });
+    const scriptPart = screen.getByText("Bazén");
+
+    expect(title).toContainElement(scriptPart);
+    expect(scriptPart).toHaveClass("tf-skin-script");
+  });
+
+  it("v industriálním skinu zvýrazní typ stavby i v titulku jiného projektu", () => {
+    render(
+      <AccountMenuProvider accountMenu={null}>
+        <Header
+          title="25036 Statické zajištění silnice Oloví - Boučí, 2.etapa"
+          showSearch={false}
+          skin="industrial"
+        />
+      </AccountMenuProvider>,
+    );
+
+    const title = screen.getByRole("heading", {
+      name: "25036 Statické zajištění silnice Oloví - Boučí, 2.etapa",
+    });
+    const scriptPart = screen.getByText("Statické zajištění silnice");
+
+    expect(title).toContainElement(scriptPart);
+    expect(scriptPart).toHaveClass("tf-skin-script");
   });
 });
