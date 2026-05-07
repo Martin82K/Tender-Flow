@@ -101,6 +101,8 @@ describe("UserAccountMenu", () => {
 
     expect(await screen.findByText("Martin Kalkuš")).toBeInTheDocument();
     expect(screen.getByText("martin@example.com")).toBeInTheDocument();
+    expect(screen.getByText("Správce · Admin tarif")).toBeInTheDocument();
+    expect(screen.queryByText("BOSS")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByText("Můj profil"));
 

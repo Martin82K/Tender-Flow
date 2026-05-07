@@ -112,6 +112,10 @@ describe("industrial skin tokens", () => {
     expect(accountMenuSource).toContain("w-[min(92vw,280px)]");
     expect(accountMenuSource).toContain("size-10");
     expect(accountMenuSource).toContain("min-h-8");
+    expect(accountMenuSource).toContain("accountMeta");
+    expect(accountMenuSource).not.toContain("badge-neon");
+    expect(accountMenuSource).not.toContain("BOSS");
+    expect(css).not.toContain(".badge-neon");
     expect(css).toContain(".tf-account-menu-panel");
     expect(css).toContain('html[data-skin="industrial"] .tf-account-menu-panel');
   });
