@@ -3,10 +3,12 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const css = readFileSync(join(process.cwd(), "index.css"), "utf8");
+const commandCenterCss = readFileSync(join(process.cwd(), "features/command-center/command-center.css"), "utf8");
 const sidebarSource = readFileSync(join(process.cwd(), "components/Sidebar.tsx"), "utf8");
 const tenderPlanSource = readFileSync(join(process.cwd(), "features/projects/ui/TenderPlan.tsx"), "utf8");
 const projectOverviewSource = readFileSync(join(process.cwd(), "features/projects/ui/ProjectOverviewNew.tsx"), "utf8");
 const pipelineSource = readFileSync(join(process.cwd(), "components/Pipeline.tsx"), "utf8");
+const contactsSource = readFileSync(join(process.cwd(), "features/contacts/Contacts.tsx"), "utf8");
 const modalSource = readFileSync(join(process.cwd(), "shared/ui/Modal.tsx"), "utf8");
 const categoryFormModalSource = readFileSync(join(process.cwd(), "components/pipelineComponents/CategoryFormModal.tsx"), "utf8");
 
@@ -80,11 +82,23 @@ describe("industrial skin tokens", () => {
     expect(tenderPlanSource).toContain('data-help-id="tender-plan-add"');
     expect(projectOverviewSource).toContain("tf-project-overview");
     expect(pipelineSource).toContain("tf-pipeline-view");
+    expect(contactsSource).toContain("tf-contacts-view");
     expect(css).toContain(".tf-tender-plan-view");
     expect(css).toContain(".tf-pipeline-view");
     expect(css).toContain(".tf-project-overview");
+    expect(css).toContain(".tf-contacts-view");
     expect(css).toContain('html[data-skin="industrial"] .tf-tender-plan-view');
     expect(css).toContain('html[data-skin="industrial"] .tf-pipeline-view');
+  });
+
+  it("industrial Command Center a Subdodavatelé nepřekrývají canvas bílým pozadím", () => {
+    expect(commandCenterCss).toContain('html[data-skin="industrial"] .cc-root');
+    expect(commandCenterCss).toContain("background: transparent !important");
+    expect(commandCenterCss).toContain("background-image: none !important");
+    expect(commandCenterCss).toContain("--cc-surface: color-mix(in srgb, var(--tf-skin-surface) 86%, transparent)");
+    expect(css).toContain('html[data-skin="industrial"] .tf-contacts-view');
+    expect(css).toContain('[data-help-id="contacts-list"]');
+    expect(css).toContain('[data-help-id="contacts-cards"]');
   });
 
   it("industrial modály mají sdílené skin třídy i pro ruční pipeline dialogy", () => {
