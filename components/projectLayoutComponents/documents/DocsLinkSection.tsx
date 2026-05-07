@@ -115,6 +115,7 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
     <div className="space-y-4">
       {/* Multi-link list */}
       <div
+        data-help-id="documents-link-card"
         className={`rounded-xl p-6 border transition-colors ${documentLinks.length > 0 || hasDocsLink
           ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30"
           : "bg-slate-50 dark:bg-slate-900/70 border-slate-200 dark:border-slate-700/40"
@@ -129,7 +130,10 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
               Dokumenty projektu
             </h3>
             {(documentLinks.length > 0 || hasDocsLink) && (
-              <span className="ml-2 px-2.5 py-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase rounded-lg border border-emerald-500/30">
+              <span
+                data-help-id="documents-status-badge"
+                className="ml-2 px-2.5 py-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase rounded-lg border border-emerald-500/30"
+              >
                 {documentLinks.length || 1} odkaz
                 {documentLinks.length !== 1 ? "ů" : ""}
               </span>
@@ -141,7 +145,10 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
         <div className="space-y-2">
           {/* Legacy link from documentationLink */}
           {hasDocsLink && documentLinks.length === 0 && (
-            <div className="flex items-center justify-between p-3 bg-white dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50 group hover:border-emerald-500/30 transition-all">
+            <div
+              data-help-id="documents-link-row"
+              className="flex items-center justify-between p-3 bg-white dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50 group hover:border-emerald-500/30 transition-all"
+            >
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <span className="material-symbols-outlined text-emerald-400">
                   description
@@ -188,6 +195,7 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
           {documentLinks.map((link) => (
             <div
               key={link.id}
+              data-help-id="documents-link-row"
               className="flex items-center justify-between p-3 bg-white dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50 group hover:border-emerald-500/30 transition-all"
             >
               <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -277,6 +285,7 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
                 <button
                   onClick={handleAddLink}
                   disabled={isShortening}
+                  data-help-id="documents-save-link"
                   className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-wait text-white text-sm font-bold rounded-lg transition-colors flex items-center gap-2"
                 >
                   {isShortening && (
@@ -291,6 +300,7 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
           ) : (
             <button
               onClick={() => setIsAddingNew(true)}
+              data-help-id="documents-add-link"
               className="w-full flex items-center justify-center gap-2 p-3 border-2 border-dashed border-slate-300 dark:border-slate-600/50 rounded-xl text-slate-500 hover:text-emerald-500 hover:border-emerald-500/50 transition-all"
             >
               <span className="material-symbols-outlined text-[20px]">add</span>

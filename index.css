@@ -640,6 +640,105 @@ html[data-skin="industrial"] .tf-documents-view [class*="text-slate-400"] {
   color: var(--tf-skin-muted) !important;
 }
 
+html[data-skin="industrial"] .tf-documents-view [data-help-id="documents-header-icon"],
+html[data-skin="industrial"] .tf-documents-view [data-help-id="documents-tip"],
+html[data-skin="industrial"] .tf-documents-view [data-help-id="dochub-setup-alert"],
+html[data-skin="industrial"] .tf-documents-view [data-help-id="documents-link-card"],
+html[data-skin="industrial"] .tf-documents-view [data-help-id="documents-price-list-card"],
+html[data-skin="industrial"] .tf-documents-view [data-help-id="documents-dochub-quick-link"] {
+  background: color-mix(in srgb, var(--tf-skin-surface) 82%, transparent) !important;
+  border-color: var(--tf-skin-line) !important;
+  border-left: 3px solid color-mix(in srgb, var(--tf-skin-orange) 68%, transparent) !important;
+  box-shadow: none !important;
+}
+
+html[data-skin="industrial"] .tf-documents-view [data-help-id="documents-header-icon"] {
+  border-left-width: 1px !important;
+}
+
+html[data-skin="industrial"] .tf-documents-view [data-help-id="documents-status-badge"],
+html[data-skin="industrial"] .tf-documents-view [data-help-id="documents-price-list-badge"],
+html[data-skin="industrial"] .tf-documents-view [class*="rounded-full"][class*="bg-emerald"],
+html[data-skin="industrial"] .tf-documents-view [class*="rounded-lg"][class*="bg-emerald"] {
+  background: color-mix(in srgb, var(--tf-skin-orange) 9%, transparent) !important;
+  border-color: color-mix(in srgb, var(--tf-skin-orange) 38%, transparent) !important;
+  color: var(--tf-skin-orange-deep) !important;
+}
+
+html[data-skin="industrial"] .tf-documents-view [data-help-id="documents-link-row"],
+html[data-skin="industrial"] .tf-documents-view [data-help-id="documents-price-list-link"] {
+  background: color-mix(in srgb, var(--tf-skin-card) 78%, transparent) !important;
+  border-color: var(--tf-skin-line) !important;
+  border-radius: 8px !important;
+}
+
+html[data-skin="industrial"] .tf-documents-view [data-help-id="documents-link-row"]:hover,
+html[data-skin="industrial"] .tf-documents-view [data-help-id="documents-price-list-link"]:hover {
+  border-color: color-mix(in srgb, var(--tf-skin-orange) 42%, transparent) !important;
+  background: color-mix(in srgb, var(--tf-skin-orange) 7%, var(--tf-skin-card) 76%) !important;
+}
+
+html[data-skin="industrial"] .tf-documents-view [class*="text-emerald"],
+html[data-skin="industrial"] .tf-documents-view [class*="text-green"],
+html[data-skin="industrial"] .tf-documents-view [class*="text-violet"],
+html[data-skin="industrial"] .tf-documents-view [class*="text-purple"],
+html[data-skin="industrial"] .tf-documents-view [class*="text-blue"] {
+  color: var(--tf-skin-orange-deep) !important;
+}
+
+html[data-skin="industrial"] .tf-documents-view [class*="border-emerald"],
+html[data-skin="industrial"] .tf-documents-view [class*="border-green"],
+html[data-skin="industrial"] .tf-documents-view [class*="border-violet"],
+html[data-skin="industrial"] .tf-documents-view [class*="border-purple"],
+html[data-skin="industrial"] .tf-documents-view [class*="border-blue"] {
+  border-color: color-mix(in srgb, var(--tf-skin-orange) 36%, transparent) !important;
+}
+
+html[data-skin="industrial"] .tf-documents-view [class*="bg-emerald"],
+html[data-skin="industrial"] .tf-documents-view [class*="bg-green"],
+html[data-skin="industrial"] .tf-documents-view [class*="bg-violet"],
+html[data-skin="industrial"] .tf-documents-view [class*="bg-purple"],
+html[data-skin="industrial"] .tf-documents-view [class*="bg-blue"] {
+  background: color-mix(in srgb, var(--tf-skin-surface-muted) 64%, transparent) !important;
+}
+
+html[data-skin="industrial"] .tf-documents-view button[class*="bg-emerald"],
+html[data-skin="industrial"] .tf-documents-view button[class*="bg-green"],
+html[data-skin="industrial"] .tf-documents-view button[class*="bg-violet"],
+html[data-skin="industrial"] .tf-documents-view button[class*="bg-purple"],
+html[data-skin="industrial"] .tf-documents-view button[class*="bg-blue"],
+html[data-skin="industrial"] .tf-documents-view [data-help-id="documents-save-link"],
+html[data-skin="industrial"] .tf-documents-view [data-help-id="documents-price-list-save"],
+html[data-skin="industrial"] .tf-documents-view [data-help-id="documents-dochub-open"] {
+  background: linear-gradient(180deg, #ffb052 0%, var(--tf-skin-orange) 100%) !important;
+  border-color: color-mix(in srgb, var(--tf-skin-orange) 72%, var(--tf-skin-text) 14%) !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  color: #1f1306 !important;
+  font-weight: 650 !important;
+}
+
+html[data-skin="industrial"] .tf-documents-view [data-help-id="documents-add-link"] {
+  background: transparent !important;
+  border-color: color-mix(in srgb, var(--tf-skin-orange) 38%, transparent) !important;
+  border-radius: 8px !important;
+  color: var(--tf-skin-text-2) !important;
+}
+
+html[data-skin="industrial"] .tf-documents-view [data-help-id="documents-add-link"]:hover {
+  background: color-mix(in srgb, var(--tf-skin-orange) 8%, transparent) !important;
+  border-color: color-mix(in srgb, var(--tf-skin-orange) 62%, transparent) !important;
+  color: var(--tf-skin-orange-deep) !important;
+}
+
+html[data-skin="industrial"] .tf-documents-view [data-help-id="documents-link-card"],
+html[data-skin="industrial"] .tf-documents-view [data-help-id="documents-price-list-card"],
+html[data-skin="industrial"] .tf-documents-view [data-help-id="documents-dochub-quick-link"],
+html[data-skin="industrial"] .tf-documents-view [data-help-id="documents-tip"],
+html[data-skin="industrial"] .tf-documents-view [data-help-id="dochub-setup-alert"] {
+  border-left-color: color-mix(in srgb, var(--tf-skin-orange) 68%, transparent) !important;
+}
+
 html[data-skin="industrial"] .tf-schedule-view h2 {
   color: var(--tf-skin-text) !important;
   font-weight: 650;
@@ -1082,6 +1181,38 @@ html[data-skin="industrial"] .tf-contracts-module [class*="text-slate-600"],
 html[data-skin="industrial"] .tf-contracts-module [class*="text-slate-500"],
 html[data-skin="industrial"] .tf-contracts-module [class*="text-slate-400"] {
   color: var(--tf-skin-muted) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-retention-fields"] {
+  background: color-mix(in srgb, var(--tf-skin-surface) 78%, transparent) !important;
+  border-color: var(--tf-skin-line) !important;
+  border-radius: 8px !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-retention-short"],
+html[data-skin="industrial"] [data-help-id="contracts-retention-long"] {
+  background: color-mix(in srgb, var(--tf-skin-surface-muted) 56%, transparent) !important;
+  border-color: var(--tf-skin-line) !important;
+  border-left-color: color-mix(in srgb, var(--tf-skin-orange) 72%, transparent) !important;
+  border-radius: 8px !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-retention-short"] [class*="text-blue"],
+html[data-skin="industrial"] [data-help-id="contracts-retention-long"] [class*="text-purple"],
+html[data-skin="industrial"] [data-help-id="contracts-retention-long"] [class*="text-violet"] {
+  color: var(--tf-skin-orange-deep) !important;
+}
+
+html[data-skin="industrial"] .tf-contracts-module [class*="border-l-blue"],
+html[data-skin="industrial"] .tf-contracts-module [class*="border-l-purple"],
+html[data-skin="industrial"] .tf-contracts-module [class*="border-l-violet"] {
+  border-left-color: color-mix(in srgb, var(--tf-skin-orange) 68%, transparent) !important;
+}
+
+html[data-skin="industrial"] .tf-contracts-module [class*="text-blue"],
+html[data-skin="industrial"] .tf-contracts-module [class*="text-purple"],
+html[data-skin="industrial"] .tf-contracts-module [class*="text-violet"] {
+  color: var(--tf-skin-orange-deep) !important;
 }
 
 

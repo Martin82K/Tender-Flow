@@ -335,7 +335,10 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
       <div className="max-w-7xl mx-auto w-full">
         {/* Header */}
         <div className="flex items-center gap-3 mb-8 px-4 md:px-0">
-          <div className="size-12 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/20 flex items-center justify-center">
+          <div
+            data-help-id="documents-header-icon"
+            className="size-12 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/20 flex items-center justify-center"
+          >
             <span className="material-symbols-outlined text-emerald-400 text-2xl">
               folder_open
             </span>
@@ -420,7 +423,10 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
             </nav>
 
             {/* Tips Section Sidebar */}
-            <div className="mt-8 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl mx-2 md:mx-0">
+            <div
+              data-help-id="documents-tip"
+              className="mt-8 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl mx-2 md:mx-0"
+            >
               <div className="flex items-start gap-3">
                 <span className="material-symbols-outlined text-blue-400 text-[20px]">
                   lightbulb
@@ -469,7 +475,10 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
             {documentsSubTab === "dochub" && canDocHub && (
               <div className="space-y-6">
                 {shouldHighlightDocHubSetup && (
-                  <div className="rounded-xl border border-emerald-300/60 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100">
+                  <div
+                    data-help-id="dochub-setup-alert"
+                    className="rounded-xl border border-emerald-300/60 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100"
+                  >
                     Nová realizační stavba potřebuje vlastní realizační složku. Dokončete prosím napojení Složkomatu níže.
                   </div>
                 )}

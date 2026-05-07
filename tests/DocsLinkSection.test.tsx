@@ -45,10 +45,13 @@ describe('DocsLinkSection', () => {
     };
 
     it('renders correctly in view mode with link', () => {
-        render(<DocsLinkSection {...defaultProps} />);
+        const { container } = render(<DocsLinkSection {...defaultProps} />);
         expect(screen.getByText('Dokumenty projektu')).toBeInTheDocument();
         expect(screen.getByText('PD')).toBeInTheDocument();
         expect(screen.getByText('https://docs.com')).toBeInTheDocument();
+        expect(container.querySelector('[data-help-id="documents-link-card"]')).toBeInTheDocument();
+        expect(container.querySelector('[data-help-id="documents-link-row"]')).toBeInTheDocument();
+        expect(container.querySelector('[data-help-id="documents-status-badge"]')).toBeInTheDocument();
     });
 
     it('renders correctly in view mode without link', () => {
@@ -66,10 +69,11 @@ describe('DocsLinkSection', () => {
     });
 
     it('shows add link form when requested', () => {
-        render(<DocsLinkSection {...defaultProps} />);
+        const { container } = render(<DocsLinkSection {...defaultProps} />);
         fireEvent.click(screen.getByText('Přidat odkaz'));
         expect(screen.getByPlaceholderText('Název (např. PD Hlavní budova)')).toBeInTheDocument();
         expect(screen.getByPlaceholderText('URL nebo cesta (např. https://... nebo C:\\Projekty\\...)')).toBeInTheDocument();
+        expect(container.querySelector('[data-help-id="documents-save-link"]')).toBeInTheDocument();
     });
 
     it('calls onUpdate when adding new link', () => {

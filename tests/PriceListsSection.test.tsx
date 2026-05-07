@@ -23,10 +23,13 @@ describe('PriceListsSection', () => {
     };
 
     it('renders correctly', () => {
-        render(<PriceListsSection {...defaultProps} />);
+        const { container } = render(<PriceListsSection {...defaultProps} />);
         expect(screen.getByText('Ceníky')).toBeInTheDocument();
         expect(screen.getByText('https://pricelist.com')).toBeInTheDocument();
         expect(screen.getByText('Nastaveno')).toBeInTheDocument();
+        expect(container.querySelector('[data-help-id="documents-price-list-card"]')).toBeInTheDocument();
+        expect(container.querySelector('[data-help-id="documents-price-list-badge"]')).toBeInTheDocument();
+        expect(container.querySelector('[data-help-id="documents-price-list-link"]')).toBeInTheDocument();
     });
 
     it('does not render unsafe javascript price list link', () => {
@@ -48,7 +51,9 @@ describe('PriceListsSection', () => {
     });
 
     it('shows doc hub link when connected', () => {
-        render(<PriceListsSection {...defaultProps} isDocHubConnected={true} docHubCenikyLink="https://dh.com" />);
+        const { container } = render(<PriceListsSection {...defaultProps} isDocHubConnected={true} docHubCenikyLink="https://dh.com" />);
         expect(screen.getByText('DocHub /Ceníky')).toBeInTheDocument();
+        expect(container.querySelector('[data-help-id="documents-dochub-quick-link"]')).toBeInTheDocument();
+        expect(container.querySelector('[data-help-id="documents-dochub-open"]')).toBeInTheDocument();
     });
 });

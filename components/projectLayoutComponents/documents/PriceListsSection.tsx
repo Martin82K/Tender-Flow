@@ -35,13 +35,19 @@ export const PriceListsSection: React.FC<PriceListsSectionProps> = ({
 
     return (
         <div className="space-y-4">
-            <div className={`rounded-xl p-6 border transition-colors ${!!safePriceListUrl ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30' : 'bg-slate-50 dark:bg-slate-950/30 border-slate-200 dark:border-slate-700/40'}`}>
+            <div
+                data-help-id="documents-price-list-card"
+                className={`rounded-xl p-6 border transition-colors ${!!safePriceListUrl ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30' : 'bg-slate-50 dark:bg-slate-950/30 border-slate-200 dark:border-slate-700/40'}`}
+            >
                 <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-2">
                         <span className="material-symbols-outlined text-slate-400">payments</span>
                         <h3 className="font-semibold text-slate-900 dark:text-white">Ceníky</h3>
                         {!!safePriceListUrl && (
-                            <span className="ml-2 px-2.5 py-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase rounded-lg border border-emerald-500/30">
+                            <span
+                                data-help-id="documents-price-list-badge"
+                                className="ml-2 px-2.5 py-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase rounded-lg border border-emerald-500/30"
+                            >
                                 Nastaveno
                             </span>
                         )}
@@ -57,6 +63,7 @@ export const PriceListsSection: React.FC<PriceListsSectionProps> = ({
                         <div className="flex gap-2">
                             <button
                                 onClick={onSave}
+                                data-help-id="documents-price-list-save"
                                 className="text-green-500 hover:text-green-600"
                             >
                                 <span className="material-symbols-outlined text-[20px]">check</span>
@@ -79,6 +86,7 @@ export const PriceListsSection: React.FC<PriceListsSectionProps> = ({
                                     href={safePriceListUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
+                                    data-help-id="documents-price-list-link"
                                     className="block p-4 bg-white dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50 hover:border-emerald-500/30 hover:shadow-md dark:hover:bg-slate-700/50 transition-all group"
                                 >
                                     <div className="flex items-center justify-between">
@@ -121,7 +129,10 @@ export const PriceListsSection: React.FC<PriceListsSectionProps> = ({
             </div>
 
             {isDocHubConnected && docHubCenikyLink && (
-                <div className="mt-4 rounded-xl p-4 border border-violet-200 dark:border-violet-500/30 bg-violet-50 dark:bg-violet-500/10">
+                <div
+                    data-help-id="documents-dochub-quick-link"
+                    className="mt-4 rounded-xl p-4 border border-violet-200 dark:border-violet-500/30 bg-violet-50 dark:bg-violet-500/10"
+                >
                     <div className="flex items-start justify-between gap-4">
                         <div className="flex items-center gap-2">
                             <span className="material-symbols-outlined text-violet-300">folder</span>
@@ -132,6 +143,7 @@ export const PriceListsSection: React.FC<PriceListsSectionProps> = ({
                         </div>
                         <button
                             type="button"
+                            data-help-id="documents-dochub-open"
                             onClick={async () => {
                                 const value = docHubCenikyLink || "";
                                 if (isProbablyUrl(value)) {
