@@ -1,5 +1,4 @@
 import * as XLSX from 'xlsx';
-import ExcelJS from 'exceljs';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { RobotoRegularBase64 } from '@/fonts/roboto-regular';
@@ -161,7 +160,7 @@ function getDayAbbr(d: Date): string {
 }
 
 /**
- * Export schedule to XLSX format with timeline/Gantt chart visualization (using ExcelJS for cell styling)
+ * Export schedule to XLSX format with timeline/Gantt chart visualization.
  */
 export async function exportScheduleWithTimelineToXLSX(
   rows: ScheduleRow[],
@@ -171,31 +170,13 @@ export async function exportScheduleWithTimelineToXLSX(
   mode: 'realization' | 'tender',
   zoom: 'month' | 'week' | 'day' = 'month'
 ): Promise<void> {
-  const workbook = new ExcelJS.Workbook();
+  const workbook = XLSX.utils.book_new();
   const modeLabel = mode === 'realization' ? 'Realizace' : 'Výběrová řízení';
   const zoomLabel = zoom === 'day' ? 'denní' : zoom === 'week' ? 'týdenní' : 'měsíční';
   const isDayView = zoom === 'day';
   const isWeekView = zoom === 'week';
 
   const sheetName = isDayView ? 'Harmonogram (dny)' : isWeekView ? 'Harmonogram (týdny)' : 'Harmonogram (měsíce)';
-  const worksheet = workbook.addWorksheet(sheetName);
-
-  // Define fill styles
-  const greenFill: ExcelJS.Fill = {
-    type: 'pattern',
-    pattern: 'solid',
-    fgColor: { argb: 'FF10B981' } // Emerald green
-  };
-  const headerFill: ExcelJS.Fill = {
-    type: 'pattern',
-    pattern: 'solid',
-    fgColor: { argb: 'FF475569' } // Slate gray
-  };
-  const lightGrayFill: ExcelJS.Fill = {
-    type: 'pattern',
-    pattern: 'solid',
-    fgColor: { argb: 'FFF1F5F9' } // Light slate
-  };
 
   // Get time segments based on zoom level
   const days = isDayView ? getDaysBetween(rangeStart, rangeEnd) : [];
@@ -203,26 +184,15 @@ export async function exportScheduleWithTimelineToXLSX(
   const months = (!isDayView && !isWeekView) ? getMonthsBetween(rangeStart, rangeEnd) : [];
   const numTimeCols = isDayView ? days.length : isWeekView ? weeks.length : months.length;
 
-  // Row 1: Title
-  worksheet.addRow([`HARMONOGRAM S GRAFEM (${zoomLabel}) - ${modeLabel.toUpperCase()}`]);
-  worksheet.mergeCells(1, 1, 1, Math.min(4 + numTimeCols, 20));
-  const titleCell = worksheet.getCell(1, 1);
-  titleCell.font = { bold: true, size: 14 };
-  titleCell.fill = headerFill;
-  titleCell.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
+  const data: string[][] = [
+    [`HARMONOGRAM S GRAFEM (${zoomLabel}) - ${modeLabel.toUpperCase()}`],
+    [],
+    ['Projekt:', projectTitle],
+    ['Období:', `${formatDate(rangeStart)} – ${formatDate(rangeEnd)}`],
+    ['Datum exportu:', formatDate(new Date())],
+    [],
+  ];
 
-  // Row 2: Empty
-  worksheet.addRow([]);
-
-  // Row 3-5: Project info
-  worksheet.addRow(['Projekt:', projectTitle]);
-  worksheet.addRow(['Období:', `${formatDate(rangeStart)} – ${formatDate(rangeEnd)}`]);
-  worksheet.addRow(['Datum exportu:', formatDate(new Date())]);
-
-  // Row 6: Empty
-  worksheet.addRow([]);
-
-  // Row 7: Header with dates/weeks/months
   const headerRow1Data: string[] = ['Kategorie', 'Typ', 'Od', 'Do'];
   if (isDayView) {
     const dateFormatter = new Intl.DateTimeFormat('cs-CZ', { day: '2-digit', month: '2-digit' });
@@ -240,114 +210,87 @@ export async function exportScheduleWithTimelineToXLSX(
       headerRow1Data.push(monthFormatter.format(month));
     }
   }
-  const headerRow1 = worksheet.addRow(headerRow1Data);
-  headerRow1.eachCell((cell, colNumber) => {
-    cell.fill = headerFill;
-    cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 9 };
-    cell.alignment = { horizontal: 'center' };
-  });
+  data.push(headerRow1Data);
 
-  // Row 8: Day abbreviations (only for day view)
   if (isDayView) {
     const headerRow2Data: string[] = ['', '', '', ''];
     for (const day of days) {
       headerRow2Data.push(getDayAbbr(day));
     }
-    const headerRow2 = worksheet.addRow(headerRow2Data);
-    headerRow2.eachCell((cell, colNumber) => {
-      if (colNumber > 4) {
-        cell.fill = lightGrayFill;
-        cell.font = { size: 8 };
-        cell.alignment = { horizontal: 'center' };
-      }
-    });
+    data.push(headerRow2Data);
   }
 
   // Data rows
   for (const row of rows) {
     const startStr = row.start ? formatDate(row.start) : '—';
     const endStr = row.end ? formatDate(row.end) : '—';
-    
     const rowData: string[] = [row.label, row.subLabel || '—', startStr, endStr];
-    
-    // Fill timeline cells with empty strings (we'll style them after)
+
     for (let i = 0; i < numTimeCols; i++) {
-      rowData.push('');
-    }
-    
-    const excelRow = worksheet.addRow(rowData);
-    
-    // Apply background color to cells in range
-    if (row.start && row.end) {
-      const rowStartDay = toDayIndex(row.start);
-      const rowEndDay = toDayIndex(row.end);
-      
-      if (isDayView) {
-        // Daily columns - highlight each day in range
-        for (let i = 0; i < days.length; i++) {
-          const dayIndex = toDayIndex(days[i]);
-          const isInRange = dayIndex >= rowStartDay && dayIndex <= rowEndDay;
-          if (isInRange) {
-            const cell = excelRow.getCell(5 + i);
-            cell.fill = greenFill;
-          }
+      let marker = '';
+
+      if (row.kind === 'milestone' && row.start) {
+        const milestoneDay = toDayIndex(row.start);
+        if (isDayView) {
+          marker = toDayIndex(days[i]) === milestoneDay ? '◆' : '';
+        } else if (isWeekView) {
+          const weekStartDay = toDayIndex(weeks[i]);
+          marker = milestoneDay >= weekStartDay && milestoneDay <= weekStartDay + 6 ? '◆' : '';
+        } else {
+          const monthStart = new Date(months[i].getFullYear(), months[i].getMonth(), 1);
+          const monthEnd = new Date(months[i].getFullYear(), months[i].getMonth() + 1, 0);
+          marker = milestoneDay >= toDayIndex(monthStart) && milestoneDay <= toDayIndex(monthEnd) ? '◆' : '';
         }
-      } else if (isWeekView) {
-        // Weekly columns - highlight weeks that overlap with range
-        for (let i = 0; i < weeks.length; i++) {
+      } else if (row.start && row.end) {
+        const rowStartDay = toDayIndex(row.start);
+        const rowEndDay = toDayIndex(row.end);
+
+        if (isDayView) {
+          const dayIndex = toDayIndex(days[i]);
+          marker = dayIndex >= rowStartDay && dayIndex <= rowEndDay ? '■' : '';
+        } else if (isWeekView) {
           const weekStartDay = toDayIndex(weeks[i]);
           const weekEndDay = weekStartDay + 6;
-          
           const weekStartsInRange = weekStartDay >= rowStartDay && weekStartDay <= rowEndDay;
           const weekEndsInRange = weekEndDay >= rowStartDay && weekEndDay <= rowEndDay;
           const weekContainsRange = weekStartDay <= rowStartDay && weekEndDay >= rowEndDay;
-          
-          if (weekStartsInRange || weekEndsInRange || weekContainsRange) {
-            const cell = excelRow.getCell(5 + i);
-            cell.fill = greenFill;
-          }
-        }
-      } else {
-        // Monthly columns - highlight months that overlap with range
-        for (let i = 0; i < months.length; i++) {
+          marker = weekStartsInRange || weekEndsInRange || weekContainsRange ? '■' : '';
+        } else {
           const monthStart = new Date(months[i].getFullYear(), months[i].getMonth(), 1);
           const monthEnd = new Date(months[i].getFullYear(), months[i].getMonth() + 1, 0);
           const segmentStartDay = toDayIndex(monthStart);
           const segmentEndDay = toDayIndex(monthEnd);
-          
           const segmentStartsInRange = segmentStartDay >= rowStartDay && segmentStartDay <= rowEndDay;
           const segmentEndsInRange = segmentEndDay >= rowStartDay && segmentEndDay <= rowEndDay;
           const segmentContainsRange = segmentStartDay <= rowStartDay && segmentEndDay >= rowEndDay;
-          
-          if (segmentStartsInRange || segmentEndsInRange || segmentContainsRange) {
-            const cell = excelRow.getCell(5 + i);
-            cell.fill = greenFill;
-          }
+          marker = segmentStartsInRange || segmentEndsInRange || segmentContainsRange ? '■' : '';
         }
       }
+
+      rowData.push(marker);
     }
+
+    data.push(rowData);
   }
 
-  // Set column widths
-  worksheet.getColumn(1).width = 35;
-  worksheet.getColumn(2).width = 12;
-  worksheet.getColumn(3).width = 12;
-  worksheet.getColumn(4).width = 12;
+  const worksheet = XLSX.utils.aoa_to_sheet(data);
   const colWidth = isDayView ? 5 : isWeekView ? 7 : 8;
-  for (let i = 0; i < numTimeCols; i++) {
-    worksheet.getColumn(5 + i).width = colWidth;
-  }
+  worksheet['!cols'] = [
+    { wch: 35 },
+    { wch: 12 },
+    { wch: 12 },
+    { wch: 12 },
+    ...Array.from({ length: numTimeCols }, () => ({ wch: colWidth })),
+  ];
+  worksheet['!merges'] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: Math.min(3 + numTimeCols, 19) } },
+  ];
 
-  // Generate and download file
-  const buffer = await workbook.xlsx.writeBuffer();
-  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
+  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+
   const zoomSuffix = isDayView ? '_dny' : isWeekView ? '_tydny' : '_mesice';
-  link.download = `harmonogram_graf${zoomSuffix}_${projectTitle.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
-  link.href = url;
-  link.click();
-  URL.revokeObjectURL(url);
+  const filename = `harmonogram_graf${zoomSuffix}_${projectTitle.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+  XLSX.writeFile(workbook, filename);
 }
 
 

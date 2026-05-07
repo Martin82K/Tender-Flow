@@ -13,8 +13,6 @@
  *    - Propagate description to subsequent rows until next code
  */
 
-import ExcelJS from 'exceljs';
-
 // ============================================================================
 // Types
 // ============================================================================
@@ -48,6 +46,24 @@ export interface ProcessResult {
     descriptionsWritten: number;
   };
 }
+
+type ExcelJSModule = typeof import('exceljs');
+
+const loadExcelJS = async (): Promise<ExcelJSModule['default']> => {
+  try {
+    const module = await import('exceljs');
+    return module.default;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (error instanceof EvalError || /Content Security Policy|unsafe-eval|EvalError/i.test(message)) {
+      throw new Error(
+        'ExcelJS nelze načíst v produkčním Electron rendereru kvůli bezpečnostní CSP. ' +
+        'Zpracování XLSX musí běžet mimo renderer.'
+      );
+    }
+    throw error;
+  }
+};
 
 // ============================================================================
 // Helper Functions
@@ -161,6 +177,7 @@ export async function loadIndexFromBuffer(
   sheetName?: string,
   onLog?: LogReporter
 ): Promise<IndexMap> {
+  const ExcelJS = await loadExcelJS();
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(buffer);
 
@@ -222,6 +239,7 @@ export async function fillDescriptions(
   indexMap: IndexMap,
   options: FillDescriptionsOptions = {}
 ): Promise<ProcessResult> {
+  const ExcelJS = await loadExcelJS();
   const {
     codeColumn = 'F',
     descColumn = 'B',

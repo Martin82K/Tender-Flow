@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { buildDesktopCsp, shouldInjectDesktopCsp } from "../desktop/main/services/csp";
+
+const root = process.cwd();
 
 describe("desktop CSP", () => {
   it("allows Stripe checkout frame and app runtime domains only", () => {
@@ -26,6 +30,20 @@ describe("desktop CSP", () => {
     expect(csp).toContain("frame-src 'self' https://checkout.stripe.com");
     expect(csp).toContain("object-src 'none'");
     expect(csp).toContain("frame-ancestors 'none'");
+  });
+
+  it("keeps ExcelJS out of statically loaded renderer modules", () => {
+    const rendererExcelModules = [
+      "features/projects/api/projectScheduleExportApi.ts",
+      "shared/tools/excel/indexMatcher.ts",
+      "shared/tools/excel/fillOddily.ts",
+    ];
+
+    for (const modulePath of rendererExcelModules) {
+      const source = readFileSync(resolve(root, modulePath), "utf8");
+
+      expect(source).not.toMatch(/^\s*import\s+(?!type\b)[\s\S]*?\sfrom\s+["']exceljs["']/m);
+    }
   });
 
   it("injects desktop CSP only for app-owned renderer responses", () => {

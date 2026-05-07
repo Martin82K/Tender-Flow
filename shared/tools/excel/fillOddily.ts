@@ -12,7 +12,7 @@
  * 6. Preserve Excel formatting and styles
  */
 
-import ExcelJS from 'exceljs';
+import type ExcelJS from 'exceljs';
 
 // ============================================================================
 // Types
@@ -34,6 +34,24 @@ export interface FillOddilyResult {
         rowsFilled: number;
     };
 }
+
+type ExcelJSModule = typeof import('exceljs');
+
+const loadExcelJS = async (): Promise<ExcelJSModule['default']> => {
+    try {
+        const module = await import('exceljs');
+        return module.default;
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (error instanceof EvalError || /Content Security Policy|unsafe-eval|EvalError/i.test(message)) {
+            throw new Error(
+                'ExcelJS nelze načíst v produkčním Electron rendereru kvůli bezpečnostní CSP. ' +
+                'Zpracování XLSX musí běžet mimo renderer.'
+            );
+        }
+        throw error;
+    }
+};
 
 // ============================================================================
 // Helper Functions
@@ -85,6 +103,7 @@ export async function fillOddily(
     buffer: ArrayBuffer,
     options: FillOddilyOptions = {}
 ): Promise<FillOddilyResult> {
+    const ExcelJS = await loadExcelJS();
     const {
         markerColumn = 'F',
         sectionColumn = 'G',
