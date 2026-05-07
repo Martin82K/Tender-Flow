@@ -1982,3 +1982,54 @@ html:not(.dark) .cc-settings-overlay {
 html:not(.dark) .cc-alert-strip::before {
   background: repeating-linear-gradient(45deg, transparent 0 14px, rgba(255, 77, 94, 0.05) 14px 15px);
 }
+
+html[data-skin="industrial"] .cc-root {
+  --cc-bg: transparent;
+  --cc-bg-2: color-mix(in srgb, var(--tf-skin-surface) 82%, transparent);
+  --cc-surface: color-mix(in srgb, var(--tf-skin-surface) 86%, transparent);
+  --cc-surface-2: color-mix(in srgb, var(--tf-skin-surface-muted) 58%, transparent);
+  --cc-surface-3: color-mix(in srgb, var(--tf-skin-surface-deep) 72%, transparent);
+  --cc-line: var(--tf-skin-line-2);
+  --cc-line-soft: var(--tf-skin-line);
+  --cc-text: var(--tf-skin-text);
+  --cc-text-dim: var(--tf-skin-text-2);
+  --cc-text-faint: var(--tf-skin-muted);
+  --cc-red: var(--tf-skin-rose);
+  --cc-red-soft: color-mix(in srgb, var(--tf-skin-rose) 12%, transparent);
+  --cc-amber: var(--tf-skin-orange);
+  --cc-amber-soft: color-mix(in srgb, var(--tf-skin-orange) 12%, transparent);
+  --cc-green: var(--tf-skin-green);
+  --cc-green-soft: color-mix(in srgb, var(--tf-skin-green) 13%, transparent);
+  --cc-blue: var(--tf-skin-orange);
+  --cc-blue-soft: color-mix(in srgb, var(--tf-skin-orange) 12%, transparent);
+  --cc-purple: #8b6eea;
+  --cc-purple-soft: rgba(139, 110, 234, 0.12);
+
+  background: transparent !important;
+  background-image: none !important;
+  color: var(--tf-skin-text);
+}
+
+html.dark[data-skin="industrial"] .cc-root {
+  --cc-purple: #a78bfa;
+  --cc-purple-soft: rgba(167, 139, 250, 0.16);
+}
+
+html[data-skin="industrial"] .cc-panel,
+html[data-skin="industrial"] .cc-kpi,
+html[data-skin="industrial"] .cc-filterbar {
+  background: linear-gradient(180deg, var(--cc-surface), var(--cc-surface-2));
+  border-color: var(--cc-line-soft);
+  box-shadow: none;
+}
+
+html[data-skin="industrial"] .cc-alert-item,
+html[data-skin="industrial"] .cc-project-row {
+  background: color-mix(in srgb, var(--tf-skin-surface) 58%, transparent);
+  border-color: var(--cc-line-soft);
+}
+
+html[data-skin="industrial"] .cc-project-row:hover,
+html[data-skin="industrial"] .cc-root .cc-queue-item__btn:hover {
+  background: color-mix(in srgb, var(--tf-skin-orange) 8%, transparent);
+}

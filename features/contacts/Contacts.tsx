@@ -566,7 +566,7 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
     const isSaveDisabled = !formData.company || !formData.specialization || formData.specialization.length === 0 || !companyValidation.isValid;
 
     return (
-        <div className="flex flex-col h-full bg-background-light dark:bg-background-dark overflow-y-auto">
+        <div className="tf-contacts-view flex flex-col h-full bg-background-light dark:bg-background-dark overflow-y-auto">
             <Header title="Kontakty" subtitle={`Celkem ${contacts.length} subdodavatelů`} helpSlot={<HelpButton />} notificationSlot={<NotificationBell />}>
                 <div className="flex items-center gap-2">
                     {selectedIds.size > 0 ? (

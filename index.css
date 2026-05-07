@@ -514,9 +514,39 @@ html[data-skin="industrial"] .tf-schedule-view {
 
 html[data-skin="industrial"] .tf-tender-plan-view,
 html[data-skin="industrial"] .tf-pipeline-view,
-html[data-skin="industrial"] .tf-project-overview {
+html[data-skin="industrial"] .tf-project-overview,
+html[data-skin="industrial"] .tf-contacts-view {
   background: transparent !important;
   color: var(--tf-skin-text);
+}
+
+html[data-skin="industrial"] .tf-contacts-view [data-help-id="contacts-list"],
+html[data-skin="industrial"] .tf-contacts-view [data-help-id="contacts-cards"] {
+  background: transparent !important;
+}
+
+html[data-skin="industrial"] .tf-contacts-view [class*="bg-white"],
+html[data-skin="industrial"] .tf-contacts-view [class*="bg-slate-50"],
+html[data-skin="industrial"] .tf-contacts-view [class*="bg-slate-100"],
+html[data-skin="industrial"] .tf-contacts-view [class*="bg-slate-800"],
+html[data-skin="industrial"] .tf-contacts-view [class*="bg-slate-900"] {
+  background-color: color-mix(in srgb, var(--tf-skin-surface) 80%, transparent) !important;
+}
+
+html[data-skin="industrial"] .tf-contacts-view [class*="border-slate"] {
+  border-color: var(--tf-skin-line) !important;
+}
+
+html[data-skin="industrial"] .tf-contacts-view [class*="text-slate-900"],
+html[data-skin="industrial"] .tf-contacts-view [class*="text-white"] {
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin="industrial"] .tf-contacts-view [class*="text-slate-700"],
+html[data-skin="industrial"] .tf-contacts-view [class*="text-slate-600"],
+html[data-skin="industrial"] .tf-contacts-view [class*="text-slate-500"],
+html[data-skin="industrial"] .tf-contacts-view [class*="text-slate-400"] {
+  color: var(--tf-skin-muted) !important;
 }
 
 html[data-skin="industrial"] .tf-schedule-view h2 {
