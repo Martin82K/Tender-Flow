@@ -1191,6 +1191,100 @@ html[data-skin="industrial"] [data-help-id="contracts-table"] td[class*="font-se
   font-weight: 650 !important;
 }
 
+html[data-skin="industrial"] [data-help-id="contracts-dashboard"] > [class*="rounded-xl"],
+html[data-skin="industrial"] [data-help-id="contracts-dashboard"] [class*="rounded-lg"][class*="bg-slate-50"],
+html[data-skin="industrial"] [data-help-id="contracts-dashboard"] [class*="rounded-lg"][class*="bg-slate-950"] {
+  background: color-mix(in srgb, var(--tf-skin-surface) 82%, transparent) !important;
+  border-color: var(--tf-skin-line) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-dashboard"] [class*="rounded-full"][class*="bg-green"],
+html[data-skin="industrial"] [data-help-id="contracts-dashboard"] [class*="rounded-full"][class*="bg-emerald"],
+html[data-skin="industrial"] [data-help-id="contracts-dashboard"] [class*="rounded-full"][class*="bg-slate"] {
+  background: color-mix(in srgb, var(--tf-skin-orange) 9%, var(--tf-skin-surface) 91%) !important;
+  border: 1px solid color-mix(in srgb, var(--tf-skin-orange) 30%, var(--tf-skin-line) 70%) !important;
+  border-radius: 6px !important;
+  color: var(--tf-skin-orange-deep) !important;
+  font-weight: 650 !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-dashboard"] [class*="text-green"],
+html[data-skin="industrial"] [data-help-id="contracts-dashboard"] [class*="text-emerald"],
+html[data-skin="industrial"] [data-help-id="contracts-dashboard"] [class*="text-blue"],
+html[data-skin="industrial"] [data-help-id="contracts-dashboard"] [class*="text-purple"],
+html[data-skin="industrial"] [data-help-id="contracts-dashboard"] [class*="text-violet"],
+html[data-skin="industrial"] [data-help-id="contracts-dashboard"] [class*="text-amber"] {
+  color: var(--tf-skin-orange-deep) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-dashboard"] [class*="text-red"],
+html[data-skin="industrial"] [data-help-id="contracts-dashboard"] [class*="text-rose"] {
+  color: color-mix(in srgb, var(--tf-skin-orange-deep) 74%, #5d1510 26%) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-dashboard"] [class*="bg-blue"],
+html[data-skin="industrial"] [data-help-id="contracts-dashboard"] [class*="bg-green"],
+html[data-skin="industrial"] [data-help-id="contracts-dashboard"] [class*="bg-emerald"],
+html[data-skin="industrial"] [data-help-id="contracts-dashboard"] [class*="bg-purple"],
+html[data-skin="industrial"] [data-help-id="contracts-dashboard"] [class*="bg-violet"],
+html[data-skin="industrial"] [data-help-id="contracts-dashboard"] [class*="bg-primary"] {
+  background-color: color-mix(in srgb, var(--tf-skin-orange) 78%, var(--tf-skin-surface) 22%) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-dashboard"] [class*="bg-amber"] {
+  background-color: color-mix(in srgb, var(--tf-skin-orange) 88%, var(--tf-skin-surface) 12%) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-dashboard"] [class*="bg-red"],
+html[data-skin="industrial"] [data-help-id="contracts-dashboard"] [class*="bg-rose"] {
+  background-color: color-mix(in srgb, var(--tf-skin-orange-deep) 82%, var(--tf-skin-text) 18%) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-cashflow-bar"] {
+  background: color-mix(in srgb, var(--tf-skin-surface-deep) 72%, transparent) !important;
+  border: 1px solid var(--tf-skin-line) !important;
+  border-radius: 6px !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-cashflow-bar"] > div {
+  color: #1f1306 !important;
+  border-right: 1px solid color-mix(in srgb, var(--tf-skin-surface) 62%, transparent);
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-cashflow-bar"] > div:nth-child(1) {
+  background: color-mix(in srgb, var(--tf-skin-orange) 78%, var(--tf-skin-surface) 22%) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-cashflow-bar"] > div:nth-child(2) {
+  background: color-mix(in srgb, var(--tf-skin-orange) 52%, var(--tf-skin-surface-deep) 48%) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-cashflow-bar"] > div:nth-child(3) {
+  background: var(--tf-skin-orange) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-cashflow-bar"] > div:nth-child(4) {
+  background: color-mix(in srgb, var(--tf-skin-orange-deep) 82%, var(--tf-skin-text) 18%) !important;
+  color: #fff8ed !important;
+  border-right: 0;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-dashboard"] [class*="border-l-emerald"],
+html[data-skin="industrial"] [data-help-id="contracts-dashboard"] [class*="border-l-green"],
+html[data-skin="industrial"] [data-help-id="contracts-dashboard"] [class*="border-l-blue"],
+html[data-skin="industrial"] [data-help-id="contracts-dashboard"] [class*="border-l-purple"],
+html[data-skin="industrial"] [data-help-id="contracts-dashboard"] [class*="border-l-violet"],
+html[data-skin="industrial"] [data-help-id="contracts-dashboard"] [class*="border-l-primary"] {
+  border-left-color: color-mix(in srgb, var(--tf-skin-orange) 72%, transparent) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-dashboard"] [class*="border-l-red"],
+html[data-skin="industrial"] [data-help-id="contracts-dashboard"] [class*="border-l-rose"] {
+  border-left-color: color-mix(in srgb, var(--tf-skin-orange-deep) 78%, transparent) !important;
+}
+
 html[data-skin="industrial"] [data-help-id="contracts-investor-kpis"] {
   gap: 1rem !important;
 }
