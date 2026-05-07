@@ -16,6 +16,7 @@ const accountMenuSource = readFileSync(join(process.cwd(), "shared/ui/UserAccoun
 const modalSource = readFileSync(join(process.cwd(), "shared/ui/Modal.tsx"), "utf8");
 const categoryFormModalSource = readFileSync(join(process.cwd(), "components/pipelineComponents/CategoryFormModal.tsx"), "utf8");
 const contractEditDialogSource = readFileSync(join(process.cwd(), "features/projects/contracts/forms/ContractEditDialog.tsx"), "utf8");
+const contractsDashboardSource = readFileSync(join(process.cwd(), "features/projects/contracts/dashboard/ContractsDashboard.tsx"), "utf8");
 
 const cssBlockFor = (selector: string) => {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -64,12 +65,25 @@ describe("industrial skin tokens", () => {
   it("skin Smluv má KPI strip, list a detailový rail jako samostatnou vrstvu", () => {
     expect(css).toContain("[data-help-id=\"contracts-kpi-strip\"]");
     expect(css).toContain("[data-help-id=\"contracts-kpi-card\"]");
+    expect(contractsDashboardSource).toContain('data-help-id="contracts-dashboard"');
+    expect(contractsDashboardSource).toContain('data-help-id="contracts-cashflow-bar"');
     expect(css).toContain("[data-help-id=\"contracts-list-rail\"]");
     expect(css).toContain("[data-help-id=\"contract-detail-shell\"]");
     expect(css).toContain("[data-help-id=\"contract-detail-rail\"]");
     expect(css).toContain("[data-help-id=\"contracts-investor-kpi-card\"]");
     expect(css).toContain("[data-help-id=\"contracts-investor-panel\"]");
     expect(css).toContain("grid-template-columns: minmax(132px, 156px) minmax(0, 1fr)");
+  });
+
+  it("industrial dashboard Smluv sjednocuje grafy, badge a KPI barvy do papírové palety", () => {
+    expect(css).toContain('html[data-skin="industrial"] [data-help-id="contracts-dashboard"] > [class*="rounded-xl"]');
+    expect(css).toContain('html[data-skin="industrial"] [data-help-id="contracts-dashboard"] [class*="rounded-full"][class*="bg-green"]');
+    expect(css).toContain('html[data-skin="industrial"] [data-help-id="contracts-dashboard"] [class*="text-green"]');
+    expect(css).toContain('html[data-skin="industrial"] [data-help-id="contracts-dashboard"] [class*="bg-blue"]');
+    expect(css).toContain('html[data-skin="industrial"] [data-help-id="contracts-cashflow-bar"] > div:nth-child(1)');
+    expect(css).toContain('html[data-skin="industrial"] [data-help-id="contracts-cashflow-bar"] > div:nth-child(4)');
+    expect(css).toContain('html[data-skin="industrial"] [data-help-id="contracts-dashboard"] [class*="border-l-blue"]');
+    expect(css).toContain("color-mix(in srgb, var(--tf-skin-orange) 78%, var(--tf-skin-surface) 22%)");
   });
 
   it("plná industrial CTA drží teplou oranžovou akci bez zelené a cihlové výplně", () => {

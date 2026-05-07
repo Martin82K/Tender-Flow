@@ -56,7 +56,7 @@ export const ContractsDashboard: React.FC<Props> = ({ contracts, projectDetails 
     values: { paid: number; approved: number; issued: number; overdue: number },
     pct: (value: number) => number,
   ) => (
-    <div className="mt-2 flex h-8 rounded-md overflow-hidden">
+    <div data-help-id="contracts-cashflow-bar" className="mt-2 flex h-8 rounded-md overflow-hidden">
       <div
         className="bg-green-500 grid place-items-center text-[11px] font-bold text-slate-950"
         style={{ flex: Math.max(values.paid, 0.01) }}
@@ -89,7 +89,7 @@ export const ContractsDashboard: React.FC<Props> = ({ contracts, projectDetails 
   );
 
   return (
-    <div className="grid grid-cols-12 gap-3 p-5">
+    <div data-help-id="contracts-dashboard" className="grid grid-cols-12 gap-3 p-5">
       <div className="col-span-12 md:col-span-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-4">
         <div className="text-[10px] uppercase tracking-wider text-slate-600 dark:text-slate-500 font-bold">
           Počet smluv
