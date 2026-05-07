@@ -1096,7 +1096,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
       {/* Top Row: 4 KPI Cards */}
       <div data-help-id="overview-kpi-cards" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* 1. Rozpočet (Investor) */}
-        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-sm hover:shadow-md transition-all">
+        <div className="industrial-kpi-card bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-sm hover:shadow-md transition-all">
           <div className="absolute top-0 left-0 h-full w-1 bg-blue-500" />
           <div className="flex flex-col gap-3 relative z-10">
             <span className="text-xs uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400 font-bold">
@@ -1112,7 +1112,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
         </div>
 
         {/* 2. Plánovaný Náklad */}
-        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-sm hover:shadow-md transition-all">
+        <div className="industrial-kpi-card bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-sm hover:shadow-md transition-all">
           <div className="absolute top-0 left-0 h-full w-1 bg-indigo-500" />
           <div className="flex flex-col gap-3 relative z-10">
             <span className="text-xs uppercase tracking-[0.18em] text-indigo-600 dark:text-indigo-400 font-bold">
@@ -1128,7 +1128,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
         </div>
 
         {/* 3. Zasmluvněno */}
-        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-sm hover:shadow-md transition-all">
+        <div className="industrial-kpi-card bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-sm hover:shadow-md transition-all">
           <div className="absolute top-0 left-0 h-full w-1 bg-emerald-500" />
           <div className="flex flex-col gap-3 relative z-10">
             <span className="text-xs uppercase tracking-[0.18em] text-emerald-600 dark:text-emerald-400 font-bold">
@@ -1147,7 +1147,7 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
         </div>
 
         {/* 4. Postup Zadávání */}
-        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-sm hover:shadow-md transition-all">
+        <div className="industrial-kpi-card bg-white dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-sm hover:shadow-md transition-all">
           <div className="absolute top-0 left-0 h-full w-1 bg-amber-500" />
           <div className="flex flex-col gap-3 relative z-10">
             <div className="flex items-center justify-between">

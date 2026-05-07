@@ -395,6 +395,63 @@ html[data-skin="industrial"] [data-help-id="overview-kpi-cards"] .industrial-kpi
   letter-spacing: 0.14em;
 }
 
+html[data-skin="industrial"] [data-help-id="overview-kpi-cards"] .industrial-kpi-card {
+  min-height: 8.5rem;
+  background: color-mix(in srgb, var(--tf-skin-surface) 74%, transparent) !important;
+  border-color: var(--tf-skin-line) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  padding: 1.35rem 1.45rem !important;
+}
+
+html[data-skin="industrial"] [data-help-id="overview-kpi-cards"] .industrial-kpi-card:hover {
+  border-color: color-mix(in srgb, var(--tf-skin-orange) 38%, var(--tf-skin-line) 62%) !important;
+  box-shadow: none !important;
+}
+
+html[data-skin="industrial"] [data-help-id="overview-kpi-cards"] .industrial-kpi-card > .absolute {
+  width: 2px !important;
+  background: color-mix(in srgb, var(--tf-skin-orange) 72%, var(--tf-skin-text) 8%) !important;
+  opacity: 0.95;
+}
+
+html[data-skin="industrial"] [data-help-id="overview-kpi-cards"] .industrial-kpi-card:nth-child(3) > .absolute,
+html[data-skin="industrial"] [data-help-id="overview-kpi-cards"] .industrial-kpi-card:nth-child(4) > .absolute {
+  background: color-mix(in srgb, var(--tf-skin-orange) 84%, var(--tf-skin-surface) 16%) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="overview-kpi-cards"] .industrial-kpi-card span[class*="uppercase"],
+html[data-skin="industrial"] [data-help-id="overview-kpi-cards"] .industrial-kpi-card [class*="tracking-[0.18em]"] {
+  color: var(--tf-skin-orange-deep) !important;
+  font-size: 0.6875rem !important;
+  font-weight: 650 !important;
+  letter-spacing: 0.15em !important;
+}
+
+html[data-skin="industrial"] [data-help-id="overview-kpi-cards"] .industrial-kpi-card [class*="text-3xl"],
+html[data-skin="industrial"] [data-help-id="overview-kpi-cards"] .industrial-kpi-card [class*="font-black"] {
+  color: var(--tf-skin-text) !important;
+  font-size: clamp(1.75rem, 1.25rem + 0.9vw, 2.15rem) !important;
+  font-weight: 650 !important;
+  letter-spacing: 0 !important;
+}
+
+html[data-skin="industrial"] [data-help-id="overview-kpi-cards"] .industrial-kpi-card [class*="text-emerald"],
+html[data-skin="industrial"] [data-help-id="overview-kpi-cards"] .industrial-kpi-card [class*="text-blue"],
+html[data-skin="industrial"] [data-help-id="overview-kpi-cards"] .industrial-kpi-card [class*="text-indigo"],
+html[data-skin="industrial"] [data-help-id="overview-kpi-cards"] .industrial-kpi-card [class*="text-amber"] {
+  color: var(--tf-skin-orange-deep) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="overview-kpi-cards"] .industrial-kpi-card [class*="bg-slate-200"],
+html[data-skin="industrial"] [data-help-id="overview-kpi-cards"] .industrial-kpi-card [class*="bg-slate-800"] {
+  background: color-mix(in srgb, var(--tf-skin-surface-deep) 70%, transparent) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="overview-kpi-cards"] .industrial-kpi-card [class*="bg-amber"] {
+  background: linear-gradient(90deg, var(--tf-skin-orange) 0%, color-mix(in srgb, var(--tf-skin-orange) 72%, var(--tf-skin-surface) 28%) 100%) !important;
+}
+
 html[data-skin="industrial"] [data-help-id="overview-demand-table"] {
   background: color-mix(in srgb, var(--tf-skin-surface) 84%, transparent) !important;
   border-color: var(--tf-skin-line) !important;
@@ -1427,14 +1484,68 @@ html[data-skin="industrial"] [data-help-id="contracts-retention-long"] [class*="
 
 html[data-skin="industrial"] .tf-contracts-module [class*="border-l-blue"],
 html[data-skin="industrial"] .tf-contracts-module [class*="border-l-purple"],
-html[data-skin="industrial"] .tf-contracts-module [class*="border-l-violet"] {
+html[data-skin="industrial"] .tf-contracts-module [class*="border-l-violet"],
+html[data-skin="industrial"] .tf-contracts-module [class*="border-l-green"],
+html[data-skin="industrial"] .tf-contracts-module [class*="border-l-emerald"],
+html[data-skin="industrial"] .tf-contracts-module [class*="border-l-primary"] {
   border-left-color: color-mix(in srgb, var(--tf-skin-orange) 68%, transparent) !important;
 }
 
 html[data-skin="industrial"] .tf-contracts-module [class*="text-blue"],
 html[data-skin="industrial"] .tf-contracts-module [class*="text-purple"],
-html[data-skin="industrial"] .tf-contracts-module [class*="text-violet"] {
+html[data-skin="industrial"] .tf-contracts-module [class*="text-violet"],
+html[data-skin="industrial"] .tf-contracts-module [class*="text-green"],
+html[data-skin="industrial"] .tf-contracts-module [class*="text-emerald"],
+html[data-skin="industrial"] .tf-contracts-module [class*="text-amber"] {
   color: var(--tf-skin-orange-deep) !important;
+}
+
+html[data-skin="industrial"] .tf-contracts-module [class*="text-red"],
+html[data-skin="industrial"] .tf-contracts-module [class*="text-rose"] {
+  color: color-mix(in srgb, var(--tf-skin-orange-deep) 76%, #5d1510 24%) !important;
+}
+
+html[data-skin="industrial"] .tf-contracts-module span[class*="bg-blue"],
+html[data-skin="industrial"] .tf-contracts-module span[class*="bg-green"],
+html[data-skin="industrial"] .tf-contracts-module span[class*="bg-emerald"],
+html[data-skin="industrial"] .tf-contracts-module span[class*="bg-purple"],
+html[data-skin="industrial"] .tf-contracts-module span[class*="bg-violet"],
+html[data-skin="industrial"] .tf-contracts-module span[class*="bg-primary"] {
+  background: color-mix(in srgb, var(--tf-skin-orange) 10%, var(--tf-skin-surface) 90%) !important;
+  border: 1px solid color-mix(in srgb, var(--tf-skin-orange) 28%, var(--tf-skin-line) 72%) !important;
+  border-radius: 5px !important;
+  color: var(--tf-skin-orange-deep) !important;
+  font-weight: 650 !important;
+}
+
+html[data-skin="industrial"] .tf-contracts-module span[class*="bg-red"],
+html[data-skin="industrial"] .tf-contracts-module span[class*="bg-rose"] {
+  background: color-mix(in srgb, var(--tf-skin-orange-deep) 10%, var(--tf-skin-surface) 90%) !important;
+  border: 1px solid color-mix(in srgb, var(--tf-skin-orange-deep) 26%, var(--tf-skin-line) 74%) !important;
+  border-radius: 5px !important;
+  color: color-mix(in srgb, var(--tf-skin-orange-deep) 76%, #5d1510 24%) !important;
+}
+
+html[data-skin="industrial"] .tf-contracts-module [class*="bg-gradient-to-r"][class*="from-amber"][class*="to-green"],
+html[data-skin="industrial"] .tf-contracts-module [class*="h-full"][class*="bg-green"],
+html[data-skin="industrial"] .tf-contracts-module [class*="h-full"][class*="bg-emerald"],
+html[data-skin="industrial"] .tf-contracts-module [class*="h-full"][class*="bg-blue"],
+html[data-skin="industrial"] .tf-contracts-module [class*="h-full"][class*="bg-purple"],
+html[data-skin="industrial"] .tf-contracts-module [class*="h-full"][class*="bg-violet"] {
+  background: linear-gradient(90deg, var(--tf-skin-orange) 0%, color-mix(in srgb, var(--tf-skin-orange) 72%, var(--tf-skin-surface) 28%) 100%) !important;
+  border: 0 !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contracts-list-rail"] [class*="bg-primary"],
+html[data-skin="industrial"] [data-help-id="contract-detail-rail"] [class*="bg-primary"] {
+  background: color-mix(in srgb, var(--tf-skin-orange) 10%, transparent) !important;
+  color: var(--tf-skin-orange-deep) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="contract-detail-shell"] [id^="sec-"] [class*="bg-slate-50"],
+html[data-skin="industrial"] [data-help-id="contract-detail-shell"] [id^="sec-"] [class*="bg-slate-900"],
+html[data-skin="industrial"] [data-help-id="contract-detail-shell"] [id^="sec-"] [class*="bg-white"] {
+  background: color-mix(in srgb, var(--tf-skin-surface) 78%, transparent) !important;
 }
 
 
