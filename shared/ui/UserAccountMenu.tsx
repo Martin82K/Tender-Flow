@@ -31,11 +31,11 @@ interface UserAccountMenuProps {
 type Tier = "free" | "starter" | "pro" | "enterprise" | "admin";
 
 const tierLabelMap: Record<Tier, string> = {
-  free: "FREE",
-  starter: "STARTER",
-  pro: "PRO",
-  enterprise: "ENT",
-  admin: "BOSS",
+  free: "Free tarif",
+  starter: "Starter tarif",
+  pro: "Pro tarif",
+  enterprise: "Enterprise tarif",
+  admin: "Admin tarif",
 };
 
 const themeOptions: Array<{
@@ -70,9 +70,9 @@ const getInitials = (nameOrEmail: string | undefined): string => {
 };
 
 const getDisplayRole = (role: User["role"] | undefined): string => {
-  if (role === "admin") return "Admin";
+  if (role === "admin") return "Správce";
   if (role === "demo") return "Demo";
-  return "User";
+  return "Uživatel";
 };
 
 export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
@@ -104,6 +104,7 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
   const tier = (user?.subscriptionTier || "free") as Tier;
   const fallbackName = displayName || user?.name || user?.email?.split("@")[0] || "Uživatel";
   const initials = getInitials(displayName || user?.name || user?.email);
+  const accountMeta = `${getDisplayRole(user?.role)} · ${tierLabelMap[tier] ?? "Free tarif"}`;
   const canUploadAvatar = Boolean(user?.id && user.role !== "demo");
   const normalizedUiScale = normalizeUiScale(uiScale);
   const uiScalePercent = Math.round(normalizedUiScale * 100);
@@ -344,13 +345,8 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
                 <div className="truncate text-[11px] text-slate-500 dark:text-slate-400">
                   {user?.email || "Bez e-mailu"}
                 </div>
-                <div className="mt-1 flex flex-wrap gap-1">
-                  <span className={`badge-neon badge-neon-${tier}`}>
-                    {tierLabelMap[tier] ?? tier.toUpperCase()}
-                  </span>
-                  <span className="rounded border border-primary/40 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-primary">
-                    {getDisplayRole(user?.role)}
-                  </span>
+                <div className="mt-0.5 truncate text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400 dark:text-slate-500">
+                  {accountMeta}
                 </div>
               </div>
             </div>
