@@ -85,6 +85,8 @@ describe("industrial skin tokens", () => {
   it("industrial průřez zachová canvas i pro Plán VŘ a Pipeline", () => {
     expect(tenderPlanSource).toContain("tf-tender-plan-view");
     expect(tenderPlanSource).toContain('data-help-id="tender-plan-add"');
+    expect(tenderPlanSource).toContain('data-help-id="tender-plan-header-icon"');
+    expect(tenderPlanSource).toContain('data-help-id="tender-plan-tip"');
     expect(projectOverviewSource).toContain("tf-project-overview");
     expect(pipelineSource).toContain("tf-pipeline-view");
     expect(contactsSource).toContain("tf-contacts-view");
@@ -96,6 +98,20 @@ describe("industrial skin tokens", () => {
     expect(css).toContain(".tf-documents-view");
     expect(css).toContain('html[data-skin="industrial"] .tf-tender-plan-view');
     expect(css).toContain('html[data-skin="industrial"] .tf-pipeline-view');
+  });
+
+  it("industrial sjednocuje barvu tlačítek a Plán VŘ nemá modrozelené badge mimo skin", () => {
+    expect(tenderPlanSource).toContain('data-help-id="tender-plan-created-badge"');
+    expect(tenderPlanSource).toContain('data-help-id="tender-plan-create-demand"');
+    expect(tenderPlanSource).toContain('data-help-id="tender-plan-status-badge"');
+    expect(tenderPlanSource).toContain('data-help-id="tender-plan-save-row"');
+    expect(css).toContain('button[class*="text-white"][class*="bg-blue"]');
+    expect(css).toContain('button[class*="text-white"][class*="bg-emerald"]');
+    expect(css).toContain('button[class*="text-white"][class*="bg-violet"]');
+    expect(css).toContain('[data-help-id="tender-plan-created-badge"]');
+    expect(css).toContain('[data-help-id="tender-plan-create-demand"]');
+    expect(css).toContain('[data-help-id="tender-plan-status-badge"]');
+    expect(css).toContain("color-mix(in srgb, var(--tf-skin-orange) 8%, var(--tf-skin-surface) 92%)");
   });
 
   it("industrial Command Center, Subdodavatelé a Dokumenty nepřekrývají canvas bílým pozadím", () => {

@@ -863,6 +863,103 @@ html[data-skin="industrial"] [data-help-id="pipeline-category-card"] > button {
   color: var(--tf-skin-text-2) !important;
 }
 
+html[data-skin="industrial"] .tf-app-main button[class*="text-white"][class*="bg-primary"],
+html[data-skin="industrial"] .tf-app-main button[class*="text-white"][class*="bg-blue"],
+html[data-skin="industrial"] .tf-app-main button[class*="text-white"][class*="bg-emerald"],
+html[data-skin="industrial"] .tf-app-main button[class*="text-white"][class*="bg-green"],
+html[data-skin="industrial"] .tf-app-main button[class*="text-white"][class*="bg-teal"],
+html[data-skin="industrial"] .tf-app-main button[class*="text-white"][class*="bg-violet"],
+html[data-skin="industrial"] .tf-app-main button[class*="text-white"][class*="bg-purple"],
+html[data-skin="industrial"] .tf-modal-panel button[class*="text-white"][class*="bg-primary"],
+html[data-skin="industrial"] .tf-modal-panel button[class*="text-white"][class*="bg-blue"],
+html[data-skin="industrial"] .tf-modal-panel button[class*="text-white"][class*="bg-emerald"],
+html[data-skin="industrial"] .tf-modal-panel button[class*="text-white"][class*="bg-green"],
+html[data-skin="industrial"] .tf-modal-panel button[class*="text-white"][class*="bg-teal"],
+html[data-skin="industrial"] .tf-modal-panel button[class*="text-white"][class*="bg-violet"],
+html[data-skin="industrial"] .tf-modal-panel button[class*="text-white"][class*="bg-purple"],
+html[data-skin="industrial"] .tf-pipeline-modal-panel button[class*="text-white"][class*="bg-primary"],
+html[data-skin="industrial"] .tf-pipeline-modal-panel button[class*="text-white"][class*="bg-blue"],
+html[data-skin="industrial"] .tf-pipeline-modal-panel button[class*="text-white"][class*="bg-emerald"],
+html[data-skin="industrial"] .tf-pipeline-modal-panel button[class*="text-white"][class*="bg-green"],
+html[data-skin="industrial"] .tf-pipeline-modal-panel button[class*="text-white"][class*="bg-teal"],
+html[data-skin="industrial"] .tf-pipeline-modal-panel button[class*="text-white"][class*="bg-violet"],
+html[data-skin="industrial"] .tf-pipeline-modal-panel button[class*="text-white"][class*="bg-purple"] {
+  background: linear-gradient(180deg, #ffb052 0%, var(--tf-skin-orange) 100%) !important;
+  border-color: color-mix(in srgb, var(--tf-skin-orange) 72%, var(--tf-skin-text) 14%) !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  color: #1f1306 !important;
+  font-weight: 650 !important;
+}
+
+html[data-skin="industrial"] .tf-app-main button[class*="text-white"][class*="bg-primary"]:hover,
+html[data-skin="industrial"] .tf-app-main button[class*="text-white"][class*="bg-blue"]:hover,
+html[data-skin="industrial"] .tf-app-main button[class*="text-white"][class*="bg-emerald"]:hover,
+html[data-skin="industrial"] .tf-app-main button[class*="text-white"][class*="bg-green"]:hover,
+html[data-skin="industrial"] .tf-app-main button[class*="text-white"][class*="bg-teal"]:hover,
+html[data-skin="industrial"] .tf-app-main button[class*="text-white"][class*="bg-violet"]:hover,
+html[data-skin="industrial"] .tf-app-main button[class*="text-white"][class*="bg-purple"]:hover,
+html[data-skin="industrial"] .tf-modal-panel button[class*="text-white"][class*="bg-primary"]:hover,
+html[data-skin="industrial"] .tf-modal-panel button[class*="text-white"][class*="bg-blue"]:hover,
+html[data-skin="industrial"] .tf-modal-panel button[class*="text-white"][class*="bg-emerald"]:hover,
+html[data-skin="industrial"] .tf-modal-panel button[class*="text-white"][class*="bg-green"]:hover,
+html[data-skin="industrial"] .tf-modal-panel button[class*="text-white"][class*="bg-teal"]:hover,
+html[data-skin="industrial"] .tf-modal-panel button[class*="text-white"][class*="bg-violet"]:hover,
+html[data-skin="industrial"] .tf-modal-panel button[class*="text-white"][class*="bg-purple"]:hover,
+html[data-skin="industrial"] .tf-pipeline-modal-panel button[class*="text-white"][class*="bg-primary"]:hover,
+html[data-skin="industrial"] .tf-pipeline-modal-panel button[class*="text-white"][class*="bg-blue"]:hover,
+html[data-skin="industrial"] .tf-pipeline-modal-panel button[class*="text-white"][class*="bg-emerald"]:hover,
+html[data-skin="industrial"] .tf-pipeline-modal-panel button[class*="text-white"][class*="bg-green"]:hover,
+html[data-skin="industrial"] .tf-pipeline-modal-panel button[class*="text-white"][class*="bg-teal"]:hover,
+html[data-skin="industrial"] .tf-pipeline-modal-panel button[class*="text-white"][class*="bg-violet"]:hover,
+html[data-skin="industrial"] .tf-pipeline-modal-panel button[class*="text-white"][class*="bg-purple"]:hover {
+  background: linear-gradient(180deg, var(--tf-skin-orange) 0%, color-mix(in srgb, var(--tf-skin-orange) 82%, var(--tf-skin-text) 18%) 100%) !important;
+  color: #fff8ed !important;
+}
+
+html[data-skin="industrial"] [data-help-id="tender-plan-header-icon"],
+html[data-skin="industrial"] [data-help-id="tender-plan-tip"] {
+  background: color-mix(in srgb, var(--tf-skin-surface-muted) 62%, transparent) !important;
+  border-color: var(--tf-skin-line-2) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+
+html[data-skin="industrial"] [data-help-id="tender-plan-header-icon"] span,
+html[data-skin="industrial"] [data-help-id="tender-plan-tip"] span,
+html[data-skin="industrial"] [data-help-id="tender-plan-tip"] h4 {
+  color: var(--tf-skin-orange-deep) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="tender-plan-created-badge"],
+html[data-skin="industrial"] [data-help-id="tender-plan-status-badge"] {
+  background: color-mix(in srgb, var(--tf-skin-surface-muted) 70%, transparent) !important;
+  border-color: var(--tf-skin-line-2) !important;
+  border-radius: 6px !important;
+  color: var(--tf-skin-text-2) !important;
+  font-weight: 650 !important;
+}
+
+html[data-skin="industrial"] [data-help-id="tender-plan-created-badge"] span {
+  color: var(--tf-skin-orange-deep) !important;
+}
+
+html[data-skin="industrial"] [data-help-id="tender-plan-create-demand"],
+html[data-skin="industrial"] [data-help-id="tender-plan-save-row"] {
+  background: color-mix(in srgb, var(--tf-skin-orange) 8%, var(--tf-skin-surface) 92%) !important;
+  border-color: color-mix(in srgb, var(--tf-skin-orange) 44%, var(--tf-skin-line) 56%) !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  color: var(--tf-skin-orange-deep) !important;
+  font-weight: 650 !important;
+}
+
+html[data-skin="industrial"] [data-help-id="tender-plan-create-demand"]:hover,
+html[data-skin="industrial"] [data-help-id="tender-plan-save-row"]:hover {
+  background: color-mix(in srgb, var(--tf-skin-orange) 16%, var(--tf-skin-surface) 84%) !important;
+  color: var(--tf-skin-text) !important;
+}
+
 html[data-skin="industrial"] .tf-tender-plan-view input,
 html[data-skin="industrial"] .tf-tender-plan-view select,
 html[data-skin="industrial"] .tf-tender-plan-view textarea {
