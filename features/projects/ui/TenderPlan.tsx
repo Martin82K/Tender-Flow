@@ -60,7 +60,7 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
             <div className="max-w-7xl mx-auto w-full">
                 {/* Header */}
                 <div className="flex items-center gap-3 mb-8 px-4 md:px-0">
-                    <div className="size-12 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-500/20 flex items-center justify-center">
+                    <div data-help-id="tender-plan-header-icon" className="size-12 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-500/20 flex items-center justify-center">
                         <span className="material-symbols-outlined text-blue-400 text-2xl">event_note</span>
                     </div>
                     <div>
@@ -138,7 +138,7 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
                         </nav>
 
                         {/* Info tip side */}
-                        <div className="mt-8 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl mx-2 md:mx-0">
+                        <div data-help-id="tender-plan-tip" className="mt-8 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl mx-2 md:mx-0">
                             <div className="flex items-start gap-3">
                                 <span className="material-symbols-outlined text-blue-400 text-[20px]">info</span>
                                 <div>
@@ -286,6 +286,7 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
                                                 <td className="px-6 py-4 text-right">
                                                     <div className="flex items-center justify-end gap-2">
                                                         <button
+                                                            data-help-id="tender-plan-save-row"
                                                             onClick={handleAdd}
                                                             className="p-2 text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors"
                                                         >
@@ -340,6 +341,7 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
                                                             <td className="px-6 py-4 text-right">
                                                                 <div className="flex items-center justify-end gap-2">
                                                                     <button
+                                                                        data-help-id="tender-plan-save-row"
                                                                         onClick={handleUpdate}
                                                                         className="p-2 text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors"
                                                                     >
@@ -374,12 +376,13 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
                                                         </td>
                                                         <td className="px-6 py-4 text-center">
                                                             {hasCategory ? (
-                                                                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-medium rounded-lg border border-emerald-500/30">
+                                                                <span data-help-id="tender-plan-created-badge" className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-medium rounded-lg border border-emerald-500/30">
                                                                     <span className="material-symbols-outlined text-[14px]">check_circle</span>
                                                                     Vytvořeno
                                                                 </span>
                                                             ) : (
                                                                 <button
+                                                                    data-help-id="tender-plan-create-demand"
                                                                     onClick={() => handleCreateCategory(item)}
                                                                     className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 text-xs font-medium rounded-lg border border-blue-500/30 transition-colors"
                                                                 >
@@ -389,7 +392,7 @@ export const TenderPlan: React.FC<TenderPlanProps> = ({ projectId, categories, o
                                                             )}
                                                         </td>
                                                         <td className="px-6 py-4">
-                                                            <span className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-lg border ${getTenderPlanStatusBadgeClasses(status.color)}`}>
+                                                            <span data-help-id="tender-plan-status-badge" className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-lg border ${getTenderPlanStatusBadgeClasses(status.color)}`}>
                                                                 {status.label}
                                                             </span>
                                                         </td>
