@@ -7,7 +7,7 @@ export const buildDesktopCsp = (isDev: boolean): string => {
     const scriptSrc = [
         "'self'",
         // Vite HMR injects inline runtime helpers in development.
-        // ExcelJS still uses Function() in the renderer dependency graph during dev.
+        // Development tooling may evaluate generated helpers; production must stay eval-free.
         ...(isDev ? ["'unsafe-inline'", "'unsafe-eval'"] : []),
     ].join(' ');
 
