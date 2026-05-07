@@ -477,8 +477,9 @@ html[data-skin="industrial"] [data-help-id="pipeline-add-category"]:hover {
 }
 
 html[data-skin="industrial"] [data-help-id="schedule-export"] [class*="absolute"],
-html[data-skin="industrial"] .tf-account-menu [role="menu"] {
-  background: var(--tf-skin-surface) !important;
+html[data-skin="industrial"] .tf-account-menu [role="menu"],
+html[data-skin="industrial"] .tf-account-menu-panel {
+  background: color-mix(in srgb, var(--tf-skin-surface) 94%, transparent) !important;
   border-color: var(--tf-skin-line-2) !important;
   border-radius: 8px !important;
   box-shadow: 0 18px 42px -32px rgba(20, 16, 8, 0.45) !important;
@@ -486,25 +487,49 @@ html[data-skin="industrial"] .tf-account-menu [role="menu"] {
 }
 
 html.dark[data-skin="industrial"] [data-help-id="schedule-export"] [class*="absolute"],
-html.dark[data-skin="industrial"] .tf-account-menu [role="menu"] {
+html.dark[data-skin="industrial"] .tf-account-menu [role="menu"],
+html.dark[data-skin="industrial"] .tf-account-menu-panel {
   box-shadow: 0 18px 42px -28px rgba(0, 0, 0, 0.85) !important;
 }
 
 html[data-skin="industrial"] .tf-account-menu [role="menu"] [class*="border-slate"],
+html[data-skin="industrial"] .tf-account-menu-panel [class*="border-slate"],
 html[data-skin="industrial"] [data-help-id="schedule-export"] [class*="border-slate"] {
   border-color: var(--tf-skin-line) !important;
 }
 
 html[data-skin="industrial"] .tf-account-menu [role="menu"] button,
+html[data-skin="industrial"] .tf-account-menu-panel button,
 html[data-skin="industrial"] [data-help-id="schedule-export"] button {
   color: var(--tf-skin-text-2) !important;
   border-radius: 6px !important;
 }
 
 html[data-skin="industrial"] .tf-account-menu [role="menu"] button:hover,
+html[data-skin="industrial"] .tf-account-menu-panel button:hover,
 html[data-skin="industrial"] [data-help-id="schedule-export"] button:hover {
   background: color-mix(in srgb, var(--tf-skin-orange) 10%, transparent) !important;
   color: var(--tf-skin-text) !important;
+}
+
+html[data-skin="industrial"] .tf-account-menu-panel [class*="bg-white"],
+html[data-skin="industrial"] .tf-account-menu-panel [class*="bg-slate-50"],
+html[data-skin="industrial"] .tf-account-menu-panel [class*="bg-slate-800"],
+html[data-skin="industrial"] .tf-account-menu-panel [class*="bg-slate-900"],
+html[data-skin="industrial"] .tf-account-menu-panel [class*="bg-slate-950"] {
+  background-color: color-mix(in srgb, var(--tf-skin-surface-muted) 62%, transparent) !important;
+}
+
+html[data-skin="industrial"] .tf-account-menu-panel [class*="text-slate-900"],
+html[data-skin="industrial"] .tf-account-menu-panel [class*="text-white"] {
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin="industrial"] .tf-account-menu-panel [class*="text-slate-700"],
+html[data-skin="industrial"] .tf-account-menu-panel [class*="text-slate-600"],
+html[data-skin="industrial"] .tf-account-menu-panel [class*="text-slate-500"],
+html[data-skin="industrial"] .tf-account-menu-panel [class*="text-slate-400"] {
+  color: var(--tf-skin-muted) !important;
 }
 
 html[data-skin="industrial"] .tf-schedule-view {
@@ -515,7 +540,8 @@ html[data-skin="industrial"] .tf-schedule-view {
 html[data-skin="industrial"] .tf-tender-plan-view,
 html[data-skin="industrial"] .tf-pipeline-view,
 html[data-skin="industrial"] .tf-project-overview,
-html[data-skin="industrial"] .tf-contacts-view {
+html[data-skin="industrial"] .tf-contacts-view,
+html[data-skin="industrial"] .tf-documents-view {
   background: transparent !important;
   color: var(--tf-skin-text);
 }
@@ -546,6 +572,71 @@ html[data-skin="industrial"] .tf-contacts-view [class*="text-slate-700"],
 html[data-skin="industrial"] .tf-contacts-view [class*="text-slate-600"],
 html[data-skin="industrial"] .tf-contacts-view [class*="text-slate-500"],
 html[data-skin="industrial"] .tf-contacts-view [class*="text-slate-400"] {
+  color: var(--tf-skin-muted) !important;
+}
+
+html[data-skin="industrial"] .tf-documents-view [data-help-id="documents-sidebar"] button {
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: var(--tf-skin-muted) !important;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+html[data-skin="industrial"] .tf-documents-view [data-help-id="documents-sidebar"] button[class*="text-primary"] {
+  border-left: 2px solid var(--tf-skin-orange) !important;
+  color: var(--tf-skin-orange-deep) !important;
+}
+
+html[data-skin="industrial"] .tf-documents-view [data-help-id="documents-sidebar"] button:hover {
+  background: color-mix(in srgb, var(--tf-skin-orange) 8%, transparent) !important;
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin="industrial"] .tf-documents-view main,
+html[data-skin="industrial"] .tf-documents-view [data-help-id="dochub-status"],
+html[data-skin="industrial"] .tf-documents-view [data-help-id="dochub-setup"],
+html[data-skin="industrial"] .tf-documents-view [data-help-id="dochub-structure"],
+html[data-skin="industrial"] .tf-documents-view [data-help-id="dochub-links"],
+html[data-skin="industrial"] .tf-documents-view [data-help-id="dochub-autocreate"],
+html[data-skin="industrial"] .tf-documents-view [data-help-id="dochub-history"] {
+  background: color-mix(in srgb, var(--tf-skin-surface) 82%, transparent) !important;
+  border-color: var(--tf-skin-line) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+
+html[data-skin="industrial"] .tf-documents-view [class*="bg-white"],
+html[data-skin="industrial"] .tf-documents-view [class*="bg-slate-50"],
+html[data-skin="industrial"] .tf-documents-view [class*="bg-slate-100"],
+html[data-skin="industrial"] .tf-documents-view [class*="bg-slate-800"],
+html[data-skin="industrial"] .tf-documents-view [class*="bg-slate-900"],
+html[data-skin="industrial"] .tf-documents-view [class*="bg-slate-950"] {
+  background-color: color-mix(in srgb, var(--tf-skin-surface) 78%, transparent) !important;
+}
+
+html[data-skin="industrial"] .tf-documents-view [class*="border-slate"],
+html[data-skin="industrial"] .tf-documents-view [class*="ring-slate"] {
+  border-color: var(--tf-skin-line) !important;
+  --tw-ring-color: var(--tf-skin-line) !important;
+}
+
+html[data-skin="industrial"] .tf-documents-view h2,
+html[data-skin="industrial"] .tf-documents-view h3,
+html[data-skin="industrial"] .tf-documents-view h4,
+html[data-skin="industrial"] .tf-documents-view [class*="text-slate-900"],
+html[data-skin="industrial"] .tf-documents-view [class*="text-white"] {
+  color: var(--tf-skin-text) !important;
+}
+
+html[data-skin="industrial"] .tf-documents-view p,
+html[data-skin="industrial"] .tf-documents-view label,
+html[data-skin="industrial"] .tf-documents-view [class*="text-slate-700"],
+html[data-skin="industrial"] .tf-documents-view [class*="text-slate-600"],
+html[data-skin="industrial"] .tf-documents-view [class*="text-slate-500"],
+html[data-skin="industrial"] .tf-documents-view [class*="text-slate-400"] {
   color: var(--tf-skin-muted) !important;
 }
 
