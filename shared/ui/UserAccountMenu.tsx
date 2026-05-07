@@ -315,14 +315,14 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
           <div
             ref={menuPanelRef}
             role="menu"
-            className="fixed z-[100] w-[min(92vw,320px)] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/15 dark:border-slate-700 dark:bg-slate-900 dark:shadow-black/40"
+            className="tf-account-menu-panel fixed z-[100] w-[min(92vw,280px)] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-2xl shadow-slate-900/15 dark:border-slate-700 dark:bg-slate-900 dark:shadow-black/40"
             style={{
               top: menuPosition.top,
               right: menuPosition.right,
             }}
           >
-            <div className="flex gap-3 border-b border-slate-200 p-3 dark:border-slate-800">
-              <div className="relative size-12 shrink-0 overflow-hidden rounded-xl bg-primary text-white shadow-inner">
+            <div className="flex gap-2.5 border-b border-slate-200 p-2.5 dark:border-slate-800">
+              <div className="relative size-10 shrink-0 overflow-hidden rounded-lg bg-primary text-white shadow-inner">
                 {avatarUrl ? (
                   <img
                     src={avatarUrl}
@@ -331,20 +331,20 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
                     referrerPolicy="no-referrer"
                   />
                 ) : (
-                  <div className="flex size-full items-center justify-center text-base font-black">
+                  <div className="flex size-full items-center justify-center text-sm font-black">
                     {initials}
                   </div>
                 )}
               </div>
 
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-extrabold text-slate-900 dark:text-white">
+                <div className="truncate text-[13px] font-extrabold text-slate-900 dark:text-white">
                   {fallbackName}
                 </div>
-                <div className="truncate text-xs text-slate-500 dark:text-slate-400">
+                <div className="truncate text-[11px] text-slate-500 dark:text-slate-400">
                   {user?.email || "Bez e-mailu"}
                 </div>
-                <div className="mt-1.5 flex flex-wrap gap-1">
+                <div className="mt-1 flex flex-wrap gap-1">
                   <span className={`badge-neon badge-neon-${tier}`}>
                     {tierLabelMap[tier] ?? tier.toUpperCase()}
                   </span>
@@ -355,29 +355,29 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
               </div>
             </div>
 
-            <div className="border-b border-slate-200 p-2 dark:border-slate-800">
+            <div className="border-b border-slate-200 p-1.5 dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={!canUploadAvatar || isUploadingAvatar}
-                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-[13px] font-medium text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:text-slate-300 dark:hover:bg-slate-800"
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] font-medium text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:text-slate-300 dark:hover:bg-slate-800"
               >
                 <span
                   aria-hidden="true"
-                  className="material-symbols-outlined text-[18px] text-slate-400"
+                  className="material-symbols-outlined text-[16px] text-slate-400"
                 >
                   add_a_photo
                 </span>
                 {isUploadingAvatar ? "Nahrávám avatar..." : "Nahrát avatar"}
               </button>
               {avatarStatus && (
-                <div className="px-3 pb-1 text-xs text-slate-500 dark:text-slate-400">
+                <div className="px-2 pb-1 text-[11px] text-slate-500 dark:text-slate-400">
                   {avatarStatus}
                 </div>
               )}
             </div>
 
-            <div className="border-b border-slate-200 p-3 dark:border-slate-800">
+            <div className="border-b border-slate-200 p-2 dark:border-slate-800">
               <MenuItem
                 icon="person"
                 label="Můj profil"
@@ -406,8 +406,8 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
               />
             </div>
 
-            <div className="border-b border-slate-200 p-3 dark:border-slate-800">
-              <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+            <div className="border-b border-slate-200 p-2 dark:border-slate-800">
+              <div className="mb-1.5 text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
                 Vzhled
               </div>
               <div className="grid grid-cols-3 gap-1.5">
@@ -416,46 +416,46 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
                     key={option.id}
                     type="button"
                     onClick={() => onSetTheme(option.id)}
-                    className={`flex min-h-10 items-center justify-center gap-1.5 rounded-lg border px-2 text-[11px] font-bold transition-all ${
+                    className={`flex min-h-8 items-center justify-center gap-1 rounded-md border px-1.5 text-[10px] font-bold transition-all ${
                       theme === option.id
                         ? "border-primary bg-primary/10 text-primary"
                         : "border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-400 dark:hover:bg-slate-800"
                     }`}
                     aria-pressed={theme === option.id}
                   >
-                    <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
+                    <span aria-hidden="true" className="material-symbols-outlined text-[16px]">
                       {option.icon}
                     </span>
                     {option.label}
                   </button>
                 ))}
               </div>
-              <div className="mt-3 grid grid-cols-2 gap-1.5">
+              <div className="mt-2 grid grid-cols-2 gap-1.5">
                 {skinOptions.map((option) => (
                   <button
                     key={option.id}
                     type="button"
                     onClick={() => onSetSkin(option.id)}
-                    className={`flex min-h-10 items-center justify-center gap-1.5 rounded-lg border px-2 text-[11px] font-bold transition-all ${
+                    className={`flex min-h-8 items-center justify-center gap-1 rounded-md border px-1.5 text-[10px] font-bold transition-all ${
                       skin === option.id
                         ? "border-primary bg-primary/10 text-primary"
                         : "border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-400 dark:hover:bg-slate-800"
                     }`}
                     aria-pressed={skin === option.id}
                   >
-                    <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
+                    <span aria-hidden="true" className="material-symbols-outlined text-[16px]">
                       {option.icon}
                     </span>
                     {option.label}
                   </button>
                 ))}
               </div>
-              <div className="mt-3 flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 p-1.5 dark:border-slate-700 dark:bg-slate-950">
+              <div className="mt-2 flex items-center justify-between gap-2 rounded-md border border-slate-200 bg-slate-50 p-1.5 dark:border-slate-700 dark:bg-slate-950">
                 <div className="min-w-0 px-1.5">
-                  <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                  <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
                     Velikost UI
                   </div>
-                  <div className="text-xs font-bold tabular-nums text-slate-700 dark:text-slate-200">
+                  <div className="text-[11px] font-bold tabular-nums text-slate-700 dark:text-slate-200">
                     {uiScalePercent} %
                   </div>
                 </div>
@@ -482,7 +482,7 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
               </div>
             </div>
 
-            <div className="p-2">
+            <div className="p-1.5">
               <MenuItem
                 icon="help"
                 label="Nápověda & podpora"
@@ -568,18 +568,18 @@ const MenuItem: React.FC<MenuItemProps> = ({
     type="button"
     role="menuitem"
     onClick={onClick}
-    className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] font-medium transition-colors ${
+    className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] font-medium transition-colors ${
       danger
         ? "text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40"
         : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
     }`}
   >
-    <span aria-hidden="true" className="material-symbols-outlined text-[18px] text-slate-400">
+    <span aria-hidden="true" className="material-symbols-outlined text-[16px] text-slate-400">
       {icon}
     </span>
     <span className="min-w-0 flex-1 truncate">{label}</span>
     {detail && (
-      <span className="max-w-32 truncate text-xs text-slate-400 dark:text-slate-500">
+      <span className="max-w-28 truncate text-[11px] text-slate-400 dark:text-slate-500">
         {detail}
       </span>
     )}
@@ -603,11 +603,11 @@ const UiScaleButton: React.FC<UiScaleButtonProps> = ({
     type="button"
     onClick={onClick}
     disabled={disabled}
-    className="flex size-8 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+    className="flex size-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
     aria-label={label}
     title={label}
   >
-    <span aria-hidden="true" className="material-symbols-outlined text-[17px]">
+    <span aria-hidden="true" className="material-symbols-outlined text-[15px]">
       {icon}
     </span>
   </button>

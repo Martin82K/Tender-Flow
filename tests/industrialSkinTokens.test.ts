@@ -9,6 +9,8 @@ const tenderPlanSource = readFileSync(join(process.cwd(), "features/projects/ui/
 const projectOverviewSource = readFileSync(join(process.cwd(), "features/projects/ui/ProjectOverviewNew.tsx"), "utf8");
 const pipelineSource = readFileSync(join(process.cwd(), "components/Pipeline.tsx"), "utf8");
 const contactsSource = readFileSync(join(process.cwd(), "features/contacts/Contacts.tsx"), "utf8");
+const documentsSource = readFileSync(join(process.cwd(), "components/projectLayoutComponents/ProjectDocuments.tsx"), "utf8");
+const accountMenuSource = readFileSync(join(process.cwd(), "shared/ui/UserAccountMenu.tsx"), "utf8");
 const modalSource = readFileSync(join(process.cwd(), "shared/ui/Modal.tsx"), "utf8");
 const categoryFormModalSource = readFileSync(join(process.cwd(), "components/pipelineComponents/CategoryFormModal.tsx"), "utf8");
 
@@ -83,15 +85,17 @@ describe("industrial skin tokens", () => {
     expect(projectOverviewSource).toContain("tf-project-overview");
     expect(pipelineSource).toContain("tf-pipeline-view");
     expect(contactsSource).toContain("tf-contacts-view");
+    expect(documentsSource).toContain("tf-documents-view");
     expect(css).toContain(".tf-tender-plan-view");
     expect(css).toContain(".tf-pipeline-view");
     expect(css).toContain(".tf-project-overview");
     expect(css).toContain(".tf-contacts-view");
+    expect(css).toContain(".tf-documents-view");
     expect(css).toContain('html[data-skin="industrial"] .tf-tender-plan-view');
     expect(css).toContain('html[data-skin="industrial"] .tf-pipeline-view');
   });
 
-  it("industrial Command Center a Subdodavatelé nepřekrývají canvas bílým pozadím", () => {
+  it("industrial Command Center, Subdodavatelé a Dokumenty nepřekrývají canvas bílým pozadím", () => {
     expect(commandCenterCss).toContain('html[data-skin="industrial"] .cc-root');
     expect(commandCenterCss).toContain("background: transparent !important");
     expect(commandCenterCss).toContain("background-image: none !important");
@@ -99,6 +103,17 @@ describe("industrial skin tokens", () => {
     expect(css).toContain('html[data-skin="industrial"] .tf-contacts-view');
     expect(css).toContain('[data-help-id="contacts-list"]');
     expect(css).toContain('[data-help-id="contacts-cards"]');
+    expect(css).toContain('html[data-skin="industrial"] .tf-documents-view');
+    expect(css).toContain('[data-help-id="documents-sidebar"]');
+  });
+
+  it("industrial uživatelské menu skinuje portálový panel a drží kompaktní velikost", () => {
+    expect(accountMenuSource).toContain("tf-account-menu-panel");
+    expect(accountMenuSource).toContain("w-[min(92vw,280px)]");
+    expect(accountMenuSource).toContain("size-10");
+    expect(accountMenuSource).toContain("min-h-8");
+    expect(css).toContain(".tf-account-menu-panel");
+    expect(css).toContain('html[data-skin="industrial"] .tf-account-menu-panel');
   });
 
   it("industrial modály mají sdílené skin třídy i pro ruční pipeline dialogy", () => {
