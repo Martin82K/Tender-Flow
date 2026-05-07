@@ -289,7 +289,7 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
           aria-expanded={isOpen}
           aria-label="Uživatelské menu"
         >
-          <span className="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary text-[11px] font-black text-white ring-2 ring-white dark:ring-slate-900">
+          <span className="tf-account-menu-avatar flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary text-[11px] font-black text-white ring-2 ring-white dark:ring-slate-900">
             {avatarUrl ? (
               <img
                 src={avatarUrl}
@@ -323,7 +323,7 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
             }}
           >
             <div className="flex gap-2.5 border-b border-slate-200 p-2.5 dark:border-slate-800">
-              <div className="relative size-10 shrink-0 overflow-hidden rounded-lg bg-primary text-white shadow-inner">
+              <div className="tf-account-menu-avatar relative size-10 shrink-0 overflow-hidden rounded-lg bg-primary text-white shadow-inner">
                 {avatarUrl ? (
                   <img
                     src={avatarUrl}

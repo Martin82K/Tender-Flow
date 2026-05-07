@@ -154,6 +154,7 @@ describe("industrial skin tokens", () => {
 
   it("industrial uživatelské menu skinuje portálový panel a drží kompaktní velikost", () => {
     expect(accountMenuSource).toContain("tf-account-menu-panel");
+    expect(accountMenuSource).toContain("tf-account-menu-avatar");
     expect(accountMenuSource).toContain("w-[min(92vw,280px)]");
     expect(accountMenuSource).toContain("size-10");
     expect(accountMenuSource).toContain("min-h-8");
@@ -162,7 +163,11 @@ describe("industrial skin tokens", () => {
     expect(accountMenuSource).not.toContain("BOSS");
     expect(css).not.toContain(".badge-neon");
     expect(css).toContain(".tf-account-menu-panel");
+    expect(css).toContain(".tf-account-menu-avatar");
     expect(css).toContain('html[data-skin="industrial"] .tf-account-menu-panel');
+    expect(css).toContain('html[data-skin="industrial"] .tf-account-menu-panel button[aria-pressed="true"]');
+    expect(css).toContain('html[data-skin="industrial"] .tf-account-menu > button[aria-expanded="true"]');
+    expect(css).toContain("--tw-ring-color: color-mix(in srgb, var(--tf-skin-surface) 84%, transparent) !important");
   });
 
   it("industrial modály mají sdílené skin třídy i pro ruční pipeline dialogy", () => {
