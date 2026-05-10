@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useAccountMenu } from "@/shared/ui/AccountMenuContext";
 import { HeaderGlobalSearch } from "@/shared/ui/GlobalSearch";
+import { useTopbarActions } from "@/shared/ui/TopbarActionsContext";
 import { renderIndustrialProjectTitle } from "@/shared/ui/brandedTitle";
 import type { ThemeSkin } from "@/hooks/useTheme";
 
@@ -57,6 +58,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const accountMenu = useAccountMenu();
+  const topbarActions = useTopbarActions();
   const isIndustrialSkin = skin === "industrial";
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -133,6 +135,7 @@ export const Header: React.FC<HeaderProps> = ({
             <HeaderGlobalSearch />
           )
         )}
+        {topbarActions}
         {helpSlot}
         {notificationSlot}
         {showAccountMenu && accountMenu}
@@ -172,6 +175,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <HeaderGlobalSearch />
               )
             )}
+            {topbarActions}
             {helpSlot}
             {notificationSlot}
             {showAccountMenu && accountMenu}
@@ -224,6 +228,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <HeaderGlobalSearch />
               )
             )}
+            {topbarActions}
             {helpSlot}
             {notificationSlot}
             {showAccountMenu && accountMenu}

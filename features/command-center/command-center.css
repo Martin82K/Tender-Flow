@@ -546,7 +546,7 @@
 .cc-filterbar__group {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
   min-width: 0;
 }
 
@@ -564,6 +564,12 @@
   gap: 8px;
   flex-wrap: wrap;
   align-items: center;
+  row-gap: 6px;
+  padding-block: 2px;
+}
+
+.cc-filterbar__group--health .cc-filterbar__group-chips {
+  gap: 6px;
 }
 
 .cc-filterbar__muted {
@@ -580,16 +586,36 @@
 .cc-root .cc-chip {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 4px 12px;
+  flex: 0 0 auto;
+  min-height: 24px;
+  padding: 5px 12px;
   border-radius: 999px;
   font-size: 11px;
   font-weight: 500;
+  line-height: 1;
   border: 1px solid var(--cc-line);
   background: var(--cc-surface);
   color: var(--cc-text-dim);
   transition: all 0.12s ease;
   white-space: nowrap;
+}
+
+.cc-root .cc-chip--health {
+  padding-inline: 10px;
+}
+
+.cc-root .cc-chip--health-crit {
+  min-width: 66px;
+}
+
+.cc-root .cc-chip--health-warn {
+  min-width: 58px;
+}
+
+.cc-root .cc-chip--health-ok {
+  min-width: 42px;
 }
 
 .cc-root .cc-chip:hover {
@@ -760,7 +786,7 @@
   flex-direction: column;
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 0 clamp(14px, 2.2vw, 24px) 10px;
 }
 
 .cc-queue-item {
@@ -775,7 +801,7 @@
   display: grid;
   grid-template-columns: 26px minmax(0, 1fr) minmax(0, auto);
   gap: 12px;
-  padding: 10px 16px;
+  padding: 9px 10px;
   transition: background 0.12s ease;
   width: 100%;
   text-align: left;
@@ -909,7 +935,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 16px;
+  padding: 10px clamp(24px, 3vw, 34px);
   border-bottom: 1px solid var(--cc-line-soft);
   background: rgba(77, 159, 255, 0.02);
 }
@@ -1212,9 +1238,14 @@ html:not(.dark) .cc-cal__view-switch {
   padding: 1px 0;
 }
 
-.cc-cal__cell:hover {
-  background: var(--cc-surface-3);
+.cc-cal__cell:hover,
+.cc-cal__cell:focus-visible {
+  background: var(--cc-blue-soft);
+  border-color: color-mix(in srgb, var(--cc-blue) 44%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cc-blue) 22%, transparent);
   color: var(--cc-text);
+  outline: none;
+  transform: translateY(-1px);
 }
 
 .cc-cal__cell--out {
@@ -1235,8 +1266,11 @@ html:not(.dark) .cc-cal__view-switch {
   box-shadow: 0 0 0 3px rgba(77, 159, 255, 0.18);
 }
 
-.cc-cal__cell--today:hover {
-  background: transparent;
+.cc-cal__cell--today:hover,
+.cc-cal__cell--today:focus-visible {
+  background: var(--cc-blue-soft);
+  border-color: var(--cc-blue);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cc-blue) 28%, transparent);
 }
 
 .cc-cal__cell--has {
@@ -1276,13 +1310,14 @@ html:not(.dark) .cc-cal__view-switch {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  padding: 0 10px 10px;
 }
 
 .cc-cal__list-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 14px 4px;
+  padding: 8px 4px 4px;
   font-size: 10px;
   letter-spacing: 1px;
   text-transform: uppercase;
@@ -1339,6 +1374,10 @@ html:not(.dark) .cc-cal__view-switch {
 }
 .cc-root .cc-cal__event-btn:hover {
   background: rgba(77, 159, 255, 0.03);
+}
+
+.cc-root .cc-cal__list .cc-cal__event-btn {
+  padding-inline: 8px;
 }
 
 .cc-root .cc-cal__event-btn--upcoming {

@@ -15,6 +15,7 @@ describe("desktop CSP", () => {
     expect(csp).toContain("frame-src");
     expect(csp).toContain("https://checkout.stripe.com");
     expect(csp).toContain("https://ares.gov.cz");
+    expect(csp).toContain("https://api.openai.com");
     expect(csp).toContain("'unsafe-eval'");
   });
 

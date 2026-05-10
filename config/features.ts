@@ -14,6 +14,7 @@ export const FEATURES = {
   
   // Advanced Features
   FEATURE_AI_INSIGHTS: 'feature_ai_insights',
+  FEATURE_VOICE_ASSISTANT: 'feature_voice_assistant',
   FEATURE_ADVANCED_REPORTING: 'feature_advanced_reporting',
   FEATURE_TEAM_COLLABORATION: 'feature_team_collaboration',
   FEATURE_API_ACCESS: 'feature_api_access',

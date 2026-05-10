@@ -1,5 +1,6 @@
 import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppContent } from "@/app/AppContent";
 import {
@@ -189,13 +190,26 @@ vi.mock("@app/views/AppLoadingView", () => ({
 }));
 
 describe("AppContent legal acceptance gate", () => {
+  const renderAppContent = () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+      },
+    });
+    return render(
+      <QueryClientProvider client={queryClient}>
+        <AppContent />
+      </QueryClientProvider>,
+    );
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
     mockState.acceptLegalDocuments.mockResolvedValue(undefined);
   });
 
   it("po přihlášení zobrazí modal a uloží potvrzení po zaškrtnutí obou voleb", async () => {
-    render(<AppContent />);
+    renderAppContent();
 
     expect(
       screen.getByText("Potvrzení podmínek a ochrany osobních údajů"),
@@ -220,7 +234,7 @@ describe("AppContent legal acceptance gate", () => {
       new Error("Přihlášení vypršelo. Přihlaste se prosím znovu."),
     );
 
-    render(<AppContent />);
+    renderAppContent();
 
     fireEvent.click(screen.getByLabelText(/přijímám podmínky používání aplikace/i));
     fireEvent.click(

@@ -95,7 +95,7 @@ Platby: Stripe. Zrušení kdykoliv. Bez závazku.
 
 - **Cloud úložiště:** Google Drive, OneDrive, lokální souborový systém.
 - **Platby:** Stripe.
-- **AI agenti:** MCP (Model Context Protocol) server pro read-only přístup k projektům, tendrům, kontaktům a harmonogramu. Podporované nástroje: `tf_list_projects`, `tf_list_tenders`, `tf_list_contacts`, `tf_get_project_detail`, `tf_get_schedule`, `tf_get_tender_plan`, `tf_create_bid`.
+- **AI agenti:** MCP (Model Context Protocol) server pro read-only přístup k projektům, tendrům, kontaktům, harmonogramu, nabídkám, vítězům VŘ a smluvním podmínkám. Podporované nástroje: `tf_find_project`, `tf_list_projects`, `tf_list_tenders`, `tf_list_contacts`, `tf_get_project_detail`, `tf_get_tender_detail`, `tf_get_tender_winner`, `tf_list_tender_bids`, `tf_list_project_winners`, `tf_get_contract_detail`, `tf_get_schedule`, `tf_get_tender_plan`.
 - **Webhooky:** Stripe platební události.
 - **Veřejné rejstříky:** ARES (ČR) pro auto-doplnění firemních údajů podle IČ.
 

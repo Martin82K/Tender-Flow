@@ -1,7 +1,7 @@
 import { buildCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { createAuthedUserClient } from "../_shared/supabase.ts";
 
-const json = (status: number, body: unknown) =>
+const json = (req: Request, status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
     status,
     headers: { ...buildCorsHeaders(req), "content-type": "application/json" },
@@ -14,11 +14,11 @@ Deno.serve(async (req) => {
   try {
     const authed = createAuthedUserClient(req);
     const { data: userData, error: userError } = await authed.auth.getUser();
-    if (userError || !userData.user) return json(401, { error: "Unauthorized" });
+    if (userError || !userData.user) return json(req, 401, { error: "Unauthorized" });
 
     const body = await req.json().catch(() => ({}));
     const projectId = typeof body?.projectId === "string" ? body.projectId : null;
-    if (!projectId) return json(400, { error: "Missing projectId" });
+    if (!projectId) return json(req, 400, { error: "Missing projectId" });
 
     const [projectRes, categoriesRes, planRes] = await Promise.all([
       authed
@@ -36,11 +36,11 @@ Deno.serve(async (req) => {
         .eq("project_id", projectId),
     ]);
 
-    if (projectRes.error) return json(500, { error: projectRes.error.message });
-    if (categoriesRes.error) return json(500, { error: categoriesRes.error.message });
-    if (planRes.error) return json(500, { error: planRes.error.message });
+    if (projectRes.error) return json(req, 500, { error: projectRes.error.message });
+    if (categoriesRes.error) return json(req, 500, { error: categoriesRes.error.message });
+    if (planRes.error) return json(req, 500, { error: planRes.error.message });
 
-    return json(200, {
+    return json(req, 200, {
       projectId,
       finishDate: projectRes.data?.finish_date || null,
       tenderStages: (categoriesRes.data || []).map((row: any) => ({
@@ -59,6 +59,6 @@ Deno.serve(async (req) => {
       })),
     });
   } catch (error) {
-    return json(500, { error: error instanceof Error ? error.message : String(error) });
+    return json(req, 500, { error: error instanceof Error ? error.message : String(error) });
   }
 });
