@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { MainLayout } from "@/components/layouts/MainLayout";
 import { UpdateBanner } from "@/components/desktop";
 import { RequireFeature } from "@/shared/routing/RequireFeature";
@@ -42,7 +42,12 @@ import { requiresLegalAcceptance } from "@/shared/legal/legalDocumentVersions";
 import { WhatsNewModal } from "@/features/whats-new/WhatsNewModal";
 import { useWhatsNew } from "@/features/whats-new/useWhatsNew";
 import { GlobalSearchProvider, GlobalSearchModal } from "@/shared/ui/GlobalSearch";
+import { TopbarActionsProvider } from "@/shared/ui/TopbarActionsContext";
 import { useAutoBackupScheduler } from "@/features/backup/hooks/useAutoBackupScheduler";
+import { useAllContractsQuery } from "@/features/projects/contracts/hooks/useAllContractsQuery";
+import { VoiceAssistantProvider } from "@/features/voice-assistant/context/VoiceAssistantContext";
+import { VoiceAssistantLauncher } from "@/features/voice-assistant/ui/VoiceAssistantLauncher";
+import { VoiceAssistantPanel } from "@/features/voice-assistant/ui/VoiceAssistantPanel";
 
 export const AppContent: React.FC = () => {
   const {
@@ -59,6 +64,20 @@ export const AppContent: React.FC = () => {
   const { currentPlan, isLoading: isFeaturesLoading } = useFeatures();
 
   const { state, actions } = useAppData(showUiModal);
+  const isVoiceAssistantAdmin = user?.role === "admin";
+  const projectIds = useMemo(() => state.projects.map((project) => project.id), [state.projects]);
+  const { data: voiceContracts = [] } = useAllContractsQuery(
+    projectIds,
+    isVoiceAssistantAdmin && isDesktop && isAuthenticated && !authLoading,
+  );
+  const contractsByProject = useMemo(
+    () =>
+      voiceContracts.reduce<Record<string, typeof voiceContracts>>((acc, contract) => {
+        (acc[contract.projectId] ??= []).push(contract);
+        return acc;
+      }, {}),
+    [voiceContracts],
+  );
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [currentView, setCurrentView] = useState<View>("command-center");
@@ -451,37 +470,52 @@ export const AppContent: React.FC = () => {
     contacts: state.contacts,
     projectDetails: state.allProjectDetails,
   };
+  const voiceSources = {
+    ...searchSources,
+    contractsByProject,
+  };
 
   return (
     <GlobalSearchProvider sources={searchSources}>
-      <MainLayout
-        uiModal={uiModal}
-        closeUiModal={closeUiModal}
-        isSidebarOpen={isSidebarOpen}
-        setIsSidebarOpen={setIsSidebarOpen}
+      <VoiceAssistantProvider
+        sources={voiceSources}
+        currentProjectId={currentView === "project" ? state.selectedProjectId || null : null}
         currentView={currentView}
-        projects={state.projects}
-        selectedProjectId={state.selectedProjectId}
-        onProjectSelect={handleNavigateToProject}
-        activeProjectTab={activeProjectTab}
-        user={user}
-        theme={theme}
-        skin={skin}
-        onSetTheme={setTheme}
-        onSetSkin={setSkin}
-        uiScale={uiScale}
-        onSetUiScale={setUiScale}
-        onResetUiScale={resetUiScale}
-        onLogout={() => logout()}
-        isBackgroundLoading={state.isBackgroundLoading}
-        backgroundWarning={state.backgroundWarning}
-        onReloadData={() => actions.loadInitialData(true)}
-        onHideBackgroundWarning={() => actions.setBackgroundWarning(null)}
+        isDesktop={isDesktop}
+        isAdmin={isVoiceAssistantAdmin}
       >
-        <Suspense fallback={<AppLazyFallback />}>{renderCurrentView()}</Suspense>
+        <TopbarActionsProvider actions={<VoiceAssistantLauncher />}>
+          <MainLayout
+            uiModal={uiModal}
+            closeUiModal={closeUiModal}
+            isSidebarOpen={isSidebarOpen}
+            setIsSidebarOpen={setIsSidebarOpen}
+            currentView={currentView}
+            projects={state.projects}
+            selectedProjectId={state.selectedProjectId}
+            onProjectSelect={handleNavigateToProject}
+            activeProjectTab={activeProjectTab}
+            user={user}
+            theme={theme}
+            skin={skin}
+            onSetTheme={setTheme}
+            onSetSkin={setSkin}
+            uiScale={uiScale}
+            onSetUiScale={setUiScale}
+            onResetUiScale={resetUiScale}
+            onLogout={() => logout()}
+            isBackgroundLoading={state.isBackgroundLoading}
+            backgroundWarning={state.backgroundWarning}
+            onReloadData={() => actions.loadInitialData(true)}
+            onHideBackgroundWarning={() => actions.setBackgroundWarning(null)}
+          >
+            <Suspense fallback={<AppLazyFallback />}>{renderCurrentView()}</Suspense>
 
-        {isDesktop && <UpdateBanner />}
-      </MainLayout>
+            {isDesktop && <UpdateBanner />}
+          </MainLayout>
+        </TopbarActionsProvider>
+        <VoiceAssistantPanel />
+      </VoiceAssistantProvider>
       <LegalAcceptanceModal
         isOpen={shouldRequireLegalAcceptance}
         isSubmitting={isLegalAcceptanceSaving}
