@@ -1,0 +1,367 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6] [cursor=pointer]:
+          - img "TenderFlow — CRM pro stavební tendry" [ref=e7]
+          - generic [ref=e8]: TenderFlow
+        - navigation [ref=e9]:
+          - generic [ref=e10] [cursor=pointer]: Funkce
+          - generic [ref=e11] [cursor=pointer]: Platforma
+          - generic [ref=e12] [cursor=pointer]: Ceník
+          - generic [ref=e13] [cursor=pointer]: Reference
+        - generic [ref=e14]:
+          - button "Přihlásit se" [ref=e15] [cursor=pointer]
+          - button "Začít zdarma" [ref=e16] [cursor=pointer]
+    - generic [ref=e23]:
+      - generic [ref=e24]:
+        - generic [ref=e25]: AI-powered správa tendrů
+        - generic [ref=e26]: Nové
+      - heading "Stavební tendry, přehledně." [level=1] [ref=e27]:
+        - text: Stavební tendry,
+        - text: přehledně.
+      - paragraph [ref=e28]: Kompletní platforma pro řízení nabídkových řízení, subdodavatelů a projektové dokumentace. Od správy kontaktů k poptávce až po zápisy, přehledy a smlouvy.
+      - generic [ref=e29]:
+        - button "Vyzkoušet 14 dní zdarma" [ref=e30] [cursor=pointer]
+        - button "Prohlédnout demo →" [ref=e31] [cursor=pointer]
+      - generic [ref=e33]: Platforma pro efektivní řízení tendrů
+    - generic [ref=e35]:
+      - generic [ref=e36]: Pipeline tendrů u25C6
+      - generic [ref=e37]: Správa kontaktů u25C6
+      - generic [ref=e38]: AI analýza smluv u25C6
+      - generic [ref=e39]: Dokumentový hub u25C6
+      - generic [ref=e40]: Harmonogram u25C6
+      - generic [ref=e41]: Excel nástroje u25C6
+      - generic [ref=e42]: Desktop & Web u25C6
+      - generic [ref=e43]: Reporting u25C6
+      - generic [ref=e44]: Pipeline tendrů u25C6
+      - generic [ref=e45]: Správa kontaktů u25C6
+      - generic [ref=e46]: AI analýza smluv u25C6
+      - generic [ref=e47]: Dokumentový hub u25C6
+      - generic [ref=e48]: Harmonogram u25C6
+      - generic [ref=e49]: Excel nástroje u25C6
+      - generic [ref=e50]: Desktop & Web u25C6
+      - generic [ref=e51]: Reporting u25C6
+    - generic [ref=e53]:
+      - generic [ref=e54]: Funkce
+      - heading "Vše co potřebujete pro Vaše vítězství" [level=2] [ref=e55]
+      - paragraph [ref=e56]: Šest modulů navržených specificky pro české a slovenské stavební firmy.
+      - generic [ref=e57]:
+        - generic [ref=e58]:
+          - generic [ref=e59]: Klíčový modul
+          - heading "Inteligentní pipeline tendrů" [level=3] [ref=e60]
+          - paragraph [ref=e61]: Vizuální Kanban board se sledováním fází, automatickými notifikacemi a deadliny. Vidíte přesně kde jsou vaše nabídky v reálném čase.
+          - generic [ref=e63]:
+            - generic [ref=e64]:
+              - generic [ref=e65]: "24"
+              - generic [ref=e66]: Aktivní
+            - generic [ref=e67]:
+              - generic [ref=e68]: 87%
+              - generic [ref=e69]: Win rate
+            - generic [ref=e70]:
+              - generic [ref=e71]: 12.4M
+              - generic [ref=e72]: Objem Kč
+        - generic [ref=e84]:
+          - generic [ref=e85]: AI
+          - heading "OCR čtení objednávek, smluv" [level=3] [ref=e86]
+          - paragraph [ref=e87]: Pomocí AI je zajištěno čtení naskenovaných dokumentů pro získání parametrů. Buduje přehled o parametrech subdodávek pro stavbu. Úspora času proti pročítání naskenovaných dokumentů.
+        - generic [ref=e88]:
+          - heading "CRM kontakty" [level=3] [ref=e89]
+          - paragraph [ref=e90]: 360° pohled na subdodavatele — historie, hodnocení, nabídky, kontaktní osoby. Auto doplňování informací o dodavateli z veřejně dostupných rejstříků dle zadání IČ.
+        - generic [ref=e91]:
+          - heading "Složkomat" [level=3] [ref=e92]
+          - paragraph [ref=e93]: Centralizované dokumenty s automatickou strukturou. Google Drive, OneDrive nebo lokální disk.
+        - generic [ref=e94]:
+          - heading "Harmonogram" [level=3] [ref=e95]
+          - paragraph [ref=e96]: Ganttův diagram s milníky, závislostmi a týmovou kolaborací v reálném čase.
+    - generic [ref=e99]:
+      - generic [ref=e100]:
+        - generic [ref=e101]: Platforma
+        - heading "Navrženo pro stavební profesionály" [level=2] [ref=e102]
+        - paragraph [ref=e103]: Dashboard, který ukazuje přesně to, co potřebujete. Web i desktop verze se synchronizují v reálném čase.
+        - list [ref=e104]:
+          - listitem [ref=e105]:
+            - generic [ref=e106]: ✓
+            - generic [ref=e107]:
+              - strong [ref=e108]: Neomezené projekty
+              - text: — spravujte celé portfolio z jednoho místa
+          - listitem [ref=e109]:
+            - generic [ref=e110]: ✓
+            - generic [ref=e111]:
+              - strong [ref=e112]: Real-time synchronizace
+              - text: — váš tým vidí změny okamžitě
+          - listitem [ref=e113]:
+            - generic [ref=e114]: ✓
+            - generic [ref=e115]:
+              - strong [ref=e116]: Export jedním klikem
+              - text: — PDF, Excel, CSV pro vaše reporty
+          - listitem [ref=e117]:
+            - generic [ref=e118]: ✓
+            - generic [ref=e119]:
+              - strong [ref=e120]: Desktop & Web
+              - text: — nativní Electron app + plnohodnotný web
+          - listitem [ref=e121]:
+            - generic [ref=e122]: ✓
+            - generic [ref=e123]:
+              - strong [ref=e124]: GDPR & bezpečnost
+              - text: — RLS, šifrování dat, compliance
+      - generic [ref=e125]:
+        - generic [ref=e130]: TenderFlow — Dashboard
+        - generic [ref=e131]:
+          - generic [ref=e132]:
+            - generic [ref=e133]: Dashboard
+            - generic [ref=e135]: Projekty
+            - generic [ref=e137]: Pipeline
+            - generic [ref=e139]: Kontakty
+            - generic [ref=e141]: Dokumenty
+            - generic [ref=e143]: Harmonogram
+            - generic [ref=e145]: Nastavení
+          - generic [ref=e147]:
+            - generic [ref=e148]:
+              - generic [ref=e149]: Přehled
+              - generic [ref=e150]: + Nový projekt
+            - generic [ref=e151]:
+              - generic [ref=e152]:
+                - generic [ref=e153]: "24"
+                - generic [ref=e154]: Aktivní tendry
+              - generic [ref=e155]:
+                - generic [ref=e156]: 87%
+                - generic [ref=e157]: Win rate
+              - generic [ref=e158]:
+                - generic [ref=e159]: 12.4M
+                - generic [ref=e160]: Objem Kč
+            - generic [ref=e161]:
+              - generic [ref=e162]:
+                - generic [ref=e163]:
+                  - text: Nové
+                  - generic [ref=e164]: "3"
+                - generic [ref=e165]:
+                  - generic [ref=e166]: Bytový dům Vinohrady
+                  - text: 4.2M Kč
+                  - generic [ref=e167]: Odesláno
+                - generic [ref=e168]:
+                  - generic [ref=e169]: Admin budova
+                  - text: 1.8M Kč
+                  - generic [ref=e170]: Rozpracované
+              - generic [ref=e171]:
+                - generic [ref=e172]:
+                  - text: Nabídka
+                  - generic [ref=e173]: "5"
+                - generic [ref=e174]:
+                  - generic [ref=e175]: Hotel Centrum
+                  - text: 8.5M Kč
+                  - generic [ref=e176]: 14 dní
+                - generic [ref=e177]:
+                  - generic [ref=e178]: Škola Barrandov
+                  - text: 3.1M Kč
+                  - generic [ref=e179]: Odesláno
+              - generic [ref=e180]:
+                - generic [ref=e181]:
+                  - text: Vyjednávání
+                  - generic [ref=e182]: "2"
+                - generic [ref=e183]:
+                  - generic [ref=e184]: Retail park
+                  - text: 12M Kč
+                  - generic [ref=e185]: Finální
+              - generic [ref=e186]:
+                - generic [ref=e187]:
+                  - text: Výhra
+                  - generic [ref=e188]: "4"
+                - generic [ref=e189]:
+                  - generic [ref=e190]: Logistické centrum
+                  - text: 22M Kč
+                  - generic [ref=e191]: Podepsáno
+    - generic [ref=e193]:
+      - generic [ref=e194]:
+        - generic [ref=e195]: Ceník
+        - heading "Firemní licence, domluvené na míru" [level=2] [ref=e196]
+        - paragraph [ref=e197]: TenderFlow nabízíme výhradně jako Enterprise řešení pro stavební firmy. Cenu, fakturační období a počet licencí sestavujeme na míru po firemní konzultaci.
+      - generic [ref=e198]:
+        - generic [ref=e199]:
+          - generic [ref=e200]:
+            - generic [ref=e201]: ◆
+            - generic [ref=e202]: Enterprise
+          - generic [ref=e203]:
+            - generic [ref=e204]: Na míru
+            - generic [ref=e205]: podle počtu licencí a období
+        - paragraph [ref=e206]: Kompletní platforma pro řízení tendrů, obchodní pipeline, dokumentů, reportingu a týmových licencí v jednom firemním systému — včetně všech modulů a AI funkcí.
+        - generic [ref=e208]:
+          - generic [ref=e209]:
+            - generic [ref=e210]: Tendry & projekty
+            - list [ref=e211]:
+              - listitem [ref=e212]:
+                - generic [ref=e213]: ✓
+                - text: Neomezené projekty
+              - listitem [ref=e214]:
+                - generic [ref=e215]: ✓
+                - text: Plán výběrových řízení
+              - listitem [ref=e216]:
+                - generic [ref=e217]: ✓
+                - text: Importy VŘ
+              - listitem [ref=e218]:
+                - generic [ref=e219]: ✓
+                - text: Harmonogram měsíc / týden / den
+              - listitem [ref=e220]:
+                - generic [ref=e221]: ✓
+                - text: Modul subdodavatelé
+              - listitem [ref=e222]:
+                - generic [ref=e223]: ✓
+                - text: Hodnocení dodavatelů
+              - listitem [ref=e224]:
+                - generic [ref=e225]: ✓
+                - text: Sdílení projektů v týmu
+              - listitem [ref=e226]:
+                - generic [ref=e227]: ✓
+                - text: Archivace projektů
+              - listitem [ref=e228]:
+                - generic [ref=e229]: ✓
+                - text: Základní i detailní reporty
+          - generic [ref=e230]:
+            - generic [ref=e231]: Dokumenty & AI
+            - list [ref=e232]:
+              - listitem [ref=e233]:
+                - generic [ref=e234]: ✓
+                - text: Modul Smlouvy
+              - listitem [ref=e235]:
+                - generic [ref=e236]: ✓
+                - text: OCR čtení dokumentů (AI)
+              - listitem [ref=e237]:
+                - generic [ref=e238]: ✓
+                - text: Složkomat — automatizace složek
+              - listitem [ref=e239]:
+                - generic [ref=e240]: ✓
+                - text: Excel Indexer — podklady pro VŘ
+              - listitem [ref=e241]:
+                - generic [ref=e242]: ✓
+                - text: Excel Merger — spojování listů
+              - listitem [ref=e243]:
+                - generic [ref=e244]: ✓
+                - text: Excel Unlocker
+              - listitem [ref=e245]:
+                - generic [ref=e246]: ✓
+                - text: Export do Excel
+              - listitem [ref=e247]:
+                - generic [ref=e248]: ✓
+                - text: Export do PDF
+          - generic [ref=e249]:
+            - generic [ref=e250]: Platforma & integrace
+            - list [ref=e251]:
+              - listitem [ref=e252]:
+                - generic [ref=e253]: ✓
+                - text: Desktopová aplikace
+              - listitem [ref=e254]:
+                - generic [ref=e255]: ✓
+                - text: Automatické aktualizace v aplikaci
+              - listitem [ref=e256]:
+                - generic [ref=e257]: ✓
+                - text: Okamžitý přístup k novinkám
+              - listitem [ref=e258]:
+                - generic [ref=e259]: ✓
+                - text: Pokročilé integrace
+              - listitem [ref=e260]:
+                - generic [ref=e261]: ✓
+                - text: Geokódování kontaktů
+              - listitem [ref=e262]:
+                - generic [ref=e263]: ✓
+                - text: Integrace mapy s kontakty
+              - listitem [ref=e264]:
+                - generic [ref=e265]: ✓
+                - text: Onboarding asistence
+        - generic [ref=e267]:
+          - link "Domluvit firemní konzultaci" [ref=e268] [cursor=pointer]:
+            - /url: mailto:martin@tenderflow.cz?subject=Enterprise%20TenderFlow%20demo
+          - button "Vyzkoušet demo" [ref=e269] [cursor=pointer]
+      - paragraph [ref=e270]: Enterprise fakturace probíhá smluvně bankovním převodem podle dohodnutého období a počtu licencí.
+    - generic [ref=e272]:
+      - generic [ref=e273]:
+        - generic [ref=e274]: Reference
+        - heading "Co říkají naši klienti" [level=2] [ref=e275]
+      - generic [ref=e276]:
+        - generic [ref=e277]:
+          - generic [ref=e278]: ★★★★★
+          - paragraph [ref=e279]: „TenderFlow nám přinesl řád do nabídkových řízení. Co dřív trvalo dny, zvládneme za hodiny. ROI se nám vrátil do tří měsíců.“
+          - generic [ref=e280]:
+            - generic [ref=e281]: JN
+            - generic [ref=e282]:
+              - generic [ref=e283]: Ing. Jan Novák
+              - generic [ref=e284]: Ředitel divize, Stavební firma
+        - generic [ref=e285]:
+          - generic [ref=e286]: ★★★★★
+          - paragraph [ref=e287]: „Konečně nástroj, který rozumí stavebnictví. Pipeline tendrů a automatická správa dokumentů nám ušetřily desítky hodin měsíčně.“
+          - generic [ref=e288]:
+            - generic [ref=e289]: PS
+            - generic [ref=e290]:
+              - generic [ref=e291]: Petr Svoboda
+              - generic [ref=e292]: Projektový manažer
+        - generic [ref=e293]:
+          - generic [ref=e294]: ★★★★★
+          - paragraph [ref=e295]: „Desktop aplikace je skvělá pro práci offline. AI analýza smluv zachytila podmínky, které bychom ručně přehlédli.“
+          - generic [ref=e296]:
+            - generic [ref=e297]: MK
+            - generic [ref=e298]:
+              - generic [ref=e299]: Mgr. Marie Kratochvílová
+              - generic [ref=e300]: Legal & Compliance
+    - generic [ref=e301]:
+      - heading "Připraveni řídit tendry přehledně?" [level=2] [ref=e302]:
+        - text: Připraveni řídit tendry
+        - text: přehledně?
+      - paragraph [ref=e303]: Přidejte se k firmám, které staví efektivněji.
+      - generic [ref=e304]:
+        - generic [ref=e305]: ✓ 14 dní zdarma
+        - generic [ref=e306]: ✓ Bez kreditní karty
+        - generic [ref=e307]: ✓ Zrušení kdykoliv
+      - button "Vytvořit účet zdarma" [ref=e308] [cursor=pointer]
+    - contentinfo [ref=e309]:
+      - generic [ref=e310]:
+        - generic [ref=e311]:
+          - generic [ref=e312]:
+            - generic [ref=e313]:
+              - img "TenderFlow" [ref=e314]
+              - generic [ref=e315]: TenderFlow
+            - paragraph [ref=e316]: Moderní CRM platforma pro řízení stavebních tendrů a nabídkových řízení v České republice a na Slovensku.
+          - generic [ref=e317]:
+            - heading "Produkt" [level=4] [ref=e318]
+            - generic [ref=e319] [cursor=pointer]: Funkce
+            - generic [ref=e320] [cursor=pointer]: Ceník
+            - generic [ref=e321] [cursor=pointer]: Demo
+          - generic [ref=e322]:
+            - heading "Společnost" [level=4] [ref=e323]
+            - link "Provozovatel" [ref=e324] [cursor=pointer]:
+              - /url: /imprint
+            - link "Kontakt" [ref=e325] [cursor=pointer]:
+              - /url: mailto:martin@tenderflow.cz
+          - generic [ref=e326]:
+            - heading "Právní" [level=4] [ref=e327]
+            - link "Obchodní podmínky" [ref=e328] [cursor=pointer]:
+              - /url: /terms
+            - link "Ochrana soukromí" [ref=e329] [cursor=pointer]:
+              - /url: /privacy
+            - link "Cookies" [ref=e330] [cursor=pointer]:
+              - /url: /cookies
+            - link "DPA" [ref=e331] [cursor=pointer]:
+              - /url: /dpa
+            - link "Imprint" [ref=e332] [cursor=pointer]:
+              - /url: /imprint
+        - generic [ref=e333]:
+          - generic [ref=e334]: © 2026 TenderFlow s.r.o. Všechna práva vyhrazena. v1.6.3
+          - generic [ref=e335]:
+            - link "Podmínky" [ref=e336] [cursor=pointer]:
+              - /url: /terms
+            - link "Soukromí" [ref=e337] [cursor=pointer]:
+              - /url: /privacy
+            - link "Cookies" [ref=e338] [cursor=pointer]:
+              - /url: /cookies
+          - generic [ref=e339]:
+            - text: Platby přes
+            - strong [ref=e340]: Stripe
+  - generic [ref=e342]:
+    - generic [ref=e343]:
+      - generic [ref=e344]: Nastavení cookies
+      - paragraph [ref=e345]:
+        - text: Tender Flow používá nezbytné cookies pro bezpečný provoz. Nepovinné analytické cookies zapneme až po tvém souhlasu. Podrobnosti jsou v
+        - link "zásadách cookies" [ref=e346] [cursor=pointer]:
+          - /url: /cookies
+        - text: .
+    - generic [ref=e347]:
+      - button "Jen nezbytné" [ref=e348]
+      - button "Přijmout vše" [ref=e349]

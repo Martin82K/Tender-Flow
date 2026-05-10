@@ -316,6 +316,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <div key={project.id} className="flex flex-col">
                   {/* Project Header Item */}
                   <div
+                    data-help-id="sidebar-project-item"
+                    data-active={isSelected ? "true" : "false"}
                     onClick={() => {
                       onProjectSelect(project.id, "overview");
                       closeMobileMenu();
@@ -354,6 +356,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                     {/* Expand Button */}
                     <button
+                      data-help-id="sidebar-project-expand"
                       onClick={(e) => toggleProjectExpand(e, project.id)}
                       className={`relative z-10 inline-flex size-7 items-center justify-center rounded-md transition-all ${isIndustrialSkin ? "text-[#6e6757] hover:bg-[#ff8a33]/10 hover:text-[#b03a05]" : "text-slate-400 hover:bg-primary/15 hover:text-primary"} ${
                         isExpanded ? "rotate-180" : ""

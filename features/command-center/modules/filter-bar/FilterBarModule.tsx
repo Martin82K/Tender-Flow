@@ -68,7 +68,7 @@ export const FilterBarModule: React.FC<ModuleProps> = ({ filterState, onFilterCh
           )}
         </div>
       </div>
-      <div className="cc-filterbar__group">
+      <div className="cc-filterbar__group cc-filterbar__group--health">
         <span className="cc-filterbar__group-label">Zdraví</span>
         <div className="cc-filterbar__group-chips">
           {HEALTH_OPTIONS.map((opt) => {
@@ -77,7 +77,7 @@ export const FilterBarModule: React.FC<ModuleProps> = ({ filterState, onFilterCh
               <button
                 key={opt.value}
                 type="button"
-                className={`cc-chip cc-chip--${opt.tone}${active ? " cc-chip--active" : ""}`}
+                className={`cc-chip cc-chip--health cc-chip--health-${opt.value} cc-chip--${opt.tone}${active ? " cc-chip--active" : ""}`}
                 onClick={() => toggleHealth(opt.value)}
               >
                 <span className="cc-chip__dot" aria-hidden />

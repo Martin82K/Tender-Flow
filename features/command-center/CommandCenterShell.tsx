@@ -16,6 +16,7 @@ import {
 import { CommandCenterSettings } from "@features/command-center/CommandCenterSettings";
 import { ModuleErrorBoundary } from "@features/command-center/shell/ModuleErrorBoundary";
 import { useAccountMenu } from "@/shared/ui/AccountMenuContext";
+import { useTopbarActions } from "@/shared/ui/TopbarActionsContext";
 
 const GRID_COLS = 12;
 
@@ -81,6 +82,7 @@ export const CommandCenterShell: React.FC<CommandCenterShellProps> = ({
 }) => {
   const { hasFeature } = useFeatures();
   const accountMenu = useAccountMenu();
+  const topbarActions = useTopbarActions();
   const preferences = useCommandCenterPreferences();
   const [isSettingsOpen, setSettingsOpen] = useState(false);
   const [moduleSettingsOpenFor, setModuleSettingsOpenFor] = useState<string | null>(null);
@@ -219,12 +221,12 @@ export const CommandCenterShell: React.FC<CommandCenterShellProps> = ({
 
   return (
     <div className="cc-root">
-      <header className="cc-header">
+      <header className="cc-header" style={{ WebkitAppRegion: "drag" } as any}>
         <div>
           <div className="cc-header__brand">Command Center</div>
           <div className="cc-header__sub">Velitelský můstek Tender Flow</div>
         </div>
-        <div className="cc-header__actions">
+        <div className="cc-header__actions" style={{ WebkitAppRegion: "no-drag" } as any}>
           {autoLayout && hiddenCount > 0 && (
             <span
               className="cc-header__chip"
@@ -255,6 +257,7 @@ export const CommandCenterShell: React.FC<CommandCenterShellProps> = ({
           >
             ⚙ Rozložení
           </button>
+          {topbarActions}
           {accountMenu}
         </div>
       </header>
