@@ -36,6 +36,7 @@ export const buildDesktopCsp = (isDev: boolean): string => {
         'https://*.supabase.in',
         'wss://*.supabase.co',
         'wss://*.supabase.in',
+        'https://api.openai.com',
         'https://ares.gov.cz',
         'https://fonts.googleapis.com',
         'https://fonts.gstatic.com',

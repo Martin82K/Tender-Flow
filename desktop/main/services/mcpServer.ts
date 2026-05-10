@@ -55,7 +55,21 @@ type McpDataProvider = {
     getProjectDetail: (input: { projectId: string }) => Promise<{
         project: { id: string; name: string; location?: string; status?: string; finishDate?: string | null; investor?: string | null };
         demandCategories: Array<{ id: string; title: string; status?: string; deadline?: string | null; budgetDisplay?: string | null; planBudget?: number | null }>;
-        bids: Array<{ id: string; categoryId: string; subcontractorId: string; price?: number | null; status?: string }>;
+        bids: Array<{
+            id: string;
+            categoryId: string;
+            subcontractorId: string;
+            companyName?: string | null;
+            contactPerson?: string | null;
+            email?: string | null;
+            phone?: string | null;
+            price?: number | null;
+            priceDisplay?: string | null;
+            notes?: string | null;
+            status?: string | null;
+            contracted?: boolean | null;
+        }>;
+        contracts?: any[];
     }>;
     createBid: (input: { demandCategoryId: string; subcontractorId: string; price?: number; priceDisplay?: string; notes?: string; status?: string }) => Promise<{
         id: string;
@@ -91,6 +105,19 @@ let currentProvider: McpDataProvider | null = null;
 
 const tools: McpTool[] = [
     {
+        name: 'tf_find_project',
+        description: 'Find projects by name, location, investor, or status. READ-only.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                query: { type: 'string', description: 'Project search text.' },
+                limit: { type: 'number', description: 'Maximum number of results.' },
+            },
+            required: ['query'],
+            additionalProperties: false,
+        },
+    },
+    {
         name: 'tf_list_projects',
         description: 'List construction projects (stavby).',
         inputSchema: {
@@ -108,6 +135,74 @@ const tools: McpTool[] = [
             type: 'object',
             properties: {
                 projectId: { type: 'string', description: 'Optional project id filter.' },
+            },
+            additionalProperties: false,
+        },
+    },
+    {
+        name: 'tf_get_tender_detail',
+        description: 'Get one tender detail including bids. READ-only.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                projectId: { type: 'string' },
+                tenderId: { type: 'string' },
+                tenderName: { type: 'string' },
+            },
+            additionalProperties: false,
+        },
+    },
+    {
+        name: 'tf_get_tender_winner',
+        description: 'Get winner bids for one tender, including prices, notes, and linked contracts. Winner means bid status SOD. READ-only.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                projectId: { type: 'string' },
+                tenderId: { type: 'string' },
+                tenderName: { type: 'string' },
+            },
+            additionalProperties: false,
+        },
+    },
+    {
+        name: 'tf_get_contract_detail',
+        description: 'Get contract detail by contractId, company/vendor name, tender, or winning bid. Includes retentions, site setup, payment terms, invoices, drawdowns, and notes. READ-only.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                projectId: { type: 'string' },
+                projectName: { type: 'string' },
+                contractId: { type: 'string' },
+                companyName: { type: 'string' },
+                vendorName: { type: 'string' },
+                tenderId: { type: 'string' },
+                tenderName: { type: 'string' },
+                bidId: { type: 'string' },
+            },
+            additionalProperties: false,
+        },
+    },
+    {
+        name: 'tf_list_tender_bids',
+        description: 'List bids for one tender. READ-only.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                projectId: { type: 'string' },
+                tenderId: { type: 'string' },
+                tenderName: { type: 'string' },
+            },
+            additionalProperties: false,
+        },
+    },
+    {
+        name: 'tf_list_project_winners',
+        description: 'List all tender winners in a project. READ-only.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                projectId: { type: 'string' },
             },
             additionalProperties: false,
         },
@@ -156,23 +251,6 @@ const tools: McpTool[] = [
                 projectId: { type: 'string' },
             },
             required: ['projectId'],
-            additionalProperties: false,
-        },
-    },
-    {
-        name: 'tf_create_bid',
-        description: 'Create a new bid (nabidka) for a demand category. WRITE operation.',
-        inputSchema: {
-            type: 'object',
-            properties: {
-                demandCategoryId: { type: 'string', description: 'ID of the demand category.' },
-                subcontractorId: { type: 'string', description: 'ID of the subcontractor.' },
-                price: { type: 'number', description: 'Bid price.' },
-                priceDisplay: { type: 'string', description: 'Formatted price string.' },
-                notes: { type: 'string', description: 'Optional notes.' },
-                status: { type: 'string', enum: ['sent', 'offer', 'shortlist', 'sod', 'rejected'], description: 'Bid status (default: sent).' },
-            },
-            required: ['demandCategoryId', 'subcontractorId'],
             additionalProperties: false,
         },
     },
@@ -294,6 +372,127 @@ const createSupabaseProvider = (): McpDataProvider => {
             return await callFunction('mcp-create-bid', input);
         },
     };
+};
+
+const normalize = (value: unknown): string =>
+    String(value ?? '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/\p{Diacritic}/gu, '')
+        .trim();
+
+const boundedLimit = (value: unknown, fallback = 8): number => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return fallback;
+    return Math.max(1, Math.min(Math.floor(parsed), 20));
+};
+
+const resolveProjectId = async (
+    dataProvider: McpDataProvider,
+    input: { projectId?: string; projectName?: string; query?: string },
+    currentProjectContext: string | null,
+) => {
+    const explicitProjectSearch = input.projectName || input.query || '';
+    const projectId = input.projectId || (!explicitProjectSearch ? currentProjectContext || '' : '');
+    if (projectId) return { ok: true as const, projectId };
+
+    const query = explicitProjectSearch;
+    if (!query) {
+        return { ok: false as const, error: 'Missing projectId, projectName, or current project context.' };
+    }
+
+    const projects = await dataProvider.listProjects({ search: query });
+    if (projects.length === 1) return { ok: true as const, projectId: projects[0].id };
+    if (projects.length > 1) {
+        return {
+            ok: false as const,
+            error: 'Project is ambiguous.',
+            candidates: projects.slice(0, 8),
+        };
+    }
+    return { ok: false as const, error: 'Project not found.' };
+};
+
+const resolveTender = async (
+    dataProvider: McpDataProvider,
+    input: { projectId?: string; projectName?: string; tenderId?: string; tenderName?: string; query?: string },
+    currentProjectContext: string | null,
+) => {
+    const projectResult = await resolveProjectId(dataProvider, input, currentProjectContext);
+    if (!projectResult.ok) return projectResult;
+
+    const detail = await dataProvider.getProjectDetail({ projectId: projectResult.projectId });
+    const tenderId = input.tenderId || '';
+    const needle = normalize(input.tenderName || input.query || '');
+    const matches = detail.demandCategories.filter((category) => {
+        if (tenderId) return category.id === tenderId;
+        if (!needle) return true;
+        return normalize(category.title).includes(needle);
+    });
+
+    if (matches.length === 1) {
+        return {
+            ok: true as const,
+            projectId: projectResult.projectId,
+            detail,
+            tender: matches[0],
+        };
+    }
+    if (matches.length > 1) {
+        return {
+            ok: false as const,
+            error: 'Tender is ambiguous.',
+            candidates: matches.slice(0, 8),
+        };
+    }
+    return { ok: false as const, error: 'Tender not found.' };
+};
+
+const tenderBids = (
+    detail: Awaited<ReturnType<McpDataProvider['getProjectDetail']>>,
+    tenderId: string,
+) => detail.bids.filter((bid) => bid.categoryId === tenderId);
+
+const tenderWinners = (
+    detail: Awaited<ReturnType<McpDataProvider['getProjectDetail']>>,
+    tenderId: string,
+) => tenderBids(detail, tenderId).filter((bid) => bid.status === 'sod');
+
+const linkedContractForBid = (
+    contracts: any[],
+    bid: Awaited<ReturnType<McpDataProvider['getProjectDetail']>>['bids'][number],
+) => {
+    const byBidId = contracts.find((contract) => contract.sourceBidId === bid.id || contract.source_bid_id === bid.id);
+    if (byBidId) return byBidId;
+
+    const byVendorId = contracts.find((contract) => {
+        const vendorId = contract.vendorId || contract.vendor_id;
+        return vendorId && vendorId === bid.subcontractorId;
+    });
+    if (byVendorId) return byVendorId;
+
+    const companyName = normalize(bid.companyName || '');
+    if (!companyName) return null;
+    return contracts.find((contract) => normalize(contract.vendorName || contract.vendor_name || '') === companyName) || null;
+};
+
+const bidWithLinkedContract = (
+    contracts: any[],
+    bid: Awaited<ReturnType<McpDataProvider['getProjectDetail']>>['bids'][number],
+) => ({
+    ...bid,
+    linkedContract: linkedContractForBid(contracts, bid),
+});
+
+const contractMatches = (contract: any, query: string) => {
+    const needle = normalize(query);
+    if (!needle) return true;
+    return normalize([
+        contract.vendorName || contract.vendor_name,
+        contract.vendorIco || contract.vendor_ico,
+        contract.title,
+        contract.contractNumber || contract.contract_number,
+    ].filter(Boolean).join(' ')).includes(needle);
 };
 
 const sendJson = (res: http.ServerResponse, statusCode: number, body: any) => {
@@ -536,6 +735,21 @@ export const startMcpServer = async (options?: {
                             break;
                         }
 
+                        if (name === 'tf_find_project') {
+                            const items = await dataProvider.listProjects({
+                                search: args.query || args.search || '',
+                            });
+                            await respond({
+                                content: [{
+                                    type: 'text',
+                                    text: JSON.stringify({
+                                        query: args.query || args.search || '',
+                                        results: items.slice(0, boundedLimit(args.limit)),
+                                    }, null, 2),
+                                }],
+                            });
+                            break;
+                        }
                         if (name === 'tf_list_projects') {
                             const items = await dataProvider.listProjects(args);
                             await respond({ content: [{ type: 'text', text: JSON.stringify(items, null, 2) }] });
@@ -582,13 +796,187 @@ export const startMcpServer = async (options?: {
                             await respond({ content: [{ type: 'text', text: JSON.stringify(detail, null, 2) }] });
                             break;
                         }
-                        if (name === 'tf_create_bid') {
-                            if (!args.demandCategoryId || !args.subcontractorId) {
-                                await respondError(-32602, 'Missing required fields: demandCategoryId, subcontractorId');
+                        if (name === 'tf_get_tender_detail') {
+                            const tender = await resolveTender(dataProvider, args, currentProjectId);
+                            if (!tender.ok) {
+                                await respond({
+                                    content: [{ type: 'text', text: JSON.stringify(tender, null, 2) }],
+                                    isError: true,
+                                });
                                 break;
                             }
-                            const bid = await dataProvider.createBid(args);
-                            await respond({ content: [{ type: 'text', text: JSON.stringify(bid, null, 2) }] });
+                            await respond({
+                                content: [{
+                                    type: 'text',
+                                    text: JSON.stringify({
+                                        project: tender.detail.project,
+                                        tender: tender.tender,
+                                        bids: tenderBids(tender.detail, tender.tender.id).map((bid) =>
+                                            bidWithLinkedContract(tender.detail.contracts || [], bid),
+                                        ),
+                                        winners: tenderWinners(tender.detail, tender.tender.id).map((bid) =>
+                                            bidWithLinkedContract(tender.detail.contracts || [], bid),
+                                        ),
+                                    }, null, 2),
+                                }],
+                            });
+                            break;
+                        }
+                        if (name === 'tf_get_tender_winner') {
+                            const tender = await resolveTender(dataProvider, args, currentProjectId);
+                            if (!tender.ok) {
+                                await respond({
+                                    content: [{ type: 'text', text: JSON.stringify(tender, null, 2) }],
+                                    isError: true,
+                                });
+                                break;
+                            }
+                            const winners = tenderWinners(tender.detail, tender.tender.id);
+                            await respond({
+                                content: [{
+                                    type: 'text',
+                                    text: JSON.stringify({
+                                        project: tender.detail.project,
+                                        tender: tender.tender,
+                                        hasWinner: winners.length > 0,
+                                        winners: winners.map((bid) =>
+                                            bidWithLinkedContract(tender.detail.contracts || [], bid),
+                                        ),
+                                        message: winners.length > 0
+                                            ? 'Tender has winner bid(s) in SOD status.'
+                                            : 'Tender has no winner bid in SOD status.',
+                                    }, null, 2),
+                                }],
+                            });
+                            break;
+                        }
+                        if (name === 'tf_list_tender_bids') {
+                            const tender = await resolveTender(dataProvider, args, currentProjectId);
+                            if (!tender.ok) {
+                                await respond({
+                                    content: [{ type: 'text', text: JSON.stringify(tender, null, 2) }],
+                                    isError: true,
+                                });
+                                break;
+                            }
+                            await respond({
+                                content: [{
+                                    type: 'text',
+                                    text: JSON.stringify({
+                                        project: tender.detail.project,
+                                        tender: tender.tender,
+                                        bids: tenderBids(tender.detail, tender.tender.id).map((bid) =>
+                                            bidWithLinkedContract(tender.detail.contracts || [], bid),
+                                        ),
+                                    }, null, 2),
+                                }],
+                            });
+                            break;
+                        }
+                        if (name === 'tf_list_project_winners') {
+                            const projectResult = await resolveProjectId(dataProvider, args, currentProjectId);
+                            if (!projectResult.ok) {
+                                await respond({
+                                    content: [{ type: 'text', text: JSON.stringify(projectResult, null, 2) }],
+                                    isError: true,
+                                });
+                                break;
+                            }
+                            const detail = await dataProvider.getProjectDetail({ projectId: projectResult.projectId });
+                            const winners = detail.demandCategories.flatMap((tender) =>
+                                tenderWinners(detail, tender.id).map((bid) => ({
+                                    tender,
+                                    bid: bidWithLinkedContract(detail.contracts || [], bid),
+                                })),
+                            );
+                            await respond({
+                                content: [{
+                                    type: 'text',
+                                    text: JSON.stringify({
+                                        project: detail.project,
+                                        winners,
+                                    }, null, 2),
+                                }],
+                            });
+                            break;
+                        }
+                        if (name === 'tf_get_contract_detail') {
+                            const directProject = await resolveProjectId(
+                                dataProvider,
+                                { projectId: args.projectId, projectName: args.projectName },
+                                currentProjectId,
+                            );
+                            if (!directProject.ok) {
+                                await respond({
+                                    content: [{ type: 'text', text: JSON.stringify(directProject, null, 2) }],
+                                    isError: true,
+                                });
+                                break;
+                            }
+                            const detail = await dataProvider.getProjectDetail({ projectId: directProject.projectId });
+                            const contracts = detail.contracts || [];
+                            const contractId = args.contractId || '';
+                            if (contractId) {
+                                const contract = contracts.find((item) => item.id === contractId);
+                                if (!contract) {
+                                    await respond({
+                                        content: [{ type: 'text', text: JSON.stringify({ error: 'Contract not found.' }, null, 2) }],
+                                        isError: true,
+                                    });
+                                    break;
+                                }
+                                await respond({ content: [{ type: 'text', text: JSON.stringify({ project: detail.project, contract }, null, 2) }] });
+                                break;
+                            }
+
+                            if (args.tenderId || args.tenderName || args.bidId) {
+                                const tender = await resolveTender(dataProvider, args, currentProjectId);
+                                if (!tender.ok) {
+                                    await respond({
+                                        content: [{ type: 'text', text: JSON.stringify(tender, null, 2) }],
+                                        isError: true,
+                                    });
+                                    break;
+                                }
+                                const bids = tenderBids(tender.detail, tender.tender.id);
+                                const bidMatches = args.bidId
+                                    ? bids.filter((bid) => bid.id === args.bidId)
+                                    : bids.filter((bid) => bid.status === 'sod');
+                                const linked = bidMatches
+                                    .map((bid) => ({ bid, contract: linkedContractForBid(tender.detail.contracts || [], bid) }))
+                                    .filter((item) => item.contract);
+                                await respond({
+                                    content: [{
+                                        type: 'text',
+                                        text: JSON.stringify({
+                                            project: tender.detail.project,
+                                            tender: tender.tender,
+                                            results: linked,
+                                            hasContract: linked.length > 0,
+                                        }, null, 2),
+                                    }],
+                                    isError: linked.length === 0,
+                                });
+                                break;
+                            }
+
+                            const query = args.companyName || args.vendorName || args.query || '';
+                            const matches = contracts.filter((contract) => contractMatches(contract, query));
+                            await respond({
+                                content: [{
+                                    type: 'text',
+                                    text: JSON.stringify({
+                                        project: detail.project,
+                                        results: matches.slice(0, 8),
+                                        ambiguous: matches.length > 1,
+                                    }, null, 2),
+                                }],
+                                isError: matches.length === 0,
+                            });
+                            break;
+                        }
+                        if (name === 'tf_create_bid') {
+                            await respondError(-32601, 'Write tools are disabled in Tender Flow MCP v1.');
                             break;
                         }
 

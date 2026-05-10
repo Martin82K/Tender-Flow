@@ -28,7 +28,9 @@ export const registerNetHandlers = ({ isAllowedProxyUrl, requireAuth }: NetHandl
         throw new Error(`Proxy target not allowed: ${parsedUrl.hostname}`);
       }
 
-      console.log(`[Proxy] Fetching ${parsedUrl.origin} (Main Process) via electron.net.fetch`);
+      console.log(
+        `[Proxy] Fetching ${parsedUrl.origin}${parsedUrl.pathname} (Main Process) via electron.net.fetch`,
+      );
 
       if (options?.headers) {
         const hasAuth = !!options.headers.Authorization;
