@@ -47,6 +47,7 @@ import { TopbarActionsProvider } from "@/shared/ui/TopbarActionsContext";
 import { useAutoBackupScheduler } from "@/features/backup/hooks/useAutoBackupScheduler";
 import { useAllContractsQuery } from "@/features/projects/contracts/hooks/useAllContractsQuery";
 import { VoiceAssistantProvider } from "@/features/voice-assistant/context/VoiceAssistantContext";
+import { shouldEnableVoiceAssistantForRoute } from "@/features/voice-assistant/model/routeAvailability";
 import { VoiceAssistantLauncher } from "@/features/voice-assistant/ui/VoiceAssistantLauncher";
 import { VoiceAssistantPanel } from "@/features/voice-assistant/ui/VoiceAssistantPanel";
 
@@ -479,6 +480,10 @@ export const AppContent: React.FC = () => {
     ...searchSources,
     contractsByProject,
   };
+  const shouldEnableVoiceAssistantRoute = shouldEnableVoiceAssistantForRoute({
+    currentView,
+    activeProjectTab,
+  });
 
   return (
     <GlobalSearchProvider sources={searchSources}>
@@ -487,9 +492,11 @@ export const AppContent: React.FC = () => {
         currentProjectId={currentView === "project" ? state.selectedProjectId || null : null}
         currentView={currentView}
         isDesktop={isDesktop}
-        isAdmin={isVoiceAssistantAdmin}
+        isAdmin={isVoiceAssistantAdmin && shouldEnableVoiceAssistantRoute}
       >
-        <TopbarActionsProvider actions={<VoiceAssistantLauncher />}>
+        <TopbarActionsProvider
+          actions={shouldEnableVoiceAssistantRoute ? <VoiceAssistantLauncher /> : null}
+        >
           <MainLayout
             uiModal={uiModal}
             closeUiModal={closeUiModal}
@@ -519,7 +526,7 @@ export const AppContent: React.FC = () => {
             {isDesktop && <UpdateBanner />}
           </MainLayout>
         </TopbarActionsProvider>
-        <VoiceAssistantPanel />
+        {shouldEnableVoiceAssistantRoute && <VoiceAssistantPanel />}
       </VoiceAssistantProvider>
       <LegalAcceptanceModal
         isOpen={shouldRequireLegalAcceptance}
