@@ -38,6 +38,7 @@ import {
 } from "@app/views/LazyViews";
 import { getLegalPage } from "@app/views/LegalPageRouter";
 import { LegalAcceptanceModal } from "@/features/auth/ui/LegalAcceptanceModal";
+import { McpOAuthConsentPage } from "@/app/views/McpOAuthConsentPage";
 import { requiresLegalAcceptance } from "@/shared/legal/legalDocumentVersions";
 import { WhatsNewModal } from "@/features/whats-new/WhatsNewModal";
 import { useWhatsNew } from "@/features/whats-new/useWhatsNew";
@@ -225,6 +226,10 @@ export const AppContent: React.FC = () => {
         isDesktop={isDesktop}
       />
     );
+  }
+
+  if (pathname === "/oauth/consent") {
+    return <McpOAuthConsentPage />;
   }
 
   // Block deactivated organization members from accessing the app
