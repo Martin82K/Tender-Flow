@@ -5,6 +5,8 @@ export {
     parseFormattedNumber,
 } from '@/shared/formatting/decimalFormatters';
 
+import { formatDecimal, parseDecimal } from '@/shared/formatting/decimalFormatters';
+
 /**
  * Centrální knihovna pro formátování čísel
  * Používá české formátování s oddělovači tisíců
@@ -19,7 +21,8 @@ export const formatMoney = (value: number): string => {
     return new Intl.NumberFormat('cs-CZ', { 
         style: 'currency', 
         currency: 'CZK', 
-        maximumFractionDigits: 0 
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
     }).format(value);
 };
 
@@ -49,9 +52,7 @@ export const formatMoneyShort = (value: number): string => {
  */
 export const formatNumber = (value: number): string => {
     if (value === undefined || value === null || isNaN(value)) return '-';
-    return new Intl.NumberFormat('cs-CZ', { 
-        maximumFractionDigits: 0 
-    }).format(value);
+    return formatDecimal(value);
 };
 
 /**
@@ -59,9 +60,9 @@ export const formatNumber = (value: number): string => {
  * @example formatInputNumber(1000000) => "1 000 000"
  */
 export const formatInputNumber = (value: number | string): string => {
-    const num = typeof value === 'string' ? parseFloat(value.replace(/\s/g, '')) : value;
-    if (isNaN(num)) return '';
-    return formatNumber(num);
+    const num = typeof value === 'string' ? parseDecimal(value) : value;
+    if (num === null || isNaN(num)) return '';
+    return formatDecimal(num, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 /**

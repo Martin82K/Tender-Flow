@@ -6,10 +6,13 @@
 
 import React, { useState, useEffect } from "react";
 import { DemandCategory, DemandDocument } from "../../types";
-import { formatInputNumber } from "../../utils/formatters";
+import { formatDecimal, parseDecimal } from "../../utils/formatters";
 import { formatFileSize } from "../../services/documentService";
 import { uploadDocument } from "../../services/documentService";
 import { AlertModal } from "../AlertModal";
+import { NumericInput } from "@/shared/ui/NumericInput";
+
+type PlanInputMode = "amount" | "percent";
 
 export interface CategoryFormData {
   title: string;
@@ -53,6 +56,8 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
   onSubmit,
 }) => {
   const [formData, setFormData] = useState<CategoryFormData>(initialFormState);
+  const [planInputMode, setPlanInputMode] = useState<PlanInputMode>("amount");
+  const [planPercentDraft, setPlanPercentDraft] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [alertModal, setAlertModal] = useState<{
@@ -85,6 +90,8 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
     } else if (isOpen) {
       setFormData(initialFormState);
     }
+    setPlanInputMode("amount");
+    setPlanPercentDraft("");
     setSelectedFiles([]);
   }, [isOpen, initialData]);
 
@@ -141,6 +148,71 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
     setFormData((prev) => ({ ...prev, workItems: newItems }));
   };
 
+  const getFormNumber = (value: string): number | null => parseDecimal(value);
+
+  const calculatePlanBudgetFromPercent = (
+    sodBudget: number | null,
+    discountPercent: number | null,
+  ): number | null => {
+    if (sodBudget === null || discountPercent === null) return null;
+    const clampedPercent = Math.min(100, Math.max(0, discountPercent));
+    return Math.max(0, sodBudget * (1 - clampedPercent / 100));
+  };
+
+  const updateSodBudget = (value: number | null) => {
+    setFormData((prev) => ({
+      ...prev,
+      sodBudget: value === null ? "" : value.toString(),
+      planBudget:
+        planInputMode === "percent"
+          ? calculatePlanBudgetFromPercent(value, parseDecimal(planPercentDraft))?.toString() || ""
+          : prev.planBudget,
+    }));
+  };
+
+  const updatePlanAmount = (value: number | null) => {
+    setFormData((prev) => ({
+      ...prev,
+      planBudget: value === null ? "" : value.toString(),
+    }));
+  };
+
+  const updatePlanPercent = (value: number | null) => {
+    const clampedPercent = value === null ? null : Math.min(100, Math.max(0, value));
+    setPlanPercentDraft(clampedPercent === null ? "" : clampedPercent.toString());
+    setFormData((prev) => ({
+      ...prev,
+      planBudget:
+        calculatePlanBudgetFromPercent(parseDecimal(prev.sodBudget), clampedPercent)?.toString() ||
+        "",
+    }));
+  };
+
+  const switchPlanInputMode = (nextMode: PlanInputMode) => {
+    setPlanInputMode(nextMode);
+    if (nextMode === "amount") return;
+
+    const sodBudget = parseDecimal(formData.sodBudget);
+    const planBudget = parseDecimal(formData.planBudget);
+    if (!sodBudget || planBudget === null) {
+      setPlanPercentDraft("");
+      return;
+    }
+
+    const inferredPercent = Math.min(
+      100,
+      Math.max(0, (1 - planBudget / sodBudget) * 100),
+    );
+    setPlanPercentDraft(inferredPercent.toString());
+    setFormData((prev) => ({
+      ...prev,
+      planBudget:
+        calculatePlanBudgetFromPercent(sodBudget, inferredPercent)?.toString() || "",
+    }));
+  };
+
+  const planBudgetPreview = getFormNumber(formData.planBudget);
+
   if (!isOpen) return null;
 
   const title =
@@ -187,37 +259,70 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
                 <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                   Cena SOD (Investor)
                 </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={formatInputNumber(formData.sodBudget)}
-                  onChange={(e) => {
-                    const raw = e.target.value.replace(/\s/g, "");
-                    if (/^\d*$/.test(raw)) {
-                      setFormData({ ...formData, sodBudget: raw });
-                    }
-                  }}
+                <NumericInput
+                  value={getFormNumber(formData.sodBudget)}
+                  onChange={updateSodBudget}
+                  allowNegative={false}
                   className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
-                  placeholder="500 000"
+                  placeholder="500 000,00"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                  Interní Plán
-                </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={formatInputNumber(formData.planBudget)}
-                  onChange={(e) => {
-                    const raw = e.target.value.replace(/\s/g, "");
-                    if (/^\d*$/.test(raw)) {
-                      setFormData({ ...formData, planBudget: raw });
-                    }
-                  }}
-                  className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
-                  placeholder="450 000"
-                />
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">
+                    Interní Plán
+                  </label>
+                  <div className="inline-flex rounded-md border border-slate-300 bg-slate-100 p-0.5 text-[10px] font-bold dark:border-slate-700 dark:bg-slate-800/70">
+                    <button
+                      type="button"
+                      onClick={() => switchPlanInputMode("amount")}
+                      className={`rounded px-2 py-0.5 transition-colors ${
+                        planInputMode === "amount"
+                          ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white"
+                          : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white"
+                      }`}
+                    >
+                      Kč
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => switchPlanInputMode("percent")}
+                      className={`rounded px-2 py-0.5 transition-colors ${
+                        planInputMode === "percent"
+                          ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white"
+                          : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white"
+                      }`}
+                    >
+                      %
+                    </button>
+                  </div>
+                </div>
+                {planInputMode === "amount" ? (
+                  <NumericInput
+                    value={getFormNumber(formData.planBudget)}
+                    onChange={updatePlanAmount}
+                    allowNegative={false}
+                    className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
+                    placeholder="450 000,00"
+                  />
+                ) : (
+                  <>
+                    <NumericInput
+                      value={getFormNumber(planPercentDraft)}
+                      onChange={updatePlanPercent}
+                      allowNegative={false}
+                      suffix="%"
+                      className="w-full rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700/50 px-3 py-2.5 text-sm text-slate-900 dark:text-white focus:border-emerald-500/50 focus:outline-none"
+                      placeholder="5,00"
+                    />
+                    <p className="mt-1 text-[10px] text-slate-400">
+                      Interní plán:{" "}
+                      {planBudgetPreview === null
+                        ? "-"
+                        : `${formatDecimal(planBudgetPreview)} Kč`}
+                    </p>
+                  </>
+                )}
               </div>
             </div>
 

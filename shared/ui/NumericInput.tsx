@@ -45,7 +45,7 @@ export const NumericInput: React.FC<NumericInputProps> = ({
   id,
   name,
   maxFractionDigits = 2,
-  minFractionDigits = 0,
+  minFractionDigits = 2,
   allowNegative = true,
   suffix,
   onBlur,
@@ -57,16 +57,17 @@ export const NumericInput: React.FC<NumericInputProps> = ({
     () => (typeof value === 'number' && Number.isFinite(value) ? value : null),
     [value],
   );
+  const effectiveMinFractionDigits = Math.min(minFractionDigits, maxFractionDigits);
 
   const formatted = useMemo(
     () =>
       numericValue === null
         ? ''
         : formatDecimal(numericValue, {
-            minimumFractionDigits: minFractionDigits,
+            minimumFractionDigits: effectiveMinFractionDigits,
             maximumFractionDigits: maxFractionDigits,
           }),
-    [numericValue, minFractionDigits, maxFractionDigits],
+    [numericValue, effectiveMinFractionDigits, maxFractionDigits],
   );
 
   const [isFocused, setIsFocused] = useState(false);
@@ -86,7 +87,7 @@ export const NumericInput: React.FC<NumericInputProps> = ({
         numericValue
           .toLocaleString('cs-CZ', {
             useGrouping: false,
-            minimumFractionDigits: 0,
+            minimumFractionDigits: effectiveMinFractionDigits,
             maximumFractionDigits: maxFractionDigits,
           })
           .replace('.', ','),
@@ -112,7 +113,7 @@ export const NumericInput: React.FC<NumericInputProps> = ({
       onChange(clamped);
       setDraft(
         formatDecimal(clamped, {
-          minimumFractionDigits: minFractionDigits,
+          minimumFractionDigits: effectiveMinFractionDigits,
           maximumFractionDigits: maxFractionDigits,
         }),
       );
@@ -144,7 +145,7 @@ export const NumericInput: React.FC<NumericInputProps> = ({
       clamped
         .toLocaleString('cs-CZ', {
           useGrouping: false,
-          minimumFractionDigits: 0,
+          minimumFractionDigits: effectiveMinFractionDigits,
           maximumFractionDigits: maxFractionDigits,
         })
         .replace('.', ','),

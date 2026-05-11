@@ -16,8 +16,8 @@ export const formatMoney = (value: number | null | undefined, currency = 'CZK'):
   return new Intl.NumberFormat('cs-CZ', {
     style: 'currency',
     currency: normalizeCurrency(currency),
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(amount);
 };
 
@@ -31,7 +31,7 @@ export const formatDate = (value?: string | null): string => {
 export const formatPercent = (value?: number | null): string => {
   if (value === null || value === undefined || !Number.isFinite(value)) return '—';
   return `${new Intl.NumberFormat('cs-CZ', {
-    minimumFractionDigits: 0,
+    minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value as number)} %`;
 };

@@ -31,8 +31,8 @@ export const formatContractSummaryMoney = (
   new Intl.NumberFormat("cs-CZ", {
     style: "currency",
     currency: normalizeCurrencyCode(currency),
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(value);
 
 export const formatContractSummaryDate = (value?: string): string => {

@@ -109,9 +109,9 @@ describe('NumericInput', () => {
       <NumericInput value={100} onChange={onChange} aria-label="n" />,
     );
     const input = screen.getByLabelText('n') as HTMLInputElement;
-    expect(input.value).toBe('100');
+    expect(input.value).toBe('100,00');
     rerender(<NumericInput value={2000} onChange={onChange} aria-label="n" />);
-    expect(input.value).toBe('2\u00A0000');
+    expect(input.value).toBe('2\u00A0000,00');
   });
 
   it('maxFractionDigits=0 ořeže desetinná místa při formátování', () => {
