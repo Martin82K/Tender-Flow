@@ -754,25 +754,46 @@ function parseExcelDate(value: any): string {
 /**
  * Import Tender Plan from XLSX
  */
+const TENDER_PLAN_IMPORT_MAX_FILE_BYTES = 5 * 1024 * 1024;
+const TENDER_PLAN_IMPORT_MAX_ROWS = 5000;
+
 export async function importTenderPlanFromXLSX(file: File): Promise<Partial<TenderPlanItem>[]> {
+  if (file.size > TENDER_PLAN_IMPORT_MAX_FILE_BYTES) {
+    throw new Error("Soubor plánu VŘ je příliš velký. Maximum je 5 MB.");
+  }
+
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
     reader.onload = (e) => {
       try {
         const data = e.target?.result;
-        const workbook = XLSX.read(data, { type: 'array' });
+        const workbook = XLSX.read(data, {
+          type: 'array',
+          sheetRows: TENDER_PLAN_IMPORT_MAX_ROWS + 2,
+          cellFormula: false,
+          cellHTML: false,
+          cellNF: false,
+          cellStyles: false,
+        });
 
         // Assume first sheet
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
 
         // Get data as array of arrays
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+          header: 1,
+          raw: false,
+        }) as any[][];
 
         if (jsonData.length < 2) {
           resolve([]);
           return;
+        }
+
+        if (jsonData.length - 1 > TENDER_PLAN_IMPORT_MAX_ROWS) {
+          throw new Error(`Soubor plánu VŘ obsahuje příliš mnoho řádků. Maximum je ${TENDER_PLAN_IMPORT_MAX_ROWS}.`);
         }
 
         // Find header row index (look for 'Název' or 'Name')

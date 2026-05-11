@@ -23,7 +23,7 @@ Kazdy bod musi mit pred uzavrenim regresni test nebo opakovatelnou validaci.
 - [x] Omezit short URL abuse: dokumentovat accepted risk, zvazit interstitial a blokovat `http`, credential URL a privatni hosty.
 - [x] Sjednotit filename sanitizaci pro Excel download headery.
 - [x] Izolovat zranitelny `xlsx@0.18.5` v URL importu kontaktu limity, dynamickym importem a parser guardy.
-- [ ] Doresit sirsi `xlsx@0.18.5` plochu mimo URL import kontaktu, hlavne `contactsImportWizardService` a exportni workflow.
+- [x] Doresit sirsi `xlsx@0.18.5` plochu mimo URL import kontaktu, hlavne `contactsImportWizardService` a exportni workflow.
 
 ## Verification Gate
 
