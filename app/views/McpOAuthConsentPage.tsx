@@ -20,9 +20,25 @@ const scopeLabel = (scope: string): string => {
   }
 };
 
+const getAuthorizationIdFromSearch = (search: string): string => {
+  const params = new URLSearchParams(search);
+  const direct = params.get("authorization_id");
+  if (direct) return direct;
+
+  const next = params.get("next");
+  if (!next) return "";
+
+  try {
+    const decodedNext = decodeURIComponent(next);
+    const nextUrl = new URL(decodedNext, window.location.origin);
+    return nextUrl.searchParams.get("authorization_id") || "";
+  } catch {
+    return "";
+  }
+};
+
 export const McpOAuthConsentPage: React.FC = () => {
-  const params = new URLSearchParams(window.location.search);
-  const authorizationId = params.get("authorization_id") || "";
+  const authorizationId = getAuthorizationIdFromSearch(window.location.search);
   const [details, setDetails] = useState<McpOAuthConsentDetails | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
