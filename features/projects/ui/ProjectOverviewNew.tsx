@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import type { ProjectDetails } from "@/types";
 import type { ThemeSkin } from "@/hooks/useTheme";
 import { renderIndustrialProjectTitle } from "@/shared/ui/brandedTitle";
-import { formatDecimal, parseDecimal } from "@/shared/formatting/decimalFormatters";
+import { NumericInput } from "@/shared/ui/NumericInput";
 import {
   formatMoney,
   formatMoneyFull,
@@ -95,11 +95,6 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
     searchQuery,
   });
 
-  const formatEditableNumber = (value: number): string =>
-    formatDecimal(value || 0, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-  const parseEditableNumber = (value: string): number => parseDecimal(value) ?? 0;
-
   const DEMAND_INITIAL_VISIBLE = 10;
   const DEMAND_PAGE_SIZE = 10;
   const [demandVisibleCount, setDemandVisibleCount] = React.useState(DEMAND_INITIAL_VISIBLE);
@@ -107,15 +102,6 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
     setDemandVisibleCount(DEMAND_INITIAL_VISIBLE);
   }, [demandFilter]);
 
-  const [compactInvestorSodInput, setCompactInvestorSodInput] = React.useState("");
-  const [compactAmendmentPriceInputs, setCompactAmendmentPriceInputs] =
-    React.useState<Record<string, string>>({});
-  const [compactInvestorInvoiceAmountInputs, setCompactInvestorInvoiceAmountInputs] =
-    React.useState<Record<string, string>>({});
-  const [compactInternalPlannedCostInput, setCompactInternalPlannedCostInput] =
-    React.useState("");
-  const [compactInternalAmendmentPriceInputs, setCompactInternalAmendmentPriceInputs] =
-    React.useState<Record<string, string>>({});
   const isIndustrialSkin = skin === "industrial";
 
   const getDemandFilterButtonClass = (active: boolean) =>
@@ -161,42 +147,6 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
   const investorPaidTotal = investorInvoices
     .filter((invoice) => invoice.status === "paid")
     .reduce((sum, invoice) => sum + (invoice.amount || 0), 0);
-
-  React.useEffect(() => {
-    if (!editingInvestor) return;
-    setCompactInvestorSodInput(formatEditableNumber(investorForm.sodPrice || 0));
-    setCompactAmendmentPriceInputs(
-      Object.fromEntries(
-        investorForm.amendments.map((amendment) => [
-          amendment.id,
-          formatEditableNumber(amendment.price || 0),
-        ]),
-      ),
-    );
-    setCompactInvestorInvoiceAmountInputs(
-      Object.fromEntries(
-        (investorForm.invoices || []).map((invoice) => [
-          invoice.id,
-          formatEditableNumber(invoice.amount || 0),
-        ]),
-      ),
-    );
-  }, [editingInvestor, investorForm.sodPrice, investorForm.amendments, investorForm.invoices]);
-
-  React.useEffect(() => {
-    if (!editingInternal) return;
-    setCompactInternalPlannedCostInput(
-      formatEditableNumber(internalForm.plannedCost || 0),
-    );
-    setCompactInternalAmendmentPriceInputs(
-      Object.fromEntries(
-        internalForm.internalAmendments.map((amendment) => [
-          amendment.id,
-          formatEditableNumber(amendment.price || 0),
-        ]),
-      ),
-    );
-  }, [editingInternal, internalForm.plannedCost, internalForm.internalAmendments]);
 
   const renderCompactDetails = () => (
     <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-6 mb-6 shadow-sm">
@@ -420,36 +370,60 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
             </div>
           </div>
           {editingInvestor && createPortal(
-            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-5xl w-full max-h-[90vh] overflow-y-auto overflow-x-hidden shadow-2xl animate-fadeIn">
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">
-                  Upravit finance investora
-                </h3>
-                <div className="space-y-4">
+            <div
+              data-help-id="overview-investor-finance-modal"
+              className="tf-modal-overlay fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+            >
+              <div
+                className="tf-modal-panel bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl animate-fadeIn flex flex-col"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="overview-investor-finance-modal-title"
+              >
+                <div className="flex items-start justify-between gap-4 border-b border-slate-200 dark:border-slate-800 px-5 py-4">
                   <div>
+                    <h3
+                      id="overview-investor-finance-modal-title"
+                      className="text-lg font-bold text-slate-900 dark:text-white"
+                    >
+                      Upravit finance investora
+                    </h3>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      Smluvní cena, dodatky a fakturace na investora.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setEditingInvestor(false)}
+                    className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+                    aria-label="Zavřít finance investora"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">
+                      close
+                    </span>
+                  </button>
+                </div>
+                <div className="space-y-5 overflow-y-auto overflow-x-hidden px-5 py-5">
+                  <section className="space-y-3">
                     <label className="text-xs text-slate-500 font-bold mb-1.5 block">
                       Základní cena SOD
                     </label>
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      value={compactInvestorSodInput}
-                      onChange={(e) => {
-                        setCompactInvestorSodInput(e.target.value);
+                    <NumericInput
+                      value={investorForm.sodPrice}
+                      onChange={(value) =>
                         setInvestorForm({
                           ...investorForm,
-                          sodPrice: parseEditableNumber(e.target.value),
-                        });
-                      }}
-                      onBlur={() =>
-                        setCompactInvestorSodInput(
-                          formatEditableNumber(investorForm.sodPrice || 0),
-                        )
+                          sodPrice: value ?? 0,
+                        })
                       }
+                      minFractionDigits={0}
+                      maxFractionDigits={2}
+                      allowNegative={false}
+                      aria-label="Základní cena SOD"
                       className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-900 dark:text-white text-sm text-right tabular-nums focus:ring-2 focus:ring-primary/20 transition-all outline-none"
                     />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800">
+                  </section>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-xl bg-slate-50/70 p-3 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800">
                     <div className="flex justify-between gap-2">
                       <span className="text-xs text-slate-500">Počet dodatků</span>
                       <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
@@ -468,15 +442,15 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                       </span>
                     </div>
                   </div>
-                  <div>
-                    <label className="text-xs text-slate-500 font-bold mb-1.5 block">
+                  <section className="space-y-2">
+                    <h4 className="text-xs text-slate-500 font-bold">
                       Dodatky
-                    </label>
+                    </h4>
                     <div className="space-y-2">
                       {investorForm.amendments.map((amendment, idx) => (
                         <div
                           key={amendment.id}
-                          className="flex gap-2 items-center"
+                          className="grid grid-cols-1 gap-2 md:grid-cols-[minmax(0,1fr)_12rem_2.25rem] md:items-center"
                         >
                           <input
                             type="text"
@@ -487,37 +461,22 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                             className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white"
                             placeholder="Název dodatku"
                           />
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            value={
-                              compactAmendmentPriceInputs[amendment.id] ??
-                              formatEditableNumber(amendment.price || 0)
+                          <NumericInput
+                            value={amendment.price}
+                            onChange={(value) =>
+                              updateAmendment(idx, "price", value ?? 0)
                             }
-                            onChange={(e) => {
-                              setCompactAmendmentPriceInputs((prev) => ({
-                                ...prev,
-                                [amendment.id]: e.target.value,
-                              }));
-                              updateAmendment(
-                                idx,
-                                "price",
-                                parseEditableNumber(e.target.value),
-                              );
-                            }}
-                            onBlur={() =>
-                              setCompactAmendmentPriceInputs((prev) => ({
-                                ...prev,
-                                [amendment.id]: formatEditableNumber(
-                                  investorForm.amendments[idx]?.price || 0,
-                                ),
-                              }))
-                            }
-                            className="w-40 md:w-48 shrink-0 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white text-right tabular-nums"
+                            minFractionDigits={0}
+                            maxFractionDigits={2}
+                            allowNegative={false}
+                            aria-label={`Cena dodatku ${idx + 1}`}
+                            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white text-right tabular-nums"
                           />
                           <button
+                            type="button"
                             onClick={() => removeAmendment(idx)}
-                            className="text-red-500 hover:text-red-600 transition-colors"
+                            className="grid h-9 w-9 place-items-center rounded-lg text-red-500 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10"
+                            aria-label={`Smazat dodatek ${idx + 1}`}
                           >
                             <span className="material-symbols-outlined text-[18px]">
                               delete
@@ -535,11 +494,11 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                       </span>
                       Přidat dodatek
                     </button>
-                  </div>
-                  <div>
-                    <label className="text-xs text-slate-500 font-bold mb-1.5 block">
+                  </section>
+                  <section className="space-y-2">
+                    <h4 className="text-xs text-slate-500 font-bold">
                       Fakturace na investora
-                    </label>
+                    </h4>
                     <div className="space-y-2">
                       {(investorForm.invoices || []).length > 0 && (
                         <div className="hidden xl:grid xl:grid-cols-[minmax(150px,1.2fr)_145px_145px_minmax(135px,0.8fr)_140px_32px] gap-2 px-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
@@ -581,32 +540,15 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                             }
                             className="w-full min-w-0 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white"
                           />
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            value={
-                              compactInvestorInvoiceAmountInputs[invoice.id] ??
-                              formatEditableNumber(invoice.amount || 0)
+                          <NumericInput
+                            value={invoice.amount}
+                            onChange={(value) =>
+                              updateInvestorInvoice(idx, "amount", value ?? 0)
                             }
-                            onChange={(e) => {
-                              setCompactInvestorInvoiceAmountInputs((prev) => ({
-                                ...prev,
-                                [invoice.id]: e.target.value,
-                              }));
-                              updateInvestorInvoice(
-                                idx,
-                                "amount",
-                                parseEditableNumber(e.target.value),
-                              );
-                            }}
-                            onBlur={() =>
-                              setCompactInvestorInvoiceAmountInputs((prev) => ({
-                                ...prev,
-                                [invoice.id]: formatEditableNumber(
-                                  (investorForm.invoices || [])[idx]?.amount || 0,
-                                ),
-                              }))
-                            }
+                            minFractionDigits={0}
+                            maxFractionDigits={2}
+                            allowNegative={false}
+                            aria-label={`Částka faktury ${idx + 1}`}
                             className="w-full min-w-0 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white text-right tabular-nums"
                           />
                           <select
@@ -643,21 +585,24 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                       </span>
                       Přidat fakturu investorovi
                     </button>
-                  </div>
-                  <div className="flex justify-end gap-3 mt-6">
+                  </section>
+                </div>
+                <div className="flex justify-end gap-3 border-t border-slate-200 bg-slate-50/70 px-5 py-4 dark:border-slate-800 dark:bg-slate-950/30">
                     <button
+                      type="button"
                       onClick={() => setEditingInvestor(false)}
                       className="px-4 py-2 text-slate-500 hover:text-slate-900 dark:hover:text-white font-medium transition-colors text-sm"
                     >
                       Zrušit
                     </button>
                     <button
+                      type="button"
+                      data-help-id="overview-investor-finance-save"
                       onClick={handleSaveInvestor}
                       className="px-6 py-2 bg-primary text-white rounded-xl font-bold hover:bg-primary-dark shadow-lg shadow-primary/20 transition-all active:scale-95 text-sm"
                     >
                       Uložit změny
                     </button>
-                  </div>
                 </div>
               </div>
             </div>
@@ -751,22 +696,18 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                     <label className="text-xs text-slate-500 font-bold mb-1.5 block">
                       Plánovaný náklad (Cíl)
                     </label>
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      value={compactInternalPlannedCostInput}
-                      onChange={(e) => {
-                        setCompactInternalPlannedCostInput(e.target.value);
+                    <NumericInput
+                      value={internalForm.plannedCost}
+                      onChange={(value) =>
                         setInternalForm({
                           ...internalForm,
-                          plannedCost: parseEditableNumber(e.target.value),
-                        });
-                      }}
-                      onBlur={() =>
-                        setCompactInternalPlannedCostInput(
-                          formatEditableNumber(internalForm.plannedCost || 0),
-                        )
+                          plannedCost: value ?? 0,
+                        })
                       }
+                      minFractionDigits={0}
+                      maxFractionDigits={2}
+                      allowNegative={false}
+                      aria-label="Plánovaný náklad"
                       className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-900 dark:text-white text-sm text-right tabular-nums focus:ring-2 focus:ring-primary/20 transition-all outline-none"
                     />
                   </div>
@@ -815,37 +756,19 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                                 }
                                 className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none"
                               />
-                              <input
-                                type="text"
-                                inputMode="decimal"
-                                value={
-                                  compactInternalAmendmentPriceInputs[
-                                    amendment.id
-                                  ] ?? formatEditableNumber(amendment.price || 0)
-                                }
-                                onChange={(e) => {
-                                  setCompactInternalAmendmentPriceInputs(
-                                    (prev) => ({
-                                      ...prev,
-                                      [amendment.id]: e.target.value,
-                                    }),
-                                  );
+                              <NumericInput
+                                value={amendment.price}
+                                onChange={(value) =>
                                   updateInternalAmendment(
                                     index,
                                     "price",
-                                    parseEditableNumber(e.target.value),
-                                  );
-                                }}
-                                onBlur={() =>
-                                  setCompactInternalAmendmentPriceInputs(
-                                    (prev) => ({
-                                      ...prev,
-                                      [amendment.id]: formatEditableNumber(
-                                        amendment.price || 0,
-                                      ),
-                                    }),
+                                    value ?? 0,
                                   )
                                 }
+                                minFractionDigits={0}
+                                maxFractionDigits={2}
+                                allowNegative={false}
+                                aria-label={`Cena interního dodatku ${index + 1}`}
                                 className="w-40 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-slate-900 dark:text-white text-sm text-right tabular-nums focus:ring-2 focus:ring-primary/20 transition-all outline-none"
                               />
                               <button
@@ -1503,15 +1426,18 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                     <label className="text-xs text-slate-500 mb-1 block">
                       Základní cena SOD
                     </label>
-                    <input
-                      type="number"
+                    <NumericInput
                       value={investorForm.sodPrice}
-                      onChange={(e) =>
+                      onChange={(value) =>
                         setInvestorForm({
                           ...investorForm,
-                          sodPrice: parseFloat(e.target.value) || 0,
+                          sodPrice: value ?? 0,
                         })
                       }
+                      minFractionDigits={0}
+                      maxFractionDigits={2}
+                      allowNegative={false}
+                      aria-label="Základní cena SOD"
                       className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-2 py-2 text-sm text-white font-semibold text-right"
                     />
                   </div>
@@ -1533,16 +1459,19 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                           className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-2 py-1 text-sm text-white"
                           placeholder="Název"
                         />
-                        <input
-                          type="number"
+                        <NumericInput
                           value={amendment.price}
-                          onChange={(e) =>
+                          onChange={(value) =>
                             updateAmendment(
                               idx,
                               "price",
-                              parseFloat(e.target.value) || 0,
+                              value ?? 0,
                             )
                           }
+                          minFractionDigits={0}
+                          maxFractionDigits={2}
+                          allowNegative={false}
+                          aria-label={`Cena dodatku ${idx + 1}`}
                           className="w-28 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-2 py-1 text-sm text-white text-right"
                         />
                         <button
@@ -1667,15 +1596,18 @@ export const ProjectOverviewNew: React.FC<ProjectOverviewProps> = ({
                     <label className="text-xs text-slate-600 dark:text-slate-400 mb-1 block">
                       Plánovaný náklad (Cíl)
                     </label>
-                    <input
-                      type="number"
+                    <NumericInput
                       value={internalForm.plannedCost}
-                      onChange={(e) =>
+                      onChange={(value) =>
                         setInternalForm({
                           ...internalForm,
-                          plannedCost: parseFloat(e.target.value) || 0,
+                          plannedCost: value ?? 0,
                         })
                       }
+                      minFractionDigits={0}
+                      maxFractionDigits={2}
+                      allowNegative={false}
+                      aria-label="Plánovaný náklad"
                       className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded px-3 py-2 text-sm text-slate-900 dark:text-white font-semibold text-right focus:border-emerald-500/50 focus:outline-none"
                     />
                   </div>
