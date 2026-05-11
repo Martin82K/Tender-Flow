@@ -80,8 +80,12 @@ export const calculateOrgPrice = (
  * Format price for display (halíře → Kč string).
  */
 export const formatOrgPrice = (amountHalere: number): string => {
-  const kc = Math.round(amountHalere / 100);
-  return `${kc.toLocaleString('cs-CZ')} Kč`;
+  return new Intl.NumberFormat('cs-CZ', {
+    style: 'currency',
+    currency: 'CZK',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amountHalere / 100);
 };
 
 export { PRICING_CONFIG };

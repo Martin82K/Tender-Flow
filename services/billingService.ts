@@ -264,7 +264,8 @@ export const billingService = {
         return new Intl.NumberFormat('cs-CZ', {
             style: 'currency',
             currency: 'CZK',
-            maximumFractionDigits: 0,
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
         }).format(priceInCents / 100);
     },
 };

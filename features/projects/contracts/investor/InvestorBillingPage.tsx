@@ -44,7 +44,7 @@ const cloneInvestorFinancials = (projectDetails?: ProjectDetails): InvestorFinan
 });
 
 const formatEditableNumber = (value: number): string =>
-  formatDecimal(value || 0, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  formatDecimal(value || 0, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const parseEditableNumber = (value: string): number => parseDecimal(value) ?? 0;
 

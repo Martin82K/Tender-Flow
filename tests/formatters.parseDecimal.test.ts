@@ -76,8 +76,8 @@ describe('formatDecimal', () => {
 
 describe('formatPercentValue', () => {
   it('formátuje procenta s českou čárkou', () => {
-    expect(formatPercentValue(7.5)).toBe('7,5 %');
-    expect(formatPercentValue(100)).toBe('100 %');
+    expect(formatPercentValue(7.5)).toBe('7,50 %');
+    expect(formatPercentValue(100)).toBe('100,00 %');
   });
 
   it('vrátí pomlčku pro neplatné', () => {

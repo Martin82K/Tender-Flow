@@ -47,9 +47,12 @@ export const formatDecimal = (
     options?: { minimumFractionDigits?: number; maximumFractionDigits?: number },
 ): string => {
     if (value === null || value === undefined || !Number.isFinite(value)) return '';
+    const maximumFractionDigits = options?.maximumFractionDigits ?? 2;
+    const minimumFractionDigits =
+        options?.minimumFractionDigits ?? Math.min(2, maximumFractionDigits);
     return new Intl.NumberFormat('cs-CZ', {
-        minimumFractionDigits: options?.minimumFractionDigits ?? 0,
-        maximumFractionDigits: options?.maximumFractionDigits ?? 2,
+        minimumFractionDigits,
+        maximumFractionDigits,
     }).format(value as number);
 };
 
@@ -61,5 +64,5 @@ export const formatPercentValue = (
     options?: { minimumFractionDigits?: number; maximumFractionDigits?: number },
 ): string => {
     if (value === null || value === undefined || !Number.isFinite(value)) return '—';
-    return `${formatDecimal(value, { maximumFractionDigits: 2, ...options })} %`;
+    return `${formatDecimal(value, { minimumFractionDigits: 2, maximumFractionDigits: 2, ...options })} %`;
 };

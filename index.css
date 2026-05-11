@@ -13,6 +13,14 @@
 @source "./*.{js,ts,jsx,tsx}";
 @custom-variant dark (&:where(.dark, .dark *));
 
+.tabular-nums,
+input[inputmode="decimal"],
+input[inputmode="numeric"],
+input[type="number"] {
+  -webkit-user-select: text !important;
+  user-select: text !important;
+}
+
 @theme {
   --color-primary: rgb(var(--tf-color-primary-rgb));
   --color-background-light: var(--tf-color-background-light);
