@@ -10,7 +10,7 @@ import { formatMoney } from '../utils/format';
 
 interface Props {
   projectDetails?: ProjectDetails;
-  onUpdateDetails: (updates: Partial<ProjectDetails>) => void;
+  onUpdateDetails: (updates: Partial<ProjectDetails>) => void | Promise<void>;
 }
 
 const DEFAULT_INVESTOR: InvestorFinancials = {
@@ -57,6 +57,12 @@ export const InvestorBillingPage: React.FC<Props> = ({
   );
   const [amountInputs, setAmountInputs] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [editableInvoiceIds, setEditableInvoiceIds] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   useEffect(() => {
     const next = cloneInvestorFinancials(projectDetails);
@@ -69,6 +75,10 @@ export const InvestorBillingPage: React.FC<Props> = ({
         ]),
       ),
     );
+    setDirty(false);
+    setSaved(false);
+    setSaveError(null);
+    setEditableInvoiceIds(new Set());
   }, [projectDetails]);
 
   const totals = useMemo(() => {
@@ -111,7 +121,16 @@ export const InvestorBillingPage: React.FC<Props> = ({
       ...prev,
       [invoice.id]: '0',
     }));
+    setEditableInvoiceIds((prev) => new Set(prev).add(invoice.id));
+    setDirty(true);
     setSaved(false);
+    setSaveError(null);
+  };
+
+  const editInvoice = (invoiceId: string) => {
+    setEditableInvoiceIds((prev) => new Set(prev).add(invoiceId));
+    setSaved(false);
+    setSaveError(null);
   };
 
   const updateInvoice = (
@@ -130,18 +149,30 @@ export const InvestorBillingPage: React.FC<Props> = ({
       };
       return { ...prev, invoices: nextInvoices };
     });
+    setDirty(true);
     setSaved(false);
+    setSaveError(null);
   };
 
   const removeInvoice = (index: number) => {
+    const invoiceId = invoices[index]?.id;
     setForm((prev) => ({
       ...prev,
       invoices: (prev.invoices || []).filter((_, i) => i !== index),
     }));
+    if (invoiceId) {
+      setAmountInputs((prev) => {
+        const next = { ...prev };
+        delete next[invoiceId];
+        return next;
+      });
+    }
+    setDirty(true);
     setSaved(false);
+    setSaveError(null);
   };
 
-  const save = () => {
+  const save = async () => {
     const nextFinancials: InvestorFinancials = {
       ...DEFAULT_INVESTOR,
       ...form,
@@ -155,8 +186,19 @@ export const InvestorBillingPage: React.FC<Props> = ({
           note: invoice.note?.trim() || undefined,
         })),
     };
-    onUpdateDetails({ investorFinancials: nextFinancials });
-    setSaved(true);
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await onUpdateDetails({ investorFinancials: nextFinancials });
+      setSaved(true);
+      setDirty(false);
+      setEditableInvoiceIds(new Set());
+    } catch (err) {
+      setSaved(false);
+      setSaveError(err instanceof Error ? err.message : 'Fakturaci investora se nepodařilo uložit.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (!projectDetails) {
@@ -232,16 +274,29 @@ export const InvestorBillingPage: React.FC<Props> = ({
               type="button"
               onClick={save}
               data-help-id="contracts-investor-save"
-              className="rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white transition hover:bg-primary-dark"
+              disabled={saving}
+              className="rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Uložit
+              {saving ? 'Ukládám...' : 'Uložit'}
             </button>
           </div>
         </div>
 
+        {dirty && !saving ? (
+          <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:border-amber-900/60 dark:bg-amber-900/20 dark:text-amber-300">
+            Změny nejsou uložené. Pro trvalé smazání použijte Uložit.
+          </div>
+        ) : null}
+
         {saved ? (
           <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-900/20 dark:text-emerald-300">
             Fakturace investora byla uložena.
+          </div>
+        ) : null}
+
+        {saveError ? (
+          <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900/60 dark:bg-red-900/20 dark:text-red-300">
+            {saveError}
           </div>
         ) : null}
 
@@ -252,7 +307,7 @@ export const InvestorBillingPage: React.FC<Props> = ({
             </div>
           ) : (
             <>
-              <div className="hidden xl:grid xl:grid-cols-[minmax(150px,1.2fr)_145px_145px_minmax(135px,0.8fr)_140px_32px] gap-2 px-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              <div className="hidden xl:grid xl:grid-cols-[minmax(150px,1.2fr)_145px_145px_minmax(135px,0.8fr)_140px_76px] gap-2 px-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
                 <span>Číslo faktury</span>
                 <span>Vystaveno</span>
                 <span>Splatnost</span>
@@ -263,11 +318,16 @@ export const InvestorBillingPage: React.FC<Props> = ({
               {invoices.map((invoice, index) => (
                 <div
                   key={invoice.id}
-                  className="grid grid-cols-1 gap-2 rounded-xl border border-slate-200 bg-slate-50/60 p-3 dark:border-slate-800 dark:bg-slate-950/30 sm:grid-cols-2 xl:grid-cols-[minmax(150px,1.2fr)_145px_145px_minmax(135px,0.8fr)_140px_32px] xl:border-0 xl:bg-transparent xl:p-0 xl:dark:bg-transparent"
+                  className="grid grid-cols-1 gap-2 rounded-xl border border-slate-200 bg-slate-50/60 p-3 dark:border-slate-800 dark:bg-slate-950/30 sm:grid-cols-2 xl:grid-cols-[minmax(150px,1.2fr)_145px_145px_minmax(135px,0.8fr)_140px_76px] xl:border-0 xl:bg-transparent xl:p-0 xl:dark:bg-transparent"
                 >
+                  {(() => {
+                    const isEditable = editableInvoiceIds.has(invoice.id);
+                    return (
+                      <>
                   <input
                     className={inputClass}
                     value={invoice.invoiceNumber}
+                    disabled={!isEditable}
                     onChange={(event) =>
                       updateInvoice(index, 'invoiceNumber', event.target.value)
                     }
@@ -277,6 +337,7 @@ export const InvestorBillingPage: React.FC<Props> = ({
                     type="date"
                     className={inputClass}
                     value={invoice.issueDate}
+                    disabled={!isEditable}
                     onChange={(event) =>
                       updateInvoice(index, 'issueDate', event.target.value)
                     }
@@ -285,6 +346,7 @@ export const InvestorBillingPage: React.FC<Props> = ({
                     type="date"
                     className={inputClass}
                     value={invoice.dueDate}
+                    disabled={!isEditable}
                     onChange={(event) =>
                       updateInvoice(index, 'dueDate', event.target.value)
                     }
@@ -293,6 +355,7 @@ export const InvestorBillingPage: React.FC<Props> = ({
                     className={`${inputClass} text-right tabular-nums`}
                     inputMode="decimal"
                     value={amountInputs[invoice.id] ?? formatEditableNumber(invoice.amount || 0)}
+                    disabled={!isEditable}
                     onChange={(event) => {
                       setAmountInputs((prev) => ({
                         ...prev,
@@ -312,6 +375,7 @@ export const InvestorBillingPage: React.FC<Props> = ({
                   <select
                     className={inputClass}
                     value={invoice.status}
+                    disabled={!isEditable}
                     onChange={(event) =>
                       updateInvoice(index, 'status', event.target.value)
                     }
@@ -322,16 +386,32 @@ export const InvestorBillingPage: React.FC<Props> = ({
                       </option>
                     ))}
                   </select>
-                  <button
-                    type="button"
-                    onClick={() => removeInvoice(index)}
-                    className="grid h-9 w-9 place-items-center rounded-lg text-red-500 transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10"
-                    aria-label="Smazat fakturu"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">
-                      delete
-                    </span>
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => editInvoice(invoice.id)}
+                      disabled={isEditable}
+                      className="grid h-9 w-9 place-items-center rounded-lg text-slate-500 transition hover:bg-primary/10 hover:text-primary disabled:cursor-default disabled:bg-primary/10 disabled:text-primary dark:text-slate-400"
+                      aria-label="Upravit fakturu"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">
+                        edit
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeInvoice(index)}
+                      className="grid h-9 w-9 place-items-center rounded-lg text-red-500 transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10"
+                      aria-label="Smazat fakturu"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">
+                        delete
+                      </span>
+                    </button>
+                  </div>
+                      </>
+                    );
+                  })()}
                 </div>
               ))}
             </>
