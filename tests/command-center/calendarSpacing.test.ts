@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 const commandCenterCss = readFileSync(
   join(process.cwd(), "features/command-center/command-center.css"),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 const cssBlockFor = (selector: string) => {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
