@@ -2,6 +2,7 @@ import { supabase } from "@/services/supabase";
 
 export interface McpOAuthConsentDetails {
   authorization_id: string;
+  redirect_to?: string;
   redirect_url?: string;
   client?: {
     client_id?: string;
@@ -26,11 +27,11 @@ interface SupabaseOAuthApi {
   approveAuthorization: (
     authorizationId: string,
     options: { skipBrowserRedirect: true },
-  ) => Promise<OAuthResponse<{ redirect_url?: string }>>;
+  ) => Promise<OAuthResponse<{ redirect_to?: string; redirect_url?: string }>>;
   denyAuthorization: (
     authorizationId: string,
     options: { skipBrowserRedirect: true },
-  ) => Promise<OAuthResponse<{ redirect_url?: string }>>;
+  ) => Promise<OAuthResponse<{ redirect_to?: string; redirect_url?: string }>>;
 }
 
 const getOAuthApi = (): SupabaseOAuthApi => {
@@ -48,10 +49,10 @@ export const getMcpOAuthAuthorizationDetails = async (
 
 export const approveMcpOAuthAuthorization = async (
   authorizationId: string,
-): Promise<OAuthResponse<{ redirect_url?: string }>> =>
+): Promise<OAuthResponse<{ redirect_to?: string; redirect_url?: string }>> =>
   getOAuthApi().approveAuthorization(authorizationId, { skipBrowserRedirect: true });
 
 export const denyMcpOAuthAuthorization = async (
   authorizationId: string,
-): Promise<OAuthResponse<{ redirect_url?: string }>> =>
+): Promise<OAuthResponse<{ redirect_to?: string; redirect_url?: string }>> =>
   getOAuthApi().denyAuthorization(authorizationId, { skipBrowserRedirect: true });
