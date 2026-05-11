@@ -34,6 +34,23 @@ describe("remote MCP server", () => {
     });
   });
 
+  it("mapuje standardní OAuth protected-resource well-known URL na MCP metadata endpoint", () => {
+    const vercelConfig = JSON.parse(fs.readFileSync(path.join(ROOT, "vercel.json"), "utf8"));
+
+    expect(vercelConfig.rewrites).toEqual(
+      expect.arrayContaining([
+        {
+          source: "/.well-known/oauth-protected-resource",
+          destination: "/api/mcp-resource",
+        },
+        {
+          source: "/.well-known/oauth-protected-resource/(.*)",
+          destination: "/api/mcp-resource",
+        },
+      ]),
+    );
+  });
+
   it("fail-closed vrací WWW-Authenticate resource metadata bez bearer tokenu", async () => {
     const response = await handleMcpWebRequest(
       new Request("https://tenderflow.cz/api/mcp", {
