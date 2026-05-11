@@ -1,5 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { APP_VERSION } from "@/config/version";
 import { shouldShowWhatsNew, useWhatsNew } from "@/features/whats-new/useWhatsNew";
 
 describe("shouldShowWhatsNew", () => {
@@ -9,8 +10,8 @@ describe("shouldShowWhatsNew", () => {
   });
 
   it("zachová standardní chování pro další verze", () => {
-    expect(shouldShowWhatsNew("1.7.1", "1.7.0")).toBe(true);
-    expect(shouldShowWhatsNew("1.7.1", "1.7.1")).toBe(false);
+    expect(shouldShowWhatsNew("1.7.2", "1.7.1")).toBe(true);
+    expect(shouldShowWhatsNew("1.7.2", "1.7.2")).toBe(false);
   });
 });
 
@@ -33,6 +34,6 @@ describe("useWhatsNew", () => {
       result.current.dismiss();
     });
 
-    expect(localStorage.getItem("tf_whatsNew_lastSeen")).toBe("1.7.0");
+    expect(localStorage.getItem("tf_whatsNew_lastSeen")).toBe(APP_VERSION);
   });
 });
