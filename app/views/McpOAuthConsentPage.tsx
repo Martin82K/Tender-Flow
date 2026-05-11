@@ -37,6 +37,9 @@ const getAuthorizationIdFromSearch = (search: string): string => {
   }
 };
 
+export const getOAuthRedirectUrl = (data?: { redirect_to?: string; redirect_url?: string } | null): string =>
+  data?.redirect_to || data?.redirect_url || "";
+
 export const McpOAuthConsentPage: React.FC = () => {
   const authorizationId = getAuthorizationIdFromSearch(window.location.search);
   const [details, setDetails] = useState<McpOAuthConsentDetails | null>(null);
@@ -69,8 +72,9 @@ export const McpOAuthConsentPage: React.FC = () => {
         setIsLoading(false);
         return;
       }
-      if (data?.redirect_url) {
-        window.location.assign(data.redirect_url);
+      const redirectUrl = getOAuthRedirectUrl(data);
+      if (redirectUrl) {
+        window.location.assign(redirectUrl);
         return;
       }
       setDetails(data);
@@ -97,8 +101,9 @@ export const McpOAuthConsentPage: React.FC = () => {
       return;
     }
 
-    if (response.data?.redirect_url) {
-      window.location.assign(response.data.redirect_url);
+    const redirectUrl = getOAuthRedirectUrl(response.data);
+    if (redirectUrl) {
+      window.location.assign(redirectUrl);
       return;
     }
 
