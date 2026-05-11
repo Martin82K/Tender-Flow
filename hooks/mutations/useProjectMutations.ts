@@ -369,6 +369,13 @@ export const useUpdateProjectDetailsMutation = () => {
     // But useAppData had complex Contract/Financials mapping.
     // I should ideally preserve it.
 
+    const assertNoDbError = (operation: string, error: unknown) => {
+        if (error) {
+            console.error(operation, error);
+            throw error;
+        }
+    };
+
     return useMutation({
         mutationFn: async ({ id, updates }: { id: string, updates: Partial<ProjectDetails> }) => {
             const normalizedUpdates = { ...updates };
@@ -458,7 +465,7 @@ export const useUpdateProjectDetailsMutation = () => {
 
             // Update contract
             if (updates.contract) {
-                await dbAdapter.from("project_contracts").upsert({
+                const { error } = await dbAdapter.from("project_contracts").upsert({
                     project_id: id,
                     maturity_days: updates.contract.maturity,
                     warranty_months: updates.contract.warranty,
@@ -466,19 +473,22 @@ export const useUpdateProjectDetailsMutation = () => {
                     site_facilities_percent: updates.contract.siteFacilities,
                     insurance_percent: updates.contract.insurance,
                 });
+                assertNoDbError("Error updating project contract:", error);
             }
 
             // Update financials
             if (updates.investorFinancials) {
-                await dbAdapter.from("project_investor_financials").upsert({
+                const { error: financialsError } = await dbAdapter.from("project_investor_financials").upsert({
                     project_id: id,
                     sod_price: updates.investorFinancials.sodPrice,
                 });
+                assertNoDbError("Error updating investor financials:", financialsError);
 
                 if (updates.investorFinancials.amendments) {
-                    await dbAdapter.from("project_amendments").delete().eq("project_id", id);
+                    const { error: deleteAmendmentsError } = await dbAdapter.from("project_amendments").delete().eq("project_id", id);
+                    assertNoDbError("Error deleting project amendments:", deleteAmendmentsError);
                     if (updates.investorFinancials.amendments.length > 0) {
-                        await dbAdapter.from("project_amendments").insert(
+                        const { error: insertAmendmentsError } = await dbAdapter.from("project_amendments").insert(
                             updates.investorFinancials.amendments.map((a) => ({
                                 id: a.id,
                                 project_id: id,
@@ -486,16 +496,18 @@ export const useUpdateProjectDetailsMutation = () => {
                                 price: a.price,
                             }))
                         );
+                        assertNoDbError("Error inserting project amendments:", insertAmendmentsError);
                     }
                 }
 
                 if (updates.investorFinancials.invoices) {
-                    await dbAdapter.from("project_investor_invoices").delete().eq("project_id", id);
+                    const { error: deleteInvoicesError } = await dbAdapter.from("project_investor_invoices").delete().eq("project_id", id);
+                    assertNoDbError("Error deleting investor invoices:", deleteInvoicesError);
                     const invoicesToInsert = updates.investorFinancials.invoices.filter(
                         (invoice) => invoice.invoiceNumber.trim() && invoice.amount > 0,
                     );
                     if (invoicesToInsert.length > 0) {
-                        await dbAdapter.from("project_investor_invoices").insert(
+                        const { error: insertInvoicesError } = await dbAdapter.from("project_investor_invoices").insert(
                             invoicesToInsert.map((invoice) => ({
                                 id: invoice.id,
                                 project_id: id,
@@ -509,15 +521,33 @@ export const useUpdateProjectDetailsMutation = () => {
                                 note: invoice.note?.trim() || null,
                             })),
                         );
+                        assertNoDbError("Error inserting investor invoices:", insertInvoicesError);
+                    }
+
+                    const { data: savedInvoices, error: verifyInvoicesError } = await dbAdapter
+                        .from("project_investor_invoices")
+                        .select("id")
+                        .eq("project_id", id);
+                    assertNoDbError("Error verifying investor invoices:", verifyInvoicesError);
+
+                    const expectedIds = new Set(invoicesToInsert.map((invoice) => invoice.id));
+                    const savedIds = new Set(((savedInvoices || []) as Array<{ id: string }>).map((invoice) => invoice.id));
+                    const invoicesPersisted =
+                        expectedIds.size === savedIds.size &&
+                        [...expectedIds].every((invoiceId) => savedIds.has(invoiceId));
+
+                    if (!invoicesPersisted) {
+                        throw new Error("Fakturace investora se nepodařila uložit. Zkontrolujte oprávnění k projektu.");
                     }
                 }
             }
 
             // Update internal amendments
             if (updates.internalAmendments) {
-                await dbAdapter.from("project_internal_amendments").delete().eq("project_id", id);
+                const { error: deleteInternalError } = await dbAdapter.from("project_internal_amendments").delete().eq("project_id", id);
+                assertNoDbError("Error deleting internal amendments:", deleteInternalError);
                 if (updates.internalAmendments.length > 0) {
-                    await dbAdapter.from("project_internal_amendments").insert(
+                    const { error: insertInternalError } = await dbAdapter.from("project_internal_amendments").insert(
                         updates.internalAmendments.map((a) => ({
                             id: a.id,
                             project_id: id,
@@ -525,6 +555,7 @@ export const useUpdateProjectDetailsMutation = () => {
                             price: a.price,
                         }))
                     );
+                    assertNoDbError("Error inserting internal amendments:", insertInternalError);
                 }
             }
         },
