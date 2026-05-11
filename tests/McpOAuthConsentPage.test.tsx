@@ -53,6 +53,19 @@ describe("McpOAuthConsentPage", () => {
     expect(oauthMocks.getAuthorizationDetails).toHaveBeenCalledWith("auth-1");
   });
 
+  it("umí obnovit authorization_id z login next parametru po OAuth redirectu", async () => {
+    window.history.pushState(
+      {},
+      "",
+      `/login?next=${encodeURIComponent("/oauth/consent?authorization_id=auth-nested")}`,
+    );
+
+    render(<McpOAuthConsentPage />);
+
+    expect(await screen.findByText("ChatGPT")).toBeInTheDocument();
+    expect(oauthMocks.getAuthorizationDetails).toHaveBeenCalledWith("auth-nested");
+  });
+
   it("schválení volá Supabase OAuth approve bez ukládání tokenů v aplikaci", async () => {
     render(<McpOAuthConsentPage />);
 
