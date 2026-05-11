@@ -2,7 +2,11 @@ import React from "react";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ProjectOverviewNew } from "@/features/projects/ui/ProjectOverviewNew";
+import { formatMoney } from "@/utils/formatters";
 import type { ProjectDetails } from "../types";
+
+const hasNormalizedText = (expected: string) => (_content: string, element: Element | null) =>
+  (element?.textContent ?? "").replace(/\s/g, " ").trim() === expected.replace(/\s/g, " ").trim();
 
 const buildProject = (): ProjectDetails => ({
   id: "project-1",
@@ -165,10 +169,10 @@ describe("ProjectOverviewNew compact editace", () => {
     expect(screen.getByText("Upravit finance investora")).toBeInTheDocument();
     expect(screen.getByText("Počet dodatků:")).toBeInTheDocument();
     expect(screen.getByText("Dodatky celkem:")).toBeInTheDocument();
-    expect(screen.getAllByText("10 000 000 Kč").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(hasNormalizedText(formatMoney(10000000))).length).toBeGreaterThan(0);
     expect(screen.getAllByDisplayValue("FV-001").length).toBeGreaterThan(0);
 
-    const sodInput = screen.getByDisplayValue("410 000 000");
+    const sodInput = screen.getByDisplayValue(/410\s000\s000,00/);
     fireEvent.change(sodInput, { target: { value: "420000000" } });
 
     fireEvent.click(screen.getByText("Uložit změny"));
