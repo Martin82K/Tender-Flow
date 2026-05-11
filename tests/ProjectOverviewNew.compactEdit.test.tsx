@@ -167,12 +167,15 @@ describe("ProjectOverviewNew compact editace", () => {
     fireEvent.click(editButton);
 
     expect(screen.getByText("Upravit finance investora")).toBeInTheDocument();
+    const modal = screen.getByText("Upravit finance investora").closest("[data-help-id='overview-investor-finance-modal']");
+    expect(modal).toHaveClass("tf-modal-overlay");
+    expect(within(modal as HTMLElement).getByRole("dialog")).toHaveClass("tf-modal-panel", "max-w-4xl");
     expect(screen.getByText("Počet dodatků:")).toBeInTheDocument();
     expect(screen.getByText("Dodatky celkem:")).toBeInTheDocument();
     expect(screen.getAllByText(hasNormalizedText(formatMoney(10000000))).length).toBeGreaterThan(0);
     expect(screen.getAllByDisplayValue("FV-001").length).toBeGreaterThan(0);
 
-    const sodInput = screen.getByDisplayValue(/410\s000\s000,00/);
+    const sodInput = screen.getByLabelText("Základní cena SOD");
     fireEvent.change(sodInput, { target: { value: "420000000" } });
 
     fireEvent.click(screen.getByText("Uložit změny"));
@@ -197,6 +200,53 @@ describe("ProjectOverviewNew compact editace", () => {
           },
         ],
       },
+    });
+  });
+
+  it("umožní zadat cenu SOD i dodatků jako celé částky bez vynuceného desetinného zápisu", () => {
+    const onUpdate = vi.fn();
+    render(
+      <ProjectOverviewNew
+        project={buildProject()}
+        onUpdate={onUpdate}
+        variant="compact"
+        currentUserId="user-1"
+      />,
+    );
+
+    const financeHeader = screen.getByText("Finance (Investor)").parentElement;
+    const editButton = within(financeHeader as HTMLElement).getByRole("button");
+
+    fireEvent.click(editButton);
+
+    const sodInput = screen.getByLabelText("Základní cena SOD") as HTMLInputElement;
+    expect(sodInput.value).toBe("410\u00A0000\u00A0000");
+
+    fireEvent.focus(sodInput);
+    expect(sodInput.value).toBe("410000000");
+    fireEvent.change(sodInput, { target: { value: "123456789" } });
+    expect(sodInput.value).toBe("123456789");
+    fireEvent.blur(sodInput);
+    expect(sodInput.value).toBe("123\u00A0456\u00A0789");
+
+    const amendmentInput = screen.getByLabelText("Cena dodatku 1") as HTMLInputElement;
+    fireEvent.focus(amendmentInput);
+    expect(amendmentInput.value).toBe("6000000");
+    fireEvent.change(amendmentInput, { target: { value: "7654321" } });
+    expect(amendmentInput.value).toBe("7654321");
+    fireEvent.blur(amendmentInput);
+    expect(amendmentInput.value).toBe("7\u00A0654\u00A0321");
+
+    fireEvent.click(screen.getByText("Uložit změny"));
+
+    expect(onUpdate).toHaveBeenCalledWith({
+      investorFinancials: expect.objectContaining({
+        sodPrice: 123456789,
+        amendments: [
+          { id: "a1", label: "Dodatek č.1", price: 7654321 },
+          { id: "a2", label: "Dodatek č.2", price: 4000000 },
+        ],
+      }),
     });
   });
 });
