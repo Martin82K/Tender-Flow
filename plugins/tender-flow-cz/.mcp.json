@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "tender-flow-cz": {
+      "type": "http",
+      "url": "https://tenderflow.cz/api/mcp",
+      "note": "Remote Tender Flow MCP server. Uses OAuth on first connection. Business data access is controlled by Supabase RLS; supported write actions use prepare, confirm, and execute guardrails."
+    }
+  }
+}
