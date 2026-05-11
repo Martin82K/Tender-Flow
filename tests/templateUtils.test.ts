@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { processTemplate, renderTemplateHtml } from "@/shared/email/templateUtils";
+import { processTemplate, renderTemplateHtml, sanitizeEmailHtml } from "@/shared/email/templateUtils";
 import { processTemplate as processTemplateFromLegacy } from "../utils/templateUtils";
 import type { ProjectDetails } from "../types";
 
@@ -67,6 +67,60 @@ describe("templateUtils", () => {
     expect(html).not.toContain("<script");
     expect(html).not.toContain("onclick=");
     expect(html).not.toContain("javascript:alert");
+  });
+
+  it("escapuje projektové proměnné v HTML šabloně a zachová jen bezpečné odkazy", () => {
+    const html = processTemplate(
+      "<p>{NAZEV_STAVBY}</p>{ODKAZ_DOKUMENTACE}{POPIS_PRACI}",
+      createProject({
+        title: "<img src=x onerror=alert(1)>",
+        documentLinks: [
+          {
+            id: "safe-link",
+            label: "Bezpečný <b>odkaz</b>",
+            url: "https://example.com/docs?x=1",
+            type: "url",
+            createdAt: "2026-01-01",
+          },
+          {
+            id: "bad-link",
+            label: "Nebezpečný",
+            url: "javascript:alert(1)",
+            type: "url",
+            createdAt: "2026-01-01",
+          },
+        ],
+        categories: [
+          {
+            id: "cat-1",
+            title: "Kategorie",
+            workItems: ["Montáž <script>alert(1)</script>"],
+          },
+        ],
+      }),
+      undefined,
+      "html",
+    );
+
+    expect(html).toContain("&lt;img src=x onerror=alert(1)&gt;");
+    expect(html).toContain('href="https://example.com/docs?x=1"');
+    expect(html).toContain("Bezpečný &lt;b&gt;odkaz&lt;/b&gt;");
+    expect(html).toContain("Montáž &lt;script&gt;alert(1)&lt;/script&gt;");
+    expect(html).not.toContain("<img src=x");
+    expect(html).not.toContain("javascript:alert");
+    expect(html).not.toContain("<script>");
+  });
+
+  it("sanitizuje výsledné HTML tělo emailu včetně atributů a href", () => {
+    const html = sanitizeEmailHtml(
+      '<p onclick="alert(1)">Text</p><a href="javascript:alert(1)">link</a><script>alert(1)</script>',
+    );
+
+    expect(html).toContain("<p>Text</p>");
+    expect(html).toContain("<a>link</a>");
+    expect(html).not.toContain("onclick");
+    expect(html).not.toContain("javascript:");
+    expect(html).not.toContain("<script");
   });
 
   it("převádí nové řádky jen v textových částech mimo HTML tagy", () => {

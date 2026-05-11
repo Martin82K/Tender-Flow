@@ -1,3 +1,5 @@
+import { getRequiredMcpScopes } from './supabaseAuth.js';
+
 export const jsonResponse = (status, body, headers = {}) =>
   new Response(JSON.stringify(body), {
     status,
@@ -31,7 +33,7 @@ export const buildMcpResourceMetadata = (request) => {
     resource: mcpResource,
     authorization_servers: authServer ? [authServer] : [],
     bearer_methods_supported: ['header'],
-    scopes_supported: ['openid', 'email', 'profile'],
+    scopes_supported: getRequiredMcpScopes(),
     resource_documentation: `${baseUrl}/app/settings?tab=tools`,
   };
 };

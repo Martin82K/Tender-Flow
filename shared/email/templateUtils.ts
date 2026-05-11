@@ -82,16 +82,59 @@ const SIGNATURE_ALLOWED_ATTR = [
     'width',
 ];
 
+const SAFE_URL_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'tel:']);
+const SAFE_URI_PATTERN = /^(?:(?:https?|mailto|tel):)/i;
+const SAFE_HTML_VARIABLES = new Set(['{ODKAZ_DOKUMENTACE}', '{POPIS_PRACI}', '{PODPIS_UZIVATELE}']);
+
 export const isHtmlContent = (value: string): boolean => HTML_TAG_PATTERN.test(value);
+
+export const escapeHtml = (value: string): string =>
+    value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
+export const sanitizeHref = (value: string): string | null => {
+    const trimmed = value.trim();
+    if (!trimmed) {
+        return null;
+    }
+
+    try {
+        const parsed = new URL(trimmed);
+        if (!SAFE_URL_PROTOCOLS.has(parsed.protocol)) {
+            return null;
+        }
+        return parsed.toString();
+    } catch {
+        return null;
+    }
+};
+
+const buildSafeLinkHtml = (href: string, label: string): string => {
+    const safeHref = sanitizeHref(href);
+    const safeLabel = escapeHtml(label);
+
+    if (!safeHref) {
+        return safeLabel;
+    }
+
+    return `<a href="${escapeHtml(safeHref)}" rel="noopener noreferrer" target="_blank">${safeLabel}</a>`;
+};
 
 export const sanitizeSignatureHtml = (signature: string): string =>
     DOMPurify.sanitize(signature, {
         ALLOWED_TAGS: SIGNATURE_ALLOWED_TAGS,
         ALLOWED_ATTR: SIGNATURE_ALLOWED_ATTR,
+        ALLOWED_URI_REGEXP: SAFE_URI_PATTERN,
         ALLOW_DATA_ATTR: false,
         FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form'],
         FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onmouseenter', 'onmouseleave'],
     });
+
+export const sanitizeEmailHtml = (html: string): string => sanitizeSignatureHtml(html);
 
 const htmlToText = (value: string): string =>
     value
@@ -117,10 +160,31 @@ export const formatSignature = (
     if (format === 'html') {
         return isHtmlContent(signature)
             ? sanitizeSignatureHtml(signature)
-            : signature.replace(/\n/g, '<br>');
+            : escapeHtml(signature).replace(/\n/g, '<br>');
     }
 
     return isHtmlContent(signature) ? htmlToText(sanitizeSignatureHtml(signature)) : signature;
+};
+
+const formatHtmlValue = (key: string, value: string): string => {
+    if (SAFE_HTML_VARIABLES.has(key)) {
+        return sanitizeSignatureHtml(value);
+    }
+
+    return escapeHtml(value);
+};
+
+const formatTemplateDataForOutput = (
+    data: Record<string, string>,
+    format: 'text' | 'html',
+): Record<string, string> => {
+    if (format !== 'html') {
+        return data;
+    }
+
+    return Object.fromEntries(
+        Object.entries(data).map(([key, value]) => [key, formatHtmlValue(key, value)]),
+    );
 };
 
 export const renderTemplateHtml = (content: string): string => {
@@ -175,12 +239,12 @@ export const getPreviewData = (project?: ProjectDetails, category?: DemandCatego
             '{ODKAZ_DOKUMENTACE}': (() => {
                 if (project.documentLinks && project.documentLinks.length > 0) {
                     if (format === 'html') {
-                        return project.documentLinks.map(l => `📂 <a href="${l.url}">${l.label}</a>`).join('<br>');
+                        return project.documentLinks.map(l => `📂 ${buildSafeLinkHtml(l.url, l.label)}`).join('<br>');
                     }
                     return project.documentLinks.map(l => `📂 ${l.label}: ${l.url}`).join('\n');
                 }
                 const link = project.documentationLink || 'https://drive.google.com/...';
-                return format === 'html' ? `<a href="${link}">Odkaz na dokumentaci</a>` : link;
+                return format === 'html' ? buildSafeLinkHtml(link, 'Odkaz na dokumentaci') : link;
             })(),
 
             '{SOD_CENA}': project.investorFinancials?.sodPrice ? `${project.investorFinancials.sodPrice.toLocaleString('cs-CZ')} Kč` : '1 000 000 Kč',
@@ -194,7 +258,7 @@ export const getPreviewData = (project?: ProjectDetails, category?: DemandCatego
             '{POPIS_PRACI}': (() => {
                 if (cat && cat.workItems && cat.workItems.length > 0) {
                     if (format === 'html') {
-                        return `<ul>${cat.workItems.map(item => `<li>${item}</li>`).join('')}</ul>`;
+                        return `<ul>${cat.workItems.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`;
                     }
                     return cat.workItems.map(item => `- ${item}`).join('\n');
                 }
@@ -203,7 +267,7 @@ export const getPreviewData = (project?: ProjectDetails, category?: DemandCatego
                     const items = cat.description.split('\n').filter(Boolean);
                     if (items.length > 1) {
                         if (format === 'html') {
-                            return `<ul>${items.map(item => `<li>${item}</li>`).join('')}</ul>`;
+                            return `<ul>${items.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`;
                         }
                         return items.map(item => `- ${item}`).join('\n');
                     }
@@ -231,7 +295,7 @@ export const getPreviewData = (project?: ProjectDetails, category?: DemandCatego
         '{STAVEBNI_TECHNIK}': 'Tomáš Technik',
         '{OPRAVNENA_OSOBA}': 'Ing. Petr Ředitel',
         '{TECHNICKY_DOZOR}': 'TDI Servis s.r.o.',
-        '{ODKAZ_DOKUMENTACE}': format === 'html' ? '<a href="https://sharepoint.com/project-123">Odkaz na dokumentaci</a>' : 'https://sharepoint.com/project-123',
+        '{ODKAZ_DOKUMENTACE}': format === 'html' ? buildSafeLinkHtml('https://sharepoint.com/project-123', 'Odkaz na dokumentaci') : 'https://sharepoint.com/project-123',
 
         '{SOD_CENA}': '15 500 000 Kč',
         '{SPLATNOST}': '45 dnů',
@@ -245,7 +309,7 @@ export const getPreviewData = (project?: ProjectDetails, category?: DemandCatego
         '{DATUM_ODESLANI}': today,
         '{TERMIN_REALIZACE}': '01.03.2024 - 15.04.2024',
         '{TERMIN_POPTAVKY}': '20.01.2024',
-        '{PODPIS_UZIVATELE}': userSignature || 'S pozdravem,\nJan Novák',
+        '{PODPIS_UZIVATELE}': formatSignature(userSignature || 'S pozdravem,\nJan Novák', format),
     };
 };
 
@@ -267,7 +331,9 @@ export const processTemplate = (template: string, projectOrData: ProjectDetails 
     }
 
     let result = template;
-    for (const [key, value] of Object.entries(data)) {
+    const outputData = formatTemplateDataForOutput(data, format);
+
+    for (const [key, value] of Object.entries(outputData)) {
         // Escape special chars in key for regex if needed, though our keys are simple {KEY}
         result = result.replace(new RegExp(key, 'g'), value);
     }

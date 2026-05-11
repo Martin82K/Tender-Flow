@@ -28,7 +28,19 @@ type MergeOptions = {
   skipSheets?: string[];
   sheetSeparatorFillArgb?: string; // e.g. FF366092
   headerFillArgb?: string; // e.g. FF366092
+  maxWorksheets?: number;
+  maxRowsPerWorksheet?: number;
+  maxColumnsPerWorksheet?: number;
+  maxCells?: number;
 };
+
+const DEFAULT_MAX_WORKSHEETS = 50;
+const DEFAULT_MAX_ROWS_PER_WORKSHEET = 100_000;
+const DEFAULT_MAX_COLUMNS_PER_WORKSHEET = 256;
+const DEFAULT_MAX_CELLS = 500_000;
+const MAX_FORMULA_LENGTH = 8_192;
+const DANGEROUS_FORMULA_PATTERN =
+  /\b(?:WEBSERVICE|HYPERLINK|RTD|CALL|REGISTER\.ID)\s*\(|\[[^\]]+\]|(?:https?|ftp):\/\/|\\\\|(?:cmd|powershell|mshta|wscript|cscript)\s*\|/i;
 
 const getMerges = (ws: ExcelJS.Worksheet): string[] => {
   const model = ws.model as any;
@@ -69,10 +81,65 @@ const deepClone = <T,>(v: T): T => {
   }
 };
 
+export const isFormulaSafeToPreserve = (formula: string): boolean => {
+  const normalized = formula.trim();
+  return (
+    normalized.length > 0 &&
+    normalized.length <= MAX_FORMULA_LENGTH &&
+    !DANGEROUS_FORMULA_PATTERN.test(normalized)
+  );
+};
+
+const isFormulaValue = (value: ExcelJS.CellValue): value is ExcelJS.CellFormulaValue =>
+  Boolean(value && typeof value === "object" && "formula" in value);
+
+const getSafeCellValue = (value: ExcelJS.CellValue): ExcelJS.CellValue => {
+  if (!isFormulaValue(value)) {
+    return value;
+  }
+
+  if (typeof value.formula === "string" && isFormulaSafeToPreserve(value.formula)) {
+    return deepClone(value);
+  }
+
+  return (value.result ?? null) as ExcelJS.CellValue;
+};
+
+const assertWorkbookWithinLimits = (workbook: ExcelJS.Workbook, opts: MergeOptions): void => {
+  const maxWorksheets = opts.maxWorksheets ?? DEFAULT_MAX_WORKSHEETS;
+  const maxRowsPerWorksheet = opts.maxRowsPerWorksheet ?? DEFAULT_MAX_ROWS_PER_WORKSHEET;
+  const maxColumnsPerWorksheet = opts.maxColumnsPerWorksheet ?? DEFAULT_MAX_COLUMNS_PER_WORKSHEET;
+  const maxCells = opts.maxCells ?? DEFAULT_MAX_CELLS;
+
+  if (workbook.worksheets.length > maxWorksheets) {
+    throw new Error(`Workbook has too many worksheets (max ${maxWorksheets})`);
+  }
+
+  let totalCells = 0;
+  for (const ws of workbook.worksheets) {
+    const rows = ws.rowCount || ws.actualRowCount || 0;
+    const columns = ws.columnCount || ws.actualColumnCount || 0;
+
+    if (rows > maxRowsPerWorksheet) {
+      throw new Error(`Worksheet "${ws.name}" has too many rows (max ${maxRowsPerWorksheet})`);
+    }
+
+    if (columns > maxColumnsPerWorksheet) {
+      throw new Error(`Worksheet "${ws.name}" has too many columns (max ${maxColumnsPerWorksheet})`);
+    }
+
+    totalCells += rows * Math.max(1, columns);
+    if (totalCells > maxCells) {
+      throw new Error(`Workbook has too many cells (max ${maxCells})`);
+    }
+  }
+};
+
 export const mergeWorkbookToSingleSheet = async (input: Uint8Array, opts: MergeOptions = {}): Promise<Buffer> => {
   const inWb = new ExcelJS.Workbook();
   // exceljs typings use older Buffer definition; cast to avoid generic Buffer type mismatch in Node 22 types.
   await (inWb.xlsx as any).load(Buffer.from(input) as any);
+  assertWorkbookWithinLimits(inWb, opts);
 
   const outWb = new ExcelJS.Workbook();
   const outWs = outWb.addWorksheet("Kombinovane", {
@@ -133,7 +200,7 @@ export const mergeWorkbookToSingleSheet = async (input: Uint8Array, opts: MergeO
       for (let c = 1; c <= maxCols; c += 1) {
         const srcCell = srcRow.getCell(c);
         const dstCell = dstRow.getCell(c + 1);
-        dstCell.value = srcCell.value as any;
+        dstCell.value = getSafeCellValue(srcCell.value);
         dstCell.style = deepClone(srcCell.style);
       }
       dstRow.commit();
