@@ -10,7 +10,7 @@ type SubView = 'dashboard' | 'smlouvy' | 'investor';
 interface Props {
   projectId: string;
   projectDetails?: ProjectDetails;
-  onUpdateDetails: (updates: Partial<ProjectDetails>) => void;
+  onUpdateDetails: (updates: Partial<ProjectDetails>) => void | Promise<void>;
 }
 
 export const ContractsModule: React.FC<Props> = ({
