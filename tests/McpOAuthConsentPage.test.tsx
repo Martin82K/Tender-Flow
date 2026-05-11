@@ -3,7 +3,7 @@
 import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { McpOAuthConsentPage } from "@/app/views/McpOAuthConsentPage";
+import { getOAuthRedirectUrl, McpOAuthConsentPage } from "@/app/views/McpOAuthConsentPage";
 
 const oauthMocks = vi.hoisted(() => ({
   getAuthorizationDetails: vi.fn(),
@@ -74,6 +74,15 @@ describe("McpOAuthConsentPage", () => {
     await waitFor(() => {
       expect(oauthMocks.approveAuthorization).toHaveBeenCalledWith("auth-1");
     });
+  });
+
+  it("preferuje Supabase OAuth redirect_to a drží fallback na redirect_url", () => {
+    expect(getOAuthRedirectUrl({ redirect_to: "https://chatgpt.com/callback?code=ok" })).toBe(
+      "https://chatgpt.com/callback?code=ok",
+    );
+    expect(getOAuthRedirectUrl({ redirect_url: "https://chatgpt.com/legacy-callback?code=ok" })).toBe(
+      "https://chatgpt.com/legacy-callback?code=ok",
+    );
   });
 
   it("zamítnutí volá Supabase OAuth deny", async () => {
