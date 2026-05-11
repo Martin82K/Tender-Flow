@@ -14,15 +14,16 @@ Kazdy bod musi mit pred uzavrenim regresni test nebo opakovatelnou validaci.
 - [x] Zpevnit DocHub OAuth: TTL state, atomicke consume-before-use, provider identity binding a validace desktop tokenu.
 - [x] Redigovat MCP audit logy a nastavit OAuth allowlist/resource/scope kontroly fail-closed.
 - [x] Opravit Stripe webhook trust boundary: tier odvozovat z price ID, overovat metadata konzistenci a nesupresovat retry po failed eventu.
-- [ ] Pridat AI/map cost-abuse limity: provider/model allowlist, per-user/per-org kvoty, token/input limity a rate limiting pro drahe akce.
+- [x] Pridat AI/map cost-abuse limity: provider/model allowlist, per-user/per-org kvoty, token/input limity a rate limiting pro drahe akce.
 - [x] Zabezpecit Node Excel merge API autentizaci, CORS allowlistem, workbook limity a izolovanym zpracovanim.
 
 ## P2
 
 - [x] Escapovat untrusted hodnoty v HTML e-mail templates a pridat finalni sanitizer pred `.eml`.
-- [ ] Omezit short URL abuse: dokumentovat accepted risk, zvazit interstitial a blokovat `http`, credential URL a privatni hosty.
+- [x] Omezit short URL abuse: dokumentovat accepted risk, zvazit interstitial a blokovat `http`, credential URL a privatni hosty.
 - [x] Sjednotit filename sanitizaci pro Excel download headery.
-- [ ] Nahradit nebo izolovat zranitelny `xlsx@0.18.5` v klientskem importu kontaktu.
+- [x] Izolovat zranitelny `xlsx@0.18.5` v URL importu kontaktu limity, dynamickym importem a parser guardy.
+- [ ] Doresit sirsi `xlsx@0.18.5` plochu mimo URL import kontaktu, hlavne `contactsImportWizardService` a exportni workflow.
 
 ## Verification Gate
 

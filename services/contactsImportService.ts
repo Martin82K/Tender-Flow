@@ -1,6 +1,9 @@
 import { Subcontractor } from '../types';
 import Papa from 'papaparse';
-import * as XLSX from 'xlsx';
+
+export const CONTACTS_IMPORT_MAX_FILE_BYTES = 5 * 1024 * 1024;
+export const CONTACTS_IMPORT_MAX_ROWS = 5000;
+export const CONTACTS_IMPORT_FETCH_TIMEOUT_MS = 15000;
 
 export interface ImportResult {
   success: boolean;
@@ -8,15 +11,29 @@ export interface ImportResult {
   error?: string;
 }
 
+class ContactsImportError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ContactsImportError';
+  }
+}
+
 /**
  * Fetch file from URL and parse contacts
  */
 export const syncContactsFromUrl = async (url: string): Promise<ImportResult> => {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
   try {
+    const importUrl = validateImportUrl(url);
+    const controller = new AbortController();
+    timeoutId = setTimeout(() => controller.abort(), CONTACTS_IMPORT_FETCH_TIMEOUT_MS);
+
     // Fetch the file
-    const response = await fetch(url, {
+    const response = await fetch(importUrl.toString(), {
       method: 'GET',
       mode: 'cors',
+      signal: controller.signal,
       headers: {
         'Accept': 'text/csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel'
       }
@@ -30,8 +47,10 @@ export const syncContactsFromUrl = async (url: string): Promise<ImportResult> =>
       };
     }
 
+    validateContentLength(response.headers);
     const blob = await response.blob();
-    const fileType = detectFileType(url, blob.type);
+    validateBlobSize(blob);
+    const fileType = detectFileType(importUrl.toString(), blob.type);
 
     if (fileType === 'csv') {
       return await parseCSV(blob);
@@ -44,14 +63,130 @@ export const syncContactsFromUrl = async (url: string): Promise<ImportResult> =>
         error: 'Unsupported file type. Please use CSV or XLSX.'
       };
     }
-  } catch (error: any) {
-    console.error('Error syncing contacts:', error);
+  } catch (error: unknown) {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+    const message = getImportErrorMessage(error);
+    if (!(error instanceof ContactsImportError) && !isAbortError(error)) {
+      console.error('Error syncing contacts:', error);
+    }
     return {
       success: false,
       contacts: [],
-      error: error.message || 'Failed to sync contacts from URL'
+      error: message
     };
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
   }
+};
+
+const getImportErrorMessage = (error: unknown): string => {
+  if (isAbortError(error)) {
+    return `Import timed out after ${CONTACTS_IMPORT_FETCH_TIMEOUT_MS / 1000} seconds.`;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return 'Failed to sync contacts from URL';
+};
+
+const isAbortError = (error: unknown): boolean => {
+  return Boolean(
+    error &&
+      typeof error === 'object' &&
+      'name' in error &&
+      (error as { name?: unknown }).name === 'AbortError'
+  );
+};
+
+const validateImportUrl = (url: string): URL => {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new ContactsImportError('Invalid URL. Please enter a valid HTTPS URL.');
+  }
+
+  if (parsed.protocol !== 'https:') {
+    throw new ContactsImportError('Only HTTPS URLs are allowed for contact imports.');
+  }
+
+  if (parsed.username || parsed.password) {
+    throw new ContactsImportError('URLs with embedded credentials are not allowed.');
+  }
+
+  return parsed;
+};
+
+const validateContentLength = (headers: Headers): void => {
+  const contentLength = headers.get('content-length');
+  if (!contentLength) return;
+
+  const size = Number(contentLength);
+  if (!Number.isFinite(size) || size < 0) {
+    throw new ContactsImportError('Invalid Content-Length header.');
+  }
+
+  if (size > CONTACTS_IMPORT_MAX_FILE_BYTES) {
+    throw new ContactsImportError(
+      `Import file is too large. Maximum size is ${formatBytes(CONTACTS_IMPORT_MAX_FILE_BYTES)}.`
+    );
+  }
+};
+
+const validateBlobSize = (blob: Blob): void => {
+  if (blob.size > CONTACTS_IMPORT_MAX_FILE_BYTES) {
+    throw new ContactsImportError(
+      `Import file is too large. Maximum size is ${formatBytes(CONTACTS_IMPORT_MAX_FILE_BYTES)}.`
+    );
+  }
+};
+
+const formatBytes = (value: number): string => {
+  return `${Math.floor(value / (1024 * 1024))} MB`;
+};
+
+const validateRowCount = (rowCount: number): void => {
+  if (rowCount > CONTACTS_IMPORT_MAX_ROWS) {
+    throw new ContactsImportError(
+      `Import contains too many rows. Maximum is ${CONTACTS_IMPORT_MAX_ROWS} rows.`
+    );
+  }
+};
+
+const readBlobText = async (blob: Blob): Promise<string> => {
+  if (typeof blob.text === 'function') {
+    return await blob.text();
+  }
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new ContactsImportError('Failed to read CSV file'));
+    reader.readAsText(blob);
+  });
+};
+
+const readBlobArrayBuffer = async (blob: Blob): Promise<ArrayBuffer> => {
+  if (typeof blob.arrayBuffer === 'function') {
+    return await blob.arrayBuffer();
+  }
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (reader.result instanceof ArrayBuffer) {
+        resolve(reader.result);
+        return;
+      }
+      reject(new ContactsImportError('Failed to read XLSX file'));
+    };
+    reader.onerror = () => reject(new ContactsImportError('Failed to read XLSX file'));
+    reader.readAsArrayBuffer(blob);
+  });
 };
 
 /**
@@ -87,26 +222,28 @@ const detectFileType = (url: string, contentType: string): 'csv' | 'xlsx' | 'unk
  * Parse CSV file
  */
 const parseCSV = async (blob: Blob): Promise<ImportResult> => {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      let text = e.target?.result as string;
-      
-      // Check for title line (no delimiters) and remove it if present
-      const lines = text.split('\n');
-      if (lines.length > 1) {
-        const firstLine = lines[0];
-        // If first line has no semicolons or commas, but second line does, assume it's a title
-        if (!firstLine.includes(';') && !firstLine.includes(',') && (lines[1].includes(';') || lines[1].includes(','))) {
-           text = lines.slice(1).join('\n');
-        }
-      }
+  try {
+    validateBlobSize(blob);
+    let text = await readBlobText(blob);
 
+    // Check for title line (no delimiters) and remove it if present
+    const lines = text.split('\n');
+    if (lines.length > 1) {
+      const firstLine = lines[0];
+      // If first line has no semicolons or commas, but second line does, assume it's a title
+      if (!firstLine.includes(';') && !firstLine.includes(',') && (lines[1].includes(';') || lines[1].includes(','))) {
+        text = lines.slice(1).join('\n');
+      }
+    }
+
+    return new Promise((resolve) => {
       Papa.parse(text, {
         header: true,
         skipEmptyLines: true,
+        preview: CONTACTS_IMPORT_MAX_ROWS + 1,
         transformHeader: (h) => h.trim(), // Trim whitespace from headers (e.g. "Typ ")
         complete: (results) => {
+          validateRowCount(results.data.length);
           const contacts = parseContactsData(results.data);
           resolve({
             success: true,
@@ -121,52 +258,56 @@ const parseCSV = async (blob: Blob): Promise<ImportResult> => {
           });
         }
       });
+    });
+  } catch (error: unknown) {
+    return {
+      success: false,
+      contacts: [],
+      error: getImportErrorMessage(error)
     };
-    reader.onerror = () => {
-      resolve({
-        success: false,
-        contacts: [],
-        error: 'Failed to read CSV file'
-      });
-    };
-    reader.readAsText(blob);
-  });
+  }
 };
 
 /**
  * Parse XLSX file
  */
 const parseXLSX = async (blob: Blob): Promise<ImportResult> => {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = e.target?.result;
-        const workbook = XLSX.read(data, { type: 'binary' });
-        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-        const jsonData = XLSX.utils.sheet_to_json(firstSheet);
-        const contacts = parseContactsData(jsonData);
-        resolve({
-          success: true,
-          contacts
-        });
-      } catch (error: any) {
-        resolve({
-          success: false,
-          contacts: [],
-          error: error.message
-        });
-      }
+  try {
+    validateBlobSize(blob);
+    const data = await readBlobArrayBuffer(blob);
+    const XLSX = await import('xlsx');
+    const workbook = XLSX.read(data, {
+      type: 'array',
+      sheetRows: CONTACTS_IMPORT_MAX_ROWS + 2,
+      cellFormula: false,
+      cellHTML: false,
+      cellNF: false,
+      cellStyles: false
+    });
+    const firstSheetName = workbook.SheetNames[0];
+    if (!firstSheetName) {
+      throw new ContactsImportError('XLSX file does not contain any sheets.');
+    }
+
+    const firstSheet = workbook.Sheets[firstSheetName];
+    const jsonData = XLSX.utils.sheet_to_json<Record<string, unknown>>(firstSheet, {
+      blankrows: false,
+      defval: '',
+      raw: false
+    });
+    validateRowCount(jsonData.length);
+    const contacts = parseContactsData(jsonData);
+    return {
+      success: true,
+      contacts
     };
-    reader.onerror = () => {
-      resolve({
-        success: false,
-        contacts: [],
-        error: 'Failed to read XLSX file'
-      });
+  } catch (error: unknown) {
+    return {
+      success: false,
+      contacts: [],
+      error: getImportErrorMessage(error)
     };
-    reader.readAsBinaryString(blob);
-  });
+  }
 };
 
 /**
