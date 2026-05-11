@@ -14,7 +14,7 @@ import {
   appendSignatureToTemplate,
   buildEmailSignature,
 } from "@/shared/email/signature";
-import { processTemplate, renderTemplateHtml } from "@/shared/email/templateUtils";
+import { processTemplate, renderTemplateHtml, sanitizeEmailHtml } from "@/shared/email/templateUtils";
 import platformAdapter from "@infra/platform/platformAdapter";
 import type { Bid, DemandCategory, ProjectDetails, User } from "@/types";
 import type { PipelineInquiryGenerationKind } from "./pipelineModel";
@@ -137,7 +137,7 @@ export const usePipelineCommunicationActions = ({
   };
 
   const wrapHtmlEmailBody = (rawBody: string): string => {
-    const normalizedBody = renderTemplateHtml(rawBody);
+    const normalizedBody = sanitizeEmailHtml(renderTemplateHtml(rawBody));
     return `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;color:#333333;">${normalizedBody}</body></html>`;
   };
 

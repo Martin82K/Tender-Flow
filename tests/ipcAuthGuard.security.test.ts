@@ -1,9 +1,15 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // Mock Electron modules before importing the guard
 vi.mock('electron', () => ({
   BrowserWindow: {
     fromWebContents: vi.fn(),
+  },
+  app: {
+    getPath: vi.fn((name: string) => {
+      if (name === 'userData') return '/Users/tester/Library/Application Support/TenderFlow';
+      return '/tmp';
+    }),
   },
 }));
 
@@ -13,7 +19,9 @@ import { BrowserWindow } from 'electron';
 const mockFromWebContents = vi.mocked(BrowserWindow.fromWebContents);
 
 const createMockSender = (windowId?: number) => {
-  const sender = {} as Electron.WebContents;
+  const sender = {
+    executeJavaScript: vi.fn(),
+  } as unknown as Electron.WebContents;
   if (windowId !== undefined) {
     mockFromWebContents.mockReturnValue({ id: windowId } as any);
   } else {
@@ -23,10 +31,30 @@ const createMockSender = (windowId?: number) => {
 };
 
 describe('IPC Auth Guard security', () => {
+  const originalFetch = global.fetch;
+  const originalSupabaseUrl = process.env.VITE_SUPABASE_URL;
+  const originalSupabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+
   beforeEach(() => {
-    // Reset auth state
-    ipcAuthGuard.setAuthenticated(false);
+    ipcAuthGuard.resetForTest();
     mockFromWebContents.mockReset();
+    process.env.VITE_SUPABASE_URL = 'https://example.supabase.co';
+    process.env.VITE_SUPABASE_ANON_KEY = 'anon-key';
+    global.fetch = vi.fn();
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    if (originalSupabaseUrl === undefined) {
+      delete process.env.VITE_SUPABASE_URL;
+    } else {
+      process.env.VITE_SUPABASE_URL = originalSupabaseUrl;
+    }
+    if (originalSupabaseAnonKey === undefined) {
+      delete process.env.VITE_SUPABASE_ANON_KEY;
+    } else {
+      process.env.VITE_SUPABASE_ANON_KEY = originalSupabaseAnonKey;
+    }
   });
 
   it('starts in unauthenticated state', () => {
@@ -110,6 +138,53 @@ describe('IPC Auth Guard security', () => {
 
     ipcAuthGuard.setAuthenticated(false);
     expect(ipcAuthGuard.isAuthenticated()).toBe(false);
+  });
+
+  it('renderer nemuze nastavit auth pouze boolean true bez overitelne session', async () => {
+    const sender = createMockSender(1);
+    ipcAuthGuard.setMainWindow({ id: 1 } as any);
+    vi.mocked(sender.executeJavaScript).mockResolvedValue(null);
+
+    await expect(ipcAuthGuard.setAuthenticatedFromRenderer(sender, true))
+      .rejects.toThrow('IPC_AUTH_DENIED: missing verifiable renderer session');
+
+    expect(ipcAuthGuard.isAuthenticated()).toBe(false);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('renderer auth true projde pouze s mainem overenou Supabase session', async () => {
+    const sender = createMockSender(1);
+    ipcAuthGuard.setMainWindow({ id: 1 } as any);
+    vi.mocked(sender.executeJavaScript).mockResolvedValue({
+      accessToken: 'valid-token',
+      expiresAt: Math.floor(Date.now() / 1000) + 60,
+    });
+    vi.mocked(global.fetch).mockResolvedValue({ ok: true } as Response);
+
+    await ipcAuthGuard.setAuthenticatedFromRenderer(sender, true);
+
+    expect(ipcAuthGuard.isAuthenticated()).toBe(true);
+    expect(global.fetch).toHaveBeenCalledWith('https://example.supabase.co/auth/v1/user', {
+      headers: {
+        apikey: 'anon-key',
+        authorization: 'Bearer valid-token',
+      },
+    });
+  });
+
+  it('renderer auth true odmitne expirovanou session pred citlivym IPC odemcenim', async () => {
+    const sender = createMockSender(1);
+    ipcAuthGuard.setMainWindow({ id: 1 } as any);
+    vi.mocked(sender.executeJavaScript).mockResolvedValue({
+      accessToken: 'expired-token',
+      expiresAt: Math.floor(Date.now() / 1000) - 1,
+    });
+
+    await expect(ipcAuthGuard.setAuthenticatedFromRenderer(sender, true))
+      .rejects.toThrow('IPC_AUTH_DENIED: renderer session expired');
+
+    expect(ipcAuthGuard.isAuthenticated()).toBe(false);
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it('isTrustedSender validates against main window', () => {

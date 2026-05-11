@@ -3,6 +3,23 @@ import { encryptJsonAesGcm, tryGetEnv } from "../_shared/crypto.ts";
 import { createServiceClient } from "../_shared/supabase.ts";
 
 type Provider = "gdrive";
+type ProviderIdentity = {
+  audience: string;
+  email: string;
+  emailVerified: boolean | null;
+  subjects: string[];
+};
+type SupabaseAuthUser = {
+  email?: string | null;
+  identities?: Array<{
+    id?: string | null;
+    provider?: string | null;
+    provider_id?: string | null;
+    identity_data?: Record<string, unknown> | null;
+  }> | null;
+};
+
+const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 
 const siteBaseUrl = () => {
   const raw = (Deno.env.get("SITE_URL") || "http://localhost:3000").trim();
@@ -28,6 +45,8 @@ const withQueryParam = (to: string, key: string, value: string) => {
     return `${to}${sep}${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
   }
 };
+
+const oauthStateCutoffIso = () => new Date(Date.now() - OAUTH_STATE_TTL_MS).toISOString();
 
 const sanitizeReturnTo = (raw: string | null | undefined) => {
   const base = siteBaseUrl();
@@ -100,6 +119,175 @@ const tokenExchangeGoogle = async (args: {
   };
 };
 
+const normalizeEmail = (value: unknown): string => {
+  if (typeof value !== "string") return "";
+  return value.trim().toLowerCase();
+};
+
+const normalizeSubject = (value: unknown): string => {
+  if (typeof value !== "string") return "";
+  return value.trim();
+};
+
+const booleanClaim = (value: unknown): boolean | null => {
+  if (value === true || value === "true") return true;
+  if (value === false || value === "false") return false;
+  return null;
+};
+
+const collectExpectedIdentity = (user: SupabaseAuthUser, provider: "google") => {
+  const emails = new Set<string>();
+  const subjects = new Set<string>();
+  const userEmail = normalizeEmail(user.email);
+  if (userEmail) emails.add(userEmail);
+
+  for (const identity of user.identities || []) {
+    if (identity.provider !== provider) continue;
+    const data = identity.identity_data || {};
+    const identityEmail = normalizeEmail(data.email);
+    if (identityEmail) emails.add(identityEmail);
+
+    for (const candidate of [identity.provider_id, identity.id, data.sub, data.provider_id]) {
+      const subject = normalizeSubject(candidate);
+      if (subject) subjects.add(subject);
+    }
+  }
+
+  return { emails, subjects };
+};
+
+const assertIdentityBoundToUser = (args: {
+  identity: ProviderIdentity;
+  user: SupabaseAuthUser;
+  provider: "google";
+  clientId: string;
+}) => {
+  if (args.identity.audience !== args.clientId) {
+    throw new Error("OAuth provider audience mismatch");
+  }
+  if (!args.identity.email || args.identity.subjects.length === 0) {
+    throw new Error("OAuth provider identity missing");
+  }
+  if (args.identity.emailVerified === false) {
+    throw new Error("OAuth provider email not verified");
+  }
+
+  const expected = collectExpectedIdentity(args.user, args.provider);
+  const emailMatch = expected.emails.has(normalizeEmail(args.identity.email));
+  const subjectMatch = args.identity.subjects.some((subject) => expected.subjects.has(subject));
+
+  if (!emailMatch && !subjectMatch) {
+    throw new Error("OAuth provider identity does not match signed-in user");
+  }
+};
+
+const getStateUser = async (
+  service: ReturnType<typeof createServiceClient>,
+  userId: string
+): Promise<SupabaseAuthUser> => {
+  const { data, error } = await service.auth.admin.getUserById(userId);
+  if (error || !data?.user) {
+    throw new Error("OAuth state user not found");
+  }
+  return data.user as SupabaseAuthUser;
+};
+
+const fetchGoogleTokenInfo = async (idToken: string): Promise<ProviderIdentity> => {
+  const url = new URL("https://oauth2.googleapis.com/tokeninfo");
+  url.searchParams.set("id_token", idToken);
+  const res = await fetch(url);
+  const json = await res.json();
+  if (!res.ok) throw new Error(json?.error_description || json?.error || "Google id_token verification failed");
+
+  const subject = normalizeSubject(json.sub);
+  const email = normalizeEmail(json.email);
+  return {
+    audience: String(json.aud || ""),
+    email,
+    emailVerified: booleanClaim(json.email_verified),
+    subjects: subject ? [subject] : [],
+  };
+};
+
+const fetchGoogleUserInfo = async (accessToken: string): Promise<ProviderIdentity> => {
+  const res = await fetch("https://openidconnect.googleapis.com/v1/userinfo", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json?.error_description || json?.error || "Google userinfo verification failed");
+
+  const subject = normalizeSubject(json.sub);
+  const email = normalizeEmail(json.email);
+  return {
+    audience: "",
+    email,
+    emailVerified: booleanClaim(json.email_verified),
+    subjects: subject ? [subject] : [],
+  };
+};
+
+const verifyGoogleIdentity = async (args: {
+  token: Awaited<ReturnType<typeof tokenExchangeGoogle>>;
+  clientId: string;
+  user: SupabaseAuthUser;
+}): Promise<ProviderIdentity> => {
+  if (!args.token.id_token) {
+    throw new Error("Missing Google id_token");
+  }
+
+  const tokenInfo = await fetchGoogleTokenInfo(args.token.id_token);
+  const userInfo = await fetchGoogleUserInfo(args.token.access_token);
+  if (
+    tokenInfo.subjects[0] &&
+    userInfo.subjects[0] &&
+    tokenInfo.subjects[0] !== userInfo.subjects[0]
+  ) {
+    throw new Error("Google id_token/userinfo subject mismatch");
+  }
+  if (tokenInfo.email && userInfo.email && tokenInfo.email !== userInfo.email) {
+    throw new Error("Google id_token/userinfo email mismatch");
+  }
+
+  const identity = {
+    ...tokenInfo,
+    email: tokenInfo.email || userInfo.email,
+    emailVerified: tokenInfo.emailVerified ?? userInfo.emailVerified,
+    subjects: Array.from(new Set([...tokenInfo.subjects, ...userInfo.subjects])),
+  };
+  assertIdentityBoundToUser({
+    identity,
+    user: args.user,
+    provider: "google",
+    clientId: args.clientId,
+  });
+  return identity;
+};
+
+const consumeFreshOAuthState = async (args: {
+  service: ReturnType<typeof createServiceClient>;
+  provider: Provider;
+  nonce: string;
+}) => {
+  const { data, error } = await args.service
+    .from("dochub_oauth_states")
+    .delete()
+    .eq("nonce", args.nonce)
+    .eq("provider", args.provider)
+    .gte("created_at", oauthStateCutoffIso())
+    .select("*")
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) {
+    await args.service
+      .from("dochub_oauth_states")
+      .delete()
+      .eq("nonce", args.nonce)
+      .eq("provider", args.provider);
+  }
+  return data;
+};
+
 Deno.serve(async (req) => {
   try {
     const url = new URL(req.url);
@@ -122,15 +310,14 @@ Deno.serve(async (req) => {
     }
 
     const service = createServiceClient();
-    const { data: stateRow, error: stateError } = await service
-      .from("dochub_oauth_states")
-      .select("*")
-      .eq("nonce", nonce)
-      .eq("provider", provider as Provider)
-      .single();
+    const stateRow = await consumeFreshOAuthState({
+      service,
+      nonce,
+      provider: provider as Provider,
+    });
 
-    if (stateError || !stateRow) {
-      return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "state_not_found"));
+    if (!stateRow) {
+      return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "state_not_found_or_expired"));
     }
 
     const { data: project, error: projectAccessError } = await service
@@ -139,7 +326,6 @@ Deno.serve(async (req) => {
       .eq("id", stateRow.project_id)
       .maybeSingle();
     if (projectAccessError || !project) {
-      await service.from("dochub_oauth_states").delete().eq("id", stateRow.id);
       return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "forbidden_project"));
     }
 
@@ -152,7 +338,6 @@ Deno.serve(async (req) => {
         .eq("permission", "edit")
         .maybeSingle();
       if (!share) {
-        await service.from("dochub_oauth_states").delete().eq("id", stateRow.id);
         return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "forbidden_project"));
       }
     }
@@ -167,6 +352,8 @@ Deno.serve(async (req) => {
     }
 
     const token = await tokenExchangeGoogle({ code, clientId, clientSecret, redirectUri });
+    const stateUser = await getStateUser(service, stateRow.user_id);
+    const providerIdentity = await verifyGoogleIdentity({ token, clientId, user: stateUser });
     const expiresAt = new Date(Date.now() + token.expires_in * 1000).toISOString();
 
     const tokenCiphertext = await encryptJsonAesGcm(
@@ -175,6 +362,9 @@ Deno.serve(async (req) => {
         refresh_token: token.refresh_token || null,
         scope: token.scope || null,
         token_type: token.token_type,
+        provider_subject: providerIdentity.subjects[0] || null,
+        provider_email: providerIdentity.email,
+        provider_audience: providerIdentity.audience,
       },
       encKey
     );
@@ -198,9 +388,6 @@ Deno.serve(async (req) => {
         dochub_last_error: null,
       })
       .eq("id", stateRow.project_id);
-
-    // One-time state; cleanup
-    await service.from("dochub_oauth_states").delete().eq("id", stateRow.id);
 
     const returnTo = sanitizeReturnTo(stateRow.return_to);
     return redirect(returnTo);

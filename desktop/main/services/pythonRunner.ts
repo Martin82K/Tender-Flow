@@ -2,6 +2,7 @@ import { spawn, ChildProcess } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import { app } from 'electron';
+import { ipcAuthGuard } from './ipcAuthGuard';
 
 export interface PythonResult {
     success: boolean;
@@ -101,11 +102,16 @@ export class PythonRunnerService {
      */
     async runTool(options: PythonToolOptions): Promise<PythonResult> {
         const { tool, inputFile, outputFile, args = [] } = options;
+        let safeInputFile: string;
 
         // Verify input file exists
         try {
-            await fs.access(inputFile);
-        } catch {
+            safeInputFile = await ipcAuthGuard.ensurePathAllowed(inputFile, 'read');
+            await fs.access(safeInputFile);
+        } catch (error) {
+            if (error instanceof Error && error.message.startsWith('Access denied:')) {
+                return { success: false, error: error.message };
+            }
             return { success: false, error: `Input file not found: ${inputFile}` };
         }
 
@@ -131,10 +137,19 @@ export class PythonRunnerService {
         }
 
         // Determine output file
-        const finalOutput = outputFile || this.generateOutputPath(inputFile, tool);
+        const requestedOutput = outputFile || this.generateOutputPath(safeInputFile, tool);
+        let finalOutput: string;
+        try {
+            finalOutput = await ipcAuthGuard.ensurePathAllowed(requestedOutput, 'write');
+        } catch (error) {
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : String(error),
+            };
+        }
 
         // Build arguments
-        const scriptArgs = [scriptPath, inputFile, finalOutput, ...args];
+        const scriptArgs = [scriptPath, safeInputFile, finalOutput, ...args];
 
         // Execute
         const result = await this.exec(this.pythonPath, scriptArgs);

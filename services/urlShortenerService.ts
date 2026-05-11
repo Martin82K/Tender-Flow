@@ -18,7 +18,66 @@ export interface ShortenResult {
 }
 
 const SHORT_URL_BASE = window.location.origin + '/s/';
-const ALLOWED_SHORT_URL_PROTOCOLS = new Set(["http:", "https:"]);
+const ALLOWED_SHORT_URL_PROTOCOLS = new Set(["https:"]);
+const SAFE_SHORT_REDIRECT_ERROR =
+  "Neplatná cílová URL. Povolené jsou pouze veřejné HTTPS odkazy bez přihlašovacích údajů.";
+
+const RESERVED_HOST_SUFFIXES = [
+  ".localhost",
+  ".local",
+  ".internal",
+  ".test",
+  ".invalid",
+  ".example",
+];
+
+const isPrivateOrReservedIpv4 = (hostname: string): boolean => {
+  const parts = hostname.split(".");
+  if (parts.length !== 4) return false;
+
+  const octets = parts.map((part) => {
+    if (!/^\d+$/.test(part)) return Number.NaN;
+    const value = Number(part);
+    return value >= 0 && value <= 255 ? value : Number.NaN;
+  });
+
+  if (octets.some(Number.isNaN)) return false;
+
+  const [first, second, third] = octets;
+  if (first === 0 || first === 10 || first === 127) return true;
+  if (first === 100 && second >= 64 && second <= 127) return true;
+  if (first === 169 && second === 254) return true;
+  if (first === 172 && second >= 16 && second <= 31) return true;
+  if (first === 192 && second === 168) return true;
+  if (first === 192 && second === 0 && third === 0) return true;
+  if (first === 192 && second === 0 && third === 2) return true;
+  if (first === 198 && (second === 18 || second === 19)) return true;
+  if (first === 198 && second === 51 && third === 100) return true;
+  if (first === 203 && second === 0 && third === 113) return true;
+  return first >= 224;
+};
+
+const isLocalOrReservedHostname = (hostname: string): boolean => {
+  const normalized = hostname.toLowerCase().replace(/^\[|\]$/g, "").replace(/\.$/, "");
+  if (!normalized) return true;
+  if (normalized === "localhost") return true;
+  if (!normalized.includes(".") && !normalized.includes(":")) return true;
+  if (RESERVED_HOST_SUFFIXES.some((suffix) => normalized.endsWith(suffix))) return true;
+  if (isPrivateOrReservedIpv4(normalized)) return true;
+
+  if (normalized.includes(":")) {
+    const firstHextet = normalized.split(":").find(Boolean) || "0";
+    const first = Number.parseInt(firstHextet, 16);
+    if (normalized === "::" || normalized === "::1") return true;
+    if (Number.isNaN(first)) return true;
+    if (first >= 0xfc00 && first <= 0xfdff) return true;
+    if (first >= 0xfe80 && first <= 0xfebf) return true;
+    if (first >= 0xff00) return true;
+    if (normalized.startsWith("2001:db8:") || normalized === "2001:db8::") return true;
+  }
+
+  return false;
+};
 
 export const normalizeSafeShortRedirectUrl = (value: string): string | null => {
   const trimmed = typeof value === "string" ? value.trim() : "";
@@ -32,6 +91,14 @@ export const normalizeSafeShortRedirectUrl = (value: string): string | null => {
   }
 
   if (!ALLOWED_SHORT_URL_PROTOCOLS.has(parsed.protocol)) {
+    return null;
+  }
+
+  if (parsed.username || parsed.password) {
+    return null;
+  }
+
+  if (isLocalOrReservedHostname(parsed.hostname)) {
     return null;
   }
 
@@ -59,7 +126,7 @@ async function shortenWithTinyUrl(url: string): Promise<ShortenResult> {
     return {
       success: false,
       originalUrl: url,
-      error: "Neplatná cílová URL. Povolené jsou pouze http/https odkazy.",
+      error: SAFE_SHORT_REDIRECT_ERROR,
       provider: "tinyurl",
     };
   }
@@ -103,7 +170,7 @@ async function shortenWithTfUrl(url: string, userId?: string): Promise<ShortenRe
     return {
       success: false,
       originalUrl: url,
-      error: "Neplatná cílová URL. Povolené jsou pouze http/https odkazy.",
+      error: SAFE_SHORT_REDIRECT_ERROR,
       provider: "tfurl",
     };
   }
@@ -171,7 +238,7 @@ export async function shortenUrl(url: string): Promise<ShortenResult> {
     return {
       success: false,
       originalUrl: url,
-      error: "Neplatná cílová URL. Povolené jsou pouze http/https odkazy.",
+      error: SAFE_SHORT_REDIRECT_ERROR,
     };
   }
 
@@ -357,7 +424,7 @@ export async function shortenUrlWithAlias(
     return {
       success: false,
       originalUrl: url,
-      error: "Neplatná cílová URL. Povolené jsou pouze http/https odkazy.",
+      error: SAFE_SHORT_REDIRECT_ERROR,
     };
   }
 

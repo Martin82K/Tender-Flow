@@ -1,5 +1,6 @@
 import { BrowserWindow, ipcMain } from "electron";
 import { FolderWatcherService } from "../../services/folderWatcher";
+import { ipcAuthGuard } from "../../services/ipcAuthGuard";
 
 interface WatcherHandlerDependencies {
   resolvePortableReadPath: (targetPath: string) => Promise<string>;
@@ -14,7 +15,10 @@ export const registerWatcherHandlers = ({
 }: WatcherHandlerDependencies): void => {
   ipcMain.handle("watcher:start", async (event, folderPath: string): Promise<void> => {
     requireAuth(event.sender, 'watcher:start');
-    const resolvedFolderPath = await resolvePortableReadPath(folderPath);
+    const resolvedFolderPath = await ipcAuthGuard.ensurePathAllowed(
+      await resolvePortableReadPath(folderPath),
+      "read",
+    );
     if (watcherService) {
       await watcherService.stop();
     }

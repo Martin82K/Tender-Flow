@@ -1,10 +1,13 @@
 import Papa from "papaparse";
-import * as XLSX from "xlsx";
 import type { ContactPerson, StatusConfig, Subcontractor } from "../types";
 import {
   sanitizeSubcontractorCompanyName,
   validateSubcontractorCompanyName,
 } from "../shared/dochub/subcontractorNameRules";
+
+export const CONTACTS_WIZARD_IMPORT_MAX_FILE_BYTES = 5 * 1024 * 1024;
+export const CONTACTS_WIZARD_IMPORT_MAX_ROWS = 5000;
+export const CONTACTS_WIZARD_IMPORT_FETCH_TIMEOUT_MS = 15000;
 
 export type ContactsImportSource =
   | { kind: "file"; file: File }
@@ -247,86 +250,119 @@ const stripTitleLineIfPresent = (text: string) => {
   return text;
 };
 
-export const parseContactsImportSource = async (source: ContactsImportSource): Promise<ParsedTable> => {
-  if (source.kind === "file") {
-    const fileType = guessFileTypeFromNameOrContentType(source.file.name, source.file.type);
-    if (fileType === "unknown") {
-      throw new Error("Nepodporovaný typ souboru. Použijte CSV nebo XLSX.");
-    }
-    if (fileType === "csv") {
-      const text = stripTitleLineIfPresent(await source.file.text());
-      const result = Papa.parse<Record<string, any>>(text, {
-        header: true,
-        skipEmptyLines: true,
-        transformHeader: (h) => h.trim(),
-      });
-      const rows = (result.data || []).filter((r) => r && Object.keys(r).length > 0);
-      const headers = (result.meta?.fields || Object.keys(rows[0] || {})).filter(Boolean);
-      return { sourceLabel: source.file.name, headers, rows };
-    }
+const formatMegabytes = (bytes: number) => `${Math.floor(bytes / (1024 * 1024))} MB`;
 
-    const data = await source.file.arrayBuffer();
-    const workbook = XLSX.read(data, { type: "array" });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const aoa = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1, defval: "" }) as any[][];
-    const headerRow = (aoa[0] || []).map((h) => valueAsString(h));
-    const headers = headerRow.map((h) => h.trim()).filter(Boolean);
-
-    const rows: Array<Record<string, any>> = [];
-    for (let i = 1; i < aoa.length; i++) {
-      const row = aoa[i] || [];
-      const obj: Record<string, any> = {};
-      let hasAny = false;
-      for (let col = 0; col < headers.length; col++) {
-        const header = headers[col];
-        const cell = row[col];
-        const cellValue = valueAsString(cell);
-        if (!isEmptyValue(cellValue)) hasAny = true;
-        obj[header] = cellValue;
-      }
-      if (hasAny) rows.push(obj);
-    }
-
-    return { sourceLabel: source.file.name, headers, rows };
+const assertImportSize = (size: number) => {
+  if (!Number.isFinite(size) || size < 0) {
+    throw new Error("Neplatná velikost importovaného souboru.");
   }
+  if (size > CONTACTS_WIZARD_IMPORT_MAX_FILE_BYTES) {
+    throw new Error(
+      `Importovaný soubor je příliš velký. Maximum je ${formatMegabytes(CONTACTS_WIZARD_IMPORT_MAX_FILE_BYTES)}.`,
+    );
+  }
+};
 
-  const response = await fetch(source.url, {
-    method: "GET",
-    mode: "cors",
-    headers: {
-      Accept:
-        "text/csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel",
-    },
+const assertRowCount = (rowCount: number) => {
+  if (rowCount > CONTACTS_WIZARD_IMPORT_MAX_ROWS) {
+    throw new Error(
+      `Import obsahuje příliš mnoho řádků. Maximum je ${CONTACTS_WIZARD_IMPORT_MAX_ROWS}.`,
+    );
+  }
+};
+
+const assertSafeImportUrl = (rawUrl: string): URL => {
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    throw new Error("Neplatná URL importu. Použijte veřejnou HTTPS adresu.");
+  }
+  if (parsed.protocol !== "https:") {
+    throw new Error("Import z URL povoluje pouze HTTPS adresy.");
+  }
+  if (parsed.username || parsed.password) {
+    throw new Error("URL importu nesmí obsahovat přihlašovací údaje.");
+  }
+  return parsed;
+};
+
+const assertResponseSize = (headers: Headers) => {
+  const rawLength = headers.get("content-length");
+  if (!rawLength) return;
+  const length = Number(rawLength);
+  assertImportSize(length);
+};
+
+const parseCsvTable = (text: string, sourceLabel: string): ParsedTable => {
+  const result = Papa.parse<Record<string, any>>(stripTitleLineIfPresent(text), {
+    header: true,
+    skipEmptyLines: true,
+    preview: CONTACTS_WIZARD_IMPORT_MAX_ROWS + 1,
+    transformHeader: (h) => h.trim(),
   });
+  const rows = (result.data || []).filter((r) => r && Object.keys(r).length > 0);
+  assertRowCount(rows.length);
+  const headers = (result.meta?.fields || Object.keys(rows[0] || {})).filter(Boolean);
+  return { sourceLabel, headers, rows };
+};
 
-  if (!response.ok) {
-    throw new Error(`Nepodařilo se stáhnout soubor: ${response.status} ${response.statusText}`);
+const readFileText = async (file: File): Promise<string> => {
+  if (typeof file.text === "function") {
+    return await file.text();
   }
 
-  const blob = await response.blob();
-  const fileType = guessFileTypeFromNameOrContentType(source.url, blob.type);
-  if (fileType === "unknown") {
-    throw new Error("Nepodporovaný typ souboru na URL. Použijte CSV nebo XLSX.");
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("Nepodařilo se přečíst CSV soubor."));
+    reader.readAsText(file);
+  });
+};
+
+const readFileArrayBuffer = async (file: File): Promise<ArrayBuffer> => {
+  if (typeof file.arrayBuffer === "function") {
+    return await file.arrayBuffer();
   }
 
-  if (fileType === "csv") {
-    const text = stripTitleLineIfPresent(await blob.text());
-    const result = Papa.parse<Record<string, any>>(text, {
-      header: true,
-      skipEmptyLines: true,
-      transformHeader: (h) => h.trim(),
-    });
-    const rows = (result.data || []).filter((r) => r && Object.keys(r).length > 0);
-    const headers = (result.meta?.fields || Object.keys(rows[0] || {})).filter(Boolean);
-    return { sourceLabel: source.url, headers, rows };
-  }
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (reader.result instanceof ArrayBuffer) {
+        resolve(reader.result);
+        return;
+      }
+      reject(new Error("Nepodařilo se přečíst XLSX soubor."));
+    };
+    reader.onerror = () => reject(new Error("Nepodařilo se přečíst XLSX soubor."));
+    reader.readAsArrayBuffer(file);
+  });
+};
 
-  const data = await blob.arrayBuffer();
-  const workbook = XLSX.read(data, { type: "array" });
+const parseXlsxTable = async (data: ArrayBuffer, sourceLabel: string): Promise<ParsedTable> => {
+  const XLSX = await import("xlsx");
+  const workbook = XLSX.read(data, {
+    type: "array",
+    sheetRows: CONTACTS_WIZARD_IMPORT_MAX_ROWS + 2,
+    cellFormula: false,
+    cellHTML: false,
+    cellNF: false,
+    cellStyles: false,
+  });
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  const aoa = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1, defval: "" }) as any[][];
+  if (!sheet) {
+    throw new Error("XLSX soubor neobsahuje žádný list.");
+  }
+  const aoa = XLSX.utils.sheet_to_json<any[]>(sheet, {
+    header: 1,
+    defval: "",
+    raw: false,
+  }) as any[][];
   const headerRow = (aoa[0] || []).map((h) => valueAsString(h));
   const headers = headerRow.map((h) => h.trim()).filter(Boolean);
+  if (headers.length === 0) {
+    throw new Error("XLSX soubor neobsahuje hlavičku.");
+  }
 
   const rows: Array<Record<string, any>> = [];
   for (let i = 1; i < aoa.length; i++) {
@@ -342,8 +378,63 @@ export const parseContactsImportSource = async (source: ContactsImportSource): P
     }
     if (hasAny) rows.push(obj);
   }
+  assertRowCount(rows.length);
 
-  return { sourceLabel: source.url, headers, rows };
+  return { sourceLabel, headers, rows };
+};
+
+export const parseContactsImportSource = async (source: ContactsImportSource): Promise<ParsedTable> => {
+  if (source.kind === "file") {
+    assertImportSize(source.file.size);
+    const fileType = guessFileTypeFromNameOrContentType(source.file.name, source.file.type);
+    if (fileType === "unknown") {
+      throw new Error("Nepodporovaný typ souboru. Použijte CSV nebo XLSX.");
+    }
+    if (fileType === "csv") {
+      return parseCsvTable(await readFileText(source.file), source.file.name);
+    }
+
+    const data = await readFileArrayBuffer(source.file);
+    return parseXlsxTable(data, source.file.name);
+  }
+
+  const safeUrl = assertSafeImportUrl(source.url);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), CONTACTS_WIZARD_IMPORT_FETCH_TIMEOUT_MS);
+
+  let response: Response;
+  try {
+    response = await fetch(safeUrl.toString(), {
+      method: "GET",
+      mode: "cors",
+      signal: controller.signal,
+      headers: {
+        Accept:
+          "text/csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel",
+      },
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  if (!response.ok) {
+    throw new Error(`Nepodařilo se stáhnout soubor: ${response.status} ${response.statusText}`);
+  }
+
+  assertResponseSize(response.headers);
+  const blob = await response.blob();
+  assertImportSize(blob.size);
+  const fileType = guessFileTypeFromNameOrContentType(safeUrl.toString(), blob.type);
+  if (fileType === "unknown") {
+    throw new Error("Nepodporovaný typ souboru na URL. Použijte CSV nebo XLSX.");
+  }
+
+  if (fileType === "csv") {
+    return parseCsvTable(await blob.text(), safeUrl.toString());
+  }
+
+  const data = await blob.arrayBuffer();
+  return parseXlsxTable(data, safeUrl.toString());
 };
 
 export const analyzeContactsImport = (

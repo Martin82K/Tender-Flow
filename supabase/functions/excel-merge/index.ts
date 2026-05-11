@@ -15,7 +15,16 @@ interface MergeRequest {
 }
 
 const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024;
+const MAX_OUTPUT_SIZE_BYTES = 25 * 1024 * 1024;
 const MAX_SHEET_SELECTION = 50;
+const MAX_WORKSHEETS = 50;
+const MAX_ROWS_PER_WORKSHEET = 100_000;
+const MAX_COLUMNS_PER_WORKSHEET = 256;
+const MAX_CELLS = 500_000;
+const MAX_SHEET_NAME_LENGTH = 128;
+const MAX_FORMULA_LENGTH = 8_192;
+const DANGEROUS_FORMULA_PATTERN =
+  /\b(?:WEBSERVICE|HYPERLINK|RTD|CALL|REGISTER\.ID)\s*\(|\[[^\]]+\]|(?:https?|ftp):\/\/|\\\\|(?:cmd|powershell|mshta|wscript|cscript)\s*\|/i;
 
 /**
  * Helper to shift column letters (e.g., A -> B, Z -> AA)
@@ -74,6 +83,53 @@ function transformFormula(
       return newCol + newRow;
     }
   );
+}
+
+function isFormulaSafeToPreserve(formula: string): boolean {
+  const normalized = formula.trim();
+  return (
+    normalized.length > 0 &&
+    normalized.length <= MAX_FORMULA_LENGTH &&
+    !DANGEROUS_FORMULA_PATTERN.test(normalized)
+  );
+}
+
+function validateWorkbookShape(workbook: ExcelJS.Workbook): void {
+  if (workbook.worksheets.length > MAX_WORKSHEETS) {
+    throw new Error(`Workbook has too many worksheets (max ${MAX_WORKSHEETS})`);
+  }
+
+  let totalCells = 0;
+  for (const worksheet of workbook.worksheets) {
+    const rowCount = worksheet.rowCount || worksheet.actualRowCount || 0;
+    const columnCount = worksheet.columnCount || worksheet.actualColumnCount || 0;
+
+    if (rowCount > MAX_ROWS_PER_WORKSHEET) {
+      throw new Error(`Worksheet "${worksheet.name}" has too many rows`);
+    }
+
+    if (columnCount > MAX_COLUMNS_PER_WORKSHEET) {
+      throw new Error(`Worksheet "${worksheet.name}" has too many columns`);
+    }
+
+    totalCells += rowCount * Math.max(1, columnCount);
+    if (totalCells > MAX_CELLS) {
+      throw new Error(`Workbook has too many cells (max ${MAX_CELLS})`);
+    }
+  }
+}
+
+function sanitizeDownloadFilename(name: string, suffix: string): string {
+  const lastSegment = name.split(/[\\/]/).pop() || "workbook.xlsx";
+  const baseName = lastSegment.replace(/\.xlsx$/i, "");
+  const normalized = baseName
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Za-z0-9._-]+/g, "_")
+    .replace(/_{2,}/g, "_")
+    .replace(/^[_ .-]+|[_ .-]+$/g, "")
+    .slice(0, 80);
+  return `${normalized || "workbook"}${suffix}`;
 }
 
 /**
@@ -169,7 +225,8 @@ serve(async (req) => {
     if (
       !Array.isArray(sheetsToInclude) ||
       sheetsToInclude.length === 0 ||
-      sheetsToInclude.length > MAX_SHEET_SELECTION
+      sheetsToInclude.length > MAX_SHEET_SELECTION ||
+      !sheetsToInclude.every((name) => typeof name === "string" && name.length > 0 && name.length <= MAX_SHEET_NAME_LENGTH)
     ) {
       return new Response(
         JSON.stringify({ error: "Invalid sheet selection" }),
@@ -184,6 +241,7 @@ serve(async (req) => {
     const arrayBuffer = await file.arrayBuffer();
     const sourceWorkbook = new ExcelJS.Workbook();
     await sourceWorkbook.xlsx.load(arrayBuffer);
+    validateWorkbookShape(sourceWorkbook);
 
     const allSheetNames = sourceWorkbook.worksheets.map((ws: ExcelJS.Worksheet) => ws.name);
 
@@ -274,6 +332,12 @@ serve(async (req) => {
           if (cell.type === ExcelJS.ValueType.Formula) {
             const fValue = cell.value as ExcelJS.CellFormulaValue;
             try {
+              if (!isFormulaSafeToPreserve(fValue.formula || "")) {
+                destCell.value = fValue.result ?? null;
+                copyCellStyle(cell, destCell);
+                continue;
+              }
+
               const newFormula = transformFormula(
                 fValue.formula,
                 colShift,
@@ -317,10 +381,18 @@ serve(async (req) => {
 
     // Generate output buffer
     const outputBuffer = await targetWorkbook.xlsx.writeBuffer();
+    if (outputBuffer.byteLength > MAX_OUTPUT_SIZE_BYTES) {
+      return new Response(
+        JSON.stringify({ error: "Merged workbook too large" }),
+        {
+          status: 413,
+          headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
+        }
+      );
+    }
 
     // Return the merged Excel file
-    const baseName = file.name.replace(/\.xlsx$/i, "");
-    const outputFilename = `${baseName}-merged.xlsx`;
+    const outputFilename = sanitizeDownloadFilename(file.name, "-merged.xlsx");
 
     return new Response(outputBuffer, {
       status: 200,
@@ -328,13 +400,13 @@ serve(async (req) => {
         ...buildCorsHeaders(req),
         "Content-Type":
           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": `attachment; filename="${outputFilename}"`,
+        "Content-Disposition": `attachment; filename="${outputFilename}"; filename*=UTF-8''${encodeURIComponent(outputFilename)}`,
       },
     });
   } catch (error) {
     console.error("Error processing Excel merge:", error);
     return new Response(
-      JSON.stringify({ error: error.message || "Unknown error" }),
+      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       {
         status: 500,
         headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },

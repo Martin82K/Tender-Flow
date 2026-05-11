@@ -107,6 +107,32 @@ export const getStripePriceId = (
   return trimmed.startsWith("price_") ? trimmed : null;
 };
 
+export interface ResolvedStripePlan {
+  tier: Tier;
+  billingPeriod: BillingPeriod;
+  priceId: string;
+}
+
+export const resolveStripePlanFromPriceId = (
+  priceId: string | null | undefined,
+  envGetter: EnvGetter = defaultEnvGetter,
+): ResolvedStripePlan | null => {
+  if (!validateStripeId(priceId, "price")) return null;
+
+  const selfCheckoutTiers: Tier[] = ["starter", "pro"];
+  const billingPeriods: BillingPeriod[] = ["monthly", "yearly"];
+
+  for (const tier of selfCheckoutTiers) {
+    for (const billingPeriod of billingPeriods) {
+      if (getStripePriceId(tier, billingPeriod, envGetter) === priceId) {
+        return { tier, billingPeriod, priceId };
+      }
+    }
+  }
+
+  return null;
+};
+
 // --- Stripe → Internal status mapping ---
 
 /**

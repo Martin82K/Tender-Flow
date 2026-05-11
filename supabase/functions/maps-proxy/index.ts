@@ -21,6 +21,191 @@ const STARTER_TIERS = ["starter", "pro", "enterprise", "admin"];
 // Tiers allowed for routing/matrix features
 const PRO_TIERS = ["pro", "enterprise", "admin"];
 
+type MapAction = "geocode" | "rgeocode" | "suggest" | "route" | "matrix" | "tile-config";
+
+const MAPS_LIMITS: Record<"standard" | "routing", {
+    userHour: number;
+    orgHour: number;
+    userDay: number;
+    orgDay: number;
+}> = {
+    standard: { userHour: 300, orgHour: 2_000, userDay: 1_000, orgDay: 8_000 },
+    routing: { userHour: 60, orgHour: 500, userDay: 250, orgDay: 2_000 },
+};
+
+const FEATURE_KEY_BY_ACTION: Record<Exclude<MapAction, "tile-config">, string> = {
+    geocode: "maps_bulk_geocode",
+    rgeocode: "maps_bulk_geocode",
+    suggest: "module_maps",
+    route: "maps_routing",
+    matrix: "maps_routing",
+};
+
+const PARAM_ALLOWLIST: Record<Exclude<MapAction, "tile-config">, readonly string[]> = {
+    geocode: ["query", "lang", "limit", "type"],
+    rgeocode: ["lat", "lon", "lang"],
+    suggest: ["query", "lang", "limit", "type", "location", "bbox"],
+    route: ["start", "end", "routeType", "lang"],
+    matrix: ["start", "end", "routeType"],
+};
+
+const ALLOWED_LANGS = new Set(["cs", "en", "sk", "de", "pl"]);
+const ALLOWED_ROUTE_TYPES = new Set(["car_fast", "car_short"]);
+const MAX_QUERY_CHARS = 300;
+const MAX_PARAM_CHARS = 500;
+const MAX_MAPS_LIMIT = 10;
+const MAX_MATRIX_POINTS = 10;
+
+const json = (req: Request, status: number, body: unknown) =>
+    new Response(JSON.stringify(body), {
+        status,
+        headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
+    });
+
+const sanitizeString = (value: unknown, maxLength: number): string | null => {
+    if (typeof value !== "string") return null;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    return trimmed.slice(0, maxLength);
+};
+
+const normalizeNumber = (value: unknown): number | null => {
+    const number = typeof value === "number" ? value : Number(value);
+    return Number.isFinite(number) ? number : null;
+};
+
+const isCoordinate = (value: string): boolean => {
+    const [lonRaw, latRaw] = value.split(",");
+    const lon = normalizeNumber(lonRaw);
+    const lat = normalizeNumber(latRaw);
+    return lon !== null && lat !== null && lon >= -180 && lon <= 180 && lat >= -90 && lat <= 90;
+};
+
+const isCoordinateList = (value: string, maxPoints: number): boolean => {
+    const points = value.split("|").filter(Boolean);
+    return points.length > 0 && points.length <= maxPoints && points.every(isCoordinate);
+};
+
+const sanitizeMapsParams = (
+    action: Exclude<MapAction, "tile-config">,
+    params: Record<string, unknown> | undefined,
+): { ok: true; value: Record<string, string> } | { ok: false; error: string } => {
+    const allowed = new Set(PARAM_ALLOWLIST[action]);
+    const sanitized: Record<string, string> = {};
+
+    for (const [key, rawValue] of Object.entries(params || {})) {
+        if (!allowed.has(key)) {
+            return { ok: false, error: `Unsupported parameter: ${key}` };
+        }
+        const value = sanitizeString(rawValue, key === "query" ? MAX_QUERY_CHARS : MAX_PARAM_CHARS);
+        if (value) sanitized[key] = value;
+    }
+
+    if ((action === "geocode" || action === "suggest") && !sanitized.query) {
+        return { ok: false, error: "Missing query" };
+    }
+    if (sanitized.lang && !ALLOWED_LANGS.has(sanitized.lang)) {
+        return { ok: false, error: "Invalid lang" };
+    }
+    if (sanitized.limit) {
+        const limit = Math.floor(normalizeNumber(sanitized.limit) || 0);
+        if (limit < 1) return { ok: false, error: "Invalid limit" };
+        sanitized.limit = String(Math.min(limit, MAX_MAPS_LIMIT));
+    }
+    if (sanitized.routeType && !ALLOWED_ROUTE_TYPES.has(sanitized.routeType)) {
+        return { ok: false, error: "Invalid routeType" };
+    }
+    if (action === "rgeocode") {
+        const lon = normalizeNumber(sanitized.lon);
+        const lat = normalizeNumber(sanitized.lat);
+        if (lon === null || lat === null || lon < -180 || lon > 180 || lat < -90 || lat > 90) {
+            return { ok: false, error: "Invalid coordinates" };
+        }
+    }
+    if (action === "route" && (!sanitized.start || !sanitized.end || !isCoordinate(sanitized.start) || !isCoordinate(sanitized.end))) {
+        return { ok: false, error: "Invalid route coordinates" };
+    }
+    if (action === "matrix" && (!sanitized.start || !sanitized.end || !isCoordinateList(sanitized.start, MAX_MATRIX_POINTS) || !isCoordinateList(sanitized.end, MAX_MATRIX_POINTS))) {
+        return { ok: false, error: "Invalid matrix coordinates" };
+    }
+
+    return { ok: true, value: sanitized };
+};
+
+const resolveUserOrganizationId = async (service: any, userId: string): Promise<string | null> => {
+    const { data, error } = await service
+        .from("organization_members")
+        .select("organization_id,is_active")
+        .eq("user_id", userId)
+        .eq("is_active", true)
+        .limit(1)
+        .maybeSingle();
+
+    if (error) throw new Error("Failed to verify organization");
+    return typeof data?.organization_id === "string" ? data.organization_id : null;
+};
+
+const countMapUsage = async (
+    service: any,
+    featureKey: string,
+    column: "user_id" | "organization_id",
+    value: string,
+    sinceIso: string,
+): Promise<number> => {
+    const { count, error } = await service
+        .from("feature_usage_events")
+        .select("id", { count: "exact", head: true })
+        .eq("feature_key", featureKey)
+        .eq(column, value)
+        .gte("created_at", sinceIso);
+
+    if (error) throw new Error("Failed to verify maps quota");
+    return count || 0;
+};
+
+const checkMapsQuota = async (service: any, action: Exclude<MapAction, "tile-config">, userId: string, organizationId: string) => {
+    const featureKey = FEATURE_KEY_BY_ACTION[action];
+    const limits = PRO_ACTIONS.has(action) ? MAPS_LIMITS.routing : MAPS_LIMITS.standard;
+    const hourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const [userHour, orgHour, userDay, orgDay] = await Promise.all([
+        countMapUsage(service, featureKey, "user_id", userId, hourAgo),
+        countMapUsage(service, featureKey, "organization_id", organizationId, hourAgo),
+        countMapUsage(service, featureKey, "user_id", userId, dayAgo),
+        countMapUsage(service, featureKey, "organization_id", organizationId, dayAgo),
+    ]);
+
+    if (userHour >= limits.userHour) return { ok: false, scope: "user_hour" };
+    if (orgHour >= limits.orgHour) return { ok: false, scope: "org_hour" };
+    if (userDay >= limits.userDay) return { ok: false, scope: "user_day" };
+    if (orgDay >= limits.orgDay) return { ok: false, scope: "org_day" };
+    return { ok: true, scope: null };
+};
+
+const recordMapUsage = async (
+    service: any,
+    action: Exclude<MapAction, "tile-config">,
+    userId: string,
+    organizationId: string,
+    params: Record<string, string>,
+) => {
+    const { error } = await service.from("feature_usage_events").insert({
+        organization_id: organizationId,
+        user_id: userId,
+        feature_key: FEATURE_KEY_BY_ACTION[action],
+        event_key: "success",
+        metadata: {
+            action,
+            paramKeys: Object.keys(params).sort(),
+            retention: "metadata_only",
+        },
+    });
+
+    if (error) {
+        console.error("Failed to record maps usage:", error.message || error);
+    }
+};
+
 Deno.serve(async (req) => {
     // Handle CORS preflight request
     const corsResponse = handleCors(req);
@@ -77,8 +262,8 @@ Deno.serve(async (req) => {
         }
 
         const { action, params } = body as {
-            action: "geocode" | "rgeocode" | "suggest" | "route" | "matrix" | "tile-config";
-            params?: Record<string, string>;
+            action: MapAction;
+            params?: Record<string, unknown>;
         };
 
         if (!action) {
@@ -116,6 +301,11 @@ Deno.serve(async (req) => {
                     headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
                 }
             );
+        }
+
+        const organizationId = await resolveUserOrganizationId(service, user.id);
+        if (!organizationId) {
+            return json(req, 403, { error: "Organization membership required" });
         }
 
         // 4. Get API key from secrets
@@ -160,9 +350,23 @@ Deno.serve(async (req) => {
                 { status: 400, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
             );
         }
+        const proxiedAction = action as Exclude<MapAction, "tile-config">;
+
+        const sanitizedParams = sanitizeMapsParams(proxiedAction, params);
+        if (!sanitizedParams.ok) {
+            return json(req, 400, { error: sanitizedParams.error });
+        }
+
+        const quota = await checkMapsQuota(service, proxiedAction, user.id, organizationId);
+        if (!quota.ok) {
+            return json(req, 429, {
+                error: "Maps rate limit exceeded",
+                scope: quota.scope,
+            });
+        }
 
         // Build query string from params
-        const queryParams = new URLSearchParams(params || {});
+        const queryParams = new URLSearchParams(sanitizedParams.value);
         queryParams.set("apikey", mapyApiKey);
 
         const mapyUrl = `${endpoint}?${queryParams.toString()}`;
@@ -195,6 +399,7 @@ Deno.serve(async (req) => {
         }
 
         // 8. Return successful response
+        await recordMapUsage(service, proxiedAction, user.id, organizationId, sanitizedParams.value);
         return new Response(
             JSON.stringify(mapyData),
             { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }

@@ -3,6 +3,24 @@ import { encryptJsonAesGcm, tryGetEnv } from "../_shared/crypto.ts";
 import { createServiceClient } from "../_shared/supabase.ts";
 
 type Provider = "onedrive";
+type ProviderIdentity = {
+  audience: string;
+  email: string;
+  emailVerified: boolean | null;
+  subjects: string[];
+};
+type SupabaseAuthUser = {
+  email?: string | null;
+  identities?: Array<{
+    id?: string | null;
+    provider?: string | null;
+    provider_id?: string | null;
+    identity_data?: Record<string, unknown> | null;
+  }> | null;
+};
+
+const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
+const MICROSOFT_SUPABASE_PROVIDERS = new Set(["azure", "microsoft", "onedrive"]);
 
 const siteBaseUrl = () => {
   const raw = (Deno.env.get("SITE_URL") || "http://localhost:3000").trim();
@@ -28,6 +46,8 @@ const withQueryParam = (to: string, key: string, value: string) => {
     return `${to}${sep}${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
   }
 };
+
+const oauthStateCutoffIso = () => new Date(Date.now() - OAUTH_STATE_TTL_MS).toISOString();
 
 const sanitizeReturnTo = (raw: string | null | undefined) => {
   const base = siteBaseUrl();
@@ -85,7 +105,7 @@ const tokenExchangeMicrosoft = async (args: {
   body.set("grant_type", "authorization_code");
   body.set(
     "scope",
-    ["offline_access", "User.Read", "Files.ReadWrite", "Sites.ReadWrite.All"].join(" ")
+    ["offline_access", "openid", "email", "profile", "User.Read", "Files.ReadWrite", "Sites.ReadWrite.All"].join(" ")
   );
 
   const res = await fetch(
@@ -106,6 +126,158 @@ const tokenExchangeMicrosoft = async (args: {
     token_type: string;
     id_token?: string;
   };
+};
+
+const normalizeEmail = (value: unknown): string => {
+  if (typeof value !== "string") return "";
+  return value.trim().toLowerCase();
+};
+
+const normalizeSubject = (value: unknown): string => {
+  if (typeof value !== "string") return "";
+  return value.trim();
+};
+
+const uniqueSubjects = (values: unknown[]): string[] =>
+  Array.from(new Set(values.map(normalizeSubject).filter(Boolean)));
+
+const decodeBase64UrlJson = (value: string): Record<string, unknown> => {
+  const padded = value.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(value.length / 4) * 4, "=");
+  const binary = atob(padded);
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  return JSON.parse(new TextDecoder().decode(bytes)) as Record<string, unknown>;
+};
+
+const decodeJwtPayload = (jwt: string): Record<string, unknown> => {
+  const [, payload] = jwt.split(".");
+  if (!payload) throw new Error("Invalid Microsoft id_token");
+  return decodeBase64UrlJson(payload);
+};
+
+const collectExpectedIdentity = (user: SupabaseAuthUser) => {
+  const emails = new Set<string>();
+  const subjects = new Set<string>();
+  const userEmail = normalizeEmail(user.email);
+  if (userEmail) emails.add(userEmail);
+
+  for (const identity of user.identities || []) {
+    if (!identity.provider || !MICROSOFT_SUPABASE_PROVIDERS.has(identity.provider)) continue;
+    const data = identity.identity_data || {};
+    const identityEmail = normalizeEmail(data.email || data.preferred_username || data.upn);
+    if (identityEmail) emails.add(identityEmail);
+
+    for (const candidate of [identity.provider_id, identity.id, data.sub, data.oid, data.id]) {
+      const subject = normalizeSubject(candidate);
+      if (subject) subjects.add(subject);
+    }
+  }
+
+  return { emails, subjects };
+};
+
+const assertIdentityBoundToUser = (args: {
+  identity: ProviderIdentity;
+  user: SupabaseAuthUser;
+  clientId: string;
+}) => {
+  if (args.identity.audience !== args.clientId) {
+    throw new Error("OAuth provider audience mismatch");
+  }
+  if (!args.identity.email || args.identity.subjects.length === 0) {
+    throw new Error("OAuth provider identity missing");
+  }
+  if (args.identity.emailVerified === false) {
+    throw new Error("OAuth provider email not verified");
+  }
+
+  const expected = collectExpectedIdentity(args.user);
+  const emailMatch = expected.emails.has(normalizeEmail(args.identity.email));
+  const subjectMatch = args.identity.subjects.some((subject) => expected.subjects.has(subject));
+
+  if (!emailMatch && !subjectMatch) {
+    throw new Error("OAuth provider identity does not match signed-in user");
+  }
+};
+
+const getStateUser = async (
+  service: ReturnType<typeof createServiceClient>,
+  userId: string
+): Promise<SupabaseAuthUser> => {
+  const { data, error } = await service.auth.admin.getUserById(userId);
+  if (error || !data?.user) {
+    throw new Error("OAuth state user not found");
+  }
+  return data.user as SupabaseAuthUser;
+};
+
+const fetchMicrosoftUserInfo = async (accessToken: string): Promise<{
+  id: string;
+  email: string;
+}> => {
+  const res = await fetch("https://graph.microsoft.com/v1.0/me?$select=id,mail,userPrincipalName", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json?.error?.message || "Microsoft userinfo verification failed");
+
+  return {
+    id: normalizeSubject(json.id),
+    email: normalizeEmail(json.mail || json.userPrincipalName),
+  };
+};
+
+const verifyMicrosoftIdentity = async (args: {
+  token: Awaited<ReturnType<typeof tokenExchangeMicrosoft>>;
+  clientId: string;
+  user: SupabaseAuthUser;
+}): Promise<ProviderIdentity> => {
+  if (!args.token.id_token) {
+    throw new Error("Missing Microsoft id_token");
+  }
+
+  const claims = decodeJwtPayload(args.token.id_token);
+  const audience = Array.isArray(claims.aud) ? String(claims.aud[0] || "") : String(claims.aud || "");
+  const claimEmail = normalizeEmail(claims.email || claims.preferred_username || claims.upn);
+  const claimSubjects = uniqueSubjects([claims.sub, claims.oid]);
+  const graphUser = await fetchMicrosoftUserInfo(args.token.access_token);
+
+  if (claimEmail && graphUser.email && claimEmail !== graphUser.email) {
+    throw new Error("Microsoft id_token/userinfo email mismatch");
+  }
+
+  const identity = {
+    audience,
+    email: claimEmail || graphUser.email,
+    emailVerified: true,
+    subjects: Array.from(new Set([...claimSubjects, graphUser.id].filter(Boolean))),
+  };
+  assertIdentityBoundToUser({ identity, user: args.user, clientId: args.clientId });
+  return identity;
+};
+
+const consumeFreshOAuthState = async (args: {
+  service: ReturnType<typeof createServiceClient>;
+  provider: Provider;
+  nonce: string;
+}) => {
+  const { data, error } = await args.service
+    .from("dochub_oauth_states")
+    .delete()
+    .eq("nonce", args.nonce)
+    .eq("provider", args.provider)
+    .gte("created_at", oauthStateCutoffIso())
+    .select("*")
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) {
+    await args.service
+      .from("dochub_oauth_states")
+      .delete()
+      .eq("nonce", args.nonce)
+      .eq("provider", args.provider);
+  }
+  return data;
 };
 
 Deno.serve(async (req) => {
@@ -137,15 +309,14 @@ Deno.serve(async (req) => {
     }
 
     const service = createServiceClient();
-    const { data: stateRow, error: stateError } = await service
-      .from("dochub_oauth_states")
-      .select("*")
-      .eq("nonce", nonce)
-      .eq("provider", provider as Provider)
-      .single();
+    const stateRow = await consumeFreshOAuthState({
+      service,
+      nonce,
+      provider: provider as Provider,
+    });
 
-    if (stateError || !stateRow) {
-      return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "state_not_found"));
+    if (!stateRow) {
+      return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "state_not_found_or_expired"));
     }
 
     const { data: project, error: projectAccessError } = await service
@@ -154,7 +325,6 @@ Deno.serve(async (req) => {
       .eq("id", stateRow.project_id)
       .maybeSingle();
     if (projectAccessError || !project) {
-      await service.from("dochub_oauth_states").delete().eq("id", stateRow.id);
       return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "forbidden_project"));
     }
 
@@ -167,7 +337,6 @@ Deno.serve(async (req) => {
         .eq("permission", "edit")
         .maybeSingle();
       if (!share) {
-        await service.from("dochub_oauth_states").delete().eq("id", stateRow.id);
         return redirect(withQueryParam(defaultReturnTo(), "dochub_error", "forbidden_project"));
       }
     }
@@ -186,6 +355,8 @@ Deno.serve(async (req) => {
     }
 
     const token = await tokenExchangeMicrosoft({ code, clientId, clientSecret, redirectUri, tenant });
+    const stateUser = await getStateUser(service, stateRow.user_id);
+    const providerIdentity = await verifyMicrosoftIdentity({ token, clientId, user: stateUser });
     const expiresAt = new Date(Date.now() + token.expires_in * 1000).toISOString();
 
     const tokenCiphertext = await encryptJsonAesGcm(
@@ -194,6 +365,9 @@ Deno.serve(async (req) => {
         refresh_token: token.refresh_token || null,
         scope: token.scope || null,
         token_type: token.token_type,
+        provider_subject: providerIdentity.subjects[0] || null,
+        provider_email: providerIdentity.email,
+        provider_audience: providerIdentity.audience,
       },
       encKey
     );
@@ -217,8 +391,6 @@ Deno.serve(async (req) => {
         dochub_last_error: null,
       })
       .eq("id", stateRow.project_id);
-
-    await service.from("dochub_oauth_states").delete().eq("id", stateRow.id);
 
     const returnTo = sanitizeReturnTo(stateRow.return_to);
     return redirect(returnTo);

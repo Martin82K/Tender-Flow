@@ -95,6 +95,131 @@ const createDefaultMemoryDocument = (projectId: string, userId: string): AgentPr
     })),
 });
 const VIKI_FEATURE_KEY = "ai_viki";
+const MEMORY_BUCKET = "agent-memory";
+const MAX_PROMPT_CHARS = 20_000;
+const MAX_HISTORY_MESSAGES = 12;
+const MAX_HISTORY_MESSAGE_CHARS = 4_000;
+const MAX_TOTAL_INPUT_CHARS = 30_000;
+const MAX_DOCUMENT_URL_CHARS = 2_048;
+const MAX_OUTPUT_TOKENS = 1_500;
+const MAX_AI_USER_REQUESTS_PER_HOUR = 40;
+const MAX_AI_ORG_REQUESTS_PER_HOUR = 240;
+const MAX_AI_USER_REQUESTS_PER_DAY = 160;
+const MAX_AI_ORG_REQUESTS_PER_DAY = 1_000;
+
+type AiProvider = "openrouter" | "google" | "openai" | "mistral" | "mistral-ocr";
+
+const AI_MODEL_ALLOWLIST: Record<AiProvider, readonly string[]> = {
+    openrouter: [
+        "anthropic/claude-3-haiku",
+        "anthropic/claude-3.5-sonnet",
+        "anthropic/claude-sonnet-4",
+        "google/gemini-2.0-flash-001",
+    ],
+    google: [
+        "gemini-pro",
+        "gemini-1.5-flash",
+        "gemini-1.5-pro",
+        "gemini-2.0-flash-001",
+        "gemini-2.0-flash-exp",
+    ],
+    openai: ["gpt-5-mini"],
+    mistral: ["mistral-small-latest", "mistral-large-latest", "mistral-medium-latest"],
+    "mistral-ocr": ["mistral-ocr-latest"],
+};
+
+const DEFAULT_AI_MODEL: Record<AiProvider, string> = {
+    openrouter: "anthropic/claude-3-haiku",
+    google: "gemini-1.5-flash",
+    openai: "gpt-5-mini",
+    mistral: "mistral-small-latest",
+    "mistral-ocr": "mistral-ocr-latest",
+};
+
+const normalizeProvider = (value: unknown): AiProvider | null => {
+    const provider = typeof value === "string" ? value.trim().toLowerCase() : "openrouter";
+    return Object.prototype.hasOwnProperty.call(AI_MODEL_ALLOWLIST, provider)
+        ? provider as AiProvider
+        : null;
+};
+
+const resolveAllowedModel = (provider: AiProvider, value: unknown): string | null => {
+    const requested = typeof value === "string" && value.trim()
+        ? value.trim()
+        : DEFAULT_AI_MODEL[provider];
+    return AI_MODEL_ALLOWLIST[provider].includes(requested) ? requested : null;
+};
+
+const sanitizeText = (value: unknown, maxLength: number): string | null => {
+    if (typeof value !== "string") return null;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    return trimmed.slice(0, maxLength);
+};
+
+const textFromMessage = (message: any): string | null => {
+    if (typeof message?.content === "string") return sanitizeText(message.content, MAX_HISTORY_MESSAGE_CHARS);
+    if (typeof message?.parts === "string") return sanitizeText(message.parts, MAX_HISTORY_MESSAGE_CHARS);
+    if (Array.isArray(message?.parts)) {
+        return sanitizeText(
+            message.parts
+                .map((part: any) => typeof part?.text === "string" ? part.text : "")
+                .filter(Boolean)
+                .join("\n"),
+            MAX_HISTORY_MESSAGE_CHARS,
+        );
+    }
+    return null;
+};
+
+const sanitizeHistory = (value: unknown): Array<{ role: "user" | "assistant"; content: string }> => {
+    if (!Array.isArray(value)) return [];
+    return value
+        .slice(-MAX_HISTORY_MESSAGES)
+        .map((message: any) => {
+            const content = textFromMessage(message);
+            if (!content) return null;
+            return {
+                role: message?.role === "assistant" || message?.role === "model" ? "assistant" : "user",
+                content,
+            };
+        })
+        .filter((message): message is { role: "user" | "assistant"; content: string } => Boolean(message));
+};
+
+const inputLength = (promptText: string | null, messages: Array<{ content: string }>) =>
+    (promptText?.length || 0) + messages.reduce((sum, message) => sum + message.content.length, 0);
+
+const estimateTokens = (text: string): number => Math.ceil(text.length / 4);
+
+const sha256Hex = async (value: string): Promise<string> => {
+    const encoded = new TextEncoder().encode(value);
+    const digest = await crypto.subtle.digest("SHA-256", encoded);
+    return Array.from(new Uint8Array(digest))
+        .map((byte) => byte.toString(16).padStart(2, "0"))
+        .join("");
+};
+
+const sanitizeDocumentUrl = (value: unknown, supabaseUrl: string): string | null => {
+    const candidate = sanitizeText(value, MAX_DOCUMENT_URL_CHARS);
+    if (!candidate) return null;
+
+    try {
+        const url = new URL(candidate);
+        const allowedHost = new URL(supabaseUrl).hostname;
+        if (!["https:", "http:"].includes(url.protocol)) return null;
+        if (url.hostname !== allowedHost) return null;
+        return url.toString();
+    } catch {
+        return null;
+    }
+};
+
+const json = (req: Request, status: number, body: unknown) =>
+    new Response(JSON.stringify(body), {
+        status,
+        headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
+    });
 
 const parseMemoryDocument = (
     projectId: string,
@@ -144,6 +269,105 @@ const memoryDocumentToMarkdown = (document: AgentProjectMemoryDocument): string 
     ));
 
     return [...header, ...sectionBlocks].join("\n").trimEnd() + "\n";
+};
+
+const resolveUserOrganizationId = async (service: any, userId: string): Promise<string | null> => {
+    const { data, error } = await service
+        .from("organization_members")
+        .select("organization_id,is_active")
+        .eq("user_id", userId)
+        .eq("is_active", true)
+        .limit(1)
+        .maybeSingle();
+
+    if (error) throw new Error("Failed to verify organization");
+    return typeof data?.organization_id === "string" ? data.organization_id : null;
+};
+
+const countAiUsage = async (
+    service: any,
+    column: "user_id" | "organization_id",
+    value: string,
+    sinceIso: string,
+): Promise<number> => {
+    const { count, error } = await service
+        .from("ai_agent_usage_events")
+        .select("id", { count: "exact", head: true })
+        .eq(column, value)
+        .gte("created_at", sinceIso);
+
+    if (error) throw new Error("Failed to verify AI quota");
+    return count || 0;
+};
+
+const checkAiQuota = async (service: any, userId: string, organizationId: string) => {
+    const hourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const [userHour, orgHour, userDay, orgDay] = await Promise.all([
+        countAiUsage(service, "user_id", userId, hourAgo),
+        countAiUsage(service, "organization_id", organizationId, hourAgo),
+        countAiUsage(service, "user_id", userId, dayAgo),
+        countAiUsage(service, "organization_id", organizationId, dayAgo),
+    ]);
+
+    if (userHour >= MAX_AI_USER_REQUESTS_PER_HOUR) return { ok: false, scope: "user_hour" };
+    if (orgHour >= MAX_AI_ORG_REQUESTS_PER_HOUR) return { ok: false, scope: "org_hour" };
+    if (userDay >= MAX_AI_USER_REQUESTS_PER_DAY) return { ok: false, scope: "user_day" };
+    if (orgDay >= MAX_AI_ORG_REQUESTS_PER_DAY) return { ok: false, scope: "org_day" };
+    return { ok: true, scope: null };
+};
+
+const recordAiUsage = async (
+    service: any,
+    input: {
+        organizationId: string;
+        userId: string;
+        provider: AiProvider;
+        model: string;
+        promptText: string | null;
+        historyMessages: Array<{ content: string }>;
+        outputText: string;
+        action?: string;
+        hasDocumentUrl: boolean;
+        usage?: any;
+    },
+) => {
+    const inputTokens = Number(input.usage?.input_tokens || input.usage?.prompt_tokens)
+        || estimateTokens([
+            input.promptText || "",
+            ...input.historyMessages.map((message) => message.content),
+        ].join("\n"));
+    const outputTokens = Number(input.usage?.output_tokens || input.usage?.completion_tokens)
+        || estimateTokens(input.outputText);
+    const totalTokens = Number(input.usage?.total_tokens) || inputTokens + outputTokens;
+
+    const { error } = await service.from("ai_agent_usage_events").insert({
+        organization_id: input.organizationId,
+        user_id: input.userId,
+        trace_id: crypto.randomUUID(),
+        idempotency_key: crypto.randomUUID(),
+        request_mode: "chat",
+        response_source: "llm",
+        model: `${input.provider}:${input.model}`,
+        input_tokens: inputTokens,
+        output_tokens: outputTokens,
+        total_tokens: totalTokens,
+        estimated_cost_usd: 0,
+        tool_calls: [],
+        policy_decision: "auto_execute",
+        guard_triggered: false,
+        metadata: {
+            provider: input.provider,
+            model: input.model,
+            action: input.action || "chat",
+            hasDocumentUrl: input.hasDocumentUrl,
+            retention: "metadata_only",
+        },
+    });
+
+    if (error) {
+        console.error("Failed to record AI usage:", error.message || error);
+    }
 };
 
 // Native Deno.serve (more robust)
@@ -240,7 +464,41 @@ Deno.serve(async (req) => {
             provider = 'openrouter',
             documentUrl
         } = body;
-        console.log(`[Proxy] Processing request for provider: ${provider}, model: ${clientModel || 'default'}`);
+        const normalizedProvider = normalizeProvider(provider);
+        if (!normalizedProvider) {
+            return json(req, 400, {
+                error: "Invalid AI provider",
+                allowedProviders: Object.keys(AI_MODEL_ALLOWLIST),
+            });
+        }
+
+        const promptText = sanitizeText(prompt, MAX_PROMPT_CHARS);
+        const historyMessages = sanitizeHistory(history);
+        const totalInputChars = inputLength(promptText, historyMessages);
+        if (totalInputChars > MAX_TOTAL_INPUT_CHARS) {
+            return json(req, 413, {
+                error: "AI input is too large",
+                maxInputCharacters: MAX_TOTAL_INPUT_CHARS,
+            });
+        }
+
+        const safeDocumentUrl = documentUrl
+            ? sanitizeDocumentUrl(documentUrl, supabaseUrl)
+            : null;
+        if (documentUrl && !safeDocumentUrl) {
+            return json(req, 400, { error: "Invalid documentUrl" });
+        }
+
+        const resolvedModel = resolveAllowedModel(normalizedProvider, clientModel);
+        if (!resolvedModel) {
+            return json(req, 400, {
+                error: "AI model is not allowed",
+                provider: normalizedProvider,
+                allowedModels: AI_MODEL_ALLOWLIST[normalizedProvider],
+            });
+        }
+
+        console.log(`[Proxy] Processing request for provider: ${normalizedProvider}, model: ${resolvedModel}`);
 
         const isVikiScopedAction = action === "memory-load" || action === "memory-save" || action === "list-models";
 
@@ -299,10 +557,6 @@ Deno.serve(async (req) => {
 
         if (action === "memory-load" || action === "memory-save") {
             const projectId = typeof body?.projectId === "string" ? body.projectId.trim() : "";
-            const bucket = typeof body?.bucket === "string" && body.bucket.trim().length > 0
-                ? body.bucket.trim()
-                : "agent-memory";
-
             if (!projectId) {
                 return new Response(
                     JSON.stringify({ error: "Missing projectId" }),
@@ -332,7 +586,7 @@ Deno.serve(async (req) => {
 
             if (action === "memory-load") {
                 const { data: fileData, error: fileError } = await service.storage
-                    .from(bucket)
+                    .from(MEMORY_BUCKET)
                     .download(storagePath);
 
                 if (fileError) {
@@ -388,7 +642,7 @@ Deno.serve(async (req) => {
             };
 
             const markdown = memoryDocumentToMarkdown(normalizedDocument);
-            const { error: uploadError } = await service.storage.from(bucket).upload(storagePath, markdown, {
+            const { error: uploadError } = await service.storage.from(MEMORY_BUCKET).upload(storagePath, markdown, {
                 upsert: true,
                 contentType: "text/markdown; charset=utf-8",
             });
@@ -407,124 +661,15 @@ Deno.serve(async (req) => {
         }
 
         if (action === "list-models") {
-            if (provider === "google") {
-                const models = [
-                    {
-                        id: "gemini-1.5-flash",
-                        label: "Gemini 1.5 Flash",
-                        provider: "google",
-                        capabilities: ["chat", "fast"],
-                        pricingHint: "Úsporný"
-                    },
-                    {
-                        id: "gemini-1.5-pro",
-                        label: "Gemini 1.5 Pro",
-                        provider: "google",
-                        capabilities: ["chat", "quality"],
-                        pricingHint: "Vyvážený"
-                    },
-                    {
-                        id: "gemini-2.0-flash-001",
-                        label: "Gemini 2.0 Flash",
-                        provider: "google",
-                        capabilities: ["chat", "fast"],
-                        pricingHint: "Úsporný"
-                    }
-                ];
-
-                return new Response(
-                    JSON.stringify({ models }),
-                    { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
-                );
-            }
-
-            if (provider === "mistral") {
-                const { value: apiKey } = getFirstEnvSecret("MISTRAL_API_KEY", "MISTRAL_OCR_API_KEY");
-                if (!apiKey) {
-                    return new Response(
-                        JSON.stringify({ error: "Missing Mistral API Key (MISTRAL_API_KEY/MISTRAL_OCR_API_KEY)", models: [] }),
-                        { status: 500, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
-                    );
-                }
-
-                const response = await fetch("https://api.mistral.ai/v1/models", {
-                    method: "GET",
-                    headers: {
-                        "Authorization": `Bearer ${apiKey}`
-                    },
-                });
-                const data = await response.json();
-
-                if (!response.ok) {
-                    return new Response(
-                        JSON.stringify({ error: "Mistral model list error", details: data, models: [] }),
-                        { status: response.status, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
-                    );
-                }
-
-                const rawModels = Array.isArray(data?.data) ? data.data : [];
-                const models = rawModels
-                    .map((model: any) => {
-                        const id = typeof model?.id === "string" ? model.id : "";
-                        if (!id) return null;
-                        const lower = id.toLowerCase();
-                        if (lower.includes("ocr") || lower.includes("embed") || lower.includes("moderation")) {
-                            return null;
-                        }
-                        return {
-                            id,
-                            label: id,
-                            provider: "mistral",
-                            capabilities: ["chat"],
-                            pricingHint: lower.includes("small") ? "Úsporný" : "Vyvážený"
-                        };
-                    })
-                    .filter(Boolean);
-
-                return new Response(
-                    JSON.stringify({ models }),
-                    { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
-                );
-            }
-
-            const { value: apiKey, key: apiKeySource } = getFirstEnvSecret("OPENROUTER_API_KEY", "OPEN_ROUTER_API_KEY");
-            const response = await fetch("https://openrouter.ai/api/v1/models", {
-                method: "GET",
-                headers: {
-                    ...(apiKey ? { "Authorization": `Bearer ${apiKey}` } : {}),
-                    "Content-Type": "application/json",
-                },
-            });
-            const data = await response.json();
-
-            if (!response.ok) {
-                return new Response(
-                    JSON.stringify({
-                        error: "OpenRouter model list error",
-                        details: data,
-                        models: [],
-                        hint: response.status === 401
-                            ? `OpenRouter returned 401. Verify Supabase Secret ${apiKeySource || "OPENROUTER_API_KEY"} has a valid key without extra quotes and redeploy ai-proxy.`
-                            : undefined
-                    }),
-                    { status: response.status, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
-                );
-            }
-
-            const rawModels = Array.isArray(data?.data) ? data.data : [];
-            const models = rawModels
-                .map((model: any) => {
-                    const id = typeof model?.id === "string" ? model.id : "";
-                    if (!id) return null;
-                    return {
-                        id,
-                        label: typeof model?.name === "string" && model.name.length > 0 ? model.name : id,
-                        provider: "openrouter",
-                        capabilities: ["chat"],
-                        pricingHint: "Dle modelu",
-                    };
-                })
-                .filter(Boolean);
+            const models = AI_MODEL_ALLOWLIST[normalizedProvider].map((id) => ({
+                id,
+                label: id,
+                provider: normalizedProvider,
+                capabilities: normalizedProvider === "mistral-ocr" ? ["ocr"] : ["chat"],
+                pricingHint: id.includes("small") || id.includes("flash") || id.includes("haiku") || id.includes("mini")
+                    ? "Úsporný"
+                    : "Vyvážený",
+            }));
 
             return new Response(
                 JSON.stringify({ models }),
@@ -532,8 +677,27 @@ Deno.serve(async (req) => {
             );
         }
 
+        if (!promptText && historyMessages.length === 0 && !safeDocumentUrl) {
+            return json(req, 400, { error: "Missing AI input" });
+        }
+
+        const organizationId = await resolveUserOrganizationId(service, user.id);
+        if (!organizationId) {
+            return json(req, 403, { error: "Organization membership required" });
+        }
+
+        const quota = await checkAiQuota(service, user.id, organizationId);
+        if (!quota.ok) {
+            return json(req, 429, {
+                error: "AI rate limit exceeded",
+                scope: quota.scope,
+            });
+        }
+
+        const safetyIdentifier = await sha256Hex(`tf:${user.id}`);
+
         // --- GOOGLE GEMINI HANDLER ---
-        if (provider === 'google') {
+        if (normalizedProvider === 'google') {
             const { value: apiKey } = getFirstEnvSecret("GEMINI_API_KEY", "GOOGLE_API_KEY");
             if (!apiKey) {
                 return new Response(
@@ -542,21 +706,21 @@ Deno.serve(async (req) => {
                 );
             }
 
-            const model = (clientModel || "gemini-pro").trim();
-            let contents = [];
-            if (history && Array.isArray(history)) {
-                contents = history.map((msg: any) => ({
-                    role: msg.role === 'assistant' ? 'model' : 'user',
-                    parts: [{ text: Array.isArray(msg.parts) ? msg.parts.map((p: any) => p.text).join('') : (typeof msg.parts === 'string' ? msg.parts : JSON.stringify(msg.parts)) }]
-                }));
-            }
-            if (prompt) contents.push({ role: 'user', parts: [{ text: prompt }] });
+            const model = resolvedModel;
+            const contents = historyMessages.map((msg) => ({
+                role: msg.role === 'assistant' ? 'model' : 'user',
+                parts: [{ text: msg.content }]
+            }));
+            if (promptText) contents.push({ role: 'user', parts: [{ text: promptText }] });
 
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
             const response = await fetch(url, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ contents }),
+                body: JSON.stringify({
+                    contents,
+                    generationConfig: { maxOutputTokens: MAX_OUTPUT_TOKENS },
+                }),
             });
             const data = await response.json();
 
@@ -567,6 +731,18 @@ Deno.serve(async (req) => {
                 );
             }
             const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            await recordAiUsage(service, {
+                organizationId,
+                userId: user.id,
+                provider: normalizedProvider,
+                model,
+                promptText,
+                historyMessages,
+                outputText: text,
+                action,
+                hasDocumentUrl: Boolean(safeDocumentUrl),
+                usage: data?.usageMetadata,
+            });
             return new Response(
                 JSON.stringify({ text, raw: data }),
                 { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
@@ -574,7 +750,7 @@ Deno.serve(async (req) => {
         }
 
         // --- OPENAI HANDLER ---
-        if (provider === "openai") {
+        if (normalizedProvider === "openai") {
             const { value: apiKey, key: apiKeySource } = getFirstEnvSecret("OPENAI_API_KEY", "OPEN_AI_API_KEY");
             if (!apiKey) {
                 return new Response(
@@ -583,36 +759,24 @@ Deno.serve(async (req) => {
                 );
             }
 
-            const model = (clientModel || "gpt-5-mini").trim();
-            const input = prompt
-                ? prompt
-                : Array.isArray(history)
-                    ? history
-                        .map((msg: any) => {
-                            const role = typeof msg?.role === "string" ? msg.role : "user";
-                            const content = Array.isArray(msg?.parts)
-                                ? msg.parts
-                                    .map((part: any) => typeof part?.text === "string" ? part.text : JSON.stringify(part))
-                                    .join("\n")
-                                : typeof msg?.parts === "string"
-                                    ? msg.parts
-                                    : typeof msg?.content === "string"
-                                        ? msg.content
-                                        : JSON.stringify(msg ?? {});
-                            return `${role}: ${content}`;
-                        })
-                        .join("\n")
-                    : "";
+            const model = resolvedModel;
+            const input = promptText
+                ? promptText
+                : historyMessages
+                    .map((msg) => `${msg.role}: ${msg.content}`)
+                    .join("\n");
 
             const openAiResponse = await fetch("https://api.openai.com/v1/responses", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${apiKey}`
+                    "Authorization": `Bearer ${apiKey}`,
+                    "OpenAI-Safety-Identifier": safetyIdentifier,
                 },
                 body: JSON.stringify({
                     model,
                     input,
+                    max_output_tokens: MAX_OUTPUT_TOKENS,
                     text: { format: { type: "text" } }
                 }),
             });
@@ -642,6 +806,18 @@ Deno.serve(async (req) => {
                             .trim()
                         : "";
 
+            await recordAiUsage(service, {
+                organizationId,
+                userId: user.id,
+                provider: normalizedProvider,
+                model,
+                promptText,
+                historyMessages,
+                outputText: text,
+                action,
+                hasDocumentUrl: Boolean(safeDocumentUrl),
+                usage: data?.usage,
+            });
             return new Response(
                 JSON.stringify({ text, raw: data }),
                 { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
@@ -649,7 +825,7 @@ Deno.serve(async (req) => {
         }
 
             // --- MISTRAL OCR HANDLER ---
-        if (provider === 'mistral-ocr') {
+        if (normalizedProvider === 'mistral-ocr') {
             const { value: apiKey, key: apiKeySource } = getFirstEnvSecret("MISTRAL_API_KEY", "MISTRAL_OCR_API_KEY");
             if (!apiKey) {
                 return new Response(
@@ -658,20 +834,16 @@ Deno.serve(async (req) => {
                 );
             }
 
-            if (!documentUrl) {
+            if (!safeDocumentUrl) {
                 return new Response(
                     JSON.stringify({ error: "Missing documentUrl for Mistral OCR" }),
                     { status: 400, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
                 );
             }
 
-            // Sanitize model (prevent OpenRouter-style IDs from crashing native Mistral API)
-            let ocrModelName = clientModel || "mistral-ocr-latest";
-            if (ocrModelName.includes("mistralai/mistral-ocr") || ocrModelName === "mistralai/mistral-ocr") {
-                ocrModelName = "mistral-ocr-latest";
-            }
+            const ocrModelName = resolvedModel;
 
-            console.log("Calling Mistral OCR for URL:", documentUrl, "Model:", ocrModelName);
+            console.log("Calling Mistral OCR. Model:", ocrModelName);
 
             try {
                 const ocrResponse = await fetch("https://api.mistral.ai/v1/ocr", {
@@ -684,7 +856,7 @@ Deno.serve(async (req) => {
                         model: ocrModelName,
                         document: {
                             type: "document_url",
-                            document_url: documentUrl
+                            document_url: safeDocumentUrl
                         }
                     })
                 });
@@ -709,6 +881,18 @@ Deno.serve(async (req) => {
                 const pages = data.pages || [];
                 const text = pages.map((p: any) => p.markdown).join("\n\n");
 
+                await recordAiUsage(service, {
+                    organizationId,
+                    userId: user.id,
+                    provider: normalizedProvider,
+                    model: ocrModelName,
+                    promptText,
+                    historyMessages,
+                    outputText: text,
+                    action,
+                    hasDocumentUrl: true,
+                    usage: data?.usage,
+                });
                 return new Response(
                     JSON.stringify({ text, raw: data }),
                     { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
@@ -723,7 +907,7 @@ Deno.serve(async (req) => {
         }
 
         // --- MISTRAL CHAT HANDLER ---
-        if (provider === 'mistral') {
+        if (normalizedProvider === 'mistral') {
             const { value: apiKey, key: apiKeySource } = getFirstEnvSecret("MISTRAL_API_KEY", "MISTRAL_OCR_API_KEY");
             if (!apiKey) {
                 return new Response(
@@ -732,8 +916,11 @@ Deno.serve(async (req) => {
                 );
             }
 
-            const model = clientModel || "mistral-small-latest";
+            const model = resolvedModel;
             console.log(`Using Mistral Model: ${model}`);
+            const messages = promptText
+                ? [{ role: "user", content: promptText }]
+                : historyMessages.map((msg) => ({ role: msg.role, content: msg.content }));
 
             const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
                 method: "POST",
@@ -743,7 +930,8 @@ Deno.serve(async (req) => {
                 },
                 body: JSON.stringify({
                     model,
-                    messages: prompt ? [{ role: "user", content: prompt }] : history,
+                    messages,
+                    max_tokens: MAX_OUTPUT_TOKENS,
                 })
             });
 
@@ -764,6 +952,18 @@ Deno.serve(async (req) => {
             }
 
             const text = data.choices[0].message.content;
+            await recordAiUsage(service, {
+                organizationId,
+                userId: user.id,
+                provider: normalizedProvider,
+                model,
+                promptText,
+                historyMessages,
+                outputText: text,
+                action,
+                hasDocumentUrl: Boolean(safeDocumentUrl),
+                usage: data?.usage,
+            });
             return new Response(
                 JSON.stringify({ text, raw: data }),
                 { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
@@ -779,21 +979,23 @@ Deno.serve(async (req) => {
             );
         }
 
-        const model = clientModel || "anthropic/claude-3-haiku";
+        const model = resolvedModel;
         console.log(`Using OpenRouter Model: ${model}`);
 
         const defaultOcrPrompt = "Extract all readable text from the document. Return plain text only.";
-        const messages = documentUrl
+        const messages = safeDocumentUrl
             ? [
                 {
                     role: "user",
                     content: [
-                        { type: "text", text: prompt || defaultOcrPrompt },
-                        { type: "image_url", image_url: { url: documentUrl } }
+                        { type: "text", text: promptText || defaultOcrPrompt },
+                        { type: "image_url", image_url: { url: safeDocumentUrl } }
                     ]
                 }
             ]
-            : (prompt ? [{ role: "user", content: prompt }] : history);
+            : (promptText
+                ? [{ role: "user", content: promptText }]
+                : historyMessages.map((msg) => ({ role: msg.role, content: msg.content })));
 
         const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
             method: "POST",
@@ -804,6 +1006,7 @@ Deno.serve(async (req) => {
             body: JSON.stringify({
                 model,
                 messages,
+                max_tokens: MAX_OUTPUT_TOKENS,
             }),
         });
 
@@ -823,6 +1026,18 @@ Deno.serve(async (req) => {
         }
 
         const text = data.choices[0].message.content;
+        await recordAiUsage(service, {
+            organizationId,
+            userId: user.id,
+            provider: normalizedProvider,
+            model,
+            promptText,
+            historyMessages,
+            outputText: text,
+            action,
+            hasDocumentUrl: Boolean(safeDocumentUrl),
+            usage: data?.usage,
+        });
         return new Response(
             JSON.stringify({ text, raw: data }),
             { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
