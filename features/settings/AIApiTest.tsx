@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { invokeAuthedFunction } from '../../services/functionsClient';
+import { invokeAuthedFunction } from '@infra/functions/functionsClient';
 
 // Types
 type AIProvider = 'openrouter' | 'google' | 'mistral';

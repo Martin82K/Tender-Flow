@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Amendment, ContractDetails, InvestorFinancials, ProjectDetails } from "@/types";
+import type {
+  Amendment,
+  ContractDetails,
+  ContractInvoiceStatus,
+  InvestorFinancials,
+  ProjectDetails,
+} from "@/types";
 import {
   buildDemandTableData,
   calculateOverviewFinancials,
@@ -22,6 +28,7 @@ export type ProjectOverviewVisibleColumns = typeof DEFAULT_COLUMNS;
 const DEFAULT_INVESTOR: InvestorFinancials = {
   sodPrice: 0,
   amendments: [],
+  invoices: [],
 };
 
 interface InfoFormState {
@@ -309,6 +316,45 @@ export const useProjectOverviewNewController = ({
     setInvestorForm({ ...investorForm, amendments: nextAmendments });
   };
 
+  const addInvestorInvoice = () => {
+    const now = new Date();
+    const dueDate = new Date(now);
+    dueDate.setDate(dueDate.getDate() + 30);
+    setInvestorForm((prev) => ({
+      ...prev,
+      invoices: [
+        ...(prev.invoices || []),
+        {
+          id: `ii${Date.now()}`,
+          invoiceNumber: "",
+          issueDate: now.toISOString().slice(0, 10),
+          dueDate: dueDate.toISOString().slice(0, 10),
+          amount: 0,
+          currency: "CZK",
+          status: "issued",
+        },
+      ],
+    }));
+  };
+
+  const updateInvestorInvoice = (
+    index: number,
+    field: "invoiceNumber" | "issueDate" | "dueDate" | "amount" | "status" | "paidAt" | "note",
+    value: string | number,
+  ) => {
+    const nextInvoices = [...(investorForm.invoices || [])];
+    nextInvoices[index] = {
+      ...nextInvoices[index],
+      [field]: field === "status" ? (value as ContractInvoiceStatus) : value,
+    };
+    setInvestorForm({ ...investorForm, invoices: nextInvoices });
+  };
+
+  const removeInvestorInvoice = (index: number) => {
+    const nextInvoices = (investorForm.invoices || []).filter((_, i) => i !== index);
+    setInvestorForm({ ...investorForm, invoices: nextInvoices });
+  };
+
   const addInternalAmendment = () => {
     setInternalForm((prev) => ({
       ...prev,
@@ -381,6 +427,9 @@ export const useProjectOverviewNewController = ({
     addAmendment,
     updateAmendment,
     removeAmendment,
+    addInvestorInvoice,
+    updateInvestorInvoice,
+    removeInvestorInvoice,
     addInternalAmendment,
     updateInternalAmendment,
     removeInternalAmendment,

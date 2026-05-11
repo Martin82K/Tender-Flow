@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { emailService } from "../../services/emailService";
+import { emailService } from "@features/settings/api";
 import { useUI } from "../../context/UIContext";
 import { useAuth } from "../../context/AuthContext";
 

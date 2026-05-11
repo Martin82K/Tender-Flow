@@ -1,11 +1,10 @@
-import ExcelJS from "exceljs";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 import { RobotoRegularBase64 } from "@/fonts/roboto-regular";
-import { contractService } from "@/services/contractService";
-import { dbAdapter } from "@/services/dbAdapter";
-import { organizationService } from "@/services/organizationService";
+import { organizationService } from "@features/organization/api";
+import { contractQueriesApi } from "@features/projects/contracts/api";
+import { dbAdapter } from "@infra/db/dbAdapter";
 import type { ProjectDetails } from "@/types";
 
 import { getContractProtocolDefinition } from "../model/contractDocumentRegistry";
@@ -21,6 +20,11 @@ import {
   buildContractProtocolDraft,
   sanitizeProtocolFileName,
 } from "../model/contractProtocolUtils";
+
+const loadExcelJS = async () => {
+  const module = await import("exceljs");
+  return module.default;
+};
 
 const registerRobotoFont = (doc: jsPDF): void => {
   doc.addFileToVFS("Roboto-Regular.ttf", RobotoRegularBase64);
@@ -97,11 +101,11 @@ interface PreparedContractProtocol {
   definition: ReturnType<typeof getContractProtocolDefinition>;
   draft: ContractProtocolDraft;
   context: {
-    contract: Awaited<ReturnType<typeof contractService.getContractById>>;
+    contract: Awaited<ReturnType<typeof contractQueriesApi.getContractById>>;
     projectDetails: ProjectDetails;
     today: Date;
   };
-  contract: NonNullable<Awaited<ReturnType<typeof contractService.getContractById>>>;
+  contract: NonNullable<Awaited<ReturnType<typeof contractQueriesApi.getContractById>>>;
 }
 
 const prepareContractProtocol = async (
@@ -111,7 +115,7 @@ const prepareContractProtocol = async (
 
   const contract =
     input.contractSnapshot ||
-    (await contractService.getContractById(input.contractId));
+    (await contractQueriesApi.getContractById(input.contractId));
 
   if (!contract) {
     throw new Error("Smlouva pro vytvoření protokolu nebyla nalezena.");
@@ -254,10 +258,14 @@ export const generateContractProtocol = async (
   }
 
   const templateArrayBuffer = await templateResponse.arrayBuffer();
-  const templateBytes = new Uint8Array(templateArrayBuffer);
+  const templateBuffer =
+    typeof Buffer !== "undefined"
+      ? Buffer.from(templateArrayBuffer)
+      : new Uint8Array(templateArrayBuffer);
 
+  const ExcelJS = await loadExcelJS();
   const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(templateBytes);
+  await workbook.xlsx.load(templateBuffer);
 
   const worksheet = workbook.worksheets[0];
   if (!worksheet) {

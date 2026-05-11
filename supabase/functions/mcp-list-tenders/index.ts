@@ -1,7 +1,7 @@
 import { buildCorsHeaders, handleCors } from "../_shared/cors.ts";
 import { createAuthedUserClient } from "../_shared/supabase.ts";
 
-const json = (status: number, body: unknown) =>
+const json = (req: Request, status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
     status,
     headers: { ...buildCorsHeaders(req), "content-type": "application/json" },
@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
   try {
     const authed = createAuthedUserClient(req);
     const { data: userData, error: userError } = await authed.auth.getUser();
-    if (userError || !userData.user) return json(401, { error: "Unauthorized" });
+    if (userError || !userData.user) return json(req, 401, { error: "Unauthorized" });
 
     const body = await req.json().catch(() => ({}));
     const projectId = typeof body?.projectId === "string" ? body.projectId : null;
@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
     }
 
     const { data, error } = await query;
-    if (error) return json(500, { error: error.message });
+    if (error) return json(req, 500, { error: error.message });
 
     const items =
       (data || []).map((row: any) => ({
@@ -46,8 +46,8 @@ Deno.serve(async (req) => {
         planBudget: row.plan_budget || null,
       })) || [];
 
-    return json(200, { items });
+    return json(req, 200, { items });
   } catch (error) {
-    return json(500, { error: error instanceof Error ? error.message : String(error) });
+    return json(req, 500, { error: error instanceof Error ? error.message : String(error) });
   }
 });

@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import * as XLSX from "xlsx";
-import { fillDescriptions, IndexMap } from "@/utils/indexMatcher";
-import { fillOddily, FillOddilyResult } from "@/utils/fillOddily";
+import { fillDescriptions } from "@/shared/tools/excel/indexMatcher";
+import type { IndexMap } from "@/shared/tools/excel/indexMatcher";
+import { fillOddily } from "@/shared/tools/excel/fillOddily";
+import type { FillOddilyResult } from "@/shared/tools/excel/fillOddily";
 import {
   loadIndexEntries,
   addIndexEntry,
@@ -11,7 +13,7 @@ import {
   deleteAllIndexEntries,
   IndexEntry,
 } from "@/services/indexerService";
-import { trackFeatureUsage } from "@/services/featureUsageService";
+import { trackFeatureUsage } from "@features/settings/api";
 import { AlertModal } from "@/shared/ui/AlertModal";
 import { ConfirmationModal } from "@/shared/ui/ConfirmationModal";
 

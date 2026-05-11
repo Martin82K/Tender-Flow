@@ -1,7 +1,6 @@
 import React from "react";
 import type { ModuleProps } from "@features/command-center/types";
-import { useAppData } from "@/hooks/useAppData";
-import { useUI } from "@/context/UIContext";
+import { useProjectPortfolioState } from "@features/projects/model/useProjectPortfolioState";
 
 const RANGE_OPTIONS: Array<{ value: 7 | 14 | 30 | 90; label: string }> = [
   { value: 7, label: "7 dní" },
@@ -21,9 +20,8 @@ const HEALTH_OPTIONS: Array<{
 ];
 
 export const FilterBarModule: React.FC<ModuleProps> = ({ filterState, onFilterChange }) => {
-  const { showUiModal } = useUI();
-  const { state } = useAppData(showUiModal);
-  const projects = state.projects.filter((p) => p.status !== "archived");
+  const { projects: portfolioProjects } = useProjectPortfolioState();
+  const projects = portfolioProjects.filter((p) => p.status !== "archived");
 
   const toggleProject = (id: string) => {
     const next = filterState.projectIds.includes(id)
@@ -70,7 +68,7 @@ export const FilterBarModule: React.FC<ModuleProps> = ({ filterState, onFilterCh
           )}
         </div>
       </div>
-      <div className="cc-filterbar__group">
+      <div className="cc-filterbar__group cc-filterbar__group--health">
         <span className="cc-filterbar__group-label">Zdraví</span>
         <div className="cc-filterbar__group-chips">
           {HEALTH_OPTIONS.map((opt) => {
@@ -79,7 +77,7 @@ export const FilterBarModule: React.FC<ModuleProps> = ({ filterState, onFilterCh
               <button
                 key={opt.value}
                 type="button"
-                className={`cc-chip cc-chip--${opt.tone}${active ? " cc-chip--active" : ""}`}
+                className={`cc-chip cc-chip--health cc-chip--health-${opt.value} cc-chip--${opt.tone}${active ? " cc-chip--active" : ""}`}
                 onClick={() => toggleHealth(opt.value)}
               >
                 <span className="cc-chip__dot" aria-hidden />

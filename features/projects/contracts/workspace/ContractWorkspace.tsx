@@ -75,8 +75,8 @@ export const ContractWorkspace: React.FC<Props> = ({ contract, onEditContract, o
   }, [contract.id]);
 
   return (
-    <section className="flex flex-col rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 overflow-hidden">
-      <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex flex-col gap-2">
+    <section data-help-id="contract-detail-shell" className="flex flex-col rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 overflow-hidden">
+      <div data-help-id="contract-detail-header" className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex flex-col gap-2">
         <div className="flex items-center gap-3 flex-wrap">
           <StatusPill status={contract.status} />
           <div className="text-lg font-bold text-slate-900 dark:text-slate-100">{contract.title}</div>
@@ -97,7 +97,7 @@ export const ContractWorkspace: React.FC<Props> = ({ contract, onEditContract, o
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden grid grid-cols-[160px_1fr]">
+      <div data-help-id="contract-detail-with-rail" className="flex-1 overflow-hidden grid grid-cols-[160px_1fr]">
         <WorkspaceNav
           sections={sections}
           active={activeSection}

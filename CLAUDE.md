@@ -217,9 +217,13 @@ The directories `components/`, `hooks/`, `services/`, `context/`, `utils/` are *
 - tf_list_tenders (READ)
 - tf_list_contacts (READ)
 - tf_get_project_detail (READ)
+- tf_get_tender_detail (READ)
+- tf_get_tender_winner (READ)
+- tf_list_tender_bids (READ)
+- tf_list_project_winners (READ)
+- tf_get_contract_detail (READ)
 - tf_get_schedule (READ)
 - tf_get_tender_plan (READ)
-- tf_create_bid (WRITE)
 
 ### Event Types
 - com.tenderflow.demand.created

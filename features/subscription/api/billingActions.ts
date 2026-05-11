@@ -1,5 +1,5 @@
-import { billingService, PRICING_CONFIG } from "@/services/billingService";
-import { userSubscriptionService } from "@/services/userSubscriptionService";
+import { billingService, PRICING_CONFIG } from "@infra/billing/billingService";
+import { userSubscriptionService } from "@infra/billing/userSubscriptionService";
 import type { SubscriptionTier } from "@/types";
 
 export const requestPlanChange = async (tier: SubscriptionTier) => {

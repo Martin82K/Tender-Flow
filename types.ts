@@ -87,7 +87,7 @@ export interface DemandCategory {
   createdAt?: string; // Datum vytvoření poptávky (ISO timestamp) — pro pravidlo 14 dní bez nabídek
 }
 
-import type { DocHubStructureV1 as _DocHubStructureV1 } from "@/utils/docHub";
+import type { DocHubStructureV1 as _DocHubStructureV1 } from "@/shared/dochub/docHub";
 export type DocHubStructureV1 = _DocHubStructureV1;
 
 export type BidStatus =
@@ -153,6 +153,19 @@ export interface Amendment {
 export interface InvestorFinancials {
   sodPrice: number; // Base contract price
   amendments: Amendment[];
+  invoices?: InvestorInvoice[];
+}
+
+export interface InvestorInvoice {
+  id: string;
+  invoiceNumber: string;
+  issueDate: string;
+  dueDate: string;
+  amount: number;
+  currency: string;
+  status: ContractInvoiceStatus;
+  paidAt?: string;
+  note?: string;
 }
 
 // Document link with label for multi-link document management
@@ -228,11 +241,13 @@ export interface ProjectDetails {
 
 export interface UserPreferences {
   theme: "light" | "dark" | "system";
+  skin?: "classic" | "industrial";
   primaryColor: string;
   backgroundColor: string;
   emailClientMode?: "mailto" | "eml"; // 'mailto' = Text, 'eml' = File/HTML
   urlShortenerProvider?: "tinyurl" | "tfurl"; // Service provider for URL shortening
   autoShortenProjectDocs?: boolean; // Auto-shorten Project Documents links
+  uiScale?: number; // Global UI scale, sanitized before applying to CSS
   signature?: string; // HTML compatible signature
   commandCenter?: CommandCenterUserPreferences;
 }
@@ -257,6 +272,7 @@ export interface UserEmailSignatureProfile {
   signaturePhoneSecondary: string | null;
   signatureEmail: string | null;
   signatureGreeting: string | null;
+  avatarPath?: string | null;
 }
 
 export interface OrganizationEmailBranding {
@@ -287,7 +303,7 @@ export type SubscriptionTier = "free" | "starter" | "pro" | "enterprise" | "admi
 
 export type SubscriptionStatus = "active" | "trial" | "cancelled" | "expired" | "pending";
 
-export type BillingProvider = "stripe" | "gopay" | "paddle" | "manual" | null;
+export type BillingProvider = "stripe" | "paddle" | "manual" | null;
 
 export interface SubscriptionInfo {
   tier: SubscriptionTier;

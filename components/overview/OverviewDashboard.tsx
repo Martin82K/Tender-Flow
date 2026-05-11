@@ -21,7 +21,7 @@ import { SupplierBarChart } from './SupplierBarChart';
 import { SuccessRateChart } from './SuccessRateChart';
 import { SupplierTable } from './SupplierTable';
 import { formatDecimal } from '@/utils/formatters';
-import type { OverviewAnalytics } from '../../utils/overviewAnalytics';
+import type { OverviewAnalytics } from '@/shared/overview/overviewAnalytics';
 
 interface SupplierRow {
   id: string;

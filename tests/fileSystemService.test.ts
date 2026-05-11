@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { DocHubHierarchyItem } from "../utils/docHub";
+import type { DocHubHierarchyItem } from "@/shared/dochub/docHub";
 
 const mockState = vi.hoisted(() => ({
   logIncident: vi.fn().mockResolvedValue({ incidentId: "INC-1" }),

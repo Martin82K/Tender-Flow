@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { AuthCard } from "./AuthCard";
 import { Link, navigate, useLocation } from "@/shared/routing/router";
-import { isDesktop, platformAdapter } from "@/services/platformAdapter";
+import { isDesktop, platformAdapter } from "@features/auth/api";
 import { Fingerprint } from "lucide-react";
 import logo from "@/assets/logo.svg";
 import "@/features/public/ui/landing-apex.css";

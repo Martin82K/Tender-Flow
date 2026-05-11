@@ -2,7 +2,11 @@ import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { Pipeline } from "../components/Pipeline";
+import { formatMoney } from "../utils/formatters";
 import type { Bid, DemandCategory, ProjectDetails } from "../types";
+
+const hasNormalizedText = (expected: string) => (_content: string, element: Element | null) =>
+  (element?.textContent ?? "").replace(/\s/g, " ").trim() === expected.replace(/\s/g, " ").trim();
 
 vi.mock("../context/AuthContext", () => ({
   useAuth: () => ({
@@ -20,7 +24,7 @@ vi.mock("../services/functionsClient", () => ({
   invokeAuthedFunction: vi.fn().mockResolvedValue({}),
 }));
 
-vi.mock("../services/fileSystemService", () => ({
+vi.mock("@infra/files/fileSystemService", () => ({
   ensureStructure: vi.fn().mockResolvedValue({
     success: true,
     rootPath: "/tmp/dochub",
@@ -147,8 +151,8 @@ describe("Pipeline category summary", () => {
     expect(await screen.findAllByText("Elektroinstalace")).toHaveLength(2);
     expect(await screen.findByText("Cena SOD:")).toBeInTheDocument();
     expect(screen.getByText("Interní plán:")).toBeInTheDocument();
-    expect(screen.getByText("1 250 000 Kč")).toBeInTheDocument();
-    expect(screen.getByText("980 000 Kč")).toBeInTheDocument();
+    expect(screen.getByText(hasNormalizedText(formatMoney(1250000)))).toBeInTheDocument();
+    expect(screen.getByText(hasNormalizedText(formatMoney(980000)))).toBeInTheDocument();
   });
 
   it("renders zero values safely when category budgets are empty", async () => {
@@ -162,7 +166,7 @@ describe("Pipeline category summary", () => {
     expect(await screen.findAllByText("Elektroinstalace")).toHaveLength(2);
     expect(await screen.findByText("Cena SOD:")).toBeInTheDocument();
     expect(screen.getByText("Interní plán:")).toBeInTheDocument();
-    expect(screen.getAllByText("0 Kč")).toHaveLength(2);
+    expect(screen.getAllByText(hasNormalizedText(formatMoney(0)))).toHaveLength(2);
   });
 
   it("otevre modal Upravit nabídku pri dvojkliku na kartu subdodavatele v kanbanu", async () => {

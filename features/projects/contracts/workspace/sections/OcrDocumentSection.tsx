@@ -6,8 +6,8 @@ import type {
   ContractMarkdownVersion,
   ContractWithDetails,
 } from '@/types';
-import { contractService } from '@/services/contractService';
 import { contractExtractionService } from '@/services/contractExtractionService';
+import { contractMutationsApi, contractQueriesApi } from '../../api';
 import { MarkdownDocumentPanel } from '@/shared/contracts/MarkdownDocumentPanel';
 import { Modal } from '@/shared/ui/Modal';
 import { formatDate } from '../../utils/format';
@@ -172,9 +172,14 @@ export const OcrDocumentSection: React.FC<Props> = ({ contract, onRefresh }) => 
     try {
       const result = await contractExtractionService.extractFromDocument(file, setStatus);
 
-      if (result.rawText && result.rawText.trim().length > 0) {
+      if (!result.rawText || result.rawText.trim().length === 0) {
+        setErr(
+          'contract',
+          'OCR nevrátil žádný text — MD verze smlouvy nebyla uložena.',
+        );
+      } else {
         try {
-          await contractService.createMarkdownVersion({
+          await contractMutationsApi.createMarkdownVersion({
             entityType: 'contract',
             contractId: contract.id,
             sourceKind: 'ocr',
@@ -185,11 +190,16 @@ export const OcrDocumentSection: React.FC<Props> = ({ contract, onRefresh }) => 
             metadata: { confidence: result.confidence || {} },
           });
         } catch (mdErr) {
-          console.warn('Nepodařilo se uložit MD verzi smlouvy:', mdErr);
+          console.error('Nepodařilo se uložit MD verzi smlouvy:', mdErr);
+          const detail = mdErr instanceof Error ? mdErr.message : String(mdErr);
+          setErr(
+            'contract',
+            `MD verze smlouvy se neuložila: ${detail}. Strukturovaná data byla uložena.`,
+          );
         }
       }
 
-      await contractService.updateContract(contract.id, {
+      await contractMutationsApi.updateContract(contract.id, {
         extractionJson: {
           fields: result.fields,
           confidence: result.confidence,
@@ -222,9 +232,14 @@ export const OcrDocumentSection: React.FC<Props> = ({ contract, onRefresh }) => 
     try {
       const result = await contractExtractionService.extractAmendmentFromDocument(file);
 
-      if (result.rawText && result.rawText.trim().length > 0) {
+      if (!result.rawText || result.rawText.trim().length === 0) {
+        setErr(
+          key,
+          'OCR nevrátil žádný text — MD verze dodatku nebyla uložena.',
+        );
+      } else {
         try {
-          await contractService.createMarkdownVersion({
+          await contractMutationsApi.createMarkdownVersion({
             entityType: 'amendment',
             amendmentId: amendment.id,
             sourceKind: 'ocr',
@@ -235,11 +250,16 @@ export const OcrDocumentSection: React.FC<Props> = ({ contract, onRefresh }) => 
             metadata: { confidence: result.confidence || {} },
           });
         } catch (mdErr) {
-          console.warn('Nepodařilo se uložit MD verzi dodatku:', mdErr);
+          console.error('Nepodařilo se uložit MD verzi dodatku:', mdErr);
+          const detail = mdErr instanceof Error ? mdErr.message : String(mdErr);
+          setErr(
+            key,
+            `MD verze dodatku se neuložila: ${detail}. Strukturovaná data byla uložena.`,
+          );
         }
       }
 
-      await contractService.updateAmendment(amendment.id, {
+      await contractMutationsApi.updateAmendment(amendment.id, {
         extractionJson: {
           fields: result.fields,
           confidence: result.confidence,
@@ -385,7 +405,7 @@ const MarkdownVersionsList: React.FC<MarkdownVersionsListProps> = ({
       setLoading(true);
       setLoadError(null);
       try {
-        const data = await contractService.getMarkdownVersions({ entityType, entityId });
+        const data = await contractQueriesApi.getMarkdownVersions({ entityType, entityId });
         if (!cancelled) setVersions(data);
       } catch (err) {
         if (!cancelled) {

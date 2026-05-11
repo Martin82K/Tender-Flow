@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_DOCHUB_HIERARCHY,
-  DocHubHierarchyItem,
   ensureExtraHierarchy,
   findHierarchyAncestors,
   getDocHubTenderLinksDesktop,
-} from "../utils/docHub";
+  type DocHubHierarchyItem,
+} from "@/shared/dochub/docHub";
+import { ensureExtraHierarchy as ensureExtraHierarchyFromLegacy } from "../utils/docHub";
 
 const ROOT = "C:\\Stavby\\26017 - Fibichova\\_TF";
 
@@ -15,6 +16,7 @@ describe("ensureExtraHierarchy", () => {
       { id: "x", key: "custom", name: "X", enabled: true, depth: 0 },
     ];
     expect(ensureExtraHierarchy(custom)).toBe(custom);
+    expect(ensureExtraHierarchyFromLegacy(custom)).toBe(custom);
   });
 
   it("falls back to DEFAULT_DOCHUB_HIERARCHY when undefined", () => {

@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS public.org_billing_history (
   currency TEXT DEFAULT 'CZK',
   seats_count INTEGER,
   tier TEXT,
-  gopay_payment_id TEXT,
+  external_payment_id TEXT,
   status TEXT DEFAULT 'pending',
   created_at TIMESTAMPTZ DEFAULT now()
 );

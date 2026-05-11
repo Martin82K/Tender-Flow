@@ -1,4 +1,5 @@
 import type { Bid, DemandCategory, DemandDocument, ProjectDetails } from "@/types";
+import { parseDecimal } from "@/utils/formatters";
 
 export type PipelineInquiryGenerationKind = "inquiry" | "materialInquiry";
 
@@ -13,7 +14,28 @@ export interface PipelineCategoryFormInput {
 }
 
 const formatLegacyBudget = (value: number): string => {
-  return `~${new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 0 }).format(value)} Kč`;
+  return `~${new Intl.NumberFormat("cs-CZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)} Kč`;
+};
+
+const parseBudget = (value: string): number => parseDecimal(value) ?? 0;
+
+export const calculateInternalPlanFromSodDiscount = (
+  sodBudget: number,
+  discountPercent: number,
+): number => {
+  if (!Number.isFinite(sodBudget) || !Number.isFinite(discountPercent)) return 0;
+  const clampedPercent = Math.min(100, Math.max(0, discountPercent));
+  return Math.max(0, sodBudget * (1 - clampedPercent / 100));
+};
+
+const parsePlanBudget = (sodBudget: number, value: string): number => {
+  if (value.includes("%")) {
+    const discountPercent = parseDecimal(value);
+    return discountPercent === null
+      ? 0
+      : calculateInternalPlanFromSodDiscount(sodBudget, discountPercent);
+  }
+  return parseBudget(value);
 };
 
 export const getTemplateLinksForInquiryKindModel = (
@@ -96,14 +118,14 @@ export const buildNewDemandCategory = (
   categoryId: string,
   uploadedDocuments: DemandDocument[],
 ): DemandCategory => {
-  const sod = parseFloat(formData.sodBudget) || 0;
+  const sod = parseBudget(formData.sodBudget);
 
   return {
     id: categoryId,
     title: formData.title,
     budget: formatLegacyBudget(sod),
     sodBudget: sod,
-    planBudget: parseFloat(formData.planBudget) || 0,
+    planBudget: parsePlanBudget(sod, formData.planBudget),
     description: formData.description,
     status: "open",
     subcontractorCount: 0,
@@ -119,14 +141,14 @@ export const buildUpdatedDemandCategory = (
   formData: PipelineCategoryFormInput,
   uploadedDocuments: DemandDocument[],
 ): DemandCategory => {
-  const sod = parseFloat(formData.sodBudget) || 0;
+  const sod = parseBudget(formData.sodBudget);
 
   return {
     ...currentCategory,
     title: formData.title,
     budget: formatLegacyBudget(sod),
     sodBudget: sod,
-    planBudget: parseFloat(formData.planBudget) || 0,
+    planBudget: parsePlanBudget(sod, formData.planBudget),
     description: formData.description,
     documents: uploadedDocuments.length > 0 ? uploadedDocuments : undefined,
     deadline: formData.deadline || undefined,

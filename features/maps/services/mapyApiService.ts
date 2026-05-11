@@ -1,4 +1,4 @@
-import { invokeAuthedFunction } from '@/services/functionsClient';
+import { invokeAuthedFunction } from '@infra/functions/functionsClient';
 import { MAPS_CONFIG } from '@/config/maps';
 import type { GeocodingResult, SuggestResult, RouteResult, MatrixResult, GeoPoint } from '../types';
 import { GeocodingError } from '../types';

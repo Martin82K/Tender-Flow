@@ -5,7 +5,14 @@ import {
   getDisplayTiers,
   SubscriptionTierId,
 } from "@/config/subscriptionTiers";
-import { subscriptionFeaturesService } from "@/services/subscriptionFeaturesService";
+import {
+  createSubscriptionFeature,
+  deleteSubscriptionFeature,
+  listSubscriptionFeatures,
+  listSubscriptionTierFlags,
+  setSubscriptionTierFlag,
+  updateSubscriptionFeature,
+} from "@features/subscription/api";
 import { SubscriptionFeature } from "@/types";
 
 type FlagKey = `${SubscriptionTierId}:${string}`;
@@ -30,7 +37,7 @@ type FeatureGroup = {
 const DISPLAY_TIERS = getDisplayTiers();
 const ALL_TIERS = getAllTiers();
 const REMOVED_FEATURE_KEYS = new Set(["ai_insights"]);
-const SYSTEM_PROTECTED_KEYS = new Set(["ai_ocr"]);
+const SYSTEM_PROTECTED_KEYS = new Set(["ai_ocr", "feature_voice_assistant"]);
 const SYSTEM_AI_MODULES: FeatureSeed[] = [
   {
     key: "ai_ocr",
@@ -38,6 +45,13 @@ const SYSTEM_AI_MODULES: FeatureSeed[] = [
     description: "OCR zpracování dokumentů a extrakce dat ze smluv.",
     category: "AI moduly",
     sortOrder: 52,
+  },
+  {
+    key: "feature_voice_assistant",
+    name: "Viky - hlasová AI asistentka",
+    description: "Desktop-first hlasová asistentka Viky přes OpenAI Realtime s read-only nástroji.",
+    category: "AI moduly",
+    sortOrder: 53,
   },
 ];
 const GROUP_META: Record<
@@ -215,9 +229,9 @@ export const SubscriptionFeaturesManagement: React.FC = () => {
     const existing = features.find((feature) => feature.key === seed.key);
     if (existing) return existing;
 
-    await subscriptionFeaturesService.createFeature(seed);
+    await createSubscriptionFeature(seed);
     for (const tier of ALL_TIERS) {
-      await subscriptionFeaturesService.setTierFlag(
+      await setSubscriptionTierFlag(
         tier.id,
         seed.key,
         tier.id === "admin"
@@ -242,8 +256,8 @@ export const SubscriptionFeaturesManagement: React.FC = () => {
     setLoadError(null);
     try {
       const [loadedFeatures, loadedFlags] = await Promise.all([
-        subscriptionFeaturesService.listFeatures(),
-        subscriptionFeaturesService.listTierFlags(),
+        listSubscriptionFeatures(),
+        listSubscriptionTierFlags(),
       ]);
 
       const nextFlags: Record<FlagKey, boolean> = {};
@@ -404,7 +418,7 @@ export const SubscriptionFeaturesManagement: React.FC = () => {
       if (systemSeed) {
         await ensureFeatureExists(systemSeed);
       }
-      await subscriptionFeaturesService.setTierFlag(tier, featureKey, enabled);
+      await setSubscriptionTierFlag(tier, featureKey, enabled);
     } catch (e) {
       console.error("Failed to save flag:", e);
       setFlags((current) => ({ ...current, [flagKey]: !!previous }));
@@ -432,7 +446,7 @@ export const SubscriptionFeaturesManagement: React.FC = () => {
 
     setIsSavingFeature(true);
     try {
-      await subscriptionFeaturesService.updateFeature(editingFeature.key, {
+      await updateSubscriptionFeature(editingFeature.key, {
         name: editingFeature.isSystem ? editingFeature.name : editName.trim(),
         description: editDescription.trim() || null,
         category: editCategory.trim() || null,
@@ -475,7 +489,7 @@ export const SubscriptionFeaturesManagement: React.FC = () => {
 
     setDeletingKey(key);
     try {
-      await subscriptionFeaturesService.deleteFeature(key);
+      await deleteSubscriptionFeature(key);
       await loadAll();
       if (editingKey === key) closeEditPanel();
     } catch (e) {

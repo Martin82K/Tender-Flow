@@ -17,7 +17,7 @@
  * Důležité:
  *   - Customer/Subscription ID v DB se ukládají až ve webhooku `checkout.session.completed` —
  *     tady ještě subscription neexistuje. Stripe customer existuje až po vyplnění checkoutu.
- *   - Enterprise tier nemá self-checkout (mirror chování GoPay).
+ *   - Enterprise tier nemá self-checkout.
  */
 
 import { buildCorsHeaders, handleCors } from "../_shared/cors.ts";
@@ -97,8 +97,6 @@ Deno.serve(async (req) => {
     const service = createServiceClient();
 
     // Reuse Stripe customer ID, pokud user už má dřívější Stripe subscription.
-    // Bezpečné: čteme jen pokud `billing_provider === 'stripe'`, jinak by GoPay customer ID
-    // mohlo být v `billing_customer_id` (tam ale Stripe ID nikdy neukládáme).
     const { data: profile, error: profileError } = await service
       .from("user_profiles")
       .select("billing_customer_id, billing_provider")

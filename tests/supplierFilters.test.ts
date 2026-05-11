@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { filterSuppliers } from "../utils/supplierFilters";
+import { filterSuppliers } from "@/shared/overview/supplierFilters";
+import { filterSuppliers as filterSuppliersFromLegacy } from "../utils/supplierFilters";
 
 describe("filterSuppliers", () => {
   const suppliers = [
@@ -33,6 +34,12 @@ describe("filterSuppliers", () => {
 
   it("filters by specialization", () => {
     const result = filterSuppliers(suppliers as any, { query: "", specialization: "sádro" });
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe("Beta");
+  });
+
+  it("stays available from the legacy utils entrypoint", () => {
+    const result = filterSuppliersFromLegacy(suppliers as any, { query: "bet", specialization: "" });
     expect(result).toHaveLength(1);
     expect(result[0].name).toBe("Beta");
   });

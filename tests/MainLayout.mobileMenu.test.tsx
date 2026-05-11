@@ -12,6 +12,10 @@ vi.mock('@/components/ConfirmationModal', () => ({
   ConfirmationModal: () => null,
 }));
 
+vi.mock('@/shared/ui/UserAccountMenu', () => ({
+  UserAccountMenu: () => <button type="button">Uživatel</button>,
+}));
+
 vi.mock('@/shared/routing/router', () => ({
   navigate: vi.fn(),
 }));
@@ -45,7 +49,11 @@ const projects: Project[] = [
   },
 ];
 
-const renderMainLayout = (isSidebarOpen = false, currentView: View = 'project') =>
+const renderMainLayout = (
+  isSidebarOpen = false,
+  currentView: View = 'project',
+  uiScale = 1,
+) =>
   render(
     <MainLayout
       uiModal={{
@@ -62,6 +70,14 @@ const renderMainLayout = (isSidebarOpen = false, currentView: View = 'project') 
       selectedProjectId="project-1"
       onProjectSelect={vi.fn()}
       user={user}
+      theme="system"
+      skin="industrial"
+      onSetTheme={vi.fn()}
+      onSetSkin={vi.fn()}
+      uiScale={uiScale}
+      onSetUiScale={vi.fn()}
+      onResetUiScale={vi.fn()}
+      onLogout={vi.fn()}
       isBackgroundLoading={false}
       backgroundWarning={null}
       onReloadData={vi.fn()}
@@ -88,5 +104,17 @@ describe('MainLayout mobile menu', () => {
 
     expect(button).toHaveClass('opacity-0');
     expect(button).toHaveClass('pointer-events-none');
+  });
+
+  it('při zmenšení UI zachová viewport a zvětší interní layoutovou plochu', () => {
+    const { container } = renderMainLayout(false, 'project', 0.8);
+
+    const viewport = container.querySelector('.tf-app-viewport');
+    const shell = container.querySelector('.tf-app-shell') as HTMLElement;
+
+    expect(viewport).toHaveClass('fixed', 'inset-0', 'overflow-hidden');
+    expect(shell.style.transform).toBe('scale(0.8)');
+    expect(shell.style.width).toBe('125vw');
+    expect(shell.style.height).toBe('125dvh');
   });
 });

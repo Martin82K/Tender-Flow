@@ -158,7 +158,7 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
         raw === 'sod' ? 'sod' : raw === 'closed' ? 'closed' : raw === 'negotiating' ? 'negotiating' : 'open';
 
     return (
-        <div className="p-6 lg:p-10 overflow-y-auto">
+        <div className="tf-pipeline-overview p-6 lg:p-10 overflow-y-auto">
             {/* Filter Buttons and Add Button */}
             <div className="flex items-center justify-between mb-6">
                 <div data-help-id="pipeline-filters" className="flex items-center gap-1 bg-slate-200 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-300 dark:border-slate-700/50">
@@ -201,7 +201,7 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1 bg-slate-200 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-300 dark:border-slate-700/50">
+                    <div data-help-id="pipeline-view-toggle" className="flex items-center gap-1 bg-slate-200 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-300 dark:border-slate-700/50">
                         <button
                             type="button"
                             onClick={() => onViewModeChange('grid')}
@@ -243,7 +243,7 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
 
             {/* Content: Table or Grid */}
             {viewMode === 'table' ? (
-                <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl overflow-hidden">
+                <div data-help-id="pipeline-overview-table" className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="min-w-[900px] w-full text-sm table-fixed">
                             <thead className="bg-slate-100 dark:bg-slate-950/40 border-b border-slate-200 dark:border-slate-700/40">

@@ -3,7 +3,7 @@
  *
  * Logika:
  *   1) Auth uživatele přes Supabase JWT.
- *   2) RBAC: jen `owner` org smí cancel — `admin` nestačí (mirror gopay-cancel-org-subscription).
+ *   2) RBAC: jen `owner` org smí cancel — `admin` nestačí.
  *   3) Načte org `billing_customer_id` (musí být `cus_…`); pro Stripe potřebujeme
  *      reálné subscription ID, které není v `organizations` tabulce —
  *      retrieveuje se přes `customer.subscriptions.list()` ekvivalent

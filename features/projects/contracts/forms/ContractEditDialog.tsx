@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Modal } from '@/shared/ui/Modal';
 import { NumericInput } from '@/shared/ui/NumericInput';
 import { MarkdownDocumentPanel } from '@/shared/contracts/MarkdownDocumentPanel';
-import { contractService } from '@/services/contractService';
+import { contractMutationsApi } from '../api';
 import type {
   Contract,
   ContractRetentionStatus,
@@ -103,9 +103,9 @@ export const ContractEditDialog: React.FC<Props> = ({
       } satisfies Omit<Contract, 'id' | 'createdAt' | 'updatedAt'>;
 
       if (isEditing && contract) {
-        await contractService.updateContract(contract.id, payload);
+        await contractMutationsApi.updateContract(contract.id, payload);
       } else {
-        await contractService.createContract(payload);
+        await contractMutationsApi.createContract(payload);
       }
       await onSaved();
     } catch (err) {
@@ -257,13 +257,19 @@ export const ContractEditDialog: React.FC<Props> = ({
           </div>
         </div>
 
-        <fieldset className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 space-y-3">
+        <fieldset
+          data-help-id="contracts-retention-fields"
+          className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 space-y-3"
+        >
           <legend className="px-2 text-xs uppercase tracking-wider text-slate-500">
             Pozastávky — samostatná pole
           </legend>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="rounded-lg border-l-[3px] border-l-blue-500 bg-slate-50 dark:bg-slate-900/40 p-3 space-y-2">
+            <div
+              data-help-id="contracts-retention-short"
+              className="rounded-lg border-l-[3px] border-l-blue-500 bg-slate-50 dark:bg-slate-900/40 p-3 space-y-2"
+            >
               <div className="text-xs font-semibold text-blue-500">
                 Krátkodobá — do převzetí
               </div>
@@ -317,7 +323,10 @@ export const ContractEditDialog: React.FC<Props> = ({
               </div>
             </div>
 
-            <div className="rounded-lg border-l-[3px] border-l-purple-500 bg-slate-50 dark:bg-slate-900/40 p-3 space-y-2">
+            <div
+              data-help-id="contracts-retention-long"
+              className="rounded-lg border-l-[3px] border-l-purple-500 bg-slate-50 dark:bg-slate-900/40 p-3 space-y-2"
+            >
               <div className="text-xs font-semibold text-purple-500">
                 Dlouhodobá — do konce záruky
               </div>

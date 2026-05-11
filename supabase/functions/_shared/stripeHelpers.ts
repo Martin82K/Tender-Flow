@@ -4,8 +4,7 @@
  *
  * Runtime API client (fetch wrapper, webhook signature verify) je v `stripeBilling.ts`.
  *
- * Pricing zachováván v souladu s GoPay (jediný source of truth pro ceník je v
- * `gopayHelpers.ts`); tady jen mapujeme tier+period → Stripe Price ID env var.
+ * Pricing je držený lokálně pro Stripe checkout a mapuje tier+period na Stripe Price ID env var.
  */
 
 export type BillingPeriod = "monthly" | "yearly";
@@ -19,7 +18,7 @@ export type InternalSubscriptionStatus =
   | "expired"
   | "pending";
 
-// --- Plan Configuration (mirror gopayHelpers, jeden zdroj pravdy pro částky) ---
+// --- Plan Configuration ---
 
 const PLAN_PRICES: Record<Tier, { monthly: number; yearly: number }> = {
   starter: { monthly: 39900, yearly: 383040 }, // V haléřích: 399 CZK / 3830.40 CZK
@@ -35,7 +34,7 @@ const PLAN_LABELS: Record<Tier, string> = {
 
 /**
  * Vrátí celkovou částku v haléřích pro daný tier a period × quantity.
- * Stripe pracuje s nejmenší jednotkou měny (haléř pro CZK), stejně jako GoPay.
+ * Stripe pracuje s nejmenší jednotkou měny (haléř pro CZK).
  *
  * @param quantity počet seats (1 pro user-level, N pro org-level)
  */
@@ -233,7 +232,7 @@ export const parseStripeMetadata = (
   return result;
 };
 
-// --- Subscription Lifecycle Helpers (sdílené s gopayHelpers) ---
+// --- Subscription Lifecycle Helpers ---
 
 /**
  * Spočítá nové datum vypršení subscription od `now` podle billing period.

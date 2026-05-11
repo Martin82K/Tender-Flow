@@ -38,6 +38,20 @@ export const SIDEBAR_NAVIGATION: NavItemConfig[] = [
     feature: FEATURES.MODULE_PROJECTS,
     type: 'group'
   },
+  {
+    id: 'project-management',
+    label: 'Správa staveb',
+    icon: 'domain',
+    view: 'project-management',
+    feature: FEATURES.MODULE_PROJECTS,
+  },
+  {
+    id: 'project-overview',
+    label: 'Přehledy',
+    icon: 'monitoring',
+    view: 'project-overview',
+    feature: FEATURES.FEATURE_ADVANCED_REPORTING,
+  },
     // Pipeline is now part of Project tabs mostly, but if we had a global pipeline:
     // {
     //   id: 'pipeline',

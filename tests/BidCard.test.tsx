@@ -72,4 +72,18 @@ describe("BidCard", () => {
 
     expect(onDoubleClick).toHaveBeenCalledWith(baseBid);
   });
+
+  it("umi zobrazit cenu jako detail mimo badge", () => {
+    render(
+      <BidCard
+        bid={{ ...baseBid, price: "335 478 Kč" }}
+        priceDisplayMode="detail"
+        onDragStart={vi.fn()}
+        onEdit={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Vítězná částka")).toBeInTheDocument();
+    expect(screen.getByText("335 478 Kč")).toHaveClass("text-right");
+  });
 });

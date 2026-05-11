@@ -41,9 +41,9 @@ export const SubcontractorSelectorModal: React.FC<SubcontractorSelectorModalProp
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div data-help-id="pipeline-subcontractor-selector-modal" className="tf-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
             <div
-                className={`bg-white dark:bg-slate-900 shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col transition-all duration-200 ${isMaximized
+                className={`tf-modal-panel tf-pipeline-modal-panel bg-white dark:bg-slate-900 shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col transition-all duration-200 ${isMaximized
                     ? 'fixed inset-0 rounded-none w-full h-full'
                     : 'rounded-2xl max-w-4xl w-full h-[80vh]'
                     }`}

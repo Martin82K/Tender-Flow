@@ -126,8 +126,8 @@ npx supabase secrets set \
 | `STRIPE_PRICE_ID_PRO_YEARLY` | ✅ | `price_1Q…` | sekce 1.2 |
 | `STRIPE_API_URL` | ⛔ | (default `https://api.stripe.com/v1`) | volitelné, jen pro testovací override |
 | `STRIPE_API_VERSION` | ⛔ | (default `2026-04-22.dahlia`) | volitelné, jen pro pinning starší verze |
-| `SITE_URL` | ✅ (sdílené s GoPay) | `https://app.tenderflow.cz` | redirect URL allowlist |
-| `ALLOWED_CHECKOUT_ORIGINS` | volitelné (sdílené s GoPay) | `https://app.tenderflow.cz,https://staging.tenderflow.cz` | redirect URL allowlist |
+| `SITE_URL` | ✅ | `https://app.tenderflow.cz` | redirect URL allowlist |
+| `ALLOWED_CHECKOUT_ORIGINS` | volitelné | `https://app.tenderflow.cz,https://staging.tenderflow.cz` | redirect URL allowlist |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | ✅ (existuje) | – | běžné Supabase secrets |
 
 > **Pozor na `sk_` prefix.** `_shared/stripeBilling.ts:23` failuje při startu funkce, pokud klíč nezačíná `sk_`. Stripe ti v Dashboardu nabízí dva typy klíčů — Secret (`sk_…`) a Restricted (`rk_…`). Pro tuto integraci použij **Secret**: vytváření Checkout Session, retrieve Subscription a cancel vyžadují plný scope.
@@ -136,11 +136,9 @@ npx supabase secrets set \
 
 | Env var | Hodnota | Účel |
 |---|---|---|
-| `VITE_BILLING_PROVIDER` | `gopay` (default) \| `stripe` | Globální přepínač provideru. **Bez explicitního `stripe` se nic nezmění** — výchozí chování je GoPay. |
 | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` | (existuje) | Beze změny. |
 
-> **`VITE_BILLING_PROVIDER` musí být nastavený PŘED `npm run build`.** Vite ho inlinuje do bundle. V Vercelu to znamená re-deploy po změně env var. V Electron desktop buildu je to při buildu zazvonkováno — switch tedy bude až ve příští verzi.
-> Default routing zůstává `gopay`, takže bez nastavení env varu si web bude chovat jako dnes (a všechny GoPay testy v CI procházejí).
+Billing je Stripe-only; žádný klientský přepínač provideru se už nepoužívá.
 
 ### 3.3 Bezpečnostní kontrolní seznam
 
@@ -162,7 +160,6 @@ Migrace, která se aplikuje: `supabase/migrations/20260427120000_stripe_audit_ch
 
 Co dělá:
 - Rozšiřuje `subscription_audit_log_change_type_check` o `stripe_cancel_recurrence`, `stripe_sync`, `stripe_org_webhook`, `stripe_org_cancel_recurrence`.
-- **Bonus fix:** doplňuje i chybějící `gopay_*` hodnoty (`gopay_webhook`, `gopay_cancel_recurrence`, `gopay_org_webhook`, `gopay_org_cancel_recurrence`, `manual_sync`), které GoPay edge funkce už používaly, ale constraint je neměl. Bez této opravy by **GoPay webhooky** padaly na CHECK violation v okamžiku, kdy se constraint poprvé re-evaluovalo (regression audit).
 
 > Když migrace selže (např. existuje řádek s `change_type`, který je v novém constraintu, ale CHECK ho odmítá kvůli `OLD_VALUES`), ozvi se — prošetříme audit log před aplikací. Defaultně by ale měla projít čistě (jen rozšiřuje povolené hodnoty, žádnou neodebírá).
 
@@ -293,27 +290,24 @@ Pro tyhle testy buď použij `curl` s reálným Supabase JWT, nebo si v UI vyrob
 2. **Opakuj sekci 1 + 2** v live módu (produkty + ceny + webhooky musíš vytvořit znova — test mode a live mode mají oddělené ID prostory).
 3. **Aktualizuj env vary** v Supabase a Vercelu — všechna `STRIPE_*` se mění na live hodnoty (`sk_live_…`, `whsec_…` z live endpointu, `price_…` z live produktů).
 4. **Deploy** edge funkce znovu **NENÍ potřeba** — env vary se přečtou až za běhu, kód je shodný.
-5. **Vercel** musí mít `VITE_BILLING_PROVIDER=stripe` v Production env varech a redeploy (kvůli Vite buildu).
+5. **Vercel** redeploy po změně Stripe/Supabase env hodnot.
 6. **Smoke test:** projdi 5.1 v live módu s reálnou kartou (a poté v Stripe Dashboardu refunduj kvůli sanity). Stripe podporuje refund přes `Dashboard → Payments → Refund` v UI.
 
 ---
 
 ## 7. Rollback plán
 
-Pokud se po launchi něco rozbije a chceš okamžitě zpátky na GoPay:
+Rollback po odstranění alternativní platební brány znamená dočasně vypnout self-checkout,
+ne přepínat provider. Bezpečný postup:
 
-1. **Vercel:** přepni `VITE_BILLING_PROVIDER=gopay` → redeploy. Frontend okamžitě přestane volat Stripe.
-2. **Supabase:** edge funkce nech nasazené — neškodí. (Stripe webhook bude dál chodit pro existující stripe subscriptions, ale žádný nový checkout přes Stripe nevznikne.)
-3. **Existující Stripe předplatitelé:** musíš jim manuálně migrovat (cancel ve Stripe + pozvánka na GoPay), nebo jim **NECHAT Stripe běžet souběžně** (frontend volá GoPay, ale Stripe webhook stále zpracovává jejich obnovy/cancely). To druhé je možné, protože:
-   - User-level: `billing_provider` v DB rozhoduje, který "domov" subscription má.
-   - Stripe webhook ignoruje uživatele s `billing_provider != 'stripe'` (viz `stripe-webhook/index.ts` `resolveUserId` strategie).
+1. **Frontend:** skrýt checkout CTA nebo vrátit sales-assisted flow.
+2. **Supabase:** ponechat Stripe webhook funkce nasazené, aby existující předplatná dál obnovovala stav.
+3. **Stripe Dashboard:** podle potřeby ručně pozastavit checkout/product ceny nebo refundovat testovací platby.
 
 ---
 
 ## 8. Reference
 
-- Plán a architektura: [`docs/stripe-integration-plan.md`](./stripe-integration-plan.md)
-- GoPay paralela (kontext multi-provider DB schématu): [`docs/gopay-integration-audit.md`](./gopay-integration-audit.md)
 - Stripe API: https://docs.stripe.com/api
 - Stripe webhook signing: https://docs.stripe.com/webhooks/signatures
 - Stripe test cards: https://docs.stripe.com/testing#cards

@@ -1,0 +1,13 @@
+- generic [ref=e2]:
+  - paragraph [ref=e6]: Ověřování přihlášení...
+  - generic [ref=e11]:
+    - generic [ref=e12]:
+      - generic [ref=e13]: Nastavení cookies
+      - paragraph [ref=e14]:
+        - text: Tender Flow používá nezbytné cookies pro bezpečný provoz. Nepovinné analytické cookies zapneme až po tvém souhlasu. Podrobnosti jsou v
+        - link "zásadách cookies" [ref=e15] [cursor=pointer]:
+          - /url: /cookies
+        - text: .
+    - generic [ref=e16]:
+      - button "Jen nezbytné" [ref=e17]
+      - button "Přijmout vše" [ref=e18]

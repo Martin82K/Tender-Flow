@@ -6,10 +6,9 @@ const DESKTOP_DEV_CSP_HOSTS = new Set([
 export const buildDesktopCsp = (isDev: boolean): string => {
     const scriptSrc = [
         "'self'",
-        // Tailwind Play CDN runtime requires 'unsafe-eval'; 'unsafe-inline' only in dev (Vite HMR)
-        "'unsafe-eval'",
-        ...(isDev ? ["'unsafe-inline'"] : []),
-        'https://cdn.tailwindcss.com',
+        // Vite HMR injects inline runtime helpers in development.
+        // Development tooling may evaluate generated helpers; production must stay eval-free.
+        ...(isDev ? ["'unsafe-inline'", "'unsafe-eval'"] : []),
     ].join(' ');
 
     const styleSrc = [
@@ -37,21 +36,15 @@ export const buildDesktopCsp = (isDev: boolean): string => {
         'https://*.supabase.in',
         'wss://*.supabase.co',
         'wss://*.supabase.in',
+        'https://api.openai.com',
         'https://ares.gov.cz',
-        'https://gw.sandbox.gopay.com',
-        'https://gate.gopay.cz',
-        'https://*.gopay.com',
-        'https://*.gopay.cz',
         'https://fonts.googleapis.com',
         'https://fonts.gstatic.com',
     ].join(' ');
 
     const frameSrc = [
         "'self'",
-        'https://gw.sandbox.gopay.com',
-        'https://gate.gopay.cz',
-        'https://*.gopay.com',
-        'https://*.gopay.cz',
+        'https://checkout.stripe.com',
     ].join(' ');
 
     return [

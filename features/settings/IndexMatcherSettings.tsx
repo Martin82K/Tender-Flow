@@ -3,8 +3,8 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   loadIndexFromBuffer,
   fillDescriptions,
-  IndexMap,
-} from "@/utils/indexMatcher";
+} from "@/shared/tools/excel/indexMatcher";
+import type { IndexMap } from "@/shared/tools/excel/indexMatcher";
 import { AlertModal } from "@/shared/ui/AlertModal";
 
 const INDEX_STORAGE_KEY = "indexMatcherIndexData";

@@ -444,8 +444,8 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
   const canOpenRun = files.length > 0;
 
   return (
-    <div className="fixed inset-0 z-[10001] bg-slate-900/50 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="max-w-6xl mx-auto bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xl">
+    <div data-help-id="pipeline-bid-comparison-modal" className="tf-modal-overlay fixed inset-0 z-[10001] bg-slate-900/50 backdrop-blur-sm p-4 overflow-y-auto">
+      <div className="tf-modal-panel tf-pipeline-modal-panel max-w-6xl mx-auto bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xl">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
           <div>
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">Porovnání nabídek</h2>

@@ -123,6 +123,9 @@ export const invokeAuthedFunction = async <TResponse>(
             // ignore JSON parse error, use text if available
             if (res.text && res.text.length < 500) errorMsg = res.text;
           }
+          if (res.status === 404 && url.includes("/functions/v1/")) {
+            errorMsg = `Edge funkce ${name} nebyla nalezena na Supabase. Ověřte deploy funkce a název endpointu.`;
+          }
           throw new Error(errorMsg);
         }
 
@@ -175,6 +178,9 @@ export const invokeAuthedFunction = async <TResponse>(
           if (json?.details) {
             const detailStr = typeof json.details === 'object' ? JSON.stringify(json.details) : String(json.details);
             message += ` Details: ${detailStr}`;
+          }
+          if (res.status === 404 && url.includes("/functions/v1/")) {
+            message = `Edge funkce ${name} nebyla nalezena na Supabase. Ověřte deploy funkce a název endpointu.`;
           }
           throw new Error(message);
         }

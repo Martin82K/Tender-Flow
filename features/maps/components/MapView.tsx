@@ -3,7 +3,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster';
 import { MAPS_CONFIG, MAP_LAYERS } from '@/config/maps';
-import { formatDecimal } from '@/utils/formatters';
+import { formatDecimal } from '@/shared/formatting/decimalFormatters';
 import { mapyApiService } from '../services/mapyApiService';
 import type { TileConfig } from '../services/mapyApiService';
 import { CZECH_REGIONS } from '../utils/czechRegions';

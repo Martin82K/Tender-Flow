@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
-  shortenUrlWithAlias,
+  deleteShortUrl,
   getUserLinks,
   getUserLinkStats,
-  deleteShortUrl,
-  UserLink,
-  UserLinkStats,
-} from "../../services/urlShortenerService";
+  shortenUrlWithAlias,
+} from "@features/tools/api";
+import type { UserLink, UserLinkStats } from "@features/tools/api";
 
 /**
  * URL Shortener Tool - Full Featured Component

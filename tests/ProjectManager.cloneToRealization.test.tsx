@@ -116,4 +116,27 @@ describe("ProjectManager clone to realization", () => {
       expect(mocks.onCloneMock).toHaveBeenCalledWith("tender-1");
     });
   });
+
+  it("zobrazí čitelný badge sdílení s plným tooltipem", () => {
+    renderProjectManager([
+      {
+        id: "shared-1",
+        name: "Sdílená stavba",
+        location: "Aš",
+        status: "realization",
+        ownerId: "user-1",
+        sharedWith: ["cerny@baustav.cz", "lida@baustav.cz", "smcrka@baustav.cz"],
+      },
+    ]);
+
+    const badge = screen.getByRole("button", {
+      name: "Sdíleno s: cerny@baustav.cz, lida@baustav.cz +1",
+    });
+
+    expect(badge).toHaveAttribute("data-help-id", "pm-shared-with-badge");
+    expect(badge).toHaveAttribute(
+      "title",
+      "Sdíleno s: cerny@baustav.cz, lida@baustav.cz, smcrka@baustav.cz",
+    );
+  });
 });

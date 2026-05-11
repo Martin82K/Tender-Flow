@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
-import { platformAdapter, isDesktop } from "../services/platformAdapter";
 import { View, Project, ProjectTab } from "../types";
 import logo from "../assets/logo.svg";
 import { SIDEBAR_NAVIGATION } from "../config/navigation";
 import { FEATURES, type FeatureKey } from "../config/features";
 import { useFeatures } from "../context/FeatureContext";
 import { useLocation } from "@/shared/routing/router";
-import { userProfileService } from "../services/userProfileService";
+import type { ThemeSkin } from "@/hooks/useTheme";
 
 import { APP_VERSION } from "../config/version";
 const PROJECT_TABS: {
@@ -39,15 +38,6 @@ const PROJECT_TABS: {
   },
 ];
 
-// Helper function to get display role
-const getUserRole = (
-  defaultRole?: string,
-): string => {
-  if (defaultRole === "admin") return "Admin";
-  if (defaultRole === "user") return "User";
-  return defaultRole || "User";
-};
-
 interface SidebarProps {
   currentView: View;
   onViewChange: (
@@ -72,6 +62,7 @@ interface SidebarProps {
   projects: Project[];
   isOpen: boolean;
   onToggle: () => void;
+  skin?: ThemeSkin;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -82,13 +73,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   projects,
   isOpen,
   onToggle,
+  skin = "classic",
 }) => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { hasFeature } = useFeatures(); // Use feature context
   const { search } = useLocation();
-  const [width, setWidth] = useState(300);
+  const [width, setWidth] = useState(280);
   const [isResizing, setIsResizing] = useState(false);
-  const [displayName, setDisplayName] = useState("");
   const sidebarRef = useRef<HTMLElement>(null);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
@@ -105,6 +96,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   type Tier = "free" | "starter" | "pro" | "enterprise" | "admin";
   const subscriptionTier = (user?.subscriptionTier || "free") as Tier;
+  const isIndustrialSkin = skin === "industrial";
   const editionTextClassMap: Record<Tier, string> = {
     free: "text-slate-400",
     starter: "text-sky-400",
@@ -112,21 +104,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
     enterprise: "text-amber-400",
     admin: "text-amber-400",
   };
-  const profileCardClassMap: Record<Tier, string> = {
-    free: "border border-slate-300/60 dark:border-slate-600/60 bg-slate-100/60 dark:bg-slate-800/50",
-    starter: "border border-sky-400/60 dark:border-sky-400/60 bg-sky-500/10 dark:bg-sky-500/10",
-    pro: "border border-indigo-400/60 dark:border-indigo-400/60 bg-indigo-500/10 dark:bg-indigo-500/10",
-    enterprise: "border border-amber-400/60 dark:border-amber-400/60 bg-amber-500/10 dark:bg-amber-500/10",
-    admin: "border border-emerald-400/60 dark:border-emerald-400/60 bg-emerald-500/10 dark:bg-emerald-500/10",
-  };
-  const profileNameClassMap: Record<Tier, string> = {
-    free: "text-slate-700 dark:text-slate-300",
-    starter: "text-sky-700 dark:text-sky-300",
-    pro: "text-indigo-700 dark:text-indigo-300",
-    enterprise: "text-amber-700 dark:text-amber-300",
-    admin: "text-emerald-700 dark:text-emerald-300",
-  };
-
+  const activeNavClass = isIndustrialSkin
+    ? "text-[#b03a05] font-semibold"
+    : "text-primary font-semibold";
+  const inactiveNavClass = isIndustrialSkin
+    ? "text-[#6e6757] hover:bg-[#ff8a33]/10 hover:text-[#14110a]"
+    : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white";
+  const activeIconClass = isIndustrialSkin
+    ? "fill text-[#b03a05]"
+    : "fill text-primary";
+  const inactiveIconClass = isIndustrialSkin
+    ? "text-[#9c9684] group-hover:text-[#14110a]"
+    : "text-slate-400 dark:text-slate-500 group-hover:text-slate-900 dark:group-hover:text-slate-100";
+  const sidebarClass = isIndustrialSkin
+    ? "tf-sidebar relative flex h-full flex-col bg-[#e6e0d2] border-r border-[rgba(20,16,8,0.10)] text-[#14110a] flex-shrink-0 z-20 select-none group/sidebar transition-all duration-300 ease-in-out max-md:fixed max-md:inset-0 max-md:z-50 max-md:!w-full max-md:h-[100dvh] max-md:max-h-[100dvh]"
+    : "tf-sidebar relative flex h-full flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex-shrink-0 z-20 select-none group/sidebar transition-all duration-300 ease-in-out max-md:fixed max-md:inset-0 max-md:z-50 max-md:!w-full max-md:h-[100dvh] max-md:max-h-[100dvh]";
+  const selectedProjectOverlayClass = isIndustrialSkin
+    ? "absolute inset-y-1 left-0 w-0.5 bg-[#ff8a33]"
+    : "absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-xl border-l-2 border-primary";
   const toggleProjectExpand = (e: React.MouseEvent, projectId: string) => {
     e.preventDefault();
     e.stopPropagation();
@@ -229,29 +224,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     };
   }, [resize, stopResizing]);
 
-  // Load display name
-  useEffect(() => {
-    if (user?.id) {
-      loadDisplayName();
-    }
-  }, [user?.id]);
-
-  const loadDisplayName = async () => {
-    if (user.role === "demo") {
-      setDisplayName("Demo Uživatel");
-      return;
-    }
-
-    try {
-      const nextDisplayName = await userProfileService.getDisplayName(user.id);
-      if (nextDisplayName) {
-        setDisplayName(nextDisplayName);
-      }
-    } catch {
-      // Silently fail - display name is optional
-    }
-  };
-
   // Drag & Drop State for Projects (Read-only here)
   const [projectOrder, setProjectOrder] = useState<string[]>([]);
 
@@ -291,21 +263,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
       return (
         <details key={item.id} className="group" open>
           <summary
-            className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer list-none ${
+            data-help-id="sidebar-nav-group-summary"
+            data-active={currentView === "project" ? "true" : "false"}
+            className={`flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-lg transition-all cursor-pointer list-none ${
               currentView === "project"
-                ? "text-primary font-semibold"
-                : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
+                ? activeNavClass
+                : inactiveNavClass
             }`}
           >
-            <div className="flex items-center gap-3 min-w-0">
+            <div className="flex items-center gap-2.5 min-w-0">
               <span
                 className={`material-symbols-outlined shrink-0 ${
-                  currentView === "project" ? "fill text-primary" : ""
+                  currentView === "project" ? activeIconClass : ""
                 }`}
               >
                 {item.icon}
               </span>
-              <p className="text-sm leading-normal break-words">{item.label}</p>
+              <p className="text-[13px] leading-normal break-words">{item.label}</p>
             </div>
             <span className="material-symbols-outlined text-[20px] transition-transform group-open:rotate-180 shrink-0">
               expand_more
@@ -315,11 +289,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="flex flex-col mt-1 ml-2 gap-1">
             {/* Tlačítko Nová stavba */}
             <button
+              data-help-id="sidebar-new-project"
               onClick={() => {
                 onViewChange("project-management");
                 closeMobileMenu();
               }}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all text-primary hover:bg-primary/10 border border-dashed border-primary/30 hover:border-primary/50"
+              className={isIndustrialSkin
+                ? "flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[13px] font-medium transition-all text-[#b03a05] hover:bg-[#ff8a33]/10 border border-dashed border-[#ff8a33]/40 hover:border-[#ff8a33]/70"
+                : "flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-all text-primary hover:bg-primary/10 border border-dashed border-primary/30 hover:border-primary/50"}
             >
               <span className="material-symbols-outlined text-[18px]">add</span>
               <span>Nová stavba</span>
@@ -339,28 +316,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <div key={project.id} className="flex flex-col">
                   {/* Project Header Item */}
                   <div
+                    data-help-id="sidebar-project-item"
+                    data-active={isSelected ? "true" : "false"}
                     onClick={() => {
                       onProjectSelect(project.id, "overview");
                       closeMobileMenu();
                     }}
-                    className={`flex items-center gap-3 text-left text-sm px-3 py-2.5 rounded-xl transition-all relative overflow-hidden cursor-pointer group/item ${
+                    className={`flex items-center gap-2.5 text-left text-[13px] px-2.5 py-2 rounded-lg transition-all relative overflow-hidden cursor-pointer group/item ${
                       isSelected
-                        ? "text-slate-900 dark:text-white font-semibold"
-                        : "text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-slate-800/40"
+                        ? isIndustrialSkin
+                          ? "text-[#14110a] font-semibold bg-[#faf6ee]/55 rounded-md"
+                          : "text-slate-900 dark:text-white font-semibold"
+                        : isIndustrialSkin
+                          ? "text-[#6e6757] hover:text-[#14110a] hover:bg-[#ff8a33]/10"
+                          : "text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-slate-800/40"
                     }`}
                     title={project.name}
                   >
                     {/* Gradient highlight for selected project */}
                     {isSelected && (
-                      <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-xl border-l-2 border-primary" />
+                      <div className={selectedProjectOverlayClass} />
                     )}
 
                     {/* Status Letter */}
                     <span
                       className={`relative z-10 flex items-center justify-center size-5 text-sm font-extrabold shrink-0 ${
                         project.status === "realization"
-                          ? "text-amber-500"
-                          : "text-blue-500"
+                          ? isIndustrialSkin ? "text-[#ff8a33]" : "text-amber-500"
+                          : isIndustrialSkin ? "text-[#5da6ff]" : "text-blue-500"
                       }`}
                     >
                       {project.status === "realization" ? "R" : "S"}
@@ -373,12 +356,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                     {/* Expand Button */}
                     <button
+                      data-help-id="sidebar-project-expand"
                       onClick={(e) => toggleProjectExpand(e, project.id)}
-                      className={`relative z-10 p-1 rounded-lg text-slate-400 transition-all hover:bg-primary/15 hover:text-primary ${
+                      className={`relative z-10 inline-flex size-7 items-center justify-center rounded-md transition-all ${isIndustrialSkin ? "text-[#6e6757] hover:bg-[#ff8a33]/10 hover:text-[#b03a05]" : "text-slate-400 hover:bg-primary/15 hover:text-primary"} ${
                         isExpanded ? "rotate-180" : ""
                       }`}
                     >
-                      <span className="material-symbols-outlined text-[18px]">
+                      <span className="material-symbols-outlined text-[15px] leading-none">
                         expand_more
                       </span>
                     </button>
@@ -386,7 +370,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                   {/* Submenu */}
                   {isExpanded && (
-                    <div className="flex flex-col ml-3 pl-3 border-l border-slate-200 dark:border-slate-700/50 mt-1 mb-1 gap-0.5 animate-in slide-in-from-top-2 duration-200">
+                    <div className={`flex flex-col ml-3 pl-3 border-l mt-1 mb-1 gap-0.5 animate-in slide-in-from-top-2 duration-200 ${isIndustrialSkin ? "border-[rgba(20,16,8,0.14)]" : "border-slate-200 dark:border-slate-700/50"}`}>
                       {PROJECT_TABS.filter(
                         (tab) => !tab.feature || hasFeature(tab.feature),
                       ).map((tab) => {
@@ -415,18 +399,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         return (
                           <button
                             key={tab.id}
+                            data-help-id="project-sidebar-tab"
                             onClick={(e) => {
                               e.stopPropagation();
                               onProjectSelect(project.id, tab.id);
                               closeMobileMenu();
                             }}
-                            className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs transition-colors ${
+                            className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-colors ${
                               isTabActiveReal
-                                ? "text-primary bg-primary/10 font-medium"
-                                : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/30"
+                                ? isIndustrialSkin
+                                  ? "text-[#b03a05] border-l-2 border-[#ff8a33] bg-transparent rounded-none font-semibold"
+                                  : "text-primary bg-primary/10 font-medium"
+                                : isIndustrialSkin
+                                  ? "text-[#6e6757] rounded-none hover:text-[#14110a] hover:bg-[#ff8a33]/10"
+                                  : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/30"
                             }`}
                           >
-                            <span className="material-symbols-outlined text-[16px]">
+                            <span
+                              data-help-id="project-sidebar-tab-icon"
+                              className={`material-symbols-outlined shrink-0 leading-none ${isIndustrialSkin ? "text-[13px] w-3.5" : "text-[16px]"}`}
+                            >
                               {tab.icon}
                             </span>
                             <span>{tab.label}</span>
@@ -458,13 +450,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
           }}
         >
           <summary
-            className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer list-none ${
+            data-help-id="sidebar-nav-group-summary"
+            data-active={isItemActive ? "true" : "false"}
+            className={`flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-lg transition-all cursor-pointer list-none ${
               isItemActive
-                ? "text-primary font-semibold"
-                : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
+                ? activeNavClass
+                : inactiveNavClass
             }`}
           >
-            <div className="flex items-center gap-3 min-w-0">
+            <div className="flex items-center gap-2.5 min-w-0">
               <span
                 className={`material-symbols-outlined shrink-0 ${
                   isItemActive ? "fill" : ""
@@ -472,7 +466,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               >
                 {item.icon}
               </span>
-              <p className="text-sm font-medium leading-normal break-words">
+              <p className="text-[13px] font-medium leading-normal break-words">
                 {item.label}
               </p>
             </div>
@@ -496,16 +490,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
       return (
         <a
           key={item.id}
+          data-help-id="sidebar-nav-item"
+          data-active="false"
           href={item.href}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
+          className={`flex items-center gap-2.5 w-full px-2.5 py-2 rounded-lg transition-all ${inactiveNavClass}`}
           title={item.label}
         >
           <span className="material-symbols-outlined shrink-0">
             {item.icon}
           </span>
-          <span className="text-sm font-medium break-words">{item.label}</span>
+          <span className="text-[13px] font-medium break-words">{item.label}</span>
           <span className="material-symbols-outlined ml-auto text-[18px] text-slate-500">
             open_in_new
           </span>
@@ -516,6 +512,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     return (
       <button
         key={item.id}
+        data-help-id="sidebar-nav-item"
+        data-active={isItemActive ? "true" : "false"}
+        aria-current={isItemActive ? "page" : undefined}
         onClick={() => {
           // Close parent group before navigation
           if (parentId) {
@@ -532,63 +531,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
           );
           closeMobileMenu();
         }}
-        className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all group ${
+        className={`flex items-center gap-2.5 w-full px-2.5 py-2 rounded-lg transition-all group ${
           isItemActive
-            ? "text-primary font-semibold"
-            : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-100"
+            ? activeNavClass
+            : inactiveNavClass
         }`}
       >
         <span
+          data-help-id="sidebar-nav-icon"
           className={`material-symbols-outlined shrink-0 text-[20px] ${
             isItemActive
-              ? "fill text-primary"
-              : "text-slate-400 dark:text-slate-500 group-hover:text-slate-900 dark:group-hover:text-slate-100"
+              ? activeIconClass
+              : inactiveIconClass
           }`}
         >
           {item.icon}
         </span>
-        <p className="text-sm leading-none">{item.label}</p>
+        <p className="text-[13px] leading-none">{item.label}</p>
       </button>
     );
   };
 
-  // Logout Confirmation State
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-
-  const handleLogoutClick = () => {
-    if (isDesktop) {
-      setShowLogoutConfirm(true);
-    } else {
-      logout();
-    }
-  };
-
-  const handleConfirmQuit = async () => {
-    try {
-      if (platformAdapter.app.quit) {
-        await platformAdapter.app.quit();
-      } else {
-        // Fallback or should not happen if types aligned
-        window.close();
-      }
-    } catch (error) {
-      console.error("Failed to quit app:", error);
-    }
-  };
-
-  const handleConfirmLogout = () => {
-    logout();
-    setShowLogoutConfirm(false);
-  };
-
-  const biometricLabel = platformAdapter.platform.os === "win32" ? "Windows Hello" : "Touch ID / Face ID";
-
   return (
-    <>
-      <aside
+    <aside
         ref={sidebarRef}
         style={{ width: isOpen ? `${width}px` : "0px" }}
-        className={`relative flex h-full flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex-shrink-0 z-20 select-none group/sidebar transition-all duration-300 ease-in-out max-md:fixed max-md:inset-0 max-md:z-50 max-md:!w-full max-md:h-[100dvh] max-md:max-h-[100dvh] ${
+        className={`${sidebarClass} ${
           !isOpen
             ? "overflow-hidden border-none max-md:pointer-events-none max-md:opacity-0"
             : "max-md:opacity-100"
@@ -610,28 +578,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
         >
           {/* Resizer Handle - only on desktop */}
           <div
-            className="hidden md:block absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-primary active:bg-primary transition-colors z-50 translate-x-[50%]"
+            className={`hidden md:block absolute right-0 top-0 h-full w-1 cursor-col-resize transition-colors z-50 translate-x-[50%] ${isIndustrialSkin ? "hover:bg-[#ff8a33] active:bg-[#ff8a33]" : "hover:bg-primary active:bg-primary"}`}
             onMouseDown={startResizing}
           />
 
-          <div className="flex h-full flex-col p-4 overflow-y-auto">
-            <div className="flex flex-col gap-4 flex-1 min-h-0">
+          <div className="flex h-full flex-col p-3 overflow-y-auto">
+            <div className="flex flex-col gap-3 flex-1 min-h-0">
               {/* Logo */}
-              <div className="flex items-center gap-3 p-2 py-4 border-b border-slate-100 dark:border-slate-800/50 min-w-0 shrink-0">
+              <div className={`tf-sidebar-brand flex items-center gap-2.5 p-2 py-3 border-b min-w-0 shrink-0 ${isIndustrialSkin ? "border-[rgba(20,16,8,0.10)]" : "border-slate-100 dark:border-slate-800/50"}`}>
                 <div className="relative group/logo">
-                  <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full opacity-0 group-hover/logo:opacity-100 transition-opacity" />
+                  <div className={`absolute inset-0 blur-xl rounded-full opacity-0 group-hover/logo:opacity-100 transition-opacity ${isIndustrialSkin ? "bg-[#ff8a33]/20" : "bg-primary/20"}`} />
                   <img
                     src={logo}
                     alt="Tender Flow Logo"
-                    className="relative size-12 min-w-12 object-contain drop-shadow-xl shrink-0 transition-transform group-hover/logo:scale-110"
+                    className="relative size-10 min-w-10 object-contain drop-shadow-xl shrink-0 transition-transform group-hover/logo:scale-110"
                   />
                 </div>
                 <div className="flex flex-1 flex-col min-w-0">
-                  <h1 className="text-slate-900 dark:text-white text-lg font-black tracking-tight leading-tight whitespace-nowrap truncate">
+                  <h1 className="tf-brand-title text-slate-900 dark:text-white text-base font-black tracking-tight leading-tight whitespace-nowrap truncate">
                     Tender Flow
                   </h1>
                   <p
-                    className={`${editionTextClassMap[subscriptionTier]} text-[10px] font-bold uppercase tracking-widest leading-tight whitespace-nowrap truncate`}
+                    className={`tf-brand-edition ${editionTextClassMap[subscriptionTier]} text-[10px] font-bold uppercase tracking-widest leading-tight whitespace-nowrap truncate`}
                   >
                     {(() => {
                       const tier = subscriptionTier;
@@ -652,7 +620,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {/* Close Toggle for Mobile */}
                 <button
                   onClick={onToggle}
-                  className="ml-auto p-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors md:hidden flex items-center justify-center"
+                  className={`ml-auto p-1.5 rounded-lg transition-colors md:hidden flex items-center justify-center ${isIndustrialSkin ? "text-[#6e6757] hover:text-[#14110a] hover:bg-[#ff8a33]/10" : "text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"}`}
                   title="Zavřít"
                 >
                   <span className="material-symbols-outlined">close</span>
@@ -660,158 +628,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
 
               {/* Navigation */}
-              <nav className="flex flex-col gap-2 mt-4 flex-1 overflow-y-auto">
+              <nav className="tf-sidebar-nav flex flex-col gap-1 mt-2 flex-1 overflow-y-auto">
                 {SIDEBAR_NAVIGATION.map((item) => renderNavItem(item))}
               </nav>
             </div>
 
-            {/* Bottom Section */}
-            <div className="mt-auto p-3 space-y-2 border-t border-slate-200 dark:border-slate-700/50">
-              {/* Sidebar Toggle */}
-              <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-200 dark:border-slate-700/50">
-                <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                  Skrýt panel
+            <div className={`mt-auto border-t p-3 ${isIndustrialSkin ? "border-[rgba(20,16,8,0.10)]" : "border-slate-200 dark:border-slate-700/50"}`}>
+              <div className="flex items-center justify-between gap-3">
+                <span className={`text-xs font-mono ${isIndustrialSkin ? "text-[#9c9684]" : "text-slate-400 dark:text-slate-500"}`}>
+                  v{APP_VERSION}
                 </span>
                 <button
                   onClick={onToggle}
-                  className="p-1 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors inline-flex items-center justify-center"
+                  className={`inline-flex items-center justify-center rounded-lg p-1.5 transition-colors ${isIndustrialSkin ? "text-[#6e6757] hover:bg-[#ff8a33]/10 hover:text-[#14110a]" : "text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"}`}
                   title="Skrýt panel"
                   aria-label="Skrýt panel"
                 >
                   <span className="material-symbols-outlined text-[22px]">
-                    toggle_on
-                  </span>
-                </button>
-              </div>
-
-              {/* Bottom Icon Bar */}
-              <div className="px-3">
-                <div className="flex items-center justify-center gap-1">
-                  <button
-                    onClick={() => {
-                      onViewChange("project-management");
-                      closeMobileMenu();
-                    }}
-                    className={`p-2 rounded-xl transition-all ${
-                      currentView === "project-management"
-                        ? "text-primary bg-primary/10"
-                        : "text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                    }`}
-                    title="Správa staveb"
-                  >
-                    <span className="material-symbols-outlined text-[20px]">domain_add</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      onViewChange("project-overview");
-                      closeMobileMenu();
-                    }}
-                    className={`p-2 rounded-xl transition-all ${
-                      currentView === "project-overview"
-                        ? "text-primary bg-primary/10"
-                        : "text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                    }`}
-                    title="Přehledy"
-                  >
-                    <span className="material-symbols-outlined text-[20px]">analytics</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      onViewChange("settings", {
-                        settingsTab: "tools",
-                        settingsSubTab: "excelUnlocker",
-                      });
-                      closeMobileMenu();
-                    }}
-                    className={`p-2 rounded-xl transition-all ${
-                      currentView === "settings" && settingsRoute.tab === "tools"
-                        ? "text-primary bg-primary/10"
-                        : "text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                    }`}
-                    title="Nástroje"
-                  >
-                    <span className="material-symbols-outlined text-[20px]">build</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      onViewChange("settings");
-                      closeMobileMenu();
-                    }}
-                    className={`p-2 rounded-xl transition-all ${
-                      currentView === "settings" && (!settingsRoute.subTab || settingsRoute.subTab === "profile")
-                        ? "text-primary bg-primary/10"
-                        : "text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                    }`}
-                    title="Nastavení"
-                  >
-                    <span className="material-symbols-outlined text-[20px]">settings</span>
-                  </button>
-                  <a
-                    href="/user-manual/index.html"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => {
-                      if (isDesktop) {
-                        e.preventDefault();
-                        platformAdapter.app.openUserManual().catch((error) => {
-                          console.error("Nepodařilo se otevřít příručku:", error);
-                        });
-                      }
-                    }}
-                    className="p-2 rounded-xl transition-all text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                    title="Uživatelská příručka"
-                  >
-                    <span className="material-symbols-outlined text-[20px]">menu_book</span>
-                  </a>
-                  <span className="ml-auto text-xs text-slate-400 dark:text-slate-500 font-mono cursor-default">
-                    v{APP_VERSION}
-                  </span>
-                </div>
-              </div>
-
-              <div
-                className="flex items-center gap-3 px-3 py-3 mt-2 overflow-hidden"
-              >
-                {user?.subscriptionTier ? (
-                  <div className="size-9 min-w-9 flex items-center justify-center">
-                    <span
-                      className={`badge-neon badge-neon-${user.subscriptionTier}`}
-                    >
-                      {user.subscriptionTier === "admin"
-                        ? "BOSS"
-                        : user.subscriptionTier === "enterprise"
-                          ? "ENT"
-                          : user.subscriptionTier}
-                    </span>
-                  </div>
-                ) : user?.avatarUrl ? (
-                  <img
-                    src={user.avatarUrl}
-                    alt={user.name}
-                    className="size-9 min-w-9 rounded-full border-2 border-white dark:border-slate-700 shadow-sm"
-                  />
-                ) : (
-                  <div className="size-9 min-w-9 rounded-xl bg-gradient-to-tr from-primary to-primary-light flex items-center justify-center text-white font-black text-sm shadow-inner">
-                    {(displayName || user?.email || "U")[0].toUpperCase()}
-                  </div>
-                )}
-                <div className="flex flex-col overflow-hidden flex-1">
-                  <p
-                    className={`text-sm font-extrabold break-words truncate ${profileNameClassMap[subscriptionTier]}`}
-                  >
-                    {displayName || user?.email?.split("@")[0] || "User"}
-                  </p>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter truncate">
-                    {getUserRole(user?.role)}
-                  </p>
-                </div>
-                <button
-                  onClick={handleLogoutClick}
-                  className="ml-auto p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
-                  title="Odhlásit se"
-                >
-                  <span className="material-symbols-outlined text-[20px]">
-                    logout
+                    keyboard_double_arrow_left
                   </span>
                 </button>
               </div>
@@ -819,48 +653,5 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
       </aside>
-
-      {/* Logout Confirmation Modal */}
-      {showLogoutConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
-            <h3 className="text-xl font-bold text-white mb-2">
-              Chcete ukončit aplikaci?
-            </h3>
-            <p className="text-slate-400 mb-6">
-              Můžete aplikaci ukončit a zůstat přihlášeni (pro {biometricLabel}), nebo
-              se úplně odhlásit.
-            </p>
-
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={handleConfirmQuit}
-                className="w-full py-3 px-4 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-400 hover:to-amber-500 text-white font-bold rounded-xl shadow-lg shadow-orange-500/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
-              >
-                <span className="material-symbols-outlined">
-                  power_settings_new
-                </span>
-                Ukončit aplikaci (Ponechat přihlášení)
-              </button>
-
-              <button
-                onClick={handleConfirmLogout}
-                className="w-full py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium rounded-xl border border-slate-700 transition-all flex items-center justify-center gap-2"
-              >
-                <span className="material-symbols-outlined">logout</span>
-                Odhlásit se (Vyžaduje heslo příště)
-              </button>
-
-              <button
-                onClick={() => setShowLogoutConfirm(false)}
-                className="w-full py-2 px-4 text-slate-500 hover:text-white transition-colors text-sm mt-2"
-              >
-                Zrušit
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
   );
 };

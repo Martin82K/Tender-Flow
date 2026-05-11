@@ -114,8 +114,8 @@ export const OrgBillingTab: React.FC<OrgBillingTabProps> = ({ orgId }) => {
         </button>
       </div>
 
-      <div className="bg-gradient-to-r from-emerald-500/10 to-primary/5 border border-emerald-500/20 rounded-xl p-5 flex flex-col lg:flex-row gap-5">
-        <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white text-xl flex-shrink-0 bg-gradient-to-br from-emerald-500 to-emerald-700">
+      <div data-help-id="org-plan-summary" className="bg-gradient-to-r from-emerald-500/10 to-primary/5 border border-emerald-500/20 rounded-xl p-5 flex flex-col lg:flex-row gap-5">
+        <div data-help-id="org-plan-icon" className="w-12 h-12 rounded-xl flex items-center justify-center text-white text-xl flex-shrink-0 bg-gradient-to-br from-emerald-500 to-emerald-700">
           <span className="material-symbols-outlined text-[24px]">diamond</span>
         </div>
         <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -155,6 +155,7 @@ export const OrgBillingTab: React.FC<OrgBillingTabProps> = ({ orgId }) => {
             </h4>
             <a
               href={licenseChangeHref}
+              data-help-id="org-license-cta"
               className="px-3 py-1.5 text-xs font-semibold rounded-lg text-white bg-primary hover:opacity-90 transition-opacity"
             >
               Změnit počet licencí
@@ -165,7 +166,7 @@ export const OrgBillingTab: React.FC<OrgBillingTabProps> = ({ orgId }) => {
               Obsazeno <strong className="text-slate-700 dark:text-slate-200">{seatUsage.billableSeats}</strong> z <strong className="text-slate-700 dark:text-slate-200">{seatUsage.maxSeats}</strong> licencí
             </div>
           </div>
-          <div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden max-w-md">
+          <div data-help-id="org-seat-progress" className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden max-w-md">
             <div
               className="h-full bg-gradient-to-r from-emerald-500 to-primary rounded-full transition-all duration-500"
               style={{ width: `${Math.min((seatUsage.billableSeats / Math.max(seatUsage.maxSeats, 1)) * 100, 100)}%` }}

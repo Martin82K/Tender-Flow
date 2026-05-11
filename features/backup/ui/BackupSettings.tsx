@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { backupService } from '../api/backupService';
-import { backupAdapter } from '@/services/platformAdapter';
 import { getManifestRecordCounts } from '../model/backupTypes';
 import type { AnyBackupManifest, RestoreSummary } from '../model/backupTypes';
 import type { BackupFileEntry, BackupSettingsInfo } from '@/shared/types/desktop';
@@ -29,14 +28,14 @@ export const BackupSettings: React.FC = () => {
 
     const orgId = user?.organizationId;
     const isOrgAdmin = user?.role === 'admin';
-    const backupAvailable = backupAdapter.isAvailable();
+    const backupAvailable = backupService.isLocalBackupAvailable();
 
     const loadData = useCallback(async () => {
         if (!backupAvailable) return;
         try {
             const [s, b] = await Promise.all([
-                backupAdapter.getSettings(),
-                backupAdapter.list(),
+                backupService.getLocalSettings(),
+                backupService.listLocalBackups(),
             ]);
             setSettings(s);
             setBackups(b);
@@ -52,7 +51,7 @@ export const BackupSettings: React.FC = () => {
     const handleToggleAutoBackup = async () => {
         if (!settings || !backupAvailable) return;
         try {
-            await backupAdapter.setEnabled(!settings.enabled);
+            await backupService.setLocalBackupEnabled(!settings.enabled);
             await loadData();
         } catch (e) {
             setError(e instanceof Error ? e.message : 'Chyba nastavení');
@@ -64,7 +63,7 @@ export const BackupSettings: React.FC = () => {
         // Optimistic update so the input reflects the change immediately.
         setSettings({ ...settings, scheduledTime: time });
         try {
-            await backupAdapter.setScheduledTime(time);
+            await backupService.setLocalBackupScheduledTime(time);
             await loadData();
         } catch (e) {
             setError(e instanceof Error ? e.message : 'Nepodařilo se uložit čas zálohy');
@@ -210,7 +209,7 @@ export const BackupSettings: React.FC = () => {
 
     const handleOpenFolder = async () => {
         if (backupAvailable) {
-            await backupAdapter.openFolder();
+            await backupService.openLocalBackupFolder();
         } else {
             setSuccess('Na webu se zálohy ukládají do složky pro stahování vašeho prohlížeče.');
         }

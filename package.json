@@ -1,7 +1,7 @@
 {
   "name": "tender-flow",
   "private": true,
-  "version": "1.6.2",
+  "version": "1.7.0",
   "type": "module",
   "main": "desktop/dist/main.js",
   "scripts": {
@@ -15,6 +15,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "audit:architecture": "node scripts/audit-architecture-debt.mjs",
     "check:boundaries": "node scripts/check-boundaries.mjs",
     "check:legacy-structure": "node scripts/check-legacy-structure.mjs",
     "desktop:install": "cd desktop && npm install --ignore-scripts",
@@ -26,11 +27,7 @@
     "version:patch": "npm version patch --no-git-tag-version && node scripts/sync-version.mjs",
     "version:minor": "npm version minor --no-git-tag-version && node scripts/sync-version.mjs",
     "version:major": "npm version major --no-git-tag-version && node scripts/sync-version.mjs",
-    "release:prepare": "node scripts/prepare-release.mjs",
-    "deploy:gopay-webhook": "npx supabase functions deploy gopay-webhook --no-verify-jwt",
-    "deploy:gopay-payment": "npx supabase functions deploy gopay-create-payment",
-    "deploy:gopay-cancel": "npx supabase functions deploy gopay-cancel-subscription",
-    "deploy:gopay-sync": "npx supabase functions deploy gopay-sync-subscription"
+    "release:prepare": "node scripts/prepare-release.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.30.0",
@@ -74,7 +71,6 @@
     "@types/node": "^22.19.3",
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.22",
-    "baseline-browser-mapping": "^2.9.17",
     "concurrently": "^9.2.1",
     "cross-env": "^7.0.3",
     "electron": "^40.8.5",

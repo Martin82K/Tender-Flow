@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Modal } from "@shared/ui/Modal";
 import { Button } from "@shared/ui/Button";
 import { Input } from "@shared/ui/Input";
-import { useProjectsQuery } from "@/hooks/queries/useProjectsQuery";
+import { useProjectsState } from "@features/projects/model/useProjectsState";
 import {
   useCreateTaskMutation,
   useDeleteTaskMutation,
@@ -67,7 +67,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
 }) => {
   const [state, setState] = useState<FormState>(emptyState);
   const [error, setError] = useState<string | null>(null);
-  const projects = useProjectsQuery();
+  const { projects } = useProjectsState();
   const createMutation = useCreateTaskMutation();
   const updateMutation = useUpdateTaskMutation();
   const deleteMutation = useDeleteTaskMutation();
@@ -219,7 +219,7 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
             }}
           >
             <option value="">— Bez zakázky —</option>
-            {(projects.data ?? []).map((p) => (
+            {projects.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
               </option>

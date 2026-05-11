@@ -103,11 +103,11 @@ export const complianceBootstrapSubprocessors: SubprocessorRecord[] = [
     transferMechanism: "EHP / EU hosting",
   },
   {
-    id: "subprocessor-gopay",
-    name: "GoPay",
-    region: "EU (CZ)",
+    id: "subprocessor-stripe",
+    name: "Stripe",
+    region: "EU/USA",
     purpose: "Platby, billing a související finanční operace",
-    transferMechanism: "EHP / EU hosting",
+    transferMechanism: "SCC / doplňkové záruky dodavatele",
   },
   {
     id: "subprocessor-openai",
@@ -161,7 +161,7 @@ export const complianceBootstrapProcessingActivities: ProcessingActivityRecord[]
     legalBasis: "právní povinnost",
     dataCategories: ["jméno", "fakturační údaje", "platební reference", "stav předplatného"],
     retentionPolicyId: "account-contracts",
-    linkedSubprocessorIds: ["subprocessor-gopay"],
+    linkedSubprocessorIds: ["subprocessor-stripe"],
   },
   {
     id: "ropa-ai-assistance",

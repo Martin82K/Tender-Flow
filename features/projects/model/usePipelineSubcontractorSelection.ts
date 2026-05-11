@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
 import type { Bid, DemandCategory, DocHubStructureV1, Subcontractor } from "@/types";
 import { insertBids } from "@/features/projects/api";
-import { getDemoData, saveDemoData } from "@/services/demoData";
-import { invokeAuthedFunction } from "@/services/functionsClient";
-import { ensureStructure } from "@/services/fileSystemService";
-import { isDesktop } from "@/services/platformAdapter";
+import { projectDemoDataApi } from "@features/projects/api/projectDemoDataApi";
+import { invokeAuthedFunction } from "@infra/functions/functionsClient";
+import { ensureStructure } from "@infra/files/fileSystemService";
+import { isDesktop } from "@infra/platform/platformAdapter";
 import {
   buildHierarchyTree,
   ensureExtraHierarchy,
   resolveDocHubStructureV1,
-} from "@/utils/docHub";
+} from "@/shared/dochub/docHub";
 
 interface ShowAlertArgs {
   title: string;
@@ -93,7 +93,7 @@ export const usePipelineSubcontractorSelection = ({
 
       try {
         if (userRole === "demo") {
-          const demoData = getDemoData();
+          const demoData = projectDemoDataApi.getDemoData();
           if (demoData && demoData.projectDetails[projectDataId]) {
             const projectBids = demoData.projectDetails[projectDataId].bids || {};
             projectBids[activeCategory.id] = [
@@ -101,7 +101,7 @@ export const usePipelineSubcontractorSelection = ({
               ...newBids,
             ];
             demoData.projectDetails[projectDataId].bids = projectBids;
-            saveDemoData(demoData);
+            projectDemoDataApi.saveDemoData(demoData);
           }
         } else {
           const bidsToInsert = newBids.map((bid) => ({

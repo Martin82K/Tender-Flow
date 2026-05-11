@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { dbAdapter } from "../../services/dbAdapter";
 import { ActiveProjectStatus, Project, ProjectDetails, DemandCategory, ProjectStatus } from "../../types";
 import { useAuth } from "../../context/AuthContext";
-import { PROJECT_KEYS } from "../queries/useProjectsQuery";
+import { PROJECT_KEYS } from "@/shared/queryKeys/projectKeys";
 import { PROJECT_DETAILS_KEYS } from "../queries/useProjectDetailsQuery";
 import { OVERVIEW_TENANT_DATA_KEY } from "../queries/useOverviewTenantDataQuery";
 import { getDemoData, saveDemoData } from "../../services/demoData";
@@ -485,6 +485,29 @@ export const useUpdateProjectDetailsMutation = () => {
                                 label: a.label,
                                 price: a.price,
                             }))
+                        );
+                    }
+                }
+
+                if (updates.investorFinancials.invoices) {
+                    await dbAdapter.from("project_investor_invoices").delete().eq("project_id", id);
+                    const invoicesToInsert = updates.investorFinancials.invoices.filter(
+                        (invoice) => invoice.invoiceNumber.trim() && invoice.amount > 0,
+                    );
+                    if (invoicesToInsert.length > 0) {
+                        await dbAdapter.from("project_investor_invoices").insert(
+                            invoicesToInsert.map((invoice) => ({
+                                id: invoice.id,
+                                project_id: id,
+                                invoice_number: invoice.invoiceNumber.trim(),
+                                issue_date: invoice.issueDate,
+                                due_date: invoice.dueDate,
+                                amount: invoice.amount,
+                                currency: invoice.currency || "CZK",
+                                status: invoice.status,
+                                paid_at: invoice.status === "paid" ? invoice.paidAt || null : null,
+                                note: invoice.note?.trim() || null,
+                            })),
                         );
                     }
                 }

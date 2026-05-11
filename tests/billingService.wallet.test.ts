@@ -6,14 +6,14 @@ vi.mock("../services/functionsClient", () => ({
   invokeAuthedFunction: vi.fn(),
 }));
 
-describe("billingService (GoPay + error mapping)", () => {
+describe("billingService (Stripe + error mapping)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("maps GoPay config errors to user-friendly checkout message", async () => {
+  it("maps Stripe config errors to user-friendly checkout message", async () => {
     vi.mocked(invokeAuthedFunction).mockRejectedValueOnce(
-      new Error("GoPay not configured (missing GOPAY_GOID)"),
+      new Error("Missing STRIPE_SECRET_KEY"),
     );
 
     const result = await billingService.createCheckoutSession({
@@ -27,11 +27,11 @@ describe("billingService (GoPay + error mapping)", () => {
     expect(result.error).toContain("není správně nakonfigurovaná");
   });
 
-  it("calls gopay-create-payment edge function", async () => {
+  it("calls stripe-create-payment edge function", async () => {
     vi.mocked(invokeAuthedFunction).mockResolvedValueOnce({
       success: true,
-      paymentUrl: "https://gw.sandbox.gopay.com/gw/pay-gate?id=123",
-      paymentId: "123",
+      paymentUrl: "https://checkout.stripe.com/c/cs_test_123",
+      sessionId: "cs_test_123",
     });
 
     const result = await billingService.createCheckoutSession({
@@ -42,7 +42,7 @@ describe("billingService (GoPay + error mapping)", () => {
     });
 
     expect(invokeAuthedFunction).toHaveBeenCalledWith(
-      "gopay-create-payment",
+      "stripe-create-payment",
       expect.objectContaining({
         body: expect.objectContaining({
           tier: "pro",
@@ -51,10 +51,11 @@ describe("billingService (GoPay + error mapping)", () => {
       }),
     );
     expect(result.success).toBe(true);
-    expect(result.checkoutUrl).toBe("https://gw.sandbox.gopay.com/gw/pay-gate?id=123");
+    expect(result.checkoutUrl).toBe("https://checkout.stripe.com/c/cs_test_123");
+    expect(result.paymentId).toBe("cs_test_123");
   });
 
-  it("calls gopay-cancel-subscription edge function", async () => {
+  it("calls stripe-cancel-subscription edge function", async () => {
     vi.mocked(invokeAuthedFunction).mockResolvedValueOnce({
       success: true,
       message: "Předplatné bude zrušeno na konci aktuálního období.",
@@ -63,18 +64,18 @@ describe("billingService (GoPay + error mapping)", () => {
     const result = await billingService.cancelRecurrence();
 
     expect(invokeAuthedFunction).toHaveBeenCalledWith(
-      "gopay-cancel-subscription",
+      "stripe-cancel-subscription",
       expect.objectContaining({ body: {} }),
     );
     expect(result.success).toBe(true);
   });
 
-  it("calls gopay-sync-subscription edge function", async () => {
+  it("calls stripe-sync-subscription edge function", async () => {
     vi.mocked(invokeAuthedFunction).mockResolvedValueOnce({
       success: true,
       message: "Předplatné synchronizováno.",
       subscription: {
-        id: "12345",
+        id: "sub_12345",
         tier: "pro",
         status: "active",
         expiresAt: "2026-05-12T00:00:00.000Z",
@@ -85,16 +86,16 @@ describe("billingService (GoPay + error mapping)", () => {
     const result = await billingService.syncSubscription();
 
     expect(invokeAuthedFunction).toHaveBeenCalledWith(
-      "gopay-sync-subscription",
+      "stripe-sync-subscription",
       expect.objectContaining({ body: {} }),
     );
     expect(result.success).toBe(true);
     expect(result.subscription?.tier).toBe("pro");
   });
 
-  it("maps OAuth token errors to user-friendly message", async () => {
+  it("maps API token errors to user-friendly message", async () => {
     vi.mocked(invokeAuthedFunction).mockRejectedValueOnce(
-      new Error("GoPay OAuth2 failed (401): invalid credentials"),
+      new Error("Invalid API key provided"),
     );
 
     const result = await billingService.createCheckoutSession({

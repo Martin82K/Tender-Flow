@@ -4,6 +4,7 @@ import {
   appendSignatureToTemplate,
   buildEmailSignature,
   sanitizeEmailDisclaimerHtml,
+  SIGNATURE_FONT_OPTIONS,
 } from "../shared/email/signature";
 
 describe("email signature renderer", () => {
@@ -103,6 +104,36 @@ describe("email signature renderer", () => {
     );
     expect(result.html).toContain(`style="font-size:16px;line-height:1.5;"`);
     expect(result.html).not.toContain("<img src=x onerror=alert(1)>");
+  });
+
+  it("povolí Instrument Serif jako psané písmo z industriálního designu", () => {
+    const fontFamily = "'Instrument Serif', Georgia, 'Times New Roman', serif";
+
+    expect(SIGNATURE_FONT_OPTIONS.some((option) => option.value === fontFamily)).toBe(true);
+
+    const result = buildEmailSignature({
+      profile: {
+        displayName: "Martin Kalkuš",
+        signatureName: "Martin Kalkuš",
+        signatureRole: null,
+        signaturePhone: null,
+        signaturePhoneSecondary: null,
+        signatureEmail: "kalkus@baustav.cz",
+        signatureGreeting: "S pozdravem",
+      },
+      branding: {
+        emailLogoPath: null,
+        emailLogoUrl: null,
+        companyName: "REKO Bazén Aš",
+        companyAddress: null,
+        companyMeta: null,
+        disclaimerHtml: null,
+        fontFamily,
+        fontSize: "16px",
+      },
+    });
+
+    expect(result.html).toContain(`font-family:${fontFamily};color:#1f2937;`);
   });
 
   it("doplní podpis na konec šablony jen pokud chybí placeholder", () => {

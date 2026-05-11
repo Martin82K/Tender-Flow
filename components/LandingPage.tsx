@@ -753,7 +753,7 @@ export const LandingPage: React.FC = () => {
             </div>
             <div className="stripe-badge">
               Platby přes{" "}
-              <strong style={{ color: "var(--gray-1)" }}>GoPay</strong>
+              <strong style={{ color: "var(--gray-1)" }}>Stripe</strong>
             </div>
           </div>
         </div>

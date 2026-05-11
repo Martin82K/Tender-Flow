@@ -12,7 +12,7 @@
 - **Klíčová slova:** příprava staveb, vedení staveb, stavební tendry, platforma přípravy staveb, výběrová řízení, subdodavatelé, nabídková řízení, AI analýza smluv
 - **Cílová skupina:** stavební firmy, generální dodavatelé, přípraváři staveb, stavbyvedoucí, projektoví manažeři, kalkulanti, divize výběrových řízení
 - **Platforma:** web (libovolný moderní prohlížeč), desktop (Windows 10/11, macOS 11+)
-- **Cenová politika:** placené tarify Starter (399 Kč/měs.) a Pro (499 Kč/měs.), Enterprise na míru. Pro tarif má 14 dní zdarma bez kreditní karty. Roční předplatné je o 20 % levnější. Platby přes GoPay (karta, Apple Pay, Google Pay, bankovní převod).
+- **Cenová politika:** placené tarify Starter (399 Kč/měs.) a Pro (499 Kč/měs.), Enterprise na míru. Pro tarif má 14 dní zdarma bez kreditní karty. Roční předplatné je o 20 % levnější. Platby přes Stripe.
 - **Bezpečnost:** GDPR compliant, Row Level Security (PostgreSQL/Supabase), šifrování v klidu i při přenosu (TLS 1.2+), auditní logy přístupů, DPA k dispozici
 - **Hosting dat:** EU (Frankfurt), v souladu s GDPR
 
@@ -73,7 +73,7 @@ Sdílení vybraných projektů s externími účastníky (subdodavatelé, invest
 | **Pro** | 499 Kč | 399 Kč/měs. (4 790 Kč/rok) | Profesionální stavební firmy. Vše ze Starter + desktop aplikace, Složkomat, plán VŘ, importy VŘ, harmonogram, modul Smlouvy, Excel Merger, archivace a sdílení projektů. **14 dní zdarma bez karty.** |
 | **Enterprise** | Na míru | Na míru | Velké organizace. Vše z Pro + OCR dokumenty, automatické aktualizace, pokročilé integrace, hodnocení dodavatelů, detailní reporty, onboarding asistence, Excel Indexer, geokódování, mapa kontaktů. Kontakt: info@tenderflow.cz. |
 
-Platby: GoPay (karta, Apple Pay, Google Pay, bankovní převod). Zrušení kdykoliv. Bez závazku.
+Platby: Stripe. Zrušení kdykoliv. Bez závazku.
 
 ## Business pravidla aplikace
 
@@ -94,9 +94,9 @@ Platby: GoPay (karta, Apple Pay, Google Pay, bankovní převod). Zrušení kdyko
 ## Integrace
 
 - **Cloud úložiště:** Google Drive, OneDrive, lokální souborový systém.
-- **Platby:** GoPay (CZ/SK).
-- **AI agenti:** MCP (Model Context Protocol) server pro read-only přístup k projektům, tendrům, kontaktům a harmonogramu. Podporované nástroje: `tf_list_projects`, `tf_list_tenders`, `tf_list_contacts`, `tf_get_project_detail`, `tf_get_schedule`, `tf_get_tender_plan`, `tf_create_bid`.
-- **Webhooky:** GoPay platební události.
+- **Platby:** Stripe.
+- **AI agenti:** MCP (Model Context Protocol) server pro read-only přístup k projektům, tendrům, kontaktům, harmonogramu, nabídkám, vítězům VŘ a smluvním podmínkám. Podporované nástroje: `tf_find_project`, `tf_list_projects`, `tf_list_tenders`, `tf_list_contacts`, `tf_get_project_detail`, `tf_get_tender_detail`, `tf_get_tender_winner`, `tf_list_tender_bids`, `tf_list_project_winners`, `tf_get_contract_detail`, `tf_get_schedule`, `tf_get_tender_plan`.
+- **Webhooky:** Stripe platební události.
 - **Veřejné rejstříky:** ARES (ČR) pro auto-doplnění firemních údajů podle IČ.
 
 ## Často kladené dotazy
@@ -114,7 +114,7 @@ Ano, Pro tarif lze vyzkoušet 14 dní zdarma bez zadávání kreditní karty. Pr
 Nativní desktopová verze pro Windows a macOS poskytuje plnou funkčnost a synchronizuje data při připojení. Webová verze vyžaduje aktivní připojení k internetu.
 
 **Jaké jsou integrace?**
-Google Drive, OneDrive, lokální souborový systém. Platby GoPay. ARES pro auto-doplnění IČ. MCP server pro AI agenty. Export PDF/Excel/CSV.
+Google Drive, OneDrive, lokální souborový systém. Platby Stripe. ARES pro auto-doplnění IČ. MCP server pro AI agenty. Export PDF/Excel/CSV.
 
 **Jak jsou chráněna data?**
 Row Level Security na úrovni databáze, šifrování v klidu i při přenosu (TLS 1.2+), GDPR compliance, auditní logy. Hosting v EU (Frankfurt). Zpracovatelská doložka (DPA) k dispozici na https://tenderflow.cz/dpa.

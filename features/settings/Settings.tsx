@@ -7,7 +7,7 @@ import { navigate, useLocation } from "@/shared/routing/router";
 import {
   exportContactsToXLSX,
   exportContactsToCSV,
-} from "@/services/exportService";
+} from "@infra/export/exportService";
 
 // Sub-components
 import { AdminSettings } from "@/features/settings/AdminSettings";
@@ -29,10 +29,13 @@ import { BackupSettings } from "@/features/backup/ui/BackupSettings";
 
 import { useFeatures } from "@/context/FeatureContext";
 import { FEATURES } from "@/config/features";
+import type { ThemeSkin } from "@/hooks/useTheme";
 
 interface SettingsProps {
   theme: "light" | "dark" | "system";
+  skin: ThemeSkin;
   onSetTheme: (theme: "light" | "dark" | "system") => void;
+  onSetSkin: (skin: ThemeSkin) => void;
   primaryColor: string;
   onSetPrimaryColor: (color: string) => void;
 
@@ -51,7 +54,9 @@ interface SettingsProps {
 
 export const Settings: React.FC<SettingsProps> = ({
   theme,
+  skin,
   onSetTheme,
+  onSetSkin,
   primaryColor,
   onSetPrimaryColor,
   contactStatuses,
@@ -335,15 +340,16 @@ export const Settings: React.FC<SettingsProps> = ({
   // Render
   // -------------------------------------------------------------------------
   return (
-    <div className="flex flex-col h-full bg-background-light dark:bg-background-dark min-h-screen overflow-y-auto">
+    <div className="tf-settings-view flex flex-col h-full bg-background-light dark:bg-background-dark min-h-screen overflow-y-auto">
       <Header
         title="Nastavení"
         subtitle="Konfigurace aplikace a správa staveb"
         helpSlot={<HelpButton />}
         notificationSlot={<NotificationBell />}
+        skin={skin}
       />
 
-      <div className="p-4 lg:p-6 xl:p-8 w-full pb-20">
+      <div data-help-id="settings-content" className="p-4 lg:p-6 xl:p-8 w-full pb-20">
         {/* Main Tab Navigation (Top Level) */}
         <div data-help-id="settings-main-tabs" className="flex items-center gap-4 mb-8 border-b border-slate-200 dark:border-slate-700/50">
           <button
@@ -417,8 +423,8 @@ export const Settings: React.FC<SettingsProps> = ({
 
         {activeTab === "admin" && isAdmin && (
           <AdminMfaGuard user={user}>
-            <div className="flex flex-col md:flex-row gap-8 animate-fadeIn">
-              <aside className="w-full md:w-64 flex-shrink-0">
+            <div data-help-id="settings-admin-workspace" className="flex flex-col md:flex-row gap-8 animate-fadeIn">
+              <aside data-help-id="settings-sidebar" className="w-full md:w-64 flex-shrink-0">
                 <nav className="flex flex-col gap-2">
                 <button
                   onClick={() =>
@@ -575,9 +581,9 @@ export const Settings: React.FC<SettingsProps> = ({
 
         {/* --- USER TAB CONTENT --- */}
         {activeTab === "user" && (
-          <div className="flex flex-col md:flex-row gap-8 animate-fadeIn">
+          <div data-help-id="settings-user-workspace" className="flex flex-col md:flex-row gap-8 animate-fadeIn">
             {/* Sidebar Navigation for User Settings */}
-            <aside className="w-full md:w-64 flex-shrink-0">
+            <aside data-help-id="settings-sidebar" className="w-full md:w-64 flex-shrink-0">
               <nav className="flex flex-col gap-2">
                 <button
                   onClick={() =>
@@ -643,7 +649,9 @@ export const Settings: React.FC<SettingsProps> = ({
               {activeUserSubTab === "profile" && (
                 <ProfileSettings
                   theme={theme}
+                  skin={skin}
                   onSetTheme={onSetTheme}
+                  onSetSkin={onSetSkin}
                   primaryColor={primaryColor}
                   onSetPrimaryColor={onSetPrimaryColor}
                   contactStatuses={contactStatuses}
@@ -665,8 +673,8 @@ export const Settings: React.FC<SettingsProps> = ({
 
         {/* --- TOOLS TAB CONTENT --- */}
         {activeTab === "tools" && (
-          <div className="flex flex-col md:flex-row gap-8 animate-fadeIn">
-            <aside className="w-full md:w-64 flex-shrink-0">
+          <div data-help-id="settings-tools-workspace" className="flex flex-col md:flex-row gap-8 animate-fadeIn">
+            <aside data-help-id="settings-sidebar" className="w-full md:w-64 flex-shrink-0">
               <nav className="flex flex-col gap-2">
                 {canContactsImport && (
                   <button

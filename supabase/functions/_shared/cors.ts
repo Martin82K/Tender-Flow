@@ -2,7 +2,7 @@
 // Allowed origins for CORS.  Requests from unknown origins get the first
 // entry as a safe default (browsers will block the response).
 //
-// Sjednoceno s `stripeBilling.ts` / `gopayBilling.ts` (validateAllowedRedirectUrl):
+// Sjednoceno s `stripeBilling.ts` (validateAllowedRedirectUrl):
 //   - produkční domény (statické)
 //   - Vercel preview deploymenty (regex)
 //   - localhost / 127.0.0.1 dev origins

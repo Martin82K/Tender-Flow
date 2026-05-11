@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { isDesktop, platformAdapter } from '../../services/platformAdapter';
+import { isDesktop, platformAdapter } from '@infra/platform/platformAdapter';
 import { Shield, Fingerprint, AlertCircle } from 'lucide-react';
 
 interface BiometricSettingsProps {

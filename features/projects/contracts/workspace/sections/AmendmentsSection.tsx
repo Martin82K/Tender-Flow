@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { ContractAmendment, ContractWithDetails } from '@/types';
-import { contractService } from '@/services/contractService';
+import { contractMutationsApi } from '../../api';
 import { AmendmentDialog } from '../../forms/AmendmentDialog';
 import { formatDate, formatMoney } from '../../utils/format';
 
@@ -15,7 +15,7 @@ export const AmendmentsSection: React.FC<Props> = ({ contract, onRefresh }) => {
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Smazat tento dodatek?')) return;
-    await contractService.deleteAmendment(id);
+    await contractMutationsApi.deleteAmendment(id);
     await onRefresh();
   };
 

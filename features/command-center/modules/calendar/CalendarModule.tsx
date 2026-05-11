@@ -103,6 +103,21 @@ const formatDayFull = (date: Date): string => {
   return `${weekday}, ${date.getDate()}. ${MONTH_LABELS_GENITIVE[date.getMonth()]} ${date.getFullYear()}`;
 };
 
+const formatEventTooltipLine = (event: CalendarEvent): string =>
+  event.subtitle ? `${event.title} - ${event.subtitle}` : event.title;
+
+const buildDayTooltip = (events: CalendarEvent[]): string | undefined => {
+  if (events.length === 0) return undefined;
+  return events.map(formatEventTooltipLine).join("\n");
+};
+
+const buildDayAriaLabel = (date: Date, events: CalendarEvent[]): string => {
+  const dateLabel = date.toLocaleDateString("cs-CZ");
+  if (events.length === 0) return dateLabel;
+  const eventLabel = events.map(formatEventTooltipLine).join("; ");
+  return `${dateLabel} (${events.length} událostí: ${eventLabel})`;
+};
+
 const formatWeekRange = (anchor: Date): string => {
   const start = startOfWeek(anchor);
   const end = new Date(start);
@@ -258,6 +273,7 @@ export const CalendarModule: React.FC<ModuleProps> = ({ filterState }) => {
               {monthCells.map((cell) => {
                 const tones = Array.from(new Set(cell.events.map((e) => e.tone))).slice(0, 3);
                 const isSelected = selectedIso === cell.iso;
+                const tooltip = buildDayTooltip(cell.events);
                 return (
                   <button
                     key={cell.iso}
@@ -265,7 +281,8 @@ export const CalendarModule: React.FC<ModuleProps> = ({ filterState }) => {
                     className={`cc-cal__cell${cell.inCurrentMonth ? "" : " cc-cal__cell--out"}${cell.isToday ? " cc-cal__cell--today" : ""}${isSelected ? " cc-cal__cell--selected" : ""}${cell.events.length > 0 ? " cc-cal__cell--has" : ""}`}
                     onClick={() => handleDayClick(cell)}
                     onDoubleClick={() => handleDayDrillIn(cell)}
-                    aria-label={`${cell.date.toLocaleDateString("cs-CZ")}${cell.events.length > 0 ? ` (${cell.events.length} událostí)` : ""}`}
+                    title={tooltip}
+                    aria-label={buildDayAriaLabel(cell.date, cell.events)}
                   >
                     <span className="cc-cal__cell-num">{cell.date.getDate()}</span>
                     {tones.length > 0 && (

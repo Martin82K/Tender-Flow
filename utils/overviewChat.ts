@@ -1,5 +1,5 @@
-import type { OverviewAnalytics } from "./overviewAnalytics";
-import { formatMoney } from "./overviewAnalytics";
+import type { OverviewAnalytics } from "@/shared/overview/overviewAnalytics";
+import { formatMoney } from "@/shared/overview/overviewAnalytics";
 import { formatDecimal } from "./formatters";
 
 const formatPercent = (value: number) =>

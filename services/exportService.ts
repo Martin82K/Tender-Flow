@@ -11,8 +11,8 @@ import {
   StatusConfig,
   ContractSummaryDto,
 } from '../types';
-import type { SupplierOfferRef } from '../utils/overviewAnalytics';
-import { getOfferStatusMeta } from '../utils/offerStatus';
+import type { SupplierOfferRef } from '../shared/overview/overviewAnalytics';
+import { getOfferStatusMeta } from '../shared/offers/offerStatus';
 import { RobotoRegularBase64 } from '../fonts/roboto-regular';
 import {
   formatContractSummaryMoney,
@@ -30,7 +30,8 @@ function formatMoney(value: number): string {
   return new Intl.NumberFormat('cs-CZ', {
     style: 'currency',
     currency: 'CZK',
-    maximumFractionDigits: 0
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
   }).format(value);
 }
 
@@ -93,7 +94,10 @@ type ChartImage = {
 };
 
 const formatMoneyPDF = (value: number) =>
-  new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 }).format(value);
+  new Intl.NumberFormat('cs-CZ', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
 
 const formatPercentPDF = (value: number) =>
   `${value.toFixed(1).replace('.', ',')} %`;
@@ -466,7 +470,10 @@ export function exportToPDF(
 
   // Format money without Kč symbol for PDF - just number to prevent wrapping
   const formatMoneyPDF = (value: number) =>
-    new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 }).format(value);
+    new Intl.NumberFormat('cs-CZ', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
 
   doc.text(`SOD rozpočet: ${formatMoneyPDF(category.sodBudget)}`, 150, 25);
   doc.text(`Plánovaný náklad: ${formatMoneyPDF(category.planBudget)}`, 150, 31);

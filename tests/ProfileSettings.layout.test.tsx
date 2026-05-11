@@ -54,7 +54,7 @@ vi.mock("../services/organizationService", () => ({
 
 vi.mock("../services/contactStatusService", () => contactStatusServiceMocks);
 
-vi.mock("@/hooks/useElectronUpdater", () => ({
+vi.mock("@/infra/desktop/useElectronUpdater", () => ({
   useElectronUpdater: () => ({
     checkForUpdates: vi.fn(),
     status: "not-available",
@@ -96,7 +96,9 @@ describe("ProfileSettings layout", () => {
     render(
       <ProfileSettings
         theme="system"
+        skin="industrial"
         onSetTheme={vi.fn()}
+        onSetSkin={vi.fn()}
         primaryColor="#607AFB"
         onSetPrimaryColor={vi.fn()}
         contactStatuses={[]}
