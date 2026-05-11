@@ -17,6 +17,7 @@ export interface BidCardProps {
   onGenerateInquiry?: (bid: Bid) => void;
   onGenerateMaterialInquiry?: (bid: Bid) => void;
   onOpenDocHubFolder?: (bid: Bid) => void;
+  priceDisplayMode?: "badge" | "detail";
   "data-help-id"?: string;
 }
 
@@ -30,6 +31,7 @@ export const BidCard: React.FC<BidCardProps> = ({
   onGenerateInquiry,
   onGenerateMaterialInquiry,
   onOpenDocHubFolder,
+  priceDisplayMode = "badge",
   "data-help-id": dataHelpId,
 }) => {
   const selectedRoundPrice =
@@ -40,6 +42,8 @@ export const BidCard: React.FC<BidCardProps> = ({
     bid.price && bid.price !== "-" && bid.price !== "?"
       ? bid.price
       : selectedRoundPrice;
+  const shouldShowPrice =
+    !!displayedPrice && displayedPrice !== "-" && displayedPrice !== "?";
 
   return (
     <div
@@ -93,12 +97,23 @@ export const BidCard: React.FC<BidCardProps> = ({
             </button>
           )}
         </div>
-        {displayedPrice && displayedPrice !== "-" && displayedPrice !== "?" && (
+        {shouldShowPrice && priceDisplayMode === "badge" && (
           <span className="text-xs font-bold bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-lg border border-emerald-500/30">
             {displayedPrice}
           </span>
         )}
       </div>
+
+      {shouldShowPrice && priceDisplayMode === "detail" && (
+        <div className="mb-3 flex items-baseline justify-between gap-3 border-b border-slate-200 pb-3 text-xs dark:border-slate-700/50">
+          <span className="font-medium text-slate-500 dark:text-slate-400">
+            Vítězná částka
+          </span>
+          <span className="text-right text-sm font-bold leading-snug text-emerald-500 dark:text-emerald-400">
+            {displayedPrice}
+          </span>
+        </div>
+      )}
 
       <div className="flex flex-col gap-1.5 mb-3">
         <div className="flex items-center gap-2 text-slate-400 text-xs">

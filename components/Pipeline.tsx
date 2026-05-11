@@ -752,6 +752,7 @@ export const Pipeline: React.FC<PipelineProps> = ({
                   </button>
                   <BidCard
                     bid={bid}
+                    priceDisplayMode="detail"
                     onDragStart={handleDragStart}
                     onDoubleClick={setEditingBid}
                     onEdit={setEditingBid}
