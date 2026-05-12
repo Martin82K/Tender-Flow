@@ -18,6 +18,7 @@
     "audit:architecture": "node scripts/audit-architecture-debt.mjs",
     "check:boundaries": "node scripts/check-boundaries.mjs",
     "check:legacy-structure": "node scripts/check-legacy-structure.mjs",
+    "mcp:stdio": "node scripts/mcp-stdio.js",
     "desktop:install": "cd desktop && npm install --ignore-scripts",
     "desktop:compile": "cd desktop && tsc",
     "desktop:dev": "concurrently -k \"npm run dev -- --host 127.0.0.1 --port 3000\" \"wait-on tcp:3000 && npm run desktop:compile && electron .\"",

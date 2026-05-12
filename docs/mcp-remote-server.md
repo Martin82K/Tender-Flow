@@ -9,7 +9,7 @@ Stav: MVP implementováno
 Tender Flow má vzdálený MCP server určený pro ChatGPT a další AI klienty podporující MCP. Server běží jako součást stejného deploymentu jako webová aplikace a publikuje hlavní endpoint:
 
 ```text
-https://tenderflow.cz/api/mcp
+https://www.tenderflow.cz/api/mcp
 ```
 
 MVP je navržené jako read-first integrace. Čtení dat je dostupné přes nástroje s `readOnlyHint: true`. Zápisy jsou omezené třífázovým protokolem `prepare -> confirm -> execute`, aby AI klient nemohl nechtěně měnit data bez explicitního potvrzení.
@@ -38,6 +38,12 @@ MVP je navržené jako read-first integrace. Čtení dat je dostupné přes nás
 
 - `/oauth/consent`
   Consent obrazovka pro Supabase OAuth 2.1 Server.
+
+### Claude Code A Codex
+
+Praktická konfigurace pro Claude Code a Codex je v `docs/mcp-claude-code-codex.md`.
+Repo obsahuje projektový `.mcp.json` pro Claude Code remote HTTP připojení a `npm run mcp:stdio`
+pro lokální stdio fallback.
 
 ### Serverové Moduly
 

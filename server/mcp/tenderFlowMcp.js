@@ -301,7 +301,8 @@ const withAudit = (auth, supabase, toolName, action, handler, riskLevel = 'low')
   }
 };
 
-export const createTenderFlowMcpServer = (auth) => {
+export const createTenderFlowMcpServer = (auth, options = {}) => {
+  const includeWriteTools = options.includeWriteTools !== false;
   const supabase = createUserSupabaseClient(auth.token);
   const server = new McpServer(
     {
@@ -470,6 +471,10 @@ export const createTenderFlowMcpServer = (auth) => {
     },
     withAudit(auth, supabase, 'tf_list_upcoming_deadlines', 'read', async (args) => ({ ok: true, data: await listUpcomingDeadlines(supabase, args) })),
   );
+
+  if (!includeWriteTools) {
+    return server;
+  }
 
   server.registerTool(
     'tf_prepare_change',
