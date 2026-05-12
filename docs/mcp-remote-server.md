@@ -39,6 +39,12 @@ MVP je navržené jako read-first integrace. Čtení dat je dostupné přes nás
 - `/oauth/consent`
   Consent obrazovka pro Supabase OAuth 2.1 Server.
 
+### Claude Code A Codex
+
+Praktická konfigurace pro Claude Code a Codex je v `docs/mcp-claude-code-codex.md`.
+Repo obsahuje projektový `.mcp.json` pro Claude Code remote HTTP připojení a `npm run mcp:stdio`
+pro lokální stdio fallback.
+
 ### Serverové Moduly
 
 - `server/mcp/tenderFlowMcp.js`

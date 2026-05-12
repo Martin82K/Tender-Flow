@@ -134,3 +134,36 @@ export const verifyMcpBearerToken = async (authorizationHeader, options = {}) =>
     payload,
   };
 };
+
+export const verifyLocalMcpAccessToken = async (accessToken) => {
+  const token = String(accessToken || '').trim();
+  if (!token) {
+    throw new Error('Missing TENDER_FLOW_MCP_ACCESS_TOKEN/SUPABASE_ACCESS_TOKEN.');
+  }
+
+  const issuer = getSupabaseAuthIssuer();
+  const { payload } = await jwtVerify(token, getJwks(issuer), { issuer });
+  const userId = String(payload.sub || payload.user_id || '').trim();
+  if (!userId) throw new Error('Local MCP token does not contain a user id.');
+
+  const audiences = getClaimValues(payload.aud);
+  const allowedAudiences = getAllowedAudiences('');
+  if (audiences.length === 0 || !audiences.some((audience) => allowedAudiences.includes(audience))) {
+    throw new Error('Local MCP token audience is not allowed for Tender Flow MCP.');
+  }
+
+  const oauthClientId = String(payload.client_id || payload.azp || '').trim();
+  const fallbackClientId = String(process.env.TENDER_FLOW_MCP_CLIENT_ID || 'local-stdio').trim();
+  const clientId = oauthClientId || fallbackClientId;
+
+  return {
+    token,
+    userId,
+    clientId,
+    scopes: parseScopes(payload),
+    expiresAt: typeof payload.exp === 'number' ? payload.exp : undefined,
+    email: typeof payload.email === 'string' ? payload.email : undefined,
+    hasOAuthClientId: Boolean(oauthClientId),
+    payload,
+  };
+};

@@ -18,6 +18,7 @@ describe("remote MCP server", () => {
     delete process.env.MCP_REQUIRED_SCOPES;
     delete process.env.SUPABASE_URL;
     delete process.env.VITE_SUPABASE_URL;
+    delete process.env.TENDER_FLOW_MCP_CLIENT_ID;
   });
 
   it("publikuje OAuth protected-resource metadata pro ChatGPT MCP klienty", () => {
@@ -171,6 +172,24 @@ describe("remote MCP server", () => {
     expect(source).toContain("annotations: { readOnlyHint: true");
     expect(source).toContain("Only create_task execution is enabled in MCP MVP.");
     expect(source).not.toContain("hard_delete");
+  });
+
+  it("má lokální stdio entrypoint pro Claude Code/Codex a bez OAuth client_id schová write tools", () => {
+    const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
+    const source = fs.readFileSync(path.join(ROOT, "scripts/mcp-stdio.js"), "utf8").replace(/\r\n/g, "\n");
+    const mcpConfig = JSON.parse(fs.readFileSync(path.join(ROOT, ".mcp.json"), "utf8"));
+    const serverSource = fs.readFileSync(path.join(ROOT, "server/mcp/tenderFlowMcp.js"), "utf8").replace(/\r\n/g, "\n");
+
+    expect(pkg.scripts["mcp:stdio"]).toBe("node scripts/mcp-stdio.js");
+    expect(mcpConfig.mcpServers["tender-flow"]).toEqual({
+      type: "http",
+      url: "https://tenderflow.cz/api/mcp",
+    });
+    expect(source).toContain("verifyLocalMcpAccessToken");
+    expect(source).toContain("auth.hasOAuthClientId && !readOnly");
+    expect(source).toContain("Local Supabase session token detected; running read-only tools only.");
+    expect(serverSource).toContain("const includeWriteTools = options.includeWriteTools !== false;");
+    expect(serverSource).toContain("if (!includeWriteTools) {\n    return server;\n  }");
   });
 
   it("omezuje volání per user/client/tool", () => {
