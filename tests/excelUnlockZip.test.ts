@@ -11,7 +11,7 @@ const buildProtectedWorkbook = async (): Promise<ArrayBuffer> => {
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet("List1");
   sheet.getCell("A1").value = "Hodnota";
-  await sheet.protect("tajne");
+  await sheet.protect("tajne", {});
   return (await workbook.xlsx.writeBuffer()) as ArrayBuffer;
 };
 
@@ -41,7 +41,7 @@ describe("excelUnlockZip", () => {
   });
 
   it("odmitne archiv bez worksheet XML souboru", async () => {
-    const input = zipSync({ "[Content_Types].xml": [strToU8("<Types></Types>")] });
+    const input = zipSync({ "[Content_Types].xml": strToU8("<Types></Types>") });
 
     await expect(unlockExcelZipWithStats(input)).rejects.toThrow(
       /worksheet XML/,

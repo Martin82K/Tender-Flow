@@ -52,7 +52,7 @@ describe("backupService local adapter boundary", () => {
     backupAdapterMock.list.mockResolvedValue(backups);
     backupAdapterMock.setEnabled.mockResolvedValue(undefined);
     backupAdapterMock.setScheduledTime.mockResolvedValue(undefined);
-    backupAdapterMock.openFolder.mockResolvedValue(undefined);
+    backupAdapterMock.openFolder.mockResolvedValue({ success: true });
 
     expect(backupService.isLocalBackupAvailable()).toBe(true);
     await expect(backupService.getLocalSettings()).resolves.toBe(settings);
@@ -64,5 +64,14 @@ describe("backupService local adapter boundary", () => {
     expect(backupAdapterMock.setEnabled).toHaveBeenCalledWith(false);
     expect(backupAdapterMock.setScheduledTime).toHaveBeenCalledWith("04:30");
     expect(backupAdapterMock.openFolder).toHaveBeenCalledOnce();
+  });
+
+  it("propaguje chybu při selhání otevření složky záloh", async () => {
+    backupAdapterMock.openFolder.mockResolvedValue({
+      success: false,
+      error: "folder missing",
+    });
+
+    await expect(backupService.openLocalBackupFolder()).rejects.toThrow("folder missing");
   });
 });

@@ -79,6 +79,19 @@ type McpDataProvider = {
     }>;
 };
 
+type ProjectDetail = Awaited<ReturnType<McpDataProvider['getProjectDetail']>>;
+type ProjectResolveResult =
+    | { ok: true; projectId: string }
+    | { ok: false; error: string; candidates?: unknown[] };
+type TenderResolveResult =
+    | {
+        ok: true;
+        projectId: string;
+        detail: ProjectDetail;
+        tender: ProjectDetail['demandCategories'][number];
+    }
+    | { ok: false; error: string; candidates?: unknown[] };
+
 type McpServerHandle = {
     port: number;
     sseUrl: string;
@@ -391,7 +404,7 @@ const resolveProjectId = async (
     dataProvider: McpDataProvider,
     input: { projectId?: string; projectName?: string; query?: string },
     currentProjectContext: string | null,
-) => {
+): Promise<ProjectResolveResult> => {
     const explicitProjectSearch = input.projectName || input.query || '';
     const projectId = input.projectId || (!explicitProjectSearch ? currentProjectContext || '' : '');
     if (projectId) return { ok: true as const, projectId };
@@ -417,9 +430,9 @@ const resolveTender = async (
     dataProvider: McpDataProvider,
     input: { projectId?: string; projectName?: string; tenderId?: string; tenderName?: string; query?: string },
     currentProjectContext: string | null,
-) => {
+): Promise<TenderResolveResult> => {
     const projectResult = await resolveProjectId(dataProvider, input, currentProjectContext);
-    if (!projectResult.ok) return projectResult;
+    if (projectResult.ok === false) return projectResult;
 
     const detail = await dataProvider.getProjectDetail({ projectId: projectResult.projectId });
     const tenderId = input.tenderId || '';
@@ -449,18 +462,18 @@ const resolveTender = async (
 };
 
 const tenderBids = (
-    detail: Awaited<ReturnType<McpDataProvider['getProjectDetail']>>,
+    detail: ProjectDetail,
     tenderId: string,
 ) => detail.bids.filter((bid) => bid.categoryId === tenderId);
 
 const tenderWinners = (
-    detail: Awaited<ReturnType<McpDataProvider['getProjectDetail']>>,
+    detail: ProjectDetail,
     tenderId: string,
 ) => tenderBids(detail, tenderId).filter((bid) => bid.status === 'sod');
 
 const linkedContractForBid = (
     contracts: any[],
-    bid: Awaited<ReturnType<McpDataProvider['getProjectDetail']>>['bids'][number],
+    bid: ProjectDetail['bids'][number],
 ) => {
     const byBidId = contracts.find((contract) => contract.sourceBidId === bid.id || contract.source_bid_id === bid.id);
     if (byBidId) return byBidId;

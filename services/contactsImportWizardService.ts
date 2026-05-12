@@ -5,6 +5,9 @@ import {
   validateSubcontractorCompanyName,
 } from "../shared/dochub/subcontractorNameRules";
 
+type XlsxModule = typeof import("xlsx");
+type XlsxWorkbook = import("xlsx").WorkBook;
+
 export const CONTACTS_WIZARD_IMPORT_MAX_FILE_BYTES = 5 * 1024 * 1024;
 export const CONTACTS_WIZARD_IMPORT_MAX_ROWS = 5000;
 export const CONTACTS_WIZARD_IMPORT_FETCH_TIMEOUT_MS = 15000;
@@ -340,7 +343,7 @@ const readFileArrayBuffer = async (file: File): Promise<ArrayBuffer> => {
 };
 
 const parseXlsxTable = async (data: ArrayBuffer, sourceLabel: string): Promise<ParsedTable> => {
-  const XLSX = await import("xlsx");
+  const XLSX: XlsxModule = await import("xlsx");
   const workbook = XLSX.read(data, {
     type: "array",
     sheetRows: CONTACTS_WIZARD_IMPORT_MAX_ROWS + 2,
@@ -807,7 +810,8 @@ export const analyzeContactsImport = (
   return { rows: analyzedRows, aggregatedContacts, counts };
 };
 
-export const buildCorrectedWorkbook = (table: ParsedTable, analyzed: AnalyzeResult) => {
+export const buildCorrectedWorkbook = async (table: ParsedTable, analyzed: AnalyzeResult): Promise<XlsxWorkbook> => {
+  const XLSX: XlsxModule = await import("xlsx");
   const baseHeaders = table.headers;
   const extraHeaders = ["__tf_outcome", "__tf_warnings", "__tf_errors"];
   const headerRow = [...baseHeaders, ...extraHeaders];
@@ -830,11 +834,13 @@ export const buildCorrectedWorkbook = (table: ParsedTable, analyzed: AnalyzeResu
   return wb;
 };
 
-export const downloadWorkbook = (wb: XLSX.WorkBook, filename: string) => {
+export const downloadWorkbook = async (wb: XlsxWorkbook, filename: string): Promise<void> => {
+  const XLSX: XlsxModule = await import("xlsx");
   XLSX.writeFile(wb, filename);
 };
 
-export const buildTemplateWorkbook = () => {
+export const buildTemplateWorkbook = async (): Promise<XlsxWorkbook> => {
+  const XLSX: XlsxModule = await import("xlsx");
   const headers = ["Firma", "IČO", "Region", "Město", "Specializace", "Jméno", "Email", "Telefon", "Pozice", "Stav"];
   const example = [
     ["STŘECHY PROFESIONAL s.r.o.", "12345678", "Hlavní město Praha", "Praha", "Střechy; Klempíř", "Jan Novák", "jan@strechy.cz", "+420 777 000 000", "Obchod", "Dostupný"],

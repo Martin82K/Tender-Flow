@@ -226,16 +226,16 @@ export const ContactsImportWizard: React.FC<ContactsImportWizardProps> = (props)
     }
   };
 
-  const downloadCorrected = () => {
+  const downloadCorrected = async () => {
     if (!table || !analysis) return;
-    const wb = buildCorrectedWorkbook(table, analysis);
+    const wb = await buildCorrectedWorkbook(table, analysis);
     const safeBase = (table.sourceLabel || "import").replace(/[^\w.-]+/g, "_").slice(0, 50);
-    downloadWorkbook(wb, `tenderflow_import_${safeBase}.xlsx`);
+    await downloadWorkbook(wb, `tenderflow_import_${safeBase}.xlsx`);
   };
 
-  const downloadTemplate = () => {
-    const wb = buildTemplateWorkbook();
-    downloadWorkbook(wb, "tenderflow_sablona_kontakty.xlsx");
+  const downloadTemplate = async () => {
+    const wb = await buildTemplateWorkbook();
+    await downloadWorkbook(wb, "tenderflow_sablona_kontakty.xlsx");
   };
 
   const filteredRows = React.useMemo(() => {
@@ -688,4 +688,3 @@ export const ContactsImportWizard: React.FC<ContactsImportWizardProps> = (props)
     </div>
   );
 };
-

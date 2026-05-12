@@ -29,7 +29,10 @@ export const backupService = {
     },
 
     async openLocalBackupFolder(): Promise<void> {
-        return backupAdapter.openFolder();
+        const result = await backupAdapter.openFolder();
+        if (!result.success) {
+            throw new Error(result.error || 'Nepodařilo se otevřít složku záloh.');
+        }
     },
 
     /**
