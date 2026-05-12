@@ -8,6 +8,8 @@ const fsMock = vi.hoisted(() => ({
 }));
 const spawnMock = vi.hoisted(() => vi.fn());
 
+const normalizePathInMessage = (value: string) => value.replace(/[A-Z]:\\/gi, "/").replace(/\\/g, "/");
+
 vi.mock("fs/promises", () => ({
   default: fsMock,
   ...fsMock,
@@ -70,10 +72,10 @@ describe("PythonRunnerService security", () => {
       inputFile: "/Users/tester/Documents/tender.xlsx",
     });
 
-    expect(result).toEqual({
-      success: false,
-      error: "Access denied: path is outside allowed roots (/Users/tester/Documents/tender.xlsx)",
-    });
+    expect(result.success).toBe(false);
+    expect(normalizePathInMessage(result.error ?? "")).toBe(
+      "Access denied: path is outside allowed roots (/Users/tester/Documents/tender.xlsx)",
+    );
     expect(fsMock.access).not.toHaveBeenCalled();
     expect(spawnMock).not.toHaveBeenCalled();
   });
@@ -89,10 +91,10 @@ describe("PythonRunnerService security", () => {
       outputFile: "/Users/tester/Documents/out.xlsx",
     });
 
-    expect(result).toEqual({
-      success: false,
-      error: "Access denied: path is outside allowed roots (/Users/tester/Documents/out.xlsx)",
-    });
+    expect(result.success).toBe(false);
+    expect(normalizePathInMessage(result.error ?? "")).toBe(
+      "Access denied: path is outside allowed roots (/Users/tester/Documents/out.xlsx)",
+    );
     expect(spawnMock).not.toHaveBeenCalled();
   });
 });

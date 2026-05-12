@@ -6,7 +6,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { DemandCategory, Bid } from '../../types';
-import { formatMoney } from '../../utils/formatters';
+import { formatMoney, parseFormattedNumber } from '../../utils/formatters';
 import { CategoryCard } from './CategoryCard';
 
 const ROW_CLICK_DELAY_MS = 220;
@@ -134,7 +134,7 @@ export const PipelineOverview: React.FC<PipelineOverviewProps> = ({
         const sodBidsCount = sodBids.length;
         const contractedCount = sodBids.filter((b) => b.contracted).length;
         const winningPrice = sodBids.reduce((sum, bid) => {
-            const numericPrice = typeof bid.price === 'string' ? parseFloat(bid.price.replace(/[^\d]/g, '')) : 0;
+            const numericPrice = typeof bid.price === 'string' ? parseFormattedNumber(bid.price) : 0;
             return sum + (isNaN(numericPrice) ? 0 : numericPrice);
         }, 0);
         return { bidCount, priceOfferCount, sodBidsCount, contractedCount, winningPrice: winningPrice > 0 ? winningPrice : undefined };

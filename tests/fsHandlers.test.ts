@@ -12,6 +12,8 @@ const fsMock = vi.hoisted(() => ({
   realpath: vi.fn(),
 }));
 
+const normalizePathForAssert = (value: string) => value.replace(/^[A-Z]:/i, "").replace(/\\/g, "/");
+
 vi.mock("fs/promises", () => ({
   default: fsMock,
   ...fsMock,
@@ -115,7 +117,9 @@ describe("fsHandlers", () => {
     const handler = handlers.get("fs:readFile");
     const output = await handler?.({}, "/Users/tester/Library/Application Support/TenderFlow/safe.docx");
     expect(output).toEqual(Buffer.from("ok"));
-    expect(fsMock.readFile).toHaveBeenCalledWith("/Users/tester/Library/Application Support/TenderFlow/safe.docx");
+    expect(normalizePathForAssert(fsMock.readFile.mock.calls[0][0])).toBe(
+      "/Users/tester/Library/Application Support/TenderFlow/safe.docx",
+    );
   });
 
   it("odmitne fs:writeFile mimo povolene rooty", async () => {
@@ -157,6 +161,6 @@ describe("fsHandlers", () => {
 
     const output = await handlers.get("fs:readFile")?.({}, "/Users/tester/Projects/Tender/input.xlsx");
     expect(output).toEqual(Buffer.from("ok"));
-    expect(fsMock.readFile).toHaveBeenCalledWith("/Users/tester/Projects/Tender/input.xlsx");
+    expect(normalizePathForAssert(fsMock.readFile.mock.calls[0][0])).toBe("/Users/tester/Projects/Tender/input.xlsx");
   });
 });
