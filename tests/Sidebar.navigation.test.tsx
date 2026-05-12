@@ -13,19 +13,20 @@ const user: User = {
   subscriptionTier: 'pro',
 };
 
+const enabledFeatures: FeatureKey[] = [
+  FEATURES.MODULE_PROJECTS,
+  FEATURES.MODULE_CONTACTS,
+  FEATURES.MODULE_COMMAND_CENTER,
+  FEATURES.FEATURE_ADVANCED_REPORTING,
+];
+
 vi.mock('@/context/AuthContext', () => ({
   useAuth: () => ({ user }),
 }));
 
 vi.mock('@/context/FeatureContext', () => ({
   useFeatures: () => ({
-    hasFeature: (feature: FeatureKey) =>
-      [
-        FEATURES.MODULE_PROJECTS,
-        FEATURES.MODULE_CONTACTS,
-        FEATURES.MODULE_COMMAND_CENTER,
-        FEATURES.FEATURE_ADVANCED_REPORTING,
-      ].includes(feature),
+    hasFeature: (feature: FeatureKey) => enabledFeatures.includes(feature),
   }),
 }));
 

@@ -9,8 +9,11 @@ import type ExcelJS from 'exceljs';
 
 const loadExcelJS = async () => {
   const module = await import('exceljs');
-  return module.default;
+  return module;
 };
+
+const isFormulaCellValue = (value: ExcelJS.CellValue): value is ExcelJS.CellFormulaValue =>
+  !!value && typeof value === 'object' && 'formula' in value && typeof value.formula === 'string';
 
 export class ExcelService {
   /**
@@ -193,16 +196,17 @@ export class ExcelService {
           const cell = row.getCell(c);
           const destCell = targetRow.getCell(c + 1);
 
-          if (cell.type === ExcelJS.ValueType.Formula) {
-            const fValue = cell.value as ExcelJS.CellFormulaValue;
+          if (isFormulaCellValue(cell.value)) {
+            const fValue = cell.value;
             try {
               const newFormula = this.transformFormula(fValue.formula, colShift, rowShift, allSheetNames);
               destCell.value = {
                 formula: newFormula,
-                result: fValue.result
-              };
+                result: fValue.result,
+                date1904: fValue.date1904 ?? false,
+              } as ExcelJS.CellFormulaValue;
             } catch (e) {
-              destCell.value = fValue.result;
+              destCell.value = fValue.result as ExcelJS.CellValue;
             }
           } else {
             destCell.value = cell.value;

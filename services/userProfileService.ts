@@ -236,7 +236,7 @@ export const userProfileService = {
     file: File,
   ): Promise<{ avatarPath: string; avatarUrl: string | null }> {
     const validation = validateUserAvatarFile(file);
-    if (!validation.valid) {
+    if (validation.valid === false) {
       throw new Error(validation.message);
     }
 

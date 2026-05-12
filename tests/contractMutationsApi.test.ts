@@ -38,11 +38,31 @@ describe("contractMutationsApi", () => {
     contractServiceMock.markInvoicePaid.mockResolvedValue(undefined);
     contractServiceMock.releaseRetention.mockResolvedValue(undefined);
 
-    await contractMutationsApi.createAmendment({ contractId: "contract-1" });
+    const amendmentPayload = { contractId: "contract-1", deltaPrice: 0 };
+    const contractPayload = {
+      projectId: "project-1",
+      vendorName: "Firma",
+      title: "SOD",
+      status: "draft" as const,
+      source: "manual" as const,
+      currency: "CZK",
+      basePrice: 0,
+    };
+    const invoicePayload = {
+      contractId: "contract-1",
+      invoiceNumber: "FV-1",
+      amount: 100,
+      status: "issued" as const,
+      currency: "CZK",
+      issueDate: "2026-05-06",
+      dueDate: "2026-05-20",
+    };
+
+    await contractMutationsApi.createAmendment(amendmentPayload);
     await contractMutationsApi.updateAmendment("amendment-1", { reason: "Změna" });
-    await contractMutationsApi.createContract({ projectId: "project-1", vendorName: "Firma", title: "SOD" });
+    await contractMutationsApi.createContract(contractPayload);
     await contractMutationsApi.updateContract("contract-1", { title: "SOD 2" });
-    await contractMutationsApi.createInvoice({ contractId: "contract-1", invoiceNumber: "FV-1", amount: 100 });
+    await contractMutationsApi.createInvoice(invoicePayload);
     await contractMutationsApi.updateInvoice("invoice-1", { amount: 200 });
     await contractMutationsApi.createMarkdownVersion({
       entityType: "contract",
@@ -55,19 +75,11 @@ describe("contractMutationsApi", () => {
     await contractMutationsApi.deleteInvoice("invoice-1");
     await contractMutationsApi.releaseRetention("contract-1", "short");
 
-    expect(contractServiceMock.createAmendment).toHaveBeenCalledWith({ contractId: "contract-1" });
+    expect(contractServiceMock.createAmendment).toHaveBeenCalledWith(amendmentPayload);
     expect(contractServiceMock.updateAmendment).toHaveBeenCalledWith("amendment-1", { reason: "Změna" });
-    expect(contractServiceMock.createContract).toHaveBeenCalledWith({
-      projectId: "project-1",
-      vendorName: "Firma",
-      title: "SOD",
-    });
+    expect(contractServiceMock.createContract).toHaveBeenCalledWith(contractPayload);
     expect(contractServiceMock.updateContract).toHaveBeenCalledWith("contract-1", { title: "SOD 2" });
-    expect(contractServiceMock.createInvoice).toHaveBeenCalledWith({
-      contractId: "contract-1",
-      invoiceNumber: "FV-1",
-      amount: 100,
-    });
+    expect(contractServiceMock.createInvoice).toHaveBeenCalledWith(invoicePayload);
     expect(contractServiceMock.updateInvoice).toHaveBeenCalledWith("invoice-1", { amount: 200 });
     expect(contractServiceMock.createMarkdownVersion).toHaveBeenCalledWith({
       entityType: "contract",

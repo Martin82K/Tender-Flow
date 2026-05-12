@@ -50,10 +50,12 @@ describe("excel merge workbook guards", () => {
     sheet.getCell("A1").value = {
       formula: 'HYPERLINK("https://evil.example","klik")',
       result: "klik",
+      date1904: false,
     };
     sheet.getCell("A2").value = {
       formula: "SUM(1,2)",
       result: 3,
+      date1904: false,
     };
 
     const merged = await mergeWorkbookToSingleSheet(await writeWorkbook(workbook));
