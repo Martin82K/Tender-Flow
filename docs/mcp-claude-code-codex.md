@@ -9,7 +9,7 @@ MCP není skill. Skill je sada instrukcí pro agenta. Plugin může MCP server p
 
 Tender Flow teď podporuje dvě cesty:
 
-1. Remote HTTP MCP: `https://tenderflow.cz/api/mcp`
+1. Remote HTTP MCP: `https://www.tenderflow.cz/api/mcp`
    - nejlepší cílový režim pro Claude Code a Codex,
    - používá Supabase OAuth 2.1, `client_id`, RLS a audit,
    - podporuje read tools i třífázové zápisy.
@@ -28,7 +28,7 @@ Repo obsahuje projektový `.mcp.json`, který přidává remote MCP server:
   "mcpServers": {
     "tender-flow": {
       "type": "http",
-      "url": "https://tenderflow.cz/api/mcp"
+      "url": "https://www.tenderflow.cz/api/mcp"
     }
   }
 }
@@ -44,7 +44,7 @@ claude
 V `/mcp` potvrď server `tender-flow` a projdi OAuth přihlášení. Pokud chceš server přidat ručně jen pro sebe:
 
 ```bash
-claude mcp add --transport http --scope local tender-flow https://tenderflow.cz/api/mcp
+claude mcp add --transport http --scope local tender-flow https://www.tenderflow.cz/api/mcp
 ```
 
 Lokální stdio varianta:
@@ -62,7 +62,7 @@ Remote HTTP konfigurace v `~/.codex/config.toml`:
 
 ```toml
 [mcp_servers.tender-flow]
-url = "https://tenderflow.cz/api/mcp"
+url = "https://www.tenderflow.cz/api/mcp"
 enabled = true
 ```
 

@@ -183,7 +183,7 @@ describe("remote MCP server", () => {
     expect(pkg.scripts["mcp:stdio"]).toBe("node scripts/mcp-stdio.js");
     expect(mcpConfig.mcpServers["tender-flow"]).toEqual({
       type: "http",
-      url: "https://tenderflow.cz/api/mcp",
+      url: "https://www.tenderflow.cz/api/mcp",
     });
     expect(source).toContain("verifyLocalMcpAccessToken");
     expect(source).toContain("auth.hasOAuthClientId && !readOnly");
