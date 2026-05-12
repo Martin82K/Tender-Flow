@@ -157,7 +157,7 @@ describe("remote MCP server", () => {
   });
 
   it("registruje read-only discovery nástroje a oddělený třífázový zápis", () => {
-    const source = fs.readFileSync(path.join(ROOT, "server/mcp/tenderFlowMcp.js"), "utf8");
+    const source = fs.readFileSync(path.join(ROOT, "server/mcp/tenderFlowMcp.js"), "utf8").replace(/\r\n/g, "\n");
 
     expect(source).toContain("server.registerTool(\n    'search'");
     expect(source).toContain("server.registerTool(\n    'fetch'");
