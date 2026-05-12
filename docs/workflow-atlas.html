@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tender Flow — Workflow Atlas</title>
+<style>
+  :root {
+    --bg: #0b0f14;
+    --bg-soft: #121821;
+    --panel: #161e2a;
+    --panel-2: #1c2535;
+    --border: #243046;
+    --text: #d9e2f1;
+    --muted: #7d8aa1;
+    --accent: #4cc2ff;
+    --accent-2: #ffb14c;
+    --hot: #ff6b6b;
+    --ok: #4ade80;
+    --dim: #2a3447;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 14px;
+  }
+  header {
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--bg-soft);
+  }
+  header h1 { font-size: 16px; margin: 0; font-weight: 600; letter-spacing: 0.3px; }
+  header .sub { color: var(--muted); font-size: 12px; }
+  main {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    height: calc(100vh - 51px);
+  }
+  .canvas-wrap {
+    position: relative;
+    overflow: auto;
+    padding: 24px;
+    background:
+      radial-gradient(circle at 20% 20%, rgba(76,194,255,0.05), transparent 40%),
+      radial-gradient(circle at 80% 80%, rgba(255,177,76,0.04), transparent 40%),
+      var(--bg);
+  }
+  .canvas {
+    position: relative;
+    width: 1180px;
+    min-height: 760px;
+  }
+  .tier-label {
+    position: absolute;
+    left: -14px;
+    transform: rotate(-90deg);
+    transform-origin: left top;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .pkg {
+    position: absolute;
+    width: 210px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    transition: all 0.25s ease;
+    cursor: default;
+    user-select: none;
+  }
+  .pkg .name {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .pkg .desc {
+    color: var(--muted);
+    font-size: 11px;
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+  .pkg .badge {
+    display: inline-block;
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: var(--dim);
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .pkg.kind-ui .badge { background: rgba(76,194,255,0.15); color: var(--accent); }
+  .pkg.kind-state .badge { background: rgba(167,139,250,0.15); color: #a78bfa; }
+  .pkg.kind-service .badge { background: rgba(74,222,128,0.15); color: var(--ok); }
+  .pkg.kind-infra .badge { background: rgba(255,177,76,0.18); color: var(--accent-2); }
+  .pkg.kind-external .badge { background: rgba(255,107,107,0.18); color: var(--hot); }
+  .pkg.dim { opacity: 0.22; }
+  .pkg.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent), 0 8px 24px rgba(76,194,255,0.18);
+    transform: translateY(-1px);
+  }
+  .pkg.current {
+    border-color: var(--accent-2);
+    box-shadow: 0 0 0 1px var(--accent-2), 0 0 28px rgba(255,177,76,0.35);
+  }
+  .pkg.current::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 10px;
+    border: 1px solid var(--accent-2);
+    opacity: 0.4;
+    animation: pulse 1.4s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.15; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.02); }
+  }
+  svg.arrows {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    overflow: visible;
+  }
+  .flow-line {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 1.6;
+    opacity: 0.35;
+  }
+  .flow-line.current {
+    stroke: var(--accent-2);
+    stroke-width: 2.4;
+    opacity: 1;
+    filter: drop-shadow(0 0 6px rgba(255,177,76,0.45));
+  }
+  .flow-label {
+    fill: var(--text);
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 10px;
+    paint-order: stroke;
+    stroke: var(--bg);
+    stroke-width: 4px;
+    stroke-linejoin: round;
+    pointer-events: none;
+  }
+  .flow-label.current { fill: var(--accent-2); }
+
+  aside.sidebar {
+    border-left: 1px solid var(--border);
+    background: var(--bg-soft);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .sidebar-section {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-section h2 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--muted);
+    margin: 0 0 10px;
+    font-weight: 600;
+  }
+  .actions {
+    overflow-y: auto;
+    max-height: 38vh;
+  }
+  .action {
+    padding: 9px 11px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    margin-bottom: 4px;
+    transition: all 0.15s ease;
+    font-size: 13px;
+  }
+  .action:hover { background: var(--panel); border-color: var(--border); }
+  .action.selected {
+    background: var(--panel-2);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .action .meta {
+    color: var(--muted);
+    font-size: 11px;
+    margin-top: 2px;
+  }
+  .action.selected .meta { color: var(--text); opacity: 0.7; }
+
+  .step-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px 18px;
+  }
+  .step-summary {
+    color: var(--muted);
+    font-size: 12.5px;
+    line-height: 1.55;
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+  }
+  .step {
+    padding: 10px 12px;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .step:hover { border-color: var(--accent); }
+  .step.current {
+    border-color: var(--accent-2);
+    background: var(--panel-2);
+    box-shadow: 0 0 0 1px var(--accent-2);
+  }
+  .step .step-head {
+    display: flex; align-items: center; gap: 8px;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 11.5px;
+    font-weight: 600;
+  }
+  .step .step-num {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--dim);
+    color: var(--muted);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 10.5px;
+    flex-shrink: 0;
+  }
+  .step.current .step-num { background: var(--accent-2); color: var(--bg); }
+  .step .arrow { color: var(--muted); margin: 0 2px; }
+  .step .pass {
+    color: var(--text);
+    font-size: 11.5px;
+    margin-top: 6px;
+    line-height: 1.5;
+    padding-left: 28px;
+  }
+  .step .pass code {
+    background: var(--bg);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 10.5px;
+    color: var(--accent);
+  }
+
+  .controls {
+    display: flex; gap: 6px;
+    padding: 10px 18px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-soft);
+  }
+  .controls button {
+    flex: 1;
+    padding: 8px 10px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.15s;
+  }
+  .controls button:hover:not(:disabled) {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .controls button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .controls button.play { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
+
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    padding: 10px 18px;
+    font-size: 10.5px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 4px; }
+  .legend i {
+    width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+  }
+  .empty {
+    color: var(--muted);
+    font-size: 12px;
+    padding: 20px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Tender Flow — Workflow Atlas</h1>
+    <div class="sub">Interactive map of how packages exchange data across user &amp; system flows</div>
+  </div>
+  <div class="sub" id="workflow-counter">—</div>
+</header>
+
+<main>
+  <div class="canvas-wrap">
+    <div class="canvas" id="canvas">
+      <svg class="arrows" id="arrows"></svg>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="legend">
+      <span><i style="background:#4cc2ff"></i>UI</span>
+      <span><i style="background:#a78bfa"></i>State</span>
+      <span><i style="background:#4ade80"></i>Service</span>
+      <span><i style="background:#ffb14c"></i>Infra</span>
+      <span><i style="background:#ff6b6b"></i>External</span>
+    </div>
+    <div class="sidebar-section">
+      <h2>Workflow</h2>
+      <div class="actions" id="actions"></div>
+    </div>
+    <div class="step-list" id="step-list">
+      <div class="empty">Select a workflow to trace the flow.</div>
+    </div>
+    <div class="controls">
+      <button id="btn-prev" disabled>◀ Prev</button>
+      <button id="btn-play" class="play" disabled>▶ Play</button>
+      <button id="btn-next" disabled>Next ▶</button>
+    </div>
+  </aside>
+</main>
+
+<script>
+/* =========================================================================
+   WORKFLOW ATLAS DATA
+   -------------------------------------------------------------------------
+   Edit this JSON to add packages or workflows. Each workflow lists steps
+   in order; "from" / "to" reference package ids. "pass" describes the
+   payload or signal that crosses the boundary.
+   ========================================================================= */
+const ATLAS = {
+  // Grid: 5 columns (col 1..5), 6 rows (row 1..6) — top is UI, bottom is external.
+  packages: [
+    // Row 1 — UI features
+    { id: "feat-auth",          name: "features/auth",         desc: "Login, registration, biometric, legal", kind: "ui",       col: 1, row: 1 },
+    { id: "feat-projects",      name: "features/projects",     desc: "Project mgmt, tenders, bids, pipeline",  kind: "ui",       col: 2, row: 1 },
+    { id: "feat-contacts",      name: "features/contacts",     desc: "Subcontractors and contacts",            kind: "ui",       col: 3, row: 1 },
+    { id: "feat-organization",  name: "features/organization", desc: "Org settings, seats, billing UI",        kind: "ui",       col: 4, row: 1 },
+    { id: "feat-settings",      name: "features/settings",     desc: "User settings, Excel tools UI",          kind: "ui",       col: 5, row: 1 },
+
+    // Row 2 — App shell / shared
+    { id: "app-shell",          name: "app/AppShell",          desc: "Providers, routing, view switcher",      kind: "ui",       col: 1, row: 2 },
+    { id: "shared-routing",     name: "shared/routing",        desc: "navigate(), buildAppUrl(), router",      kind: "ui",       col: 2, row: 2 },
+    { id: "feat-notifications", name: "features/notifications",desc: "Notification emitter & inbox",           kind: "ui",       col: 3, row: 2 },
+    { id: "ctx-auth",           name: "context/AuthContext",   desc: "Session, user, preferences",             kind: "state",    col: 4, row: 2 },
+    { id: "shared-dochub",      name: "shared/dochub",         desc: "DocHub integration hooks",               kind: "state",    col: 5, row: 2 },
+
+    // Row 3 — Hooks & state
+    { id: "hooks-app-data",     name: "hooks/useAppData",      desc: "Central CRUD state",                     kind: "state",    col: 1, row: 3 },
+    { id: "hooks-queries",      name: "hooks/queries",         desc: "React Query queries",                    kind: "state",    col: 2, row: 3 },
+    { id: "hooks-mutations",    name: "hooks/mutations",       desc: "React Query mutations",                  kind: "state",    col: 3, row: 3 },
+    { id: "ctx-feature",        name: "context/FeatureContext",desc: "Subscription tier gates",                kind: "state",    col: 4, row: 3 },
+    { id: "platform-adapter",   name: "services/platformAdapter", desc: "Web ↔ Electron bridge",               kind: "service",  col: 5, row: 3 },
+
+    // Row 4 — Services
+    { id: "svc-auth",           name: "services/authService",  desc: "Sign-in, sign-up, invitations",          kind: "service",  col: 1, row: 4 },
+    { id: "svc-db",             name: "services/dbAdapter",    desc: "Typed Supabase client wrapper",          kind: "service",  col: 2, row: 4 },
+    { id: "svc-gemini",         name: "services/geminiService",desc: "AI insights, contract extraction",       kind: "service",  col: 3, row: 4 },
+    { id: "svc-payments",       name: "services/paymentProviderService", desc: "Stripe checkout & portal",     kind: "service",  col: 4, row: 4 },
+    { id: "svc-excel",          name: "services/excelMergerService", desc: "Excel merge client",               kind: "service",  col: 5, row: 4 },
+
+    // Row 5 — Infra & desktop
+    { id: "infra-auth",         name: "infra/auth",            desc: "Token refresh, RLS helpers",             kind: "infra",    col: 1, row: 5 },
+    { id: "sb-functions",       name: "supabase/functions",    desc: "Deno edge functions",                    kind: "infra",    col: 2, row: 5 },
+    { id: "desktop-ipc",        name: "desktop/main/ipc",      desc: "IPC handlers (auth, files, MCP)",        kind: "infra",    col: 3, row: 5 },
+    { id: "desktop-services",   name: "desktop/main/services", desc: "Biometric, autoUpdater, pythonRunner",   kind: "infra",    col: 4, row: 5 },
+    { id: "server-py",          name: "server_py (Flask)",     desc: "Excel merge / unlock APIs",              kind: "infra",    col: 5, row: 5 },
+
+    // Row 6 — External systems
+    { id: "ext-sb-db",          name: "Supabase Postgres",     desc: "Tables, RLS, realtime",                  kind: "external", col: 1, row: 6 },
+    { id: "ext-gemini",         name: "Google Gemini",         desc: "LLM API for extraction",                 kind: "external", col: 2, row: 6 },
+    { id: "ext-stripe",         name: "Stripe",                desc: "Checkout, subscriptions, webhooks",      kind: "external", col: 3, row: 6 },
+    { id: "ext-gdrive",         name: "Google Drive / Graph",  desc: "DocHub document storage",                kind: "external", col: 4, row: 6 },
+    { id: "ext-todesktop",      name: "ToDesktop / GH Releases",desc: "Build pipeline & auto-update feed",     kind: "external", col: 5, row: 6 }
+  ],
+
+  workflows: [
+    {
+      id: "sign-in",
+      title: "Sign in (email + biometric)",
+      summary: "User authenticates via Supabase. On desktop, a biometric prompt can replace the password by unlocking credentials from the OS keychain.",
+      steps: [
+        { from: "feat-auth",       to: "ctx-auth",       pass: "LoginForm submit → calls <code>AuthContext.login(email, password)</code>" },
+        { from: "ctx-auth",        to: "svc-auth",       pass: "Delegates to <code>authService.login()</code> with credentials" },
+        { from: "svc-auth",        to: "svc-db",         pass: "Calls <code>supabase.auth.signInWithPassword()</code> via dbAdapter" },
+        { from: "svc-db",          to: "ext-sb-db",      pass: "HTTPS to GoTrue, returns <code>{ session, user }</code> + JWT" },
+        { from: "ctx-auth",        to: "desktop-ipc",    pass: "If desktop: stores credential via <code>biometric:setCredential</code> IPC" },
+        { from: "desktop-ipc",     to: "desktop-services", pass: "<code>biometricAuth.save(email, password)</code> → OS keychain" },
+        { from: "ctx-auth",        to: "shared-routing", pass: "<code>navigate('/app/dashboard')</code> after session set" }
+      ]
+    },
+    {
+      id: "invite-user",
+      title: "Invite a new user to org",
+      summary: "Admin sends an invitation email. A Supabase edge function creates the invite row and dispatches an email; the recipient consumes the token on accept.",
+      steps: [
+        { from: "feat-organization",to: "hooks-mutations", pass: "InviteMemberForm → <code>useInviteMemberMutation({ email, role })</code>" },
+        { from: "hooks-mutations",  to: "svc-auth",        pass: "Calls <code>authService.inviteUser(orgId, email, role)</code>" },
+        { from: "svc-auth",         to: "sb-functions",    pass: "<code>invokeAuthedFunction('org-invite-user', payload)</code>" },
+        { from: "sb-functions",     to: "ext-sb-db",       pass: "Inserts into <code>org_invitations</code>, signs a token" },
+        { from: "sb-functions",     to: "ext-stripe",      pass: "Optional: increment seat count for billing reconciliation" },
+        { from: "sb-functions",     to: "ext-sb-db",       pass: "Triggers transactional email via Postgres + SMTP" },
+        { from: "hooks-mutations",  to: "feat-notifications", pass: "Optimistic toast: 'Pozvánka odeslána'" },
+        { from: "feat-organization",to: "hooks-queries",   pass: "Invalidates <code>['org','members']</code> to refresh list" }
+      ]
+    },
+    {
+      id: "create-project",
+      title: "Create a new project",
+      summary: "User creates a project; the row is inserted with RLS-enforced ownership, then cached state is updated and the project view opens.",
+      steps: [
+        { from: "feat-projects",   to: "hooks-mutations", pass: "NewProjectModal → <code>useAddProjectMutation(form)</code>" },
+        { from: "hooks-mutations", to: "svc-db",          pass: "<code>dbAdapter.from('projects').insert({...})</code>" },
+        { from: "svc-db",          to: "ext-sb-db",       pass: "PostgREST insert; RLS sets <code>owner_id = auth.uid()</code>" },
+        { from: "ext-sb-db",       to: "svc-db",          pass: "Returns inserted row with server-generated id" },
+        { from: "hooks-mutations", to: "hooks-app-data",  pass: "Updates centralized cache, invalidates <code>['projects']</code>" },
+        { from: "hooks-app-data",  to: "feat-projects",   pass: "Re-renders project list" },
+        { from: "feat-projects",   to: "shared-routing",  pass: "<code>navigate(buildAppUrl('project', { projectId }))</code>" }
+      ]
+    },
+    {
+      id: "submit-bid",
+      title: "Submit a bid (pipeline drag)",
+      summary: "Dragging a bid card to the 'sent' column persists the status change, syncs DocHub folders, and emits a notification to project members.",
+      steps: [
+        { from: "feat-projects",    to: "hooks-mutations", pass: "Pipeline drag → <code>usePipelineBidActions.handleDrop()</code>" },
+        { from: "hooks-mutations",  to: "svc-db",          pass: "<code>updateBid({ projectId, categoryId, bidId, status:'sent' })</code>" },
+        { from: "svc-db",           to: "ext-sb-db",       pass: "Updates <code>bids</code> jsonb on project_details row" },
+        { from: "hooks-mutations",  to: "shared-dochub",   pass: "<code>runDocHubFallbackForCategory(categoryId)</code>" },
+        { from: "shared-dochub",    to: "sb-functions",    pass: "<code>invokeAuthedFunction('dochub-sync-category')</code>" },
+        { from: "sb-functions",     to: "ext-gdrive",      pass: "Drive/Graph API: ensure supplier_offers folder exists" },
+        { from: "hooks-mutations",  to: "feat-notifications", pass: "<code>emitBidStatusNotification(title, recipients)</code>" },
+        { from: "feat-notifications",to: "ext-sb-db",      pass: "Inserts into <code>notifications</code> table" }
+      ]
+    },
+    {
+      id: "gemini-extract",
+      title: "AI contract extraction (Gemini)",
+      summary: "When a contract document is attached, Gemini extracts vendor, price and dates; the structured result patches the demand category.",
+      steps: [
+        { from: "feat-projects",    to: "hooks-mutations", pass: "Document upload → <code>useExtractContractMutation(file)</code>" },
+        { from: "hooks-mutations",  to: "svc-gemini",      pass: "<code>contractExtractionService.extractContractFields(blob)</code>" },
+        { from: "svc-gemini",       to: "sb-functions",    pass: "<code>invoke('contract-extract', { fileRef })</code> (server-side key)" },
+        { from: "sb-functions",     to: "ext-gemini",      pass: "POST <code>generateContent</code> with prompt + PDF parts" },
+        { from: "ext-gemini",       to: "sb-functions",    pass: "Returns structured JSON (vendor, basePrice, dates)" },
+        { from: "sb-functions",     to: "ext-sb-db",       pass: "Persists extraction metadata + token usage" },
+        { from: "hooks-mutations",  to: "hooks-app-data",  pass: "Patches <code>category.extractedFields</code> in cache" },
+        { from: "hooks-app-data",   to: "feat-projects",   pass: "Tender view re-renders with extracted fields" }
+      ]
+    },
+    {
+      id: "excel-merge",
+      title: "Run Excel merge tool",
+      summary: "On desktop, the renderer talks to a local Flask process via IPC; on web, the same Flask container is reached over HTTP via the Vite proxy.",
+      steps: [
+        { from: "feat-settings",    to: "svc-excel",       pass: "ExcelMergerProSettings → <code>ExcelService.analyzeFile(files)</code>" },
+        { from: "svc-excel",        to: "platform-adapter",pass: "Routes call by platform: desktop IPC or fetch()" },
+        { from: "platform-adapter", to: "desktop-ipc",     pass: "Desktop: <code>native:runExcelMerge</code> with FormData" },
+        { from: "desktop-ipc",      to: "desktop-services",pass: "<code>pythonRunner.spawn('excel_merge_tool')</code>" },
+        { from: "desktop-services", to: "server-py",       pass: "Local Flask on :5001 receives multipart/form-data" },
+        { from: "platform-adapter", to: "server-py",       pass: "Web: HTTPS via Vite proxy → same Flask handler" },
+        { from: "server-py",        to: "svc-excel",       pass: "Returns merged .xlsx as ArrayBuffer" },
+        { from: "svc-excel",        to: "feat-settings",   pass: "Triggers browser download of merged workbook" }
+      ]
+    },
+    {
+      id: "dochub-autocreate",
+      title: "DocHub auto-create folders",
+      summary: "Creates a standardized folder hierarchy in Google Drive or OneDrive and stores the folder IDs on the project so subsequent uploads know where to land.",
+      steps: [
+        { from: "feat-projects",    to: "shared-dochub",   pass: "Documents tab → <code>useDocHubIntegration.autoCreate()</code>" },
+        { from: "shared-dochub",    to: "sb-functions",    pass: "<code>invokeAuthedFunction('dochub-autocreate', { projectId, provider })</code>" },
+        { from: "sb-functions",     to: "ext-sb-db",       pass: "Reads encrypted OAuth tokens from <code>dochub_oauth_tokens</code>" },
+        { from: "sb-functions",     to: "ext-gdrive",      pass: "Creates folder tree: project / categories / supplier_offers" },
+        { from: "ext-gdrive",       to: "sb-functions",    pass: "Returns folder IDs + webViewLinks" },
+        { from: "sb-functions",     to: "ext-sb-db",       pass: "Writes <code>project_details.docHubStructureV1</code>" },
+        { from: "shared-dochub",    to: "hooks-app-data",  pass: "Updates project cache with new structure" },
+        { from: "hooks-app-data",   to: "feat-notifications", pass: "<code>emitDocumentUploadedNotification()</code> per category" }
+      ]
+    },
+    {
+      id: "subscription-checkout",
+      title: "Subscription checkout (Stripe)",
+      summary: "Org owner picks a tier and seat count; the edge function builds a Stripe Checkout Session and the browser is redirected to hosted checkout. A webhook later closes the loop.",
+      steps: [
+        { from: "feat-organization",to: "ctx-feature",     pass: "Reads current tier to compute upgrade target" },
+        { from: "feat-organization",to: "svc-payments",    pass: "<code>createOrgCheckoutSession({ orgId, tier, seats })</code>" },
+        { from: "svc-payments",     to: "sb-functions",    pass: "<code>invoke('stripe-create-org-payment', payload)</code>" },
+        { from: "sb-functions",     to: "ext-stripe",      pass: "<code>stripe.checkout.sessions.create({...})</code>" },
+        { from: "ext-stripe",       to: "sb-functions",    pass: "Returns <code>{ checkoutUrl }</code>" },
+        { from: "svc-payments",     to: "shared-routing",  pass: "<code>window.location.assign(checkoutUrl)</code>" },
+        { from: "ext-stripe",       to: "sb-functions",    pass: "Async: <code>checkout.session.completed</code> webhook" },
+        { from: "sb-functions",     to: "ext-sb-db",       pass: "Updates <code>org_subscriptions.tier</code> + seats" },
+        { from: "ext-sb-db",        to: "ctx-feature",     pass: "Realtime sub. → feature gates re-evaluate" }
+      ]
+    },
+    {
+      id: "desktop-build",
+      title: "ToDesktop build & auto-update",
+      summary: "CI ships a new desktop build; running instances poll the update feed, download the differential, and install on next restart.",
+      steps: [
+        { from: "ext-todesktop",    to: "desktop-services",pass: "Publishes new release manifest (electron-builder feed)" },
+        { from: "desktop-services", to: "desktop-ipc",     pass: "<code>autoUpdater.checkForUpdates()</code> on interval" },
+        { from: "desktop-ipc",      to: "app-shell",       pass: "Emits <code>desktop:updateAvailable</code> to renderer" },
+        { from: "app-shell",        to: "feat-notifications", pass: "Banner: 'Nová verze je k dispozici'" },
+        { from: "feat-notifications",to: "platform-adapter",pass: "User confirms → <code>desktopAPI.installUpdate()</code>" },
+        { from: "platform-adapter", to: "desktop-ipc",     pass: "<code>autoUpdater:quitAndInstall</code> IPC" },
+        { from: "desktop-ipc",      to: "desktop-services",pass: "Writes downloaded binary, relaunches app" },
+        { from: "desktop-services", to: "ext-todesktop",   pass: "Telemetry: install success ping" }
+      ]
+    },
+    {
+      id: "feature-gate-check",
+      title: "Feature-gated UI render",
+      summary: "Before a tier-gated component mounts, the active subscription is read from context; if missing, an upgrade CTA is shown instead.",
+      steps: [
+        { from: "feat-projects",   to: "ctx-feature",     pass: "<code>&lt;RequireFeature feature=MODULE_PROJECTS&gt;</code>" },
+        { from: "ctx-feature",     to: "ctx-auth",        pass: "Reads <code>user.subscriptionTier</code> + org membership" },
+        { from: "ctx-feature",     to: "infra-auth",      pass: "On miss: fetch fresh tier via <code>refreshSubscription()</code>" },
+        { from: "infra-auth",      to: "svc-db",          pass: "<code>dbAdapter.rpc('current_user_tier')</code>" },
+        { from: "svc-db",          to: "ext-sb-db",       pass: "RLS RPC returns active tier for org" },
+        { from: "ctx-feature",     to: "feat-projects",   pass: "Renders feature OR upgrade CTA" }
+      ]
+    },
+    {
+      id: "agent-event",
+      title: "Agent event emission (MCP)",
+      summary: "When a demand is created, a CloudEvents-style event is emitted so the Agentic Flow MCP server can react to it.",
+      steps: [
+        { from: "feat-projects",    to: "hooks-mutations", pass: "Create category → <code>useAddCategoryMutation()</code>" },
+        { from: "hooks-mutations",  to: "svc-db",          pass: "Insert into <code>project_details.categories</code>" },
+        { from: "svc-db",           to: "ext-sb-db",       pass: "Postgres trigger fires" },
+        { from: "ext-sb-db",        to: "sb-functions",    pass: "Webhook → <code>agent-events</code> function" },
+        { from: "sb-functions",     to: "desktop-services",pass: "MCP server receives <code>com.tenderflow.demand.created</code>" },
+        { from: "desktop-services", to: "feat-notifications", pass: "Optional: surfaces event in agent panel" }
+      ]
+    }
+  ]
+};
+
+/* =========================================================================
+   RENDERER
+   ========================================================================= */
+const CELL_W = 230;
+const CELL_H = 116;
+const COL_GAP = 18;
+const ROW_GAP = 18;
+const PAD_X = 32;
+const PAD_Y = 24;
+
+function pkgPos(p) {
+  const x = PAD_X + (p.col - 1) * (CELL_W + COL_GAP);
+  const y = PAD_Y + (p.row - 1) * (CELL_H + ROW_GAP);
+  return { x, y, w: 210, h: 88 };
+}
+
+const pkgById = Object.fromEntries(ATLAS.packages.map(p => [p.id, p]));
+const canvas = document.getElementById("canvas");
+const svg = document.getElementById("arrows");
+
+function renderPackages() {
+  // Tier labels
+  const tiers = [
+    { row: 1, label: "UI features" },
+    { row: 2, label: "App shell" },
+    { row: 3, label: "Hooks / state" },
+    { row: 4, label: "Services" },
+    { row: 5, label: "Infra / desktop" },
+    { row: 6, label: "External" }
+  ];
+  tiers.forEach(t => {
+    const el = document.createElement("div");
+    el.className = "tier-label";
+    el.textContent = t.label;
+    const y = PAD_Y + (t.row - 1) * (CELL_H + ROW_GAP) + 56;
+    el.style.top = `${y}px`;
+    el.style.left = `${PAD_X - 6}px`;
+    canvas.appendChild(el);
+  });
+
+  ATLAS.packages.forEach(p => {
+    const pos = pkgPos(p);
+    const el = document.createElement("div");
+    el.className = `pkg kind-${p.kind}`;
+    el.id = `pkg-${p.id}`;
+    el.style.left = `${pos.x}px`;
+    el.style.top = `${pos.y}px`;
+    el.style.width = `${pos.w}px`;
+    el.innerHTML = `
+      <div class="badge">${p.kind}</div>
+      <div class="name">${p.name}</div>
+      <div class="desc">${p.desc}</div>
+    `;
+    canvas.appendChild(el);
+  });
+
+  // Set canvas dimensions explicitly so svg sizes correctly
+  const maxCol = Math.max(...ATLAS.packages.map(p => p.col));
+  const maxRow = Math.max(...ATLAS.packages.map(p => p.row));
+  const W = PAD_X * 2 + maxCol * CELL_W + (maxCol - 1) * COL_GAP;
+  const H = PAD_Y * 2 + maxRow * CELL_H + (maxRow - 1) * ROW_GAP;
+  canvas.style.width = `${W}px`;
+  canvas.style.height = `${H}px`;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("width", W);
+  svg.setAttribute("height", H);
+}
+
+function curvedPath(a, b) {
+  // Connect from center-edges. Choose anchor sides based on relative position.
+  const ax = a.x + a.w / 2;
+  const ay = a.y + a.h / 2;
+  const bx = b.x + b.w / 2;
+  const by = b.y + b.h / 2;
+  const dx = bx - ax;
+  const dy = by - ay;
+
+  let sx, sy, ex, ey;
+  if (Math.abs(dy) > Math.abs(dx) * 0.7) {
+    // mostly vertical: top/bottom anchors
+    sy = ay + (dy > 0 ? a.h / 2 : -a.h / 2);
+    sx = ax;
+    ey = by + (dy > 0 ? -b.h / 2 : b.h / 2);
+    ex = bx;
+  } else {
+    // mostly horizontal: left/right anchors
+    sx = ax + (dx > 0 ? a.w / 2 : -a.w / 2);
+    sy = ay;
+    ex = bx + (dx > 0 ? -b.w / 2 : b.w / 2);
+    ey = by;
+  }
+
+  const mx = (sx + ex) / 2;
+  const my = (sy + ey) / 2;
+  // Bezier control offset perpendicular to flow for a slight curve.
+  const perpX = -(ey - sy);
+  const perpY = (ex - sx);
+  const len = Math.hypot(perpX, perpY) || 1;
+  const off = Math.min(60, Math.hypot(ex - sx, ey - sy) * 0.18);
+  const cx = mx + (perpX / len) * off;
+  const cy = my + (perpY / len) * off;
+
+  return { d: `M ${sx} ${sy} Q ${cx} ${cy} ${ex} ${ey}`, mid: { x: cx, y: cy } };
+}
+
+/* =========================================================================
+   STATE & INTERACTION
+   ========================================================================= */
+let selectedWorkflowId = null;
+let currentStepIndex = -1;
+let playTimer = null;
+
+const actionsEl = document.getElementById("actions");
+const stepListEl = document.getElementById("step-list");
+const counterEl = document.getElementById("workflow-counter");
+const btnPrev = document.getElementById("btn-prev");
+const btnNext = document.getElementById("btn-next");
+const btnPlay = document.getElementById("btn-play");
+
+function renderActions() {
+  ATLAS.workflows.forEach(wf => {
+    const el = document.createElement("div");
+    el.className = "action";
+    el.dataset.id = wf.id;
+    el.innerHTML = `<div>${wf.title}</div><div class="meta">${wf.steps.length} steps</div>`;
+    el.addEventListener("click", () => selectWorkflow(wf.id));
+    actionsEl.appendChild(el);
+  });
+}
+
+function selectWorkflow(id) {
+  stopPlay();
+  selectedWorkflowId = id;
+  currentStepIndex = -1;
+  document.querySelectorAll(".action").forEach(a => {
+    a.classList.toggle("selected", a.dataset.id === id);
+  });
+  const wf = ATLAS.workflows.find(w => w.id === id);
+  renderSteps(wf);
+  drawFlow(wf);
+  updateControls();
+  counterEl.textContent = `${wf.title} — 0 / ${wf.steps.length}`;
+}
+
+function renderSteps(wf) {
+  stepListEl.innerHTML = "";
+  const summary = document.createElement("div");
+  summary.className = "step-summary";
+  summary.textContent = wf.summary;
+  stepListEl.appendChild(summary);
+
+  wf.steps.forEach((step, i) => {
+    const from = pkgById[step.from];
+    const to = pkgById[step.to];
+    const el = document.createElement("div");
+    el.className = "step";
+    el.dataset.idx = i;
+    el.innerHTML = `
+      <div class="step-head">
+        <span class="step-num">${i + 1}</span>
+        <span>${from.name}</span>
+        <span class="arrow">→</span>
+        <span>${to.name}</span>
+      </div>
+      <div class="pass">${step.pass}</div>
+    `;
+    el.addEventListener("click", () => setCurrentStep(i));
+    stepListEl.appendChild(el);
+  });
+}
+
+function drawFlow(wf, highlightIdx = -1) {
+  // Reset
+  document.querySelectorAll(".pkg").forEach(el => {
+    el.classList.remove("active", "current", "dim");
+  });
+  svg.innerHTML = "";
+
+  if (!wf) return;
+
+  // Collect involved packages
+  const involved = new Set();
+  wf.steps.forEach(s => { involved.add(s.from); involved.add(s.to); });
+
+  // Dim non-involved packages
+  document.querySelectorAll(".pkg").forEach(el => {
+    const id = el.id.replace(/^pkg-/, "");
+    if (!involved.has(id)) el.classList.add("dim");
+    else el.classList.add("active");
+  });
+
+  // Draw all flow lines
+  wf.steps.forEach((step, i) => {
+    const from = pkgPos(pkgById[step.from]);
+    const to = pkgPos(pkgById[step.to]);
+    const path = curvedPath(from, to);
+    const isCurrent = i === highlightIdx;
+
+    const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    p.setAttribute("d", path.d);
+    p.setAttribute("class", `flow-line${isCurrent ? " current" : ""}`);
+    p.setAttribute("marker-end", isCurrent ? "url(#arrow-current)" : "url(#arrow)");
+    svg.appendChild(p);
+
+    if (isCurrent) {
+      const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      label.setAttribute("x", path.mid.x);
+      label.setAttribute("y", path.mid.y - 4);
+      label.setAttribute("text-anchor", "middle");
+      label.setAttribute("class", "flow-label current");
+      label.textContent = `${i + 1}`;
+      svg.appendChild(label);
+    }
+  });
+
+  // Arrow markers
+  const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+  defs.innerHTML = `
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4cc2ff" opacity="0.5" />
+    </marker>
+    <marker id="arrow-current" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#ffb14c" />
+    </marker>
+  `;
+  svg.insertBefore(defs, svg.firstChild);
+
+  // Highlight current step packages
+  if (highlightIdx >= 0) {
+    const step = wf.steps[highlightIdx];
+    const fromEl = document.getElementById(`pkg-${step.from}`);
+    const toEl = document.getElementById(`pkg-${step.to}`);
+    fromEl?.classList.add("current");
+    toEl?.classList.add("current");
+  }
+}
+
+function setCurrentStep(idx) {
+  if (!selectedWorkflowId) return;
+  const wf = ATLAS.workflows.find(w => w.id === selectedWorkflowId);
+  currentStepIndex = Math.max(-1, Math.min(wf.steps.length - 1, idx));
+  document.querySelectorAll(".step").forEach(el => {
+    el.classList.toggle("current", Number(el.dataset.idx) === currentStepIndex);
+  });
+  drawFlow(wf, currentStepIndex);
+  updateControls();
+  counterEl.textContent = `${wf.title} — ${currentStepIndex + 1} / ${wf.steps.length}`;
+
+  // Scroll active step into view
+  const cur = document.querySelector(".step.current");
+  if (cur) cur.scrollIntoView({ block: "nearest", behavior: "smooth" });
+
+  // Scroll involved packages into view (center on current)
+  if (currentStepIndex >= 0) {
+    const step = wf.steps[currentStepIndex];
+    const toEl = document.getElementById(`pkg-${step.to}`);
+    if (toEl) toEl.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
+  }
+}
+
+function updateControls() {
+  if (!selectedWorkflowId) {
+    btnPrev.disabled = btnNext.disabled = btnPlay.disabled = true;
+    return;
+  }
+  const wf = ATLAS.workflows.find(w => w.id === selectedWorkflowId);
+  btnPrev.disabled = currentStepIndex <= 0;
+  btnNext.disabled = currentStepIndex >= wf.steps.length - 1;
+  btnPlay.disabled = false;
+  btnPlay.textContent = playTimer ? "■ Stop" : "▶ Play";
+}
+
+function play() {
+  if (!selectedWorkflowId) return;
+  const wf = ATLAS.workflows.find(w => w.id === selectedWorkflowId);
+  if (currentStepIndex >= wf.steps.length - 1) currentStepIndex = -1;
+  if (playTimer) { stopPlay(); return; }
+  playTimer = setInterval(() => {
+    if (currentStepIndex >= wf.steps.length - 1) { stopPlay(); return; }
+    setCurrentStep(currentStepIndex + 1);
+  }, 1200);
+  setCurrentStep(currentStepIndex + 1);
+  updateControls();
+}
+
+function stopPlay() {
+  if (playTimer) { clearInterval(playTimer); playTimer = null; }
+  updateControls();
+}
+
+btnPrev.addEventListener("click", () => setCurrentStep(currentStepIndex - 1));
+btnNext.addEventListener("click", () => setCurrentStep(currentStepIndex + 1));
+btnPlay.addEventListener("click", play);
+
+document.addEventListener("keydown", e => {
+  if (e.key === "ArrowRight") setCurrentStep(currentStepIndex + 1);
+  if (e.key === "ArrowLeft") setCurrentStep(currentStepIndex - 1);
+  if (e.key === " ") { e.preventDefault(); play(); }
+});
+
+/* =========================================================================
+   INIT
+   ========================================================================= */
+renderPackages();
+renderActions();
+// Auto-select the first workflow so the page is alive on first load.
+if (ATLAS.workflows.length) selectWorkflow(ATLAS.workflows[0].id);
+</script>
+</body>
+</html>
