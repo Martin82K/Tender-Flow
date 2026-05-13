@@ -95,10 +95,10 @@ describe("connectRealtimeVoice", () => {
       onEvent: vi.fn(),
     });
 
-    connection.sendEvent({ type: "response.create", response: { modalities: ["text"] } });
+    connection.sendEvent({ type: "response.create", response: { output_modalities: ["text"] } });
 
     expect(lastDataChannel.send).toHaveBeenCalledWith(
-      JSON.stringify({ type: "response.create", response: { modalities: ["text"] } }),
+      JSON.stringify({ type: "response.create", response: { output_modalities: ["text"] } }),
     );
   });
 });

@@ -17,6 +17,49 @@ let mainWindow: BrowserWindow | null = null;
 let mcpServerStop: (() => Promise<void>) | null = null;
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+const DESKTOP_BOOTSTRAP_ENV_KEYS = new Set([
+    'VITE_SUPABASE_URL',
+    'VITE_SUPABASE_ANON_KEY',
+]);
+
+const loadDesktopEnvFile = (filePath: string): void => {
+    if (!fs.existsSync(filePath)) return;
+
+    try {
+        const content = fs.readFileSync(filePath, 'utf-8');
+        for (const rawLine of content.split(/\r?\n/)) {
+            const line = rawLine.trim();
+            if (!line || line.startsWith('#')) continue;
+
+            const separatorIndex = line.indexOf('=');
+            if (separatorIndex <= 0) continue;
+
+            const key = line.slice(0, separatorIndex).trim();
+            if (!DESKTOP_BOOTSTRAP_ENV_KEYS.has(key)) continue;
+            if (!key || process.env[key] !== undefined) continue;
+
+            let value = line.slice(separatorIndex + 1).trim();
+            if (
+                (value.startsWith('"') && value.endsWith('"')) ||
+                (value.startsWith("'") && value.endsWith("'"))
+            ) {
+                value = value.slice(1, -1);
+            }
+
+            process.env[key] = value;
+        }
+    } catch (error) {
+        console.warn('[Env] Failed to load desktop env file:', path.basename(filePath));
+    }
+};
+
+const loadDesktopEnv = (): void => {
+    const appRoot = path.resolve(__dirname, '../..');
+    loadDesktopEnvFile(path.join(appRoot, '.env.local'));
+    loadDesktopEnvFile(path.join(appRoot, '.env'));
+};
+
+loadDesktopEnv();
 
 // Suppress Electron security warnings in dev mode.
 // In dev, Vite HMR requires 'unsafe-eval' in CSP which triggers the warning.

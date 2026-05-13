@@ -172,6 +172,25 @@ describe('IPC Auth Guard security', () => {
     });
   });
 
+  it('renderer session verifier hleda app storage key i sessionStorage', async () => {
+    const sender = createMockSender(1);
+    ipcAuthGuard.setMainWindow({ id: 1 } as any);
+    vi.mocked(sender.executeJavaScript).mockImplementation(async (script: string) => {
+      expect(script).toContain('crm-auth-token');
+      expect(script).toContain('sessionStorage');
+      expect(script).toContain('value.data && value.data.session');
+      return {
+        accessToken: 'valid-token',
+        expiresAt: Math.floor(Date.now() / 1000) + 60,
+      };
+    });
+    vi.mocked(global.fetch).mockResolvedValue({ ok: true } as Response);
+
+    await ipcAuthGuard.setAuthenticatedFromRenderer(sender, true);
+
+    expect(ipcAuthGuard.isAuthenticated()).toBe(true);
+  });
+
   it('renderer auth true odmitne expirovanou session pred citlivym IPC odemcenim', async () => {
     const sender = createMockSender(1);
     ipcAuthGuard.setMainWindow({ id: 1 } as any);

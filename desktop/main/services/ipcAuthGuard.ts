@@ -49,6 +49,7 @@ interface RendererSessionCandidate {
   expiresAt?: number | null;
 }
 
+const APP_AUTH_TOKEN_KEY = 'crm-auth-token';
 const SUPABASE_AUTH_TOKEN_KEY_PATTERN = /^sb-.+-auth-token$/;
 
 const toAbsolutePath = (targetPath: string): string => path.resolve(targetPath);
@@ -262,7 +263,12 @@ class IpcAuthGuard {
       (() => {
         const pickToken = (value) => {
           if (!value || typeof value !== 'object') return null;
-          const candidates = [value, value.currentSession, value.session].filter(Boolean);
+          const candidates = [
+            value,
+            value.currentSession,
+            value.session,
+            value.data && value.data.session
+          ].filter(Boolean);
           for (const candidate of candidates) {
             if (candidate && typeof candidate.access_token === 'string') {
               return {
@@ -274,14 +280,21 @@ class IpcAuthGuard {
           return null;
         };
 
-        for (let i = 0; i < localStorage.length; i += 1) {
-          const key = localStorage.key(i);
-          if (!key || !${SUPABASE_AUTH_TOKEN_KEY_PATTERN.toString()}.test(key)) continue;
-          try {
-            const token = pickToken(JSON.parse(localStorage.getItem(key) || '{}'));
-            if (token) return token;
-          } catch {
-            continue;
+        const isAuthStorageKey = (key) =>
+          key === ${JSON.stringify(APP_AUTH_TOKEN_KEY)} ||
+          ${SUPABASE_AUTH_TOKEN_KEY_PATTERN.toString()}.test(key);
+
+        const storages = [localStorage, sessionStorage].filter(Boolean);
+        for (const storage of storages) {
+          for (let i = 0; i < storage.length; i += 1) {
+            const key = storage.key(i);
+            if (!key || !isAuthStorageKey(key)) continue;
+            try {
+              const token = pickToken(JSON.parse(storage.getItem(key) || '{}'));
+              if (token) return token;
+            } catch {
+              continue;
+            }
           }
         }
         return null;
