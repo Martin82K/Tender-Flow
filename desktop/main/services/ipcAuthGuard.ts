@@ -45,7 +45,7 @@ const PRE_AUTH_CHANNELS = new Set([
 type PathAccessMode = 'read' | 'write';
 
 interface RendererSessionCandidate {
-  accessToken?: string;
+  accessToken?: string | null;
   expiresAt?: number | null;
 }
 
@@ -81,7 +81,11 @@ class IpcAuthGuard {
    * Renderer logout can clear the main auth gate, but renderer login must be
    * backed by a session token that main verifies independently.
    */
-  async setAuthenticatedFromRenderer(sender: WebContents, authenticated: boolean): Promise<void> {
+  async setAuthenticatedFromRenderer(
+    sender: WebContents,
+    authenticated: boolean,
+    session?: RendererSessionCandidate | null,
+  ): Promise<void> {
     if (!this.isTrustedSender(sender)) {
       throw new Error('IPC_AUTH_DENIED: untrusted sender for auth:setAuthenticated');
     }
@@ -91,7 +95,7 @@ class IpcAuthGuard {
       return;
     }
 
-    await this.verifyRendererSession(sender);
+    await this.verifyRendererSession(sender, session);
     this.setAuthenticated(true);
   }
 
@@ -228,8 +232,12 @@ class IpcAuthGuard {
     }
   }
 
-  private async verifyRendererSession(sender: WebContents): Promise<void> {
-    const session = await this.getRendererSessionCandidate(sender);
+  private async verifyRendererSession(
+    sender: WebContents,
+    sessionCandidate?: RendererSessionCandidate | null,
+  ): Promise<void> {
+    const session = this.normalizeRendererSessionCandidate(sessionCandidate)
+      ?? await this.getRendererSessionCandidate(sender);
     const accessToken = session?.accessToken;
     if (!accessToken || typeof accessToken !== 'string') {
       throw new Error('IPC_AUTH_DENIED: missing verifiable renderer session');
@@ -256,6 +264,15 @@ class IpcAuthGuard {
     if (!response.ok) {
       throw new Error('IPC_AUTH_DENIED: renderer session verification failed');
     }
+  }
+
+  private normalizeRendererSessionCandidate(input?: RendererSessionCandidate | null): RendererSessionCandidate | null {
+    if (!input || typeof input !== 'object') return null;
+    if (typeof input.accessToken !== 'string' || input.accessToken.trim().length === 0) return null;
+    return {
+      accessToken: input.accessToken,
+      expiresAt: typeof input.expiresAt === 'number' ? input.expiresAt : null,
+    };
   }
 
   private async getRendererSessionCandidate(sender: WebContents): Promise<RendererSessionCandidate | null> {

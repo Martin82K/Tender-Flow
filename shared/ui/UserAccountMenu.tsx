@@ -502,8 +502,8 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
       </div>
 
       {showLogoutConfirm && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+        <div className="tf-logout-confirm-modal fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="tf-logout-confirm-panel w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
             <h3 className="mb-2 text-xl font-bold text-white">
               Chcete ukončit aplikaci?
             </h3>
@@ -515,7 +515,7 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
               <button
                 type="button"
                 onClick={handleConfirmQuit}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-600 px-4 py-3 font-bold text-white transition-colors hover:bg-amber-500"
+                className="tf-logout-confirm-primary flex w-full items-center justify-center gap-2 rounded-xl bg-amber-600 px-4 py-3 font-bold text-white transition-colors hover:bg-amber-500"
               >
                 <span aria-hidden="true" className="material-symbols-outlined">
                   power_settings_new
@@ -525,7 +525,7 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
               <button
                 type="button"
                 onClick={handleConfirmLogout}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 font-medium text-slate-300 transition-colors hover:bg-slate-700"
+                className="tf-logout-confirm-secondary flex w-full items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 font-medium text-slate-300 transition-colors hover:bg-slate-700"
               >
                 <span aria-hidden="true" className="material-symbols-outlined">logout</span>
                 Odhlásit se
@@ -533,7 +533,7 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
               <button
                 type="button"
                 onClick={() => setShowLogoutConfirm(false)}
-                className="mt-1 w-full px-4 py-2 text-sm text-slate-500 transition-colors hover:text-white"
+                className="tf-logout-confirm-cancel mt-1 w-full px-4 py-2 text-sm text-slate-500 transition-colors hover:text-white"
               >
                 Zrušit
               </button>
