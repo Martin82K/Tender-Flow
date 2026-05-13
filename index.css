@@ -953,6 +953,59 @@ html[data-skin="industrial"] .tf-account-menu-panel .tf-account-menu-avatar {
   color: #1f1306 !important;
 }
 
+.tf-logout-confirm-panel {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+.tf-logout-confirm-panel h3 {
+  color: #ffffff !important;
+}
+
+.tf-logout-confirm-panel p {
+  color: #cbd5e1 !important;
+}
+
+.tf-logout-confirm-modal button {
+  opacity: 1 !important;
+}
+
+.tf-logout-confirm-modal button .material-symbols-outlined {
+  color: inherit !important;
+}
+
+.tf-logout-confirm-primary,
+.tf-logout-confirm-primary:hover {
+  background: #d97706 !important;
+  border-color: #d97706 !important;
+  color: #fff7ed !important;
+}
+
+.tf-logout-confirm-primary:hover {
+  background: #f59e0b !important;
+}
+
+.tf-logout-confirm-secondary {
+  background: #1e293b !important;
+  border-color: #475569 !important;
+  color: #e2e8f0 !important;
+}
+
+.tf-logout-confirm-secondary:hover {
+  background: #334155 !important;
+  color: #ffffff !important;
+}
+
+.tf-logout-confirm-cancel {
+  background: transparent !important;
+  color: #cbd5e1 !important;
+}
+
+.tf-logout-confirm-cancel:hover {
+  color: #ffffff !important;
+}
+
 html[data-skin="industrial"] .tf-schedule-view {
   background: transparent !important;
   color: var(--tf-skin-text);

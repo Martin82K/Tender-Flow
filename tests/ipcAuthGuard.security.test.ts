@@ -172,6 +172,26 @@ describe('IPC Auth Guard security', () => {
     });
   });
 
+  it('renderer auth true umi overit session predanou primo z auth eventu', async () => {
+    const sender = createMockSender(1);
+    ipcAuthGuard.setMainWindow({ id: 1 } as any);
+    vi.mocked(global.fetch).mockResolvedValue({ ok: true } as Response);
+
+    await ipcAuthGuard.setAuthenticatedFromRenderer(sender, true, {
+      accessToken: 'event-token',
+      expiresAt: Math.floor(Date.now() / 1000) + 60,
+    });
+
+    expect(ipcAuthGuard.isAuthenticated()).toBe(true);
+    expect(sender.executeJavaScript).not.toHaveBeenCalled();
+    expect(global.fetch).toHaveBeenCalledWith('https://example.supabase.co/auth/v1/user', {
+      headers: {
+        apikey: 'anon-key',
+        authorization: 'Bearer event-token',
+      },
+    });
+  });
+
   it('renderer session verifier hleda app storage key i sessionStorage', async () => {
     const sender = createMockSender(1);
     ipcAuthGuard.setMainWindow({ id: 1 } as any);

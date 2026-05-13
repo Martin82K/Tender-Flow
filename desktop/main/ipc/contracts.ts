@@ -128,7 +128,10 @@ export interface IpcContractMap {
   "backup:getFolder": { args: []; result: string };
   "backup:openFolder": { args: []; result: { success: boolean; error?: string } };
   "backup:clean": { args: []; result: number };
-  "auth:setAuthenticated": { args: [authenticated: boolean]; result: void };
+  "auth:setAuthenticated": {
+    args: [authenticated: boolean, session?: { accessToken?: string | null; expiresAt?: number | null }];
+    result: void;
+  };
   "app:setThemeSource": { args: [source: 'light' | 'dark' | 'system']; result: void };
 }
 

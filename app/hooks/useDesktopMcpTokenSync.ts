@@ -30,7 +30,7 @@ export const useDesktopMcpTokenSync = (): void => {
       }
       try {
         // Ensure main process knows we're authenticated before invoking guarded IPC.
-        await platformAdapter.auth.setAuthenticated(true);
+        await platformAdapter.auth.setAuthenticated(true, { accessToken: token });
         await mcpAdapter.setAuthToken(token);
         lastPushedToken = token;
       } catch (err) {
