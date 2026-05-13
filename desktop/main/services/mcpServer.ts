@@ -1,5 +1,6 @@
 import * as http from 'http';
 import * as crypto from 'crypto';
+import { getPublicEnvValue, getSupabasePublicConfig } from './publicEnv';
 
 type JsonRpcId = string | number | null;
 
@@ -281,8 +282,7 @@ const createEmptyProvider = (): McpDataProvider => ({
 });
 
 const getSupabaseConfig = () => {
-    const url = process.env.VITE_SUPABASE_URL || '';
-    const anonKey = process.env.VITE_SUPABASE_ANON_KEY || '';
+    const { url, anonKey } = getSupabasePublicConfig();
     if (!url || !anonKey) {
         throw new Error('Missing Supabase configuration.');
     }
@@ -319,7 +319,8 @@ const callFunction = async <T>(name: string, body?: unknown): Promise<T> => {
 const createSupabaseProvider = (): McpDataProvider => {
     return {
         isConfigured: () => {
-            return !!(process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_ANON_KEY && currentAuthToken);
+            const { url, anonKey } = getSupabasePublicConfig();
+            return !!(url && anonKey && currentAuthToken);
         },
         listProjects: async (input) => {
             const res = await callFunction<{ items: any[] }>('mcp-list-projects', {
@@ -535,7 +536,7 @@ const readJsonBody = async (req: http.IncomingMessage): Promise<any> => {
 const getRequiredClientId = (): string | null => {
     return (
         process.env.GOOGLE_OAUTH_CLIENT_ID_DESKTOP ||
-        process.env.VITE_GOOGLE_OAUTH_CLIENT_ID_DESKTOP ||
+        getPublicEnvValue('VITE_GOOGLE_OAUTH_CLIENT_ID_DESKTOP') ||
         null
     );
 };

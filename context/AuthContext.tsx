@@ -442,6 +442,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         if (!authEventRef.current || currentUser) {
           setUser(currentUser);
         }
+        if (currentUser) {
+          await notifyDesktopAuthState(true);
+        }
       } catch (error) {
         console.error("Error loading user:", error);
         if (!authEventRef.current) setUser(null);

@@ -1,0 +1,66 @@
+name: Desktop Artifacts
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  windows:
+    name: Windows installer
+    runs-on: windows-latest
+    env:
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      VITE_GOOGLE_OAUTH_CLIENT_ID_DESKTOP: ${{ secrets.VITE_GOOGLE_OAUTH_CLIENT_ID_DESKTOP }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Validate build configuration
+        shell: pwsh
+        run: |
+          if (-not $env:VITE_SUPABASE_URL) { throw "Missing GitHub secret VITE_SUPABASE_URL" }
+          if (-not $env:VITE_SUPABASE_ANON_KEY) { throw "Missing GitHub secret VITE_SUPABASE_ANON_KEY" }
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm run test:run
+
+      - name: Check import boundaries
+        run: npm run check:boundaries
+
+      - name: Check legacy structure freeze
+        run: npm run check:legacy-structure
+
+      - name: Build Windows desktop app
+        run: npm run desktop:build:win
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tender-flow-windows-${{ github.ref_name }}
+          path: |
+            dist-electron/*.exe
+            dist-electron/*.yml
+            dist-electron/*.blockmap
+          if-no-files-found: error
+
+      - name: Attach files to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist-electron/*.exe
+            dist-electron/*.yml
+            dist-electron/*.blockmap

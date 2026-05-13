@@ -2,6 +2,7 @@ import { BrowserWindow, WebContents, app } from 'electron';
 import * as fs from 'fs/promises';
 import * as os from 'os';
 import * as path from 'path';
+import { getSupabasePublicConfig } from './publicEnv';
 
 /**
  * IPC Authentication Guard
@@ -247,8 +248,7 @@ class IpcAuthGuard {
       throw new Error('IPC_AUTH_DENIED: renderer session expired');
     }
 
-    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-    const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+    const { url: supabaseUrl, anonKey: supabaseAnonKey } = getSupabasePublicConfig();
 
     if (!supabaseUrl || !supabaseAnonKey) {
       throw new Error('IPC_AUTH_DENIED: session verifier is not configured');
