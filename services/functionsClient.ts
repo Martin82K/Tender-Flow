@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import { logIncident } from "./incidentLogger";
+import { normalizePublicEnvValue } from "../shared/config/publicEnv";
 import { sanitizeLogText, summarizeErrorForLog } from "../shared/security/logSanitizer";
 
 type InvokeOptions = {
@@ -36,10 +37,11 @@ const buildPublicHeaders = (anonKey: string): Record<string, string> => ({
 });
 
 const getRequiredEnv = (key: "VITE_SUPABASE_URL" | "VITE_SUPABASE_ANON_KEY") => {
-  const value =
+  const value = normalizePublicEnvValue(
     key === "VITE_SUPABASE_URL"
       ? import.meta.env.VITE_SUPABASE_URL
-      : import.meta.env.VITE_SUPABASE_ANON_KEY;
+      : import.meta.env.VITE_SUPABASE_ANON_KEY,
+  );
   if (!value) throw new Error(`Missing env var: ${key}`);
   return value;
 };

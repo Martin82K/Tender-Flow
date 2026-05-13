@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { APP_VERSION } from "@/config/version";
 
 const STORAGE_KEY = "tf_whatsNew_lastSeen";
-const SKIPPED_WHATS_NEW_VERSIONS = new Set(["1.7.0"]);
+const SKIPPED_WHATS_NEW_VERSIONS = new Set(["1.7.0", "1.7.2"]);
 
 export const shouldShowWhatsNew = (
   appVersion: string,

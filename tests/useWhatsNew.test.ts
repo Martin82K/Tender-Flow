@@ -1,11 +1,13 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { APP_VERSION } from "@/config/version";
 import { shouldShowWhatsNew, useWhatsNew } from "@/features/whats-new/useWhatsNew";
 
 describe("shouldShowWhatsNew", () => {
   it("nezobrazí novinky pro přeskočenou verzi 1.7.0", () => {
     expect(shouldShowWhatsNew("1.7.0", null)).toBe(false);
     expect(shouldShowWhatsNew("1.7.0", "1.6.3")).toBe(false);
+    expect(shouldShowWhatsNew(APP_VERSION, null)).toBe(false);
   });
 
   it("zachová standardní chování pro další verze", () => {
@@ -33,6 +35,6 @@ describe("useWhatsNew", () => {
       result.current.dismiss();
     });
 
-    expect(localStorage.getItem("tf_whatsNew_lastSeen")).toBe("1.7.0");
+    expect(localStorage.getItem("tf_whatsNew_lastSeen")).toBe(APP_VERSION);
   });
 });

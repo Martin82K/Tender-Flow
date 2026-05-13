@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { normalizePublicEnvValue } from "../shared/config/publicEnv";
 
 export const dbAdapter = {
   from: <T extends string>(table: T) => supabase.from(table),
@@ -6,8 +7,8 @@ export const dbAdapter = {
   rpc: <T = unknown>(fn: string, args?: Record<string, unknown>) =>
     (supabase as any).rpc(fn, args),
   rpcRest: async <T = unknown>(fn: string, args?: Record<string, unknown>) => {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL ?? "";
-    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY ?? "";
+    const supabaseUrl = normalizePublicEnvValue(import.meta.env.VITE_SUPABASE_URL);
+    const supabaseAnonKey = normalizePublicEnvValue(import.meta.env.VITE_SUPABASE_ANON_KEY);
 
     if (!supabaseUrl || !supabaseAnonKey || typeof fetch !== "function") {
       return (supabase.rpc as any)(fn, args);
