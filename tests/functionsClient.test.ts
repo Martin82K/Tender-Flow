@@ -89,4 +89,55 @@ describe("functionsClient", () => {
     expect(result).toEqual({ success: true });
     expect(consoleLogSpy).not.toHaveBeenCalled();
   });
+
+  it("public funkce neposílá publishable key jako bearer token", async () => {
+    vi.stubEnv("VITE_SUPABASE_ANON_KEY", "sb_publishable_test-key");
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify({ success: true }),
+    });
+    vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
+
+    const { invokePublicFunction } = await import("../services/functionsClient");
+
+    await invokePublicFunction("request-password-reset", {
+      body: { email: "user@example.com" },
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://example.supabase.co/functions/v1/request-password-reset",
+      expect.objectContaining({
+        headers: {
+          apikey: "sb_publishable_test-key",
+          "content-type": "application/json",
+        },
+      }),
+    );
+  });
+
+  it("public funkce zachová legacy JWT anon key jako bearer token", async () => {
+    vi.stubEnv("VITE_SUPABASE_ANON_KEY", "eyJhbGciOiJIUzI1NiJ9.payload.signature");
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify({ success: true }),
+    });
+    vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
+
+    const { invokePublicFunction } = await import("../services/functionsClient");
+
+    await invokePublicFunction("request-password-reset", {
+      body: { email: "user@example.com" },
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://example.supabase.co/functions/v1/request-password-reset",
+      expect.objectContaining({
+        headers: {
+          apikey: "eyJhbGciOiJIUzI1NiJ9.payload.signature",
+          Authorization: "Bearer eyJhbGciOiJIUzI1NiJ9.payload.signature",
+          "content-type": "application/json",
+        },
+      }),
+    );
+  });
 });
