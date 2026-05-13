@@ -1,5 +1,7 @@
 import React from 'react';
 import { ProjectDetails } from '../../../types';
+import { openInExplorer } from '../../../services/fileSystemService';
+import { isDesktop } from '../../../services/platformAdapter';
 import { isProbablyUrl } from '../../../utils/docHub';
 
 const getSafeExternalUrl = (value: string | undefined): string | null => {
@@ -149,6 +151,10 @@ export const PriceListsSection: React.FC<PriceListsSectionProps> = ({
                                 if (isProbablyUrl(value)) {
                                     window.open(value, "_blank", "noopener,noreferrer");
                                     return;
+                                }
+                                if (isDesktop) {
+                                    const result = await openInExplorer(value);
+                                    if (result.success) return;
                                 }
                                 try {
                                     await navigator.clipboard.writeText(value);

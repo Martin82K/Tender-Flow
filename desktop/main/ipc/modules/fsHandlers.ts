@@ -201,7 +201,8 @@ export const registerFsHandlers = ({
   ipcMain.handle("fs:grantAccess", async (event, folderPath: string): Promise<boolean> => {
     requireAuth(event.sender, 'fs:grantAccess');
     if (typeof folderPath !== "string" || folderPath.trim().length === 0) return false;
-    const abs = path.resolve(folderPath.trim());
+    const resolvedFolderPath = await resolvePortableReadPath(folderPath.trim());
+    const abs = path.resolve(resolvedFolderPath);
 
     try {
       const stat = await fs.stat(abs);

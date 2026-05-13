@@ -17,6 +17,21 @@ const DEFAULT_RETRIES = 0;
 const wait = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
+const ensureDesktopIpcAuthenticated = async (
+  accessToken: string,
+  expiresAt?: number | null,
+): Promise<void> => {
+  if (typeof window === 'undefined') return;
+  // @ts-ignore - electronAPI is injected via preload
+  if (!window.electronAPI?.auth?.setAuthenticated) return;
+
+  // @ts-ignore - electronAPI is injected via preload
+  await window.electronAPI.auth.setAuthenticated(true, {
+    accessToken,
+    expiresAt: expiresAt ?? null,
+  });
+};
+
 const buildHeaders = (
   anonKey: string,
   bearer: string,
@@ -91,6 +106,7 @@ export const invokeAuthedFunction = async <TResponse>(
 ): Promise<TResponse> => {
   const { data } = await supabase.auth.getSession();
   const accessToken = data.session?.access_token;
+  const expiresAt = data.session?.expires_at ?? null;
   if (!accessToken) {
     throw new Error("Nejste přihlášen v aplikaci (chybí session).");
   }
@@ -111,6 +127,7 @@ export const invokeAuthedFunction = async <TResponse>(
     let lastError: unknown = null;
     for (let attempt = 0; attempt <= retries; attempt += 1) {
       try {
+        await ensureDesktopIpcAuthenticated(accessToken, expiresAt);
         // @ts-ignore
         const res = await window.electronAPI.net.request(url, {
           method,

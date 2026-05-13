@@ -5,7 +5,7 @@ import { invokeAuthedFunction } from '../services/functionsClient';
 import { resolveDocHubStructureV1, getDocHubProjectLinks, DEFAULT_DOCHUB_HIERARCHY, DocHubHierarchyItem, buildHierarchyTree, type DocHubStructureV1 } from '../utils/docHub';
 import { isRedirectUrlSafe } from '@shared/security/validateRedirectUrl';
 import { isDesktop, fileSystemAdapter, oauthAdapter } from '../services/platformAdapter';
-import { folderExists } from '../services/fileSystemService';
+import { folderExists, openInExplorer } from '../services/fileSystemService';
 
 export interface DocHubModalRequest {
     title: string;
@@ -818,7 +818,7 @@ export const useDocHubIntegration = (
                 } else if (isDesktop) {
                     // Open local path via Platform Adapter (Electron)
                     // Uses openInExplorer which works for folders
-                    await fileSystemAdapter.openInExplorer(link);
+                    await openInExplorer(link);
                 }
             }, [rootLink]),
             runAutoCreate,

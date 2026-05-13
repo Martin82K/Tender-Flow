@@ -10,6 +10,8 @@ const mockState = vi.hoisted(() => ({
   renameFolder: vi.fn(),
   openInExplorer: vi.fn(),
   openFile: vi.fn(),
+  grantAccess: vi.fn(),
+  getSession: vi.fn(),
 }));
 
 vi.mock("../services/incidentLogger", () => ({
@@ -18,6 +20,14 @@ vi.mock("../services/incidentLogger", () => ({
 
 vi.mock("../services/functionsClient", () => ({
   invokeAuthedFunction: vi.fn(),
+}));
+
+vi.mock("../services/supabase", () => ({
+  supabase: {
+    auth: {
+      getSession: mockState.getSession,
+    },
+  },
 }));
 
 vi.mock("../services/platformAdapter", () => ({
@@ -30,6 +40,7 @@ vi.mock("../services/platformAdapter", () => ({
     renameFolder: mockState.renameFolder,
     openInExplorer: mockState.openInExplorer,
     openFile: mockState.openFile,
+    grantAccess: mockState.grantAccess,
     folderExists: vi.fn(),
   },
   watcherAdapter: {
@@ -43,6 +54,22 @@ describe("fileSystemService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockState.openFile.mockResolvedValue({ success: false, error: "fail" });
+    mockState.grantAccess.mockResolvedValue(false);
+    mockState.getSession.mockResolvedValue({
+      data: {
+        session: {
+          access_token: "token-123",
+          expires_at: 1_900_000_000,
+        },
+      },
+    });
+    if (typeof window !== "undefined") {
+      (window as any).electronAPI = {
+        auth: {
+          setAuthenticated: vi.fn().mockResolvedValue(undefined),
+        },
+      };
+    }
   });
 
   it("loguje chybu při selhání vytvoření složky", async () => {
@@ -100,6 +127,20 @@ describe("fileSystemService", () => {
         }),
       }),
     );
+  });
+
+  it("pri selhani otevreni pozada o pristup a otevreni zopakuje", async () => {
+    mockState.openInExplorer
+      .mockResolvedValueOnce({ success: false, error: "Access denied" })
+      .mockResolvedValueOnce({ success: true });
+    mockState.grantAccess.mockResolvedValue(true);
+
+    const { openInExplorer } = await import("../services/fileSystemService");
+    const result = await openInExplorer("C:\\Users\\old\\OneDrive - BAU-STAV a.s\\Projekt");
+
+    expect(result).toEqual({ success: true });
+    expect(mockState.grantAccess).toHaveBeenCalledWith("C:\\Users\\old\\OneDrive - BAU-STAV a.s\\Projekt");
+    expect(mockState.openInExplorer).toHaveBeenCalledTimes(2);
   });
 
   it("pri ensureStructure bezpecne sanitizuje nazvy slozek nekompatibilni s Windows", async () => {
