@@ -102,6 +102,19 @@ export const CreateContactModal: React.FC<CreateContactModalProps> = ({
     const specializations = formData.specialization || [];
     const contactPersons = formData.contacts || [];
     const selectedRegions = formData.regions || [];
+    const handleRegistryLinkClick = (
+        e: React.MouseEvent<HTMLAnchorElement>,
+        url: string,
+    ) => {
+        e.stopPropagation();
+        if (!isDesktop) return;
+
+        e.preventDefault();
+        shellAdapter.openExternal(url).catch(err => {
+            console.warn("NepodaĹ™ilo se otevĹ™Ă­t odkaz:", err);
+            window.open(url, "_blank", "noopener,noreferrer");
+        });
+    };
 
     const companyValidation = useMemo(
         () => validateSubcontractorCompanyName(formData.company || ""),
@@ -655,6 +668,8 @@ export const CreateContactModal: React.FC<CreateContactModalProps> = ({
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             onClick={e => {
+                                                handleRegistryLinkClick(e, link.url);
+                                                if (e.defaultPrevented) return;
                                                 if (isDesktop) {
                                                     e.preventDefault();
                                                     shellAdapter
