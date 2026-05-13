@@ -199,7 +199,7 @@ export const VoiceAssistantProvider: React.FC<{
     connectionRef.current?.sendEvent({
       type: "response.create",
       response: {
-        modalities: responseModalitiesForMode(mode),
+        output_modalities: responseModalitiesForMode(mode),
         ...(mode === "conversation"
           ? {
               instructions:
@@ -264,7 +264,7 @@ export const VoiceAssistantProvider: React.FC<{
       connectionRef.current?.sendEvent({
         type: "response.create",
         response: {
-          modalities: responseModalitiesForMode(activeRealtimeResponseModeRef.current),
+          output_modalities: responseModalitiesForMode(activeRealtimeResponseModeRef.current),
         },
       });
       return;
@@ -291,6 +291,7 @@ export const VoiceAssistantProvider: React.FC<{
     if (
       type.includes("response.output_audio_transcript.delta") ||
       type.includes("response.audio_transcript.delta") ||
+      type.includes("response.output_text.delta") ||
       type.includes("response.text.delta")
     ) {
       const delta = getEventString(event, ["delta", "text"]);
@@ -304,6 +305,7 @@ export const VoiceAssistantProvider: React.FC<{
     if (
       type.includes("response.output_audio_transcript.done") ||
       type.includes("response.audio_transcript.done") ||
+      type.includes("response.output_text.done") ||
       type.includes("response.text.done")
     ) {
       const text = getEventString(event, ["transcript", "text"]) || assistantDeltaRef.current;
