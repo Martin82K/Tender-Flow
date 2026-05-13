@@ -1,0 +1,43 @@
+{
+  "name": "tender-flow-cz",
+  "version": "0.1.0",
+  "description": "Tender Flow CZ plugin for connecting Codex to the remote Tender Flow MCP server.",
+  "author": {
+    "name": "Tender Flow",
+    "url": "https://tenderflow.cz"
+  },
+  "homepage": "https://tenderflow.cz",
+  "license": "UNLICENSED",
+  "keywords": [
+    "tender-flow",
+    "crm",
+    "construction",
+    "tenders",
+    "mcp"
+  ],
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Tender Flow CZ",
+    "shortDescription": "Connect to Tender Flow construction tender data through remote MCP.",
+    "longDescription": "Use Tender Flow CZ to connect Codex to the remote Tender Flow MCP server. The server uses OAuth authentication, Supabase RLS, audited read-only discovery tools, and a guarded prepare-confirm-execute flow for supported write actions.",
+    "developerName": "Tender Flow",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://tenderflow.cz",
+    "privacyPolicyURL": "https://tenderflow.cz/privacy",
+    "termsOfServiceURL": "https://tenderflow.cz/terms",
+    "defaultPrompt": [
+      "Search Tender Flow projects and fetch relevant tender details.",
+      "List upcoming Tender Flow deadlines for visible projects.",
+      "Prepare a Tender Flow task proposal for my approval."
+    ],
+    "brandColor": "#0F766E",
+    "composerIcon": "./assets/tender-flow-cz-small.svg",
+    "logo": "./assets/tender-flow-cz-logo.svg",
+    "screenshots": []
+  }
+}
