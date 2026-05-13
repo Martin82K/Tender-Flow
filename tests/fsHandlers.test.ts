@@ -163,4 +163,34 @@ describe("fsHandlers", () => {
     expect(output).toEqual(Buffer.from("ok"));
     expect(normalizePathForAssert(fsMock.readFile.mock.calls[0][0])).toBe("/Users/tester/Projects/Tender/input.xlsx");
   });
+
+  it("grantAccess potvrzuje uz premapovanou portable cestu", async () => {
+    const { dialog } = await import("electron");
+    fsMock.realpath.mockImplementation(async (targetPath: string) => targetPath);
+    fsMock.stat.mockImplementation(async () => ({ isDirectory: () => true }));
+    vi.mocked(dialog.showOpenDialog).mockResolvedValue({
+      canceled: false,
+      filePaths: ["C:\\Users\\tester\\OneDrive - BAU-STAV a.s\\Projekt"],
+    } as any);
+
+    const resolvePortableReadPath = vi.fn(async () => "C:\\Users\\tester\\OneDrive - BAU-STAV a.s\\Projekt");
+
+    const { registerFsHandlers } = await import("../desktop/main/ipc/modules/fsHandlers");
+    registerFsHandlers({
+      resolvePortableReadPath,
+      resolvePortableWritePath: vi.fn(async (value: string) => value),
+      requireAuth: vi.fn(),
+    });
+
+    await expect(
+      handlers.get("fs:grantAccess")?.({}, "C:\\Users\\old\\OneDrive - BAU-STAV a.s\\Projekt"),
+    ).resolves.toBe(true);
+
+    expect(resolvePortableReadPath).toHaveBeenCalledWith("C:\\Users\\old\\OneDrive - BAU-STAV a.s\\Projekt");
+    expect(vi.mocked(dialog.showOpenDialog).mock.calls.at(-1)?.[0]).toEqual(
+      expect.objectContaining({
+        defaultPath: "C:\\Users\\tester\\OneDrive - BAU-STAV a.s\\Projekt",
+      }),
+    );
+  });
 });

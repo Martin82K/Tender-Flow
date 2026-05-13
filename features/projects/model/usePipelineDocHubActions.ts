@@ -1,5 +1,5 @@
 import { invokeAuthedFunction } from "@infra/functions/functionsClient";
-import { folderExists } from "@infra/files/fileSystemService";
+import { folderExists, openInExplorer } from "@infra/files/fileSystemService";
 import { logIncident } from "@infra/diagnostics/incidentLogger";
 import platformAdapter from "@infra/platform/platformAdapter";
 import {
@@ -62,15 +62,13 @@ export const usePipelineDocHubActions = ({
     );
     if (isDocHubEnabled && !isProbablyUrl(path)) {
       try {
-        const { fileSystemAdapter, isDesktop } =
-          await import("@infra/platform/platformAdapter");
-        console.log("[DocHub] isDesktop:", isDesktop);
-        if (isDesktop) {
+        console.log("[DocHub] isDesktop:", platformAdapter.isDesktop);
+        if (platformAdapter.isDesktop) {
           console.log(
-            "[DocHub] Calling fileSystemAdapter.openInExplorer with path:",
+            "[DocHub] Calling openInExplorer with path:",
             path,
           );
-          const result = await fileSystemAdapter.openInExplorer(path);
+          const result = await openInExplorer(path);
           if (result.success) {
             console.log("[DocHub] openInExplorer completed successfully");
             return;

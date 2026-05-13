@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { trackFeatureUsage } from '../../services/featureUsageService';
+import { openInExplorer } from '../../services/fileSystemService';
 import platformAdapter from '../../services/platformAdapter';
 import type {
   BidComparisonAutoConfig,
@@ -397,7 +398,7 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
 
   const openTenderFolder = useCallback(async () => {
     if (!tenderFolderPath.trim()) return;
-    await platformAdapter.fs.openInExplorer(tenderFolderPath);
+    await openInExplorer(tenderFolderPath);
   }, [tenderFolderPath]);
 
   const toggleAutoMode = useCallback(

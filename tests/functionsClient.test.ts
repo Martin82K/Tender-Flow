@@ -28,9 +28,13 @@ describe("functionsClient", () => {
       data: {
         session: {
           access_token: "token-123",
+          expires_at: 1_900_000_000,
         },
       },
     });
+    if (typeof window !== "undefined") {
+      delete (window as any).electronAPI;
+    }
   });
 
   it("po vycerpani retry zaloguje selhani edge funkce", async () => {
@@ -88,6 +92,38 @@ describe("functionsClient", () => {
 
     expect(result).toEqual({ success: true });
     expect(consoleLogSpy).not.toHaveBeenCalled();
+  });
+
+  it("desktop volani pred net requestem potvrdi IPC auth tokenem ze session", async () => {
+    const setAuthenticated = vi.fn().mockResolvedValue(undefined);
+    const request = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      text: JSON.stringify({ success: true }),
+    });
+    (window as any).electronAPI = {
+      platform: { isDesktop: true },
+      auth: { setAuthenticated },
+      net: { request },
+    };
+
+    const { invokeAuthedFunction } = await import("../services/functionsClient");
+
+    await expect(invokeAuthedFunction("ai-proxy")).resolves.toEqual({ success: true });
+
+    expect(setAuthenticated).toHaveBeenCalledWith(true, {
+      accessToken: "token-123",
+      expiresAt: 1_900_000_000,
+    });
+    expect(request).toHaveBeenCalledWith(
+      "https://example.supabase.co/functions/v1/ai-proxy",
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: "Bearer token-123",
+        }),
+      }),
+    );
   });
 
   it("public funkce neposílá publishable key jako bearer token", async () => {
