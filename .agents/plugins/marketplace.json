@@ -1,0 +1,20 @@
+{
+  "name": "tender-flow",
+  "interface": {
+    "displayName": "Tender Flow"
+  },
+  "plugins": [
+    {
+      "name": "tender-flow-cz",
+      "source": {
+        "source": "local",
+        "path": "./plugins/tender-flow-cz"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

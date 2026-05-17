@@ -10,6 +10,7 @@
 
 import { isDesktop, fileSystemAdapter, watcherAdapter } from './platformAdapter';
 import { invokeAuthedFunction } from './functionsClient';
+import { supabase } from './supabase';
 import type { DocHubStructureV1, DocHubHierarchyItem } from '../utils/docHub';
 import {
     sanitizeSubcontractorCompanyName,
@@ -85,6 +86,21 @@ const logFileSystemIncident = async (input: {
     } catch {
         // incident logging must not block the primary filesystem flow
     }
+};
+
+const ensureDesktopIpcAuthenticated = async (): Promise<void> => {
+    if (!isDesktop || !window.electronAPI?.auth?.setAuthenticated) return;
+
+    const { data } = await supabase.auth.getSession();
+    const accessToken = data.session?.access_token;
+    if (!accessToken) {
+        throw new Error("Nejste přihlášen v aplikaci (chybí session).");
+    }
+
+    await window.electronAPI.auth.setAuthenticated(true, {
+        accessToken,
+        expiresAt: data.session?.expires_at ?? null,
+    });
 };
 
 const getFolderTargetSegment = (pathOrName: string): string => {
@@ -844,6 +860,7 @@ export async function ensureStructure(
 export async function openPath(path: string): Promise<{ success: boolean; error?: string }> {
     if (isDesktop) {
         try {
+            await ensureDesktopIpcAuthenticated();
             const explorerResult = await fileSystemAdapter.openInExplorer(path);
             if (explorerResult.success) {
                 return { success: true };
@@ -916,7 +933,44 @@ export async function openPath(path: string): Promise<{ success: boolean; error?
 export async function openInExplorer(folderPath: string): Promise<{ success: boolean; error?: string }> {
     if (isDesktop) {
         try {
+            await ensureDesktopIpcAuthenticated();
             const result = await fileSystemAdapter.openInExplorer(folderPath);
+            if (result.success) {
+                return result;
+            }
+
+            let retryResult: { success: boolean; error?: string } | null = null;
+            try {
+                const granted = await fileSystemAdapter.grantAccess(folderPath);
+                if (granted) {
+                    retryResult = await fileSystemAdapter.openInExplorer(folderPath);
+                    if (retryResult.success) {
+                        await logFileSystemIncident({
+                            severity: "info",
+                            code: "FS_OPEN_IN_EXPLORER_GRANTED",
+                            message: `Otevreni slozky uspelo po udeleni pristupu: ${folderPath}`,
+                            action: "open_in_explorer",
+                            operation: "file_system.open_in_explorer",
+                            actionStatus: "success",
+                            folderPath,
+                            reason: result.error || "access_granted_retry",
+                        });
+                        return retryResult;
+                    }
+                }
+            } catch (grantError) {
+                await logFileSystemIncident({
+                    severity: "warn",
+                    code: "FS_OPEN_IN_EXPLORER_GRANT_FAILED",
+                    message: `Udeleni pristupu ke slozce selhalo: ${grantError instanceof Error ? grantError.message : String(grantError)}`,
+                    action: "open_in_explorer",
+                    operation: "file_system.open_in_explorer",
+                    actionStatus: "fallback",
+                    folderPath,
+                    reason: grantError instanceof Error ? grantError.message : String(grantError),
+                    stack: grantError instanceof Error ? grantError.stack : null,
+                });
+            }
             if (!result.success) {
                 await logFileSystemIncident({
                     severity: "error",
@@ -929,7 +983,7 @@ export async function openInExplorer(folderPath: string): Promise<{ success: boo
                     reason: result.error || "unknown_error",
                 });
             }
-            return result;
+            return retryResult || result;
         } catch (e) {
             const message = e instanceof Error ? e.message : String(e);
             await logFileSystemIncident({

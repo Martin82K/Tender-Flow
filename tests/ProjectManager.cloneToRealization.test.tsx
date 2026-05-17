@@ -96,6 +96,40 @@ describe("ProjectManager clone to realization", () => {
     expect(screen.queryAllByTitle("Přepnout do realizace")).toHaveLength(1);
   });
 
+  it("odliší stavové značky soutěže a realizace stejně jako sidebar", () => {
+    renderProjectManager([
+      {
+        id: "tender-1",
+        name: "Soutěž A",
+        location: "Praha",
+        status: "tender",
+        ownerId: "user-1",
+      },
+      {
+        id: "real-1",
+        name: "Realizace B",
+        location: "Brno",
+        status: "realization",
+        ownerId: "user-1",
+      },
+    ]);
+
+    const tenderBadge = screen.getByLabelText("Soutěž");
+    const realizationBadge = screen.getByLabelText("Realizace");
+
+    expect(tenderBadge).toHaveAttribute("data-help-id", "pm-project-status-badge");
+    expect(tenderBadge).toHaveAttribute("data-status", "tender");
+    expect(tenderBadge).toHaveTextContent("S");
+    expect(tenderBadge).toHaveClass("bg-blue-500/20");
+    expect(tenderBadge).toHaveClass("text-blue-400");
+
+    expect(realizationBadge).toHaveAttribute("data-help-id", "pm-project-status-badge");
+    expect(realizationBadge).toHaveAttribute("data-status", "realization");
+    expect(realizationBadge).toHaveTextContent("R");
+    expect(realizationBadge).toHaveClass("bg-amber-500/20");
+    expect(realizationBadge).toHaveClass("text-amber-400");
+  });
+
   it("po potvrzení zavolá klonovací akci", async () => {
     renderProjectManager([
       {

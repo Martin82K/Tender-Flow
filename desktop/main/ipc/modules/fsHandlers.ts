@@ -1,7 +1,7 @@
-import { app, dialog, ipcMain, shell } from "electron";
+import { dialog, ipcMain, shell } from "electron";
 import * as fs from "fs/promises";
-import * as os from "os";
 import * as path from "path";
+import { ipcAuthGuard } from "../../services/ipcAuthGuard";
 import type { FileInfo, FolderInfo } from "../../types";
 
 interface FsHandlerDependencies {
@@ -28,69 +28,17 @@ const shouldIgnore = (filename: string): boolean => {
   });
 };
 
-const toAbsolutePath = (targetPath: string): string => path.resolve(targetPath);
-
-const isPathInsideRoot = (targetPath: string, rootPath: string): boolean => {
-  const relative = path.relative(rootPath, targetPath);
-  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
-};
-
 // User-granted roots: paths explicitly selected via native dialog or manually confirmed
-const userGrantedRoots = new Set<string>();
+export const addUserGrantedRoot = (rootPath: string): Promise<string> =>
+  ipcAuthGuard.addUserGrantedRoot(rootPath);
 
-export const addUserGrantedRoot = (rootPath: string): void => {
-  userGrantedRoots.add(toAbsolutePath(rootPath));
-};
+const ensurePathAllowed = (requestedPath: string, mode: "read" | "write"): Promise<string> =>
+  ipcAuthGuard.ensurePathAllowed(requestedPath, mode);
 
-const getAllowedRoots = (): string[] => {
-  const roots = [
-    app.getPath("home"),
-    app.getPath("userData"),
-    os.tmpdir(),
-    ...userGrantedRoots,
-  ].map(toAbsolutePath);
+const isWindowsAbsolutePath = (value: string): boolean => /^[A-Za-z]:[\\/]/.test(value);
 
-  return Array.from(new Set(roots));
-};
-
-const ensurePathAllowed = async (
-  requestedPath: string,
-  mode: "read" | "write",
-): Promise<string> => {
-  if (typeof requestedPath !== "string" || requestedPath.trim().length === 0) {
-    throw new Error("Access denied: invalid path");
-  }
-
-  const normalizedPath = toAbsolutePath(requestedPath);
-  const allowedRoots = getAllowedRoots();
-
-  const isInsideAllowedRoot = (targetPath: string): boolean =>
-    allowedRoots.some((root) => isPathInsideRoot(targetPath, root));
-
-  if (mode === "read") {
-    const realPath = await fs.realpath(normalizedPath);
-    if (!isInsideAllowedRoot(realPath)) {
-      throw new Error(`Access denied: path is outside allowed roots (${realPath})`);
-    }
-    return realPath;
-  }
-
-  // write mode: target may not exist, so verify nearest existing parent realpath
-  let parentDir = normalizedPath;
-  while (parentDir !== path.dirname(parentDir)) {
-    try {
-      const realParent = await fs.realpath(parentDir);
-      if (!isInsideAllowedRoot(realParent)) {
-        throw new Error(`Access denied: path is outside allowed roots (${realParent})`);
-      }
-      return normalizedPath;
-    } catch {
-      parentDir = path.dirname(parentDir);
-    }
-  }
-
-  throw new Error("Access denied: unable to resolve path within allowed roots");
-};
+const resolveNativeOrPortableAbsolutePath = (value: string): string =>
+  path.isAbsolute(value) || isWindowsAbsolutePath(value) ? value : path.resolve(value);
 
 export const registerFsHandlers = ({
   resolvePortableReadPath,
@@ -110,7 +58,7 @@ export const registerFsHandlers = ({
     }
 
     const folderPath = result.filePaths[0];
-    addUserGrantedRoot(folderPath);
+    await addUserGrantedRoot(folderPath);
     return {
       path: folderPath,
       name: path.basename(folderPath),
@@ -258,7 +206,8 @@ export const registerFsHandlers = ({
   ipcMain.handle("fs:grantAccess", async (event, folderPath: string): Promise<boolean> => {
     requireAuth(event.sender, 'fs:grantAccess');
     if (typeof folderPath !== "string" || folderPath.trim().length === 0) return false;
-    const abs = toAbsolutePath(folderPath.trim());
+    const resolvedFolderPath = await resolvePortableReadPath(folderPath.trim());
+    const abs = resolveNativeOrPortableAbsolutePath(resolvedFolderPath);
 
     try {
       const stat = await fs.stat(abs);
@@ -277,10 +226,14 @@ export const registerFsHandlers = ({
 
     if (confirmation.canceled || confirmation.filePaths.length === 0) return false;
 
-    const selectedPath = toAbsolutePath(confirmation.filePaths[0]);
-    if (selectedPath !== abs) return false;
+    const selectedPath = resolveNativeOrPortableAbsolutePath(confirmation.filePaths[0]);
+    const [selectedRealPath, requestedRealPath] = await Promise.all([
+      fs.realpath(selectedPath),
+      fs.realpath(abs),
+    ]);
+    if (selectedRealPath !== requestedRealPath) return false;
 
-    addUserGrantedRoot(selectedPath);
+    await addUserGrantedRoot(selectedRealPath);
     return true;
   });
 };

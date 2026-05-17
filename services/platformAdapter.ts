@@ -783,14 +783,20 @@ export const backupAdapter = {
  * This enables the IPC auth guard in the main process.
  */
 export const authNotificationAdapter = {
-    async setAuthenticated(authenticated: boolean): Promise<void> {
+    async setAuthenticated(
+        authenticated: boolean,
+        session?: { accessToken?: string | null; expiresAt?: number | null },
+    ): Promise<boolean> {
         if (isDesktop && window.electronAPI?.auth?.setAuthenticated) {
             try {
-                await window.electronAPI.auth.setAuthenticated(authenticated);
+                await window.electronAPI.auth.setAuthenticated(authenticated, session);
+                return true;
             } catch (e) {
                 console.warn('[authNotificationAdapter] Failed to notify main process:', e);
+                return false;
             }
         }
+        return true;
     },
 };
 

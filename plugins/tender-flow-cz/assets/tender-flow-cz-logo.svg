@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 120" role="img" aria-labelledby="title">
+  <title>Tender Flow CZ</title>
+  <rect width="320" height="120" rx="18" fill="#0F766E"/>
+  <path d="M36 30h88v22H91v50H69V52H36z" fill="#FFFFFF"/>
+  <path d="M104 66h22v36h-22z" fill="#99F6E4"/>
+  <text x="150" y="58" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="700" fill="#FFFFFF">Tender Flow</text>
+  <text x="150" y="88" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="600" fill="#CCFBF1">CZ MCP</text>
+</svg>

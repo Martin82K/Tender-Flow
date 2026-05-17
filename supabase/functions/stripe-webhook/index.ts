@@ -24,6 +24,7 @@ import {
   mapStripeSubscriptionStatusToInternal,
   parseStripeMetadata,
   retrieveSubscription,
+  resolveStripePlanFromPriceId,
   stripePeriodEndToDate,
   validateStripeId,
   verifyStripeWebhookSignature,
@@ -123,15 +124,21 @@ const resolveUserId = async (
   subscriptionId: string | null,
   customerId: string | null,
 ): Promise<string | null> => {
-  if (metadataUserId) return metadataUserId;
+  let resolvedUserId: string | null = null;
   if (subscriptionId && validateStripeId(subscriptionId, "subscription")) {
-    const byId = await resolveUserIdBySubscription(supabase, subscriptionId);
-    if (byId) return byId;
+    resolvedUserId = await resolveUserIdBySubscription(supabase, subscriptionId);
   }
-  if (customerId && validateStripeId(customerId, "customer")) {
-    return await resolveUserIdByCustomer(supabase, customerId);
+  if (!resolvedUserId && customerId && validateStripeId(customerId, "customer")) {
+    resolvedUserId = await resolveUserIdByCustomer(supabase, customerId);
   }
-  return null;
+  if (resolvedUserId) {
+    if (metadataUserId && metadataUserId !== resolvedUserId) {
+      console.warn("Stripe metadata userId mismatch; ignoring event target");
+      return null;
+    }
+    return resolvedUserId;
+  }
+  return metadataUserId ?? null;
 };
 
 const registerStripeWebhookEvent = async (
@@ -152,7 +159,14 @@ const registerStripeWebhookEvent = async (
   });
 
   if (error) {
-    if (error.code === "23505") return { duplicate: true };
+    if (error.code === "23505") {
+      const { data } = await supabase
+        .from("billing_webhook_events")
+        .select("status")
+        .eq("event_id", `stripe-${eventId}`)
+        .maybeSingle();
+      return { duplicate: (data?.status as string | undefined) !== "failed" };
+    }
     throw error;
   }
   return { duplicate: false };
@@ -286,10 +300,10 @@ const fetchSubscriptionForEvent = async (
 const tierFromSubscription = (
   sub: StripeSubscription | null,
   fallback: string | null,
-): string => {
-  const meta = parseStripeMetadata(sub?.metadata ?? null);
-  if (meta.tier) return meta.tier;
-  return fallback ?? "starter";
+): Tier | null => {
+  const plan = resolveStripePlanFromPriceId(sub?.items?.data?.[0]?.price?.id ?? null);
+  if (plan) return plan.tier;
+  return (fallback as Tier | null) ?? null;
 };
 
 const handleCheckoutCompleted = async (
@@ -320,7 +334,10 @@ const handleCheckoutCompleted = async (
     return { status: "ignored", note: "Nelze získat subscription detail" };
   }
 
-  const tier = tierFromSubscription(subscription, meta.tier ?? null) as Tier;
+  const tier = tierFromSubscription(subscription, null);
+  if (!tier) {
+    return { status: "ignored", note: "Nelze ověřit Stripe price ID pro subscription" };
+  }
   const expiresAt = stripePeriodEndToDate(subscription.current_period_end);
   const internalStatus = mapStripeSubscriptionStatusToInternal(subscription.status);
 
@@ -365,6 +382,9 @@ const handleSubscriptionUpdated = async (
     internalStatus === "expired"
       ? "free"
       : tierFromSubscription(subscription, null);
+  if (!tier) {
+    return { status: "ignored", note: "Nelze ověřit Stripe price ID pro subscription" };
+  }
   const expiresAt =
     internalStatus === "expired" ? null : stripePeriodEndToDate(subscription.current_period_end);
 
@@ -452,6 +472,9 @@ const handleInvoicePaymentSucceeded = async (
   const internalStatus = mapStripeSubscriptionStatusToInternal(subscription.status);
   const tier =
     internalStatus === "expired" ? "free" : tierFromSubscription(subscription, null);
+  if (!tier) {
+    return { status: "ignored", note: "Nelze ověřit Stripe price ID pro subscription" };
+  }
   const expiresAt = stripePeriodEndToDate(subscription.current_period_end);
 
   await applyUserSubscriptionUpdate(supabase, {
@@ -502,6 +525,9 @@ const handleInvoicePaymentFailed = async (
     ? mapStripeSubscriptionStatusToInternal(subscription.status)
     : "pending";
   const tier = subscription ? tierFromSubscription(subscription, null) : "starter";
+  if (!tier) {
+    return { status: "ignored", note: "Nelze ověřit Stripe price ID pro subscription" };
+  }
 
   await applyUserSubscriptionUpdate(supabase, {
     userId,

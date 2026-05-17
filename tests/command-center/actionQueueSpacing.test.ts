@@ -6,6 +6,10 @@ const commandCenterCss = readFileSync(
   join(process.cwd(), "features/command-center/command-center.css"),
   "utf8",
 );
+const actionQueueSource = readFileSync(
+  join(process.cwd(), "features/command-center/modules/action-queue/ActionQueueModule.tsx"),
+  "utf8",
+);
 
 const cssBlockFor = (selector: string) => {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -15,8 +19,14 @@ const cssBlockFor = (selector: string) => {
 
 describe("command center action queue spacing", () => {
   it("keeps queue content away from flush panel edges", () => {
-    expect(cssBlockFor(".cc-queue")).toContain("padding: 0 clamp(14px, 2.2vw, 24px) 10px");
-    expect(cssBlockFor(".cc-root .cc-queue-item__btn")).toContain("padding: 9px 10px");
-    expect(cssBlockFor(".cc-task-quickadd")).toContain("padding: 10px clamp(24px, 3vw, 34px)");
+    expect(cssBlockFor(".cc-queue")).toContain("padding: 8px clamp(14px, 2.2vw, 22px) 12px");
+    expect(cssBlockFor(".cc-root .cc-queue-item__btn")).toContain("grid-template-columns: 30px minmax(0, 1fr) minmax(118px, 170px)");
+    expect(cssBlockFor(".cc-root .cc-queue-item__btn")).toContain("min-height: 54px");
+    expect(cssBlockFor(".cc-root .cc-queue-item__btn")).toContain("padding: 8px 10px");
+  });
+
+  it("neobsahuje inline quick-add v akční frontě", () => {
+    expect(actionQueueSource).not.toContain("TaskQuickAdd");
+    expect(actionQueueSource).toContain('data-help-id="command-action-queue"');
   });
 });

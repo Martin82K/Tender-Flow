@@ -13,9 +13,9 @@ import {
   listTenders,
   listUpcomingDeadlines,
 } from './data.js';
-import { logMcpAuditEvent } from './audit.js';
+import { logMcpAuditEvent, summarizeResultForAudit } from './audit.js';
 import { checkMcpRateLimit } from './rateLimit.js';
-import { unauthorizedMcpResponse, jsonResponse } from './response.js';
+import { getBaseUrl, unauthorizedMcpResponse, jsonResponse } from './response.js';
 import { verifyMcpBearerToken } from './supabaseAuth.js';
 
 const textJson = (value, isError = false) => ({
@@ -91,8 +91,22 @@ const hashToken = async (token) => {
     .join('');
 };
 
+export const assertProjectVisible = async (supabase, projectId) => {
+  if (!projectId) return;
+  const { data, error } = await supabase
+    .from('projects')
+    .select('id')
+    .eq('id', projectId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error('Project is not visible to the authenticated user.');
+};
+
 const createProposal = async (supabase, auth, args) => {
   const change = args.change;
+  if (change.type === 'create_task') {
+    await assertProjectVisible(supabase, change.projectId);
+  }
   const riskLevel = change.type === 'create_task' ? 'medium' : 'high';
   const supported = change.type === 'create_task';
   const summary = supported
@@ -208,6 +222,7 @@ const executeProposal = async (supabase, auth, args) => {
   }
 
   const payload = proposal.change_payload;
+  await assertProjectVisible(supabase, payload.projectId);
   const taskPayload = {
     title: boundedText(payload.title, 500),
     note: payload.note ? boundedText(payload.note, 10000) : null,
@@ -268,7 +283,7 @@ const withAudit = (auth, supabase, toolName, action, handler, riskLevel = 'low')
       riskLevel,
       success: true,
       requestSummary: args,
-      resultSummary: result,
+      resultSummary: summarizeResultForAudit(result),
     });
     return textJson(result);
   } catch (error) {
@@ -286,7 +301,8 @@ const withAudit = (auth, supabase, toolName, action, handler, riskLevel = 'low')
   }
 };
 
-export const createTenderFlowMcpServer = (auth) => {
+export const createTenderFlowMcpServer = (auth, options = {}) => {
+  const includeWriteTools = options.includeWriteTools !== false;
   const supabase = createUserSupabaseClient(auth.token);
   const server = new McpServer(
     {
@@ -456,6 +472,10 @@ export const createTenderFlowMcpServer = (auth) => {
     withAudit(auth, supabase, 'tf_list_upcoming_deadlines', 'read', async (args) => ({ ok: true, data: await listUpcomingDeadlines(supabase, args) })),
   );
 
+  if (!includeWriteTools) {
+    return server;
+  }
+
   server.registerTool(
     'tf_prepare_change',
     {
@@ -510,7 +530,9 @@ export const handleMcpWebRequest = async (request) => {
 
   let auth;
   try {
-    auth = await verifyMcpBearerToken(request.headers.get('authorization'));
+    auth = await verifyMcpBearerToken(request.headers.get('authorization'), {
+      expectedResource: `${getBaseUrl(request)}/api/mcp`,
+    });
   } catch (error) {
     return unauthorizedMcpResponse(request, error instanceof Error ? error.message : String(error));
   }

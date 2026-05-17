@@ -7,11 +7,12 @@ describe("shouldShowWhatsNew", () => {
   it("nezobrazí novinky pro přeskočenou verzi 1.7.0", () => {
     expect(shouldShowWhatsNew("1.7.0", null)).toBe(false);
     expect(shouldShowWhatsNew("1.7.0", "1.6.3")).toBe(false);
+    expect(shouldShowWhatsNew(APP_VERSION, null)).toBe(false);
   });
 
   it("zachová standardní chování pro další verze", () => {
-    expect(shouldShowWhatsNew("1.7.2", "1.7.1")).toBe(true);
-    expect(shouldShowWhatsNew("1.7.2", "1.7.2")).toBe(false);
+    expect(shouldShowWhatsNew("1.7.1", "1.7.0")).toBe(true);
+    expect(shouldShowWhatsNew("1.7.1", "1.7.1")).toBe(false);
   });
 });
 

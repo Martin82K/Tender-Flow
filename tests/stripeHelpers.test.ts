@@ -6,6 +6,7 @@ import {
   getStripePriceId,
   mapStripeSubscriptionStatusToInternal,
   parseStripeMetadata,
+  resolveStripePlanFromPriceId,
   stripePeriodEndToDate,
   validateStripeId,
 } from "../supabase/functions/_shared/stripeHelpers.ts";
@@ -94,6 +95,32 @@ describe("stripeHelpers — getStripePriceId", () => {
     // V Vitest běží Node, Deno globální není definován. Bez explicit env vars:
     // metoda musí vrátit null (process.env nedefinuje STRIPE_PRICE_ID_*).
     expect(getStripePriceId("starter", "monthly")).toBeNull();
+  });
+});
+
+describe("stripeHelpers — resolveStripePlanFromPriceId", () => {
+  const env: Record<string, string | undefined> = {
+    STRIPE_PRICE_ID_STARTER_MONTHLY: "price_starter_monthly_123",
+    STRIPE_PRICE_ID_STARTER_YEARLY: "price_starter_yearly_456",
+    STRIPE_PRICE_ID_PRO_MONTHLY: "price_pro_monthly_789",
+    STRIPE_PRICE_ID_PRO_YEARLY: "price_pro_yearly_000",
+  };
+  const getter = (key: string) => env[key];
+
+  it("odvozuje tier a billing period z allowlistovaneho price ID", () => {
+    expect(resolveStripePlanFromPriceId("price_pro_yearly_000", getter)).toEqual({
+      tier: "pro",
+      billingPeriod: "yearly",
+      priceId: "price_pro_yearly_000",
+    });
+  });
+
+  it("odmita neznane price ID misto fallbacku na metadata", () => {
+    expect(resolveStripePlanFromPriceId("price_attacker_controlled", getter)).toBeNull();
+  });
+
+  it("odmita nevalidni Stripe price ID", () => {
+    expect(resolveStripePlanFromPriceId("sk_live_not_a_price", getter)).toBeNull();
   });
 });
 

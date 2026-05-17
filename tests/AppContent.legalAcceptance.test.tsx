@@ -116,6 +116,7 @@ vi.mock("@/shared/routing/router", () => ({
 }));
 
 vi.mock("@/shared/routing/routeUtils", () => ({
+  DEFAULT_APP_VIEW: "todo",
   buildAppUrl: vi.fn(),
 }));
 
@@ -170,6 +171,7 @@ vi.mock("@app/views/LazyViews", () => ({
   ProjectManager: () => <div>project-manager</div>,
   ProjectOverview: () => <div>project-overview</div>,
   Settings: () => <div>settings</div>,
+  TasksPage: () => <div>todo</div>,
   UrlShortener: () => <div>shortener</div>,
 }));
 

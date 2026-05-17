@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tender Flow workflow map</title>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f8fafc; color: #0f172a; }
+    main { max-width: 1100px; margin: 0 auto; padding: 32px 20px; }
+    h1 { margin: 0 0 8px; font-size: 32px; }
+    .lede { margin: 0 0 24px; color: #475569; }
+    .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+    .card { border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; padding: 16px; }
+    .label { display: inline-flex; border-radius: 999px; background: #e0f2fe; padding: 2px 8px; font-size: 12px; color: #075985; }
+    ol { padding-left: 20px; }
+    code { color: #334155; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Tender Flow workflow map</h1>
+    <p class="lede">Lokální mapa toků načítaná z <code>workflow-flows.json</code>.</p>
+    <section id="flows" class="grid" aria-live="polite"></section>
+  </main>
+  <script>
+    const DATA_URL = "workflow-flows.json";
+    const text = (value) => document.createTextNode(value == null ? "" : String(value));
+
+    function el(tag, attrs = {}, children = []) {
+      const node = document.createElement(tag);
+      for (const [key, value] of Object.entries(attrs)) {
+        if (key === "className") node.className = value;
+        else node.setAttribute(key, value);
+      }
+      for (const child of children) node.append(child);
+      return node;
+    }
+
+    function renderFlow(flow) {
+      return el("article", { className: "card" }, [
+        el("span", { className: "label" }, [text(flow.risk)]),
+        el("h2", {}, [text(flow.label)]),
+        el("p", {}, [text(flow.summary)]),
+        el("ol", {}, flow.steps.map((step) =>
+          el("li", {}, [
+            text(`${step.from} -> ${step.to}: ${step.label}. `),
+            el("code", {}, [text(step.data)])
+          ])
+        ))
+      ]);
+    }
+
+    fetch(DATA_URL)
+      .then((response) => response.json())
+      .then((map) => {
+        const root = document.getElementById("flows");
+        root.replaceChildren(...map.flows.map(renderFlow));
+      })
+      .catch((error) => {
+        const root = document.getElementById("flows");
+        root.replaceChildren(el("p", {}, [text(`Workflow map se nepodařilo načíst: ${error.message}`)]));
+      });
+  </script>
+</body>
+</html>

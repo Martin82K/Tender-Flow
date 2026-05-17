@@ -1,8 +1,10 @@
 import fs from "fs";
 import path from "path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { redactForAudit, summarizeResultForAudit } from "../server/mcp/audit.js";
 import { buildMcpResourceMetadata } from "../server/mcp/response.js";
-import { handleMcpWebRequest } from "../server/mcp/tenderFlowMcp.js";
+import { validateMcpTokenClaims } from "../server/mcp/supabaseAuth.js";
+import { assertProjectVisible, handleMcpWebRequest } from "../server/mcp/tenderFlowMcp.js";
 import { checkMcpRateLimit, resetMcpRateLimitsForTests } from "../server/mcp/rateLimit.js";
 
 const ROOT = process.cwd();
@@ -10,7 +12,13 @@ const ROOT = process.cwd();
 describe("remote MCP server", () => {
   afterEach(() => {
     resetMcpRateLimitsForTests();
+    vi.unstubAllEnvs();
+    delete process.env.MCP_ALLOWED_CLIENT_IDS;
+    delete process.env.MCP_ALLOWED_AUDIENCES;
+    delete process.env.MCP_REQUIRED_SCOPES;
+    delete process.env.SUPABASE_URL;
     delete process.env.VITE_SUPABASE_URL;
+    delete process.env.TENDER_FLOW_MCP_CLIENT_ID;
   });
 
   it("publikuje OAuth protected-resource metadata pro ChatGPT MCP klienty", () => {
@@ -67,8 +75,90 @@ describe("remote MCP server", () => {
     await expect(response.json()).resolves.toMatchObject({ error: "unauthorized" });
   });
 
+  it("validuje OAuth klienta, audience, resource a scope fail-closed", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const payload = {
+      sub: "user-1",
+      client_id: "client-1",
+      aud: "authenticated",
+      resource: "https://tenderflow.cz/api/mcp",
+      scope: "openid email profile",
+    };
+
+    expect(() => validateMcpTokenClaims(payload, { expectedResource: "https://tenderflow.cz/api/mcp" })).toThrow(
+      "MCP_ALLOWED_CLIENT_IDS must be configured in production.",
+    );
+
+    vi.stubEnv("MCP_ALLOWED_CLIENT_IDS", "client-2");
+    expect(() => validateMcpTokenClaims(payload, { expectedResource: "https://tenderflow.cz/api/mcp" })).toThrow(
+      "OAuth client is not allowed for Tender Flow MCP.",
+    );
+
+    vi.stubEnv("MCP_ALLOWED_CLIENT_IDS", "client-1");
+    expect(validateMcpTokenClaims(payload, { expectedResource: "https://tenderflow.cz/api/mcp" })).toMatchObject({
+      userId: "user-1",
+      clientId: "client-1",
+      scopes: ["openid", "email", "profile"],
+    });
+
+    expect(() =>
+      validateMcpTokenClaims({ ...payload, resource: "https://evil.example/api/mcp" }, { expectedResource: "https://tenderflow.cz/api/mcp" }),
+    ).toThrow("OAuth token resource does not match Tender Flow MCP.");
+    expect(() =>
+      validateMcpTokenClaims({ ...payload, scope: "openid email" }, { expectedResource: "https://tenderflow.cz/api/mcp" }),
+    ).toThrow("OAuth token is missing required MCP scopes: profile.");
+  });
+
+  it("rediguje citlivé MCP audit payloady a neukládá celé výsledky execute", () => {
+    const requestSummary = redactForAudit({
+      proposalId: "proposal-1",
+      executeToken: "super-secret-execute-token",
+      idempotencyKey: "idempotency-secret",
+      nested: { authorization: "Bearer secret" },
+    });
+    const resultSummary = summarizeResultForAudit({
+      ok: true,
+      data: {
+        proposalId: "proposal-1",
+        status: "executed",
+        task: {
+          id: "task-1",
+          title: "Do not store this full title",
+          note: "Do not store this full note",
+        },
+      },
+    });
+
+    expect(JSON.stringify(requestSummary)).not.toContain("super-secret-execute-token");
+    expect(JSON.stringify(requestSummary)).not.toContain("idempotency-secret");
+    expect(JSON.stringify(requestSummary)).not.toContain("Bearer secret");
+    expect(resultSummary).toMatchObject({
+      ok: true,
+      status: "executed",
+      proposalId: "proposal-1",
+      entityType: "task",
+      entityId: "task-1",
+    });
+    expect(JSON.stringify(resultSummary)).not.toContain("Do not store this full note");
+  });
+
+  it("ověří viditelnost projectId před MCP create_task", async () => {
+    const makeSupabase = (row: { id: string } | null) => ({
+      from: vi.fn(() => ({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: row, error: null }),
+      })),
+    });
+
+    await expect(assertProjectVisible(makeSupabase({ id: "project-1" }), "project-1")).resolves.toBeUndefined();
+    await expect(assertProjectVisible(makeSupabase(null), "project-1")).rejects.toThrow(
+      "Project is not visible to the authenticated user.",
+    );
+  });
+
   it("registruje read-only discovery nástroje a oddělený třífázový zápis", () => {
-    const source = fs.readFileSync(path.join(ROOT, "server/mcp/tenderFlowMcp.js"), "utf8");
+    const source = fs.readFileSync(path.join(ROOT, "server/mcp/tenderFlowMcp.js"), "utf8").replace(/\r\n/g, "\n");
 
     expect(source).toContain("server.registerTool(\n    'search'");
     expect(source).toContain("server.registerTool(\n    'fetch'");
@@ -82,6 +172,24 @@ describe("remote MCP server", () => {
     expect(source).toContain("annotations: { readOnlyHint: true");
     expect(source).toContain("Only create_task execution is enabled in MCP MVP.");
     expect(source).not.toContain("hard_delete");
+  });
+
+  it("má lokální stdio entrypoint pro Claude Code/Codex a bez OAuth client_id schová write tools", () => {
+    const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
+    const source = fs.readFileSync(path.join(ROOT, "scripts/mcp-stdio.js"), "utf8").replace(/\r\n/g, "\n");
+    const mcpConfig = JSON.parse(fs.readFileSync(path.join(ROOT, ".mcp.json"), "utf8"));
+    const serverSource = fs.readFileSync(path.join(ROOT, "server/mcp/tenderFlowMcp.js"), "utf8").replace(/\r\n/g, "\n");
+
+    expect(pkg.scripts["mcp:stdio"]).toBe("node scripts/mcp-stdio.js");
+    expect(mcpConfig.mcpServers["tender-flow"]).toEqual({
+      type: "http",
+      url: "https://www.tenderflow.cz/api/mcp",
+    });
+    expect(source).toContain("verifyLocalMcpAccessToken");
+    expect(source).toContain("auth.hasOAuthClientId && !readOnly");
+    expect(source).toContain("Local Supabase session token detected; running read-only tools only.");
+    expect(serverSource).toContain("const includeWriteTools = options.includeWriteTools !== false;");
+    expect(serverSource).toContain("if (!includeWriteTools) {\n    return server;\n  }");
   });
 
   it("omezuje volání per user/client/tool", () => {
@@ -108,5 +216,17 @@ describe("remote MCP server", () => {
     expect(migration).toContain("UNIQUE (user_id, client_id, idempotency_key)");
     expect(migration).toContain("ALTER TABLE public.mcp_audit_events ENABLE ROW LEVEL SECURITY");
     expect(migration).toContain("WITH CHECK (user_id = auth.uid())");
+  });
+
+  it("váže MCP stavové RLS na user_id i OAuth client_id", () => {
+    const migration = fs.readFileSync(
+      path.join(ROOT, "supabase/migrations/20260511183000_mcp_client_scoped_rls.sql"),
+      "utf8",
+    );
+
+    expect(migration).toContain("ON public.mcp_audit_events");
+    expect(migration).toContain("ON public.mcp_change_proposals");
+    expect(migration).toContain("ON public.mcp_idempotency_keys");
+    expect(migration.match(/client_id = \(auth\.jwt\(\) ->> 'client_id'\)/g)?.length).toBeGreaterThanOrEqual(6);
   });
 });

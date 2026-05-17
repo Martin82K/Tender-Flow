@@ -13,12 +13,12 @@ const CHECK_INTERVAL_MS = 60_000;
  * backup has been written on/after today's scheduled time.
  */
 export const useAutoBackupScheduler = (): void => {
-    const { user, isAuthenticated } = useAuth();
+    const { user, isAuthenticated, isLoading: authLoading } = useAuth();
     const orgId = user?.organizationId;
     const runningRef = useRef(false);
 
     useEffect(() => {
-        if (!isAuthenticated || !orgId) return;
+        if (authLoading || !isAuthenticated || !orgId) return;
         if (!backupService.isLocalBackupAvailable()) return;
 
         let cancelled = false;
@@ -71,5 +71,5 @@ export const useAutoBackupScheduler = (): void => {
             cancelled = true;
             clearInterval(interval);
         };
-    }, [isAuthenticated, orgId]);
+    }, [authLoading, isAuthenticated, orgId]);
 };

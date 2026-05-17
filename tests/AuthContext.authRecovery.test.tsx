@@ -41,6 +41,7 @@ const setup = async (options: SetupOptions) => {
     invalidateAuthState: vi.fn().mockResolvedValue(undefined),
     navigate: vi.fn(),
     queryClientClear: vi.fn(),
+    setAuthenticated: vi.fn().mockResolvedValue(undefined),
     subscribe: vi.fn((listener: (snapshot: { event: string; session: any }) => void) => {
       mockState.authListener = listener;
       return vi.fn();
@@ -86,7 +87,7 @@ const setup = async (options: SetupOptions) => {
         setBiometricEnabled: vi.fn().mockResolvedValue(undefined),
       },
       auth: {
-        setAuthenticated: vi.fn().mockResolvedValue(undefined),
+        setAuthenticated: mockState.setAuthenticated,
       },
     },
   }));
@@ -241,6 +242,13 @@ describe("AuthContext auth recovery", () => {
 
     expect(mockState.refreshSession).toHaveBeenCalledTimes(1);
     expect(mockState.invalidateAuthState).not.toHaveBeenCalled();
+    expect(mockState.setAuthenticated).toHaveBeenCalledWith(
+      true,
+      expect.objectContaining({
+        accessToken: "fresh-session-token",
+        expiresAt: null,
+      }),
+    );
   });
 
   it("SIGNED_OUT event neaktivuje retry loop", async () => {

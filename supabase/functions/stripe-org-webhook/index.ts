@@ -27,6 +27,7 @@ import {
   mapStripeSubscriptionStatusToInternal,
   parseStripeMetadata,
   retrieveSubscription,
+  resolveStripePlanFromPriceId,
   stripePeriodEndToDate,
   validateStripeId,
   verifyStripeWebhookSignature,
@@ -116,11 +117,18 @@ const resolveOrgId = async (
   metadataOrgId: string | undefined,
   customerId: string | null,
 ): Promise<string | null> => {
-  if (metadataOrgId) return metadataOrgId;
+  let resolvedOrgId: string | null = null;
   if (customerId && validateStripeId(customerId, "customer")) {
-    return await resolveOrgIdByCustomer(supabase, customerId);
+    resolvedOrgId = await resolveOrgIdByCustomer(supabase, customerId);
   }
-  return null;
+  if (resolvedOrgId) {
+    if (metadataOrgId && metadataOrgId !== resolvedOrgId) {
+      console.warn("Stripe org metadata orgId mismatch; ignoring event target");
+      return null;
+    }
+    return resolvedOrgId;
+  }
+  return metadataOrgId ?? null;
 };
 
 const registerStripeOrgWebhookEvent = async (
@@ -142,7 +150,14 @@ const registerStripeOrgWebhookEvent = async (
   });
 
   if (error) {
-    if (error.code === "23505") return { duplicate: true };
+    if (error.code === "23505") {
+      const { data } = await supabase
+        .from("billing_webhook_events")
+        .select("status")
+        .eq("event_id", `stripe-org-${eventId}`)
+        .maybeSingle();
+      return { duplicate: (data?.status as string | undefined) !== "failed" };
+    }
     throw error;
   }
   return { duplicate: false };
@@ -303,10 +318,10 @@ const fetchSubscriptionForEvent = async (
 const tierFromSubscription = (
   sub: StripeSubscription | null,
   fallback: string | null,
-): string => {
-  const meta = parseStripeMetadata(sub?.metadata ?? null);
-  if (meta.tier) return meta.tier;
-  return fallback ?? "starter";
+): Tier | null => {
+  const plan = resolveStripePlanFromPriceId(sub?.items?.data?.[0]?.price?.id ?? null);
+  if (plan) return plan.tier;
+  return (fallback as Tier | null) ?? null;
 };
 
 const seatsFromSubscription = (
@@ -324,6 +339,8 @@ const billingPeriodFromSubscription = (
   sub: StripeSubscription | null,
   fallback: "monthly" | "yearly" | null,
 ): "monthly" | "yearly" | null => {
+  const plan = resolveStripePlanFromPriceId(sub?.items?.data?.[0]?.price?.id ?? null);
+  if (plan) return plan.billingPeriod;
   const recurring = sub?.items?.data?.[0]?.price?.recurring;
   if (recurring?.interval === "year") return "yearly";
   if (recurring?.interval === "month") return "monthly";
@@ -357,7 +374,10 @@ const handleCheckoutCompleted = async (
     return { status: "ignored", note: "Nelze získat subscription detail" };
   }
 
-  const tier = tierFromSubscription(subscription, meta.tier ?? null) as Tier;
+  const tier = tierFromSubscription(subscription, null);
+  if (!tier) {
+    return { status: "ignored", note: "Nelze ověřit Stripe price ID pro subscription" };
+  }
   const expiresAt = stripePeriodEndToDate(subscription.current_period_end);
   const internalStatus = mapStripeSubscriptionStatusToInternal(subscription.status);
   const seats = seatsFromSubscription(subscription, meta.seats ?? null);
@@ -414,6 +434,9 @@ const handleSubscriptionUpdated = async (
     internalStatus === "expired"
       ? "free"
       : tierFromSubscription(subscription, null);
+  if (!tier) {
+    return { status: "ignored", note: "Nelze ověřit Stripe price ID pro subscription" };
+  }
   const expiresAt =
     internalStatus === "expired"
       ? null
@@ -501,6 +524,9 @@ const handleInvoicePaymentSucceeded = async (
   const internalStatus = mapStripeSubscriptionStatusToInternal(subscription.status);
   const tier =
     internalStatus === "expired" ? "free" : tierFromSubscription(subscription, null);
+  if (!tier) {
+    return { status: "ignored", note: "Nelze ověřit Stripe price ID pro subscription" };
+  }
   const expiresAt = stripePeriodEndToDate(subscription.current_period_end);
   const seats = seatsFromSubscription(subscription, meta.seats ?? null);
   const billingPeriod = billingPeriodFromSubscription(
@@ -571,6 +597,9 @@ const handleInvoicePaymentFailed = async (
     ? mapStripeSubscriptionStatusToInternal(subscription.status)
     : "pending";
   const tier = subscription ? tierFromSubscription(subscription, null) : "starter";
+  if (!tier) {
+    return { status: "ignored", note: "Nelze ověřit Stripe price ID pro subscription" };
+  }
 
   await applyOrgSubscriptionUpdate(supabase, {
     orgId,

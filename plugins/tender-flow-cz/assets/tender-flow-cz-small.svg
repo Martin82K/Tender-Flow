@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title>Tender Flow CZ</title>
+  <rect width="64" height="64" rx="14" fill="#0F766E"/>
+  <path d="M16 18h32v8H36v24h-8V26H16z" fill="#FFFFFF"/>
+  <path d="M40 32h8v18h-8z" fill="#99F6E4"/>
+</svg>

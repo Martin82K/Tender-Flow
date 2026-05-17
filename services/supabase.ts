@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { summarizeErrorForLog } from '@/shared/security/logSanitizer';
+import { normalizePublicEnvValue } from '@/shared/config/publicEnv';
 
 // ========================================================================
 // HEADERS SAFETY PATCH
@@ -47,8 +48,8 @@ import { summarizeErrorForLog } from '@/shared/security/logSanitizer';
   } as typeof Headers;
 })();
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = normalizePublicEnvValue(import.meta.env.VITE_SUPABASE_URL);
+const supabaseAnonKey = normalizePublicEnvValue(import.meta.env.VITE_SUPABASE_ANON_KEY);
 
 const AUTH_STORAGE_KEY = 'crm-auth-token';
 const USER_CACHE_KEY = 'crm-user-cache';

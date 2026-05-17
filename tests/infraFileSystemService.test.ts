@@ -26,7 +26,7 @@ describe("infra file system service", () => {
     });
 
     await expect(folderExists("/tmp/doc-hub")).resolves.toBe(true);
-    await expect(deleteFolder("/tmp/doc-hub/supplier")).resolves.toEqual({
+    await expect(deleteFolder("/tmp/doc-hub", "/tmp/doc-hub/supplier")).resolves.toEqual({
       success: true,
     });
     await expect(
@@ -35,6 +35,7 @@ describe("infra file system service", () => {
 
     expect(fileSystemServiceMock.folderExists).toHaveBeenCalledWith("/tmp/doc-hub");
     expect(fileSystemServiceMock.deleteFolder).toHaveBeenCalledWith(
+      "/tmp/doc-hub",
       "/tmp/doc-hub/supplier",
     );
     expect(fileSystemServiceMock.ensureStructure).toHaveBeenCalledWith({

@@ -24,7 +24,10 @@ export interface ElectronAPI {
 }
 
 export interface AuthNotificationAPI {
-    setAuthenticated: (authenticated: boolean) => Promise<void>;
+    setAuthenticated: (
+        authenticated: boolean,
+        session?: { accessToken?: string | null; expiresAt?: number | null },
+    ) => Promise<void>;
 }
 
 export interface NotificationAPI {

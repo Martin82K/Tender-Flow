@@ -49,10 +49,10 @@ export interface ProcessResult {
 
 type ExcelJSModule = typeof import('exceljs');
 
-const loadExcelJS = async (): Promise<ExcelJSModule['default']> => {
+const loadExcelJS = async (): Promise<ExcelJSModule> => {
   try {
     const module = await import('exceljs');
-    return module.default;
+    return module;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (error instanceof EvalError || /Content Security Policy|unsafe-eval|EvalError/i.test(message)) {

@@ -4,6 +4,8 @@ import { createAuthedUserClient, createServiceClient } from "../_shared/supabase
 type Provider = "gdrive" | "onedrive";
 type Mode = "user" | "org";
 
+const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
+
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
     status,
@@ -11,6 +13,12 @@ const json = (status: number, body: unknown) =>
   });
 
 const randomNonce = () => crypto.randomUUID().replaceAll("-", "");
+
+const oauthStateCutoffIso = () => new Date(Date.now() - OAUTH_STATE_TTL_MS).toISOString();
+
+const cleanupExpiredOAuthStates = async (service: ReturnType<typeof createServiceClient>) => {
+  await service.from("dochub_oauth_states").delete().lt("created_at", oauthStateCutoffIso());
+};
 
 const getSiteBaseUrl = (): string => {
   const raw = (Deno.env.get("SITE_URL") || "http://localhost:3000").trim();
@@ -124,6 +132,9 @@ const buildMicrosoftAuthUrl = (args: {
     "scope",
     [
       "offline_access",
+      "openid",
+      "email",
+      "profile",
       "User.Read",
       "Files.ReadWrite",
       "Sites.ReadWrite.All",
@@ -182,6 +193,8 @@ Deno.serve(async (req) => {
     const state = `${provider}.${nonce}`;
 
     const service = createServiceClient();
+    await cleanupExpiredOAuthStates(service);
+
     const { error: insertError } = await service.from("dochub_oauth_states").insert({
       nonce,
       provider,

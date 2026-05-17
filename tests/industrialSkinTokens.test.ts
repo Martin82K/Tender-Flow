@@ -28,6 +28,7 @@ const organizationDashboardSource = readFileSync(join(process.cwd(), "features/o
 const orgOverviewSource = readFileSync(join(process.cwd(), "features/organization/ui/OrgOverviewTab.tsx"), "utf8");
 const orgBillingSource = readFileSync(join(process.cwd(), "features/organization/ui/OrgBillingTab.tsx"), "utf8");
 const projectManagerSource = readFileSync(join(process.cwd(), "features/projects/ProjectManager.tsx"), "utf8");
+const tasksPageSource = readFileSync(join(process.cwd(), "features/tasks/ui/TasksPage.tsx"), "utf8");
 const tenantOverviewSource = readFileSync(join(process.cwd(), "features/projects/ProjectOverview.tsx"), "utf8");
 const statusDistributionChartSource = readFileSync(join(process.cwd(), "shared/ui/overview/StatusDistributionChart.tsx"), "utf8");
 const budgetDeviationGaugeSource = readFileSync(join(process.cwd(), "shared/ui/overview/BudgetDeviationGauge.tsx"), "utf8");
@@ -324,12 +325,23 @@ describe("industrial skin tokens", () => {
     expect(sidebarSource).not.toContain('text-[20px] w-4');
   });
 
+  it("industrial TODO menu drží vybraný stav i mimo hover", () => {
+    expect(tasksPageSource).toContain('data-help-id="tasks-menu-item"');
+    expect(tasksPageSource).toContain('data-help-id="todo-project-item"');
+    expect(tasksPageSource).toContain('aria-current={active ? "page" : undefined}');
+    expect(css).toContain('html[data-skin="industrial"] .tf-tasks-view [data-help-id="tasks-menu-item"][data-active="true"]');
+    expect(css).toContain('html[data-skin="industrial"] .tf-tasks-view [data-help-id="todo-project-item"][data-active="true"]');
+    expect(css).toContain('color: var(--tf-skin-orange-deep) !important');
+  });
+
   it("industrial Správa staveb a tenant Přehledy převádí okna, tlačítka a modály do stejného skinu", () => {
     expect(appContentSource).toContain("skin={skin}");
     expect(projectManagerSource).toContain("tf-project-manager-view");
     expect(projectManagerSource).toContain("skin={skin}");
     expect(projectManagerSource).toContain('data-help-id="pm-create-section"');
     expect(projectManagerSource).toContain('data-help-id="pm-project-list"');
+    expect(projectManagerSource).toContain('data-help-id="pm-project-status-badge"');
+    expect(projectManagerSource).toContain("data-status={project.status}");
     expect(projectManagerSource).toContain('data-help-id="pm-project-actions"');
     expect(projectManagerSource).toContain('data-help-id="pm-shared-with-badge"');
     expect(projectManagerSource).toContain('data-help-id="pm-archive-section"');
@@ -347,6 +359,9 @@ describe("industrial skin tokens", () => {
     expect(css).toContain('html[data-skin="industrial"] .tf-project-manager-view');
     expect(css).toContain('html[data-skin="industrial"] .tf-project-overview-view');
     expect(css).toContain('html[data-skin="industrial"] .tf-project-manager-view [data-help-id="pm-create-section"]');
+    expect(css).toContain('html[data-skin="industrial"] .tf-project-manager-view [data-help-id="pm-project-status-badge"][data-status="tender"]');
+    expect(css).toContain('html[data-skin="industrial"] .tf-project-manager-view [data-help-id="pm-project-status-badge"][data-status="realization"]');
+    expect(css).toContain("#5da6ff");
     expect(css).toContain('html[data-skin="industrial"] .tf-project-manager-view [data-help-id="pm-project-actions"] button');
     expect(css).toContain('html[data-skin="industrial"] .tf-project-manager-view [data-help-id="pm-shared-with-badge"]');
     expect(css).toContain('html[data-skin="industrial"] .tf-project-manager-view button[class*="from-emerald"]');

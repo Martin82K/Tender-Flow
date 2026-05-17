@@ -246,8 +246,11 @@ const electronAPI: ElectronAPI = {
 
     // Auth state notification (renderer → main process)
     auth: {
-        setAuthenticated: (authenticated: boolean): Promise<void> =>
-            ipcRenderer.invoke('auth:setAuthenticated', authenticated),
+        setAuthenticated: (
+            authenticated: boolean,
+            session?: { accessToken?: string | null; expiresAt?: number | null },
+        ): Promise<void> =>
+            ipcRenderer.invoke('auth:setAuthenticated', authenticated, session),
     },
 
     backup: {

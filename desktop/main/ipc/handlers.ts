@@ -164,13 +164,18 @@ export function registerIpcHandlers(mainWindow?: BrowserWindow): void {
         ipcAuthGuard.setMainWindow(mainWindow);
     }
 
-    // Auth state management: renderer notifies main process on login/logout
-    ipcMain.handle('auth:setAuthenticated', async (event, authenticated: boolean): Promise<void> => {
-        if (!ipcAuthGuard.isTrustedSender(event.sender)) {
-            throw new Error('IPC_AUTH_DENIED: untrusted sender for auth:setAuthenticated');
-        }
-        ipcAuthGuard.setAuthenticated(!!authenticated);
-    });
+    // Auth state management: renderer logout is accepted, renderer login is
+    // promoted only after main verifies a real Supabase session token.
+    ipcMain.handle(
+        'auth:setAuthenticated',
+        async (
+            event,
+            authenticated: boolean,
+            session?: { accessToken?: string | null; expiresAt?: number | null },
+        ): Promise<void> => {
+            await ipcAuthGuard.setAuthenticatedFromRenderer(event.sender, !!authenticated, session);
+        },
+    );
 
     const requireAuth = (sender: Electron.WebContents, channel?: string): void => {
         ipcAuthGuard.requireAuth(sender, channel);

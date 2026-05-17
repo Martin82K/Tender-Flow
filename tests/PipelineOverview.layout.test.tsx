@@ -3,13 +3,17 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { PipelineOverview } from "@/components/pipelineComponents/PipelineOverview";
-import type { DemandCategory } from "@/types";
+import { formatMoney } from "@/utils/formatters";
+import type { Bid, DemandCategory } from "@/types";
+
+const hasNormalizedText = (expected: string) => (_content: string, element: Element | null) =>
+  (element?.textContent ?? "").replace(/\s/g, " ").trim() === expected.replace(/\s/g, " ").trim();
 
 const categories: DemandCategory[] = [
   {
     id: "cat-1",
-    title: "Zemní práce",
-    budget: "0 Kč",
+    title: "Zemni prace",
+    budget: "0 Kc",
     sodBudget: 0,
     planBudget: 0,
     status: "open",
@@ -18,8 +22,8 @@ const categories: DemandCategory[] = [
   },
   {
     id: "cat-2",
-    title: "Fasáda",
-    budget: "0 Kč",
+    title: "Fasada",
+    budget: "0 Kc",
     sodBudget: 0,
     planBudget: 0,
     status: "closed",
@@ -28,7 +32,7 @@ const categories: DemandCategory[] = [
   },
 ];
 
-const renderOverview = () =>
+const renderOverview = (overrides: Partial<React.ComponentProps<typeof PipelineOverview>> = {}) =>
   render(
     <PipelineOverview
       categories={categories}
@@ -43,11 +47,12 @@ const renderOverview = () =>
       onEditCategory={vi.fn()}
       onDeleteCategory={vi.fn()}
       onToggleCategoryComplete={vi.fn()}
+      {...overrides}
     />,
   );
 
 describe("PipelineOverview layout", () => {
-  it("má stabilní kotvy pro industrial skin průřezových přepínačů", () => {
+  it("has stable anchors for industrial skin view controls", () => {
     const { container } = renderOverview();
 
     const filters = container.querySelector("[data-help-id='pipeline-filters']");
@@ -60,8 +65,29 @@ describe("PipelineOverview layout", () => {
     expect(filters?.className).not.toContain("rounded-full");
     expect(viewToggle?.className).not.toContain("rounded-full");
 
-    expect(screen.getByRole("button", { name: /Všechny \(2\)/i }).className).not.toContain("bg-white");
-    expect(screen.getByRole("button", { name: /Poptávané \(1\)/i }).className).not.toContain("rounded-full");
-    expect(screen.getByRole("button", { name: /Ukončené \(1\)/i }).className).not.toContain("rounded-full");
+    expect(screen.getByRole("button", { name: /V.*chny \(2\)/i }).className).not.toContain("bg-white");
+    expect(screen.getByRole("button", { name: /Popt.*van.* \(1\)/i }).className).not.toContain("rounded-full");
+    expect(screen.getByRole("button", { name: /Ukon.*en.* \(1\)/i }).className).not.toContain("rounded-full");
+  });
+
+  it("parses winning prices with decimal commas without multiplying them", () => {
+    const sodBid: Bid = {
+      id: "bid-1",
+      subcontractorId: "sup-1",
+      companyName: "MIDOS Cheb",
+      contactPerson: "Ing. Milan Dolejs",
+      status: "sod",
+      email: "dolejs@midos-cheb.cz",
+      price: "159000,00",
+    };
+
+    renderOverview({
+      categories: [categories[0]],
+      bids: { [categories[0].id]: [sodBid] },
+      viewMode: "grid",
+    });
+
+    expect(screen.getByText(hasNormalizedText(formatMoney(159000)))).toBeInTheDocument();
+    expect(screen.queryByText(hasNormalizedText(formatMoney(15900000)))).not.toBeInTheDocument();
   });
 });

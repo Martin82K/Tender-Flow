@@ -65,9 +65,10 @@ export const useCalendarData = (filter: CommandCenterFilterState): CalendarEvent
 
     const projectNames: Record<string, string> = {};
     for (const p of projects) projectNames[p.id] = p.name;
+    const taskTitles = new Map((tasksQuery.data ?? []).map((task) => [task.id, task.title]));
 
     for (const task of tasksQuery.data ?? []) {
-      if (task.completed) continue;
+      if (task.completed || task.archivedAt) continue;
       const due = toDate(task.dueAt);
       if (!due) continue;
       if (due > horizon) continue;
@@ -75,8 +76,10 @@ export const useCalendarData = (filter: CommandCenterFilterState): CalendarEvent
         id: `task-${task.id}`,
         kind: "task",
         tone: "purple",
-        title: task.title,
-        subtitle: task.projectId ? projectNames[task.projectId] : undefined,
+        title: task.parentTaskId ? `Podúkol: ${task.title}` : task.title,
+        subtitle:
+          (task.parentTaskId ? taskTitles.get(task.parentTaskId) : undefined) ??
+          (task.projectId ? projectNames[task.projectId] : undefined),
         date: due.toISOString(),
         timestamp: due.getTime(),
         projectId: task.projectId,

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { AuthCard } from "./AuthCard";
 import { Link, navigate, useLocation } from "@/shared/routing/router";
+import { DEFAULT_APP_URL } from "@/shared/routing/routeUtils";
 import { authService } from "@features/auth/api";
 import { getCurrentLegalAcceptanceInput } from "@/shared/legal/legalDocumentVersions";
 import { getLegalDocumentUrl } from "@/shared/legal/legalDocumentLinks";
@@ -10,7 +11,7 @@ import "@/features/public/ui/landing-apex.css";
 import "@/features/auth/ui/auth-apex.css";
 
 const getNext = (search: string) => {
-  const raw = new URLSearchParams(search).get("next") || "/app";
+  const raw = new URLSearchParams(search).get("next") || DEFAULT_APP_URL;
   const decodeOnce = (val: string) => {
     try {
       return decodeURIComponent(val);
@@ -20,7 +21,7 @@ const getNext = (search: string) => {
   };
   const next = decodeOnce(raw);
   const next2 = next.startsWith("%2F") ? decodeOnce(next) : next;
-  return next2.startsWith("/") ? next2 : "/app";
+  return next2.startsWith("/") ? next2 : DEFAULT_APP_URL;
 };
 
 export const RegisterPage: React.FC = () => {

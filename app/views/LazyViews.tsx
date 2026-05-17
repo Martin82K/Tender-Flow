@@ -13,6 +13,8 @@ export const ProjectLayout = lazyFromManifest("project");
 
 export const Contacts = lazyFromManifest("contacts");
 
+export const TasksPage = lazyFromManifest("todo");
+
 export const Settings = lazyFromManifest("settings");
 
 export const ProjectOverview = lazyFromManifest("project-overview");

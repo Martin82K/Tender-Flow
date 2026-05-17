@@ -30,6 +30,12 @@
 - Release prep: `npm run release:prepare`
 - Version sync script: `npm run version:patch|minor|major`
 
+## Supabase and Docker
+- Docker is not a project runtime or deployment requirement for Tender Flow.
+- Supabase CLI may mention Docker because it uses containers for local Supabase stack commands such as `supabase start`, local DB reset, or local function serving.
+- For deploying Edge Functions to the linked cloud project, prefer API-based deploys (for example `supabase functions deploy <name> --use-api`) and keep function JWT settings in each function's `config.toml` where applicable.
+- Do not treat "Docker is not running" CLI output as an application failure unless the task explicitly depends on local Supabase emulation.
+
 ## Linting and Type Checks
 - No dedicated lint script exists in root `package.json`.
 - Do not introduce a new formatter or lint config unless explicitly asked.

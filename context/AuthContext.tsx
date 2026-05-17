@@ -74,6 +74,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       message.includes("refresh token not found")
     );
   };
+  const notifyDesktopAuthState = useCallback(
+    async (authenticated: boolean, session?: any): Promise<boolean> => {
+      if (!isDesktop) return true;
+      const result = await platformAdapter.auth.setAuthenticated(
+        authenticated,
+        session
+          ? {
+              accessToken: session.access_token ?? null,
+              expiresAt: typeof session.expires_at === "number" ? session.expires_at : null,
+            }
+          : undefined,
+      );
+      return result !== false;
+    },
+    [],
+  );
 
   useEffect(() => {
     setIncidentContext({
@@ -278,6 +294,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           return "failed";
         }
 
+        await notifyDesktopAuthState(true, data.session);
         setUser(currentUser);
         setHasSavedCredentials(true);
         setCanUseBiometric(biometricEnabled);
@@ -341,13 +358,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
               onBackgroundRefresh: applyBackgroundUserRefresh,
             });
             if (currentUser) {
+              // Let the main process verify the concrete Supabase token before
+              // authenticated UI hooks can call guarded desktop IPC channels.
+              await notifyDesktopAuthState(true, session);
               setUser(currentUser);
               setIsLoading(false);
               if (token) lastHydratedTokenRef.current = token;
-              // Notify main process about auth state
-              if (isDesktop) {
-                platformAdapter.auth.setAuthenticated(true);
-              }
             } else {
               console.warn(
                 "[AuthContext] Event but could not build user from session"
@@ -426,6 +442,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         if (!authEventRef.current || currentUser) {
           setUser(currentUser);
         }
+        if (currentUser) {
+          await notifyDesktopAuthState(true);
+        }
       } catch (error) {
         console.error("Error loading user:", error);
         if (!authEventRef.current) setUser(null);
@@ -469,20 +488,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         ),
       ]);
       // If we got a real user (or fallback), allow navigation; auth events will refine user data.
-      if (user?.id !== "pending") setUser(user);
-
-      // Notify main process about auth state (enables IPC auth guard)
+      let activeSession: any = null;
       if (isDesktop) {
-        platformAdapter.auth.setAuthenticated(true);
+        const { data } = await authSessionService.getSession();
+        activeSession = data?.session ?? null;
+        await notifyDesktopAuthState(true, activeSession);
       }
+      if (user?.id !== "pending") setUser(user);
 
       // Save session for biometric unlock (desktop only) - only if rememberMe is enabled
       if (isDesktop && rememberMe) {
-        const { data } = await authSessionService.getSession();
-        if (data?.session?.refresh_token) {
+        if (activeSession?.refresh_token) {
           try {
             await platformAdapter.session.saveCredentials({
-              refreshToken: data.session.refresh_token,
+              refreshToken: activeSession.refresh_token,
               email,
             });
 
@@ -601,9 +620,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         onBackgroundRefresh: applyBackgroundUserRefresh,
       });
       if (currentUser) {
+        await notifyDesktopAuthState(true, data.session);
         setUser(currentUser);
-        // Notify main process about auth state (enables IPC auth guard)
-        platformAdapter.auth.setAuthenticated(true);
         console.debug("[AuthContext] Biometric login successful:", currentUser.email);
         biometricLoginAttemptedRef.current = false;
         return true;
@@ -643,6 +661,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   ) => {
     try {
       const user = await authService.register(name, email, password, legalAcceptance);
+      if (isDesktop) {
+        const { data } = await authSessionService.getSession();
+        await notifyDesktopAuthState(true, data?.session ?? null);
+      }
       setUser(user);
     } catch (error) {
       console.error("Registration failed", error);
@@ -727,9 +749,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       });
     } finally {
       // Notify main process before cleanup (disables IPC auth guard)
-      if (isDesktop) {
-        platformAdapter.auth.setAuthenticated(false);
-      }
+      await notifyDesktopAuthState(false);
       await authSessionService.invalidateAuthState({
         navigateToLogin: false,
         reason: "manual_logout",

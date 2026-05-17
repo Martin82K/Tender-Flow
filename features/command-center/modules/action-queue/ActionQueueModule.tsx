@@ -7,7 +7,6 @@ import {
   mergeActionQueue,
   useTasksQuery,
   useToggleTaskMutation,
-  TaskQuickAdd,
   TaskFormModal,
   type ActionQueueItem,
   type Task,
@@ -26,6 +25,11 @@ const severityCheckClass: Record<string, string> = {
 };
 
 const MAX_VISIBLE = 10;
+
+const getTaskPriorityLabel = (item: ActionQueueItem): string | null => {
+  if (item.kind !== "task" || !item.priority) return null;
+  return `P${item.priority}`;
+};
 
 export const ActionQueueModule: React.FC<ModuleProps> = ({ filterState }) => {
   const derived = useDerivedActions(filterState);
@@ -71,62 +75,69 @@ export const ActionQueueModule: React.FC<ModuleProps> = ({ filterState }) => {
       </div>
 
       <div className="cc-panel__body cc-panel__body--flush">
-        <TaskQuickAdd />
-
         {items.length === 0 ? (
           <div className="cc-panel__empty">Žádné akce. Všechno je pod kontrolou.</div>
         ) : (
-          <ol className="cc-queue">
-            {items.map((item, index) => (
-              <li
-                key={item.id}
-                className={`cc-queue-item${item.kind === "task" ? ` cc-queue-item--urgency-${item.severity}` : ""}`}
-              >
-                <button
-                  type="button"
-                  className="cc-queue-item__btn"
-                  onClick={() => handleItemClick(item)}
+          <ol className="cc-queue" data-help-id="command-action-queue">
+            {items.map((item, index) => {
+              const priorityLabel = getTaskPriorityLabel(item);
+              return (
+                <li
+                  key={item.id}
+                  data-help-id="cc-queue-item"
+                  data-kind={item.kind}
+                  className={`cc-queue-item cc-queue-item--${item.kind}${item.kind === "task" ? ` cc-queue-item--urgency-${item.severity}` : ""}`}
                 >
-                  {item.kind === "task" ? (
-                    <span
-                      className={`cc-queue-check ${severityCheckClass[item.severity] ?? ""}`}
-                      onClick={(e) => handleToggleTask(e, item.source)}
-                      role="checkbox"
-                      aria-checked="false"
-                      aria-label="Označit úkol jako hotový"
-                    >
-                      {item.priority ? `P${item.priority}` : "·"}
-                    </span>
-                  ) : (
-                    <span
-                      className={`cc-queue-num ${severityBadgeClass[item.severity] ?? ""}`}
-                      aria-hidden
-                    >
-                      {index + 1}
-                    </span>
-                  )}
-
-                  <div className="cc-queue-item__body">
-                    <div className="cc-queue-title">
-                      {item.kind === "task" && (
-                        <span className="cc-queue-kind" aria-hidden>
-                          ✎
+                  <button
+                    type="button"
+                    className="cc-queue-item__btn"
+                    data-kind={item.kind}
+                    onClick={() => handleItemClick(item)}
+                  >
+                    <span className="cc-queue-marker" aria-hidden={item.kind !== "task"}>
+                      {item.kind === "task" ? (
+                        <span
+                          className={`cc-queue-check ${severityCheckClass[item.severity] ?? ""}`}
+                          onClick={(e) => handleToggleTask(e, item.source)}
+                          role="checkbox"
+                          aria-checked="false"
+                          aria-label="Označit úkol jako hotový"
+                        >
+                          <span className="material-symbols-outlined" aria-hidden>
+                            check_box_outline_blank
+                          </span>
+                        </span>
+                      ) : (
+                        <span
+                          className={`cc-queue-num ${severityBadgeClass[item.severity] ?? ""}`}
+                          aria-hidden
+                        >
+                          {index + 1}
                         </span>
                       )}
-                      {item.title}
-                    </div>
-                    {item.subtitle && <div className="cc-queue-sub">{item.subtitle}</div>}
-                  </div>
+                    </span>
 
-                  <div className="cc-queue-meta">
-                    {item.projectName ?? ""}
-                    {item.dueAt && (
-                      <span className="cc-queue-meta__d">{formatDueLabel(item.dueAt)}</span>
-                    )}
-                  </div>
-                </button>
-              </li>
-            ))}
+                    <div className="cc-queue-item__body">
+                      <div className="cc-queue-title-row">
+                        <span className="cc-queue-title">{item.title}</span>
+                        <span className={`cc-queue-kind cc-queue-kind--${item.kind}`}>
+                          {item.kind === "task" ? "Úkol" : "Akce"}
+                        </span>
+                        {priorityLabel && <span className="cc-queue-priority">{priorityLabel}</span>}
+                      </div>
+                      {item.subtitle && <div className="cc-queue-sub">{item.subtitle}</div>}
+                    </div>
+
+                    <div className="cc-queue-meta" aria-label="Kontext akce">
+                      {item.projectName && <span className="cc-queue-project">{item.projectName}</span>}
+                      {item.dueAt && (
+                        <span className="cc-queue-meta__d">{formatDueLabel(item.dueAt)}</span>
+                      )}
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
           </ol>
         )}
       </div>

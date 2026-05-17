@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import { logIncident } from "./incidentLogger";
+import { normalizePublicEnvValue } from "../shared/config/publicEnv";
 import { sanitizeLogText, summarizeErrorForLog } from "../shared/security/logSanitizer";
 
 type InvokeOptions = {
@@ -16,6 +17,21 @@ const DEFAULT_RETRIES = 0;
 const wait = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
+const ensureDesktopIpcAuthenticated = async (
+  accessToken: string,
+  expiresAt?: number | null,
+): Promise<void> => {
+  if (typeof window === 'undefined') return;
+  // @ts-ignore - electronAPI is injected via preload
+  if (!window.electronAPI?.auth?.setAuthenticated) return;
+
+  // @ts-ignore - electronAPI is injected via preload
+  await window.electronAPI.auth.setAuthenticated(true, {
+    accessToken,
+    expiresAt: expiresAt ?? null,
+  });
+};
+
 const buildHeaders = (
   anonKey: string,
   bearer: string,
@@ -27,11 +43,20 @@ const buildHeaders = (
   ...(idempotencyKey ? { "x-idempotency-key": idempotencyKey } : {}),
 });
 
+const isJwtLikeKey = (value: string): boolean => /^eyJ[A-Za-z0-9_-]+\./.test(value.trim());
+
+const buildPublicHeaders = (anonKey: string): Record<string, string> => ({
+  apikey: anonKey,
+  ...(isJwtLikeKey(anonKey) ? { Authorization: `Bearer ${anonKey}` } : {}),
+  "content-type": "application/json",
+});
+
 const getRequiredEnv = (key: "VITE_SUPABASE_URL" | "VITE_SUPABASE_ANON_KEY") => {
-  const value =
+  const value = normalizePublicEnvValue(
     key === "VITE_SUPABASE_URL"
       ? import.meta.env.VITE_SUPABASE_URL
-      : import.meta.env.VITE_SUPABASE_ANON_KEY;
+      : import.meta.env.VITE_SUPABASE_ANON_KEY,
+  );
   if (!value) throw new Error(`Missing env var: ${key}`);
   return value;
 };
@@ -81,6 +106,7 @@ export const invokeAuthedFunction = async <TResponse>(
 ): Promise<TResponse> => {
   const { data } = await supabase.auth.getSession();
   const accessToken = data.session?.access_token;
+  const expiresAt = data.session?.expires_at ?? null;
   if (!accessToken) {
     throw new Error("Nejste přihlášen v aplikaci (chybí session).");
   }
@@ -101,6 +127,7 @@ export const invokeAuthedFunction = async <TResponse>(
     let lastError: unknown = null;
     for (let attempt = 0; attempt <= retries; attempt += 1) {
       try {
+        await ensureDesktopIpcAuthenticated(accessToken, expiresAt);
         // @ts-ignore
         const res = await window.electronAPI.net.request(url, {
           method,
@@ -216,11 +243,7 @@ export const invokePublicFunction = async <TResponse>(
     // @ts-ignore
     const res = await window.electronAPI.net.request(url, {
       method,
-      headers: {
-        apikey: anonKey,
-        Authorization: `Bearer ${anonKey}`, // Use Anon Key as Bearer for public functions if needed, or just omit if function handles it. Supabase functions usually need Authorization: Bearer <anon_key> for public access if VerifyJWT is not strictly identifying user but just valid client.
-        "content-type": "application/json",
-      },
+      headers: buildPublicHeaders(anonKey),
       body: method === "GET" ? undefined : JSON.stringify(options.body ?? {}),
     });
 
@@ -251,11 +274,7 @@ export const invokePublicFunction = async <TResponse>(
     try {
       res = await fetch(url, {
         method,
-        headers: {
-          apikey: anonKey,
-          Authorization: `Bearer ${anonKey}`, // Public functions still need anon key as Bearer usually
-          "content-type": "application/json",
-        },
+        headers: buildPublicHeaders(anonKey),
         body: method === "GET" ? undefined : JSON.stringify(options.body ?? {}),
         mode: 'cors',
       });

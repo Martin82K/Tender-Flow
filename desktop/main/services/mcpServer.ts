@@ -1,5 +1,6 @@
 import * as http from 'http';
 import * as crypto from 'crypto';
+import { getPublicEnvValue, getSupabasePublicConfig } from './publicEnv';
 
 type JsonRpcId = string | number | null;
 
@@ -78,6 +79,19 @@ type McpDataProvider = {
         status: string;
     }>;
 };
+
+type ProjectDetail = Awaited<ReturnType<McpDataProvider['getProjectDetail']>>;
+type ProjectResolveResult =
+    | { ok: true; projectId: string }
+    | { ok: false; error: string; candidates?: unknown[] };
+type TenderResolveResult =
+    | {
+        ok: true;
+        projectId: string;
+        detail: ProjectDetail;
+        tender: ProjectDetail['demandCategories'][number];
+    }
+    | { ok: false; error: string; candidates?: unknown[] };
 
 type McpServerHandle = {
     port: number;
@@ -268,8 +282,7 @@ const createEmptyProvider = (): McpDataProvider => ({
 });
 
 const getSupabaseConfig = () => {
-    const url = process.env.VITE_SUPABASE_URL || '';
-    const anonKey = process.env.VITE_SUPABASE_ANON_KEY || '';
+    const { url, anonKey } = getSupabasePublicConfig();
     if (!url || !anonKey) {
         throw new Error('Missing Supabase configuration.');
     }
@@ -306,7 +319,8 @@ const callFunction = async <T>(name: string, body?: unknown): Promise<T> => {
 const createSupabaseProvider = (): McpDataProvider => {
     return {
         isConfigured: () => {
-            return !!(process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_ANON_KEY && currentAuthToken);
+            const { url, anonKey } = getSupabasePublicConfig();
+            return !!(url && anonKey && currentAuthToken);
         },
         listProjects: async (input) => {
             const res = await callFunction<{ items: any[] }>('mcp-list-projects', {
@@ -391,7 +405,7 @@ const resolveProjectId = async (
     dataProvider: McpDataProvider,
     input: { projectId?: string; projectName?: string; query?: string },
     currentProjectContext: string | null,
-) => {
+): Promise<ProjectResolveResult> => {
     const explicitProjectSearch = input.projectName || input.query || '';
     const projectId = input.projectId || (!explicitProjectSearch ? currentProjectContext || '' : '');
     if (projectId) return { ok: true as const, projectId };
@@ -417,9 +431,9 @@ const resolveTender = async (
     dataProvider: McpDataProvider,
     input: { projectId?: string; projectName?: string; tenderId?: string; tenderName?: string; query?: string },
     currentProjectContext: string | null,
-) => {
+): Promise<TenderResolveResult> => {
     const projectResult = await resolveProjectId(dataProvider, input, currentProjectContext);
-    if (!projectResult.ok) return projectResult;
+    if (projectResult.ok === false) return projectResult;
 
     const detail = await dataProvider.getProjectDetail({ projectId: projectResult.projectId });
     const tenderId = input.tenderId || '';
@@ -449,18 +463,18 @@ const resolveTender = async (
 };
 
 const tenderBids = (
-    detail: Awaited<ReturnType<McpDataProvider['getProjectDetail']>>,
+    detail: ProjectDetail,
     tenderId: string,
 ) => detail.bids.filter((bid) => bid.categoryId === tenderId);
 
 const tenderWinners = (
-    detail: Awaited<ReturnType<McpDataProvider['getProjectDetail']>>,
+    detail: ProjectDetail,
     tenderId: string,
 ) => tenderBids(detail, tenderId).filter((bid) => bid.status === 'sod');
 
 const linkedContractForBid = (
     contracts: any[],
-    bid: Awaited<ReturnType<McpDataProvider['getProjectDetail']>>['bids'][number],
+    bid: ProjectDetail['bids'][number],
 ) => {
     const byBidId = contracts.find((contract) => contract.sourceBidId === bid.id || contract.source_bid_id === bid.id);
     if (byBidId) return byBidId;
@@ -522,7 +536,7 @@ const readJsonBody = async (req: http.IncomingMessage): Promise<any> => {
 const getRequiredClientId = (): string | null => {
     return (
         process.env.GOOGLE_OAUTH_CLIENT_ID_DESKTOP ||
-        process.env.VITE_GOOGLE_OAUTH_CLIENT_ID_DESKTOP ||
+        getPublicEnvValue('VITE_GOOGLE_OAUTH_CLIENT_ID_DESKTOP') ||
         null
     );
 };

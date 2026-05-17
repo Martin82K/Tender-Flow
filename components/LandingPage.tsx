@@ -12,6 +12,8 @@ const ENTERPRISE_FEATURE_GROUPS: ReadonlyArray<{
   {
     title: "Tendry & projekty",
     items: [
+      "Command Center s prioritami dne",
+      "TODO Osobní s podúkoly",
       "Neomezené projekty",
       "Plán výběrových řízení",
       "Importy VŘ",
@@ -207,6 +209,8 @@ export const LandingPage: React.FC = () => {
             "Pipeline tendrů",
             "Správa kontaktů",
             "AI analýza smluv",
+            "Command Center",
+            "TODO Osobní",
             "Dokumentový hub",
             "Harmonogram",
             "Excel nástroje",
@@ -217,6 +221,8 @@ export const LandingPage: React.FC = () => {
               "Pipeline tendrů",
               "Správa kontaktů",
               "AI analýza smluv",
+              "Command Center",
+              "TODO Osobní",
               "Dokumentový hub",
               "Harmonogram",
               "Excel nástroje",
@@ -239,7 +245,7 @@ export const LandingPage: React.FC = () => {
             Vše co potřebujete pro <span className="serif">Vaše v&iacute;tězstv&iacute;</span>
           </h2>
           <p className="sec-desc">
-            Šest modulů navržen&yacute;ch specificky pro česk&eacute; a
+            Osm modulů navržen&yacute;ch specificky pro česk&eacute; a
             slovensk&eacute; stavebn&iacute; firmy.
           </p>
 
@@ -316,6 +322,43 @@ export const LandingPage: React.FC = () => {
                 t&yacute;movou kolaborac&iacute; v re&aacute;ln&eacute;m čase.
               </p>
             </div>
+            <div className="f-card f-6">
+              <div className="f-tag">Nov&eacute;</div>
+              <h3>Command Center</h3>
+              <p>
+                Denn&iacute; operačn&iacute; přehled spojuje term&iacute;ny,
+                rizika, akce z tendrů a osobn&iacute; &uacute;koly do jednoho
+                prioritn&iacute;ho frontu.
+              </p>
+              <div className="command-preview" aria-hidden="true">
+                <div className="command-preview-row urgent">
+                  <span>!</span>
+                  <strong>Dnes odeslat poptávku</strong>
+                </div>
+                <div className="command-preview-row">
+                  <span>✓</span>
+                  <strong>Zkontrolovat smlouvu</strong>
+                </div>
+                <div className="command-preview-row muted">
+                  <span>•</span>
+                  <strong>Navázat kontakt s dodavatelem</strong>
+                </div>
+              </div>
+            </div>
+            <div className="f-card f-7">
+              <div className="f-tag">Produktivita</div>
+              <h3>TODO Osobn&iacute;</h3>
+              <p>
+                Osobn&iacute; seznamy, pod&uacute;koly, připom&iacute;nky a
+                kalend&aacute;ř drž&iacute; vlastn&iacute; pr&aacute;ci oddělenou
+                od projektů, ale viditelnou v Command Center.
+              </p>
+              <div className="todo-preview" aria-hidden="true">
+                <div className="todo-preview-item done">Připravit rozpočet</div>
+                <div className="todo-preview-item active">Zavolat investorovi</div>
+                <div className="todo-preview-item">Doplnit dokumentaci</div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -336,6 +379,22 @@ export const LandingPage: React.FC = () => {
                 čase.
               </p>
               <ul className="check-list">
+                <li>
+                  <div className="check-icon">&#10003;</div>
+                  <span>
+                    <strong>Command Center</strong> — prioritn&iacute; fronta
+                    akc&iacute;, term&iacute;nů a osobn&iacute;ch TODO na jednom
+                    m&iacute;stě
+                  </span>
+                </li>
+                <li>
+                  <div className="check-icon">&#10003;</div>
+                  <span>
+                    <strong>TODO Osobn&iacute;</strong> — soukrom&eacute;
+                    &uacute;koly, pod&uacute;koly, projekty a připom&iacute;nky
+                    napojen&eacute; na denn&iacute; přehled
+                  </span>
+                </li>
                 <li>
                   <div className="check-icon">&#10003;</div>
                   <span>
@@ -386,7 +445,10 @@ export const LandingPage: React.FC = () => {
               <div className="app-body">
                 <div className="app-sidebar">
                   <div className="app-nav-item active">
-                    <span className="dot" /> Dashboard
+                    <span className="dot" /> Command Center
+                  </div>
+                  <div className="app-nav-item">
+                    <span className="dot" /> TODO Osobn&iacute;
                   </div>
                   <div className="app-nav-item">
                     <span className="dot" /> Projekty
@@ -409,77 +471,77 @@ export const LandingPage: React.FC = () => {
                 </div>
                 <div className="app-main">
                   <div className="app-header-row">
-                    <div className="app-page-title">Přehled</div>
-                    <div className="app-mini-btn">+ Nov&yacute; projekt</div>
+                    <div className="app-page-title">Command Center</div>
+                    <div className="app-mini-btn">+ Rychl&yacute; &uacute;kol</div>
                   </div>
                   <div className="app-kpi-row">
                     <div className="app-kpi">
-                      <div className="kv o">24</div>
-                      <div className="kl">Aktivn&iacute; tendry</div>
+                      <div className="kv o">7</div>
+                      <div className="kl">Akce dnes</div>
                     </div>
                     <div className="app-kpi">
-                      <div className="kv g">87%</div>
-                      <div className="kl">Win rate</div>
+                      <div className="kv g">4</div>
+                      <div className="kl">TODO hotovo</div>
                     </div>
                     <div className="app-kpi">
-                      <div className="kv">12.4M</div>
-                      <div className="kl">Objem Kč</div>
+                      <div className="kv">2</div>
+                      <div className="kl">Rizika</div>
                     </div>
                   </div>
                   <div className="app-kanban">
                     <div className="kanban-col">
                       <div className="kanban-header">
-                        Nov&eacute; <span className="count">3</span>
+                        Priorita <span className="count">3</span>
                       </div>
                       <div className="kanban-card">
                         <div className="kc-title">
-                          Bytov&yacute; dům Vinohrady
+                          Odeslat poptávku na Vinohrady
                         </div>
-                        4.2M Kč
-                        <div className="kc-tag orange">Odesl&aacute;no</div>
+                        Dnes 14:00
+                        <div className="kc-tag orange">Deadline</div>
                       </div>
                       <div className="kanban-card">
-                        <div className="kc-title">Admin budova</div>
-                        1.8M Kč
-                        <div className="kc-tag blue">Rozpracovan&eacute;</div>
+                        <div className="kc-title">Zkontrolovat chyběj&iacute;c&iacute; položky</div>
+                        Tender T-2418
+                        <div className="kc-tag blue">Riziko</div>
                       </div>
                     </div>
                     <div className="kanban-col">
                       <div className="kanban-header">
-                        Nab&iacute;dka <span className="count">5</span>
+                        TODO Osobn&iacute; <span className="count">5</span>
                       </div>
                       <div className="kanban-card">
-                        <div className="kc-title">Hotel Centrum</div>
-                        8.5M Kč
-                        <div className="kc-tag orange">14 dn&iacute;</div>
+                        <div className="kc-title">Zavolat investorovi</div>
+                        Osobn&iacute; seznam
+                        <div className="kc-tag orange">Připom&iacute;nka</div>
                       </div>
                       <div className="kanban-card">
-                        <div className="kc-title">Škola Barrandov</div>
-                        3.1M Kč
-                        <div className="kc-tag green">Odesl&aacute;no</div>
+                        <div className="kc-title">Doplnit pozn&aacute;mky z porady</div>
+                        2 pod&uacute;koly
+                        <div className="kc-tag green">Rozpracovan&eacute;</div>
                       </div>
                     </div>
                     <div className="kanban-col">
                       <div className="kanban-header">
-                        Vyjedn&aacute;v&aacute;n&iacute;{" "}
+                        Term&iacute;ny{" "}
                         <span className="count">2</span>
                       </div>
                       <div className="kanban-card">
-                        <div className="kc-title">Retail park</div>
-                        12M Kč
-                        <div className="kc-tag green">Fin&aacute;ln&iacute;</div>
+                        <div className="kc-title">Hotel Centrum</div>
+                        Nab&iacute;dka za 14 dn&iacute;
+                        <div className="kc-tag green">Pl&aacute;n</div>
                       </div>
                     </div>
                     <div className="kanban-col">
                       <div className="kanban-header">
-                        V&yacute;hra <span className="count">4</span>
+                        Hotovo <span className="count">4</span>
                       </div>
                       <div className="kanban-card">
                         <div className="kc-title">
-                          Logistick&eacute; centrum
+                          Připraven export podkladů
                         </div>
-                        22M Kč
-                        <div className="kc-tag green">Podeps&aacute;no</div>
+                        Dokumentový hub
+                        <div className="kc-tag green">Vyřešeno</div>
                       </div>
                     </div>
                   </div>

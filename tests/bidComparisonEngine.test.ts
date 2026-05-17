@@ -69,6 +69,7 @@ describe('bidComparisonEngine', () => {
     const formulaValue: ExcelJS.CellFormulaValue = {
       formula: 'A1*B1',
       result: 42,
+      date1904: false,
     };
 
     expect(safeNumericValue(formulaValue)).toBeNull();
@@ -86,6 +87,7 @@ describe('bidComparisonEngine', () => {
         {
           formula: 'G5*1',
           result: 180,
+          date1904: false,
         } as ExcelJS.CellFormulaValue,
       ),
     );

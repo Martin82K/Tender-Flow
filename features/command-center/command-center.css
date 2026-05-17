@@ -786,7 +786,8 @@
   flex-direction: column;
   list-style: none;
   margin: 0;
-  padding: 0 clamp(14px, 2.2vw, 24px) 10px;
+  padding: 8px clamp(14px, 2.2vw, 22px) 12px;
+  gap: 2px;
 }
 
 .cc-queue-item {
@@ -799,13 +800,23 @@
 
 .cc-root .cc-queue-item__btn {
   display: grid;
-  grid-template-columns: 26px minmax(0, 1fr) minmax(0, auto);
-  gap: 12px;
-  padding: 9px 10px;
-  transition: background 0.12s ease;
+  grid-template-columns: 30px minmax(0, 1fr) minmax(118px, 170px);
+  gap: 10px;
+  min-height: 54px;
+  padding: 8px 10px;
+  transition: background 0.12s ease, border-color 0.12s ease;
   width: 100%;
   text-align: left;
   align-items: center;
+  border: 1px solid transparent;
+  border-radius: 8px;
+}
+
+.cc-queue-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
 }
 
 .cc-queue-item__body {
@@ -814,6 +825,7 @@
 
 .cc-root .cc-queue-item__btn:hover {
   background: rgba(77, 159, 255, 0.03);
+  border-color: var(--cc-line-soft);
 }
 
 .cc-queue-num {
@@ -834,8 +846,18 @@
 .cc-queue-num--amber { border-color: rgba(255, 179, 71, 0.4); color: var(--cc-amber); background: var(--cc-amber-soft); }
 .cc-queue-num--blue { border-color: rgba(77, 159, 255, 0.4); color: var(--cc-blue); background: var(--cc-blue-soft); }
 
+.cc-queue-title-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+
 .cc-queue-title {
+  min-width: 0;
+  flex: 1;
   font-size: 12px;
+  font-weight: 700;
   color: var(--cc-text);
   line-height: 1.35;
   white-space: nowrap;
@@ -846,20 +868,30 @@
 .cc-queue-sub {
   font-size: 11px;
   color: var(--cc-text-faint);
-  margin-top: 2px;
-  white-space: nowrap;
+  margin-top: 3px;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.3;
 }
 
 .cc-queue-meta {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
   color: var(--cc-text-dim);
   font-size: 10px;
   text-align: right;
-  white-space: nowrap;
-  max-width: 160px;
+}
+
+.cc-queue-project {
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .cc-queue-meta__d {
@@ -873,23 +905,27 @@
 .cc-queue-check {
   width: 22px;
   height: 22px;
-  border-radius: 50%;
+  border-radius: 6px;
   background: var(--cc-surface-3);
   border: 1px solid var(--cc-line);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
-  font-weight: 700;
   color: var(--cc-text-dim);
   cursor: pointer;
   transition: background 0.12s ease, transform 0.08s ease;
 }
+
+.cc-queue-check .material-symbols-outlined {
+  font-size: 15px;
+  line-height: 1;
+}
+
 .cc-queue-check:hover {
   background: var(--cc-green-soft);
   color: var(--cc-green);
   border-color: rgba(61, 214, 140, 0.5);
-  transform: scale(1.08);
+  transform: translateY(-1px);
 }
 .cc-queue-check--red {
   border-color: rgba(255, 77, 94, 0.5);
@@ -909,25 +945,49 @@
 
 /* Urgence — levá barevná stripe na řádku user tasku */
 .cc-queue-item--urgency-critical {
-  box-shadow: inset 3px 0 0 var(--cc-red);
+  box-shadow: inset 2px 0 0 var(--cc-red);
   background: linear-gradient(90deg, rgba(255, 77, 94, 0.05), transparent 40%);
 }
 
 .cc-queue-item--urgency-warning {
-  box-shadow: inset 3px 0 0 var(--cc-amber);
+  box-shadow: inset 2px 0 0 var(--cc-amber);
   background: linear-gradient(90deg, rgba(255, 179, 71, 0.04), transparent 40%);
 }
 
 .cc-queue-item--urgency-info {
-  box-shadow: inset 3px 0 0 var(--cc-blue);
+  box-shadow: inset 2px 0 0 var(--cc-blue);
   background: linear-gradient(90deg, rgba(77, 159, 255, 0.03), transparent 40%);
 }
 
 .cc-queue-kind {
-  color: var(--cc-purple);
+  flex: 0 0 auto;
+  border: 1px solid var(--cc-line-soft);
+  border-radius: 4px;
+  padding: 1px 4px;
   font-size: 10px;
-  margin-right: 6px;
-  opacity: 0.8;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.cc-queue-kind--task {
+  color: var(--cc-purple);
+  background: var(--cc-purple-soft);
+}
+
+.cc-queue-kind--derived {
+  color: var(--cc-text-dim);
+  background: var(--cc-surface-2);
+}
+
+.cc-queue-priority {
+  flex: 0 0 auto;
+  border-radius: 4px;
+  background: var(--cc-amber-soft);
+  color: var(--cc-amber);
+  padding: 1px 4px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.2;
 }
 
 /* Quick-add — inline task vstup nad akční frontou */
