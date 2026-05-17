@@ -4,14 +4,15 @@
  */
 
 import { useState, useEffect } from "react";
-import { hexToRgb, mixHexColors } from "../utils/helpers";
+import { hexToRgb } from "../utils/helpers";
 import type { User } from "../types";
 import { appAdapter } from "../services/platformAdapter";
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 export type ThemeSkin = 'classic' | 'industrial';
 
-const DEFAULT_DARK_BACKGROUND = "#0f172a";
+export const DEFAULT_DARK_BACKGROUND = "#0f172a";
+const DEFAULT_LIGHT_BACKGROUND = "#f5f6f8";
 const DEFAULT_SKIN: ThemeSkin = "industrial";
 export const DEFAULT_UI_SCALE = 1;
 export const UI_SCALE_MIN = 0.5;
@@ -87,6 +88,11 @@ const getInitialUiScale = (): number => {
 const normalizeSkin = (value: unknown): ThemeSkin =>
     value === "classic" || value === "industrial" ? value : DEFAULT_SKIN;
 
+const normalizeHexColor = (value: unknown, fallback: string): string =>
+    typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value.trim())
+        ? value.trim()
+        : fallback;
+
 const getInitialSkin = (): ThemeSkin => {
     if (typeof window === "undefined") return DEFAULT_SKIN;
     return normalizeSkin(localStorage.getItem("skin") || localStorage.getItem("projectDetailSkin"));
@@ -101,7 +107,7 @@ export const useTheme = (options: UseThemeOptions = {}): UseThemeReturn => {
     const [theme, setThemeState] = useState<ThemeMode>(getInitialTheme);
     const [skin, setSkinState] = useState<ThemeSkin>(getInitialSkin);
     const [primaryColor, setPrimaryColorState] = useState("#607AFB");
-    const [backgroundColor, setBackgroundColorState] = useState("#f5f6f8");
+    const [backgroundColor, setBackgroundColorState] = useState(DEFAULT_LIGHT_BACKGROUND);
     const [uiScale, setUiScaleState] = useState<number>(getInitialUiScale);
 
     // Sync preferences from user profile
@@ -127,7 +133,7 @@ export const useTheme = (options: UseThemeOptions = {}): UseThemeReturn => {
                 setPrimaryColorState(user.preferences.primaryColor);
             }
             if (user.preferences.backgroundColor) {
-                setBackgroundColorState(user.preferences.backgroundColor);
+                setBackgroundColorState(normalizeHexColor(user.preferences.backgroundColor, DEFAULT_LIGHT_BACKGROUND));
             }
             if (localStorage.getItem('uiScale') === null && user.preferences.uiScale !== undefined) {
                 setUiScaleState(normalizeUiScale(user.preferences.uiScale));
@@ -189,27 +195,27 @@ export const useTheme = (options: UseThemeOptions = {}): UseThemeReturn => {
 
     // Update background CSS variable
     useEffect(() => {
-        const darkBackground = mixHexColors(backgroundColor, DEFAULT_DARK_BACKGROUND, 0.22);
+        const safeBackgroundColor = normalizeHexColor(backgroundColor, DEFAULT_LIGHT_BACKGROUND);
 
         document.documentElement.style.setProperty(
             "--tf-color-background-light",
-            backgroundColor
+            safeBackgroundColor
         );
         document.documentElement.style.setProperty(
             "--tf-color-background-dark",
-            darkBackground
+            DEFAULT_DARK_BACKGROUND
         );
         document.documentElement.style.setProperty(
             "--color-background",
-            backgroundColor
+            safeBackgroundColor
         );
         document.documentElement.style.setProperty(
             "--color-background-light",
-            backgroundColor
+            safeBackgroundColor
         );
         document.documentElement.style.setProperty(
             "--color-background-dark",
-            darkBackground
+            DEFAULT_DARK_BACKGROUND
         );
     }, [backgroundColor]);
 
@@ -247,8 +253,9 @@ export const useTheme = (options: UseThemeOptions = {}): UseThemeReturn => {
     };
 
     const setBackgroundColor = (color: string) => {
-        setBackgroundColorState(color);
-        onPreferencesUpdate?.({ backgroundColor: color });
+        const normalized = normalizeHexColor(color, DEFAULT_LIGHT_BACKGROUND);
+        setBackgroundColorState(normalized);
+        onPreferencesUpdate?.({ backgroundColor: normalized });
     };
 
     const setUiScale = (scale: number) => {

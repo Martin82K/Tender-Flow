@@ -9,6 +9,9 @@ import { APP_BASE, isProjectTab } from "./routes";
 // Re-export for convenience
 export { APP_BASE, isProjectTab };
 
+export const DEFAULT_APP_VIEW: View = "todo";
+export const DEFAULT_APP_URL = `${APP_BASE}/todo`;
+
 /**
  * Build a URL for navigating within the app
  */
@@ -28,6 +31,8 @@ export const buildAppUrl = (
             return `${APP_BASE}/command-center`;
         case "contacts":
             return `${APP_BASE}/contacts`;
+        case "todo":
+            return `${APP_BASE}/todo`;
         case "settings": {
             const params = new URLSearchParams();
             if (opts?.settingsTab) params.set("tab", opts.settingsTab);
@@ -42,7 +47,7 @@ export const buildAppUrl = (
         case "url-shortener":
             return `${APP_BASE}/url-shortener`;
         case "project": {
-            if (!opts?.projectId) return `${APP_BASE}/command-center`;
+            if (!opts?.projectId) return DEFAULT_APP_URL;
             const params = new URLSearchParams();
             if (opts.tab) params.set("tab", opts.tab);
             if (opts.categoryId) params.set("categoryId", opts.categoryId);
@@ -51,7 +56,7 @@ export const buildAppUrl = (
             return `${APP_BASE}/project/${encodeURIComponent(opts.projectId)}${qs ? `?${qs}` : ""}`;
         }
         default:
-            return `${APP_BASE}/command-center`;
+            return DEFAULT_APP_URL;
     }
 };
 
@@ -61,7 +66,7 @@ export const buildAppUrl = (
 export type ParsedAppRoute =
     | { isApp: false }
     | { isApp: true; redirectTo: string }
-    | { isApp: true; view: "command-center" | "contacts" | "settings" | "project-management" | "project-overview" | "url-shortener" }
+    | { isApp: true; view: "command-center" | "contacts" | "todo" | "settings" | "project-management" | "project-overview" | "url-shortener" }
     | {
         isApp: true;
         view: "project";
@@ -78,12 +83,13 @@ export const parseAppRoute = (pathname: string, search: string): ParsedAppRoute 
     if (parts[0] !== "app") return { isApp: false as const };
 
     if (parts.length === 1) {
-        return { isApp: true as const, redirectTo: `${APP_BASE}/command-center` };
+        return { isApp: true as const, redirectTo: DEFAULT_APP_URL };
     }
 
     const sub = parts[1];
     if (sub === "command-center") return { isApp: true as const, view: "command-center" as const };
     if (sub === "contacts") return { isApp: true as const, view: "contacts" as const };
+    if (sub === "todo") return { isApp: true as const, view: "todo" as const };
     if (sub === "settings") return { isApp: true as const, view: "settings" as const };
     if (sub === "projects") return { isApp: true as const, view: "project-management" as const };
     if (sub === "project-overview") return { isApp: true as const, view: "project-overview" as const };
@@ -103,5 +109,5 @@ export const parseAppRoute = (pathname: string, search: string): ParsedAppRoute 
         };
     }
 
-    return { isApp: true as const, redirectTo: `${APP_BASE}/command-center` };
+    return { isApp: true as const, redirectTo: DEFAULT_APP_URL };
 };

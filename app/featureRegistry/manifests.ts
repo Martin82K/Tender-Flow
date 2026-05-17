@@ -38,6 +38,15 @@ export const featureModuleRegistry: Record<View, FeatureModuleManifest> = {
       import("@/features/contacts/Contacts").then((m) => ({ default: m.Contacts })),
     unmountSafeChecks: emptyChecks,
   }),
+  ...viewToManifest("todo", {
+    id: "tasks.todo",
+    routes: [{ path: "/app/todo", view: "todo" }],
+    navItems: [{ id: "todo", label: "TODO Osobní" }],
+    requiredCapabilities: [FEATURES.MODULE_TASKS],
+    mount: () =>
+      import("@/features/tasks").then((m) => ({ default: m.TasksPage })),
+    unmountSafeChecks: emptyChecks,
+  }),
   ...viewToManifest("settings", {
     id: "settings.main",
     routes: [{ path: "/app/settings", view: "settings" }],

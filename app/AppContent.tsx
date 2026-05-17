@@ -4,7 +4,7 @@ import { UpdateBanner } from "@/components/desktop";
 import { RequireFeature } from "@/shared/routing/RequireFeature";
 import { ShortUrlRedirect } from "@/shared/routing/ShortUrlRedirect";
 import { useLocation, navigate } from "@/shared/routing/router";
-import { buildAppUrl } from "@/shared/routing/routeUtils";
+import { DEFAULT_APP_VIEW, buildAppUrl } from "@/shared/routing/routeUtils";
 import { FEATURES } from "@/config/features";
 import { useAuth } from "@/context/AuthContext";
 import { useFeatures } from "@/context/FeatureContext";
@@ -34,6 +34,7 @@ import {
   ProjectManager,
   ProjectOverview,
   Settings,
+  TasksPage,
   UrlShortener,
 } from "@app/views/LazyViews";
 import { getLegalPage } from "@app/views/LegalPageRouter";
@@ -82,7 +83,7 @@ export const AppContent: React.FC = () => {
   );
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [currentView, setCurrentView] = useState<View>("command-center");
+  const [currentView, setCurrentView] = useState<View>(DEFAULT_APP_VIEW);
   const [activeProjectTab, setActiveProjectTab] = useState<string>("overview");
   const [activePipelineCategoryId, setActivePipelineCategoryId] = useState<string | null>(null);
   const [isLegalAcceptanceSaving, setIsLegalAcceptanceSaving] = useState(false);
@@ -301,6 +302,12 @@ export const AppContent: React.FC = () => {
         return (
           <RequireFeature feature={FEATURES.MODULE_COMMAND_CENTER}>
             <CommandCenterView />
+          </RequireFeature>
+        );
+      case "todo":
+        return (
+          <RequireFeature feature={FEATURES.MODULE_TASKS}>
+            <TasksPage skin={skin} />
           </RequireFeature>
         );
       case "project":

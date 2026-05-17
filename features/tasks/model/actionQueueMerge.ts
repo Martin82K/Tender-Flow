@@ -15,6 +15,7 @@ interface BaseItem {
   projectName?: string;
   dueAt?: string;
   actionUrl?: string;
+  parentTaskId?: string;
 }
 
 export interface DerivedActionQueueItem extends BaseItem {
@@ -26,6 +27,7 @@ export interface DerivedActionQueueItem extends BaseItem {
 export interface TaskQueueItem extends BaseItem {
   kind: "task";
   priority?: TaskPriority;
+  isSubtask: boolean;
   source: Task;
 }
 
@@ -84,17 +86,22 @@ const derivedToItem = (action: DerivedAction): DerivedActionQueueItem => ({
 const taskToItem = (
   task: Task,
   projectName: string | undefined,
+  parentTitle: string | undefined,
   now: Date,
 ): TaskQueueItem => ({
   kind: "task",
   id: `task:${task.id}`,
   severity: classifyTaskSeverity(task, now),
-  title: task.title,
-  subtitle: task.note && task.note.length > 0 ? task.note.split("\n")[0] : undefined,
+  title: task.parentTaskId ? `Podúkol: ${task.title}` : task.title,
+  subtitle:
+    parentTitle ??
+    (task.note && task.note.length > 0 ? task.note.split("\n")[0] : undefined),
   projectId: task.projectId,
   projectName,
   dueAt: task.dueAt,
   priority: task.priority,
+  parentTaskId: task.parentTaskId,
+  isSubtask: Boolean(task.parentTaskId),
   source: task,
 });
 
@@ -111,11 +118,20 @@ export const mergeActionQueue = ({
   projectNames = {},
   now = new Date(),
 }: MergeInput): ActionQueueItem[] => {
+  const taskTitleById = new Map(tasks.map((task) => [task.id, task.title]));
   const items: ActionQueueItem[] = [
     ...derivedActions.map(derivedToItem),
     ...tasks
-      .filter((t) => !t.completed)
-      .map((t) => taskToItem(t, t.projectId ? projectNames[t.projectId] : undefined, now)),
+      .filter((t) => !t.completed && !t.archivedAt)
+      .filter((t) => !t.parentTaskId || Boolean(t.dueAt) || t.priority === 1)
+      .map((t) =>
+        taskToItem(
+          t,
+          t.projectId ? projectNames[t.projectId] : undefined,
+          t.parentTaskId ? taskTitleById.get(t.parentTaskId) : undefined,
+          now,
+        ),
+      ),
   ];
 
   return items.sort((a, b) => {

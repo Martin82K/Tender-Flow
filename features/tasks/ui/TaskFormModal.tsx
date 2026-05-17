@@ -8,6 +8,7 @@ import {
   useDeleteTaskMutation,
   useUpdateTaskMutation,
 } from "../hooks/useTaskMutations";
+import { TaskDateTimePicker } from "./TaskDateTimePicker";
 import type {
   Task,
   TaskCreateInput,
@@ -29,6 +30,8 @@ interface FormState {
   priority: TaskPriority | "";
   projectId: string;
   relatedEntity: TaskRelatedEntity | undefined;
+  parentTaskId: string | undefined;
+  sortOrder: number | undefined;
 }
 
 const emptyState: FormState = {
@@ -38,6 +41,8 @@ const emptyState: FormState = {
   priority: "",
   projectId: "",
   relatedEntity: undefined,
+  parentTaskId: undefined,
+  sortOrder: undefined,
 };
 
 const taskToState = (task: Task): FormState => ({
@@ -47,6 +52,8 @@ const taskToState = (task: Task): FormState => ({
   priority: task.priority ?? "",
   projectId: task.projectId ?? "",
   relatedEntity: task.relatedEntity,
+  parentTaskId: task.parentTaskId,
+  sortOrder: task.sortOrder,
 });
 
 const defaultsToState = (defaults?: Partial<TaskCreateInput>): FormState => ({
@@ -57,6 +64,8 @@ const defaultsToState = (defaults?: Partial<TaskCreateInput>): FormState => ({
   priority: defaults?.priority ?? "",
   projectId: defaults?.projectId ?? "",
   relatedEntity: defaults?.relatedEntity,
+  parentTaskId: defaults?.parentTaskId,
+  sortOrder: defaults?.sortOrder,
 });
 
 export const TaskFormModal: React.FC<TaskFormModalProps> = ({
@@ -103,6 +112,8 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
         | undefined,
       projectId: state.projectId || undefined,
       relatedEntity: state.relatedEntity,
+      parentTaskId: state.parentTaskId,
+      sortOrder: state.sortOrder,
     };
 
     try {
@@ -175,11 +186,10 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Termín
             </label>
-            <input
-              type="datetime-local"
-              className="flex h-10 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
+            <TaskDateTimePicker
+              label="Termín"
               value={state.dueAt}
-              onChange={(e) => handleChange("dueAt", e.target.value)}
+              onChange={(value) => handleChange("dueAt", value)}
             />
           </div>
           <div>

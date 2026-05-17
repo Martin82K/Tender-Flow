@@ -1,0 +1,127 @@
+{
+  "groups": [
+    { "id": "app", "label": "Aplikace", "color": "#2563eb" },
+    { "id": "data", "label": "Data", "color": "#16a34a" },
+    { "id": "desktop", "label": "Desktop", "color": "#ea580c" },
+    { "id": "ops", "label": "Ops", "color": "#7c3aed" }
+  ],
+  "packages": [
+    { "id": "sidebar", "label": "Sidebar", "group": "app", "paths": ["components/Sidebar.tsx", "config/navigation.ts"] },
+    { "id": "routing", "label": "Routing", "group": "app", "paths": ["shared/routing/routeUtils.ts", "app/featureRegistry/manifests.ts"] },
+    { "id": "projects", "label": "Stavby", "group": "app", "paths": ["features/projects", "shared/ui/projects"] },
+    { "id": "contacts", "label": "Subdodavatelé", "group": "app", "paths": ["features/contacts"] },
+    { "id": "command-center", "label": "Command Center", "group": "app", "paths": ["features/command-center"] },
+    { "id": "tasks", "label": "TODO", "group": "app", "paths": ["features/tasks", "supabase/migrations/20260420100000_tasks.sql"] },
+    { "id": "supabase", "label": "Supabase", "group": "data", "paths": ["services/supabase.ts", "infra/db/dbAdapter.ts", "supabase/migrations"] },
+    { "id": "settings", "label": "Nastavení", "group": "app", "paths": ["features/settings", "context/FeatureContext.tsx"] },
+    { "id": "desktop-main", "label": "Electron main", "group": "desktop", "paths": ["desktop/main"] },
+    { "id": "desktop-build", "label": "Desktop build", "group": "ops", "paths": ["electron-builder.yml", "scripts/write-desktop-build-env.mjs"] },
+    { "id": "ci", "label": "Quality gate", "group": "ops", "paths": ["package.json", "scripts/check-boundaries.mjs", "scripts/check-legacy-structure.mjs"] }
+  ],
+  "flows": [
+    {
+      "id": "invite-new-user",
+      "label": "Invite new user",
+      "summary": "Administrátor pozve uživatele do organizace a feature vrstvy načtou oprávnění.",
+      "entryAction": "invite new user",
+      "risk": "Chybná role může otevřít cizí tenant data.",
+      "aliases": ["pozvat uživatele", "invite new user"],
+      "steps": [
+        { "from": "settings", "to": "supabase", "label": "Create invite", "detail": "Admin odešle pozvánku přes organization service.", "data": "email, role, organization_id" },
+        { "from": "supabase", "to": "settings", "label": "Persist member", "detail": "Databáze uloží členství a vrátí stav.", "data": "member_id, status" },
+        { "from": "settings", "to": "routing", "label": "Refresh app state", "detail": "UI obnoví členy a oprávnění.", "data": "feature flags, role" }
+      ]
+    },
+    {
+      "id": "create-project",
+      "label": "Create project",
+      "summary": "Uživatel založí stavbu a přejde do projektového layoutu.",
+      "entryAction": "create project",
+      "risk": "Owner a tenant metadata musí být konzistentní.",
+      "aliases": ["nová stavba"],
+      "steps": [
+        { "from": "sidebar", "to": "projects", "label": "Open project manager", "detail": "Sidebar naviguje na Správu staveb.", "data": "view=project-management" },
+        { "from": "projects", "to": "supabase", "label": "Insert project", "detail": "Projektová služba uloží novou stavbu.", "data": "name, location, status" },
+        { "from": "supabase", "to": "routing", "label": "Open project", "detail": "Po vytvoření se nastaví route projektu.", "data": "project_id, tab=overview" }
+      ]
+    },
+    {
+      "id": "task-to-command-center",
+      "label": "TODO to Command Center",
+      "summary": "Personal úkol se uloží a propíše do Command Center akční fronty i kalendáře.",
+      "entryAction": "create todo",
+      "risk": "Personal scope nesmí zobrazit úkol jiného uživatele.",
+      "aliases": ["todo", "úkol", "podúkol"],
+      "steps": [
+        { "from": "tasks", "to": "supabase", "label": "Persist task", "detail": "TODO modul uloží root úkol nebo podúkol.", "data": "title, created_by, parent_task_id, due_at" },
+        { "from": "supabase", "to": "tasks", "label": "Invalidate query", "detail": "React Query obnoví osobní task list.", "data": "tasks query key" },
+        { "from": "tasks", "to": "command-center", "label": "Merge actions", "detail": "Command Center smíchá tasky s derivovanými akcemi.", "data": "open personal tasks, priority, due_at" }
+      ]
+    },
+    {
+      "id": "contact-import",
+      "label": "Contact import",
+      "summary": "Import kontaktů normalizuje data a aktualizuje seznam subdodavatelů.",
+      "entryAction": "import contacts",
+      "risk": "CSV/XLSX obsah nesmí obejít validaci názvů a polí.",
+      "aliases": ["import kontaktů"],
+      "steps": [
+        { "from": "settings", "to": "contacts", "label": "Start import", "detail": "Nástroje otevřou import wizard.", "data": "file metadata" },
+        { "from": "contacts", "to": "supabase", "label": "Persist contacts", "detail": "Validované kontakty se uloží.", "data": "company, ico, region" },
+        { "from": "supabase", "to": "contacts", "label": "Refresh list", "detail": "UI zobrazí aktualizované subdodavatele.", "data": "contacts[]" }
+      ]
+    },
+    {
+      "id": "pipeline-bid-update",
+      "label": "Pipeline bid update",
+      "summary": "Změna nabídky v pipeline aktualizuje projektový detail a navazující přehledy.",
+      "entryAction": "update bid",
+      "risk": "Bid stav a rozpočty musí zůstat konzistentní.",
+      "aliases": ["nabídka", "pipeline"],
+      "steps": [
+        { "from": "projects", "to": "supabase", "label": "Update bid", "detail": "Pipeline uloží změnu nabídky.", "data": "bid_id, status, price" },
+        { "from": "supabase", "to": "projects", "label": "Reload project details", "detail": "Projektový stav se znovu načte.", "data": "ProjectDetails" },
+        { "from": "projects", "to": "command-center", "label": "Derived signals", "detail": "Command Center přepočítá rizika a deadline.", "data": "categories, bids, deadlines" }
+      ]
+    },
+    {
+      "id": "document-export",
+      "label": "Document export",
+      "summary": "Export dokumentu používá sdílené služby a bezpečný filesystem adapter.",
+      "entryAction": "export document",
+      "risk": "Souborové cesty musí zůstat v povolených rootech.",
+      "aliases": ["export pdf", "export excel"],
+      "steps": [
+        { "from": "projects", "to": "desktop-main", "label": "Request export", "detail": "Renderer požádá main proces o zápis.", "data": "target path, blob" },
+        { "from": "desktop-main", "to": "desktop-main", "label": "Validate path", "detail": "IPC guard ověří auth a filesystem root.", "data": "resolved path" },
+        { "from": "desktop-main", "to": "projects", "label": "Return result", "detail": "UI dostane výsledek exportu.", "data": "success, file path" }
+      ]
+    },
+    {
+      "id": "desktop-build",
+      "label": "Desktop build",
+      "summary": "Desktop build složí web, zkompiluje Electron main proces a zabalí artefakt.",
+      "entryAction": "desktop build",
+      "risk": "Build env a signing nastavení musí odpovídat cílové platformě.",
+      "aliases": ["todesktop build", "desktop build"],
+      "steps": [
+        { "from": "ci", "to": "desktop-build", "label": "Run build", "detail": "Spustí se desktop build script.", "data": "npm run desktop:build" },
+        { "from": "desktop-build", "to": "desktop-main", "label": "Compile main", "detail": "TypeScript main proces se zkompiluje do desktop/dist.", "data": "desktop/main/**/*.ts" },
+        { "from": "desktop-build", "to": "ci", "label": "Publish artifact", "detail": "Výstupy se připraví pro release flow.", "data": "dist-electron artifacts" }
+      ]
+    },
+    {
+      "id": "feature-gate-route",
+      "label": "Feature gated route",
+      "summary": "Routa se zobrazí jen při aktivní capability.",
+      "entryAction": "open gated module",
+      "risk": "UI gating nenahrazuje databázové oprávnění.",
+      "aliases": ["feature flag"],
+      "steps": [
+        { "from": "sidebar", "to": "routing", "label": "Navigate", "detail": "Navigace sestaví app URL.", "data": "view, path" },
+        { "from": "routing", "to": "settings", "label": "Check feature", "detail": "Feature context ověří capability.", "data": "feature key" },
+        { "from": "settings", "to": "supabase", "label": "Load entitlement", "detail": "Backend je zdroj plánu a override.", "data": "subscription tier, overrides" }
+      ]
+    }
+  ]
+}
