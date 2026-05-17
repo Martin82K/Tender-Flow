@@ -17,6 +17,13 @@ export interface NavItemConfig {
 
 export const SIDEBAR_NAVIGATION: NavItemConfig[] = [
   {
+    id: 'todo',
+    label: 'TODO Osobní',
+    icon: 'checklist',
+    view: 'todo',
+    feature: FEATURES.MODULE_TASKS,
+  },
+  {
     id: 'command-center',
     label: 'Command Center',
     icon: 'radar',

@@ -2357,19 +2357,25 @@ html[data-skin="industrial"] .tf-settings-view [data-help-id="settings-organizat
 }
 
 html[data-skin="industrial"] .tf-project-manager-view,
-html[data-skin="industrial"] .tf-project-overview-view {
+html[data-skin="industrial"] .tf-project-overview-view,
+html[data-skin="industrial"] .tf-tasks-view {
   background: transparent !important;
   color: var(--tf-skin-text);
 }
 
 html[data-skin="industrial"] .tf-project-manager-view > div,
-html[data-skin="industrial"] .tf-project-overview-view > div:not(.no-print) {
+html[data-skin="industrial"] .tf-project-overview-view > div:not(.no-print),
+html[data-skin="industrial"] .tf-tasks-view > main {
   background: transparent !important;
 }
 
 html[data-skin="industrial"] .tf-project-manager-view [data-help-id="pm-create-section"],
 html[data-skin="industrial"] .tf-project-manager-view [data-help-id="pm-project-list"],
 html[data-skin="industrial"] .tf-project-manager-view [data-help-id="pm-archive-section"],
+html[data-skin="industrial"] .tf-tasks-view [data-help-id="tasks-menu"],
+html[data-skin="industrial"] .tf-tasks-view [data-help-id="tasks-quick-add"],
+html[data-skin="industrial"] .tf-tasks-view [data-help-id="tasks-detail"],
+html[data-skin="industrial"] .tf-tasks-view [data-help-id="tasks-list"] > div[class*="border"],
 html[data-skin="industrial"] .tf-project-overview-view [data-help-id="overview-scope-toggle"],
 html[data-skin="industrial"] .tf-project-overview-view [data-help-id="overview-supplier-analysis"],
 html[data-skin="industrial"] .tf-project-overview-view [data-help-id="overview-trends"],
@@ -2385,6 +2391,8 @@ html[data-skin="industrial"] .tf-project-overview-view [data-help-id="overview-s
 html[data-skin="industrial"] .tf-project-manager-view form,
 html[data-skin="industrial"] .tf-project-manager-view [data-help-id="pm-project-list"] [draggable="true"],
 html[data-skin="industrial"] .tf-project-manager-view [data-help-id="pm-archive-section"] [class*="bg-slate-50"],
+html[data-skin="industrial"] .tf-tasks-view [data-help-id="tasks-detail"] [class*="bg-slate-50"],
+html[data-skin="industrial"] .tf-tasks-view [data-help-id="tasks-detail"] [class*="bg-slate-900"],
 html[data-skin="industrial"] .tf-project-overview-view [data-help-id="overview-supplier-analysis"] [class*="bg-slate-50"],
 html[data-skin="industrial"] .tf-project-overview-view [data-help-id="overview-supplier-analysis"] [class*="bg-slate-100"],
 html[data-skin="industrial"] .tf-project-overview-view [data-help-id="overview-supplier-analysis"] [class*="bg-slate-800"],
@@ -2398,11 +2406,16 @@ html[data-skin="industrial"] .tf-project-overview-view [data-help-id="overview-s
 html[data-skin="industrial"] .tf-project-manager-view h2,
 html[data-skin="industrial"] .tf-project-manager-view h3,
 html[data-skin="industrial"] .tf-project-manager-view h4,
+html[data-skin="industrial"] .tf-tasks-view h2,
+html[data-skin="industrial"] .tf-tasks-view h3,
+html[data-skin="industrial"] .tf-tasks-view h4,
 html[data-skin="industrial"] .tf-project-overview-view h2,
 html[data-skin="industrial"] .tf-project-overview-view h3,
 html[data-skin="industrial"] .tf-project-overview-view h4,
 html[data-skin="industrial"] .tf-project-manager-view [class*="text-slate-900"],
 html[data-skin="industrial"] .tf-project-manager-view [class*="text-white"],
+html[data-skin="industrial"] .tf-tasks-view [class*="text-slate-900"],
+html[data-skin="industrial"] .tf-tasks-view [class*="text-white"],
 html[data-skin="industrial"] .tf-project-overview-view [class*="text-slate-900"],
 html[data-skin="industrial"] .tf-project-overview-view [class*="text-white"] {
   color: var(--tf-skin-text) !important;
@@ -2411,12 +2424,18 @@ html[data-skin="industrial"] .tf-project-overview-view [class*="text-white"] {
 
 html[data-skin="industrial"] .tf-project-manager-view p,
 html[data-skin="industrial"] .tf-project-manager-view label,
+html[data-skin="industrial"] .tf-tasks-view p,
+html[data-skin="industrial"] .tf-tasks-view label,
 html[data-skin="industrial"] .tf-project-overview-view p,
 html[data-skin="industrial"] .tf-project-overview-view label,
 html[data-skin="industrial"] .tf-project-manager-view [class*="text-slate-700"],
 html[data-skin="industrial"] .tf-project-manager-view [class*="text-slate-600"],
 html[data-skin="industrial"] .tf-project-manager-view [class*="text-slate-500"],
 html[data-skin="industrial"] .tf-project-manager-view [class*="text-slate-400"],
+html[data-skin="industrial"] .tf-tasks-view [class*="text-slate-700"],
+html[data-skin="industrial"] .tf-tasks-view [class*="text-slate-600"],
+html[data-skin="industrial"] .tf-tasks-view [class*="text-slate-500"],
+html[data-skin="industrial"] .tf-tasks-view [class*="text-slate-400"],
 html[data-skin="industrial"] .tf-project-overview-view [class*="text-slate-700"],
 html[data-skin="industrial"] .tf-project-overview-view [class*="text-slate-600"],
 html[data-skin="industrial"] .tf-project-overview-view [class*="text-slate-500"],
@@ -2428,6 +2447,10 @@ html[data-skin="industrial"] .tf-project-manager-view [class*="text-blue"],
 html[data-skin="industrial"] .tf-project-manager-view [class*="text-emerald"],
 html[data-skin="industrial"] .tf-project-manager-view [class*="text-violet"],
 html[data-skin="industrial"] .tf-project-manager-view [class*="text-amber"],
+html[data-skin="industrial"] .tf-tasks-view [class*="text-blue"],
+html[data-skin="industrial"] .tf-tasks-view [class*="text-emerald"],
+html[data-skin="industrial"] .tf-tasks-view [class*="text-violet"],
+html[data-skin="industrial"] .tf-tasks-view [class*="text-amber"],
 html[data-skin="industrial"] .tf-project-overview-view [class*="text-blue"],
 html[data-skin="industrial"] .tf-project-overview-view [class*="text-emerald"],
 html[data-skin="industrial"] .tf-project-overview-view [class*="text-violet"],
@@ -2436,7 +2459,101 @@ html[data-skin="industrial"] .tf-project-overview-view [class*="text-amber"] {
   color: var(--tf-skin-orange-deep) !important;
 }
 
+html[data-skin="industrial"] .tf-tasks-view .tf-task-meta-badge {
+  border-radius: 5px !important;
+  font-weight: 650 !important;
+}
+
+html[data-skin="industrial"] .tf-tasks-view .tf-task-meta-badge[data-tone="due-none"],
+html[data-skin="industrial"] .tf-tasks-view .tf-task-meta-badge[data-tone="priority-none"],
+html[data-skin="industrial"] .tf-tasks-view .tf-task-meta-badge[data-tone="subtasks-none"],
+html[data-skin="industrial"] .tf-tasks-view .tf-task-meta-badge[data-tone="archive"] {
+  background: color-mix(in srgb, var(--tf-skin-surface-2) 70%, transparent) !important;
+  border-color: color-mix(in srgb, var(--tf-skin-line-2) 80%, transparent) !important;
+  color: var(--tf-skin-muted) !important;
+}
+
+html[data-skin="industrial"] .tf-tasks-view .tf-task-meta-badge[data-tone="due-overdue"],
+html[data-skin="industrial"] .tf-tasks-view .tf-task-meta-badge[data-tone="due-invalid"],
+html[data-skin="industrial"] .tf-tasks-view .tf-task-meta-badge[data-tone="priority-urgent"] {
+  background: color-mix(in srgb, #7f1d1d 18%, transparent) !important;
+  border-color: color-mix(in srgb, #ef4444 34%, var(--tf-skin-line)) !important;
+  color: #fca5a5 !important;
+}
+
+html[data-skin="industrial"] .tf-tasks-view .tf-task-meta-badge[data-tone="due-today"],
+html[data-skin="industrial"] .tf-tasks-view .tf-task-meta-badge[data-tone="priority-high"] {
+  background: color-mix(in srgb, var(--tf-skin-orange) 14%, transparent) !important;
+  border-color: color-mix(in srgb, var(--tf-skin-orange) 42%, var(--tf-skin-line)) !important;
+  color: #f6b66d !important;
+}
+
+html[data-skin="industrial"] .tf-tasks-view .tf-task-meta-badge[data-tone="due-upcoming"],
+html[data-skin="industrial"] .tf-tasks-view .tf-task-meta-badge[data-tone="priority-medium"] {
+  background: color-mix(in srgb, #0ea5e9 13%, transparent) !important;
+  border-color: color-mix(in srgb, #38bdf8 34%, var(--tf-skin-line)) !important;
+  color: #93c5fd !important;
+}
+
+html[data-skin="industrial"] .tf-tasks-view .tf-task-meta-badge[data-tone="priority-low"],
+html[data-skin="industrial"] .tf-tasks-view .tf-task-meta-badge[data-tone="subtasks-done"] {
+  background: color-mix(in srgb, #059669 13%, transparent) !important;
+  border-color: color-mix(in srgb, #34d399 34%, var(--tf-skin-line)) !important;
+  color: #86efac !important;
+}
+
+html[data-skin="industrial"] .tf-tasks-view .tf-task-meta-badge[data-tone="subtasks-partial"] {
+  background: color-mix(in srgb, #7c3aed 13%, transparent) !important;
+  border-color: color-mix(in srgb, #a78bfa 34%, var(--tf-skin-line)) !important;
+  color: #c4b5fd !important;
+}
+
+html:not(.dark)[data-skin="industrial"] .tf-tasks-view .tf-task-meta-badge[data-tone="due-none"],
+html:not(.dark)[data-skin="industrial"] .tf-tasks-view .tf-task-meta-badge[data-tone="priority-none"],
+html:not(.dark)[data-skin="industrial"] .tf-tasks-view .tf-task-meta-badge[data-tone="subtasks-none"],
+html:not(.dark)[data-skin="industrial"] .tf-tasks-view .tf-task-meta-badge[data-tone="archive"] {
+  background: #f5efe3 !important;
+  border-color: #c9bba8 !important;
+  color: #62513e !important;
+}
+
+html:not(.dark)[data-skin="industrial"] .tf-tasks-view .tf-task-meta-badge[data-tone="due-overdue"],
+html:not(.dark)[data-skin="industrial"] .tf-tasks-view .tf-task-meta-badge[data-tone="due-invalid"],
+html:not(.dark)[data-skin="industrial"] .tf-tasks-view .tf-task-meta-badge[data-tone="priority-urgent"] {
+  background: #fee2e2 !important;
+  border-color: #f87171 !important;
+  color: #7f1d1d !important;
+}
+
+html:not(.dark)[data-skin="industrial"] .tf-tasks-view .tf-task-meta-badge[data-tone="due-today"],
+html:not(.dark)[data-skin="industrial"] .tf-tasks-view .tf-task-meta-badge[data-tone="priority-high"] {
+  background: #ffedd5 !important;
+  border-color: #fb923c !important;
+  color: #8a3d00 !important;
+}
+
+html:not(.dark)[data-skin="industrial"] .tf-tasks-view .tf-task-meta-badge[data-tone="due-upcoming"],
+html:not(.dark)[data-skin="industrial"] .tf-tasks-view .tf-task-meta-badge[data-tone="priority-medium"] {
+  background: #dbeafe !important;
+  border-color: #60a5fa !important;
+  color: #1e3a8a !important;
+}
+
+html:not(.dark)[data-skin="industrial"] .tf-tasks-view .tf-task-meta-badge[data-tone="priority-low"],
+html:not(.dark)[data-skin="industrial"] .tf-tasks-view .tf-task-meta-badge[data-tone="subtasks-done"] {
+  background: #dcfce7 !important;
+  border-color: #4ade80 !important;
+  color: #14532d !important;
+}
+
+html:not(.dark)[data-skin="industrial"] .tf-tasks-view .tf-task-meta-badge[data-tone="subtasks-partial"] {
+  background: #ede9fe !important;
+  border-color: #a78bfa !important;
+  color: #4c1d95 !important;
+}
+
 html[data-skin="industrial"] .tf-project-manager-view :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea),
+html[data-skin="industrial"] .tf-tasks-view :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea),
 html[data-skin="industrial"] .tf-project-overview-view :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
   background: color-mix(in srgb, var(--tf-skin-surface-muted) 70%, transparent) !important;
   border-color: var(--tf-skin-line-2) !important;
@@ -2445,12 +2562,20 @@ html[data-skin="industrial"] .tf-project-overview-view :where(input:not([type="c
   color: var(--tf-skin-text) !important;
 }
 
+html[data-skin="industrial"] .tf-tasks-view .tf-quick-add-select {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
 html[data-skin="industrial"] .tf-project-manager-view :where(input, textarea)::placeholder,
+html[data-skin="industrial"] .tf-tasks-view :where(input, textarea)::placeholder,
 html[data-skin="industrial"] .tf-project-overview-view :where(input, textarea)::placeholder {
   color: var(--tf-skin-muted-2) !important;
 }
 
 html[data-skin="industrial"] .tf-project-manager-view :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea):focus,
+html[data-skin="industrial"] .tf-tasks-view :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea):focus,
 html[data-skin="industrial"] .tf-project-overview-view :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea):focus {
   border-color: color-mix(in srgb, var(--tf-skin-orange) 58%, var(--tf-skin-line) 42%) !important;
   --tw-ring-color: color-mix(in srgb, var(--tf-skin-orange) 20%, transparent) !important;
@@ -2459,6 +2584,7 @@ html[data-skin="industrial"] .tf-project-overview-view :where(input:not([type="c
 html[data-skin="industrial"] .tf-project-manager-view [data-help-id="pm-create-section"] h2 .material-symbols-outlined,
 html[data-skin="industrial"] .tf-project-manager-view [data-help-id="pm-project-list"] h2 .material-symbols-outlined,
 html[data-skin="industrial"] .tf-project-manager-view [data-help-id="pm-archive-section"] .material-symbols-outlined,
+html[data-skin="industrial"] .tf-tasks-view .material-symbols-outlined,
 html[data-skin="industrial"] .tf-project-overview-view [data-help-id="overview-scope-toggle"] svg,
 html[data-skin="industrial"] .tf-project-overview-view [data-help-id="overview-supplier-analysis"] svg,
 html[data-skin="industrial"] .tf-project-overview-view [data-help-id="overview-trends"] svg {
@@ -2468,6 +2594,7 @@ html[data-skin="industrial"] .tf-project-overview-view [data-help-id="overview-t
 
 html[data-skin="industrial"] .tf-project-manager-view [data-help-id="pm-project-list"] [class*="rounded-full"],
 html[data-skin="industrial"] .tf-project-manager-view [data-help-id="pm-archive-section"] [class*="rounded-full"],
+html[data-skin="industrial"] .tf-tasks-view [class*="rounded-full"][class*="border"],
 html[data-skin="industrial"] .tf-project-overview-view [data-help-id="overview-kpi"] [class*="rounded-xl"],
 html[data-skin="industrial"] .tf-project-overview-view [data-help-id="overview-status-cards"] [class*="rounded-lg"],
 html[data-skin="industrial"] .tf-project-overview-view [data-help-id="overview-supplier-analysis"] [class*="rounded-lg"][class*="bg-"] {
@@ -2475,6 +2602,24 @@ html[data-skin="industrial"] .tf-project-overview-view [data-help-id="overview-s
   border-color: color-mix(in srgb, var(--tf-skin-orange) 34%, var(--tf-skin-line) 66%) !important;
   color: var(--tf-skin-orange-deep) !important;
   box-shadow: none !important;
+}
+
+html[data-skin="industrial"] .tf-project-manager-view [data-help-id="pm-project-status-badge"][data-status="tender"] {
+  background: color-mix(in srgb, #5da6ff 12%, var(--tf-skin-surface) 88%) !important;
+  border: 1px solid color-mix(in srgb, #5da6ff 46%, var(--tf-skin-line) 54%) !important;
+  color: #2f7dd3 !important;
+}
+
+html[data-skin="industrial"] .tf-project-manager-view [data-help-id="pm-project-status-badge"][data-status="realization"] {
+  background: color-mix(in srgb, var(--tf-skin-orange) 12%, var(--tf-skin-surface) 88%) !important;
+  border: 1px solid color-mix(in srgb, var(--tf-skin-orange) 46%, var(--tf-skin-line) 54%) !important;
+  color: var(--tf-skin-orange-deep) !important;
+}
+
+html[data-skin="industrial"] .tf-project-manager-view [data-help-id="pm-project-status-badge"][data-status="archived"] {
+  background: color-mix(in srgb, var(--tf-skin-muted) 12%, var(--tf-skin-surface) 88%) !important;
+  border: 1px solid color-mix(in srgb, var(--tf-skin-muted) 32%, var(--tf-skin-line) 68%) !important;
+  color: var(--tf-skin-muted) !important;
 }
 
 html[data-skin="industrial"] .tf-project-manager-view [data-help-id="pm-project-list"] span[class*="bg-blue"],
@@ -2493,6 +2638,7 @@ html[data-skin="industrial"] .tf-project-overview-view [class*="rounded-full"][c
 }
 
 html[data-skin="industrial"] .tf-project-manager-view button,
+html[data-skin="industrial"] .tf-tasks-view button,
 html[data-skin="industrial"] .tf-project-overview-view button {
   border-radius: 6px !important;
   box-shadow: none !important;
@@ -2501,6 +2647,7 @@ html[data-skin="industrial"] .tf-project-overview-view button {
 html[data-skin="industrial"] .tf-project-manager-view button[class*="from-emerald"],
 html[data-skin="industrial"] .tf-project-manager-view button[class*="from-blue"],
 html[data-skin="industrial"] .tf-project-manager-view button[class*="from-violet"],
+html[data-skin="industrial"] .tf-tasks-view button[class*="text-white"],
 html[data-skin="industrial"] .tf-project-overview-view button[class*="text-white"],
 html[data-skin="industrial"] .tf-project-overview-view button[class*="bg-slate-900"] {
   background: linear-gradient(180deg, #ffb052 0%, var(--tf-skin-orange) 100%) !important;
@@ -2512,6 +2659,7 @@ html[data-skin="industrial"] .tf-project-overview-view button[class*="bg-slate-9
 html[data-skin="industrial"] .tf-project-manager-view button[class*="from-emerald"]:hover,
 html[data-skin="industrial"] .tf-project-manager-view button[class*="from-blue"]:hover,
 html[data-skin="industrial"] .tf-project-manager-view button[class*="from-violet"]:hover,
+html[data-skin="industrial"] .tf-tasks-view button[class*="text-white"]:hover,
 html[data-skin="industrial"] .tf-project-overview-view button[class*="text-white"]:hover,
 html[data-skin="industrial"] .tf-project-overview-view button[class*="bg-slate-900"]:hover {
   background: linear-gradient(180deg, var(--tf-skin-orange) 0%, color-mix(in srgb, var(--tf-skin-orange) 82%, var(--tf-skin-text) 18%) 100%) !important;
@@ -2519,10 +2667,18 @@ html[data-skin="industrial"] .tf-project-overview-view button[class*="bg-slate-9
 }
 
 html[data-skin="industrial"] .tf-project-manager-view button:not([class*="from-"]):not([class*="text-white"]),
+html[data-skin="industrial"] .tf-tasks-view button:not([class*="text-white"]),
 html[data-skin="industrial"] .tf-project-overview-view button:not([class*="text-white"]):not([class*="bg-slate-900"]) {
   background: color-mix(in srgb, var(--tf-skin-surface) 88%, transparent) !important;
   border-color: var(--tf-skin-line-2) !important;
   color: var(--tf-skin-text-2) !important;
+}
+
+html[data-skin="industrial"] .tf-tasks-view [data-help-id="tasks-menu-item"][data-active="true"],
+html[data-skin="industrial"] .tf-tasks-view [data-help-id="todo-project-item"][data-active="true"] {
+  background: color-mix(in srgb, var(--tf-skin-orange) 8%, var(--tf-skin-surface) 92%) !important;
+  border-color: color-mix(in srgb, var(--tf-skin-orange) 48%, var(--tf-skin-line) 52%) !important;
+  color: var(--tf-skin-orange-deep) !important;
 }
 
 html[data-skin="industrial"] .tf-project-manager-view [data-help-id="pm-shared-with-badge"] {
@@ -2555,13 +2711,93 @@ html[data-skin="industrial"] .tf-project-manager-view [data-help-id="pm-project-
 
 html[data-skin="industrial"] .tf-project-manager-view [data-help-id="pm-project-actions"] button:hover,
 html[data-skin="industrial"] .tf-project-manager-view [data-help-id="pm-archive-section"] button:hover,
+html[data-skin="industrial"] .tf-tasks-view button:not([class*="text-white"]):hover,
 html[data-skin="industrial"] .tf-project-overview-view button:not([class*="text-white"]):not([class*="bg-slate-900"]):hover {
   background: color-mix(in srgb, var(--tf-skin-orange) 8%, var(--tf-skin-surface) 92%) !important;
   border-color: color-mix(in srgb, var(--tf-skin-orange) 48%, var(--tf-skin-line) 52%) !important;
   color: var(--tf-skin-orange-deep) !important;
 }
 
+html[data-skin="industrial"] .tf-tasks-view [data-help-id="tasks-list"] :where(button, div)[data-active] {
+  background: color-mix(in srgb, var(--tf-skin-surface) 88%, transparent) !important;
+  border-color: var(--tf-skin-line) !important;
+  border-left: 3px solid transparent !important;
+  color: var(--tf-skin-text-2) !important;
+}
+
+html[data-skin="industrial"] .tf-tasks-view [data-help-id="tasks-list"] :where(button, div)[data-active="true"] {
+  background: color-mix(in srgb, var(--tf-skin-orange) 7%, var(--tf-skin-surface) 93%) !important;
+  border-color: color-mix(in srgb, var(--tf-skin-orange) 28%, var(--tf-skin-line) 72%) !important;
+  border-left-color: color-mix(in srgb, var(--tf-skin-orange) 72%, var(--tf-skin-text) 28%) !important;
+  color: var(--tf-skin-text) !important;
+}
+
+html.dark[data-skin="industrial"] .tf-tasks-view [data-help-id="tasks-list"] :where(button, div)[data-active] {
+  background: color-mix(in srgb, var(--tf-skin-surface) 58%, transparent) !important;
+}
+
+html.dark[data-skin="industrial"] .tf-tasks-view [data-help-id="tasks-list"] :where(button, div)[data-active="true"] {
+  background: color-mix(in srgb, var(--tf-skin-orange) 10%, var(--tf-skin-surface) 90%) !important;
+  border-color: color-mix(in srgb, var(--tf-skin-orange) 24%, var(--tf-skin-line) 76%) !important;
+  border-left-color: color-mix(in srgb, var(--tf-skin-orange) 60%, var(--tf-skin-text) 40%) !important;
+}
+
+html[data-skin="industrial"] .tf-tasks-view [data-help-id="todo-calendar-task"] {
+  background: var(--todo-card-background) !important;
+  background-color: var(--todo-card-background) !important;
+  background-image: none !important;
+  border-color: var(--todo-project-color) !important;
+  color: var(--todo-card-text) !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--todo-project-color) 14%, transparent) !important;
+}
+
+html[data-skin="industrial"] .tf-tasks-view [data-help-id="todo-calendar-task"]:hover,
+html[data-skin="industrial"] .tf-tasks-view [data-help-id="todo-calendar-task"][data-active="true"] {
+  background: var(--todo-card-background) !important;
+  background-color: var(--todo-card-background) !important;
+  background-image: none !important;
+  border-color: var(--todo-project-color) !important;
+  color: var(--todo-card-text) !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--todo-project-color) 82%, var(--tf-skin-line) 18%), 0 8px 18px color-mix(in srgb, var(--todo-project-color) 22%, transparent) !important;
+}
+
+html[data-skin="industrial"] .tf-tasks-view [data-help-id="todo-calendar-task"][data-has-project="true"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border-color: color-mix(in srgb, var(--todo-project-color) 58%, var(--tf-skin-line) 42%) !important;
+}
+
+html[data-skin="industrial"] .tf-tasks-view [data-help-id="todo-calendar-task"][data-has-project="true"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  background-color: var(--todo-card-fill);
+  pointer-events: none;
+}
+
+html[data-skin="industrial"] .tf-tasks-view [data-help-id="todo-calendar-task"] > span {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-skin="industrial"] .tf-tasks-view [data-help-id="todo-calendar-task"] :where(span, strong) {
+  color: var(--todo-card-text) !important;
+}
+
+html[data-skin="industrial"] .tf-tasks-view [data-help-id="todo-calendar-task"] [data-help-id="todo-calendar-task-muted"] {
+  color: var(--todo-card-muted) !important;
+}
+
+html[data-skin="industrial"] .tf-tasks-view [data-help-id="todo-calendar-task"] [data-help-id="todo-calendar-task-chip"] {
+  background: var(--todo-card-chip-background) !important;
+  color: var(--todo-card-text) !important;
+}
+
 html[data-skin="industrial"] .tf-project-manager-view button:disabled,
+html[data-skin="industrial"] .tf-tasks-view button:disabled,
 html[data-skin="industrial"] .tf-project-overview-view button:disabled {
   background: color-mix(in srgb, var(--tf-skin-surface-muted) 64%, transparent) !important;
   border-color: var(--tf-skin-line) !important;

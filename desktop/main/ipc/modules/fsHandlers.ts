@@ -35,6 +35,11 @@ export const addUserGrantedRoot = (rootPath: string): Promise<string> =>
 const ensurePathAllowed = (requestedPath: string, mode: "read" | "write"): Promise<string> =>
   ipcAuthGuard.ensurePathAllowed(requestedPath, mode);
 
+const isWindowsAbsolutePath = (value: string): boolean => /^[A-Za-z]:[\\/]/.test(value);
+
+const resolveNativeOrPortableAbsolutePath = (value: string): string =>
+  path.isAbsolute(value) || isWindowsAbsolutePath(value) ? value : path.resolve(value);
+
 export const registerFsHandlers = ({
   resolvePortableReadPath,
   resolvePortableWritePath,
@@ -202,7 +207,7 @@ export const registerFsHandlers = ({
     requireAuth(event.sender, 'fs:grantAccess');
     if (typeof folderPath !== "string" || folderPath.trim().length === 0) return false;
     const resolvedFolderPath = await resolvePortableReadPath(folderPath.trim());
-    const abs = path.resolve(resolvedFolderPath);
+    const abs = resolveNativeOrPortableAbsolutePath(resolvedFolderPath);
 
     try {
       const stat = await fs.stat(abs);
@@ -221,7 +226,7 @@ export const registerFsHandlers = ({
 
     if (confirmation.canceled || confirmation.filePaths.length === 0) return false;
 
-    const selectedPath = path.resolve(confirmation.filePaths[0]);
+    const selectedPath = resolveNativeOrPortableAbsolutePath(confirmation.filePaths[0]);
     const [selectedRealPath, requestedRealPath] = await Promise.all([
       fs.realpath(selectedPath),
       fs.realpath(abs),

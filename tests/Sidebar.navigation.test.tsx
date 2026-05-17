@@ -17,6 +17,7 @@ const enabledFeatures: FeatureKey[] = [
   FEATURES.MODULE_PROJECTS,
   FEATURES.MODULE_CONTACTS,
   FEATURES.MODULE_COMMAND_CENTER,
+  FEATURES.MODULE_TASKS,
   FEATURES.FEATURE_ADVANCED_REPORTING,
 ];
 
@@ -36,9 +37,9 @@ vi.mock('@/shared/routing/router', () => ({
 
 const renderSidebar = (
   onViewChange = vi.fn(),
-  currentView: React.ComponentProps<typeof Sidebar>['currentView'] = 'command-center',
+  currentView: React.ComponentProps<typeof Sidebar>['currentView'] = 'todo',
 ) => {
-  render(
+  const result = render(
     <Sidebar
       currentView={currentView}
       onViewChange={onViewChange}
@@ -51,26 +52,32 @@ const renderSidebar = (
     />,
   );
 
-  return { onViewChange };
+  return { ...result, onViewChange };
 };
 
 describe('Sidebar navigation', () => {
-  it('zobrazuje správu staveb a přehledy jako hlavní položky sidebaru', () => {
-    renderSidebar();
+  it('zobrazuje TODO Osobní jako první hlavní položku sidebaru', () => {
+    const { container } = renderSidebar();
 
+    expect(screen.getByRole('button', { name: /TODO Osobní/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Správa staveb/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Přehledy/i })).toBeInTheDocument();
+
+    const mainNavItems = Array.from(container.querySelectorAll('[data-help-id="sidebar-nav-item"]'));
+    expect(mainNavItems[0]).toHaveTextContent(/TODO Osobní/i);
   });
 
-  it('naviguje ze sidebaru na správu staveb a přehledy', () => {
+  it('naviguje ze sidebaru na TODO Osobní, správu staveb a přehledy', () => {
     const onViewChange = vi.fn();
     renderSidebar(onViewChange);
 
+    fireEvent.click(screen.getByRole('button', { name: /TODO Osobní/i }));
     fireEvent.click(screen.getByRole('button', { name: /Správa staveb/i }));
     fireEvent.click(screen.getByRole('button', { name: /Přehledy/i }));
 
-    expect(onViewChange).toHaveBeenNthCalledWith(1, 'project-management', undefined);
-    expect(onViewChange).toHaveBeenNthCalledWith(2, 'project-overview', undefined);
+    expect(onViewChange).toHaveBeenNthCalledWith(1, 'todo', undefined);
+    expect(onViewChange).toHaveBeenNthCalledWith(2, 'project-management', undefined);
+    expect(onViewChange).toHaveBeenNthCalledWith(3, 'project-overview', undefined);
   });
 
   it('označí aktivní položku pro nový industrial skin', () => {

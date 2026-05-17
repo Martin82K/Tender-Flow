@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { FeatureKey, PLANS } from '../config/features';
+import { FeatureKey, FEATURES, PLANS } from '../config/features';
 import { useAuth } from './AuthContext';
 import {
   getCurrentTier,
@@ -86,7 +86,7 @@ export const FeatureProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // Use a local "demo plan" feature set (acts like a subscription tier for demo).
     if (userRole === 'demo') {
       setIsLoading(false);
-      setEnabledFeatures([...PLANS.FREE.features] as FeatureKey[]);
+      setEnabledFeatures([...PLANS.FREE.features, FEATURES.MODULE_TASKS] as FeatureKey[]);
       setCurrentPlan('demo');
       hasFetchedRef.current = true;
       lastFetchedUserRef.current = userId;

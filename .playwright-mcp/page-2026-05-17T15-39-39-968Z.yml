@@ -1,0 +1,932 @@
+- generic [ref=e1]:
+  - iframe [ref=e2]:
+
+  - region [ref=e3537]: Maximalizováno
+  - generic [ref=e4]:
+    - navigation [ref=e5]:
+      - button "Přeskočit na hlavní obsah" [ref=e7] [cursor=pointer]:
+        - generic [ref=e9]: Přeskočit na hlavní obsah
+      - button "Klávesové zkratky" [ref=e11] [cursor=pointer]:
+        - generic [ref=e13]: Klávesové zkratky
+      - button "Zpětná vazba k usnadnění přístupu" [ref=e15] [cursor=pointer]:
+        - generic [ref=e17]: Zpětná vazba k usnadnění přístupu
+    - banner [ref=e19]:
+      - generic [ref=e20]:
+        - link "Disk" [ref=e24] [cursor=pointer]:
+          - /url: https://drive.google.com/?tab=oo&authuser=0
+          - img [ref=e25]
+          - generic [ref=e26]: Disk
+        - generic [ref=e27]:
+          - search [ref=e29]:
+            - table [ref=e31]:
+              - rowgroup [ref=e32]:
+                - row [ref=e33]:
+                  - cell [ref=e34]:
+                    - textbox "Vyhledat na Disku" [ref=e35]
+            - button "Rozšířené vyhledávání" [ref=e36] [cursor=pointer]:
+              - img [ref=e37]
+            - button "Vyhledat na Disku Google" [ref=e39] [cursor=pointer]:
+              - img [ref=e40]
+          - generic [ref=e43]:
+            - button "Podpora" [ref=e46] [cursor=pointer]:
+              - img [ref=e47]
+            - button "Nastavení" [ref=e51] [cursor=pointer]:
+              - img [ref=e53]
+            - generic [ref=e2006]:
+              - generic:
+                - button "Vyzkoušet funkci Gemini" [ref=e2009] [cursor=pointer]:
+                  - img [ref=e2012]
+                - tooltip [ref=e2015]: Vyzkoušet funkci Gemini
+            - generic [ref=e2023]:
+              - button "Upgradovat" [ref=e2025] [cursor=pointer]:
+                - generic [ref=e2027]: Upgradovat
+              - tooltip [ref=e2028]: Upgradujte a získejte prémiové funkce
+        - generic [ref=e57]:
+          - button "Aplikace Google" [ref=e61] [cursor=pointer]:
+            - img [ref=e62]
+          - 'button "Účet Google: Martin Kalkuš (martinkalkus82@gmail.com)" [ref=e67] [cursor=pointer]':
+            - img [ref=e69]
+    - button "Přidat" [ref=e72] [cursor=pointer]:
+      - img [ref=e75]
+      - generic [ref=e77]: Přidat
+    - navigation [ref=e83]:
+      - heading "Složky a zobrazení" [level=2] [ref=e84]
+      - tree "Složky a zobrazení" [ref=e85]:
+        - treeitem "Osobní" [ref=e86]:
+          - link "Osobní" [ref=e87] [cursor=pointer]:
+            - generic [ref=e90]:
+              - generic [ref=e92]:
+                - img [ref=e95]
+                - img [ref=e100]
+              - generic "Osobní" [ref=e105]
+          - group
+        - treeitem "Můj disk Sbaleno" [selected] [ref=e106]:
+          - link "Můj disk Sbaleno" [ref=e107] [cursor=pointer]:
+            - img [ref=e110]
+            - generic [ref=e113]:
+              - generic [ref=e115]:
+                - img [ref=e118]
+                - img [ref=e123]
+              - generic "Můj disk" [ref=e125]
+            - text: Sbaleno
+        - treeitem "Počítače Sbaleno" [ref=e126]:
+          - link "Počítače Sbaleno" [ref=e127] [cursor=pointer]:
+            - img [ref=e130]
+            - generic [ref=e133]:
+              - generic [ref=e135]:
+                - img [ref=e138]
+                - img [ref=e143]
+              - generic "Počítače" [ref=e146]
+            - text: Sbaleno
+        - treeitem "Položky sdílené se mnou" [ref=e147]:
+          - link "Položky sdílené se mnou" [ref=e148] [cursor=pointer]:
+            - generic [ref=e151]:
+              - generic [ref=e153]:
+                - img [ref=e156]
+                - img [ref=e161]
+              - generic "Položky sdílené se mnou" [ref=e167]: Sdíleno se mnou
+          - group
+        - treeitem "Nedávné položky" [ref=e168]:
+          - link "Nedávné položky" [ref=e169] [cursor=pointer]:
+            - generic [ref=e172]:
+              - generic [ref=e174]:
+                - img [ref=e177]
+                - img [ref=e183]
+              - generic "Nedávné položky" [ref=e188]: Nedávné
+          - group
+        - treeitem "Položky označené hvězdičkou" [ref=e189]:
+          - link "Položky označené hvězdičkou" [ref=e190] [cursor=pointer]:
+            - generic [ref=e193]:
+              - generic [ref=e195]:
+                - img [ref=e197]
+                - img [ref=e200]
+              - generic "Položky označené hvězdičkou" [ref=e204]: S hvězdičkou
+          - group
+        - treeitem "Spam" [ref=e205]:
+          - link "Spam" [ref=e206] [cursor=pointer]:
+            - generic [ref=e209]:
+              - generic [ref=e211]:
+                - img [ref=e214]
+                - img [ref=e218]
+              - generic "Spam" [ref=e223]
+          - group
+        - treeitem "Položky v koši" [ref=e224]:
+          - link "Položky v koši" [ref=e225] [cursor=pointer]:
+            - generic [ref=e228]:
+              - generic [ref=e230]:
+                - img [ref=e233]
+                - img [ref=e238]
+              - generic "Položky v koši" [ref=e243]: Koš
+          - group
+        - treeitem "Úložiště" [ref=e244]:
+          - link "Úložiště" [ref=e245] [cursor=pointer]:
+            - generic [ref=e248]:
+              - generic [ref=e250]:
+                - img [ref=e3538]
+                - img [ref=e3541]
+              - generic "Úložiště" [ref=e261]
+          - group
+      - generic [ref=e3546]:
+        - 'generic "Souhrn úložiště: Využito 3,77 GB z 15 GB" [ref=e3550] [cursor=pointer]': Využito 3,77 GB z 15 GB
+        - generic [ref=e3554] [cursor=pointer]:
+          - text: Získat větší úložiště
+          - link "Získat větší úložiště" [ref=e3555]:
+            - /url: https://drive.google.com/settings/storage?authuser=0&i=m&utm_source=drive&utm_medium=web&utm_campaign=g1_widget_normal#upgrade
+    - generic [ref=e278]:
+      - generic [ref=e284]:
+        - generic [ref=e287]:
+          - button "Můj disk" [ref=e290] [cursor=pointer]:
+            - generic [ref=e291]: Můj disk
+            - img [ref=e293]
+          - toolbar [ref=e295]:
+            - generic [ref=e296]:
+              - radiogroup "Rozvržení v seznamu nebo mřížce (⌥V a pak L)" [ref=e300]:
+                - generic [ref=e301]:
+                  - radio "Seznam" [checked] [ref=e302] [cursor=pointer]:
+                    - generic [ref=e303]:
+                      - img [ref=e304]
+                      - img [ref=e308]
+                  - radio "Mřížka" [ref=e311] [cursor=pointer]:
+                    - generic [ref=e312]:
+                      - img [ref=e313]
+                      - img [ref=e317]
+              - button "Zobrazit podrobnosti (⌥V a pak D)" [ref=e320] [cursor=pointer]:
+                - img [ref=e322]
+        - generic [ref=e328]:
+          - generic [ref=e329]: Nebyly použity žádné filtry
+          - toolbar "Filtry" [ref=e331]:
+            - generic [ref=e333]:
+              - button "Typ" [ref=e334] [cursor=pointer]:
+                - generic [ref=e335]:
+                  - generic [ref=e336]: Typ
+                  - img [ref=e338]
+              - button "Lidé" [ref=e340] [cursor=pointer]:
+                - generic [ref=e341]:
+                  - generic [ref=e342]: Lidé
+                  - img [ref=e344]
+              - button "Změněno" [ref=e346] [cursor=pointer]:
+                - generic [ref=e347]:
+                  - generic [ref=e348]: Změněno
+                  - img [ref=e350]
+              - button "Zdroj" [ref=e352] [cursor=pointer]:
+                - generic [ref=e353]:
+                  - generic [ref=e354]: Zdroj
+                  - img [ref=e356]
+      - main [ref=e359]:
+        - region [ref=e365]:
+          - grid "Seznam položek" [ref=e369]:
+            - rowgroup [ref=e370]:
+              - generic [ref=e371] [cursor=pointer]: Jméno
+              - img [ref=e373] [cursor=pointer]
+              - text: Vlastník
+              - generic [ref=e375] [cursor=pointer]: Datum úpravy
+              - text: Velikost souboru
+              - generic [ref=e381]:
+                - button "Řadit" [ref=e383] [cursor=pointer]:
+                  - img [ref=e387]
+                  - generic [ref=e389]: Řadit
+                - tooltip [ref=e390]: Zobrazit možnosti řazení
+            - rowgroup [ref=e391]:
+              - 'row "_Baustav new Složka Vlastník: já Upraveno 19. 3. já Velikost není dostupná Další akce (Alt+A)" [ref=e2047]':
+                - gridcell "_Baustav new Složka" [ref=e2048]:
+                  - generic [ref=e2049]:
+                    - img [ref=e2055]
+                    - generic "_Baustav new Složka" [ref=e2063]:
+                      - strong [ref=e2066]: _Baustav new
+                - 'gridcell "Vlastník: já" [ref=e2067]':
+                  - 'button "Vlastník: já" [ref=e2069]':
+                    - 'generic "Vlastník: já" [ref=e2070]':
+                      - img [ref=e2072]
+                      - generic [ref=e2073]: já
+                - gridcell "Upraveno 19. 3. já" [ref=e2074]:
+                  - generic "Upraveno 19. 3. já" [ref=e2077]:
+                    - generic [ref=e2078]: 19. 3. já
+                - gridcell "Velikost není dostupná" [ref=e2079]:
+                  - generic "Velikost není dostupná" [ref=e2082]:
+                    - generic [ref=e2083]: —
+                - gridcell "Další akce (Alt+A)" [ref=e2084]:
+                  - generic [ref=e2088]:
+                    - button "Další akce (Alt+A)" [ref=e2089] [cursor=pointer]:
+                      - img [ref=e2092]
+                    - tooltip [ref=e2095]: Další akce (Alt+A)
+              - 'row "_Finance Složka Vlastník: já Upraveno 24. 11. 2025 já Velikost není dostupná Další akce (Alt+A)" [ref=e2096]':
+                - gridcell "_Finance Složka" [ref=e2097]:
+                  - generic [ref=e2098]:
+                    - img [ref=e2104]
+                    - generic "_Finance Složka" [ref=e2112]:
+                      - strong [ref=e2115]: _Finance
+                - 'gridcell "Vlastník: já" [ref=e2116]':
+                  - 'button "Vlastník: já" [ref=e2118]':
+                    - 'generic "Vlastník: já" [ref=e2119]':
+                      - img [ref=e2121]
+                      - generic [ref=e2122]: já
+                - gridcell "Upraveno 24. 11. 2025 já" [ref=e2123]:
+                  - generic "Upraveno 24. 11. 2025 já" [ref=e2126]:
+                    - generic [ref=e2127]: 24. 11. 2025 já
+                - gridcell "Velikost není dostupná" [ref=e2128]:
+                  - generic "Velikost není dostupná" [ref=e2131]:
+                    - generic [ref=e2132]: —
+                - gridcell "Další akce (Alt+A)" [ref=e2133]:
+                  - generic [ref=e2137]:
+                    - button "Další akce (Alt+A)" [ref=e2138] [cursor=pointer]:
+                      - img [ref=e2141]
+                    - tooltip [ref=e2144]: Další akce (Alt+A)
+              - 'row "_Tender Flow Složka Vlastník: já Upraveno 22. 3. já Velikost není dostupná Další akce (Alt+A)" [ref=e2145]':
+                - gridcell "_Tender Flow Složka" [ref=e2146]:
+                  - generic [ref=e2147]:
+                    - img [ref=e2153]
+                    - generic "_Tender Flow Složka" [ref=e2161]:
+                      - strong [ref=e2164]: _Tender Flow
+                - 'gridcell "Vlastník: já" [ref=e2165]':
+                  - 'button "Vlastník: já" [ref=e2167]':
+                    - 'generic "Vlastník: já" [ref=e2168]':
+                      - img [ref=e2170]
+                      - generic [ref=e2171]: já
+                - gridcell "Upraveno 22. 3. já" [ref=e2172]:
+                  - generic "Upraveno 22. 3. já" [ref=e2175]:
+                    - generic [ref=e2176]: 22. 3. já
+                - gridcell "Velikost není dostupná" [ref=e2177]:
+                  - generic "Velikost není dostupná" [ref=e2180]:
+                    - generic [ref=e2181]: —
+                - gridcell "Další akce (Alt+A)" [ref=e2182]:
+                  - generic [ref=e2186]:
+                    - button "Další akce (Alt+A)" [ref=e2187] [cursor=pointer]:
+                      - img [ref=e2190]
+                    - tooltip [ref=e2193]: Další akce (Alt+A)
+              - 'row "_Zdraví Složka Vlastník: já Upraveno 25. 11. 2025 já Velikost není dostupná Další akce (Alt+A)" [ref=e2194]':
+                - gridcell "_Zdraví Složka" [ref=e2195]:
+                  - generic [ref=e2196]:
+                    - img [ref=e2202]
+                    - generic "_Zdraví Složka" [ref=e2210]:
+                      - strong [ref=e2213]: _Zdraví
+                - 'gridcell "Vlastník: já" [ref=e2214]':
+                  - 'button "Vlastník: já" [ref=e2216]':
+                    - 'generic "Vlastník: já" [ref=e2217]':
+                      - img [ref=e2219]
+                      - generic [ref=e2220]: já
+                - gridcell "Upraveno 25. 11. 2025 já" [ref=e2221]:
+                  - generic "Upraveno 25. 11. 2025 já" [ref=e2224]:
+                    - generic [ref=e2225]: 25. 11. 2025 já
+                - gridcell "Velikost není dostupná" [ref=e2226]:
+                  - generic "Velikost není dostupná" [ref=e2229]:
+                    - generic [ref=e2230]: —
+                - gridcell "Další akce (Alt+A)" [ref=e2231]:
+                  - generic [ref=e2235]:
+                    - button "Další akce (Alt+A)" [ref=e2236] [cursor=pointer]:
+                      - img [ref=e2239]
+                    - tooltip [ref=e2242]: Další akce (Alt+A)
+              - 'row ".obsidian Složka Vlastník: já Upraveno 16. 11. 2025 já Velikost není dostupná Další akce (Alt+A)" [ref=e2243]':
+                - gridcell ".obsidian Složka" [ref=e2244]:
+                  - generic [ref=e2245]:
+                    - img [ref=e2251]
+                    - generic ".obsidian Složka" [ref=e2259]:
+                      - strong [ref=e2262]: .obsidian
+                - 'gridcell "Vlastník: já" [ref=e2263]':
+                  - 'button "Vlastník: já" [ref=e2265]':
+                    - 'generic "Vlastník: já" [ref=e2266]':
+                      - img [ref=e2268]
+                      - generic [ref=e2269]: já
+                - gridcell "Upraveno 16. 11. 2025 já" [ref=e2270]:
+                  - generic "Upraveno 16. 11. 2025 já" [ref=e2273]:
+                    - generic [ref=e2274]: 16. 11. 2025 já
+                - gridcell "Velikost není dostupná" [ref=e2275]:
+                  - generic "Velikost není dostupná" [ref=e2278]:
+                    - generic [ref=e2279]: —
+                - gridcell "Další akce (Alt+A)" [ref=e2280]:
+                  - generic [ref=e2284]:
+                    - button "Další akce (Alt+A)" [ref=e2285] [cursor=pointer]:
+                      - img [ref=e2288]
+                    - tooltip [ref=e2291]: Další akce (Alt+A)
+              - 'row "Claude_win_workspace Složka Vlastník: já Upraveno 7. 4. já Velikost není dostupná Další akce (Alt+A)" [ref=e2292]':
+                - gridcell "Claude_win_workspace Složka" [ref=e2293]:
+                  - generic [ref=e2294]:
+                    - img [ref=e2300]
+                    - generic "Claude_win_workspace Složka" [ref=e2308]:
+                      - strong [ref=e2311]: Claude_win_workspace
+                - 'gridcell "Vlastník: já" [ref=e2312]':
+                  - 'button "Vlastník: já" [ref=e2314]':
+                    - 'generic "Vlastník: já" [ref=e2315]':
+                      - img [ref=e2317]
+                      - generic [ref=e2318]: já
+                - gridcell "Upraveno 7. 4. já" [ref=e2319]:
+                  - generic "Upraveno 7. 4. já" [ref=e2322]:
+                    - generic [ref=e2323]: 7. 4. já
+                - gridcell "Velikost není dostupná" [ref=e2324]:
+                  - generic "Velikost není dostupná" [ref=e2327]:
+                    - generic [ref=e2328]: —
+                - gridcell "Další akce (Alt+A)" [ref=e2329]:
+                  - generic [ref=e2333]:
+                    - button "Další akce (Alt+A)" [ref=e2334] [cursor=pointer]:
+                      - img [ref=e2337]
+                    - tooltip [ref=e2340]: Další akce (Alt+A)
+              - 'row "doubí dokumentace 2a Složka Vlastník: já Upraveno 19. 10. 2025 já Velikost není dostupná Další akce (Alt+A)" [ref=e2341]':
+                - gridcell "doubí dokumentace 2a Složka" [ref=e2342]:
+                  - generic [ref=e2343]:
+                    - img [ref=e2349]
+                    - generic "doubí dokumentace 2a Složka" [ref=e2357]:
+                      - strong [ref=e2360]: doubí dokumentace 2a
+                - 'gridcell "Vlastník: já" [ref=e2361]':
+                  - 'button "Vlastník: já" [ref=e2363]':
+                    - 'generic "Vlastník: já" [ref=e2364]':
+                      - img [ref=e2366]
+                      - generic [ref=e2367]: já
+                - gridcell "Upraveno 19. 10. 2025 já" [ref=e2368]:
+                  - generic "Upraveno 19. 10. 2025 já" [ref=e2371]:
+                    - generic [ref=e2372]: 19. 10. 2025 já
+                - gridcell "Velikost není dostupná" [ref=e2373]:
+                  - generic "Velikost není dostupná" [ref=e2376]:
+                    - generic [ref=e2377]: —
+                - gridcell "Další akce (Alt+A)" [ref=e2378]:
+                  - generic [ref=e2382]:
+                    - button "Další akce (Alt+A)" [ref=e2383] [cursor=pointer]:
+                      - img [ref=e2386]
+                    - tooltip [ref=e2389]: Další akce (Alt+A)
+              - 'row "Google AI Studio Složka Vlastník: já Upraveno 20. 3. já Velikost není dostupná Další akce (Alt+A)" [ref=e2390]':
+                - gridcell "Google AI Studio Složka" [ref=e2391]:
+                  - generic [ref=e2392]:
+                    - img [ref=e2398]
+                    - generic "Google AI Studio Složka" [ref=e2406]:
+                      - strong [ref=e2409]: Google AI Studio
+                - 'gridcell "Vlastník: já" [ref=e2410]':
+                  - 'button "Vlastník: já" [ref=e2412]':
+                    - 'generic "Vlastník: já" [ref=e2413]':
+                      - img [ref=e2415]
+                      - generic [ref=e2416]: já
+                - gridcell "Upraveno 20. 3. já" [ref=e2417]:
+                  - generic "Upraveno 20. 3. já" [ref=e2420]:
+                    - generic [ref=e2421]: 20. 3. já
+                - gridcell "Velikost není dostupná" [ref=e2422]:
+                  - generic "Velikost není dostupná" [ref=e2425]:
+                    - generic [ref=e2426]: —
+                - gridcell "Další akce (Alt+A)" [ref=e2427]:
+                  - generic [ref=e2431]:
+                    - button "Další akce (Alt+A)" [ref=e2432] [cursor=pointer]:
+                      - img [ref=e2435]
+                    - tooltip [ref=e2438]: Další akce (Alt+A)
+              - 'row "KALMAtech Složka Vlastník: já Upraveno 19. 3. já Velikost není dostupná Další akce (Alt+A)" [ref=e2439]':
+                - gridcell "KALMAtech Složka" [ref=e2440]:
+                  - generic [ref=e2441]:
+                    - img [ref=e2447]
+                    - generic "KALMAtech Složka" [ref=e2455]:
+                      - strong [ref=e2458]: KALMAtech
+                - 'gridcell "Vlastník: já" [ref=e2459]':
+                  - 'button "Vlastník: já" [ref=e2461]':
+                    - 'generic "Vlastník: já" [ref=e2462]':
+                      - img [ref=e2464]
+                      - generic [ref=e2465]: já
+                - gridcell "Upraveno 19. 3. já" [ref=e2466]:
+                  - generic "Upraveno 19. 3. já" [ref=e2469]:
+                    - generic [ref=e2470]: 19. 3. já
+                - gridcell "Velikost není dostupná" [ref=e2471]:
+                  - generic "Velikost není dostupná" [ref=e2474]:
+                    - generic [ref=e2475]: —
+                - gridcell "Další akce (Alt+A)" [ref=e2476]:
+                  - generic [ref=e2480]:
+                    - button "Další akce (Alt+A)" [ref=e2481] [cursor=pointer]:
+                      - img [ref=e2484]
+                    - tooltip [ref=e2487]: Další akce (Alt+A)
+              - 'row "Obsidian Složka Vlastník: já Upraveno 4. 5. já Velikost není dostupná Další akce (Alt+A)" [ref=e2488]':
+                - gridcell "Obsidian Složka" [ref=e2489]:
+                  - generic [ref=e2490]:
+                    - img [ref=e2496]
+                    - generic "Obsidian Složka" [ref=e2504]:
+                      - strong [ref=e2507]: Obsidian
+                - 'gridcell "Vlastník: já" [ref=e2508]':
+                  - 'button "Vlastník: já" [ref=e2510]':
+                    - 'generic "Vlastník: já" [ref=e2511]':
+                      - img [ref=e2513]
+                      - generic [ref=e2514]: já
+                - gridcell "Upraveno 4. 5. já" [ref=e2515]:
+                  - generic "Upraveno 4. 5. já" [ref=e2518]:
+                    - generic [ref=e2519]: 4. 5. já
+                - gridcell "Velikost není dostupná" [ref=e2520]:
+                  - generic "Velikost není dostupná" [ref=e2523]:
+                    - generic [ref=e2524]: —
+                - gridcell "Další akce (Alt+A)" [ref=e2525]:
+                  - generic [ref=e2529]:
+                    - button "Další akce (Alt+A)" [ref=e2530] [cursor=pointer]:
+                      - img [ref=e2533]
+                    - tooltip [ref=e2536]: Další akce (Alt+A)
+              - 'row "Ostatní Složka Vlastník: já Upraveno 12. 3. já Velikost není dostupná Další akce (Alt+A)" [ref=e2537]':
+                - gridcell "Ostatní Složka" [ref=e2538]:
+                  - generic [ref=e2539]:
+                    - img [ref=e2545]
+                    - generic "Ostatní Složka" [ref=e2553]:
+                      - strong [ref=e2556]: Ostatní
+                - 'gridcell "Vlastník: já" [ref=e2557]':
+                  - 'button "Vlastník: já" [ref=e2559]':
+                    - 'generic "Vlastník: já" [ref=e2560]':
+                      - img [ref=e2562]
+                      - generic [ref=e2563]: já
+                - gridcell "Upraveno 12. 3. já" [ref=e2564]:
+                  - generic "Upraveno 12. 3. já" [ref=e2567]:
+                    - generic [ref=e2568]: 12. 3. já
+                - gridcell "Velikost není dostupná" [ref=e2569]:
+                  - generic "Velikost není dostupná" [ref=e2572]:
+                    - generic [ref=e2573]: —
+                - gridcell "Další akce (Alt+A)" [ref=e2574]:
+                  - generic [ref=e2578]:
+                    - button "Další akce (Alt+A)" [ref=e2579] [cursor=pointer]:
+                      - img [ref=e2582]
+                    - tooltip [ref=e2585]: Další akce (Alt+A)
+              - 'row "05-11-2025-kaspersky.txt Text Vlastník: já Upraveno 5. 11. 2025 já Velikost: 23 kB Využití úložiště: 23 kB Další akce (Alt+A)" [ref=e2586]':
+                - gridcell "05-11-2025-kaspersky.txt Text" [ref=e987]:
+                  - generic [ref=e2587]:
+                    - img [ref=e2593]
+                    - generic "05-11-2025-kaspersky.txt Text" [ref=e2596]:
+                      - strong [ref=e2599]: 05-11-2025-kaspersky.txt
+                - 'gridcell "Vlastník: já" [ref=e2600]':
+                  - 'button "Vlastník: já" [ref=e2602]':
+                    - 'generic "Vlastník: já" [ref=e2603]':
+                      - img [ref=e2605]
+                      - generic [ref=e2606]: já
+                - gridcell "Upraveno 5. 11. 2025 já" [ref=e2607]:
+                  - generic "Upraveno 5. 11. 2025 já" [ref=e2610]:
+                    - generic [ref=e2611]: 5. 11. 2025 já
+                - 'gridcell "Velikost: 23 kB Využití úložiště: 23 kB" [ref=e2612]':
+                  - 'generic "Velikost: 23 kB Využití úložiště: 23 kB" [ref=e2615]':
+                    - generic [ref=e2616]: 23 kB
+                - gridcell "Další akce (Alt+A)" [ref=e2617]:
+                  - generic [ref=e2621]:
+                    - button "Další akce (Alt+A)" [ref=e2622] [cursor=pointer]:
+                      - img [ref=e2625]
+                    - tooltip [ref=e2628]: Další akce (Alt+A)
+              - 'row "A237- klima Bagger.xls Microsoft Excel Vlastník: já Upraveno 23. 2. já Velikost: 46 kB Využití úložiště: 46 kB Další akce (Alt+A)" [ref=e2629]':
+                - gridcell "A237- klima Bagger.xls Microsoft Excel" [ref=e1036]:
+                  - generic [ref=e2630]:
+                    - img [ref=e2636]
+                    - generic "A237- klima Bagger.xls Microsoft Excel" [ref=e2648]:
+                      - strong [ref=e2651]: A237- klima Bagger.xls
+                - 'gridcell "Vlastník: já" [ref=e2652]':
+                  - 'button "Vlastník: já" [ref=e2654]':
+                    - 'generic "Vlastník: já" [ref=e2655]':
+                      - img [ref=e2657]
+                      - generic [ref=e2658]: já
+                - gridcell "Upraveno 23. 2. já" [ref=e2659]:
+                  - generic "Upraveno 23. 2. já" [ref=e2662]:
+                    - generic [ref=e2663]: 23. 2. já
+                - 'gridcell "Velikost: 46 kB Využití úložiště: 46 kB" [ref=e2664]':
+                  - 'generic "Velikost: 46 kB Využití úložiště: 46 kB" [ref=e2667]':
+                    - generic [ref=e2668]: 46 kB
+                - gridcell "Další akce (Alt+A)" [ref=e2669]:
+                  - generic [ref=e2673]:
+                    - button "Další akce (Alt+A)" [ref=e2674] [cursor=pointer]:
+                      - img [ref=e2677]
+                    - tooltip [ref=e2680]: Další akce (Alt+A)
+              - 'row "Agent pro finance Dokumenty Google Vlastník: já Upraveno 13. 11. 2025 já Velikost: 2 kB Využití úložiště: 2 kB Další akce (Alt+A)" [ref=e2681]':
+                - gridcell "Agent pro finance Dokumenty Google" [ref=e2682]:
+                  - generic [ref=e2683]:
+                    - img [ref=e2689]
+                    - generic "Agent pro finance Dokumenty Google" [ref=e2692]:
+                      - strong [ref=e2695]: Agent pro finance
+                - 'gridcell "Vlastník: já" [ref=e2696]':
+                  - 'button "Vlastník: já" [ref=e2698]':
+                    - 'generic "Vlastník: já" [ref=e2699]':
+                      - img [ref=e2701]
+                      - generic [ref=e2702]: já
+                - gridcell "Upraveno 13. 11. 2025 já" [ref=e2703]:
+                  - generic "Upraveno 13. 11. 2025 já" [ref=e2706]:
+                    - generic [ref=e2707]: 13. 11. 2025 já
+                - 'gridcell "Velikost: 2 kB Využití úložiště: 2 kB" [ref=e2708]':
+                  - 'generic "Velikost: 2 kB Využití úložiště: 2 kB" [ref=e2711]':
+                    - generic [ref=e2712]: 2 kB
+                - gridcell "Další akce (Alt+A)" [ref=e2713]:
+                  - generic [ref=e2717]:
+                    - button "Další akce (Alt+A)" [ref=e2718] [cursor=pointer]:
+                      - img [ref=e2721]
+                    - tooltip [ref=e2724]: Další akce (Alt+A)
+              - 'row "Ceník mechanizace Baustav Tabulky Google Vlastník: já Upraveno 17. 11. 2025 já Velikost: 2 kB Využití úložiště: 2 kB Další akce (Alt+A)" [ref=e2725]':
+                - gridcell "Ceník mechanizace Baustav Tabulky Google" [ref=e2726]:
+                  - generic [ref=e2727]:
+                    - img [ref=e2733]
+                    - generic "Ceník mechanizace Baustav Tabulky Google" [ref=e2736]:
+                      - strong [ref=e2739]: Ceník mechanizace Baustav
+                - 'gridcell "Vlastník: já" [ref=e2740]':
+                  - 'button "Vlastník: já" [ref=e2742]':
+                    - 'generic "Vlastník: já" [ref=e2743]':
+                      - img [ref=e2745]
+                      - generic [ref=e2746]: já
+                - gridcell "Upraveno 17. 11. 2025 já" [ref=e2747]:
+                  - generic "Upraveno 17. 11. 2025 já" [ref=e2750]:
+                    - generic [ref=e2751]: 17. 11. 2025 já
+                - 'gridcell "Velikost: 2 kB Využití úložiště: 2 kB" [ref=e2752]':
+                  - 'generic "Velikost: 2 kB Využití úložiště: 2 kB" [ref=e2755]':
+                    - generic [ref=e2756]: 2 kB
+                - gridcell "Další akce (Alt+A)" [ref=e2757]:
+                  - generic [ref=e2761]:
+                    - button "Další akce (Alt+A)" [ref=e2762] [cursor=pointer]:
+                      - img [ref=e2765]
+                    - tooltip [ref=e2768]: Další akce (Alt+A)
+              - 'row "Dokument bez názvu Dokumenty Google Vlastník: já Upraveno 11. 2. já Velikost: 1 kB Využití úložiště: 1 kB Další akce (Alt+A)" [ref=e2769]':
+                - gridcell "Dokument bez názvu Dokumenty Google" [ref=e2770]:
+                  - generic [ref=e2771]:
+                    - img [ref=e2777]
+                    - generic "Dokument bez názvu Dokumenty Google" [ref=e2780]:
+                      - strong [ref=e2783]: Dokument bez názvu
+                - 'gridcell "Vlastník: já" [ref=e2784]':
+                  - 'button "Vlastník: já" [ref=e2786]':
+                    - 'generic "Vlastník: já" [ref=e2787]':
+                      - img [ref=e2789]
+                      - generic [ref=e2790]: já
+                - gridcell "Upraveno 11. 2. já" [ref=e2791]:
+                  - generic "Upraveno 11. 2. já" [ref=e2794]:
+                    - generic [ref=e2795]: 11. 2. já
+                - 'gridcell "Velikost: 1 kB Využití úložiště: 1 kB" [ref=e2796]':
+                  - 'generic "Velikost: 1 kB Využití úložiště: 1 kB" [ref=e2799]':
+                    - generic [ref=e2800]: 1 kB
+                - gridcell "Další akce (Alt+A)" [ref=e2801]:
+                  - generic [ref=e2805]:
+                    - button "Další akce (Alt+A)" [ref=e2806] [cursor=pointer]:
+                      - img [ref=e2809]
+                    - tooltip [ref=e2812]: Další akce (Alt+A)
+              - 'row "Dokument bez názvu Dokumenty Google Vlastník: já Upraveno 1. 3. já Velikost: 21 kB Využití úložiště: 21 kB Další akce (Alt+A)" [ref=e2813]':
+                - gridcell "Dokument bez názvu Dokumenty Google" [ref=e2814]:
+                  - generic [ref=e2815]:
+                    - img [ref=e2821]
+                    - generic "Dokument bez názvu Dokumenty Google" [ref=e2824]:
+                      - strong [ref=e2827]: Dokument bez názvu
+                - 'gridcell "Vlastník: já" [ref=e2828]':
+                  - 'button "Vlastník: já" [ref=e2830]':
+                    - 'generic "Vlastník: já" [ref=e2831]':
+                      - img [ref=e2833]
+                      - generic [ref=e2834]: já
+                - gridcell "Upraveno 1. 3. já" [ref=e2835]:
+                  - generic "Upraveno 1. 3. já" [ref=e2838]:
+                    - generic [ref=e2839]: 1. 3. já
+                - 'gridcell "Velikost: 21 kB Využití úložiště: 21 kB" [ref=e2840]':
+                  - 'generic "Velikost: 21 kB Využití úložiště: 21 kB" [ref=e2843]':
+                    - generic [ref=e2844]: 21 kB
+                - gridcell "Další akce (Alt+A)" [ref=e2845]:
+                  - generic [ref=e2849]:
+                    - button "Další akce (Alt+A)" [ref=e2850] [cursor=pointer]:
+                      - img [ref=e2853]
+                    - tooltip [ref=e2856]: Další akce (Alt+A)
+              - 'row "ff6f31e1-f6a3-4a73-8744-09e7036c2241.pdf PDF Vlastník: já Upraveno 13. 10. 2025 já Velikost: 63 kB Využití úložiště: 63 kB Další akce (Alt+A)" [ref=e2857]':
+                - gridcell "ff6f31e1-f6a3-4a73-8744-09e7036c2241.pdf PDF" [ref=e1290]:
+                  - generic [ref=e2858]:
+                    - img [ref=e2864]
+                    - generic "ff6f31e1-f6a3-4a73-8744-09e7036c2241.pdf PDF" [ref=e2867]:
+                      - strong [ref=e2870]: ff6f31e1-f6a3-4a73-8744-09e7036c2241.pdf
+                - 'gridcell "Vlastník: já" [ref=e2871]':
+                  - 'button "Vlastník: já" [ref=e2873]':
+                    - 'generic "Vlastník: já" [ref=e2874]':
+                      - img [ref=e2876]
+                      - generic [ref=e2877]: já
+                - gridcell "Upraveno 13. 10. 2025 já" [ref=e2878]:
+                  - generic "Upraveno 13. 10. 2025 já" [ref=e2881]:
+                    - generic [ref=e2882]: 13. 10. 2025 já
+                - 'gridcell "Velikost: 63 kB Využití úložiště: 63 kB" [ref=e2883]':
+                  - 'generic "Velikost: 63 kB Využití úložiště: 63 kB" [ref=e2886]':
+                    - generic [ref=e2887]: 63 kB
+                - gridcell "Další akce (Alt+A)" [ref=e2888]:
+                  - generic [ref=e2892]:
+                    - button "Další akce (Alt+A)" [ref=e2893] [cursor=pointer]:
+                      - img [ref=e2896]
+                    - tooltip [ref=e2899]: Další akce (Alt+A)
+              - 'row "Poptávkový dopis, šablona 251207 Dokumenty Google Vlastník: já Upraveno 8. 12. 2025 já Velikost: 1 kB Využití úložiště: 1 kB Další akce (Alt+A)" [ref=e2900]':
+                - gridcell "Poptávkový dopis, šablona 251207 Dokumenty Google" [ref=e2901]:
+                  - generic [ref=e2902]:
+                    - img [ref=e2908]
+                    - generic "Poptávkový dopis, šablona 251207 Dokumenty Google" [ref=e2911]:
+                      - strong [ref=e2914]: Poptávkový dopis, šablona 251207
+                - 'gridcell "Vlastník: já" [ref=e2915]':
+                  - 'button "Vlastník: já" [ref=e2917]':
+                    - 'generic "Vlastník: já" [ref=e2918]':
+                      - img [ref=e2920]
+                      - generic [ref=e2921]: já
+                - gridcell "Upraveno 8. 12. 2025 já" [ref=e2922]:
+                  - generic "Upraveno 8. 12. 2025 já" [ref=e2925]:
+                    - generic [ref=e2926]: 8. 12. 2025 já
+                - 'gridcell "Velikost: 1 kB Využití úložiště: 1 kB" [ref=e2927]':
+                  - 'generic "Velikost: 1 kB Využití úložiště: 1 kB" [ref=e2930]':
+                    - generic [ref=e2931]: 1 kB
+                - gridcell "Další akce (Alt+A)" [ref=e2932]:
+                  - generic [ref=e2936]:
+                    - button "Další akce (Alt+A)" [ref=e2937] [cursor=pointer]:
+                      - img [ref=e2940]
+                    - tooltip [ref=e2943]: Další akce (Alt+A)
+              - 'row "Přesčasy_Martin_Kalkuš Tabulky Google Vlastník: já Upraveno 15. 4. já Velikost: 2 kB Využití úložiště: 2 kB Další akce (Alt+A)" [ref=e2944]':
+                - gridcell "Přesčasy_Martin_Kalkuš Tabulky Google" [ref=e2945]:
+                  - generic [ref=e2946]:
+                    - img [ref=e2952]
+                    - generic "Přesčasy_Martin_Kalkuš Tabulky Google" [ref=e2955]:
+                      - strong [ref=e2958]: Přesčasy_Martin_Kalkuš
+                - 'gridcell "Vlastník: já" [ref=e2959]':
+                  - 'button "Vlastník: já" [ref=e2961]':
+                    - 'generic "Vlastník: já" [ref=e2962]':
+                      - img [ref=e2964]
+                      - generic [ref=e2965]: já
+                - gridcell "Upraveno 15. 4. já" [ref=e2966]:
+                  - generic "Upraveno 15. 4. já" [ref=e2969]:
+                    - generic [ref=e2970]: 15. 4. já
+                - 'gridcell "Velikost: 2 kB Využití úložiště: 2 kB" [ref=e2971]':
+                  - 'generic "Velikost: 2 kB Využití úložiště: 2 kB" [ref=e2974]':
+                    - generic [ref=e2975]: 2 kB
+                - gridcell "Další akce (Alt+A)" [ref=e2976]:
+                  - generic [ref=e2980]:
+                    - button "Další akce (Alt+A)" [ref=e2981] [cursor=pointer]:
+                      - img [ref=e2984]
+                    - tooltip [ref=e2987]: Další akce (Alt+A)
+              - 'row "SEZNAM DOKLADOVÉ ČÁSTI.doc Microsoft Word Vlastník: já Upraveno 24. 9. 2025 já Velikost: 92 kB Využití úložiště: 92 kB Další akce (Alt+A)" [ref=e2988]':
+                - gridcell "SEZNAM DOKLADOVÉ ČÁSTI.doc Microsoft Word" [ref=e1437]:
+                  - generic [ref=e2989]:
+                    - img [ref=e2995]
+                    - generic "SEZNAM DOKLADOVÉ ČÁSTI.doc Microsoft Word" [ref=e3006]:
+                      - strong [ref=e3009]: SEZNAM DOKLADOVÉ ČÁSTI.doc
+                - 'gridcell "Vlastník: já" [ref=e3010]':
+                  - 'button "Vlastník: já" [ref=e3012]':
+                    - 'generic "Vlastník: já" [ref=e3013]':
+                      - img [ref=e3015]
+                      - generic [ref=e3016]: já
+                - gridcell "Upraveno 24. 9. 2025 já" [ref=e3017]:
+                  - generic "Upraveno 24. 9. 2025 já" [ref=e3020]:
+                    - generic [ref=e3021]: 24. 9. 2025 já
+                - 'gridcell "Velikost: 92 kB Využití úložiště: 92 kB" [ref=e3022]':
+                  - 'generic "Velikost: 92 kB Využití úložiště: 92 kB" [ref=e3025]':
+                    - generic [ref=e3026]: 92 kB
+                - gridcell "Další akce (Alt+A)" [ref=e3027]:
+                  - generic [ref=e3031]:
+                    - button "Další akce (Alt+A)" [ref=e3032] [cursor=pointer]:
+                      - img [ref=e3035]
+                    - tooltip [ref=e3038]: Další akce (Alt+A)
+              - 'row "Seznam dokumentace ke kolaudaci.doc Microsoft Word Vlastník: já Upraveno 24. 9. 2025 já Velikost: 144 kB Využití úložiště: 144 kB Další akce (Alt+A)" [ref=e3039]':
+                - gridcell "Seznam dokumentace ke kolaudaci.doc Microsoft Word" [ref=e1494]:
+                  - generic [ref=e3040]:
+                    - img [ref=e3046]
+                    - generic "Seznam dokumentace ke kolaudaci.doc Microsoft Word" [ref=e3057]:
+                      - strong [ref=e3060]: Seznam dokumentace ke kolaudaci.doc
+                - 'gridcell "Vlastník: já" [ref=e3061]':
+                  - 'button "Vlastník: já" [ref=e3063]':
+                    - 'generic "Vlastník: já" [ref=e3064]':
+                      - img [ref=e3066]
+                      - generic [ref=e3067]: já
+                - gridcell "Upraveno 24. 9. 2025 já" [ref=e3068]:
+                  - generic "Upraveno 24. 9. 2025 já" [ref=e3071]:
+                    - generic [ref=e3072]: 24. 9. 2025 já
+                - 'gridcell "Velikost: 144 kB Využití úložiště: 144 kB" [ref=e3073]':
+                  - 'generic "Velikost: 144 kB Využití úložiště: 144 kB" [ref=e3076]':
+                    - generic [ref=e3077]: 144 kB
+                - gridcell "Další akce (Alt+A)" [ref=e3078]:
+                  - generic [ref=e3082]:
+                    - button "Další akce (Alt+A)" [ref=e3083] [cursor=pointer]:
+                      - img [ref=e3086]
+                    - tooltip [ref=e3089]: Další akce (Alt+A)
+              - 'row "Seznam ke kolaudaci.docx Microsoft Word Vlastník: já Upraveno 24. 9. 2025 já Velikost: 14 kB Využití úložiště: 14 kB Další akce (Alt+A)" [ref=e3090]':
+                - gridcell "Seznam ke kolaudaci.docx Microsoft Word" [ref=e1551]:
+                  - generic [ref=e3091]:
+                    - img [ref=e3097]
+                    - generic "Seznam ke kolaudaci.docx Microsoft Word" [ref=e3108]:
+                      - strong [ref=e3111]: Seznam ke kolaudaci.docx
+                - 'gridcell "Vlastník: já" [ref=e3112]':
+                  - 'button "Vlastník: já" [ref=e3114]':
+                    - 'generic "Vlastník: já" [ref=e3115]':
+                      - img [ref=e3117]
+                      - generic [ref=e3118]: já
+                - gridcell "Upraveno 24. 9. 2025 já" [ref=e3119]:
+                  - generic "Upraveno 24. 9. 2025 já" [ref=e3122]:
+                    - generic [ref=e3123]: 24. 9. 2025 já
+                - 'gridcell "Velikost: 14 kB Využití úložiště: 14 kB" [ref=e3124]':
+                  - 'generic "Velikost: 14 kB Využití úložiště: 14 kB" [ref=e3127]':
+                    - generic [ref=e3128]: 14 kB
+                - gridcell "Další akce (Alt+A)" [ref=e3129]:
+                  - generic [ref=e3133]:
+                    - button "Další akce (Alt+A)" [ref=e3134] [cursor=pointer]:
+                      - img [ref=e3137]
+                    - tooltip [ref=e3140]: Další akce (Alt+A)
+              - 'row "Souhrn faktur a nákladů Tabulky Google Vlastník: já Upraveno 11. 2. já Velikost: 1 kB Využití úložiště: 1 kB Další akce (Alt+A)" [ref=e3141]':
+                - gridcell "Souhrn faktur a nákladů Tabulky Google" [ref=e3142]:
+                  - generic [ref=e3143]:
+                    - img [ref=e3149]
+                    - generic "Souhrn faktur a nákladů Tabulky Google" [ref=e3152]:
+                      - strong [ref=e3155]: Souhrn faktur a nákladů
+                - 'gridcell "Vlastník: já" [ref=e3156]':
+                  - 'button "Vlastník: já" [ref=e3158]':
+                    - 'generic "Vlastník: já" [ref=e3159]':
+                      - img [ref=e3161]
+                      - generic [ref=e3162]: já
+                - gridcell "Upraveno 11. 2. já" [ref=e3163]:
+                  - generic "Upraveno 11. 2. já" [ref=e3166]:
+                    - generic [ref=e3167]: 11. 2. já
+                - 'gridcell "Velikost: 1 kB Využití úložiště: 1 kB" [ref=e3168]':
+                  - 'generic "Velikost: 1 kB Využití úložiště: 1 kB" [ref=e3171]':
+                    - generic [ref=e3172]: 1 kB
+                - gridcell "Další akce (Alt+A)" [ref=e3173]:
+                  - generic [ref=e3177]:
+                    - button "Další akce (Alt+A)" [ref=e3178] [cursor=pointer]:
+                      - img [ref=e3181]
+                    - tooltip [ref=e3184]: Další akce (Alt+A)
+              - 'row "Souhrnná tabulka faktur a nákladů Tabulky Google Vlastník: já Upraveno 12. 2. já Velikost: 2 kB Využití úložiště: 2 kB Další akce (Alt+A)" [ref=e3185]':
+                - gridcell "Souhrnná tabulka faktur a nákladů Tabulky Google" [ref=e3186]:
+                  - generic [ref=e3187]:
+                    - img [ref=e3193]
+                    - generic "Souhrnná tabulka faktur a nákladů Tabulky Google" [ref=e3196]:
+                      - strong [ref=e3199]: Souhrnná tabulka faktur a nákladů
+                - 'gridcell "Vlastník: já" [ref=e3200]':
+                  - 'button "Vlastník: já" [ref=e3202]':
+                    - 'generic "Vlastník: já" [ref=e3203]':
+                      - img [ref=e3205]
+                      - generic [ref=e3206]: já
+                - gridcell "Upraveno 12. 2. já" [ref=e3207]:
+                  - generic "Upraveno 12. 2. já" [ref=e3210]:
+                    - generic [ref=e3211]: 12. 2. já
+                - 'gridcell "Velikost: 2 kB Využití úložiště: 2 kB" [ref=e3212]':
+                  - 'generic "Velikost: 2 kB Využití úložiště: 2 kB" [ref=e3215]':
+                    - generic [ref=e3216]: 2 kB
+                - gridcell "Další akce (Alt+A)" [ref=e3217]:
+                  - generic [ref=e3221]:
+                    - button "Další akce (Alt+A)" [ref=e3222] [cursor=pointer]:
+                      - img [ref=e3225]
+                    - tooltip [ref=e3228]: Další akce (Alt+A)
+              - 'row "Tabulka a funkce Tabulky Google Vlastník: já Upraveno 11. 2. já Velikost: 1 kB Využití úložiště: 1 kB Další akce (Alt+A)" [ref=e3229]':
+                - gridcell "Tabulka a funkce Tabulky Google" [ref=e3230]:
+                  - generic [ref=e3231]:
+                    - img [ref=e3237]
+                    - generic "Tabulka a funkce Tabulky Google" [ref=e3240]:
+                      - strong [ref=e3243]: Tabulka a funkce
+                - 'gridcell "Vlastník: já" [ref=e3244]':
+                  - 'button "Vlastník: já" [ref=e3246]':
+                    - 'generic "Vlastník: já" [ref=e3247]':
+                      - img [ref=e3249]
+                      - generic [ref=e3250]: já
+                - gridcell "Upraveno 11. 2. já" [ref=e3251]:
+                  - generic "Upraveno 11. 2. já" [ref=e3254]:
+                    - generic [ref=e3255]: 11. 2. já
+                - 'gridcell "Velikost: 1 kB Využití úložiště: 1 kB" [ref=e3256]':
+                  - 'generic "Velikost: 1 kB Využití úložiště: 1 kB" [ref=e3259]':
+                    - generic [ref=e3260]: 1 kB
+                - gridcell "Další akce (Alt+A)" [ref=e3261]:
+                  - generic [ref=e3265]:
+                    - button "Další akce (Alt+A)" [ref=e3266] [cursor=pointer]:
+                      - img [ref=e3269]
+                    - tooltip [ref=e3272]: Další akce (Alt+A)
+              - 'row "Tabulka bez názvu Tabulky Google Vlastník: já Upraveno 7. 11. 2025 já Velikost: 1 kB Využití úložiště: 1 kB Další akce (Alt+A)" [ref=e3273]':
+                - gridcell "Tabulka bez názvu Tabulky Google" [ref=e3274]:
+                  - generic [ref=e3275]:
+                    - img [ref=e3281]
+                    - generic "Tabulka bez názvu Tabulky Google" [ref=e3284]:
+                      - strong [ref=e3287]: Tabulka bez názvu
+                - 'gridcell "Vlastník: já" [ref=e3288]':
+                  - 'button "Vlastník: já" [ref=e3290]':
+                    - 'generic "Vlastník: já" [ref=e3291]':
+                      - img [ref=e3293]
+                      - generic [ref=e3294]: já
+                - gridcell "Upraveno 7. 11. 2025 já" [ref=e3295]:
+                  - generic "Upraveno 7. 11. 2025 já" [ref=e3298]:
+                    - generic [ref=e3299]: 7. 11. 2025 já
+                - 'gridcell "Velikost: 1 kB Využití úložiště: 1 kB" [ref=e3300]':
+                  - 'generic "Velikost: 1 kB Využití úložiště: 1 kB" [ref=e3303]':
+                    - generic [ref=e3304]: 1 kB
+                - gridcell "Další akce (Alt+A)" [ref=e3305]:
+                  - generic [ref=e3309]:
+                    - button "Další akce (Alt+A)" [ref=e3310] [cursor=pointer]:
+                      - img [ref=e3313]
+                    - tooltip [ref=e3316]: Další akce (Alt+A)
+              - 'row "todo-app-strategie-tender-flow.docx Microsoft Word Vlastník: já Upraveno 11:25 já Velikost: 44 kB Využití úložiště: 44 kB Další akce (Alt+A)" [ref=e3556]':
+                - gridcell "todo-app-strategie-tender-flow.docx Microsoft Word" [ref=e3557]:
+                  - generic [ref=e3559]:
+                    - img [ref=e3565]
+                    - generic "todo-app-strategie-tender-flow.docx Microsoft Word" [ref=e3576]:
+                      - strong [ref=e3579]: todo-app-strategie-tender-flow.docx
+                - 'gridcell "Vlastník: já" [ref=e3580]':
+                  - 'button "Vlastník: já" [ref=e3583]':
+                    - 'generic "Vlastník: já" [ref=e3584]':
+                      - img [ref=e3586]
+                      - generic [ref=e3587]: já
+                - gridcell "Upraveno 11:25 já" [ref=e3588]:
+                  - generic "Upraveno 11:25 já" [ref=e3592]:
+                    - generic [ref=e3593]: 11:25 já
+                - 'gridcell "Velikost: 44 kB Využití úložiště: 44 kB" [ref=e3594]':
+                  - 'generic "Velikost: 44 kB Využití úložiště: 44 kB" [ref=e3598]':
+                    - generic [ref=e3599]: 44 kB
+                - gridcell "Další akce (Alt+A)" [ref=e3600]:
+                  - generic [ref=e3605]:
+                    - button "Další akce (Alt+A)" [ref=e3606] [cursor=pointer]:
+                      - img [ref=e3609]
+                    - tooltip [ref=e3612]: Další akce (Alt+A)
+              - 'row "transactions Tabulky Google Vlastník: já Upraveno 7. 11. 2025 já Velikost: 9 kB Využití úložiště: 9 kB Další akce (Alt+A)" [ref=e3317]':
+                - gridcell "transactions Tabulky Google" [ref=e3318]:
+                  - generic [ref=e3319]:
+                    - img [ref=e3325]
+                    - generic "transactions Tabulky Google" [ref=e3328]:
+                      - strong [ref=e3331]: transactions
+                - 'gridcell "Vlastník: já" [ref=e3332]':
+                  - 'button "Vlastník: já" [ref=e3334]':
+                    - 'generic "Vlastník: já" [ref=e3335]':
+                      - img [ref=e3337]
+                      - generic [ref=e3338]: já
+                - gridcell "Upraveno 7. 11. 2025 já" [ref=e3339]:
+                  - generic "Upraveno 7. 11. 2025 já" [ref=e3342]:
+                    - generic [ref=e3343]: 7. 11. 2025 já
+                - 'gridcell "Velikost: 9 kB Využití úložiště: 9 kB" [ref=e3344]':
+                  - 'generic "Velikost: 9 kB Využití úložiště: 9 kB" [ref=e3347]':
+                    - generic [ref=e3348]: 9 kB
+                - gridcell "Další akce (Alt+A)" [ref=e3349]:
+                  - generic [ref=e3353]:
+                    - button "Další akce (Alt+A)" [ref=e3354] [cursor=pointer]:
+                      - img [ref=e3357]
+                    - tooltip [ref=e3360]: Další akce (Alt+A)
+              - 'row "transactions.csv CSV Vlastník: já Upraveno 7. 11. 2025 já Velikost: 18 kB Využití úložiště: 18 kB Další akce (Alt+A)" [ref=e3361]':
+                - gridcell "transactions.csv CSV" [ref=e1853]:
+                  - generic [ref=e3362]:
+                    - img [ref=e3369]
+                    - generic "transactions.csv CSV" [ref=e3371]:
+                      - strong [ref=e3374]: transactions.csv
+                - 'gridcell "Vlastník: já" [ref=e3375]':
+                  - 'button "Vlastník: já" [ref=e3377]':
+                    - 'generic "Vlastník: já" [ref=e3378]':
+                      - img [ref=e3380]
+                      - generic [ref=e3381]: já
+                - gridcell "Upraveno 7. 11. 2025 já" [ref=e3382]:
+                  - generic "Upraveno 7. 11. 2025 já" [ref=e3385]:
+                    - generic [ref=e3386]: 7. 11. 2025 já
+                - 'gridcell "Velikost: 18 kB Využití úložiště: 18 kB" [ref=e3387]':
+                  - 'generic "Velikost: 18 kB Využití úložiště: 18 kB" [ref=e3390]':
+                    - generic [ref=e3391]: 18 kB
+                - gridcell "Další akce (Alt+A)" [ref=e3392]:
+                  - generic [ref=e3396]:
+                    - button "Další akce (Alt+A)" [ref=e3397] [cursor=pointer]:
+                      - img [ref=e3400]
+                    - tooltip [ref=e3403]: Další akce (Alt+A)
+              - 'row "URS konstrukce Tabulky Google Vlastník: já Upraveno 7. 1. já Velikost: 302 kB Využití úložiště: 302 kB Další akce (Alt+A)" [ref=e3404]':
+                - gridcell "URS konstrukce Tabulky Google" [ref=e3405]:
+                  - generic [ref=e3406]:
+                    - img [ref=e3412]
+                    - generic "URS konstrukce Tabulky Google" [ref=e3415]:
+                      - strong [ref=e3418]: URS konstrukce
+                - 'gridcell "Vlastník: já" [ref=e3419]':
+                  - 'button "Vlastník: já" [ref=e3421]':
+                    - 'generic "Vlastník: já" [ref=e3422]':
+                      - img [ref=e3424]
+                      - generic [ref=e3425]: já
+                - gridcell "Upraveno 7. 1. já" [ref=e3426]:
+                  - generic "Upraveno 7. 1. já" [ref=e3429]:
+                    - generic [ref=e3430]: 7. 1. já
+                - 'gridcell "Velikost: 302 kB Využití úložiště: 302 kB" [ref=e3431]':
+                  - 'generic "Velikost: 302 kB Využití úložiště: 302 kB" [ref=e3434]':
+                    - generic [ref=e3435]: 302 kB
+                - gridcell "Další akce (Alt+A)" [ref=e3436]:
+                  - generic [ref=e3440]:
+                    - button "Další akce (Alt+A)" [ref=e3441] [cursor=pointer]:
+                      - img [ref=e3444]
+                    - tooltip [ref=e3447]: Další akce (Alt+A)
+              - 'row "zahrn sloupec s názvem souboru Tabulky Google Vlastník: já Upraveno 11. 2. já Velikost: 1 kB Využití úložiště: 1 kB Další akce (Alt+A)" [ref=e3448]':
+                - gridcell "zahrn sloupec s názvem souboru Tabulky Google" [ref=e3449]:
+                  - generic [ref=e3450]:
+                    - img [ref=e3456]
+                    - generic "zahrn sloupec s názvem souboru Tabulky Google" [ref=e3459]:
+                      - strong [ref=e3462]: zahrn sloupec s názvem souboru
+                - 'gridcell "Vlastník: já" [ref=e3463]':
+                  - 'button "Vlastník: já" [ref=e3465]':
+                    - 'generic "Vlastník: já" [ref=e3466]':
+                      - img [ref=e3468]
+                      - generic [ref=e3469]: já
+                - gridcell "Upraveno 11. 2. já" [ref=e3470]:
+                  - generic "Upraveno 11. 2. já" [ref=e3473]:
+                    - generic [ref=e3474]: 11. 2. já
+                - 'gridcell "Velikost: 1 kB Využití úložiště: 1 kB" [ref=e3475]':
+                  - 'generic "Velikost: 1 kB Využití úložiště: 1 kB" [ref=e3478]':
+                    - generic [ref=e3479]: 1 kB
+                - gridcell "Další akce (Alt+A)" [ref=e3480]:
+                  - generic [ref=e3484]:
+                    - button "Další akce (Alt+A)" [ref=e3485] [cursor=pointer]:
+                      - img [ref=e3488]
+                    - tooltip [ref=e3491]: Další akce (Alt+A)
+      - generic:
+        - navigation
+    - generic [ref=e1999]:
+      - complementary "Boční panel" [ref=e3492]:
+        - tablist [ref=e3494]:
+          - tab "Kalendář"
+          - tab "Keep"
+          - tab "Úkoly"
+          - tab "Kontakty"
+          - separator [disabled] [ref=e3499]
+          - tab "Získat doplňky"
+      - generic:
+        - button "Skrýt boční panel":
+          - img [ref=e3502] [cursor=pointer]
+  - region
+  - img [ref=e2001]
+  - dialog "1 nahrávání bylo dokončeno" [active] [ref=e3613]:
+    - generic [ref=e3615]:
+      - generic [ref=e3616]: 1 nahrávání bylo dokončeno
+      - generic [ref=e3618]:
+        - button "Minimalizovat" [ref=e3619] [cursor=pointer]:
+          - img [ref=e3621]
+        - button "Zavřít" [ref=e3623] [cursor=pointer]:
+          - img [ref=e3625]
+    - 'group "Nahrání souboru: todo-app-strategie-tender-flow.docx" [ref=e3629] [cursor=pointer]':
+      - generic [ref=e3631]:
+        - img [ref=e3633]
+        - generic [ref=e3634]:
+          - generic "todo-app-strategie-tender-flow.docx" [ref=e3635]
+          - progressbar [ref=e3638]:
+            - img [ref=e3639]
+            - generic:
+              - img [ref=e3643]
+              - generic [ref=e3645]:
+                - img [ref=e3647]
+                - img [ref=e3650]
+            - img [ref=e3652]
+        - button "Zobrazit umístění souboru" [ref=e3655]:
+          - img [ref=e3657]

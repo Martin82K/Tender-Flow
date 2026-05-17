@@ -3,6 +3,7 @@ export type View =
   | "project"
   | "contacts"
   | "settings"
+  | "todo"
   | "project-management"
   | "project-overview"
   | "url-shortener";

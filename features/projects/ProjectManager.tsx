@@ -697,10 +697,28 @@ export const ProjectManager: React.FC<ProjectManagerProps> = ({
                                     <span className="material-symbols-outlined text-slate-600 text-[20px] cursor-grab active:cursor-grabbing">
                                         drag_indicator
                                     </span>
-                                    <div className={`size-10 rounded-full flex items-center justify-center text-lg font-bold ${project.status === 'realization' ? 'bg-amber-500/20 text-amber-400' :
-                                        project.status === 'tender' ? 'bg-blue-500/20 text-blue-400' :
-                                            'bg-slate-700/50 text-slate-500'
-                                        }`}>
+                                    <div
+                                        data-help-id="pm-project-status-badge"
+                                        data-status={project.status}
+                                        aria-label={
+                                            project.status === 'realization'
+                                                ? 'Realizace'
+                                                : project.status === 'tender'
+                                                    ? 'Soutěž'
+                                                    : 'Archivováno'
+                                        }
+                                        title={
+                                            project.status === 'realization'
+                                                ? 'Realizace'
+                                                : project.status === 'tender'
+                                                    ? 'Soutěž'
+                                                    : 'Archivováno'
+                                        }
+                                        className={`size-10 rounded-full flex items-center justify-center text-lg font-bold ${project.status === 'realization' ? 'bg-amber-500/20 text-amber-400' :
+                                            project.status === 'tender' ? 'bg-blue-500/20 text-blue-400' :
+                                                'bg-slate-700/50 text-slate-500'
+                                            }`}
+                                    >
                                         {project.status === 'realization' ? 'R' : project.status === 'tender' ? 'S' : 'A'}
                                     </div>
                                     <div>

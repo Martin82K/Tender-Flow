@@ -11,6 +11,7 @@ const NOW = new Date("2026-04-20T10:00:00Z");
 const makeTask = (overrides: Partial<Task> = {}): Task => ({
   id: "task-1",
   title: "Testovací úkol",
+  sortOrder: 0,
   completed: false,
   createdBy: "user-1",
   createdAt: NOW.toISOString(),
@@ -76,6 +77,19 @@ describe("mergeActionQueue", () => {
     expect(result[0].id).toBe("task:b");
   });
 
+  it("vyfiltruje archivované tasky", () => {
+    const result = mergeActionQueue({
+      derivedActions: [],
+      tasks: [
+        makeTask({ id: "archived", archivedAt: "2026-04-19T10:00:00Z" }),
+        makeTask({ id: "active" }),
+      ],
+      now: NOW,
+    });
+
+    expect(result.map((item) => item.id)).toEqual(["task:active"]);
+  });
+
   it("seřadí podle severity — critical před warning před info", () => {
     const result = mergeActionQueue({
       derivedActions: [
@@ -128,5 +142,40 @@ describe("mergeActionQueue", () => {
       now: NOW,
     });
     expect(result.map((r) => r.id)).toEqual(["task:p1", "task:p2"]);
+  });
+
+  it("nezahltí frontu běžnými podúkoly bez termínu a P1 priority", () => {
+    const result = mergeActionQueue({
+      derivedActions: [],
+      tasks: [
+        makeTask({ id: "root" }),
+        makeTask({ id: "subtask", parentTaskId: "root" }),
+      ],
+      now: NOW,
+    });
+
+    expect(result.map((r) => r.id)).toEqual(["task:root"]);
+  });
+
+  it("propíše do fronty podúkol s vlastním termínem", () => {
+    const result = mergeActionQueue({
+      derivedActions: [],
+      tasks: [
+        makeTask({ id: "root", title: "Hlavní úkol" }),
+        makeTask({
+          id: "subtask",
+          title: "Zavolat",
+          parentTaskId: "root",
+          dueAt: "2026-04-20T14:00:00Z",
+        }),
+      ],
+      now: NOW,
+    });
+
+    expect(result.map((r) => r.id)).toContain("task:subtask");
+    expect(result.find((r) => r.id === "task:subtask")).toMatchObject({
+      title: "Podúkol: Zavolat",
+      subtitle: "Hlavní úkol",
+    });
   });
 });

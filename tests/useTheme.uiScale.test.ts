@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  DEFAULT_DARK_BACKGROUND,
   DEFAULT_UI_SCALE,
   UI_SCALE_MAX,
   UI_SCALE_MIN,
@@ -85,5 +86,40 @@ describe("normalizeUiScale", () => {
 
     expect(localStorage.getItem("skin")).toBe("classic");
     expect(localStorage.getItem("projectDetailSkin")).toBe("classic");
+  });
+
+  it("v tmavém classic režimu neodvozuje canvas ze světlé barvy pozadí", async () => {
+    const { result } = renderHook(() => useTheme());
+
+    act(() => result.current.setBackgroundColor("#f5f6f8"));
+
+    await waitFor(() => {
+      expect(document.documentElement.style.getPropertyValue("--tf-color-background-dark")).toBe(DEFAULT_DARK_BACKGROUND);
+    });
+
+    expect(document.documentElement.style.getPropertyValue("--color-background-dark")).toBe(DEFAULT_DARK_BACKGROUND);
+    expect(document.documentElement.style.getPropertyValue("--tf-color-background-dark")).not.toBe("#414954");
+  });
+
+  it("nepropustí neplatnou uloženou barvu pozadí do CSS proměnných", async () => {
+    renderHook(() =>
+      useTheme({
+        user: {
+          id: "user-1",
+          name: "Test User",
+          email: "test@example.com",
+          role: "user",
+          preferences: {
+            backgroundColor: "url(https://example.com/bad.png)",
+          },
+        } as any,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(document.documentElement.style.getPropertyValue("--tf-color-background-light")).toBe("#f5f6f8");
+    });
+
+    expect(document.documentElement.style.getPropertyValue("--tf-color-background-light")).not.toContain("url(");
   });
 });
