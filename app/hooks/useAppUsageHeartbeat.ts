@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { recordUsageHeartbeat } from "@/services/appUsageService";
+import { recordUsageHeartbeat } from "@/infra/usage/appUsageService";
 
 const HEARTBEAT_INTERVAL_MS = 120_000;
 const HEARTBEAT_SECONDS = HEARTBEAT_INTERVAL_MS / 1000;

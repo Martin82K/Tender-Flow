@@ -21,11 +21,11 @@ export {
   getAppUsageSummaryAdmin,
   recordUsageAction,
   recordUsageHeartbeat,
-} from "@/services/appUsageService";
+} from "@/infra/usage/appUsageService";
 export type {
   AppUsageDailyStat,
   AppUsageSummaryItem,
-} from "@/services/appUsageService";
+} from "@/infra/usage/appUsageService";
 export { resetUserMfaAdmin } from "./adminMfaResetService";
 export type { AdminResetMfaResult } from "./adminMfaResetService";
 export type {

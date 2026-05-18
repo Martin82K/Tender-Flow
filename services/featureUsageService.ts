@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
 import { hasOptionalCookieConsent } from '@/shared/privacy/cookieConsent';
 import { summarizeErrorForLog } from '@/shared/security/logSanitizer';
-import { recordUsageAction } from './appUsageService';
+import { recordUsageAction } from '@/infra/usage/appUsageService';
 
 export interface UsageTenantOption {
   organizationId: string;

@@ -26,7 +26,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { isUserAdmin } from "../utils/helpers";
 import { syncContactsFromUrl } from "../services/contactsImportService";
-import { recordUsageAction } from "../services/appUsageService";
+import { recordUsageAction } from "@/infra/usage/appUsageService";
 import {
     createTenderPlan,
     createTenderPlanId,

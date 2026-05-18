@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { supabase } from "@/services/supabase";
 import { summarizeErrorForLog } from "@/shared/security/logSanitizer";
 
 export interface AppUsageActionInput {

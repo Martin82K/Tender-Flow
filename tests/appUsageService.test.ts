@@ -3,7 +3,7 @@ import {
   getAppUsageSummaryAdmin,
   recordUsageAction,
   recordUsageHeartbeat,
-} from "../services/appUsageService";
+} from "../infra/usage/appUsageService";
 
 const supabaseMocks = vi.hoisted(() => ({
   rpc: vi.fn(),
