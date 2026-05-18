@@ -45,6 +45,45 @@ const VIEW_LABELS: Record<TaskViewFilter, { label: string; icon: string; hint: s
 
 const VIEW_ORDER: TaskViewFilter[] = ["calendar", "inbox", "today", "upcoming", "important", "completed", "archive"];
 
+const TASKS_DESKTOP_BREAKPOINT = 1024;
+const TASKS_DESKTOP_MEDIA_QUERY = `(min-width: ${TASKS_DESKTOP_BREAKPOINT}px)`;
+
+const getIsTasksMobileLayout = (): boolean => {
+  if (typeof window === "undefined") return false;
+  if (typeof window.matchMedia === "function") {
+    return !window.matchMedia(TASKS_DESKTOP_MEDIA_QUERY).matches;
+  }
+  return window.innerWidth < TASKS_DESKTOP_BREAKPOINT;
+};
+
+const useIsTasksMobileLayout = (): boolean => {
+  const [isMobileLayout, setIsMobileLayout] = useState(getIsTasksMobileLayout);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    const update = () => setIsMobileLayout(getIsTasksMobileLayout());
+
+    if (typeof window.matchMedia === "function") {
+      const mediaQuery = window.matchMedia(TASKS_DESKTOP_MEDIA_QUERY);
+      update();
+      if (typeof mediaQuery.addEventListener === "function") {
+        mediaQuery.addEventListener("change", update);
+        return () => mediaQuery.removeEventListener("change", update);
+      }
+
+      mediaQuery.addListener(update);
+      return () => mediaQuery.removeListener(update);
+    }
+
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  return isMobileLayout;
+};
+
 type TodoCalendarMode = "month" | "week" | "three-day" | "day";
 
 interface TodoCalendarTask {
@@ -1874,6 +1913,7 @@ interface TaskDetailProps {
   isComposerActive?: boolean;
   onSelectTask: (taskId: string) => void;
   onDeleted: () => void;
+  onCloseMobileDetail?: () => void;
 }
 
 const TaskDetail: React.FC<TaskDetailProps> = ({
@@ -1884,6 +1924,7 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
   isComposerActive = false,
   onSelectTask,
   onDeleted,
+  onCloseMobileDetail,
 }) => {
   const { projects } = useProjectsState();
   const updateTask = useUpdateTaskMutation();
@@ -1941,7 +1982,7 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
     return (
       <aside
         data-help-id="tasks-detail"
-        className="min-h-0 overflow-hidden rounded-xl border border-orange-200/70 bg-white/85 p-3 shadow-sm dark:border-orange-900/40 dark:bg-slate-900/70"
+        className="min-h-0 overflow-hidden rounded-xl border border-orange-200/70 bg-white/85 p-3 shadow-sm max-lg:hidden dark:border-orange-900/40 dark:bg-slate-900/70"
       >
         <div className="flex h-full min-h-[420px] flex-col">
           <div className="border-b border-slate-200 pb-4 dark:border-slate-800">
@@ -2064,9 +2105,22 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
     <>
       <aside
         data-help-id="tasks-detail"
-        className="min-h-0 overflow-y-auto rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900/70"
+        className="min-h-0 overflow-y-auto rounded-xl border border-slate-200 bg-white p-3 shadow-sm max-lg:min-h-[calc(100dvh-9rem)] dark:border-slate-800 dark:bg-slate-900/70"
       >
-      <form onSubmit={handleSave} className="space-y-3">
+        {onCloseMobileDetail && (
+          <button
+            type="button"
+            data-help-id="tasks-mobile-detail-back"
+            onClick={onCloseMobileDetail}
+            className="mb-3 inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 lg:hidden"
+          >
+            <span className="material-symbols-outlined text-[18px]" aria-hidden>
+              arrow_back
+            </span>
+            Seznam
+          </button>
+        )}
+        <form onSubmit={handleSave} className="space-y-3">
         <div className="flex items-center justify-between gap-3">
           <div>
             <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
@@ -2386,12 +2440,14 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
   const [view, setView] = useState<TaskViewFilter>("inbox");
   const [selectedTodoProjectId, setSelectedTodoProjectId] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(true);
   const [collapsedTaskIds, setCollapsedTaskIds] = useState<Set<string>>(() => new Set());
   const [isQuickAddExpanded, setIsQuickAddExpanded] = useState(false);
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dropTargetTaskId, setDropTargetTaskId] = useState<string | null>(null);
   const [calendarMode, setCalendarMode] = useState<TodoCalendarMode>("week");
   const [calendarCursorDate, setCalendarCursorDate] = useState(() => new Date());
+  const isMobileLayout = useIsTasksMobileLayout();
   const tasksQuery = useTasksQuery({ includeArchived: true });
   const todoProjectsQuery = useTaskProjectsQuery();
   const updateTask = useUpdateTaskMutation();
@@ -2428,21 +2484,65 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
       setSelectedTaskId(null);
       return;
     }
+    if (isMobileLayout) {
+      if (selectedTaskId && !findTaskSelection(visibleTree, selectedTaskId)) {
+        setSelectedTaskId(null);
+      }
+      return;
+    }
     if (!selectedTaskId || !findTaskSelection(visibleTree, selectedTaskId)) {
       setSelectedTaskId(visibleTree[0].task.id);
     }
-  }, [selectedTaskId, visibleTree]);
+  }, [isMobileLayout, selectedTaskId, visibleTree]);
 
   const selectedSelection = findTaskSelection(visibleTree, selectedTaskId);
   const activeRootCount = taskTree.filter(({ task }) => !task.archivedAt).length;
   const listTitle = selectedTodoProject?.name ?? VIEW_LABELS[view].label;
   const canAddTask = Boolean(selectedTodoProjectId || view !== "archive");
+  const mobileMenuLabel = selectedTodoProject?.name ?? VIEW_LABELS[view].label;
+  const mobileMenuHint = selectedTodoProject ? "TODO projekt" : VIEW_LABELS[view].hint;
+  const mobileMenuCount = selectedTodoProjectId
+    ? getTodoProjectRootCount(taskTree, selectedTodoProjectId)
+    : getViewCount(taskTree, view);
+  const isMobileDetailActive = Boolean(isMobileLayout && selectedSelection);
 
   useEffect(() => {
     if (!canAddTask) {
       setIsQuickAddExpanded(false);
     }
   }, [canAddTask]);
+
+  useEffect(() => {
+    if (!isMobileLayout) {
+      setIsMobileMenuOpen(true);
+    }
+  }, [isMobileLayout]);
+
+  const collapseMobileWorkspaces = () => {
+    if (!isMobileLayout) return;
+    setIsMobileMenuOpen(false);
+    setIsQuickAddExpanded(false);
+  };
+
+  const handleSelectView = (item: TaskViewFilter) => {
+    setSelectedTodoProjectId(null);
+    setView(item);
+    if (isMobileLayout) {
+      setSelectedTaskId(null);
+      collapseMobileWorkspaces();
+    }
+  };
+
+  const handleSelectTodoProject = (projectId: string) => {
+    setSelectedTodoProjectId(projectId);
+    setSelectedTaskId(null);
+    collapseMobileWorkspaces();
+  };
+
+  const handleSelectTask = (taskId: string) => {
+    setSelectedTaskId(taskId);
+    collapseMobileWorkspaces();
+  };
 
   const toggleTaskExpanded = (taskId: string) => {
     setCollapsedTaskIds((current) => {
@@ -2537,9 +2637,37 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
       </Header>
 
       <main className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-x-hidden overflow-y-auto p-4 lg:grid-cols-[260px_minmax(0,1fr)_380px] lg:overflow-hidden lg:p-6">
+        {!isMobileDetailActive && (
+          <button
+            type="button"
+            data-help-id="tasks-mobile-menu-toggle"
+            data-open={isMobileMenuOpen ? "true" : "false"}
+            aria-controls="tasks-menu-panel"
+            aria-expanded={isMobileMenuOpen}
+            onClick={() => setIsMobileMenuOpen((open) => !open)}
+            className="flex min-w-0 items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left shadow-sm dark:border-slate-800 dark:bg-slate-900/70 lg:hidden"
+          >
+            <span className="material-symbols-outlined text-[20px] text-primary" aria-hidden>
+              tune
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold text-slate-900 dark:text-slate-100">{mobileMenuLabel}</span>
+              <span className="block truncate text-xs text-slate-500">{mobileMenuHint}</span>
+            </span>
+            <span className="text-xs text-slate-500">{mobileMenuCount}</span>
+            <span
+              className={`material-symbols-outlined text-[20px] text-slate-400 transition-transform ${isMobileMenuOpen ? "rotate-180" : ""}`}
+              aria-hidden
+            >
+              expand_more
+            </span>
+          </button>
+        )}
         <nav
+          id="tasks-menu-panel"
           data-help-id="tasks-menu"
-          className="max-h-[min(42dvh,360px)] min-h-0 space-y-1 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 lg:max-h-none lg:overflow-visible"
+          data-mobile-open={isMobileMenuOpen ? "true" : "false"}
+          className={`${isMobileMenuOpen ? "block" : "hidden"} ${isMobileDetailActive ? "max-lg:hidden" : ""} max-h-[min(42dvh,360px)] min-h-0 space-y-1 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 lg:block lg:max-h-none lg:overflow-visible`}
         >
           {VIEW_ORDER.map((item) => {
             const meta = VIEW_LABELS[item];
@@ -2551,10 +2679,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
                 data-active={active ? "true" : "false"}
                 data-help-id="tasks-menu-item"
                 aria-current={active ? "page" : undefined}
-                onClick={() => {
-                  setSelectedTodoProjectId(null);
-                  setView(item);
-                }}
+                onClick={() => handleSelectView(item)}
                 className={`${TASK_MENU_ITEM_BASE} ${active ? TASK_MENU_ITEM_ACTIVE : TASK_MENU_ITEM_INACTIVE}`}
               >
                 <span
@@ -2577,10 +2702,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
             projects={todoProjects}
             selectedTodoProjectId={selectedTodoProjectId}
             taskTree={taskTree}
-            onSelectProject={(projectId) => {
-              setSelectedTodoProjectId(projectId);
-              setSelectedTaskId(null);
-            }}
+            onSelectProject={handleSelectTodoProject}
             onProjectDeleted={(projectId) => {
               if (selectedTodoProjectId === projectId) {
                 setSelectedTodoProjectId(null);
@@ -2590,7 +2712,11 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
           />
         </nav>
 
-        <section data-help-id="tasks-list" className="min-h-0 min-w-0 space-y-3 overflow-hidden">
+        <section
+          data-help-id="tasks-list"
+          data-mobile-hidden={isMobileDetailActive ? "true" : "false"}
+          className={`${isMobileDetailActive ? "max-lg:hidden" : ""} min-h-0 min-w-0 space-y-3 overflow-hidden`}
+        >
           {canAddTask && (
             <QuickAdd
               currentView={view}
@@ -2619,14 +2745,14 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
               cursorDate={calendarCursorDate}
               onModeChange={setCalendarMode}
               onCursorChange={setCalendarCursorDate}
-              onSelectTask={setSelectedTaskId}
+              onSelectTask={handleSelectTask}
             />
           ) : !selectedTodoProjectId && view === "upcoming" ? (
             <TodoAgendaView
               tree={visibleTree}
               todoProjects={todoProjects}
               selectedTaskId={selectedTaskId}
-              onSelectTask={setSelectedTaskId}
+              onSelectTask={handleSelectTask}
             />
           ) : visibleTree.length === 0 && canAddTask && isQuickAddExpanded ? (
             <div className="min-h-[96px]" aria-hidden />
@@ -2644,7 +2770,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
                   selectedTaskId={selectedTaskId}
                   isDragging={draggedTaskId === item.task.id}
                   isDropTarget={dropTargetTaskId === item.task.id}
-                  onSelect={setSelectedTaskId}
+                  onSelect={handleSelectTask}
                   onDeleted={handleTaskDeleted}
                   expanded={item.subtasks.length > 0 && !collapsedTaskIds.has(item.task.id)}
                   onToggleExpanded={toggleTaskExpanded}
@@ -2664,8 +2790,9 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
           todoProjects={todoProjects}
           isSubtask={selectedSelection?.isSubtask}
           isComposerActive={canAddTask && isQuickAddExpanded}
-          onSelectTask={setSelectedTaskId}
+          onSelectTask={handleSelectTask}
           onDeleted={() => setSelectedTaskId(selectedSelection?.isSubtask ? selectedSelection.item.task.id : null)}
+          onCloseMobileDetail={isMobileDetailActive ? () => setSelectedTaskId(null) : undefined}
         />
       </main>
     </div>

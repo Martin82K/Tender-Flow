@@ -46,6 +46,7 @@ vi.mock("electron", () => ({
 describe("fsHandlers", () => {
   beforeEach(() => {
     handlers.clear();
+    vi.clearAllMocks();
     fsMock.readdir.mockReset();
     fsMock.stat.mockReset();
     fsMock.readFile.mockReset();
@@ -162,6 +163,63 @@ describe("fsHandlers", () => {
     const output = await handlers.get("fs:readFile")?.({}, "/Users/tester/Projects/Tender/input.xlsx");
     expect(output).toEqual(Buffer.from("ok"));
     expect(normalizePathForAssert(fsMock.readFile.mock.calls[0][0])).toBe("/Users/tester/Projects/Tender/input.xlsx");
+  });
+
+  it("ulozi root vybrany pres selectFolder do persistentniho uloziste", async () => {
+    const { dialog } = await import("electron");
+    const grantedRootsStorage = {
+      get: vi.fn().mockResolvedValue(null),
+      set: vi.fn().mockResolvedValue(undefined),
+    };
+    fsMock.realpath.mockImplementation(async (targetPath: string) => targetPath);
+    fsMock.stat.mockImplementation(async () => ({ isDirectory: () => true }));
+    vi.mocked(dialog.showOpenDialog).mockResolvedValue({
+      canceled: false,
+      filePaths: ["/Users/tester/Projects/Tender"],
+    } as any);
+
+    const { registerFsHandlers } = await import("../desktop/main/ipc/modules/fsHandlers");
+    registerFsHandlers({
+      resolvePortableReadPath: vi.fn(async (value: string) => value),
+      resolvePortableWritePath: vi.fn(async (value: string) => value),
+      requireAuth: vi.fn(),
+      grantedRootsStorage,
+    });
+
+    await expect(handlers.get("fs:selectFolder")?.({})).resolves.toEqual({
+      path: "/Users/tester/Projects/Tender",
+      name: "Tender",
+    });
+
+    expect(grantedRootsStorage.set).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(grantedRootsStorage.set.mock.calls[0][1])).toContain("/Users/tester/Projects/Tender");
+  });
+
+  it("obnovi persistentni root a otevre podcestu bez dalsiho dialogu", async () => {
+    const { dialog, shell } = await import("electron");
+    const grantedRootsStorage = {
+      get: vi.fn().mockResolvedValue(JSON.stringify(["/Users/tester/Projects/Tender"])),
+      set: vi.fn().mockResolvedValue(undefined),
+    };
+    fsMock.realpath.mockImplementation(async (targetPath: string) => targetPath);
+    fsMock.stat.mockImplementation(async () => ({ isDirectory: () => true }));
+    vi.mocked(shell.openPath).mockResolvedValue("");
+
+    const { registerFsHandlers } = await import("../desktop/main/ipc/modules/fsHandlers");
+    registerFsHandlers({
+      resolvePortableReadPath: vi.fn(async (value: string) => value),
+      resolvePortableWritePath: vi.fn(async (value: string) => value),
+      requireAuth: vi.fn(),
+      grantedRootsStorage,
+    });
+
+    await expect(
+      handlers.get("fs:openInExplorer")?.({}, "/Users/tester/Projects/Tender/03_Vyberova_rizeni"),
+    ).resolves.toEqual({ success: true });
+
+    expect(vi.mocked(shell.openPath)).toHaveBeenCalledWith("/Users/tester/Projects/Tender/03_Vyberova_rizeni");
+    expect(vi.mocked(dialog.showOpenDialog)).not.toHaveBeenCalled();
+    expect(grantedRootsStorage.set).not.toHaveBeenCalled();
   });
 
   it("grantAccess potvrzuje uz premapovanou portable cestu", async () => {
