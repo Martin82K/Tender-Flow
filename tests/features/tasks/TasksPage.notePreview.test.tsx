@@ -134,8 +134,18 @@ const todayAt = (hour: number, minute = 0): string => {
   return date.toISOString();
 };
 
+const setViewportWidth = (width: number) => {
+  Object.defineProperty(window, "innerWidth", {
+    configurable: true,
+    writable: true,
+    value: width,
+  });
+  window.dispatchEvent(new Event("resize"));
+};
+
 describe("TasksPage note preview", () => {
   beforeEach(() => {
+    setViewportWidth(1024);
     taskState.tasks = [];
     taskState.todoProjects = [];
     taskState.toggleTask.mockReset();
@@ -376,6 +386,42 @@ describe("TasksPage note preview", () => {
     expect(emptyState).not.toBeNull();
     expect(within(emptyState as HTMLElement).getByText("Žádný úkol není vybraný")).toBeInTheDocument();
     expect(within(emptyState as HTMLElement).getByText("Vyberte úkol ze seznamu nebo vytvořte nový.")).toBeInTheDocument();
+  });
+
+  it("na mobilu neskládá horní menu, seznam a detail úkolu do jednoho stísněného pohledu", () => {
+    setViewportWidth(390);
+    taskState.tasks = [
+      makeTask({
+        id: "mobile-upcoming",
+        title: "Boučí",
+        note: "úkol 1",
+        dueAt: todayAt(17),
+      }),
+    ];
+
+    const { container } = render(<TasksPage />);
+    const menu = container.querySelector('[data-help-id="tasks-menu"]');
+    const list = container.querySelector('[data-help-id="tasks-list"]');
+
+    expect(menu).not.toBeNull();
+    expect(list).not.toBeNull();
+    expect(screen.queryByDisplayValue("Boučí")).not.toBeInTheDocument();
+    expect(menu).toHaveAttribute("data-mobile-open", "true");
+
+    fireEvent.click(within(menu as HTMLElement).getByRole("button", { name: /Nadcházející/i }));
+
+    expect(menu).toHaveAttribute("data-mobile-open", "false");
+    expect(list).toHaveAttribute("data-mobile-hidden", "false");
+    fireEvent.click(screen.getByRole("button", { name: /Boučí/i }));
+
+    expect(list).toHaveAttribute("data-mobile-hidden", "true");
+    expect(screen.getByRole("button", { name: "Seznam" })).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Boučí")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Seznam" }));
+
+    expect(list).toHaveAttribute("data-mobile-hidden", "false");
+    expect(screen.queryByDisplayValue("Boučí")).not.toBeInTheDocument();
   });
 
   it("řadí úkoly ve stejném dni kalendáře podle času", () => {
