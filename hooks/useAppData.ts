@@ -26,6 +26,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { isUserAdmin } from "../utils/helpers";
 import { syncContactsFromUrl } from "../services/contactsImportService";
+import { recordUsageAction } from "../services/appUsageService";
 import {
     createTenderPlan,
     createTenderPlanId,
@@ -57,6 +58,10 @@ export const useAppData = (showUiModal: (props: any) => void) => {
     const isBackgroundLoading = false; // Could track mutation 'isPending'
 
     const isAdmin = isUserAdmin(user?.email);
+    const recordAppUsageAction = useCallback((input: Parameters<typeof recordUsageAction>[0]) => {
+        if (user?.role === "demo") return;
+        void recordUsageAction(input);
+    }, [user?.role]);
 
     // Mutations
     const addProjectMutation = useAddProjectMutation();
@@ -84,15 +89,19 @@ export const useAppData = (showUiModal: (props: any) => void) => {
 
     const handleAddProject = async (project: Project) => {
         await addProjectMutation.mutateAsync(project);
+        recordAppUsageAction({ createdRecordsCount: 1 });
     };
 
     const handleDeleteProject = async (id: string) => {
         await deleteProjectMutation.mutateAsync(id);
         if (selectedProjectId === id) setSelectedProjectId(null);
+        recordAppUsageAction({ deletedRecordsCount: 1 });
     };
 
     const handleCloneTenderToRealization = async (id: string) => {
-        return cloneTenderToRealizationMutation.mutateAsync(id);
+        const result = await cloneTenderToRealizationMutation.mutateAsync(id);
+        recordAppUsageAction({ createdRecordsCount: 1 });
+        return result;
     };
 
     const handleArchiveProject = async (id: string) => {
@@ -103,15 +112,18 @@ export const useAppData = (showUiModal: (props: any) => void) => {
                 currentStatus: project.status,
                 archivedOriginalStatus: project.archivedOriginalStatus ?? null,
             });
+            recordAppUsageAction({ updatedRecordsCount: 1 });
         }
     };
 
     const handleUpdateProjectDetails = async (id: string, updates: Partial<ProjectDetails>) => {
         await updateProjectDetailsMutation.mutateAsync({ id, updates });
+        recordAppUsageAction({ updatedRecordsCount: 1 });
     };
 
     const handleAddCategory = async (projectId: string, category: DemandCategory) => {
         await addCategoryMutation.mutateAsync({ projectId, category });
+        recordAppUsageAction({ createdRecordsCount: 1 });
 
         // Backward Sync: Check if Tender Plan exists, if not create one
         try {
@@ -150,22 +162,27 @@ export const useAppData = (showUiModal: (props: any) => void) => {
 
     const handleEditCategory = async (projectId: string, category: DemandCategory) => {
         await editCategoryMutation.mutateAsync({ projectId, category });
+        recordAppUsageAction({ updatedRecordsCount: 1 });
     };
 
     const handleDeleteCategory = async (projectId: string, categoryId: string) => {
         await deleteCategoryMutation.mutateAsync({ projectId, categoryId });
+        recordAppUsageAction({ deletedRecordsCount: 1 });
     };
 
     const handleAddContact = async (contact: Subcontractor) => {
         await addContactMutation.mutateAsync(contact);
+        recordAppUsageAction({ createdRecordsCount: 1 });
     };
 
     const handleUpdateContact = async (contact: Subcontractor) => {
         await updateContactMutation.mutateAsync({ id: contact.id, updates: contact });
+        recordAppUsageAction({ updatedRecordsCount: 1 });
     };
 
     const handleDeleteContacts = async (ids: string[]) => {
         await deleteContactsMutation.mutateAsync(ids);
+        recordAppUsageAction({ actionCount: 1, deletedRecordsCount: ids.length });
     };
 
     const handleBulkUpdateContacts = async (updates: Subcontractor[]) => {
@@ -175,11 +192,13 @@ export const useAppData = (showUiModal: (props: any) => void) => {
         // I need to map it.
         const formattedUpdates = updates.map(c => ({ id: c.id, data: c }));
         await bulkUpdateContactsMutation.mutateAsync(formattedUpdates);
+        recordAppUsageAction({ actionCount: 1, updatedRecordsCount: updates.length });
     };
 
     // Complex handlers
     const handleImportContacts = async (newContacts: Subcontractor[], onProgress?: (p: number) => void) => {
         await importContactsMutation.mutateAsync({ newContacts, onProgress });
+        recordAppUsageAction({ actionCount: 1, createdRecordsCount: newContacts.length });
     };
 
     const handleSyncContacts = async (url: string, onProgress?: (p: number) => void) => {

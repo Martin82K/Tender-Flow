@@ -26,6 +26,7 @@ import { IncidentLogsAdmin } from "@/features/settings/IncidentLogsAdmin";
 import { ComplianceAdmin } from "@/features/settings/ComplianceAdmin";
 import { AdminMfaGuard } from "@/features/settings/AdminMfaGuard";
 import { AdminOrganizationsPanel } from "@/features/settings/AdminOrganizationsPanel";
+import { AppUsageAdmin } from "@/features/settings/AppUsageAdmin";
 import { BackupSettings } from "@/features/backup/ui/BackupSettings";
 
 import { useFeatures } from "@/context/FeatureContext";
@@ -93,6 +94,7 @@ export const Settings: React.FC<SettingsProps> = ({
     | "users"
     | "organizations"
     | "subscriptions"
+    | "usage"
     | "ai"
     | "incidents"
     | "compliance";
@@ -145,6 +147,7 @@ export const Settings: React.FC<SettingsProps> = ({
         subTabParam === "users" ||
         subTabParam === "organizations" ||
         subTabParam === "subscriptions" ||
+        subTabParam === "usage" ||
         subTabParam === "ai" ||
         subTabParam === "incidents" ||
         subTabParam === "compliance"
@@ -202,6 +205,7 @@ export const Settings: React.FC<SettingsProps> = ({
         settingsRoute.subTab === "users" ||
         settingsRoute.subTab === "organizations" ||
         settingsRoute.subTab === "subscriptions" ||
+        settingsRoute.subTab === "usage" ||
         settingsRoute.subTab === "ai" ||
         settingsRoute.subTab === "incidents" ||
         settingsRoute.subTab === "compliance" ||
@@ -502,6 +506,24 @@ export const Settings: React.FC<SettingsProps> = ({
 
                 <button
                   onClick={() =>
+                    updateSettingsUrl({ tab: "admin", subTab: "usage" })
+                  }
+                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                    activeAdminSubTab === "usage"
+                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[20px]">
+                      query_stats
+                    </span>
+                    Využití aplikace
+                  </div>
+                </button>
+
+                <button
+                  onClick={() =>
                     updateSettingsUrl({ tab: "admin", subTab: "ai" })
                   }
                   className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
@@ -569,6 +591,7 @@ export const Settings: React.FC<SettingsProps> = ({
                 {activeAdminSubTab === "subscriptions" && (
                   <AdminSettings isAdmin={isAdmin} section="subscriptions" />
                 )}
+                {activeAdminSubTab === "usage" && <AppUsageAdmin />}
                 {activeAdminSubTab === "ai" && (
                   <>
                     <AISettings isAdmin={isAdmin} />
