@@ -17,6 +17,8 @@ export {
   purgeOldAppIncidentsAdmin,
 } from "./complianceAdminService";
 export { trackFeatureUsage } from "./featureUsageApi";
+export { resetUserMfaAdmin } from "./adminMfaResetService";
+export type { AdminResetMfaResult } from "./adminMfaResetService";
 export type {
   IncidentAdminFilter,
   IncidentAdminItem,

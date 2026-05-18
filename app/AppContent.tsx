@@ -181,6 +181,12 @@ export const AppContent: React.FC = () => {
     }
   }, [isDesktopPlanBlocked, pathname, search]);
 
+  useEffect(() => {
+    if (!isAuthenticated || pathname !== "/mfa") return;
+    const nextPath = new URLSearchParams(search).get("next") || buildAppUrl(DEFAULT_APP_VIEW);
+    navigate(nextPath.startsWith("/") ? nextPath : buildAppUrl(DEFAULT_APP_VIEW), { replace: true });
+  }, [isAuthenticated, pathname, search]);
+
   const isAppPath = pathname === "/app" || pathname.startsWith("/app/");
   const shouldShowLoader = (authLoading && isAppPath) || (isAuthenticated && state.isDataLoading);
 
@@ -226,6 +232,16 @@ export const AppContent: React.FC = () => {
         pathname={pathname}
         search={search}
         isDesktop={isDesktop}
+      />
+    );
+  }
+
+  if (pathname === "/mfa") {
+    return (
+      <AppLoadingView
+        authLoading={false}
+        isDataLoading={false}
+        appLoadProgress={{ percent: 100, label: "Přesměrování..." }}
       />
     );
   }

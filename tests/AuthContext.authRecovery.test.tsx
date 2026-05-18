@@ -42,6 +42,7 @@ const setup = async (options: SetupOptions) => {
     navigate: vi.fn(),
     queryClientClear: vi.fn(),
     setAuthenticated: vi.fn().mockResolvedValue(undefined),
+    saveCredentials: vi.fn().mockResolvedValue(undefined),
     subscribe: vi.fn((listener: (snapshot: { event: string; session: any }) => void) => {
       mockState.authListener = listener;
       return vi.fn();
@@ -83,7 +84,7 @@ const setup = async (options: SetupOptions) => {
           options.biometricPromptResult === false ? null : options.credentials,
         ),
         clearCredentials: vi.fn().mockResolvedValue(undefined),
-        saveCredentials: vi.fn().mockResolvedValue(undefined),
+        saveCredentials: mockState.saveCredentials,
         setBiometricEnabled: vi.fn().mockResolvedValue(undefined),
       },
       auth: {
@@ -123,6 +124,22 @@ const setup = async (options: SetupOptions) => {
       start: vi.fn(),
       subscribe: mockState.subscribe,
       syncSession: vi.fn().mockResolvedValue(undefined),
+    },
+  }));
+
+  vi.doMock("@infra/auth/mfaService", () => ({
+    mfaService: {
+      getLoginChallenge: vi.fn().mockResolvedValue(null),
+      getStatus: vi.fn().mockResolvedValue({
+        currentLevel: "aal1",
+        nextLevel: "aal1",
+        factors: [],
+        verifiedFactors: [],
+        unverifiedFactors: [],
+        hasVerifiedFactor: false,
+        needsVerification: false,
+      }),
+      verifyFactor: vi.fn().mockResolvedValue(undefined),
     },
   }));
 
@@ -230,7 +247,12 @@ describe("AuthContext auth recovery", () => {
         refresh_token: "refresh-token-123456",
       }),
       refreshSessionResult: {
-        data: { session: { access_token: "fresh-session-token" } },
+        data: {
+          session: {
+            access_token: "fresh-session-token",
+            refresh_token: "fresh-refresh-token-123456",
+          },
+        },
         error: null,
       },
       currentUser: null,
@@ -248,6 +270,13 @@ describe("AuthContext auth recovery", () => {
         accessToken: "fresh-session-token",
         expiresAt: null,
       }),
+    );
+    expect(mockState.saveCredentials).toHaveBeenCalledWith({
+      refreshToken: "fresh-refresh-token-123456",
+      email: "test@example.com",
+    });
+    expect(mockState.setAuthenticated.mock.invocationCallOrder[0]).toBeLessThan(
+      mockState.saveCredentials.mock.invocationCallOrder[0],
     );
   });
 

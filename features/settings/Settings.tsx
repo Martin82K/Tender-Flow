@@ -13,6 +13,7 @@ import {
 import { AdminSettings } from "@/features/settings/AdminSettings";
 import { AISettings } from "@/features/settings/AISettings";
 import { ProfileSettings } from "@/features/settings/ProfileSettings";
+import { UserSecuritySettings } from "@/features/settings/UserSecuritySettings";
 import { ContactsImportWizard } from "@/shared/ui/ContactsImportWizard";
 import { ExcelUnlockerProSettings } from "@/features/settings/ExcelUnlockerProSettings";
 import { ExcelMergerProSettings } from "@/features/settings/ExcelMergerProSettings";
@@ -72,6 +73,7 @@ export const Settings: React.FC<SettingsProps> = ({
   const { hasFeature, isLoading: isFeaturesLoading } = useFeatures();
   type UserSubTab =
     | "profile"
+    | "security"
     | "notifications"
     | "backup";
   type ToolsSubTab =
@@ -80,7 +82,7 @@ export const Settings: React.FC<SettingsProps> = ({
     | "excelMerger"
     | "urlShortener"
     | "excelIndexer";
-  const USER_SUBTABS: UserSubTab[] = ["profile", "notifications", "backup"];
+  const USER_SUBTABS: UserSubTab[] = ["profile", "security", "notifications", "backup"];
   const TOOLS_SUBTABS: ToolsSubTab[] = ["contacts", "excelUnlocker", "excelMerger", "excelIndexer", "urlShortener"];
   const isToolsSubTab = (v: string | null): v is ToolsSubTab =>
     !!v && (TOOLS_SUBTABS as string[]).includes(v);
@@ -122,6 +124,7 @@ export const Settings: React.FC<SettingsProps> = ({
       }
       subTab =
         subTabParam === "profile" ||
+        subTabParam === "security" ||
         subTabParam === "notifications" ||
         subTabParam === "backup"
           ? subTabParam
@@ -169,7 +172,9 @@ export const Settings: React.FC<SettingsProps> = ({
   const [activeUserSubTab, setActiveUserSubTab] = useState<UserSubTab>(() => {
     if (
       settingsRoute.tab === "user" &&
-      (settingsRoute.subTab === "notifications" || settingsRoute.subTab === "backup")
+      (settingsRoute.subTab === "security" ||
+        settingsRoute.subTab === "notifications" ||
+        settingsRoute.subTab === "backup")
     ) {
       return settingsRoute.subTab;
     }
@@ -443,7 +448,6 @@ export const Settings: React.FC<SettingsProps> = ({
                     Registrace
                   </div>
                 </button>
-
                 <button
                   onClick={() =>
                     updateSettingsUrl({ tab: "admin", subTab: "users" })
@@ -461,7 +465,6 @@ export const Settings: React.FC<SettingsProps> = ({
                     Uživatelé
                   </div>
                 </button>
-
                 <button
                   onClick={() =>
                     updateSettingsUrl({ tab: "admin", subTab: "organizations" })
@@ -479,7 +482,6 @@ export const Settings: React.FC<SettingsProps> = ({
                     Organizace
                   </div>
                 </button>
-
                 <button
                   onClick={() =>
                     updateSettingsUrl({ tab: "admin", subTab: "subscriptions" })
@@ -605,6 +607,24 @@ export const Settings: React.FC<SettingsProps> = ({
 
                 <button
                   onClick={() =>
+                    updateSettingsUrl({ tab: "user", subTab: "security" })
+                  }
+                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                    activeUserSubTab === "security"
+                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[20px]">
+                      security
+                    </span>
+                    Zabezpečení
+                  </div>
+                </button>
+
+                <button
+                  onClick={() =>
                     updateSettingsUrl({ tab: "user", subTab: "notifications" })
                   }
                   className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
@@ -661,6 +681,8 @@ export const Settings: React.FC<SettingsProps> = ({
                   user={user}
                 />
               )}
+
+              {activeUserSubTab === "security" && <UserSecuritySettings />}
 
               {activeUserSubTab === "notifications" && <NotificationSettings />}
 

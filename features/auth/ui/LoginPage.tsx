@@ -46,8 +46,10 @@ export const LoginPage: React.FC = () => {
     setBiometricLoading(true);
     try {
       const success = await loginWithBiometric();
-      if (success) {
+      if (success.status === "authenticated") {
         navigate(nextPath, { replace: true });
+      } else if (success.status === "mfa_required") {
+        navigate(`/mfa?next=${encodeURIComponent(nextPath)}`, { replace: true });
       } else {
         setError("Biometrické ověření selhalo. Použijte heslo.");
       }
@@ -75,7 +77,11 @@ export const LoginPage: React.FC = () => {
     setError("");
     setLoading(true);
     try {
-      await login(email, password, rememberMe);
+      const result = await login(email, password, rememberMe);
+      if (result.status === "mfa_required") {
+        navigate(`/mfa?next=${encodeURIComponent(nextPath)}`, { replace: true });
+        return;
+      }
       navigate(nextPath, { replace: true });
     } catch (err: any) {
       setError(err?.message || "Nastala chyba");
