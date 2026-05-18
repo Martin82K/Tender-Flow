@@ -3,8 +3,10 @@ import { AuthLayout } from "@/components/layouts/AuthLayout";
 import { LandingPage } from "@/components/LandingPage";
 import { ForgotPasswordPage } from "@/features/auth/ui/ForgotPasswordPage";
 import { LoginPage } from "@/features/auth/ui/LoginPage";
+import { MfaPage } from "@/features/auth/ui/MfaPage";
 import { RegisterPage } from "@/features/auth/ui/RegisterPage";
 import { ResetPasswordPage } from "@/features/auth/ui/ResetPasswordPage";
+import { useAuth } from "@/context/AuthContext";
 import { navigate } from "@/shared/routing/router";
 import { logRuntimeEvent } from "@infra/diagnostics/runtimeDiagnostics";
 
@@ -14,22 +16,24 @@ interface AuthGateProps {
   isDesktop: boolean;
 }
 
-const AUTH_ROUTES = ["/login", "/register", "/forgot-password", "/reset-password", "/"];
+const AUTH_ROUTES = ["/login", "/mfa", "/register", "/forgot-password", "/reset-password", "/"];
 
 export const AuthGate: React.FC<AuthGateProps> = ({
   pathname,
   search,
   isDesktop,
 }) => {
+  const { pendingMfa } = useAuth();
   const shouldRenderDesktopLogin = pathname === "/" && isDesktop;
   const redirectTo = useMemo(() => {
     if (shouldRenderDesktopLogin) return null;
     if (!AUTH_ROUTES.includes(pathname)) {
       const nextUrl = encodeURIComponent(pathname + search);
+      if (pendingMfa) return `/mfa?next=${nextUrl}`;
       return `/login?next=${nextUrl}`;
     }
     return null;
-  }, [pathname, search, shouldRenderDesktopLogin]);
+  }, [pathname, search, pendingMfa, shouldRenderDesktopLogin]);
 
   useEffect(() => {
     logRuntimeEvent("auth-gate", "route_decision", {
@@ -83,6 +87,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({
   return (
     <AuthLayout>
       {pathname === "/login" && <LoginPage />}
+      {pathname === "/mfa" && <MfaPage />}
       {pathname === "/register" && <RegisterPage />}
       {pathname === "/forgot-password" && <ForgotPasswordPage />}
       {pathname === "/reset-password" && <ResetPasswordPage />}

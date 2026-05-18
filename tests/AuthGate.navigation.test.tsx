@@ -25,6 +25,10 @@ vi.mock("@/features/auth/ui/LoginPage", () => ({
   LoginPage: () => <div data-testid="login-page">Login</div>,
 }));
 
+vi.mock("@/features/auth/ui/MfaPage", () => ({
+  MfaPage: () => <div data-testid="mfa-page">MFA</div>,
+}));
+
 vi.mock("@/features/auth/ui/RegisterPage", () => ({
   RegisterPage: () => <div data-testid="register-page">Register</div>,
 }));
@@ -35,6 +39,12 @@ vi.mock("@/features/auth/ui/ForgotPasswordPage", () => ({
 
 vi.mock("@/features/auth/ui/ResetPasswordPage", () => ({
   ResetPasswordPage: () => <div data-testid="reset-password-page">Reset</div>,
+}));
+
+vi.mock("@/context/AuthContext", () => ({
+  useAuth: () => ({
+    pendingMfa: null,
+  }),
 }));
 
 describe("AuthGate navigation", () => {
