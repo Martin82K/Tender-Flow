@@ -209,7 +209,7 @@ export function registerIpcHandlers(mainWindow?: BrowserWindow): void {
             },
         });
 
-    registerFsHandlers({ resolvePortableReadPath, resolvePortableWritePath, requireAuth });
+    registerFsHandlers({ resolvePortableReadPath, resolvePortableWritePath, requireAuth, grantedRootsStorage: storageService });
     registerWatcherHandlers({ resolvePortableReadPath, requireAuth });
     registerBidComparisonHandlers({ resolvePortableReadPath, bidComparisonAutoRunner, requireAuth });
     registerSessionHandlers({ storageService, requireAuth });
