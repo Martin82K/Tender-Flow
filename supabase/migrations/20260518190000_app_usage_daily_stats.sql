@@ -121,8 +121,7 @@ BEGIN
   normalized_seconds := LEAST(GREATEST(COALESCE(active_seconds_input, 120), 1), 300);
 
   DELETE FROM public.usage_session_state
-  WHERE user_id = current_user_id
-    AND expires_at < now_utc;
+  WHERE expires_at < now_utc;
 
   SELECT *
   INTO existing_session

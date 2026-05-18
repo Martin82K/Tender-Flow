@@ -164,6 +164,7 @@ export const AppContent: React.FC = () => {
   usePosthogIdentity();
   useAppUsageHeartbeat({
     enabled: isAuthenticated && !authLoading && user?.role !== "demo" && user?.isOrgMemberActive !== false,
+    sessionKey: user?.id ?? null,
   });
 
   const desktopAllowedTiers = ["pro", "enterprise", "admin"] as const;
