@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { hasOptionalCookieConsent } from '@/shared/privacy/cookieConsent';
 import { summarizeErrorForLog } from '@/shared/security/logSanitizer';
+import { recordUsageAction } from '@/infra/usage/appUsageService';
 
 export interface UsageTenantOption {
   organizationId: string;
@@ -38,6 +39,16 @@ const normalizeDailyCounts = (value: unknown): FeatureUsageDailyCount[] => {
   });
 };
 
+const normalizeUploadedBytes = (metadata: Record<string, unknown>): number => {
+  const candidate =
+    metadata.fileSizeBytes ??
+    metadata.totalSizeBytes ??
+    metadata.uploadedBytes ??
+    metadata.bytes;
+  const parsed = Number(candidate);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+};
+
 export async function trackFeatureUsage(
   featureKey: string,
   metadata: Record<string, unknown> = {},
@@ -55,6 +66,13 @@ export async function trackFeatureUsage(
     if (error) {
       console.warn('[featureUsageService] trackFeatureUsage failed:', summarizeErrorForLog(error));
       return false;
+    }
+
+    if (data) {
+      void recordUsageAction({
+        actionCount: 1,
+        uploadedBytes: normalizeUploadedBytes(metadata),
+      });
     }
 
     return !!data;
