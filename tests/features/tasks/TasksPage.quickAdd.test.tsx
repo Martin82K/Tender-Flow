@@ -5,6 +5,7 @@ import { QuickAdd } from "@features/tasks/ui/TasksPage";
 
 const mutationState = vi.hoisted(() => ({
   createTask: vi.fn(),
+  projects: [] as Array<{ id: string; name: string }>,
 }));
 
 vi.mock("@features/tasks/hooks/useTaskMutations", () => ({
@@ -27,12 +28,13 @@ vi.mock("@features/tasks/hooks/useTaskMutations", () => ({
 }));
 
 vi.mock("@features/projects/model/useProjectsState", () => ({
-  useProjectsState: () => ({ projects: [] }),
+  useProjectsState: () => ({ projects: mutationState.projects }),
 }));
 
 describe("QuickAdd", () => {
   beforeEach(() => {
     mutationState.createTask.mockReset();
+    mutationState.projects = [];
   });
 
   it("zobrazí srozumitelnou chybu, když databázi chybí reminder_at", async () => {
@@ -68,5 +70,23 @@ describe("QuickAdd", () => {
     expect(screen.getByLabelText("Priorita")).toHaveClass("tf-quick-add-select");
     expect(screen.getByLabelText("TODO projekt")).toHaveClass("tf-quick-add-select");
     expect(screen.getByLabelText("Kontext stavby")).toHaveClass("tf-quick-add-select");
+  });
+
+  it("drží výběr stavby v rychlém formuláři kompaktní i s dlouhým názvem", () => {
+    mutationState.projects = [
+      {
+        id: "project-1",
+        name: "Administrativní centrum s velmi dlouhým názvem stavby Praha-Smíchov etapa II",
+      },
+    ];
+
+    render(<QuickAdd currentView="inbox" todoProjects={[]} />);
+
+    fireEvent.focus(screen.getByLabelText("Nový úkol"));
+
+    const projectSelect = screen.getByLabelText("Kontext stavby");
+    expect(projectSelect).toHaveClass("w-[180px]", "truncate");
+    expect(projectSelect.closest("label")).toHaveClass("sm:max-w-[240px]");
+    expect(projectSelect.closest("label")).not.toHaveClass("flex-1");
   });
 });
