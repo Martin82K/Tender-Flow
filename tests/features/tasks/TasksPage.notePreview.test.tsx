@@ -134,8 +134,18 @@ const todayAt = (hour: number, minute = 0): string => {
   return date.toISOString();
 };
 
+const setViewportWidth = (width: number) => {
+  Object.defineProperty(window, "innerWidth", {
+    configurable: true,
+    writable: true,
+    value: width,
+  });
+  window.dispatchEvent(new Event("resize"));
+};
+
 describe("TasksPage note preview", () => {
   beforeEach(() => {
+    setViewportWidth(1024);
     taskState.tasks = [];
     taskState.todoProjects = [];
     taskState.toggleTask.mockReset();
@@ -215,15 +225,25 @@ describe("TasksPage note preview", () => {
 
     render(<TasksPage />);
 
-    const deleteRow = screen.getByText("Smazatelný úkol").closest('[data-help-id="tasks-list-item"]');
+    const deleteCard = screen.getByText("Smazatelný úkol").closest('[data-help-id="tasks-list-item"]');
+    const deleteRow = screen.getByText("Smazatelný úkol").closest('[data-help-id="tasks-root-row"]');
+    expect(deleteCard).not.toBeNull();
     expect(deleteRow).not.toBeNull();
+
+    fireEvent.contextMenu(deleteCard as HTMLElement, {
+      clientX: 20,
+      clientY: 40,
+    });
+    expect(screen.queryByRole("menu", { name: "Akce úkolu" })).not.toBeInTheDocument();
 
     fireEvent.contextMenu(deleteRow as HTMLElement, {
       clientX: 80,
       clientY: 120,
     });
 
-    expect(screen.getByRole("menu", { name: "Akce úkolu" })).toBeInTheDocument();
+    const menu = screen.getByRole("menu", { name: "Akce úkolu" });
+    expect(menu).toBeInTheDocument();
+    expect(menu).toHaveStyle({ left: "80px", top: "120px" });
     fireEvent.click(screen.getByRole("menuitem", { name: "Smazat úkol" }));
 
     expect(screen.getByRole("dialog", { name: "Smazat úkol?" })).toHaveTextContent(
@@ -234,6 +254,230 @@ describe("TasksPage note preview", () => {
     await waitFor(() => {
       expect(taskState.deleteTask).toHaveBeenCalledWith("delete-me");
     });
+  });
+
+  it("umožní přidat podúkol přímo z řádku hlavního úkolu", async () => {
+    taskState.todoProjects = [
+      {
+        id: "todo-loket",
+        name: "LOKET",
+        sortOrder: 0,
+        createdBy: "user-1",
+        createdAt: "2026-05-17T10:00:00Z",
+        updatedAt: "2026-05-17T10:00:00Z",
+      },
+    ];
+    taskState.tasks = [
+      makeTask({
+        id: "root",
+        title: "Midas - CN svodidla",
+        todoProjectId: "todo-loket",
+        projectId: "project-loket",
+      }),
+      makeTask({
+        id: "existing-subtask",
+        title: "Prověřit termín",
+        parentTaskId: "root",
+        sortOrder: 0,
+      }),
+    ];
+    taskState.createTask.mockResolvedValue(makeTask({ id: "new-subtask" }));
+
+    render(<TasksPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: /LOKET/i }));
+    const addSubtaskButton = screen.getByRole("button", { name: "Přidat podúkol k úkolu Midas - CN svodidla" });
+    const rowActions = addSubtaskButton.closest('[data-help-id="tasks-list-item-actions"]');
+    expect(rowActions).not.toBeNull();
+    expect(rowActions).toHaveClass("gap-2.5");
+    expect(within(rowActions as HTMLElement).getByRole("button", { name: "Sbalit podúkoly" })).toBeInTheDocument();
+
+    fireEvent.click(addSubtaskButton);
+
+    const dialog = screen.getByRole("dialog", { name: "Přidat podúkol" });
+    expect(dialog).toBeInTheDocument();
+    expect(dialog).toHaveClass("bg-slate-950/20");
+    expect(dialog).not.toHaveClass("backdrop-blur-sm");
+    expect(dialog.querySelector(".tf-modal-panel")).not.toBeNull();
+    expect(within(dialog).getAllByRole("button", { name: "Zavřít přidání podúkolu" })).toHaveLength(1);
+    expect(within(dialog).getByRole("textbox", { name: "Popis podúkolu" })).toBeInTheDocument();
+    expect(within(dialog).getByRole("combobox", { name: "Priorita podúkolu" })).toBeInTheDocument();
+    expect(within(dialog).getByRole("combobox", { name: "Kontext stavby podúkolu" })).toBeInTheDocument();
+
+    fireEvent.change(within(dialog).getByRole("textbox", { name: "Název podúkolu" }), {
+      target: { value: "  Ověřit výkazy u dodavatele  " },
+    });
+    fireEvent.change(within(dialog).getByRole("textbox", { name: "Popis podúkolu" }), {
+      target: { value: "  Poslat dotaz na skladbu výkazu.  " },
+    });
+    fireEvent.change(within(dialog).getByRole("combobox", { name: "Priorita podúkolu" }), {
+      target: { value: "2" },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Přidat podúkol" }));
+
+    await waitFor(() => {
+      expect(taskState.createTask).toHaveBeenCalledWith({
+        title: "Ověřit výkazy u dodavatele",
+        note: "Poslat dotaz na skladbu výkazu.",
+        priority: 2,
+        parentTaskId: "root",
+        todoProjectId: "todo-loket",
+        projectId: "project-loket",
+        sortOrder: 1,
+      });
+    });
+    expect(screen.queryByRole("dialog", { name: "Přidat podúkol" })).not.toBeInTheDocument();
+  });
+
+  it("otevře přidání podúkolu z detailu jako modal místo inline formuláře", async () => {
+    taskState.tasks = [
+      makeTask({
+        id: "root",
+        title: "Bazén Aš - tepelná izolace",
+      }),
+    ];
+    taskState.createTask.mockResolvedValue(makeTask({ id: "new-subtask" }));
+
+    render(<TasksPage />);
+
+    expect(screen.queryByRole("textbox", { name: "Nový podúkol" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Přidat podúkol" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Přidat podúkol" });
+    expect(dialog).toHaveTextContent("Pod úkol: Bazén Aš - tepelná izolace");
+
+    fireEvent.change(within(dialog).getByRole("textbox", { name: "Název podúkolu" }), {
+      target: { value: "  Doptat výkaz izolací  " },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Přidat podúkol" }));
+
+    await waitFor(() => {
+      expect(taskState.createTask).toHaveBeenCalledWith({
+        title: "Doptat výkaz izolací",
+        parentTaskId: "root",
+        todoProjectId: undefined,
+        projectId: undefined,
+        sortOrder: 0,
+      });
+    });
+    expect(screen.queryByRole("dialog", { name: "Přidat podúkol" })).not.toBeInTheDocument();
+  });
+
+  it("otevře detail podúkolu dvojklikem na řádek podúkolu", () => {
+    taskState.tasks = [
+      makeTask({ id: "root", title: "Poptávky" }),
+      makeTask({
+        id: "subtask",
+        title: "Betony",
+        note: "Pravděpodobně dodávka bude Liapor.",
+        parentTaskId: "root",
+        sortOrder: 1,
+      }),
+    ];
+
+    render(<TasksPage />);
+
+    const subtaskRow = screen.getByText("Betony").closest('[data-help-id="tasks-subtask-row"]');
+    expect(subtaskRow).not.toBeNull();
+
+    fireEvent.doubleClick(subtaskRow as HTMLElement);
+
+    expect(screen.getByText("Detail podúkolu")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Pravděpodobně dodávka bude Liapor.")).toBeInTheDocument();
+  });
+
+  it("otevře detail podúkolu přes kontextové menu", () => {
+    taskState.tasks = [
+      makeTask({ id: "root", title: "Poptávky" }),
+      makeTask({
+        id: "subtask",
+        title: "Betony",
+        note: "Nacenit materiál.",
+        parentTaskId: "root",
+        sortOrder: 1,
+      }),
+    ];
+
+    render(<TasksPage />);
+
+    const subtaskRow = screen.getByText("Betony").closest('[data-help-id="tasks-subtask-row"]');
+    expect(subtaskRow).not.toBeNull();
+
+    fireEvent.contextMenu(subtaskRow as HTMLElement, {
+      clientX: 90,
+      clientY: 140,
+    });
+    const menu = screen.getByRole("menu", { name: "Akce podúkolu" });
+    expect(menu).toHaveStyle({ left: "90px", top: "140px" });
+    fireEvent.click(screen.getByRole("menuitem", { name: "Otevřít detail podúkolu" }));
+
+    expect(screen.getByText("Detail podúkolu")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Nacenit materiál.")).toBeInTheDocument();
+  });
+
+  it("zavře detail klávesou Escape bez neuložených změn", () => {
+    taskState.tasks = [
+      makeTask({ id: "root", title: "Poptávky" }),
+      makeTask({
+        id: "subtask",
+        title: "Betony",
+        note: "Bez změn.",
+        parentTaskId: "root",
+        sortOrder: 1,
+      }),
+    ];
+
+    render(<TasksPage />);
+
+    const subtaskRow = screen.getByText("Betony").closest('[data-help-id="tasks-subtask-row"]');
+    expect(subtaskRow).not.toBeNull();
+
+    fireEvent.doubleClick(subtaskRow as HTMLElement);
+    expect(screen.getByText("Detail podúkolu")).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(screen.queryByText("Detail podúkolu")).not.toBeInTheDocument();
+    expect(screen.getByText("Žádný úkol není vybraný")).toBeInTheDocument();
+  });
+
+  it("při zavření detailu s neuloženými změnami nabídne uložit nebo zahodit změny", async () => {
+    taskState.tasks = [
+      makeTask({ id: "root", title: "Poptávky" }),
+      makeTask({
+        id: "subtask",
+        title: "Betony",
+        note: "Původní poznámka.",
+        parentTaskId: "root",
+        sortOrder: 1,
+      }),
+    ];
+    taskState.updateTask.mockResolvedValue(makeTask({ id: "subtask", title: "Betony upraveno" }));
+
+    render(<TasksPage />);
+
+    const subtaskRow = screen.getByText("Betony").closest('[data-help-id="tasks-subtask-row"]');
+    expect(subtaskRow).not.toBeNull();
+
+    fireEvent.doubleClick(subtaskRow as HTMLElement);
+    fireEvent.change(screen.getByLabelText("Název"), {
+      target: { value: "Betony upraveno" },
+    });
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    const unsavedDialog = screen.getByRole("dialog", { name: "Neuložené změny" });
+    expect(unsavedDialog).toHaveTextContent("Detail obsahuje změny");
+    expect(within(unsavedDialog).getByRole("button", { name: "Zahodit změny" })).toBeInTheDocument();
+    fireEvent.click(within(unsavedDialog).getByRole("button", { name: "Uložit změny" }));
+
+    await waitFor(() => {
+      expect(taskState.updateTask).toHaveBeenCalledWith({
+        id: "subtask",
+        input: expect.objectContaining({ title: "Betony upraveno" }),
+      });
+    });
+    expect(screen.queryByText("Detail podúkolu")).not.toBeInTheDocument();
   });
 
   it("označí aktuální systémový pohled a vyplní jeho ikonu", () => {
@@ -310,6 +554,9 @@ describe("TasksPage note preview", () => {
     };
 
     expect(targetRow).not.toBeNull();
+    expect(targetRow).not.toHaveAttribute("title");
+    expect(dragHandle).toHaveClass("size-4");
+    expect(dragHandle).not.toHaveAttribute("title");
 
     fireEvent.dragStart(dragHandle, { dataTransfer });
     fireEvent.dragOver(targetRow as HTMLElement, { dataTransfer });
@@ -376,6 +623,63 @@ describe("TasksPage note preview", () => {
     expect(emptyState).not.toBeNull();
     expect(within(emptyState as HTMLElement).getByText("Žádný úkol není vybraný")).toBeInTheDocument();
     expect(within(emptyState as HTMLElement).getByText("Vyberte úkol ze seznamu nebo vytvořte nový.")).toBeInTheDocument();
+  });
+
+  it("na mobilu drží menu kompaktní a detail úkolu otevírá přes celé okno", () => {
+    setViewportWidth(390);
+    taskState.tasks = [
+      makeTask({
+        id: "mobile-upcoming",
+        title: "Boučí",
+        note: "úkol 1",
+        dueAt: todayAt(17),
+      }),
+    ];
+
+    const { container } = render(<TasksPage />);
+    const menu = container.querySelector('[data-help-id="tasks-menu"]');
+    const list = container.querySelector('[data-help-id="tasks-list"]');
+    const menuToggle = container.querySelector('[data-help-id="tasks-mobile-menu-toggle"]');
+
+    expect(menu).not.toBeNull();
+    expect(list).not.toBeNull();
+    expect(menuToggle).not.toBeNull();
+    expect(menuToggle).toHaveClass("self-start");
+    expect(menu).toHaveClass("self-start");
+    expect(menu).toHaveClass("lg:self-stretch");
+    expect(screen.queryByDisplayValue("Boučí")).not.toBeInTheDocument();
+    expect(menu).toHaveAttribute("data-mobile-open", "false");
+
+    fireEvent.click(menuToggle as HTMLElement);
+    fireEvent.click(within(menu as HTMLElement).getByRole("button", { name: /Nadcházející/i }));
+
+    expect(menu).toHaveAttribute("data-mobile-open", "false");
+    expect(list).toHaveAttribute("data-mobile-hidden", "false");
+    fireEvent.click(screen.getByRole("button", { name: /Boučí/i }));
+
+    expect(list).toHaveAttribute("data-mobile-hidden", "false");
+    expect(list).toHaveAttribute("data-mobile-detail-open", "true");
+    const mobileDialog = screen.getByRole("dialog", { name: "Detail úkolu" });
+    const mobileDetail = container.querySelector('[data-help-id="tasks-detail"][data-mobile-sheet="true"]');
+    expect(mobileDialog).toBeInTheDocument();
+    expect(mobileDialog).toHaveClass("fixed");
+    expect(mobileDialog).toHaveClass("inset-0");
+    expect(mobileDialog).not.toHaveClass("items-end");
+    expect(mobileDialog).not.toHaveClass("pt-10");
+    expect(mobileDetail).not.toBeNull();
+    expect(mobileDetail).toHaveClass("h-[100dvh]");
+    expect(mobileDetail).toHaveClass("rounded-none");
+    expect(mobileDetail).toHaveClass("border-0");
+    expect(mobileDetail).not.toHaveClass("rounded-t-2xl");
+    expect(mobileDetail).not.toHaveClass("max-h-[86dvh]");
+    expect(screen.getByRole("button", { name: "Zavřít detail" })).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Boučí")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Zavřít detail" }));
+
+    expect(list).toHaveAttribute("data-mobile-hidden", "false");
+    expect(list).toHaveAttribute("data-mobile-detail-open", "false");
+    expect(screen.queryByDisplayValue("Boučí")).not.toBeInTheDocument();
   });
 
   it("řadí úkoly ve stejném dni kalendáře podle času", () => {

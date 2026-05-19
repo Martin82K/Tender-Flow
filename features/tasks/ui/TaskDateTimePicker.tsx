@@ -10,6 +10,11 @@ interface TaskDateTimePickerProps {
 
 const WEEKDAY_LABELS = ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"];
 const MONTH_FORMATTER = new Intl.DateTimeFormat("cs-CZ", { month: "long", year: "numeric" });
+const TODAY_FORMATTER = new Intl.DateTimeFormat("cs-CZ", {
+  day: "numeric",
+  month: "numeric",
+  year: "numeric",
+});
 const DISPLAY_FORMATTER = new Intl.DateTimeFormat("cs-CZ", {
   day: "2-digit",
   month: "2-digit",
@@ -108,6 +113,7 @@ export const TaskDateTimePicker: React.FC<TaskDateTimePickerProps> = ({
 
   const calendarDays = useMemo(() => getCalendarDays(cursorMonth), [cursorMonth]);
   const today = new Date();
+  const todayLabel = TODAY_FORMATTER.format(today);
   const displayValue = parsedValue ? DISPLAY_FORMATTER.format(parsedValue) : "Bez termínu";
   const currentHour = parsedValue?.getHours() ?? 9;
   const currentMinute = parsedValue?.getMinutes() ?? 0;
@@ -158,8 +164,16 @@ export const TaskDateTimePicker: React.FC<TaskDateTimePickerProps> = ({
           className="absolute left-0 top-full z-[90] mt-2 w-[328px] rounded-xl border border-orange-200 bg-white p-3 text-slate-900 shadow-2xl shadow-slate-900/15 dark:border-orange-900/60 dark:bg-slate-950 dark:text-slate-100 dark:shadow-black/45"
         >
           <div className="mb-3 flex items-center justify-between gap-2">
-            <div className="text-sm font-bold capitalize">
-              {MONTH_FORMATTER.format(cursorMonth)}
+            <div className="min-w-0">
+              <div className="text-sm font-bold capitalize">
+                {MONTH_FORMATTER.format(cursorMonth)}
+              </div>
+              <div
+                data-help-id="task-date-picker-today"
+                className="mt-1 text-xs font-semibold text-orange-700 dark:text-orange-200"
+              >
+                Dnes je {todayLabel}
+              </div>
             </div>
             <div className="flex items-center gap-1">
               <button

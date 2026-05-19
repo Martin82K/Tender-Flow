@@ -13,6 +13,7 @@ import {
 import { AdminSettings } from "@/features/settings/AdminSettings";
 import { AISettings } from "@/features/settings/AISettings";
 import { ProfileSettings } from "@/features/settings/ProfileSettings";
+import { UserSecuritySettings } from "@/features/settings/UserSecuritySettings";
 import { ContactsImportWizard } from "@/shared/ui/ContactsImportWizard";
 import { ExcelUnlockerProSettings } from "@/features/settings/ExcelUnlockerProSettings";
 import { ExcelMergerProSettings } from "@/features/settings/ExcelMergerProSettings";
@@ -25,6 +26,7 @@ import { IncidentLogsAdmin } from "@/features/settings/IncidentLogsAdmin";
 import { ComplianceAdmin } from "@/features/settings/ComplianceAdmin";
 import { AdminMfaGuard } from "@/features/settings/AdminMfaGuard";
 import { AdminOrganizationsPanel } from "@/features/settings/AdminOrganizationsPanel";
+import { AppUsageAdmin } from "@/features/settings/AppUsageAdmin";
 import { BackupSettings } from "@/features/backup/ui/BackupSettings";
 
 import { useFeatures } from "@/context/FeatureContext";
@@ -72,6 +74,7 @@ export const Settings: React.FC<SettingsProps> = ({
   const { hasFeature, isLoading: isFeaturesLoading } = useFeatures();
   type UserSubTab =
     | "profile"
+    | "security"
     | "notifications"
     | "backup";
   type ToolsSubTab =
@@ -80,7 +83,7 @@ export const Settings: React.FC<SettingsProps> = ({
     | "excelMerger"
     | "urlShortener"
     | "excelIndexer";
-  const USER_SUBTABS: UserSubTab[] = ["profile", "notifications", "backup"];
+  const USER_SUBTABS: UserSubTab[] = ["profile", "security", "notifications", "backup"];
   const TOOLS_SUBTABS: ToolsSubTab[] = ["contacts", "excelUnlocker", "excelMerger", "excelIndexer", "urlShortener"];
   const isToolsSubTab = (v: string | null): v is ToolsSubTab =>
     !!v && (TOOLS_SUBTABS as string[]).includes(v);
@@ -91,6 +94,7 @@ export const Settings: React.FC<SettingsProps> = ({
     | "users"
     | "organizations"
     | "subscriptions"
+    | "usage"
     | "ai"
     | "incidents"
     | "compliance";
@@ -122,6 +126,7 @@ export const Settings: React.FC<SettingsProps> = ({
       }
       subTab =
         subTabParam === "profile" ||
+        subTabParam === "security" ||
         subTabParam === "notifications" ||
         subTabParam === "backup"
           ? subTabParam
@@ -142,6 +147,7 @@ export const Settings: React.FC<SettingsProps> = ({
         subTabParam === "users" ||
         subTabParam === "organizations" ||
         subTabParam === "subscriptions" ||
+        subTabParam === "usage" ||
         subTabParam === "ai" ||
         subTabParam === "incidents" ||
         subTabParam === "compliance"
@@ -169,7 +175,9 @@ export const Settings: React.FC<SettingsProps> = ({
   const [activeUserSubTab, setActiveUserSubTab] = useState<UserSubTab>(() => {
     if (
       settingsRoute.tab === "user" &&
-      (settingsRoute.subTab === "notifications" || settingsRoute.subTab === "backup")
+      (settingsRoute.subTab === "security" ||
+        settingsRoute.subTab === "notifications" ||
+        settingsRoute.subTab === "backup")
     ) {
       return settingsRoute.subTab;
     }
@@ -197,6 +205,7 @@ export const Settings: React.FC<SettingsProps> = ({
         settingsRoute.subTab === "users" ||
         settingsRoute.subTab === "organizations" ||
         settingsRoute.subTab === "subscriptions" ||
+        settingsRoute.subTab === "usage" ||
         settingsRoute.subTab === "ai" ||
         settingsRoute.subTab === "incidents" ||
         settingsRoute.subTab === "compliance" ||
@@ -443,7 +452,6 @@ export const Settings: React.FC<SettingsProps> = ({
                     Registrace
                   </div>
                 </button>
-
                 <button
                   onClick={() =>
                     updateSettingsUrl({ tab: "admin", subTab: "users" })
@@ -461,7 +469,6 @@ export const Settings: React.FC<SettingsProps> = ({
                     Uživatelé
                   </div>
                 </button>
-
                 <button
                   onClick={() =>
                     updateSettingsUrl({ tab: "admin", subTab: "organizations" })
@@ -479,7 +486,6 @@ export const Settings: React.FC<SettingsProps> = ({
                     Organizace
                   </div>
                 </button>
-
                 <button
                   onClick={() =>
                     updateSettingsUrl({ tab: "admin", subTab: "subscriptions" })
@@ -495,6 +501,24 @@ export const Settings: React.FC<SettingsProps> = ({
                       tune
                     </span>
                     Předplatné
+                  </div>
+                </button>
+
+                <button
+                  onClick={() =>
+                    updateSettingsUrl({ tab: "admin", subTab: "usage" })
+                  }
+                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                    activeAdminSubTab === "usage"
+                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[20px]">
+                      query_stats
+                    </span>
+                    Využití aplikace
                   </div>
                 </button>
 
@@ -567,6 +591,7 @@ export const Settings: React.FC<SettingsProps> = ({
                 {activeAdminSubTab === "subscriptions" && (
                   <AdminSettings isAdmin={isAdmin} section="subscriptions" />
                 )}
+                {activeAdminSubTab === "usage" && <AppUsageAdmin />}
                 {activeAdminSubTab === "ai" && (
                   <>
                     <AISettings isAdmin={isAdmin} />
@@ -600,6 +625,24 @@ export const Settings: React.FC<SettingsProps> = ({
                       person
                     </span>
                     Profil a Vzhled
+                  </div>
+                </button>
+
+                <button
+                  onClick={() =>
+                    updateSettingsUrl({ tab: "user", subTab: "security" })
+                  }
+                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                    activeUserSubTab === "security"
+                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[20px]">
+                      security
+                    </span>
+                    Zabezpečení
                   </div>
                 </button>
 
@@ -661,6 +704,8 @@ export const Settings: React.FC<SettingsProps> = ({
                   user={user}
                 />
               )}
+
+              {activeUserSubTab === "security" && <UserSecuritySettings />}
 
               {activeUserSubTab === "notifications" && <NotificationSettings />}
 

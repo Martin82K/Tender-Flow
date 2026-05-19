@@ -16,6 +16,7 @@ import { View } from "@/types";
 import { platformAdapter } from "@/services/platformAdapter";
 import { useDesktopMcpTokenSync } from "@app/hooks/useDesktopMcpTokenSync";
 import { usePosthogIdentity } from "@app/hooks/usePosthogIdentity";
+import { useAppUsageHeartbeat } from "@app/hooks/useAppUsageHeartbeat";
 import { useRouteStateSync } from "@app/hooks/useRouteStateSync";
 import { useStuckLoadingRecovery } from "@app/hooks/useStuckLoadingRecovery";
 import { AuthGate } from "@app/views/AuthGate";
@@ -161,6 +162,10 @@ export const AppContent: React.FC = () => {
 
   useDesktopMcpTokenSync();
   usePosthogIdentity();
+  useAppUsageHeartbeat({
+    enabled: isAuthenticated && !authLoading && user?.role !== "demo" && user?.isOrgMemberActive !== false,
+    sessionKey: user?.id ?? null,
+  });
 
   const desktopAllowedTiers = ["pro", "enterprise", "admin"] as const;
   const isDesktopPlanBlocked =
@@ -180,6 +185,12 @@ export const AppContent: React.FC = () => {
       navigate("/app/settings?tab=user&subTab=subscription", { replace: true });
     }
   }, [isDesktopPlanBlocked, pathname, search]);
+
+  useEffect(() => {
+    if (!isAuthenticated || pathname !== "/mfa") return;
+    const nextPath = new URLSearchParams(search).get("next") || buildAppUrl(DEFAULT_APP_VIEW);
+    navigate(nextPath.startsWith("/") ? nextPath : buildAppUrl(DEFAULT_APP_VIEW), { replace: true });
+  }, [isAuthenticated, pathname, search]);
 
   const isAppPath = pathname === "/app" || pathname.startsWith("/app/");
   const shouldShowLoader = (authLoading && isAppPath) || (isAuthenticated && state.isDataLoading);
@@ -226,6 +237,16 @@ export const AppContent: React.FC = () => {
         pathname={pathname}
         search={search}
         isDesktop={isDesktop}
+      />
+    );
+  }
+
+  if (pathname === "/mfa") {
+    return (
+      <AppLoadingView
+        authLoading={false}
+        isDataLoading={false}
+        appLoadProgress={{ percent: 100, label: "Přesměrování..." }}
       />
     );
   }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
+  resetUserMfaAdmin,
   userManagementService,
   type UserWithProfile,
 } from "@features/settings/api";
@@ -11,7 +12,7 @@ interface UserManagementProps {
 }
 
 export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
-  const { showAlert } = useUI();
+  const { showAlert, showConfirm } = useUI();
   // Users state
   const [users, setUsers] = useState<UserWithProfile[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
@@ -22,6 +23,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
   const [updatingLoginTypeUserId, setUpdatingLoginTypeUserId] = useState<
     string | null
   >(null);
+  const [resettingMfaUserId, setResettingMfaUserId] = useState<string | null>(null);
 
   // Load data on mount
   useEffect(() => {
@@ -65,6 +67,39 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
       });
     } finally {
       setUpdatingLoginTypeUserId(null);
+    }
+  };
+
+  const handleResetMfa = async (user: UserWithProfile) => {
+    const ok = await showConfirm({
+      title: "Resetovat 2FA?",
+      message: `Resetovat všechny MFA/2FA faktory uživatele ${user.email}? Tato akce vyžaduje vaši admin session na úrovni AAL2 a uživatel se potom bude muset přihlásit znovu.`,
+      variant: "danger",
+      confirmLabel: "Resetovat 2FA",
+      cancelLabel: "Zrušit",
+    });
+    if (!ok) return;
+
+    setResettingMfaUserId(user.user_id);
+    try {
+      const result = await resetUserMfaAdmin({
+        userId: user.user_id,
+        confirmationEmail: user.email,
+      });
+      showAlert({
+        title: "2FA resetováno",
+        message: `Odstraněno faktorů: ${result.deletedFactors}.`,
+        variant: "success",
+      });
+    } catch (error) {
+      console.error("Failed to reset user MFA:", error);
+      showAlert({
+        title: "Reset 2FA selhal",
+        message: String((error as Error)?.message || "Nepodařilo se resetovat 2FA faktory."),
+        variant: "danger",
+      });
+    } finally {
+      setResettingMfaUserId(null);
     }
   };
 
@@ -134,7 +169,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
           </div>
         ) : (
           <div className="table-responsive overflow-x-auto">
-            <table className="w-full min-w-[1120px]">
+            <table className="w-full min-w-[1240px]">
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-700/50">
                   <th className="whitespace-nowrap text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
@@ -155,13 +190,16 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
                   <th className="whitespace-nowrap text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
                     Registrace
                   </th>
+                  <th className="whitespace-nowrap text-left text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider py-3 px-2">
+                    2FA
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {filteredUsers.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={6}
+                      colSpan={7}
                       className="text-center py-8 text-slate-500 italic"
                     >
                       Žádní uživatelé nenalezeni
@@ -237,6 +275,19 @@ export const UserManagement: React.FC<UserManagementProps> = ({ isAdmin }) => {
                             "cs-CZ"
                           )}
                         </span>
+                      </td>
+                      <td className="py-3 px-2">
+                        <button
+                          onClick={() => void handleResetMfa(user)}
+                          disabled={resettingMfaUserId === user.user_id}
+                          className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-xs font-semibold text-amber-700 transition hover:bg-amber-100 disabled:opacity-50 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300"
+                          title="Resetovat MFA/2FA faktory uživatele"
+                        >
+                          <span className={`material-symbols-outlined text-[15px] ${resettingMfaUserId === user.user_id ? "animate-spin" : ""}`}>
+                            {resettingMfaUserId === user.user_id ? "sync" : "lock_reset"}
+                          </span>
+                          Reset 2FA
+                        </button>
                       </td>
                     </tr>
                   ))

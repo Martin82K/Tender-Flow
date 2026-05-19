@@ -150,6 +150,10 @@ class IpcAuthGuard {
     return realRoot;
   }
 
+  getUserGrantedRoots(): string[] {
+    return Array.from(this._userGrantedRoots);
+  }
+
   async ensurePathAllowed(requestedPath: string, mode: PathAccessMode): Promise<string> {
     if (typeof requestedPath !== 'string' || requestedPath.trim().length === 0) {
       throw new Error('Access denied: invalid path');
