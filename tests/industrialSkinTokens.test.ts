@@ -328,7 +328,13 @@ describe("industrial skin tokens", () => {
   it("industrial TODO menu drží vybraný stav i mimo hover", () => {
     expect(tasksPageSource).toContain('data-help-id="tasks-menu-item"');
     expect(tasksPageSource).toContain('data-help-id="todo-project-item"');
+    expect(tasksPageSource).toContain('data-help-id="tasks-mobile-menu-toggle"');
     expect(tasksPageSource).toContain('aria-current={active ? "page" : undefined}');
+    expect(css).toContain("@media (max-width: 767px)");
+    expect(css).toContain('html[data-skin="industrial"] .tf-tasks-view [data-help-id="tasks-menu"]');
+    expect(css).toContain("var(--tf-skin-orange) 10%, var(--tf-skin-surface-muted) 90%");
+    expect(css).toContain("var(--tf-skin-surface-muted) 92%, var(--tf-skin-orange) 8%");
+    expect(css).toContain("var(--tf-skin-orange) 16%, var(--tf-skin-surface-muted) 84%");
     expect(css).toContain('html[data-skin="industrial"] .tf-tasks-view [data-help-id="tasks-menu-item"][data-active="true"]');
     expect(css).toContain('html[data-skin="industrial"] .tf-tasks-view [data-help-id="todo-project-item"][data-active="true"]');
     expect(css).toContain('color: var(--tf-skin-orange-deep) !important');

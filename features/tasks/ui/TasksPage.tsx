@@ -31,7 +31,7 @@ import {
 } from "../hooks/useTaskMutations";
 import { useTasksQuery } from "../hooks/useTasksQuery";
 import { TaskDateTimePicker } from "./TaskDateTimePicker";
-import type { Task, TaskPriority, TodoProject } from "../types";
+import type { Task, TaskCreateInput, TaskPriority, TodoProject } from "../types";
 
 const VIEW_LABELS: Record<TaskViewFilter, { label: string; icon: string; hint: string }> = {
   calendar: { label: "Kalendář", icon: "calendar_month", hint: "Měsíc, týden, 3 dny nebo den" },
@@ -246,24 +246,60 @@ const QUICK_ADD_SELECT_CLASS =
 interface AddSubtaskDialogProps {
   parentTask: Task;
   dialogId: string;
-  title: string;
   error: string | null;
   isPending: boolean;
-  onTitleChange: (value: string) => void;
   onClose: () => void;
-  onSubmit: (event: React.FormEvent) => void;
+  onSubmit: (draft: AddSubtaskDraft) => void;
 }
+
+interface AddSubtaskDraft {
+  title: string;
+  note: string;
+  dueAt: string;
+  reminderAt: string;
+  priority: TaskPriority | "";
+  projectId: string;
+}
+
+const buildSubtaskCreateInput = (
+  parentTask: Task,
+  draft: AddSubtaskDraft,
+  sortOrder: number,
+): TaskCreateInput => {
+  const input: TaskCreateInput = {
+    title: draft.title.trim(),
+    parentTaskId: parentTask.id,
+    sortOrder,
+  };
+  const note = draft.note.trim();
+  const dueAt = datetimeLocalToIso(draft.dueAt);
+  const reminderAt = datetimeLocalToIso(draft.reminderAt);
+
+  if (note) input.note = note;
+  if (dueAt) input.dueAt = dueAt;
+  if (reminderAt) input.reminderAt = reminderAt;
+  if (draft.priority !== "") input.priority = draft.priority;
+  if (parentTask.todoProjectId) input.todoProjectId = parentTask.todoProjectId;
+  if (draft.projectId) input.projectId = draft.projectId;
+
+  return input;
+};
 
 const AddSubtaskDialog: React.FC<AddSubtaskDialogProps> = ({
   parentTask,
   dialogId,
-  title,
   error,
   isPending,
-  onTitleChange,
   onClose,
   onSubmit,
 }) => {
+  const { projects } = useProjectsState();
+  const [title, setTitle] = useState("");
+  const [note, setNote] = useState("");
+  const [dueAt, setDueAt] = useState("");
+  const [reminderAt, setReminderAt] = useState("");
+  const [priority, setPriority] = useState<TaskPriority | "">("");
+  const [projectId, setProjectId] = useState(parentTask.projectId ?? "");
   const inputRef = useRef<HTMLInputElement>(null);
   const onCloseRef = useRef(onClose);
   const titleId = `add-subtask-title-${dialogId}`;
@@ -287,23 +323,42 @@ const AddSubtaskDialog: React.FC<AddSubtaskDialogProps> = ({
     };
   }, []);
 
+  const setQuickDue = (dayOffset: number) => {
+    setDueAt(getLocalDueAt(dayOffset));
+  };
+
+  const setReminderFromDue = (minutesBefore: number) => {
+    setReminderAt(getReminderBefore(dueAt, minutesBefore));
+  };
+
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    onSubmit({
+      title,
+      note,
+      dueAt,
+      reminderAt,
+      priority,
+      projectId,
+    });
+  };
+
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
       data-help-id="task-subtask-create-dialog"
-      className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/45 px-4 py-6 backdrop-blur-sm"
+      className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/20 px-4 py-6"
     >
-      <button
-        type="button"
-        aria-label="Zavřít přidání podúkolu"
+      <div
+        aria-hidden="true"
         className="absolute inset-0 cursor-default"
         onClick={onClose}
       />
       <form
-        onSubmit={onSubmit}
-        className="relative w-full max-w-sm rounded-xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-slate-700 dark:bg-slate-900"
+        onSubmit={handleSubmit}
+        className="tf-modal-panel relative w-full max-w-2xl rounded-xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-slate-700 dark:bg-slate-900"
       >
         <div className="mb-3 flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -332,10 +387,116 @@ const AddSubtaskDialog: React.FC<AddSubtaskDialogProps> = ({
         <input
           ref={inputRef}
           value={title}
-          onChange={(event) => onTitleChange(event.target.value)}
+          onChange={(event) => setTitle(event.target.value)}
           className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
           aria-label="Název podúkolu"
         />
+        <label className="mt-3 mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
+          Popis
+        </label>
+        <textarea
+          value={note}
+          onChange={(event) => setNote(event.target.value)}
+          rows={2}
+          className="w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+          aria-label="Popis podúkolu"
+        />
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <TaskDateTimePicker
+            label="Datum splnění"
+            value={dueAt}
+            onChange={setDueAt}
+            compact
+          />
+          <button
+            type="button"
+            onClick={() => setQuickDue(0)}
+            className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+          >
+            Dnes
+          </button>
+          <button
+            type="button"
+            onClick={() => setQuickDue(1)}
+            className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+          >
+            Zítra
+          </button>
+          <button
+            type="button"
+            onClick={() => setQuickDue(7)}
+            className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+          >
+            Příští týden
+          </button>
+          <label className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+            <span className="material-symbols-outlined text-[16px]" aria-hidden>
+              flag
+            </span>
+            <select
+              value={priority === "" ? "" : String(priority)}
+              onChange={(event) =>
+                setPriority(event.target.value === "" ? "" : (Number(event.target.value) as TaskPriority))
+              }
+              className={QUICK_ADD_SELECT_CLASS}
+              aria-label="Priorita podúkolu"
+            >
+              <option value="">Priorita</option>
+              <option value="1">P1 urgentní</option>
+              <option value="2">P2 vysoká</option>
+              <option value="3">P3 střední</option>
+              <option value="4">P4 nízká</option>
+            </select>
+            <span className="material-symbols-outlined pointer-events-none -ml-5 text-[16px]" aria-hidden>
+              arrow_drop_down
+            </span>
+          </label>
+          <TaskDateTimePicker
+            label="Upozornění"
+            value={reminderAt}
+            onChange={setReminderAt}
+            compact
+          />
+          <button
+            type="button"
+            onClick={() => setReminderFromDue(0)}
+            disabled={!dueAt}
+            className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+          >
+            Upozornit v termínu
+          </button>
+          <button
+            type="button"
+            onClick={() => setReminderFromDue(60)}
+            disabled={!dueAt}
+            className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+          >
+            1 h před
+          </button>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <label className="inline-flex h-8 min-w-0 max-w-full items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-600 sm:max-w-[240px] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+            <span className="material-symbols-outlined text-[16px]" aria-hidden>
+              apartment
+            </span>
+            <select
+              value={projectId}
+              onChange={(event) => setProjectId(event.target.value)}
+              className={`${QUICK_ADD_SELECT_CLASS} w-[180px] max-w-full truncate`}
+              aria-label="Kontext stavby podúkolu"
+            >
+              <option value="">Bez stavby</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+            <span className="material-symbols-outlined pointer-events-none -ml-5 text-[16px]" aria-hidden>
+              arrow_drop_down
+            </span>
+          </label>
+        </div>
         {error && (
           <div className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200">
             {error}
@@ -908,7 +1069,6 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
   } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ task: Task; isSubtask: boolean } | null>(null);
   const [isSubtaskDialogOpen, setIsSubtaskDialogOpen] = useState(false);
-  const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
   const [subtaskError, setSubtaskError] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -975,7 +1135,6 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
 
   const openSubtaskDialog = (event: React.MouseEvent) => {
     event.stopPropagation();
-    setNewSubtaskTitle("");
     setSubtaskError(null);
     setIsSubtaskDialogOpen(true);
   };
@@ -983,28 +1142,19 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
   const closeSubtaskDialog = () => {
     if (createTask.isPending) return;
     setIsSubtaskDialogOpen(false);
-    setNewSubtaskTitle("");
     setSubtaskError(null);
   };
 
-  const handleCreateSubtask = async (event: React.FormEvent) => {
-    event.preventDefault();
-    const value = newSubtaskTitle.trim();
+  const handleCreateSubtask = async (draft: AddSubtaskDraft) => {
+    const value = draft.title.trim();
     if (!value || createTask.isPending) return;
 
     try {
-      await createTask.mutateAsync({
-        title: value,
-        parentTaskId: item.task.id,
-        todoProjectId: item.task.todoProjectId,
-        projectId: item.task.projectId,
-        sortOrder: item.subtasks.length,
-      });
+      await createTask.mutateAsync(buildSubtaskCreateInput(item.task, draft, item.subtasks.length));
       if (hasSubtasks && !expanded) {
         onToggleExpanded(item.task.id);
       }
       setIsSubtaskDialogOpen(false);
-      setNewSubtaskTitle("");
       setSubtaskError(null);
     } catch (error) {
       setSubtaskError(getTaskMutationErrorMessage(error));
@@ -1027,15 +1177,18 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
         data-drop-target={isDropTarget ? "true" : "false"}
         onDragOver={(event) => onDragOver(item.task.id, event)}
         onDrop={(event) => onDrop(item.task.id, event)}
-        onContextMenu={(event) => openContextMenu(event, item.task, false)}
-        onKeyDown={(event) => {
-          if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) {
-            openContextMenu(event, item.task, false);
-          }
-        }}
         className="w-full rounded-xl border border-slate-200 bg-white p-3 text-left shadow-sm transition hover:border-primary/40 hover:bg-slate-50 data-[active=true]:border-primary data-[active=true]:bg-primary/5 data-[dragging=true]:opacity-55 data-[drop-target=true]:border-primary data-[drop-target=true]:bg-primary/10 data-[drop-target=true]:ring-2 data-[drop-target=true]:ring-primary/25 dark:border-slate-800 dark:bg-slate-900/70 dark:hover:bg-slate-900 dark:data-[active=true]:bg-primary/10"
       >
-        <div className="flex items-start gap-2.5">
+        <div
+          data-help-id="tasks-root-row"
+          onContextMenu={(event) => openContextMenu(event, item.task, false)}
+          onKeyDown={(event) => {
+            if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) {
+              openContextMenu(event, item.task, false);
+            }
+          }}
+          className="flex items-start gap-2.5"
+        >
           <button
             type="button"
             draggable
@@ -1093,7 +1246,10 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
             </div>
           </button>
           {hasSubtasks ? (
-            <div className="mt-7 flex shrink-0 items-center gap-0.5">
+            <div
+              data-help-id="tasks-list-item-actions"
+              className="mt-7 flex shrink-0 items-center gap-2.5"
+            >
               <button
                 type="button"
                 onClick={openSubtaskDialog}
@@ -1229,13 +1385,8 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
         <AddSubtaskDialog
           parentTask={item.task}
           dialogId={`list-${item.task.id}`}
-          title={newSubtaskTitle}
           error={subtaskError}
           isPending={createTask.isPending}
-          onTitleChange={(value) => {
-            setNewSubtaskTitle(value);
-            if (subtaskError) setSubtaskError(null);
-          }}
           onClose={closeSubtaskDialog}
           onSubmit={handleCreateSubtask}
         />
@@ -2143,7 +2294,6 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
   const [priority, setPriority] = useState<TaskPriority | "">("");
   const [todoProjectId, setTodoProjectId] = useState("");
   const [projectId, setProjectId] = useState("");
-  const [subtaskTitle, setSubtaskTitle] = useState("");
   const [subtaskError, setSubtaskError] = useState<string | null>(null);
   const [renamingSubtask, setRenamingSubtask] = useState<Record<string, string>>({});
   const [deleteTarget, setDeleteTarget] = useState<{ task: Task; isSubtask: boolean } | null>(null);
@@ -2174,7 +2324,6 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
       setPriority("");
       setTodoProjectId("");
       setProjectId("");
-      setSubtaskTitle("");
       setSubtaskError(null);
       setRenamingSubtask({});
       setIsSubtaskDialogOpen(false);
@@ -2188,7 +2337,6 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
     setPriority(selectedTask.priority ?? "");
     setTodoProjectId(selectedTask.todoProjectId ?? "");
     setProjectId(selectedTask.projectId ?? "");
-    setSubtaskTitle("");
     setSubtaskError(null);
     setRenamingSubtask(Object.fromEntries(item.subtasks.map((task) => [task.id, task.title])));
     setIsSubtaskDialogOpen(false);
@@ -2348,7 +2496,6 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
   };
 
   const openSubtaskDialog = () => {
-    setSubtaskTitle("");
     setSubtaskError(null);
     setIsSubtaskDialogOpen(true);
   };
@@ -2356,25 +2503,16 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
   const closeSubtaskDialog = () => {
     if (createTask.isPending) return;
     setIsSubtaskDialogOpen(false);
-    setSubtaskTitle("");
     setSubtaskError(null);
   };
 
-  const handleCreateSubtask = async (event: React.FormEvent) => {
-    event.preventDefault();
-    const value = subtaskTitle.trim();
+  const handleCreateSubtask = async (draft: AddSubtaskDraft) => {
+    const value = draft.title.trim();
     if (!value || createTask.isPending) return;
 
     try {
-      await createTask.mutateAsync({
-        title: value,
-        parentTaskId: item.task.id,
-        todoProjectId: item.task.todoProjectId,
-        projectId: item.task.projectId,
-        sortOrder: item.subtasks.length,
-      });
+      await createTask.mutateAsync(buildSubtaskCreateInput(item.task, draft, item.subtasks.length));
       setIsSubtaskDialogOpen(false);
-      setSubtaskTitle("");
       setSubtaskError(null);
     } catch (err) {
       setSubtaskError(getTaskMutationErrorMessage(err));
@@ -2404,7 +2542,7 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
         data-mobile-sheet={isMobileSheet ? "true" : "false"}
         className={
           isMobileSheet
-            ? "max-h-[86dvh] min-h-0 overflow-y-auto rounded-t-2xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-slate-800 dark:bg-slate-900"
+            ? "h-[100dvh] max-h-[100dvh] min-h-0 overflow-y-auto rounded-none border-0 bg-white p-4 shadow-none dark:bg-slate-900"
             : "min-h-0 overflow-y-auto rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900/70"
         }
       >
@@ -2726,13 +2864,8 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
         <AddSubtaskDialog
           parentTask={item.task}
           dialogId={`detail-${item.task.id}`}
-          title={subtaskTitle}
           error={subtaskError}
           isPending={createTask.isPending}
-          onTitleChange={(value) => {
-            setSubtaskTitle(value);
-            if (subtaskError) setSubtaskError(null);
-          }}
           onClose={closeSubtaskDialog}
           onSubmit={handleCreateSubtask}
         />
@@ -2996,7 +3129,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
           aria-controls="tasks-menu-panel"
           aria-expanded={isMobileMenuOpen}
           onClick={() => setIsMobileMenuOpen((open) => !open)}
-          className="flex min-w-0 items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left shadow-sm dark:border-slate-800 dark:bg-slate-900/70 lg:hidden"
+          className="flex min-w-0 self-start items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left shadow-sm dark:border-slate-800 dark:bg-slate-900/70 lg:hidden"
         >
           <span className="material-symbols-outlined text-[20px] text-primary" aria-hidden>
             tune
@@ -3017,7 +3150,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
           id="tasks-menu-panel"
           data-help-id="tasks-menu"
           data-mobile-open={isMobileMenuOpen ? "true" : "false"}
-          className={`${isMobileMenuOpen ? "block" : "hidden"} max-h-[min(42dvh,360px)] min-h-0 space-y-1 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 lg:block lg:max-h-none lg:overflow-visible`}
+          className={`${isMobileMenuOpen ? "block" : "hidden"} max-h-[min(42dvh,360px)] min-h-0 self-start space-y-1 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 lg:block lg:max-h-none lg:self-stretch lg:overflow-visible`}
         >
           {VIEW_ORDER.map((item) => {
             const meta = VIEW_LABELS[item];
@@ -3154,10 +3287,10 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
           aria-modal="true"
           aria-label={selectedSelection?.isSubtask ? "Detail podúkolu" : "Detail úkolu"}
           data-help-id="tasks-mobile-detail-sheet"
-          className="fixed inset-0 z-[70] flex items-end bg-slate-950/45 px-0 pt-10 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-[70] bg-slate-950/45 lg:hidden"
         >
           <div className="absolute inset-0" aria-hidden />
-          <div className="relative w-full">
+          <div className="relative h-full w-full">
             <TaskDetail
               item={selectedSelection?.item}
               selectedTask={selectedSelection?.task}
