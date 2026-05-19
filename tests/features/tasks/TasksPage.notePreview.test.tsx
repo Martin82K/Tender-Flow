@@ -298,6 +298,41 @@ describe("TasksPage note preview", () => {
     expect(screen.queryByRole("dialog", { name: "Přidat podúkol" })).not.toBeInTheDocument();
   });
 
+  it("otevře přidání podúkolu z detailu jako modal místo inline formuláře", async () => {
+    taskState.tasks = [
+      makeTask({
+        id: "root",
+        title: "Bazén Aš - tepelná izolace",
+      }),
+    ];
+    taskState.createTask.mockResolvedValue(makeTask({ id: "new-subtask" }));
+
+    render(<TasksPage />);
+
+    expect(screen.queryByRole("textbox", { name: "Nový podúkol" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Přidat podúkol" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Přidat podúkol" });
+    expect(dialog).toHaveTextContent("Pod úkol: Bazén Aš - tepelná izolace");
+
+    fireEvent.change(within(dialog).getByRole("textbox", { name: "Název podúkolu" }), {
+      target: { value: "  Doptat výkaz izolací  " },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Přidat podúkol" }));
+
+    await waitFor(() => {
+      expect(taskState.createTask).toHaveBeenCalledWith({
+        title: "Doptat výkaz izolací",
+        parentTaskId: "root",
+        todoProjectId: undefined,
+        projectId: undefined,
+        sortOrder: 0,
+      });
+    });
+    expect(screen.queryByRole("dialog", { name: "Přidat podúkol" })).not.toBeInTheDocument();
+  });
+
   it("otevře detail podúkolu dvojklikem na řádek podúkolu", () => {
     taskState.tasks = [
       makeTask({ id: "root", title: "Poptávky" }),

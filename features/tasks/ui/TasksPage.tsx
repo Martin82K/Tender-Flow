@@ -243,6 +243,117 @@ const TASK_MENU_PROJECT_BASE =
 const QUICK_ADD_SELECT_CLASS =
   "tf-quick-add-select min-w-0 appearance-none border-0 bg-transparent py-0 pr-5 text-xs font-medium text-slate-700 outline-none ring-0 focus:ring-0 dark:text-slate-200";
 
+interface AddSubtaskDialogProps {
+  parentTask: Task;
+  dialogId: string;
+  title: string;
+  error: string | null;
+  isPending: boolean;
+  onTitleChange: (value: string) => void;
+  onClose: () => void;
+  onSubmit: (event: React.FormEvent) => void;
+}
+
+const AddSubtaskDialog: React.FC<AddSubtaskDialogProps> = ({
+  parentTask,
+  dialogId,
+  title,
+  error,
+  isPending,
+  onTitleChange,
+  onClose,
+  onSubmit,
+}) => {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const onCloseRef = useRef(onClose);
+  const titleId = `add-subtask-title-${dialogId}`;
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    const focusTimer = window.setTimeout(() => inputRef.current?.focus(), 0);
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onCloseRef.current();
+      }
+    };
+
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, []);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+      data-help-id="task-subtask-create-dialog"
+      className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/45 px-4 py-6 backdrop-blur-sm"
+    >
+      <button
+        type="button"
+        aria-label="Zavřít přidání podúkolu"
+        className="absolute inset-0 cursor-default"
+        onClick={onClose}
+      />
+      <form
+        onSubmit={onSubmit}
+        className="relative w-full max-w-sm rounded-xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-slate-700 dark:bg-slate-900"
+      >
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 id={titleId} className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+              Přidat podúkol
+            </h3>
+            <p className="mt-1 truncate text-xs text-slate-500">
+              Pod úkol: {parentTask.title}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+            aria-label="Zavřít přidání podúkolu"
+          >
+            <span className="material-symbols-outlined text-[18px]" aria-hidden>
+              close
+            </span>
+          </button>
+        </div>
+
+        <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
+          Název podúkolu
+        </label>
+        <input
+          ref={inputRef}
+          value={title}
+          onChange={(event) => onTitleChange(event.target.value)}
+          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+          aria-label="Název podúkolu"
+        />
+        {error && (
+          <div className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200">
+            {error}
+          </div>
+        )}
+        <div className="mt-4 flex justify-end gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={onClose}>
+            Zrušit
+          </Button>
+          <Button type="submit" size="sm" disabled={!title.trim()} isLoading={isPending}>
+            Přidat podúkol
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
 const getDueTone = (value?: string): MetaBadgeTone => {
   if (!value) return "due-none";
   const due = new Date(value);
@@ -800,7 +911,6 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
   const [subtaskError, setSubtaskError] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const subtaskInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!menuState) return;
@@ -824,25 +934,6 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
       window.removeEventListener("scroll", handleScroll, true);
     };
   }, [menuState]);
-
-  useEffect(() => {
-    if (!isSubtaskDialogOpen) return undefined;
-
-    const focusTimer = window.setTimeout(() => subtaskInputRef.current?.focus(), 0);
-    const handleKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setIsSubtaskDialogOpen(false);
-        setNewSubtaskTitle("");
-        setSubtaskError(null);
-      }
-    };
-
-    document.addEventListener("keydown", handleKey);
-    return () => {
-      window.clearTimeout(focusTimer);
-      document.removeEventListener("keydown", handleKey);
-    };
-  }, [isSubtaskDialogOpen]);
 
   const openContextMenu = (
     event: React.MouseEvent | React.KeyboardEvent,
@@ -1135,75 +1226,19 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
       )}
 
       {isSubtaskDialogOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby={`add-subtask-title-${item.task.id}`}
-          data-help-id="task-subtask-create-dialog"
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/45 px-4 py-6 backdrop-blur-sm"
-        >
-          <button
-            type="button"
-            aria-label="Zavřít přidání podúkolu"
-            className="absolute inset-0 cursor-default"
-            onClick={closeSubtaskDialog}
-          />
-          <form
-            onSubmit={handleCreateSubtask}
-            className="relative w-full max-w-sm rounded-xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-slate-700 dark:bg-slate-900"
-          >
-            <div className="mb-3 flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h3
-                  id={`add-subtask-title-${item.task.id}`}
-                  className="text-sm font-semibold text-slate-900 dark:text-slate-100"
-                >
-                  Přidat podúkol
-                </h3>
-                <p className="mt-1 truncate text-xs text-slate-500">
-                  Pod úkol: {item.task.title}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={closeSubtaskDialog}
-                className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-slate-100"
-                aria-label="Zavřít přidání podúkolu"
-              >
-                <span className="material-symbols-outlined text-[18px]" aria-hidden>
-                  close
-                </span>
-              </button>
-            </div>
-
-            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
-              Název podúkolu
-            </label>
-            <input
-              ref={subtaskInputRef}
-              value={newSubtaskTitle}
-              onChange={(event) => {
-                setNewSubtaskTitle(event.target.value);
-                if (subtaskError) setSubtaskError(null);
-              }}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-              aria-label="Název podúkolu"
-            />
-            {subtaskError && (
-              <div className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200">
-                {subtaskError}
-              </div>
-            )}
-            <div className="mt-4 flex justify-end gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={closeSubtaskDialog}>
-                Zrušit
-              </Button>
-              <Button type="submit" size="sm" disabled={!newSubtaskTitle.trim()} isLoading={createTask.isPending}>
-                Přidat podúkol
-              </Button>
-            </div>
-          </form>
-        </div>
+        <AddSubtaskDialog
+          parentTask={item.task}
+          dialogId={`list-${item.task.id}`}
+          title={newSubtaskTitle}
+          error={subtaskError}
+          isPending={createTask.isPending}
+          onTitleChange={(value) => {
+            setNewSubtaskTitle(value);
+            if (subtaskError) setSubtaskError(null);
+          }}
+          onClose={closeSubtaskDialog}
+          onSubmit={handleCreateSubtask}
+        />
       )}
 
       <ConfirmationModal
@@ -2109,8 +2144,10 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
   const [todoProjectId, setTodoProjectId] = useState("");
   const [projectId, setProjectId] = useState("");
   const [subtaskTitle, setSubtaskTitle] = useState("");
+  const [subtaskError, setSubtaskError] = useState<string | null>(null);
   const [renamingSubtask, setRenamingSubtask] = useState<Record<string, string>>({});
   const [deleteTarget, setDeleteTarget] = useState<{ task: Task; isSubtask: boolean } | null>(null);
+  const [isSubtaskDialogOpen, setIsSubtaskDialogOpen] = useState(false);
   const [isCloseConfirmOpen, setIsCloseConfirmOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -2138,7 +2175,9 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
       setTodoProjectId("");
       setProjectId("");
       setSubtaskTitle("");
+      setSubtaskError(null);
       setRenamingSubtask({});
+      setIsSubtaskDialogOpen(false);
       return;
     }
 
@@ -2150,7 +2189,9 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
     setTodoProjectId(selectedTask.todoProjectId ?? "");
     setProjectId(selectedTask.projectId ?? "");
     setSubtaskTitle("");
+    setSubtaskError(null);
     setRenamingSubtask(Object.fromEntries(item.subtasks.map((task) => [task.id, task.title])));
+    setIsSubtaskDialogOpen(false);
     setIsCloseConfirmOpen(false);
   }, [item, selectedTask]);
 
@@ -2306,19 +2347,38 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
     setReminderAt(getReminderBefore(dueAt, minutesBefore));
   };
 
-  const handleAddSubtask = async (event: React.FormEvent) => {
+  const openSubtaskDialog = () => {
+    setSubtaskTitle("");
+    setSubtaskError(null);
+    setIsSubtaskDialogOpen(true);
+  };
+
+  const closeSubtaskDialog = () => {
+    if (createTask.isPending) return;
+    setIsSubtaskDialogOpen(false);
+    setSubtaskTitle("");
+    setSubtaskError(null);
+  };
+
+  const handleCreateSubtask = async (event: React.FormEvent) => {
     event.preventDefault();
     const value = subtaskTitle.trim();
-    if (!value) return;
+    if (!value || createTask.isPending) return;
 
-    await createTask.mutateAsync({
-      title: value,
-      parentTaskId: item.task.id,
-      todoProjectId: item.task.todoProjectId,
-      projectId: item.task.projectId,
-      sortOrder: item.subtasks.length,
-    });
-    setSubtaskTitle("");
+    try {
+      await createTask.mutateAsync({
+        title: value,
+        parentTaskId: item.task.id,
+        todoProjectId: item.task.todoProjectId,
+        projectId: item.task.projectId,
+        sortOrder: item.subtasks.length,
+      });
+      setIsSubtaskDialogOpen(false);
+      setSubtaskTitle("");
+      setSubtaskError(null);
+    } catch (err) {
+      setSubtaskError(getTaskMutationErrorMessage(err));
+    }
   };
 
   const handleRenameSubtask = async (subtask: Task) => {
@@ -2559,23 +2619,15 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
         <div className="mt-6 border-t border-slate-200 pt-4 dark:border-slate-800">
           <div className="mb-3 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Podúkoly</h3>
-            <span className="text-xs text-slate-500">
-              {getSubtaskProgress(item.subtasks).done}/{item.subtasks.length}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500">
+                {getSubtaskProgress(item.subtasks).done}/{item.subtasks.length}
+              </span>
+              <Button type="button" size="sm" onClick={openSubtaskDialog}>
+                Přidat podúkol
+              </Button>
+            </div>
           </div>
-
-          <form onSubmit={handleAddSubtask} className="mb-3 flex gap-2">
-            <input
-              value={subtaskTitle}
-              onChange={(event) => setSubtaskTitle(event.target.value)}
-              placeholder="Přidat podúkol..."
-              className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-              aria-label="Nový podúkol"
-            />
-            <Button type="submit" size="sm" disabled={!subtaskTitle.trim()} isLoading={createTask.isPending}>
-              Přidat
-            </Button>
-          </form>
 
           <div className="space-y-2">
             {item.subtasks.length === 0 ? (
@@ -2669,6 +2721,22 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
         onCancel={() => setDeleteTarget(null)}
         variant="danger"
       />
+
+      {isSubtaskDialogOpen && (
+        <AddSubtaskDialog
+          parentTask={item.task}
+          dialogId={`detail-${item.task.id}`}
+          title={subtaskTitle}
+          error={subtaskError}
+          isPending={createTask.isPending}
+          onTitleChange={(value) => {
+            setSubtaskTitle(value);
+            if (subtaskError) setSubtaskError(null);
+          }}
+          onClose={closeSubtaskDialog}
+          onSubmit={handleCreateSubtask}
+        />
+      )}
 
       {isCloseConfirmOpen && (
         <div
