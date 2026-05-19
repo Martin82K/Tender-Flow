@@ -720,14 +720,14 @@ export const QuickAdd: React.FC<QuickAddProps> = ({
       </div>
 
       <div className="flex flex-wrap items-center gap-2 border-t border-slate-200 p-3 dark:border-slate-800">
-        <label className="inline-flex min-w-0 flex-1 items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+        <label className="inline-flex h-8 min-w-0 max-w-full items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-600 sm:max-w-[240px] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
           <span className="material-symbols-outlined text-[16px]" aria-hidden>
             apartment
           </span>
           <select
             value={projectId}
             onChange={(event) => setProjectId(event.target.value)}
-            className={`${QUICK_ADD_SELECT_CLASS} max-w-[260px]`}
+            className={`${QUICK_ADD_SELECT_CLASS} w-[180px] max-w-full truncate`}
             aria-label="Kontext stavby"
           >
             <option value="">Bez stavby</option>
@@ -865,6 +865,12 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
   const requestDelete = () => {
     if (!menuState) return;
     setDeleteTarget({ task: menuState.task, isSubtask: menuState.isSubtask });
+    setMenuState(null);
+  };
+
+  const openDetailFromContextMenu = () => {
+    if (!menuState) return;
+    onSelect(menuState.task.id);
     setMenuState(null);
   };
 
@@ -1038,6 +1044,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
               <div
                 key={subtask.id}
                 data-active={selectedTaskId === subtask.id ? "true" : "false"}
+                onDoubleClick={() => onSelect(subtask.id)}
                 onContextMenu={(event) => openContextMenu(event, subtask, true)}
                 onKeyDown={(event) => {
                   if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) {
@@ -1101,6 +1108,17 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
           className="fixed z-[80] w-[180px] overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-2xl shadow-slate-900/15 dark:border-slate-700 dark:bg-slate-900 dark:shadow-black/40"
           style={{ left: menuLeft, top: menuTop }}
         >
+          <button
+            type="button"
+            role="menuitem"
+            onClick={openDetailFromContextMenu}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            <span className="material-symbols-outlined text-[18px]" aria-hidden>
+              edit_note
+            </span>
+            {menuState.isSubtask ? "Otevřít detail podúkolu" : "Otevřít detail úkolu"}
+          </button>
           <button
             type="button"
             role="menuitem"
@@ -2064,7 +2082,7 @@ interface TaskDetailProps {
   isMobileSheet?: boolean;
   onSelectTask: (taskId: string) => void;
   onDeleted: () => void;
-  onCloseMobileDetail?: () => void;
+  onCloseDetail?: () => void;
 }
 
 const TaskDetail: React.FC<TaskDetailProps> = ({
@@ -2076,7 +2094,7 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
   isMobileSheet = false,
   onSelectTask,
   onDeleted,
-  onCloseMobileDetail,
+  onCloseDetail,
 }) => {
   const { projects } = useProjectsState();
   const updateTask = useUpdateTaskMutation();
@@ -2093,7 +2111,21 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
   const [subtaskTitle, setSubtaskTitle] = useState("");
   const [renamingSubtask, setRenamingSubtask] = useState<Record<string, string>>({});
   const [deleteTarget, setDeleteTarget] = useState<{ task: Task; isSubtask: boolean } | null>(null);
+  const [isCloseConfirmOpen, setIsCloseConfirmOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const hasUnsavedChanges = Boolean(
+    selectedTask &&
+      (
+        title !== selectedTask.title ||
+        note !== (selectedTask.note ?? "") ||
+        dueAt !== toDatetimeLocal(selectedTask.dueAt) ||
+        reminderAt !== toDatetimeLocal(selectedTask.reminderAt) ||
+        priority !== (selectedTask.priority ?? "") ||
+        todoProjectId !== (selectedTask.todoProjectId ?? "") ||
+        projectId !== (selectedTask.projectId ?? "")
+      ),
+  );
 
   useEffect(() => {
     setError(null);
@@ -2119,7 +2151,25 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
     setProjectId(selectedTask.projectId ?? "");
     setSubtaskTitle("");
     setRenamingSubtask(Object.fromEntries(item.subtasks.map((task) => [task.id, task.title])));
+    setIsCloseConfirmOpen(false);
   }, [item, selectedTask]);
+
+  useEffect(() => {
+    if (!onCloseDetail || !selectedTask) return undefined;
+
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || deleteTarget || isCloseConfirmOpen) return;
+      event.preventDefault();
+      if (hasUnsavedChanges) {
+        setIsCloseConfirmOpen(true);
+        return;
+      }
+      onCloseDetail();
+    };
+
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [deleteTarget, hasUnsavedChanges, isCloseConfirmOpen, onCloseDetail, selectedTask]);
 
   if (!item || !selectedTask) {
     if (isMobileSheet) {
@@ -2175,12 +2225,20 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
 
   const isSaving = updateTask.isPending || deleteTask.isPending || createTask.isPending;
 
-  const handleSave = async (event: React.FormEvent) => {
-    event.preventDefault();
+  const requestCloseDetail = () => {
+    if (!onCloseDetail || isSaving) return;
+    if (hasUnsavedChanges) {
+      setIsCloseConfirmOpen(true);
+      return;
+    }
+    onCloseDetail();
+  };
+
+  const saveTaskChanges = async (): Promise<boolean> => {
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
       setError("Název úkolu je povinný.");
-      return;
+      return false;
     }
 
     const reminderChanged = reminderAt !== toDatetimeLocal(selectedTask.reminderAt);
@@ -2199,9 +2257,31 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
         },
       });
       setError(null);
+      return true;
     } catch (err) {
       setError(getTaskMutationErrorMessage(err));
+      return false;
     }
+  };
+
+  const handleSave = async (event: React.FormEvent) => {
+    event.preventDefault();
+    await saveTaskChanges();
+  };
+
+  const handleSaveAndClose = async () => {
+    const saved = await saveTaskChanges();
+    if (!saved) {
+      setIsCloseConfirmOpen(false);
+      return;
+    }
+    setIsCloseConfirmOpen(false);
+    onCloseDetail?.();
+  };
+
+  const handleDiscardAndClose = () => {
+    setIsCloseConfirmOpen(false);
+    onCloseDetail?.();
   };
 
   const requestDelete = (task: Task, taskIsSubtask: boolean) => {
@@ -2268,11 +2348,11 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
             : "min-h-0 overflow-y-auto rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900/70"
         }
       >
-        {onCloseMobileDetail && (
+        {onCloseDetail && (
           <button
             type="button"
             data-help-id="tasks-mobile-detail-close"
-            onClick={onCloseMobileDetail}
+            onClick={requestCloseDetail}
             className="mb-3 inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 lg:hidden"
           >
             <span className="material-symbols-outlined text-[18px]" aria-hidden>
@@ -2589,6 +2669,36 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
         onCancel={() => setDeleteTarget(null)}
         variant="danger"
       />
+
+      {isCloseConfirmOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Neuložené změny"
+          data-help-id="tasks-detail-unsaved-dialog"
+          className="fixed inset-0 z-[95] flex items-center justify-center bg-slate-950/45 px-4 py-6 backdrop-blur-sm"
+        >
+          <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-4 text-left shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+            <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+              Neuložené změny
+            </h3>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+              Detail obsahuje změny. Chcete je před zavřením uložit, nebo je zahodit?
+            </p>
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
+              <Button type="button" variant="secondary" size="sm" onClick={() => setIsCloseConfirmOpen(false)}>
+                Pokračovat v editaci
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={handleDiscardAndClose}>
+                Zahodit změny
+              </Button>
+              <Button type="button" size="sm" onClick={handleSaveAndClose} isLoading={updateTask.isPending}>
+                Uložit změny
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
@@ -2608,6 +2718,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
   const [dropTargetTaskId, setDropTargetTaskId] = useState<string | null>(null);
   const [calendarMode, setCalendarMode] = useState<TodoCalendarMode>("week");
   const [calendarCursorDate, setCalendarCursorDate] = useState(() => new Date());
+  const [isDetailAutoSelectPaused, setIsDetailAutoSelectPaused] = useState(false);
   const isMobileLayout = useIsTasksMobileLayout();
   const tasksQuery = useTasksQuery({ includeArchived: true });
   const todoProjectsQuery = useTaskProjectsQuery();
@@ -2643,6 +2754,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
   useEffect(() => {
     if (visibleTree.length === 0) {
       setSelectedTaskId(null);
+      setIsDetailAutoSelectPaused(false);
       return;
     }
     if (isMobileLayout) {
@@ -2652,9 +2764,10 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
       return;
     }
     if (!selectedTaskId || !findTaskSelection(visibleTree, selectedTaskId)) {
+      if (!selectedTaskId && isDetailAutoSelectPaused) return;
       setSelectedTaskId(visibleTree[0].task.id);
     }
-  }, [isMobileLayout, selectedTaskId, visibleTree]);
+  }, [isDetailAutoSelectPaused, isMobileLayout, selectedTaskId, visibleTree]);
 
   const selectedSelection = findTaskSelection(visibleTree, selectedTaskId);
   const activeRootCount = taskTree.filter(({ task }) => !task.archivedAt).length;
@@ -2690,6 +2803,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
   const handleSelectView = (item: TaskViewFilter) => {
     setSelectedTodoProjectId(null);
     setView(item);
+    setIsDetailAutoSelectPaused(false);
     if (isMobileLayout) {
       setSelectedTaskId(null);
       collapseMobileWorkspaces();
@@ -2699,12 +2813,19 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
   const handleSelectTodoProject = (projectId: string) => {
     setSelectedTodoProjectId(projectId);
     setSelectedTaskId(null);
+    setIsDetailAutoSelectPaused(false);
     collapseMobileWorkspaces();
   };
 
   const handleSelectTask = (taskId: string) => {
     setSelectedTaskId(taskId);
+    setIsDetailAutoSelectPaused(false);
     collapseMobileWorkspaces();
+  };
+
+  const handleCloseDetail = () => {
+    setSelectedTaskId(null);
+    setIsDetailAutoSelectPaused(true);
   };
 
   const toggleTaskExpanded = (taskId: string) => {
@@ -2955,6 +3076,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
             isComposerActive={canAddTask && isQuickAddExpanded}
             onSelectTask={handleSelectTask}
             onDeleted={() => setSelectedTaskId(selectedSelection?.isSubtask ? selectedSelection.item.task.id : null)}
+            onCloseDetail={handleCloseDetail}
           />
         )}
       </main>
@@ -2966,12 +3088,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
           data-help-id="tasks-mobile-detail-sheet"
           className="fixed inset-0 z-[70] flex items-end bg-slate-950/45 px-0 pt-10 backdrop-blur-sm lg:hidden"
         >
-          <button
-            type="button"
-            aria-label="Zavřít detail úkolu"
-            className="absolute inset-0 cursor-default"
-            onClick={() => setSelectedTaskId(null)}
-          />
+          <div className="absolute inset-0" aria-hidden />
           <div className="relative w-full">
             <TaskDetail
               item={selectedSelection?.item}
@@ -2981,7 +3098,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
               isMobileSheet
               onSelectTask={handleSelectTask}
               onDeleted={() => setSelectedTaskId(selectedSelection?.isSubtask ? selectedSelection.item.task.id : null)}
-              onCloseMobileDetail={() => setSelectedTaskId(null)}
+              onCloseDetail={handleCloseDetail}
             />
           </div>
         </div>
