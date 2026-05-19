@@ -562,14 +562,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             : "max-md:opacity-100"
         }`}
       >
-        {/* Mobile Overlay */}
-        {isOpen && (
-          <div
-            className="fixed inset-0 bg-black/50 z-[-1] md:hidden"
-            onClick={onToggle}
-          />
-        )}
-
         {/* Sidebar Content is moved into a wrapper to avoid layout jump during transition */}
         <div
           className={`flex flex-col h-full w-full min-w-[200px] ${
