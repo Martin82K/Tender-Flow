@@ -246,6 +246,58 @@ describe("TasksPage note preview", () => {
     });
   });
 
+  it("umožní přidat podúkol přímo z řádku hlavního úkolu", async () => {
+    taskState.todoProjects = [
+      {
+        id: "todo-loket",
+        name: "LOKET",
+        sortOrder: 0,
+        createdBy: "user-1",
+        createdAt: "2026-05-17T10:00:00Z",
+        updatedAt: "2026-05-17T10:00:00Z",
+      },
+    ];
+    taskState.tasks = [
+      makeTask({
+        id: "root",
+        title: "Midas - CN svodidla",
+        todoProjectId: "todo-loket",
+        projectId: "project-loket",
+      }),
+      makeTask({
+        id: "existing-subtask",
+        title: "Prověřit termín",
+        parentTaskId: "root",
+        sortOrder: 0,
+      }),
+    ];
+    taskState.createTask.mockResolvedValue(makeTask({ id: "new-subtask" }));
+
+    render(<TasksPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: /LOKET/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Přidat podúkol k úkolu Midas - CN svodidla" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Přidat podúkol" });
+    expect(dialog).toBeInTheDocument();
+
+    fireEvent.change(within(dialog).getByRole("textbox", { name: "Název podúkolu" }), {
+      target: { value: "  Ověřit výkazy u dodavatele  " },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Přidat podúkol" }));
+
+    await waitFor(() => {
+      expect(taskState.createTask).toHaveBeenCalledWith({
+        title: "Ověřit výkazy u dodavatele",
+        parentTaskId: "root",
+        todoProjectId: "todo-loket",
+        projectId: "project-loket",
+        sortOrder: 1,
+      });
+    });
+    expect(screen.queryByRole("dialog", { name: "Přidat podúkol" })).not.toBeInTheDocument();
+  });
+
   it("označí aktuální systémový pohled a vyplní jeho ikonu", () => {
     const { container } = render(<TasksPage />);
     const menu = container.querySelector('[data-help-id="tasks-menu"]');
@@ -320,6 +372,9 @@ describe("TasksPage note preview", () => {
     };
 
     expect(targetRow).not.toBeNull();
+    expect(targetRow).not.toHaveAttribute("title");
+    expect(dragHandle).toHaveClass("size-4");
+    expect(dragHandle).not.toHaveAttribute("title");
 
     fireEvent.dragStart(dragHandle, { dataTransfer });
     fireEvent.dragOver(targetRow as HTMLElement, { dataTransfer });
@@ -388,7 +443,7 @@ describe("TasksPage note preview", () => {
     expect(within(emptyState as HTMLElement).getByText("Vyberte úkol ze seznamu nebo vytvořte nový.")).toBeInTheDocument();
   });
 
-  it("na mobilu neskládá horní menu, seznam a detail úkolu do jednoho stísněného pohledu", () => {
+  it("na mobilu drží menu kompaktní a detail úkolu otevírá jako spodní sheet", () => {
     setViewportWidth(390);
     taskState.tasks = [
       makeTask({
@@ -402,25 +457,31 @@ describe("TasksPage note preview", () => {
     const { container } = render(<TasksPage />);
     const menu = container.querySelector('[data-help-id="tasks-menu"]');
     const list = container.querySelector('[data-help-id="tasks-list"]');
+    const menuToggle = container.querySelector('[data-help-id="tasks-mobile-menu-toggle"]');
 
     expect(menu).not.toBeNull();
     expect(list).not.toBeNull();
+    expect(menuToggle).not.toBeNull();
     expect(screen.queryByDisplayValue("Boučí")).not.toBeInTheDocument();
-    expect(menu).toHaveAttribute("data-mobile-open", "true");
+    expect(menu).toHaveAttribute("data-mobile-open", "false");
 
+    fireEvent.click(menuToggle as HTMLElement);
     fireEvent.click(within(menu as HTMLElement).getByRole("button", { name: /Nadcházející/i }));
 
     expect(menu).toHaveAttribute("data-mobile-open", "false");
     expect(list).toHaveAttribute("data-mobile-hidden", "false");
     fireEvent.click(screen.getByRole("button", { name: /Boučí/i }));
 
-    expect(list).toHaveAttribute("data-mobile-hidden", "true");
-    expect(screen.getByRole("button", { name: "Seznam" })).toBeInTheDocument();
+    expect(list).toHaveAttribute("data-mobile-hidden", "false");
+    expect(list).toHaveAttribute("data-mobile-detail-open", "true");
+    expect(screen.getByRole("dialog", { name: "Detail úkolu" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Zavřít detail" })).toBeInTheDocument();
     expect(screen.getByDisplayValue("Boučí")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Seznam" }));
+    fireEvent.click(screen.getByRole("button", { name: "Zavřít detail" }));
 
     expect(list).toHaveAttribute("data-mobile-hidden", "false");
+    expect(list).toHaveAttribute("data-mobile-detail-open", "false");
     expect(screen.queryByDisplayValue("Boučí")).not.toBeInTheDocument();
   });
 

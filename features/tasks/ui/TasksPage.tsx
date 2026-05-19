@@ -786,6 +786,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
 }) => {
   const toggleTask = useToggleTaskMutation();
   const deleteTask = useDeleteTaskMutation();
+  const createTask = useCreateTaskMutation();
   const progress = getSubtaskProgress(item.subtasks);
   const archivedLabel = formatArchivedAt(item.task.archivedAt);
   const hasSubtasks = item.subtasks.length > 0;
@@ -795,7 +796,11 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
     position: { x: number; y: number };
   } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ task: Task; isSubtask: boolean } | null>(null);
+  const [isSubtaskDialogOpen, setIsSubtaskDialogOpen] = useState(false);
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
+  const [subtaskError, setSubtaskError] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const subtaskInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!menuState) return;
@@ -819,6 +824,25 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
       window.removeEventListener("scroll", handleScroll, true);
     };
   }, [menuState]);
+
+  useEffect(() => {
+    if (!isSubtaskDialogOpen) return undefined;
+
+    const focusTimer = window.setTimeout(() => subtaskInputRef.current?.focus(), 0);
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsSubtaskDialogOpen(false);
+        setNewSubtaskTitle("");
+        setSubtaskError(null);
+      }
+    };
+
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [isSubtaskDialogOpen]);
 
   const openContextMenu = (
     event: React.MouseEvent | React.KeyboardEvent,
@@ -852,6 +876,44 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
     setDeleteTarget(null);
   };
 
+  const openSubtaskDialog = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    setNewSubtaskTitle("");
+    setSubtaskError(null);
+    setIsSubtaskDialogOpen(true);
+  };
+
+  const closeSubtaskDialog = () => {
+    if (createTask.isPending) return;
+    setIsSubtaskDialogOpen(false);
+    setNewSubtaskTitle("");
+    setSubtaskError(null);
+  };
+
+  const handleCreateSubtask = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const value = newSubtaskTitle.trim();
+    if (!value || createTask.isPending) return;
+
+    try {
+      await createTask.mutateAsync({
+        title: value,
+        parentTaskId: item.task.id,
+        todoProjectId: item.task.todoProjectId,
+        projectId: item.task.projectId,
+        sortOrder: item.subtasks.length,
+      });
+      if (hasSubtasks && !expanded) {
+        onToggleExpanded(item.task.id);
+      }
+      setIsSubtaskDialogOpen(false);
+      setNewSubtaskTitle("");
+      setSubtaskError(null);
+    } catch (error) {
+      setSubtaskError(getTaskMutationErrorMessage(error));
+    }
+  };
+
   const menuLeft = menuState
     ? Math.max(8, Math.min(menuState.position.x, (typeof window === "undefined" ? 240 : window.innerWidth) - 188))
     : 0;
@@ -875,19 +937,17 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
           }
         }}
         className="w-full rounded-xl border border-slate-200 bg-white p-3 text-left shadow-sm transition hover:border-primary/40 hover:bg-slate-50 data-[active=true]:border-primary data-[active=true]:bg-primary/5 data-[dragging=true]:opacity-55 data-[drop-target=true]:border-primary data-[drop-target=true]:bg-primary/10 data-[drop-target=true]:ring-2 data-[drop-target=true]:ring-primary/25 dark:border-slate-800 dark:bg-slate-900/70 dark:hover:bg-slate-900 dark:data-[active=true]:bg-primary/10"
-        title="Pravým tlačítkem otevřete akce úkolu"
       >
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-2.5">
           <button
             type="button"
             draggable
             onDragStart={(event) => onDragStart(item.task.id, event)}
             onDragEnd={onDragEnd}
-            className="mt-0.5 inline-flex size-5 shrink-0 cursor-grab items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 active:cursor-grabbing dark:hover:bg-slate-800 dark:hover:text-slate-200"
+            className="mt-1 inline-flex size-4 shrink-0 cursor-grab items-center justify-center rounded text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 active:cursor-grabbing dark:hover:bg-slate-800 dark:hover:text-slate-200"
             aria-label={`Přesunout úkol ${item.task.title}`}
-            title="Přetáhnout úkol"
           >
-            <span className="material-symbols-outlined text-[18px]" aria-hidden>
+            <span className="material-symbols-outlined text-[12px]" aria-hidden>
               drag_indicator
             </span>
           </button>
@@ -936,21 +996,40 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
             </div>
           </button>
           {hasSubtasks ? (
+            <div className="mt-7 flex shrink-0 items-center gap-0.5">
+              <button
+                type="button"
+                onClick={openSubtaskDialog}
+                className="inline-flex size-5 items-center justify-center rounded text-slate-500 transition hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/15"
+                aria-label={`Přidat podúkol k úkolu ${item.task.title}`}
+              >
+                <span className="material-symbols-outlined text-[13px]" aria-hidden>
+                  add_task
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onToggleExpanded(item.task.id)}
+                className="inline-flex size-5 items-center justify-center rounded text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+                aria-expanded={expanded}
+                aria-label={expanded ? "Sbalit podúkoly" : "Rozbalit podúkoly"}
+              >
+                <span className={`material-symbols-outlined text-[14px] transition-transform ${expanded ? "rotate-180" : ""}`} aria-hidden>
+                  expand_more
+                </span>
+              </button>
+            </div>
+          ) : (
             <button
               type="button"
-              onClick={() => onToggleExpanded(item.task.id)}
-              className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-slate-100"
-              aria-expanded={expanded}
-              aria-label={expanded ? "Sbalit podúkoly" : "Rozbalit podúkoly"}
+              onClick={openSubtaskDialog}
+              className="mt-7 inline-flex size-5 shrink-0 items-center justify-center rounded text-slate-500 transition hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/15"
+              aria-label={`Přidat podúkol k úkolu ${item.task.title}`}
             >
-              <span className={`material-symbols-outlined text-[20px] transition-transform ${expanded ? "rotate-180" : ""}`} aria-hidden>
-                expand_more
+              <span className="material-symbols-outlined text-[13px]" aria-hidden>
+                add_task
               </span>
             </button>
-          ) : (
-            <span className="material-symbols-outlined text-[20px] text-slate-400" aria-hidden>
-              chevron_right
-            </span>
           )}
         </div>
         {hasSubtasks && expanded && (
@@ -967,7 +1046,6 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
                 }}
                 className="group flex items-center gap-2 rounded-lg border border-slate-200/80 bg-slate-50/80 px-2.5 py-2 text-sm dark:border-slate-800 dark:bg-slate-950/40"
                 data-help-id="tasks-subtask-row"
-                title="Pravým tlačítkem otevřete akce podúkolu"
               >
                 <button
                   type="button"
@@ -1035,6 +1113,78 @@ const TaskListItem: React.FC<TaskListItemProps> = ({
             </span>
             {menuState.isSubtask ? "Smazat podúkol" : "Smazat úkol"}
           </button>
+        </div>
+      )}
+
+      {isSubtaskDialogOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={`add-subtask-title-${item.task.id}`}
+          data-help-id="task-subtask-create-dialog"
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/45 px-4 py-6 backdrop-blur-sm"
+        >
+          <button
+            type="button"
+            aria-label="Zavřít přidání podúkolu"
+            className="absolute inset-0 cursor-default"
+            onClick={closeSubtaskDialog}
+          />
+          <form
+            onSubmit={handleCreateSubtask}
+            className="relative w-full max-w-sm rounded-xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-slate-700 dark:bg-slate-900"
+          >
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h3
+                  id={`add-subtask-title-${item.task.id}`}
+                  className="text-sm font-semibold text-slate-900 dark:text-slate-100"
+                >
+                  Přidat podúkol
+                </h3>
+                <p className="mt-1 truncate text-xs text-slate-500">
+                  Pod úkol: {item.task.title}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeSubtaskDialog}
+                className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+                aria-label="Zavřít přidání podúkolu"
+              >
+                <span className="material-symbols-outlined text-[18px]" aria-hidden>
+                  close
+                </span>
+              </button>
+            </div>
+
+            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
+              Název podúkolu
+            </label>
+            <input
+              ref={subtaskInputRef}
+              value={newSubtaskTitle}
+              onChange={(event) => {
+                setNewSubtaskTitle(event.target.value);
+                if (subtaskError) setSubtaskError(null);
+              }}
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+              aria-label="Název podúkolu"
+            />
+            {subtaskError && (
+              <div className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200">
+                {subtaskError}
+              </div>
+            )}
+            <div className="mt-4 flex justify-end gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={closeSubtaskDialog}>
+                Zrušit
+              </Button>
+              <Button type="submit" size="sm" disabled={!newSubtaskTitle.trim()} isLoading={createTask.isPending}>
+                Přidat podúkol
+              </Button>
+            </div>
+          </form>
         </div>
       )}
 
@@ -1911,6 +2061,7 @@ interface TaskDetailProps {
   todoProjects: TodoProject[];
   isSubtask?: boolean;
   isComposerActive?: boolean;
+  isMobileSheet?: boolean;
   onSelectTask: (taskId: string) => void;
   onDeleted: () => void;
   onCloseMobileDetail?: () => void;
@@ -1922,6 +2073,7 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
   todoProjects,
   isSubtask = false,
   isComposerActive = false,
+  isMobileSheet = false,
   onSelectTask,
   onDeleted,
   onCloseMobileDetail,
@@ -1970,6 +2122,10 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
   }, [item, selectedTask]);
 
   if (!item || !selectedTask) {
+    if (isMobileSheet) {
+      return null;
+    }
+
     if (isComposerActive) {
       return (
         <aside
@@ -2105,19 +2261,24 @@ const TaskDetail: React.FC<TaskDetailProps> = ({
     <>
       <aside
         data-help-id="tasks-detail"
-        className="min-h-0 overflow-y-auto rounded-xl border border-slate-200 bg-white p-3 shadow-sm max-lg:min-h-[calc(100dvh-9rem)] dark:border-slate-800 dark:bg-slate-900/70"
+        data-mobile-sheet={isMobileSheet ? "true" : "false"}
+        className={
+          isMobileSheet
+            ? "max-h-[86dvh] min-h-0 overflow-y-auto rounded-t-2xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-slate-800 dark:bg-slate-900"
+            : "min-h-0 overflow-y-auto rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900/70"
+        }
       >
         {onCloseMobileDetail && (
           <button
             type="button"
-            data-help-id="tasks-mobile-detail-back"
+            data-help-id="tasks-mobile-detail-close"
             onClick={onCloseMobileDetail}
             className="mb-3 inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 lg:hidden"
           >
             <span className="material-symbols-outlined text-[18px]" aria-hidden>
-              arrow_back
+              close
             </span>
-            Seznam
+            Zavřít detail
           </button>
         )}
         <form onSubmit={handleSave} className="space-y-3">
@@ -2440,7 +2601,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
   const [view, setView] = useState<TaskViewFilter>("inbox");
   const [selectedTodoProjectId, setSelectedTodoProjectId] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [collapsedTaskIds, setCollapsedTaskIds] = useState<Set<string>>(() => new Set());
   const [isQuickAddExpanded, setIsQuickAddExpanded] = useState(false);
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
@@ -2515,7 +2676,9 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
   useEffect(() => {
     if (!isMobileLayout) {
       setIsMobileMenuOpen(true);
+      return;
     }
+    setIsMobileMenuOpen(false);
   }, [isMobileLayout]);
 
   const collapseMobileWorkspaces = () => {
@@ -2637,37 +2800,35 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
       </Header>
 
       <main className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-x-hidden overflow-y-auto p-4 lg:grid-cols-[260px_minmax(0,1fr)_380px] lg:overflow-hidden lg:p-6">
-        {!isMobileDetailActive && (
-          <button
-            type="button"
-            data-help-id="tasks-mobile-menu-toggle"
-            data-open={isMobileMenuOpen ? "true" : "false"}
-            aria-controls="tasks-menu-panel"
-            aria-expanded={isMobileMenuOpen}
-            onClick={() => setIsMobileMenuOpen((open) => !open)}
-            className="flex min-w-0 items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left shadow-sm dark:border-slate-800 dark:bg-slate-900/70 lg:hidden"
+        <button
+          type="button"
+          data-help-id="tasks-mobile-menu-toggle"
+          data-open={isMobileMenuOpen ? "true" : "false"}
+          aria-controls="tasks-menu-panel"
+          aria-expanded={isMobileMenuOpen}
+          onClick={() => setIsMobileMenuOpen((open) => !open)}
+          className="flex min-w-0 items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left shadow-sm dark:border-slate-800 dark:bg-slate-900/70 lg:hidden"
+        >
+          <span className="material-symbols-outlined text-[20px] text-primary" aria-hidden>
+            tune
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-slate-900 dark:text-slate-100">{mobileMenuLabel}</span>
+            <span className="block truncate text-xs text-slate-500">{mobileMenuHint}</span>
+          </span>
+          <span className="text-xs text-slate-500">{mobileMenuCount}</span>
+          <span
+            className={`material-symbols-outlined text-[20px] text-slate-400 transition-transform ${isMobileMenuOpen ? "rotate-180" : ""}`}
+            aria-hidden
           >
-            <span className="material-symbols-outlined text-[20px] text-primary" aria-hidden>
-              tune
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-semibold text-slate-900 dark:text-slate-100">{mobileMenuLabel}</span>
-              <span className="block truncate text-xs text-slate-500">{mobileMenuHint}</span>
-            </span>
-            <span className="text-xs text-slate-500">{mobileMenuCount}</span>
-            <span
-              className={`material-symbols-outlined text-[20px] text-slate-400 transition-transform ${isMobileMenuOpen ? "rotate-180" : ""}`}
-              aria-hidden
-            >
-              expand_more
-            </span>
-          </button>
-        )}
+            expand_more
+          </span>
+        </button>
         <nav
           id="tasks-menu-panel"
           data-help-id="tasks-menu"
           data-mobile-open={isMobileMenuOpen ? "true" : "false"}
-          className={`${isMobileMenuOpen ? "block" : "hidden"} ${isMobileDetailActive ? "max-lg:hidden" : ""} max-h-[min(42dvh,360px)] min-h-0 space-y-1 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 lg:block lg:max-h-none lg:overflow-visible`}
+          className={`${isMobileMenuOpen ? "block" : "hidden"} max-h-[min(42dvh,360px)] min-h-0 space-y-1 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-sm dark:border-slate-800 dark:bg-slate-900/70 lg:block lg:max-h-none lg:overflow-visible`}
         >
           {VIEW_ORDER.map((item) => {
             const meta = VIEW_LABELS[item];
@@ -2714,8 +2875,9 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
 
         <section
           data-help-id="tasks-list"
-          data-mobile-hidden={isMobileDetailActive ? "true" : "false"}
-          className={`${isMobileDetailActive ? "max-lg:hidden" : ""} min-h-0 min-w-0 space-y-3 overflow-hidden`}
+          data-mobile-hidden="false"
+          data-mobile-detail-open={isMobileDetailActive ? "true" : "false"}
+          className="min-h-0 min-w-0 space-y-3 overflow-hidden"
         >
           {canAddTask && (
             <QuickAdd
@@ -2784,17 +2946,46 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
           )}
         </section>
 
-        <TaskDetail
-          item={selectedSelection?.item}
-          selectedTask={selectedSelection?.task}
-          todoProjects={todoProjects}
-          isSubtask={selectedSelection?.isSubtask}
-          isComposerActive={canAddTask && isQuickAddExpanded}
-          onSelectTask={handleSelectTask}
-          onDeleted={() => setSelectedTaskId(selectedSelection?.isSubtask ? selectedSelection.item.task.id : null)}
-          onCloseMobileDetail={isMobileDetailActive ? () => setSelectedTaskId(null) : undefined}
-        />
+        {!isMobileLayout && (
+          <TaskDetail
+            item={selectedSelection?.item}
+            selectedTask={selectedSelection?.task}
+            todoProjects={todoProjects}
+            isSubtask={selectedSelection?.isSubtask}
+            isComposerActive={canAddTask && isQuickAddExpanded}
+            onSelectTask={handleSelectTask}
+            onDeleted={() => setSelectedTaskId(selectedSelection?.isSubtask ? selectedSelection.item.task.id : null)}
+          />
+        )}
       </main>
+      {isMobileDetailActive && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={selectedSelection?.isSubtask ? "Detail podúkolu" : "Detail úkolu"}
+          data-help-id="tasks-mobile-detail-sheet"
+          className="fixed inset-0 z-[70] flex items-end bg-slate-950/45 px-0 pt-10 backdrop-blur-sm lg:hidden"
+        >
+          <button
+            type="button"
+            aria-label="Zavřít detail úkolu"
+            className="absolute inset-0 cursor-default"
+            onClick={() => setSelectedTaskId(null)}
+          />
+          <div className="relative w-full">
+            <TaskDetail
+              item={selectedSelection?.item}
+              selectedTask={selectedSelection?.task}
+              todoProjects={todoProjects}
+              isSubtask={selectedSelection?.isSubtask}
+              isMobileSheet
+              onSelectTask={handleSelectTask}
+              onDeleted={() => setSelectedTaskId(selectedSelection?.isSubtask ? selectedSelection.item.task.id : null)}
+              onCloseMobileDetail={() => setSelectedTaskId(null)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
