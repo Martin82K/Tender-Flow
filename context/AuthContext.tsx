@@ -154,8 +154,45 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     [notifyDesktopAuthState, setPendingMfaState],
   );
 
+  const syncDesktopSessionCredentials = useCallback(
+    async (
+      session: any,
+      options?: { email?: string; rememberMe?: boolean },
+    ): Promise<void> => {
+      if (!isDesktop) return;
+      if (!session?.refresh_token) return;
+
+      const shouldSave = options?.rememberMe ?? authSessionService.shouldPersistSession();
+      if (!shouldSave) return;
+
+      const email = options?.email || session.user?.email;
+      if (!email) {
+        console.warn("[AuthContext] Cannot sync desktop credentials without session email.");
+        return;
+      }
+
+      try {
+        await platformAdapter.session.saveCredentials({
+          refreshToken: session.refresh_token,
+          email,
+        });
+        setHasSavedCredentials(true);
+      } catch (error) {
+        console.warn("[AuthContext] Failed to sync desktop session credentials:", error);
+      }
+    },
+    [],
+  );
+
   const hydrateAuthenticatedSession = useCallback(
-    async (session: any, options?: { saveDesktopCredentials?: boolean }): Promise<User | null> => {
+    async (
+      session: any,
+      options?: {
+        saveDesktopCredentials?: boolean;
+        credentialEmail?: string;
+        rememberMe?: boolean;
+      },
+    ): Promise<User | null> => {
       const currentUser = await authService.getUserFromSession(session, {
         onBackgroundRefresh: applyBackgroundUserRefresh,
       });
@@ -169,19 +206,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
       if (isDesktop && options?.saveDesktopCredentials) {
         const context = pendingMfaContextRef.current;
-        if (context?.rememberMe && session?.refresh_token) {
-          await platformAdapter.session.saveCredentials({
-            refreshToken: session.refresh_token,
-            email: context.email || session.user?.email || "",
-          });
-          setHasSavedCredentials(true);
-        }
+        await syncDesktopSessionCredentials(session, {
+          email: options.credentialEmail ?? context?.email,
+          rememberMe: options.rememberMe ?? context?.rememberMe,
+        });
       }
 
       pendingMfaContextRef.current = null;
       return currentUser;
     },
-    [applyBackgroundUserRefresh, notifyDesktopAuthState, setPendingMfaState],
+    [applyBackgroundUserRefresh, notifyDesktopAuthState, setPendingMfaState, syncDesktopSessionCredentials],
   );
 
   useEffect(() => {
@@ -386,15 +420,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           return "mfa_required";
         }
 
-        const currentUser = await hydrateAuthenticatedSession(data.session);
+        const currentUser = await hydrateAuthenticatedSession(data.session, {
+          saveDesktopCredentials: true,
+          credentialEmail: credentials.email,
+          rememberMe: true,
+        });
         if (!currentUser) return "failed";
-
-        if (data.session.refresh_token) {
-          await platformAdapter.session.saveCredentials({
-            refreshToken: data.session.refresh_token,
-            email: credentials.email,
-          });
-        }
 
         setHasSavedCredentials(true);
         setCanUseBiometric(biometricEnabled);
@@ -466,7 +497,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
               return;
             }
 
-            const currentUser = await hydrateAuthenticatedSession(session);
+            const currentUser = await hydrateAuthenticatedSession(session, {
+              saveDesktopCredentials: true,
+            });
             if (currentUser) {
               setIsLoading(false);
               if (token) lastHydratedTokenRef.current = token;
@@ -527,28 +560,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
     (async () => {
       try {
-        const desktopRestoreStatus = await tryDesktopSessionRestore();
-        if (desktopRestoreStatus === "success") {
-          window.clearTimeout(timer);
-          return;
-        }
-
-        if (desktopRestoreStatus === "mfa_required") {
-          setUser(null);
-          window.clearTimeout(timer);
-          return;
-        }
-
-        if (desktopRestoreStatus === "hard_failed") {
-          setUser(null);
-          return;
-        }
-
-        if (desktopRestoreStatus === "cancelled") {
-          setUser(null);
-          return;
-        }
-
         const { data: activeSessionData } = await authSessionService.getSession();
         if (activeSessionData?.session) {
           const mfaRequired = await prepareMfaIfNeeded({
@@ -560,6 +571,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
             setUser(null);
             return;
           }
+
+          const currentUser = await hydrateAuthenticatedSession(activeSessionData.session, {
+            saveDesktopCredentials: true,
+          });
+          if (currentUser) {
+            console.debug("AuthContext: Active session restored", currentUser.email);
+            return;
+          }
+        }
+
+        const desktopRestoreStatus = await tryDesktopSessionRestore();
+        if (desktopRestoreStatus === "success") {
+          return;
+        }
+
+        if (desktopRestoreStatus === "mfa_required") {
+          setUser(null);
+          return;
+        }
+
+        if (desktopRestoreStatus === "hard_failed") {
+          setUser(null);
+          return;
+        }
+
+        if (desktopRestoreStatus === "cancelled") {
+          setUser(null);
+          return;
         }
 
         const currentUser = await authService.getCurrentUser({
@@ -766,15 +805,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         return { status: "mfa_required" };
       }
 
-      const currentUser = await hydrateAuthenticatedSession(data.session);
+      const currentUser = await hydrateAuthenticatedSession(data.session, {
+        saveDesktopCredentials: true,
+        credentialEmail: credentials.email,
+        rememberMe: true,
+      });
       if (currentUser) {
-        if (data.session.refresh_token) {
-          await platformAdapter.session.saveCredentials({
-            refreshToken: data.session.refresh_token,
-            email: credentials.email,
-          });
-        }
-
         console.debug("[AuthContext] Biometric login successful:", currentUser.email);
         biometricLoginAttemptedRef.current = false;
         return { status: "authenticated" };

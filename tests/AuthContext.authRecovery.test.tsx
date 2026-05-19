@@ -10,8 +10,10 @@ interface SetupOptions {
   biometricEnabled: boolean;
   biometricPromptResult?: boolean;
   refreshSessionResult?: { data: { session: any | null }; error: any | null };
+  getSessionResult?: { data: { session: any | null } };
   currentUser?: any;
   storedSessionRaw?: string | null;
+  rememberMe?: boolean;
 }
 
 const setup = async (options: SetupOptions) => {
@@ -37,6 +39,9 @@ const setup = async (options: SetupOptions) => {
         data: { session: null },
         error: null,
       },
+    ),
+    getSession: vi.fn().mockResolvedValue(
+      options.getSessionResult ?? { data: { session: null } },
     ),
     invalidateAuthState: vi.fn().mockResolvedValue(undefined),
     navigate: vi.fn(),
@@ -98,8 +103,9 @@ const setup = async (options: SetupOptions) => {
       clearStoredSessionData: vi.fn(),
       getStoredAuthSessionRaw: vi.fn().mockReturnValue(options.storedSessionRaw ?? null),
       setRememberMePreference: vi.fn(),
+      shouldPersistSession: vi.fn().mockReturnValue(options.rememberMe ?? true),
       refreshSession: mockState.refreshSession,
-      getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
+      getSession: mockState.getSession,
       invalidateAuthState: mockState.invalidateAuthState,
     },
   }));
@@ -112,6 +118,7 @@ const setup = async (options: SetupOptions) => {
     queryClient: {
       clear: mockState.queryClientClear,
     },
+    resetAuthErrorCount: vi.fn(),
   }));
 
   vi.doMock("@/services/incidentLogger", () => ({
@@ -140,6 +147,12 @@ const setup = async (options: SetupOptions) => {
         needsVerification: false,
       }),
       verifyFactor: vi.fn().mockResolvedValue(undefined),
+    },
+  }));
+
+  vi.doMock("@infra/auth/deviceService", () => ({
+    authDeviceService: {
+      registerCurrentDevice: vi.fn().mockResolvedValue(undefined),
     },
   }));
 
@@ -274,6 +287,85 @@ describe("AuthContext auth recovery", () => {
     expect(mockState.saveCredentials).toHaveBeenCalledWith({
       refreshToken: "fresh-refresh-token-123456",
       email: "test@example.com",
+    });
+    expect(mockState.setAuthenticated.mock.invocationCallOrder[0]).toBeLessThan(
+      mockState.saveCredentials.mock.invocationCallOrder[0],
+    );
+  });
+
+  it("platná Supabase session má na desktopu prioritu před uloženým refresh tokenem", async () => {
+    const mockState = await setup({
+      isDesktop: true,
+      credentials: { refreshToken: "stary-refresh-token-123456", email: "test@example.com" },
+      biometricEnabled: false,
+      getSessionResult: {
+        data: {
+          session: {
+            access_token: "active-access-token",
+            refresh_token: "active-refresh-token-123456",
+            expires_at: 1924992000,
+            user: { email: "test@example.com" },
+          },
+        },
+      },
+      refreshSessionResult: {
+        data: { session: null },
+        error: { status: 400, message: "Invalid Refresh Token: Not Found" },
+      },
+      currentUser: null,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("loading").textContent).toBe("false");
+    });
+
+    expect(mockState.getSession).toHaveBeenCalled();
+    expect(mockState.refreshSession).not.toHaveBeenCalled();
+    expect(mockState.invalidateAuthState).not.toHaveBeenCalled();
+    expect(mockState.setAuthenticated).toHaveBeenCalledWith(true, {
+      accessToken: "active-access-token",
+      expiresAt: 1924992000,
+    });
+    expect(mockState.saveCredentials).toHaveBeenCalledWith({
+      refreshToken: "active-refresh-token-123456",
+      email: "test@example.com",
+    });
+  });
+
+  it("TOKEN_REFRESHED synchronizuje desktop secure refresh token po ověření session", async () => {
+    const mockState = await setup({
+      isDesktop: true,
+      credentials: null,
+      biometricEnabled: false,
+      currentUser: null,
+    });
+
+    await waitFor(() => {
+      expect(mockState.subscribe).toHaveBeenCalledTimes(1);
+    });
+
+    act(() => {
+      mockState.authListener?.({
+        event: "TOKEN_REFRESHED",
+        session: {
+          access_token: "refreshed-access-token",
+          refresh_token: "refreshed-refresh-token-123456",
+          expires_at: 1924992000,
+          user: { email: "test@example.com" },
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(mockState.saveCredentials).toHaveBeenCalledWith({
+        refreshToken: "refreshed-refresh-token-123456",
+        email: "test@example.com",
+      });
+    });
+
+    expect(mockState.setAuthenticated).toHaveBeenCalledWith(true, {
+      accessToken: "refreshed-access-token",
+      expiresAt: 1924992000,
     });
     expect(mockState.setAuthenticated.mock.invocationCallOrder[0]).toBeLessThan(
       mockState.saveCredentials.mock.invocationCallOrder[0],

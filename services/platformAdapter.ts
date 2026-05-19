@@ -628,7 +628,7 @@ export const shellAdapter = {
         }
         // Web: use window.open
         console.log('[shellAdapter] Falling back to window.open');
-        window.open(url, '_blank');
+        window.open(url, '_blank', 'noopener,noreferrer');
     },
 
     async openTempFile(content: string, filename: string): Promise<void> {

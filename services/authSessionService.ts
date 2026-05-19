@@ -2,6 +2,7 @@ import {
   clearStoredSessionData,
   getStoredAuthSessionRaw,
   setRememberMePreference,
+  shouldPersistSession,
   supabase,
 } from "./supabase";
 import { platformAdapter } from "./platformAdapter";
@@ -41,6 +42,7 @@ export const authSessionService = {
   clearStoredSessionData,
   getStoredAuthSessionRaw,
   setRememberMePreference,
+  shouldPersistSession,
   refreshSession: async (refreshToken: string) =>
     supabase.auth.refreshSession({ refresh_token: refreshToken }),
   getSession: async () => supabase.auth.getSession(),

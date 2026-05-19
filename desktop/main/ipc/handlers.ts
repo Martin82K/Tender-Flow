@@ -18,6 +18,7 @@ import { registerBackupHandlers } from './modules/backupHandlers';
 import { getAutoUpdaterService } from '../services/autoUpdater';
 import { convertToDocx } from './modules/docxConversion';
 import { ipcAuthGuard } from '../services/ipcAuthGuard';
+import { isAllowedExternalUrl, parseExternalUrl } from '../security/externalUrlPolicy';
 
 // Services (singleton instances)
 const storageService = new SecureStorageService();
@@ -33,48 +34,11 @@ const createCodeVerifier = (): string => base64UrlEncode(crypto.randomBytes(32))
 const createCodeChallenge = (verifier: string): string =>
     base64UrlEncode(crypto.createHash('sha256').update(verifier).digest());
 
-const ALLOWED_EXTERNAL_PROTOCOLS = new Set(['https:', 'http:', 'mailto:']);
-const ALLOWED_EXTERNAL_HOSTS = new Set([
-    'accounts.google.com',
-    'oauth2.googleapis.com',
-    'api.github.com',
-    'github.com',
-    'www.github.com',
-    'tenderflow.cz',
-    'www.tenderflow.cz',
-    'ares.gov.cz',
-    'www.rzp.cz',
-    'rzp.gov.cz',
-    'or.justice.cz',
-]);
-
 const ALLOWED_PROXY_HOST_SUFFIXES = ['.supabase.co', '.supabase.in'];
 const ALLOWED_PROXY_HOSTS = new Set([
     'oauth2.googleapis.com',
     'accounts.google.com',
 ]);
-
-const parseUrl = (rawUrl: string): URL => {
-    let parsed: URL;
-    try {
-        parsed = new URL(rawUrl);
-    } catch {
-        throw new Error('Invalid URL');
-    }
-
-    if (!ALLOWED_EXTERNAL_PROTOCOLS.has(parsed.protocol)) {
-        throw new Error(`Blocked protocol: ${parsed.protocol}`);
-    }
-    return parsed;
-};
-
-const isAllowedExternalUrl = (parsed: URL): boolean => {
-    if (parsed.protocol === 'mailto:') return true;
-    if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
-        return ALLOWED_EXTERNAL_HOSTS.has(parsed.hostname);
-    }
-    return false;
-};
 
 const isAllowedProxyUrl = (parsed: URL): boolean => {
     if (parsed.protocol !== 'https:') return false;
@@ -215,7 +179,7 @@ export function registerIpcHandlers(mainWindow?: BrowserWindow): void {
     registerSessionHandlers({ storageService, requireAuth });
     registerMcpHandlers({ requireAuth });
     registerOAuthHandlers({
-        parseUrl,
+        parseUrl: (rawUrl: string) => parseExternalUrl(rawUrl, { allowHttp: true }),
         isAllowedExternalUrl,
         createCodeVerifier,
         createCodeChallenge,
@@ -367,7 +331,7 @@ export function registerIpcHandlers(mainWindow?: BrowserWindow): void {
     ipcMain.handle('shell:openExternal', async (event, url: string): Promise<void> => {
         requireAuth(event.sender, 'shell:openExternal');
         try {
-            const parsedUrl = parseUrl(url);
+            const parsedUrl = parseExternalUrl(url, { allowHttp: true });
             if (!isAllowedExternalUrl(parsedUrl)) {
                 throw new Error(`Blocked external URL host: ${parsedUrl.hostname}`);
             }

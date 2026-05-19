@@ -294,7 +294,7 @@ const setStorageValue = (storage: Storage, key: string, value: string): void => 
   }
 };
 
-const shouldPersistSession = (): boolean => getStorageValue(window.localStorage, REMEMBER_ME_STORAGE_KEY) !== 'false';
+export const shouldPersistSession = (): boolean => getStorageValue(window.localStorage, REMEMBER_ME_STORAGE_KEY) !== 'false';
 
 const getPrimaryAuthStorage = (): Storage => (shouldPersistSession() ? window.localStorage : window.sessionStorage);
 const getSecondaryAuthStorage = (): Storage => (shouldPersistSession() ? window.sessionStorage : window.localStorage);

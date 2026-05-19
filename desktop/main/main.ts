@@ -7,6 +7,7 @@ import { startMcpServer } from './services/mcpServer';
 import { buildDesktopCsp, shouldInjectDesktopCsp } from './services/csp';
 import { buildMainWindowWebPreferences } from './services/windowSecurity';
 import { ipcAuthGuard } from './services/ipcAuthGuard';
+import { canOpenExternalUrl } from './security/externalUrlPolicy';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {
@@ -67,32 +68,6 @@ loadDesktopEnv();
 if (isDev) {
     process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = 'true';
 }
-
-const ALLOWED_EXTERNAL_PROTOCOLS = new Set(['https:', 'mailto:']);
-const ALLOWED_EXTERNAL_HOSTS = new Set([
-    'accounts.google.com',
-    'oauth2.googleapis.com',
-    'api.github.com',
-    'github.com',
-    'www.github.com',
-    'tenderflow.cz',
-    'www.tenderflow.cz',
-    'ares.gov.cz',
-    'www.rzp.cz',
-    'rzp.gov.cz',
-    'or.justice.cz',
-]);
-
-const canOpenExternalUrl = (rawUrl: string): boolean => {
-    try {
-        const parsed = new URL(rawUrl);
-        if (!ALLOWED_EXTERNAL_PROTOCOLS.has(parsed.protocol)) return false;
-        if (parsed.protocol === 'mailto:') return true;
-        return ALLOWED_EXTERNAL_HOSTS.has(parsed.hostname);
-    } catch {
-        return false;
-    }
-};
 
 const configureCachePaths = (): void => {
     const cacheRoot = path.join(app.getPath('temp'), 'tender-flow', 'electron-cache');

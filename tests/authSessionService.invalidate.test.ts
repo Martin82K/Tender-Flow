@@ -11,6 +11,7 @@ const loadService = async () => {
     clearStoredSessionData,
     getStoredAuthSessionRaw: vi.fn(),
     setRememberMePreference: vi.fn(),
+    shouldPersistSession: vi.fn().mockReturnValue(true),
     supabase: {
       auth: {
         refreshSession: vi.fn(),
@@ -92,6 +93,7 @@ describe("authSessionService.invalidateAuthState", () => {
       clearStoredSessionData,
       getStoredAuthSessionRaw: vi.fn(),
       setRememberMePreference: vi.fn(),
+      shouldPersistSession: vi.fn().mockReturnValue(true),
       supabase: {
         auth: {
           refreshSession: vi.fn(),
