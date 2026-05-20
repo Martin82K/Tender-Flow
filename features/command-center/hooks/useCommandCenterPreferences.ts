@@ -10,6 +10,7 @@ import { MODULES, defaultEnabledModules } from "@features/command-center/registr
 const DEBOUNCE_MS = 300;
 
 const buildDefaultPreferences = (): CommandCenterPreferences => ({
+  isVisible: true,
   enabledModules: defaultEnabledModules(),
   moduleSettings: {},
   filterState: DEFAULT_FILTER_STATE,
@@ -30,6 +31,7 @@ const mergePreferences = (
     }
   }
   return {
+    isVisible: stored.isVisible !== false,
     enabledModules,
     moduleSettings: stored.moduleSettings ?? {},
     filterState: {

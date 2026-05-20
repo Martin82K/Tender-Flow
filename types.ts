@@ -254,6 +254,7 @@ export interface UserPreferences {
 }
 
 export interface CommandCenterUserPreferences {
+  isVisible?: boolean;
   enabledModules?: Record<string, boolean>;
   moduleSettings?: Record<string, Record<string, unknown>>;
   filterState?: {
@@ -262,6 +263,7 @@ export interface CommandCenterUserPreferences {
     statuses?: Array<"tender" | "realization" | "archived">;
     rangeDays?: 7 | 14 | 30 | 90;
   };
+  autoLayout?: boolean;
   lastUpdated?: string;
 }
 
