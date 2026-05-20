@@ -1,6 +1,10 @@
-import React, { useLayoutEffect, useRef, useState } from "react";
+import React, { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { useNotifications } from "../hooks/useNotifications";
 import { NotificationCenter } from "./NotificationCenter";
+import {
+  getNotificationPanelPosition,
+  type NotificationPanelPosition,
+} from "./notificationCenterPosition";
 
 /**
  * Self-contained notification bell button + dropdown.
@@ -8,34 +12,45 @@ import { NotificationCenter } from "./NotificationCenter";
  */
 export const NotificationBell: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [anchor, setAnchor] = useState<{ top: number; right: number } | null>(null);
+  const [anchor, setAnchor] = useState<NotificationPanelPosition | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const { notifications, isLoading, unreadCount, refresh } = useNotifications(true);
 
+  const updateAnchor = useCallback(() => {
+    const rect = buttonRef.current?.getBoundingClientRect();
+    if (!rect) return null;
+
+    const nextAnchor = getNotificationPanelPosition(rect, window.innerWidth);
+    setAnchor(nextAnchor);
+    return nextAnchor;
+  }, []);
+
+  const handleClose = useCallback(() => {
+    setIsOpen(false);
+    setAnchor(null);
+  }, []);
+
   const handleToggle = () => {
-    const next = !isOpen;
-    setIsOpen(next);
-    if (next) refresh();
+    if (isOpen) {
+      handleClose();
+      return;
+    }
+
+    updateAnchor();
+    setIsOpen(true);
+    refresh();
   };
 
   useLayoutEffect(() => {
     if (!isOpen) return;
-    const updatePos = () => {
-      const rect = buttonRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      setAnchor({
-        top: rect.bottom + 8,
-        right: window.innerWidth - rect.right,
-      });
-    };
-    updatePos();
-    window.addEventListener("resize", updatePos);
-    window.addEventListener("scroll", updatePos, true);
+    updateAnchor();
+    window.addEventListener("resize", updateAnchor);
+    window.addEventListener("scroll", updateAnchor, true);
     return () => {
-      window.removeEventListener("resize", updatePos);
-      window.removeEventListener("scroll", updatePos, true);
+      window.removeEventListener("resize", updateAnchor);
+      window.removeEventListener("scroll", updateAnchor, true);
     };
-  }, [isOpen]);
+  }, [isOpen, updateAnchor]);
 
   return (
     <div className="relative">
@@ -56,7 +71,7 @@ export const NotificationBell: React.FC = () => {
       </button>
       <NotificationCenter
         isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
+        onClose={handleClose}
         notifications={notifications}
         isLoading={isLoading}
         onRefresh={refresh}
