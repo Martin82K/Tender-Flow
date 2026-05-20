@@ -134,6 +134,24 @@ const todayAt = (hour: number, minute = 0): string => {
   return date.toISOString();
 };
 
+const dateKey = (date: Date): string => {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
+};
+
+const createDataTransfer = () => {
+  const data = new Map<string, string>();
+  return {
+    dropEffect: "none",
+    effectAllowed: "all",
+    setData: vi.fn((type: string, value: string) => {
+      data.set(type, value);
+    }),
+    getData: vi.fn((type: string) => data.get(type) ?? ""),
+  };
+};
+
 const setViewportWidth = (width: number) => {
   Object.defineProperty(window, "innerWidth", {
     configurable: true,
@@ -708,6 +726,41 @@ describe("TasksPage note preview", () => {
     expect(calendarTasks[0]).toHaveTextContent("09:00");
     expect(calendarTasks[1]).toHaveTextContent("Pozdější kontrola");
     expect(calendarTasks[1]).toHaveTextContent("17:00");
+  });
+
+  it("umožní přesunout úkol v kalendáři na jiný den přetažením myší", async () => {
+    taskState.tasks = [
+      makeTask({
+        id: "movable",
+        title: "Přesunout betonáž",
+        dueAt: todayAt(9, 30),
+      }),
+    ];
+
+    const { container } = render(<TasksPage />);
+    fireEvent.click(screen.getByRole("button", { name: /Kalendář/i }));
+
+    const card = container.querySelector('[data-help-id="todo-calendar-task"]');
+    const targetDay = Array.from(container.querySelectorAll<HTMLElement>('[data-help-id="todo-calendar-day"]')).find(
+      (day) => day.dataset.date && day.dataset.date !== dateKey(new Date()),
+    );
+    expect(card).not.toBeNull();
+    expect(targetDay).toBeDefined();
+
+    const [year, month, day] = targetDay?.dataset.date?.split("-").map(Number) ?? [];
+    const expectedDueAt = new Date(year, month - 1, day, 9, 30, 0, 0).toISOString();
+    const dataTransfer = createDataTransfer();
+
+    fireEvent.dragStart(card as HTMLElement, { dataTransfer });
+    fireEvent.dragOver(targetDay as HTMLElement, { dataTransfer });
+    fireEvent.drop(targetDay as HTMLElement, { dataTransfer });
+
+    await waitFor(() => {
+      expect(taskState.updateTask).toHaveBeenCalledWith({
+        id: "movable",
+        input: { dueAt: expectedDueAt },
+      });
+    });
   });
 
   it("v úzké kalendářové kartě oddělí projektový badge od zalamovaného názvu úkolu", () => {
