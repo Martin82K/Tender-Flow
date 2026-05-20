@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ProfileSettings } from "../features/settings/ProfileSettings";
 
@@ -119,5 +119,44 @@ describe("ProfileSettings layout", () => {
     expect(await screen.findByText("Vzhled aplikace")).toBeInTheDocument();
     expect(screen.getByText("Biometrické přihlášení")).toBeInTheDocument();
     expect(screen.queryByText("Barva pozadí")).not.toBeInTheDocument();
+  });
+
+  it("ukládá skrytí Command Centeru bez zahození existujících preferencí", async () => {
+    render(
+      <ProfileSettings
+        theme="system"
+        skin="industrial"
+        onSetTheme={vi.fn()}
+        onSetSkin={vi.fn()}
+        primaryColor="#607AFB"
+        onSetPrimaryColor={vi.fn()}
+        contactStatuses={[]}
+        onUpdateStatuses={vi.fn()}
+        onDeleteContacts={vi.fn()}
+        contacts={[]}
+        user={{
+          id: "user-1",
+          email: "martin@example.com",
+          role: "admin",
+          preferences: {
+            commandCenter: {
+              autoLayout: false,
+              enabledModules: { calendar: false },
+            },
+          },
+        }}
+      />,
+    );
+
+    const commandCenterToggle = await screen.findByLabelText("Zobrazovat Command Center");
+    fireEvent.click(commandCenterToggle);
+
+    expect(authMocks.updatePreferences).toHaveBeenCalledWith({
+      commandCenter: {
+        autoLayout: false,
+        enabledModules: { calendar: false },
+        isVisible: false,
+      },
+    });
   });
 });

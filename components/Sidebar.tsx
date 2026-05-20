@@ -158,10 +158,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const isNavItemEnabled = useCallback(
     (item: any) => {
+      if (item.id === "command-center" && user?.preferences?.commandCenter?.isVisible === false) {
+        return false;
+      }
       if (item.feature && !hasFeature(item.feature)) return false;
       return true;
     },
-    [hasFeature],
+    [hasFeature, user?.preferences?.commandCenter?.isVisible],
   );
 
   const isNavItemActive = useCallback(

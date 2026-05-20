@@ -74,6 +74,8 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
     signatureEmail: "",
     signatureGreeting: "S pozdravem",
   });
+  const commandCenterPreferences = user?.preferences?.commandCenter ?? {};
+  const isCommandCenterVisible = commandCenterPreferences.isVisible !== false;
 
   // Load display name on mount
   useEffect(() => {
@@ -333,6 +335,15 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
         queryKey: CONTACT_STATUSES_KEY,
       });
     }
+  };
+
+  const handleCommandCenterVisibilityChange = (isVisible: boolean) => {
+    updatePreferences({
+      commandCenter: {
+        ...commandCenterPreferences,
+        isVisible,
+      },
+    });
   };
 
   const colorOptions: { value: StatusConfig["color"]; class: string }[] = [
@@ -722,6 +733,27 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                       autoShortenProjectDocs: e.target.checked,
                     });
                   }}
+                />
+                <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none dark:bg-slate-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between gap-4 p-3 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800/50">
+              <div className="flex-1">
+                <div className="text-sm font-medium text-slate-900 dark:text-white">
+                  Zobrazovat Command Center
+                </div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Skryje Command Center z navigace a zabrání jeho zobrazení v aplikaci.
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0 peer"
+                  aria-label="Zobrazovat Command Center"
+                  checked={isCommandCenterVisible}
+                  onChange={(e) => handleCommandCenterVisibilityChange(e.target.checked)}
                 />
                 <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none dark:bg-slate-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
               </label>
