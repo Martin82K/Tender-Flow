@@ -654,6 +654,22 @@ const localDateKey = (date: Date): string => {
   return `${date.getFullYear()}-${month}-${day}`;
 };
 
+export const moveDueAtToLocalDay = (dueAt: string | undefined, targetDay: Date): string | null => {
+  if (!dueAt) return null;
+  const sourceDue = new Date(dueAt);
+  if (Number.isNaN(sourceDue.getTime())) return null;
+
+  return new Date(
+    targetDay.getFullYear(),
+    targetDay.getMonth(),
+    targetDay.getDate(),
+    sourceDue.getHours(),
+    sourceDue.getMinutes(),
+    sourceDue.getSeconds(),
+    sourceDue.getMilliseconds(),
+  ).toISOString();
+};
+
 export const buildUpcomingAgendaGroups = (
   tree: TaskWithSubtasks[],
   now: Date = new Date(),
@@ -1414,11 +1430,17 @@ interface TodoCalendarViewProps {
   tree: TaskWithSubtasks[];
   todoProjects: TodoProject[];
   selectedTaskId: string | null;
+  draggedTaskId: string | null;
+  dropTargetDayKey: string | null;
   mode: TodoCalendarMode;
   cursorDate: Date;
   onModeChange: (mode: TodoCalendarMode) => void;
   onCursorChange: (date: Date) => void;
   onSelectTask: (taskId: string) => void;
+  onTaskDragStart: (taskId: string, event: React.DragEvent<HTMLElement>) => void;
+  onDayDragOver: (day: Date, event: React.DragEvent<HTMLElement>) => void;
+  onDayDrop: (day: Date, event: React.DragEvent<HTMLElement>) => void;
+  onTaskDragEnd: () => void;
 }
 
 const CALENDAR_MODE_LABELS: Record<TodoCalendarMode, string> = {
@@ -1499,11 +1521,17 @@ const TodoCalendarView: React.FC<TodoCalendarViewProps> = ({
   tree,
   todoProjects,
   selectedTaskId,
+  draggedTaskId,
+  dropTargetDayKey,
   mode,
   cursorDate,
   onModeChange,
   onCursorChange,
   onSelectTask,
+  onTaskDragStart,
+  onDayDragOver,
+  onDayDrop,
+  onTaskDragEnd,
 }) => {
   const today = startOfLocalDay(new Date());
   const days = getCalendarDays(mode, cursorDate);
@@ -1604,7 +1632,12 @@ const TodoCalendarView: React.FC<TodoCalendarViewProps> = ({
           return (
             <div
               key={key}
-              className={`min-h-[118px] border-r border-b border-slate-200 p-2 last:border-r-0 dark:border-slate-800 ${
+              data-help-id="todo-calendar-day"
+              data-date={key}
+              data-drop-target={dropTargetDayKey === key ? "true" : "false"}
+              onDragOver={(event) => onDayDragOver(day, event)}
+              onDrop={(event) => onDayDrop(day, event)}
+              className={`min-h-[118px] border-r border-b border-slate-200 p-2 transition last:border-r-0 data-[drop-target=true]:bg-primary/10 data-[drop-target=true]:ring-2 data-[drop-target=true]:ring-inset data-[drop-target=true]:ring-primary/30 dark:border-slate-800 ${
                 outsideMonth ? "bg-slate-50/70 text-slate-400 dark:bg-slate-950/30" : ""
               } ${isToday ? "bg-primary/5" : ""}`}
             >
@@ -1667,17 +1700,22 @@ const TodoCalendarView: React.FC<TodoCalendarViewProps> = ({
                       key={task.id}
                       role="button"
                       tabIndex={0}
+                      draggable
                       data-active={selectedTaskId === task.id ? "true" : "false"}
+                      data-dragging={draggedTaskId === task.id ? "true" : "false"}
                       data-has-project={assignedProjectColor ? "true" : "false"}
                       data-help-id="todo-calendar-task"
+                      aria-label={`Přesunout nebo otevřít úkol ${task.title}`}
                       onClick={() => onSelectTask(task.id)}
+                      onDragStart={(event) => onTaskDragStart(task.id, event)}
+                      onDragEnd={onTaskDragEnd}
                       onKeyDown={(event) => {
                         if (event.key === "Enter" || event.key === " ") {
                           event.preventDefault();
                           onSelectTask(task.id);
                         }
                       }}
-                      className="relative w-full cursor-pointer overflow-hidden rounded-lg border px-2 py-1.5 text-left text-xs shadow-sm outline-none transition hover:-translate-y-px focus:ring-2 focus:ring-offset-1 data-[active=true]:shadow-md"
+                      className="relative w-full cursor-grab overflow-hidden rounded-lg border px-2 py-1.5 text-left text-xs shadow-sm outline-none transition hover:-translate-y-px focus:ring-2 focus:ring-offset-1 active:cursor-grabbing data-[active=true]:shadow-md data-[dragging=true]:opacity-55"
                       style={cardStyle}
                     >
                       <span className="block min-w-0" data-help-id="todo-calendar-task-heading">
@@ -2917,6 +2955,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
   const [isQuickAddExpanded, setIsQuickAddExpanded] = useState(false);
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dropTargetTaskId, setDropTargetTaskId] = useState<string | null>(null);
+  const [calendarDropTargetDayKey, setCalendarDropTargetDayKey] = useState<string | null>(null);
   const [calendarMode, setCalendarMode] = useState<TodoCalendarMode>("week");
   const [calendarCursorDate, setCalendarCursorDate] = useState(() => new Date());
   const [isDetailAutoSelectPaused, setIsDetailAutoSelectPaused] = useState(false);
@@ -3044,6 +3083,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
   const clearDragState = () => {
     setDraggedTaskId(null);
     setDropTargetTaskId(null);
+    setCalendarDropTargetDayKey(null);
   };
 
   const handleTaskDragStart = (taskId: string, event: React.DragEvent<HTMLElement>) => {
@@ -3051,6 +3091,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
     event.dataTransfer.setData("text/plain", taskId);
     setDraggedTaskId(taskId);
     setDropTargetTaskId(null);
+    setCalendarDropTargetDayKey(null);
   };
 
   const handleTaskDragOver = (targetTaskId: string, event: React.DragEvent<HTMLElement>) => {
@@ -3088,6 +3129,44 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
             : updateTask.mutateAsync({ id: task.id, input: { sortOrder: index } }),
         ),
       );
+      setSelectedTaskId(sourceTaskId);
+    } finally {
+      clearDragState();
+    }
+  };
+
+  const handleCalendarDayDragOver = (targetDay: Date, event: React.DragEvent<HTMLElement>) => {
+    if (!draggedTaskId) return;
+
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    setDropTargetTaskId(null);
+    setCalendarDropTargetDayKey(localDateKey(targetDay));
+  };
+
+  const handleCalendarDayDrop = async (targetDay: Date, event: React.DragEvent<HTMLElement>) => {
+    event.preventDefault();
+    const sourceTaskId = event.dataTransfer.getData("text/plain") || draggedTaskId;
+    if (!sourceTaskId) {
+      clearDragState();
+      return;
+    }
+
+    const selection = findTaskSelection(taskTree, sourceTaskId);
+    const movedDueAt = moveDueAtToLocalDay(selection?.task.dueAt, targetDay);
+    if (!selection || !movedDueAt) {
+      clearDragState();
+      return;
+    }
+
+    if (localDateKey(new Date(selection.task.dueAt ?? "")) === localDateKey(targetDay)) {
+      setSelectedTaskId(sourceTaskId);
+      clearDragState();
+      return;
+    }
+
+    try {
+      await updateTask.mutateAsync({ id: sourceTaskId, input: { dueAt: movedDueAt } });
       setSelectedTaskId(sourceTaskId);
     } finally {
       clearDragState();
@@ -3225,11 +3304,17 @@ export const TasksPage: React.FC<TasksPageProps> = ({ skin = "classic" }) => {
               tree={visibleTree}
               todoProjects={todoProjects}
               selectedTaskId={selectedTaskId}
+              draggedTaskId={draggedTaskId}
+              dropTargetDayKey={calendarDropTargetDayKey}
               mode={calendarMode}
               cursorDate={calendarCursorDate}
               onModeChange={setCalendarMode}
               onCursorChange={setCalendarCursorDate}
               onSelectTask={handleSelectTask}
+              onTaskDragStart={handleTaskDragStart}
+              onDayDragOver={handleCalendarDayDragOver}
+              onDayDrop={handleCalendarDayDrop}
+              onTaskDragEnd={clearDragState}
             />
           ) : !selectedTodoProjectId && view === "upcoming" ? (
             <TodoAgendaView

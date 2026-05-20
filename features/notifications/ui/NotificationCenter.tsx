@@ -43,7 +43,7 @@ interface NotificationCenterProps {
   isLoading: boolean;
   onRefresh: () => void;
   unreadCount: number;
-  anchor?: { top: number; right: number } | null;
+  anchor?: { top: number; left: number } | null;
   anchorRef?: React.RefObject<HTMLButtonElement | null>;
 }
 
@@ -167,18 +167,14 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
 
   useEffect(() => clearConfirmResetTimer, [clearConfirmResetTimer]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !anchor || typeof document === "undefined") return null;
 
   const panel = (
     <div
       ref={panelRef}
       data-help-id="notification-center"
-      style={
-        anchor
-          ? { position: "fixed", top: anchor.top, right: anchor.right }
-          : undefined
-      }
-      className="w-96 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl z-[100] animate-in fade-in zoom-in-95 duration-150"
+      style={{ position: "fixed", top: anchor.top, left: anchor.left }}
+      className="w-[26rem] max-w-[calc(100vw-1rem)] rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl z-[100] animate-in fade-in zoom-in-95 duration-150"
     >
       {/* Header */}
       <div data-help-id="notification-center-header" className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
@@ -268,8 +264,5 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     </div>
   );
 
-  if (anchor && typeof document !== "undefined") {
-    return createPortal(panel, document.body);
-  }
-  return panel;
+  return createPortal(panel, document.body);
 };
