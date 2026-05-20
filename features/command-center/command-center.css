@@ -2031,6 +2031,154 @@ html:not(.dark) .cc-funnel__bar-text {
   .cc-project-row > *:nth-child(n+3) { display: none; }
 }
 
+@media (max-width: 720px) {
+  .cc-root {
+    font-size: 0.78rem;
+    padding: 0.625rem 0.75rem 1.5rem;
+    background-attachment: scroll;
+  }
+
+  .cc-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .cc-header__brand {
+    font-size: 15px;
+  }
+
+  .cc-header__sub {
+    font-size: 10px;
+    letter-spacing: 0.7px;
+  }
+
+  .cc-header__actions {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+
+  .cc-header__actions .cc-btn {
+    flex: 1 1 132px;
+    justify-content: center;
+    min-width: 0;
+  }
+
+  .cc-stage,
+  .cc-zone,
+  .cc-zone--main,
+  .cc-zone--temporal {
+    gap: 10px;
+  }
+
+  .cc-zone--main-split,
+  .cc-zone--temporal-split {
+    grid-template-columns: 1fr !important;
+  }
+
+  .cc-zone--tactical-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .cc-kpi-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .cc-kpi {
+    padding: 10px 12px;
+  }
+
+  .cc-kpi__number {
+    font-size: 19px;
+    letter-spacing: 0;
+  }
+
+  .cc-alert-strip {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  .cc-alert-strip__label {
+    border-right: 0;
+    border-bottom: 1px solid rgba(255, 77, 94, 0.25);
+    padding: 0 0 8px;
+  }
+
+  .cc-alert-strip__label--quiet {
+    border-bottom-color: rgba(61, 214, 140, 0.25);
+  }
+
+  .cc-alert-strip__items {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 2px;
+  }
+
+  .cc-alert-item {
+    max-width: 100%;
+  }
+
+  .cc-filterbar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  .cc-filterbar__label,
+  .cc-filterbar__clear {
+    align-self: stretch;
+  }
+
+  .cc-filterbar__clear {
+    margin-left: 0;
+  }
+
+  .cc-root .cc-chip {
+    min-height: 28px;
+    white-space: normal;
+    line-height: 1.2;
+  }
+
+  .cc-panel__head {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 9px 12px;
+  }
+
+  .cc-panel__body {
+    padding: 10px;
+  }
+
+  .cc-project-stack {
+    padding: 8px;
+  }
+
+  .cc-project-row {
+    grid-template-columns: 10px minmax(0, 1fr);
+    padding: 10px 11px;
+  }
+
+  .cc-project-row__name,
+  .cc-project-row__sub,
+  .cc-row-value {
+    overflow-wrap: anywhere;
+  }
+
+  .cc-settings-overlay {
+    justify-content: stretch;
+  }
+
+  .cc-settings-panel {
+    width: 100%;
+    border-left: 0;
+  }
+}
+
 /* Light mode
  * Theme je řízen třídou .dark na <html> (viz hooks/useTheme.ts).
  * Když není přítomna, přepíšeme CSS proměnné na světlou paletu.

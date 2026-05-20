@@ -78,6 +78,7 @@ export interface CommandCenterModule {
 }
 
 export interface CommandCenterPreferences {
+  isVisible: boolean;
   enabledModules: Record<string, boolean>;
   moduleSettings: Record<string, Record<string, unknown>>;
   filterState?: Partial<CommandCenterFilterState>;
