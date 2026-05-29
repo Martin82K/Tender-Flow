@@ -26,7 +26,9 @@ const PRE_AUTH_CHANNELS = new Set([
   // Session management (needed for auto-login and session cleanup on startup)
   'session:getCredentials',
   'session:getCredentialsWithBiometric',
+  'session:getCredentialsWithPin',
   'session:isBiometricEnabled',
+  'session:isPinEnabled',
   // clearCredentials is needed pre-auth: startup clears corrupted sessions before login.
   // Risk: attacker could clear stored credentials (self-destructive, not a data leak).
   'session:clearCredentials',

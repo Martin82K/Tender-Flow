@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   CircleCheck,
   CircleX,
+  KeyRound,
   Laptop,
   LogOut,
   Monitor,
@@ -17,6 +18,7 @@ import {
   type MfaStatus,
 } from "@infra/auth/mfaService";
 import { authDeviceService, type AuthDevice } from "@infra/auth/deviceService";
+import { isDesktop, platformAdapter } from "@infra/platform/platformAdapter";
 import { useUI } from "@/context/UIContext";
 import { useAuth } from "@/context/AuthContext";
 
@@ -55,9 +57,13 @@ export const UserSecuritySettings: React.FC = () => {
   const [devices, setDevices] = useState<AuthDevice[]>([]);
   const [setupCode, setSetupCode] = useState("");
   const [disableCode, setDisableCode] = useState("");
+  const [pin, setPin] = useState("");
+  const [pinConfirm, setPinConfirm] = useState("");
+  const [isPinEnabled, setIsPinEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingDevices, setIsLoadingDevices] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isPinSaving, setIsPinSaving] = useState(false);
   const [revokingDeviceId, setRevokingDeviceId] = useState<string | null>(null);
   const [qrImageFailed, setQrImageFailed] = useState(false);
 
@@ -96,9 +102,19 @@ export const UserSecuritySettings: React.FC = () => {
     }
   };
 
+  const loadPinStatus = async () => {
+    if (!isDesktop) return;
+    try {
+      setIsPinEnabled(await platformAdapter.session.isPinEnabled());
+    } catch (error) {
+      console.error("Failed to load PIN status");
+    }
+  };
+
   useEffect(() => {
     void loadStatus();
     void loadDevices();
+    void loadPinStatus();
   }, []);
 
   const handleStartEnrollment = async () => {
@@ -232,6 +248,82 @@ export const UserSecuritySettings: React.FC = () => {
       });
     } finally {
       setRevokingDeviceId(null);
+    }
+  };
+
+  const handleSetPin = async () => {
+    const normalizedPin = pin.replace(/\D/g, "").slice(0, 12);
+    const normalizedConfirm = pinConfirm.replace(/\D/g, "").slice(0, 12);
+
+    if (normalizedPin.length < 6) {
+      showAlert({
+        title: "PIN je krátký",
+        message: "Zvolte alespoň 6 číslic.",
+        variant: "danger",
+      });
+      return;
+    }
+
+    if (normalizedPin !== normalizedConfirm) {
+      showAlert({
+        title: "PIN nesouhlasí",
+        message: "Obě pole musí obsahovat stejný PIN.",
+        variant: "danger",
+      });
+      return;
+    }
+
+    setIsPinSaving(true);
+    try {
+      await platformAdapter.session.setPin(normalizedPin);
+      setPin("");
+      setPinConfirm("");
+      setIsPinEnabled(true);
+      showAlert({
+        title: "PIN aktivován",
+        message: "Rychlé desktopové odemknutí PINem je zapnuté.",
+        variant: "success",
+      });
+    } catch (error) {
+      console.error("Failed to set PIN");
+      showAlert({
+        title: "Nastavení PINu selhalo",
+        message: "PIN se nepodařilo bezpečně uložit.",
+        variant: "danger",
+      });
+    } finally {
+      setIsPinSaving(false);
+    }
+  };
+
+  const handleClearPin = async () => {
+    const confirmed = await showConfirm({
+      title: "Vypnout PIN?",
+      message: "Rychlé odemknutí PINem bude na tomto zařízení vypnuté.",
+      variant: "danger",
+      confirmLabel: "Vypnout PIN",
+      cancelLabel: "Zrušit",
+    });
+    if (!confirmed) return;
+
+    setIsPinSaving(true);
+    try {
+      await platformAdapter.session.clearPin();
+      setIsPinEnabled(false);
+      showAlert({
+        title: "PIN vypnut",
+        message: "Rychlé odemknutí PINem bylo vypnuto.",
+        variant: "success",
+      });
+    } catch (error) {
+      console.error("Failed to clear PIN");
+      showAlert({
+        title: "Vypnutí PINu selhalo",
+        message: "PIN se nepodařilo vypnout.",
+        variant: "danger",
+      });
+    } finally {
+      setIsPinSaving(false);
     }
   };
 
@@ -375,6 +467,74 @@ export const UserSecuritySettings: React.FC = () => {
           </div>
         )}
       </section>
+
+      {isDesktop ? (
+        <section className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div className="flex items-start gap-4">
+              <div className={`rounded-xl p-3 ${isPinEnabled ? "bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300" : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-300"}`}>
+                <KeyRound className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-900 dark:text-white">
+                  Rychlé odemknutí PINem
+                </h3>
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                  PIN odemkne jen uloženou desktopovou session po úspěšném přihlášení. Pokud session ztratí AAL2, authenticator bude pořád vyžadovaný.
+                </p>
+              </div>
+            </div>
+
+            {isPinEnabled ? (
+              <span className="rounded-full border border-blue-300 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300">
+                Aktivní
+              </span>
+            ) : null}
+          </div>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-[minmax(0,1fr),minmax(0,1fr),auto]">
+            <input
+              aria-label="Nový PIN"
+              type="password"
+              inputMode="numeric"
+              autoComplete="new-password"
+              value={pin}
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 12))}
+              placeholder="Nový PIN"
+              className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+            />
+            <input
+              aria-label="Potvrzení PINu"
+              type="password"
+              inputMode="numeric"
+              autoComplete="new-password"
+              value={pinConfirm}
+              onChange={(e) => setPinConfirm(e.target.value.replace(/\D/g, "").slice(0, 12))}
+              placeholder="Potvrdit PIN"
+              className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+            />
+            <button
+              type="button"
+              onClick={() => void handleSetPin()}
+              disabled={isPinSaving || pin.length < 6 || pinConfirm.length < 6}
+              className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:opacity-50"
+            >
+              {isPinSaving ? "Ukládám..." : isPinEnabled ? "Změnit PIN" : "Zapnout PIN"}
+            </button>
+          </div>
+
+          {isPinEnabled ? (
+            <button
+              type="button"
+              onClick={() => void handleClearPin()}
+              disabled={isPinSaving}
+              className="mt-3 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50 disabled:opacity-50 dark:border-red-500/30 dark:bg-slate-900 dark:text-red-300 dark:hover:bg-red-500/10"
+            >
+              Vypnout PIN
+            </button>
+          ) : null}
+        </section>
+      ) : null}
 
       <section className="bg-white dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/40 rounded-2xl p-6 shadow-xl">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">

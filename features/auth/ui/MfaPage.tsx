@@ -3,6 +3,7 @@ import { useAuth } from "@/context/AuthContext";
 import { AuthCard } from "./AuthCard";
 import { Link, navigate, useLocation } from "@/shared/routing/router";
 import { DEFAULT_APP_URL } from "@/shared/routing/routeUtils";
+import { isDesktop } from "@features/auth/api";
 import logo from "@/assets/logo.svg";
 import "@/features/public/ui/landing-apex.css";
 import "@/features/auth/ui/auth-apex.css";
@@ -22,11 +23,13 @@ const getNext = (search: string) => {
 };
 
 export const MfaPage: React.FC = () => {
-  const { pendingMfa, verifyMfaLogin, refreshMfaStatus, logout } = useAuth();
+  const { pendingMfa, verifyMfaLogin, refreshMfaStatus, logout, loginWithPin, canUsePin } = useAuth();
   const { search } = useLocation();
   const [code, setCode] = useState("");
+  const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [pinLoading, setPinLoading] = useState(false);
   const [checking, setChecking] = useState(true);
 
   const nextPath = getNext(search);
@@ -74,6 +77,32 @@ export const MfaPage: React.FC = () => {
     }
   };
 
+  const onPinSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const normalizedPin = pin.replace(/\D/g, "").slice(0, 12);
+    if (normalizedPin.length < 6) return;
+
+    setError("");
+    setPinLoading(true);
+    try {
+      const result = await loginWithPin(normalizedPin);
+      if (result.status === "authenticated") {
+        setPin("");
+        navigate(nextPath, { replace: true });
+        return;
+      }
+      if (result.status === "mfa_required") {
+        setError("Tahle uložená session už vyžaduje authenticator. Zadejte aktuální 2FA kód.");
+        return;
+      }
+      setError("PIN se nepodařilo ověřit. Zadejte aktuální 2FA kód.");
+    } catch {
+      setError("PIN se nepodařilo ověřit. Zadejte aktuální 2FA kód.");
+    } finally {
+      setPinLoading(false);
+    }
+  };
+
   return (
     <div className="landing-apex auth-apex-page">
       <div className="auth-apex-grid" />
@@ -117,16 +146,42 @@ export const MfaPage: React.FC = () => {
 
           <button
             type="submit"
-            disabled={loading || checking || !code.trim()}
+            disabled={loading || pinLoading || checking || !code.trim()}
             className="auth-btn-primary"
           >
             {loading ? "Ověřuji..." : checking ? "Kontroluji..." : "Ověřit a pokračovat"}
           </button>
-
-          <div className="auth-links">
-            <Link to="/login">Zpět na přihlášení</Link>
-          </div>
         </form>
+
+        {isDesktop && canUsePin ? (
+          <form onSubmit={onPinSubmit} className="auth-form" style={{ marginTop: "1rem" }}>
+            <div className="auth-divider">
+              <span>nebo</span>
+            </div>
+            <input
+              type="password"
+              inputMode="numeric"
+              autoComplete="current-password"
+              placeholder="PIN"
+              value={pin}
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 12))}
+              className="auth-input"
+              disabled={loading || pinLoading || checking}
+              aria-label="PIN pro rychlé MFA odemknutí"
+            />
+            <button
+              type="submit"
+              disabled={loading || pinLoading || checking || pin.length < 6}
+              className="auth-btn-secondary"
+            >
+              {pinLoading ? "Ověřuji..." : "Odemknout PINem"}
+            </button>
+          </form>
+        ) : null}
+
+        <div className="auth-links">
+          <Link to="/login">Zpět na přihlášení</Link>
+        </div>
       </AuthCard>
     </div>
   );

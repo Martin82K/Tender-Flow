@@ -112,9 +112,13 @@ export interface SessionAPI {
     saveCredentials: (credentials: { refreshToken: string; email: string }) => Promise<void>;
     getCredentials: () => Promise<{ refreshToken: string; email: string } | null>;
     getCredentialsWithBiometric: (reason: string) => Promise<{ refreshToken: string; email: string } | null>;
+    getCredentialsWithPin: (pin: string) => Promise<{ refreshToken: string; email: string } | null>;
     clearCredentials: () => Promise<void>;
     setBiometricEnabled: (enabled: boolean) => Promise<void>;
     isBiometricEnabled: () => Promise<boolean>;
+    setPin: (pin: string) => Promise<void>;
+    clearPin: () => Promise<void>;
+    isPinEnabled: () => Promise<boolean>;
 }
 
 export interface NetworkAPI {

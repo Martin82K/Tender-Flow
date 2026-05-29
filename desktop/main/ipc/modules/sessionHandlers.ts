@@ -1,4 +1,5 @@
 import { ipcMain, BrowserWindow } from "electron";
+import { pbkdf2, randomBytes, timingSafeEqual } from "crypto";
 import { SecureStorageService } from "../../services/secureStorage";
 import { getBiometricAuthService } from "../../services/biometricAuth";
 
@@ -9,6 +10,136 @@ interface SessionHandlerDependencies {
 
 const SESSION_CREDENTIALS_KEY = "session_credentials";
 const BIOMETRIC_ENABLED_KEY = "biometric_enabled";
+const PIN_HASH_KEY = "session_pin_hash";
+const PIN_ENABLED_KEY = "session_pin_enabled";
+const PIN_PBKDF2_ITERATIONS = 310000;
+const PIN_MIN_LENGTH = 6;
+const PIN_MAX_LENGTH = 12;
+const PIN_MAX_ATTEMPTS = 5;
+const PIN_LOCK_MS = 5 * 60 * 1000;
+
+let failedPinAttempts = 0;
+let pinLockedUntil = 0;
+
+interface StoredPinHash {
+  version: 1;
+  algorithm: "pbkdf2-sha256";
+  iterations: number;
+  salt: string;
+  hash: string;
+}
+
+const normalizePin = (pin: unknown): string => {
+  if (typeof pin !== "string") return "";
+  return pin.replace(/\D/g, "").slice(0, PIN_MAX_LENGTH);
+};
+
+const validatePin = (pin: string): void => {
+  if (!/^\d+$/.test(pin) || pin.length < PIN_MIN_LENGTH || pin.length > PIN_MAX_LENGTH) {
+    throw new Error("PIN_POLICY_VIOLATION");
+  }
+};
+
+const derivePinHash = async (
+  pin: string,
+  salt: Buffer,
+  iterations: number,
+): Promise<Buffer> =>
+  new Promise((resolve, reject) => {
+    pbkdf2(pin, salt, iterations, 32, "sha256", (error, derivedKey) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve(derivedKey);
+    });
+  });
+
+const createStoredPinHash = async (pin: string): Promise<StoredPinHash> => {
+  validatePin(pin);
+  const salt = randomBytes(16);
+  const hash = await derivePinHash(pin, salt, PIN_PBKDF2_ITERATIONS);
+  return {
+    version: 1,
+    algorithm: "pbkdf2-sha256",
+    iterations: PIN_PBKDF2_ITERATIONS,
+    salt: salt.toString("base64"),
+    hash: hash.toString("base64"),
+  };
+};
+
+const readStoredPinHash = async (
+  storageService: SecureStorageService,
+): Promise<StoredPinHash | null> => {
+  const raw = await storageService.get(PIN_HASH_KEY);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<StoredPinHash>;
+    if (
+      parsed.version !== 1 ||
+      parsed.algorithm !== "pbkdf2-sha256" ||
+      typeof parsed.iterations !== "number" ||
+      typeof parsed.salt !== "string" ||
+      typeof parsed.hash !== "string"
+    ) {
+      return null;
+    }
+    return parsed as StoredPinHash;
+  } catch {
+    return null;
+  }
+};
+
+const verifyStoredPin = async (
+  storageService: SecureStorageService,
+  rawPin: unknown,
+): Promise<boolean> => {
+  const now = Date.now();
+  if (pinLockedUntil > now) return false;
+
+  const pin = normalizePin(rawPin);
+  const stored = await readStoredPinHash(storageService);
+  if (!stored) return false;
+
+  let matches = false;
+  try {
+    validatePin(pin);
+    const expected = Buffer.from(stored.hash, "base64");
+    const actual = await derivePinHash(pin, Buffer.from(stored.salt, "base64"), stored.iterations);
+    matches = expected.length === actual.length && timingSafeEqual(expected, actual);
+  } catch {
+    matches = false;
+  }
+
+  if (matches) {
+    failedPinAttempts = 0;
+    pinLockedUntil = 0;
+    return true;
+  }
+
+  failedPinAttempts += 1;
+  if (failedPinAttempts >= PIN_MAX_ATTEMPTS) {
+    pinLockedUntil = now + PIN_LOCK_MS;
+    failedPinAttempts = 0;
+  }
+  return false;
+};
+
+const readSessionCredentials = async (
+  storageService: SecureStorageService,
+): Promise<{ refreshToken: string; email: string } | null> => {
+  const data = await storageService.get(SESSION_CREDENTIALS_KEY);
+  if (!data) return null;
+  try {
+    const parsed = JSON.parse(data) as { refreshToken?: unknown; email?: unknown };
+    if (typeof parsed.refreshToken !== "string" || typeof parsed.email !== "string") {
+      return null;
+    }
+    return { refreshToken: parsed.refreshToken, email: parsed.email };
+  } catch {
+    return null;
+  }
+};
 
 export const registerSessionHandlers = ({
   storageService,
@@ -28,20 +159,15 @@ export const registerSessionHandlers = ({
   // This prevents bypassing biometric verification to access stored tokens.
   ipcMain.handle("session:getCredentials", async (): Promise<{ refreshToken: string; email: string } | null> => {
     const biometricEnabled = await storageService.get(BIOMETRIC_ENABLED_KEY);
-    if (biometricEnabled === "true") {
-      // Biometric is enabled — refuse to return credentials without biometric verification.
-      // Renderer must use session:getCredentialsWithBiometric instead.
-      console.log("[SessionHandlers] getCredentials denied: biometric is enabled, use getCredentialsWithBiometric");
+    const pinEnabled = await storageService.get(PIN_ENABLED_KEY);
+    if (biometricEnabled === "true" || pinEnabled === "true") {
+      // Local unlock is enabled — refuse to return credentials without a local factor.
+      // Renderer must use session:getCredentialsWithBiometric or session:getCredentialsWithPin instead.
+      console.log("[SessionHandlers] getCredentials denied: local unlock is enabled");
       return null;
     }
 
-    const data = await storageService.get(SESSION_CREDENTIALS_KEY);
-    if (!data) return null;
-    try {
-      return JSON.parse(data);
-    } catch {
-      return null;
-    }
+    return readSessionCredentials(storageService);
   });
 
   // Pre-auth: Atomic biometric verification + credential retrieval in the main process.
@@ -51,15 +177,15 @@ export const registerSessionHandlers = ({
     "session:getCredentialsWithBiometric",
     async (event, reason: string): Promise<{ refreshToken: string; email: string } | null> => {
       const biometricEnabled = await storageService.get(BIOMETRIC_ENABLED_KEY);
+      const pinEnabled = await storageService.get(PIN_ENABLED_KEY);
       if (biometricEnabled !== "true") {
-        // Biometric not enabled, just return credentials normally
-        const data = await storageService.get(SESSION_CREDENTIALS_KEY);
-        if (!data) return null;
-        try { return JSON.parse(data); } catch { return null; }
+        if (pinEnabled === "true") return null;
+        // No local unlock is enabled, just return credentials normally.
+        return readSessionCredentials(storageService);
       }
 
-      const data = await storageService.get(SESSION_CREDENTIALS_KEY);
-      if (!data) return null;
+      const credentials = await readSessionCredentials(storageService);
+      if (!credentials) return null;
 
       // Perform biometric verification in the main process
       const biometricService = getBiometricAuthService();
@@ -76,7 +202,29 @@ export const registerSessionHandlers = ({
       }
 
       console.log("[SessionHandlers] Biometric verification succeeded, returning credentials");
-      try { return JSON.parse(data); } catch { return null; }
+      return credentials;
+    },
+  );
+
+  // Pre-auth: Atomic PIN verification + credential retrieval in the main process.
+  // The renderer never receives the PIN hash or credentials before verification.
+  ipcMain.handle(
+    "session:getCredentialsWithPin",
+    async (_event, pin: string): Promise<{ refreshToken: string; email: string } | null> => {
+      const pinEnabled = await storageService.get(PIN_ENABLED_KEY);
+      if (pinEnabled !== "true") return null;
+
+      const credentials = await readSessionCredentials(storageService);
+      if (!credentials) return null;
+
+      const success = await verifyStoredPin(storageService, pin);
+      if (!success) {
+        console.log("[SessionHandlers] PIN verification failed/cancelled");
+        return null;
+      }
+
+      console.log("[SessionHandlers] PIN verification succeeded, returning credentials");
+      return credentials;
     },
   );
 
@@ -96,5 +244,30 @@ export const registerSessionHandlers = ({
   ipcMain.handle("session:isBiometricEnabled", async (): Promise<boolean> => {
     const value = await storageService.get(BIOMETRIC_ENABLED_KEY);
     return value === "true";
+  });
+
+  // Auth required: changing PIN settings
+  ipcMain.handle("session:setPin", async (event, pin: string): Promise<void> => {
+    requireAuth(event.sender, "session:setPin");
+    const normalizedPin = normalizePin(pin);
+    const storedHash = await createStoredPinHash(normalizedPin);
+    await storageService.set(PIN_HASH_KEY, JSON.stringify(storedHash));
+    await storageService.set(PIN_ENABLED_KEY, "true");
+    failedPinAttempts = 0;
+    pinLockedUntil = 0;
+  });
+
+  ipcMain.handle("session:clearPin", async (event): Promise<void> => {
+    requireAuth(event.sender, "session:clearPin");
+    await storageService.delete(PIN_HASH_KEY);
+    await storageService.set(PIN_ENABLED_KEY, "false");
+    failedPinAttempts = 0;
+    pinLockedUntil = 0;
+  });
+
+  // Pre-auth: needed for login screen PIN UI
+  ipcMain.handle("session:isPinEnabled", async (): Promise<boolean> => {
+    const value = await storageService.get(PIN_ENABLED_KEY);
+    return value === "true" && Boolean(await readStoredPinHash(storageService));
   });
 };

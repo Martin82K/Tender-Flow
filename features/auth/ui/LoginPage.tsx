@@ -4,7 +4,7 @@ import { AuthCard } from "./AuthCard";
 import { Link, navigate, useLocation } from "@/shared/routing/router";
 import { DEFAULT_APP_URL } from "@/shared/routing/routeUtils";
 import { isDesktop, platformAdapter } from "@features/auth/api";
-import { Fingerprint } from "lucide-react";
+import { Fingerprint, KeyRound } from "lucide-react";
 import logo from "@/assets/logo.svg";
 import "@/features/public/ui/landing-apex.css";
 import "@/features/auth/ui/auth-apex.css";
@@ -24,13 +24,15 @@ const getNext = (search: string) => {
 };
 
 export const LoginPage: React.FC = () => {
-  const { login, loginWithBiometric, canUseBiometric, hasSavedCredentials } = useAuth();
+  const { login, loginWithBiometric, loginWithPin, canUseBiometric, canUsePin, hasSavedCredentials } = useAuth();
   const { search } = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [biometricLoading, setBiometricLoading] = useState(false);
+  const [pinLoading, setPinLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
 
   const nextPath = getNext(search);
@@ -39,6 +41,7 @@ export const LoginPage: React.FC = () => {
   const biometricLabel = platformAdapter.platform.os === "win32" ? "Windows Hello" : "Touch ID / Face ID";
 
   const showBiometricButton = isDesktop && canUseBiometric && hasSavedCredentials;
+  const showPinUnlock = isDesktop && canUsePin;
 
   const handleBiometricLogin = async () => {
     if (biometricLoading) return;
@@ -57,6 +60,30 @@ export const LoginPage: React.FC = () => {
       setError(err?.message || "Chyba při biometrickém přihlášení");
     } finally {
       setBiometricLoading(false);
+    }
+  };
+
+  const handlePinLogin = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const normalizedPin = pin.replace(/\D/g, "").slice(0, 12);
+    if (pinLoading || normalizedPin.length < 6) return;
+
+    setError("");
+    setPinLoading(true);
+    try {
+      const result = await loginWithPin(normalizedPin);
+      if (result.status === "authenticated") {
+        setPin("");
+        navigate(nextPath, { replace: true });
+      } else if (result.status === "mfa_required") {
+        navigate(`/mfa?next=${encodeURIComponent(nextPath)}`, { replace: true });
+      } else {
+        setError("PIN se nepodařilo ověřit. Použijte heslo nebo authenticator.");
+      }
+    } catch (err: any) {
+      setError(err?.message || "Chyba při ověření PINu");
+    } finally {
+      setPinLoading(false);
     }
   };
 
@@ -179,6 +206,36 @@ export const LoginPage: React.FC = () => {
                 <Fingerprint className="auth-btn-icon" />
                 {biometricLoading ? "Ověřuji..." : `Přihlásit přes ${biometricLabel}`}
               </button>
+            </>
+          )}
+
+          {showPinUnlock && (
+            <>
+              <div className="auth-divider">
+                <span>nebo</span>
+              </div>
+              <div className="auth-form" style={{ gap: "0.75rem" }}>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  autoComplete="current-password"
+                  placeholder="PIN"
+                  value={pin}
+                  onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 12))}
+                  className="auth-input"
+                  disabled={loading || biometricLoading || pinLoading}
+                  aria-label="PIN pro rychlé přihlášení"
+                />
+                <button
+                  type="button"
+                  onClick={() => void handlePinLogin()}
+                  disabled={loading || biometricLoading || pinLoading || pin.length < 6}
+                  className="auth-btn-secondary"
+                >
+                  <KeyRound className="auth-btn-icon" />
+                  {pinLoading ? "Ověřuji..." : "Přihlásit přes PIN"}
+                </button>
+              </div>
             </>
           )}
 

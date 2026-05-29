@@ -39,6 +39,7 @@ interface AuthContextType {
   user: User | null;
   login: (email: string, password: string, rememberMe?: boolean) => Promise<AuthLoginResult>;
   loginWithBiometric: () => Promise<AuthLoginResult>;
+  loginWithPin: (pin: string) => Promise<AuthLoginResult>;
   register: (
     name: string,
     email: string,
@@ -52,6 +53,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   canUseBiometric: boolean;
+  canUsePin: boolean;
   hasSavedCredentials: boolean;
   pendingMfa: MfaLoginChallenge | null;
   verifyMfaLogin: (code: string) => Promise<AuthLoginResult>;
@@ -87,6 +89,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [canUseBiometric, setCanUseBiometric] = useState(false);
+  const [canUsePin, setCanUsePin] = useState(false);
   const [hasSavedCredentials, setHasSavedCredentials] = useState(false);
   const [pendingMfa, setPendingMfa] = useState<MfaLoginChallenge | null>(null);
   const authEventRef = useRef(false);
@@ -197,9 +200,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       if (!isDesktop) return;
 
       try {
-        const [available, enabled, credentials] = await Promise.all([
+        const [available, enabled, pinEnabled, credentials] = await Promise.all([
           platformAdapter.biometric.isAvailable(),
           platformAdapter.session.isBiometricEnabled(),
+          platformAdapter.session.isPinEnabled(),
           platformAdapter.session.getCredentials(),
         ]);
 
@@ -217,11 +221,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
             await platformAdapter.session.clearCredentials();
             setHasSavedCredentials(false);
             setCanUseBiometric(available && enabled);
+            setCanUsePin(pinEnabled);
             return;
           }
         }
 
         setCanUseBiometric(available && enabled);
+        setCanUsePin(pinEnabled);
         setHasSavedCredentials(!!credentials);
 
         console.debug("[AuthContext] Biometric check:", { available, enabled, hasCredentials: !!credentials });
@@ -294,6 +300,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       if (!isDesktop || biometricLoginAttemptedRef.current) return "skipped";
 
       const biometricEnabled = await platformAdapter.session.isBiometricEnabled();
+      const pinEnabled = await platformAdapter.session.isPinEnabled();
 
       // Use atomic biometric+credential retrieval when biometric is enabled.
       // This ensures the biometric check runs in the main process — the renderer
@@ -308,6 +315,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           console.debug("[AuthContext] Auto-login: Biometric cancelled or no credentials");
           return "cancelled";
         }
+      } else if (pinEnabled) {
+        setCanUsePin(true);
+        console.debug("[AuthContext] Auto-login: PIN unlock is enabled, waiting for explicit PIN entry");
+        return "skipped";
       } else {
         credentials = await platformAdapter.session.getCredentials();
       }
@@ -806,6 +817,105 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     }
   };
 
+  const loginWithPin = async (pin: string): Promise<AuthLoginResult> => {
+    if (!isDesktop) {
+      console.warn("[AuthContext] PIN login only available on desktop");
+      return { status: "failed" };
+    }
+
+    const normalizedPin = pin.replace(/\D/g, "").slice(0, 12);
+    if (normalizedPin.length < 6) {
+      return { status: "failed" };
+    }
+
+    try {
+      const pinEnabled = await platformAdapter.session.isPinEnabled();
+      if (!pinEnabled) {
+        setCanUsePin(false);
+        return { status: "failed" };
+      }
+
+      const credentials = await platformAdapter.session.getCredentialsWithPin(normalizedPin);
+      if (!credentials) {
+        return { status: "failed" };
+      }
+
+      const { data, error } = await authSessionService.refreshSession(
+        credentials.refreshToken,
+      );
+
+      if (error || !data.session) {
+        void logIncident({
+          severity: "error",
+          source: "renderer",
+          category: "auth",
+          code: isInvalidRefreshError(error)
+            ? "AUTH_PIN_INVALID_REFRESH_TOKEN"
+            : "AUTH_PIN_REFRESH_FAILED",
+          message: "PIN login: refresh failed",
+          stack: error instanceof Error ? error.stack : null,
+          context: {
+            operation: "auth.pin.refresh_session",
+          },
+        });
+        if (isInvalidRefreshError(error)) {
+          await authSessionService.invalidateAuthState({
+            navigateToLogin: false,
+            reason: "invalid_refresh_token",
+          });
+        } else {
+          await platformAdapter.session.clearCredentials();
+        }
+        setHasSavedCredentials(false);
+        return { status: "failed" };
+      }
+
+      const mfaRequired = await prepareMfaIfNeeded({
+        email: credentials.email,
+        rememberMe: true,
+        refreshToken: data.session.refresh_token,
+      });
+
+      if (mfaRequired) {
+        return { status: "mfa_required" };
+      }
+
+      const currentUser = await hydrateAuthenticatedSession(data.session);
+      if (!currentUser) return { status: "failed" };
+
+      if (data.session.refresh_token) {
+        await platformAdapter.session.saveCredentials({
+          refreshToken: data.session.refresh_token,
+          email: credentials.email,
+        });
+      }
+
+      setHasSavedCredentials(true);
+      setCanUsePin(true);
+      return { status: "authenticated" };
+    } catch (error) {
+      console.error("[AuthContext] PIN login error");
+      void logIncident({
+        severity: "error",
+        source: "renderer",
+        category: "auth",
+        code: "AUTH_PIN_EXCEPTION",
+        message: "PIN login exception",
+        stack: error instanceof Error ? error.stack : null,
+        context: {
+          operation: "auth.pin.exception",
+        },
+      });
+      if (isInvalidRefreshError(error)) {
+        await authSessionService.invalidateAuthState({
+          navigateToLogin: false,
+          reason: "invalid_refresh_token",
+        });
+      }
+      return { status: "failed" };
+    }
+  };
+
   const refreshMfaStatus = useCallback(async (): Promise<MfaStatus> => {
     const status = await mfaService.getStatus();
     const factor = status.verifiedFactors.find((item) => item.factorType === "totp") ??
@@ -978,6 +1088,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         user,
         login,
         loginWithBiometric,
+        loginWithPin,
         register,
         acceptLegalDocuments,
         updatePreferences,
@@ -986,6 +1097,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         isAuthenticated: !!user,
         isLoading,
         canUseBiometric,
+        canUsePin,
         hasSavedCredentials,
         pendingMfa,
         verifyMfaLogin,

@@ -569,6 +569,17 @@ export const sessionAdapter = {
     },
 
     /**
+     * Get credentials with local PIN verification (desktop only).
+     * The PIN check runs in the main process and never exposes the PIN hash to the renderer.
+     */
+    async getCredentialsWithPin(pin: string): Promise<{ refreshToken: string; email: string } | null> {
+        if (isDesktop && window.electronAPI?.session?.getCredentialsWithPin) {
+            return window.electronAPI.session.getCredentialsWithPin(pin);
+        }
+        return null;
+    },
+
+    /**
      * Clear stored session credentials
      */
     async clearCredentials(): Promise<void> {
@@ -600,6 +611,29 @@ export const sessionAdapter = {
         }
         // Web: check localStorage
         return localStorage.getItem('biometric_enabled') === 'true';
+    },
+
+    /**
+     * Configure a desktop local unlock PIN.
+     */
+    async setPin(pin: string): Promise<void> {
+        if (isDesktop && window.electronAPI?.session?.setPin) {
+            return window.electronAPI.session.setPin(pin);
+        }
+        throw new Error('PIN unlock is only available in desktop app.');
+    },
+
+    async clearPin(): Promise<void> {
+        if (isDesktop && window.electronAPI?.session?.clearPin) {
+            return window.electronAPI.session.clearPin();
+        }
+    },
+
+    async isPinEnabled(): Promise<boolean> {
+        if (isDesktop && window.electronAPI?.session?.isPinEnabled) {
+            return window.electronAPI.session.isPinEnabled();
+        }
+        return false;
     },
 };
 

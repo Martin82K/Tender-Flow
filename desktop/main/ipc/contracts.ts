@@ -58,9 +58,16 @@ export interface IpcContractMap {
     args: [reason: string];
     result: { refreshToken: string; email: string } | null;
   };
+  "session:getCredentialsWithPin": {
+    args: [pin: string];
+    result: { refreshToken: string; email: string } | null;
+  };
   "session:clearCredentials": { args: []; result: void };
   "session:setBiometricEnabled": { args: [enabled: boolean]; result: void };
   "session:isBiometricEnabled": { args: []; result: boolean };
+  "session:setPin": { args: [pin: string]; result: void };
+  "session:clearPin": { args: []; result: void };
+  "session:isPinEnabled": { args: []; result: boolean };
   "mcp:setCurrentProject": { args: [projectId: string | null]; result: void };
   "mcp:setAuthToken": { args: [token: string | null]; result: void };
   "mcp:getStatus": {

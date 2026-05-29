@@ -186,6 +186,9 @@ const electronAPI: ElectronAPI = {
         getCredentialsWithBiometric: (reason: string): Promise<{ refreshToken: string; email: string } | null> =>
             invokeTyped('session:getCredentialsWithBiometric', reason),
 
+        getCredentialsWithPin: (pin: string): Promise<{ refreshToken: string; email: string } | null> =>
+            invokeTyped('session:getCredentialsWithPin', pin),
+
         clearCredentials: (): Promise<void> =>
             invokeTyped('session:clearCredentials'),
 
@@ -194,6 +197,15 @@ const electronAPI: ElectronAPI = {
 
         isBiometricEnabled: (): Promise<boolean> =>
             invokeTyped('session:isBiometricEnabled'),
+
+        setPin: (pin: string): Promise<void> =>
+            invokeTyped('session:setPin', pin),
+
+        clearPin: (): Promise<void> =>
+            invokeTyped('session:clearPin'),
+
+        isPinEnabled: (): Promise<boolean> =>
+            invokeTyped('session:isPinEnabled'),
     },
 
     // Network proxy for CORS bypass

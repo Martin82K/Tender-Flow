@@ -8,6 +8,7 @@ interface SetupOptions {
   isDesktop: boolean;
   credentials: SessionCredentials;
   biometricEnabled: boolean;
+  pinEnabled?: boolean;
   biometricPromptResult?: boolean;
   refreshSessionResult?: { data: { session: any | null }; error: any | null };
   currentUser?: any;
@@ -76,16 +77,20 @@ const setup = async (options: SetupOptions) => {
       },
       session: {
         isBiometricEnabled: vi.fn().mockResolvedValue(options.biometricEnabled),
+        isPinEnabled: vi.fn().mockResolvedValue(options.pinEnabled ?? false),
         getCredentials: vi.fn().mockResolvedValue(
           // When biometric is enabled, getCredentials returns null (must use getCredentialsWithBiometric)
-          options.biometricEnabled ? null : options.credentials,
+          options.biometricEnabled || options.pinEnabled ? null : options.credentials,
         ),
         getCredentialsWithBiometric: vi.fn().mockResolvedValue(
           options.biometricPromptResult === false ? null : options.credentials,
         ),
+        getCredentialsWithPin: vi.fn().mockResolvedValue(options.credentials),
         clearCredentials: vi.fn().mockResolvedValue(undefined),
         saveCredentials: mockState.saveCredentials,
         setBiometricEnabled: vi.fn().mockResolvedValue(undefined),
+        setPin: vi.fn().mockResolvedValue(undefined),
+        clearPin: vi.fn().mockResolvedValue(undefined),
       },
       auth: {
         setAuthenticated: mockState.setAuthenticated,

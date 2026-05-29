@@ -87,6 +87,19 @@ describe('Biometric bypass prevention', () => {
     expect(result).toEqual({ refreshToken: 'secret-token-12345', email: 'user@test.com' });
   });
 
+  it('getCredentials returns null when PIN unlock is enabled', async () => {
+    mockStorageData.set('biometric_enabled', 'false');
+    mockStorageData.set('session_pin_enabled', 'true');
+    mockStorageData.set(
+      'session_credentials',
+      JSON.stringify({ refreshToken: 'secret-token-12345', email: 'user@test.com' }),
+    );
+
+    const handler = handlers.get('session:getCredentials');
+    const result = await handler!({} as any);
+    expect(result).toBeNull();
+  });
+
   it('getCredentialsWithBiometric requires biometric verification before returning credentials', async () => {
     // Setup: biometric enabled + credentials stored
     mockStorageData.set('biometric_enabled', 'true');
@@ -139,6 +152,57 @@ describe('Biometric bypass prevention', () => {
     expect(result).toEqual({ refreshToken: 'secret-token-12345', email: 'user@test.com' });
     // Biometric should NOT have been called
     expect(mockBiometricPrompt).not.toHaveBeenCalled();
+  });
+
+  it('getCredentialsWithBiometric does not bypass PIN unlock when biometric is disabled', async () => {
+    mockStorageData.set('biometric_enabled', 'false');
+    mockStorageData.set('session_pin_enabled', 'true');
+    mockStorageData.set(
+      'session_credentials',
+      JSON.stringify({ refreshToken: 'secret-token-12345', email: 'user@test.com' }),
+    );
+
+    const handler = handlers.get('session:getCredentialsWithBiometric');
+    const result = await handler!({} as any, 'Test reason');
+    expect(result).toBeNull();
+    expect(mockBiometricPrompt).not.toHaveBeenCalled();
+  });
+
+  it('getCredentialsWithPin verifies PIN in main process before returning credentials', async () => {
+    mockStorageData.set('biometric_enabled', 'false');
+    mockStorageData.set(
+      'session_credentials',
+      JSON.stringify({ refreshToken: 'secret-token-12345', email: 'user@test.com' }),
+    );
+
+    const setPin = handlers.get('session:setPin');
+    const getWithPin = handlers.get('session:getCredentialsWithPin');
+    expect(setPin).toBeDefined();
+    expect(getWithPin).toBeDefined();
+
+    const mockEvent = { sender: {} } as any;
+    await setPin!(mockEvent, '123456');
+
+    expect(mockStorageData.get('session_pin_enabled')).toBe('true');
+    expect(mockStorageData.get('session_pin_hash')).not.toContain('123456');
+    await expect(getWithPin!(mockEvent, '000000')).resolves.toBeNull();
+    await expect(getWithPin!(mockEvent, '123456')).resolves.toEqual({
+      refreshToken: 'secret-token-12345',
+      email: 'user@test.com',
+    });
+  });
+
+  it('setPin validates PIN policy and requires authentication', async () => {
+    const setPin = handlers.get('session:setPin');
+    const mockEvent = { sender: {} } as any;
+
+    await expect(setPin!(mockEvent, '12345')).rejects.toThrow('PIN_POLICY_VIOLATION');
+
+    mockRequireAuth.mockImplementation(() => {
+      throw new Error('IPC_AUTH_DENIED: not authenticated');
+    });
+
+    await expect(setPin!(mockEvent, '123456')).rejects.toThrow('IPC_AUTH_DENIED');
   });
 
   it('saveCredentials requires authentication', async () => {

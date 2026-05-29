@@ -105,7 +105,9 @@ describe('IPC Auth Guard security', () => {
     expect(ipcAuthGuard.isPreAuthChannel('biometric:prompt')).toBe(true);
     expect(ipcAuthGuard.isPreAuthChannel('session:getCredentials')).toBe(true);
     expect(ipcAuthGuard.isPreAuthChannel('session:getCredentialsWithBiometric')).toBe(true);
+    expect(ipcAuthGuard.isPreAuthChannel('session:getCredentialsWithPin')).toBe(true);
     expect(ipcAuthGuard.isPreAuthChannel('session:isBiometricEnabled')).toBe(true);
+    expect(ipcAuthGuard.isPreAuthChannel('session:isPinEnabled')).toBe(true);
     expect(ipcAuthGuard.isPreAuthChannel('session:clearCredentials')).toBe(true);
     expect(ipcAuthGuard.isPreAuthChannel('app:getVersion')).toBe(true);
     expect(ipcAuthGuard.isPreAuthChannel('dialog:showMessage')).toBe(true);
@@ -118,6 +120,8 @@ describe('IPC Auth Guard security', () => {
     expect(ipcAuthGuard.isPreAuthChannel('fs:deleteFolder')).toBe(false);
     expect(ipcAuthGuard.isPreAuthChannel('session:saveCredentials')).toBe(false);
     expect(ipcAuthGuard.isPreAuthChannel('session:setBiometricEnabled')).toBe(false);
+    expect(ipcAuthGuard.isPreAuthChannel('session:setPin')).toBe(false);
+    expect(ipcAuthGuard.isPreAuthChannel('session:clearPin')).toBe(false);
     expect(ipcAuthGuard.isPreAuthChannel('storage:get')).toBe(false);
     expect(ipcAuthGuard.isPreAuthChannel('storage:set')).toBe(false);
     expect(ipcAuthGuard.isPreAuthChannel('python:runTool')).toBe(false);
