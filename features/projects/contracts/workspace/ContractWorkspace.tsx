@@ -97,13 +97,8 @@ export const ContractWorkspace: React.FC<Props> = ({ contract, onEditContract, o
         </div>
       </div>
 
-      <div data-help-id="contract-detail-with-rail" className="flex-1 overflow-hidden grid grid-cols-[160px_1fr]">
-        <WorkspaceNav
-          sections={sections}
-          active={activeSection}
-          onNavigate={scrollToSection}
-        />
-        <div ref={scrollContainerRef} className="overflow-y-auto px-6 py-2">
+      <div data-help-id="contract-detail-with-rail" className="flex-1 overflow-hidden flex">
+        <div ref={scrollContainerRef} className="flex-1 min-w-0 overflow-y-auto px-6 py-2">
           <HeaderSection contract={contract} onChanged={onRefresh} />
           <OcrDocumentSection contract={contract} onRefresh={onRefresh} />
           <FinancialSection contract={contract} />
@@ -113,6 +108,11 @@ export const ContractWorkspace: React.FC<Props> = ({ contract, onEditContract, o
           <RetentionSection contract={contract} onRefresh={onRefresh} />
           <WarrantySection contract={contract} />
         </div>
+        <WorkspaceNav
+          sections={sections}
+          active={activeSection}
+          onNavigate={scrollToSection}
+        />
       </div>
     </section>
   );

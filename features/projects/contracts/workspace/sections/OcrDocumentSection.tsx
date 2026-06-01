@@ -11,6 +11,7 @@ import { contractMutationsApi, contractQueriesApi } from '../../api';
 import { MarkdownDocumentPanel } from '@/shared/contracts/MarkdownDocumentPanel';
 import { Modal } from '@/shared/ui/Modal';
 import { formatDate } from '../../utils/format';
+import { buildContractUpdateFromOcr } from '../../utils/contractOcrUpdate';
 
 const getSafeDocumentUrl = (value: string | undefined): string | null => {
   if (!value) return null;
@@ -199,10 +200,15 @@ export const OcrDocumentSection: React.FC<Props> = ({ contract, onRefresh }) => 
         }
       }
 
+      const { updates: extractedContractUpdates, appliedFields } =
+        buildContractUpdateFromOcr(result);
+
       await contractMutationsApi.updateContract(contract.id, {
+        ...extractedContractUpdates,
         extractionJson: {
           fields: result.fields,
           confidence: result.confidence,
+          appliedContractFields: appliedFields,
           ocrProvider: result.ocrProvider,
           ocrModel: result.ocrModel,
           sourceFileName: result.sourceFileName,

@@ -27,6 +27,7 @@ VÝSTUP MUSÍ BÝT VALIDNÍ JSON v tomto formátu:
     "signedAt": "YYYY-MM-DD",
     "effectiveFrom": "YYYY-MM-DD",
     "effectiveTo": "YYYY-MM-DD",
+    "completionDate": "YYYY-MM-DD",
     "basePrice": 123456.00,
     "currency": "CZK",
     "retentionShortPercent": 5.0,
@@ -45,6 +46,7 @@ VÝSTUP MUSÍ BÝT VALIDNÍ JSON v tomto formátu:
     "signedAt": 0.80,
     "effectiveFrom": 0.85,
     "effectiveTo": 0.70,
+    "completionDate": 0.80,
     "basePrice": 0.85,
     "currency": 0.99,
     "retentionShortPercent": 0.75,
@@ -64,8 +66,10 @@ PRAVIDLA:
 4. basePrice musí být číslo bez měny (pouze numerická hodnota).
 5. Datumy vždy v formátu YYYY-MM-DD.
 6. Hledej tyto alternativní názvy:
-   - vendorName: "zhotovitel", "dodavatel", "poskytovatel"
+   - vendorName: "zhotovitel", "dodavatel", "poskytovatel"; NEPOUŽÍVEJ "objednatel" ani "investor", pokud je ve smlouvě uveden zhotovitel/dodavatel
    - vendorIco: "IČ", "IČO", "IČ zhotovitele", "IČ dodavatele"
+   - signedAt: "datum podpisu", "uzavřeno dne", "podepsáno dne"
+   - completionDate: "termín dokončení díla", "dokončení díla", "termín předání", "předání díla", "do ... dokončí"
    - basePrice: "cena díla", "celková cena", "smluvní cena", "cena za dílo", "činí"
    - Hledej částku v blízkosti slova "činí" nebo "celková cena".
    - Částka může být formátována s tečkami jako oddělovači tisíců (např. 4.530.832,00) nebo mezerami.
