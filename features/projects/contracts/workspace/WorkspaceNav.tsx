@@ -23,7 +23,7 @@ interface Props {
 }
 
 export const WorkspaceNav: React.FC<Props> = ({ sections, active, onNavigate }) => (
-  <nav data-help-id="contract-detail-rail" className="bg-slate-50 dark:bg-slate-950/60 border-r border-slate-200 dark:border-slate-800 p-3 flex flex-col gap-1 overflow-y-auto">
+  <nav data-help-id="contract-detail-rail" className="w-40 flex-none bg-slate-50 dark:bg-slate-950/60 border-l border-slate-200 dark:border-slate-800 p-3 flex flex-col gap-1 overflow-y-auto">
     {sections.map((s) => (
       <button
         key={s.id}
