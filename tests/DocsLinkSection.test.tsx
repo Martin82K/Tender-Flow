@@ -117,6 +117,28 @@ describe('DocsLinkSection', () => {
         });
     });
 
+    it('blocks insecure HTTP document URLs before calling the shell adapter', async () => {
+        const project = {
+            ...mockProject,
+            documentationLink: 'http://github.com/Martin82K/Tender-Flow',
+        } as unknown as ProjectDetails;
+        const showModal = vi.fn();
+
+        render(<DocsLinkSection {...defaultProps} project={project} showModal={showModal} />);
+
+        fireEvent.click(screen.getByTitle('Otevřít'));
+
+        await waitFor(() => {
+            expect(showModal).toHaveBeenCalledWith({
+                title: 'Odkaz se nepodařilo otevřít',
+                message: 'Z bezpečnostních důvodů lze otevírat jen HTTPS odkazy.',
+                variant: 'danger',
+                copyableText: 'http://github.com/Martin82K/Tender-Flow',
+            });
+        });
+        expect(platformMocks.openExternal).not.toHaveBeenCalled();
+    });
+
     it('opens a local documentation path in Explorer in desktop mode', async () => {
         platformMocks.isDesktop = true;
         const project = {

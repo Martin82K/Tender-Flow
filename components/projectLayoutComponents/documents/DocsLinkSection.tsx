@@ -109,8 +109,27 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
     }
   };
 
+  const isSafeDocumentUrl = (target: string): boolean => {
+    try {
+      const parsed = new URL(target);
+      return parsed.protocol === "https:" || parsed.protocol === "mailto:";
+    } catch {
+      return false;
+    }
+  };
+
   const handleOpenLink = async (target: string) => {
     if (isProbablyUrl(target)) {
+      if (!isSafeDocumentUrl(target)) {
+        showModal({
+          title: "Odkaz se nepodařilo otevřít",
+          message: "Z bezpečnostních důvodů lze otevírat jen HTTPS odkazy.",
+          variant: "danger",
+          copyableText: target,
+        });
+        return;
+      }
+
       try {
         await shellAdapter.openExternal(target);
       } catch {

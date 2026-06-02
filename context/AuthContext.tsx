@@ -558,8 +558,37 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       finish();
     }, initTimeoutMs);
 
+    const handleDesktopRestoreStatus = (
+      status: Awaited<ReturnType<typeof tryDesktopSessionRestore>>,
+    ): boolean => {
+      if (status === "success") return true;
+      if (status === "mfa_required") {
+        setUser(null);
+        return true;
+      }
+      if (status === "hard_failed") {
+        setUser(null);
+        return true;
+      }
+      if (status === "cancelled") {
+        setUser(null);
+        return true;
+      }
+      return false;
+    };
+
     (async () => {
       try {
+        const biometricEnabled = isDesktop
+          ? await platformAdapter.session.isBiometricEnabled()
+          : false;
+        if (biometricEnabled) {
+          const desktopRestoreStatus = await tryDesktopSessionRestore();
+          if (handleDesktopRestoreStatus(desktopRestoreStatus)) {
+            return;
+          }
+        }
+
         const { data: activeSessionData } = await authSessionService.getSession();
         if (activeSessionData?.session) {
           const mfaRequired = await prepareMfaIfNeeded({
@@ -581,23 +610,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           }
         }
 
-        const desktopRestoreStatus = await tryDesktopSessionRestore();
-        if (desktopRestoreStatus === "success") {
-          return;
+        if (!biometricEnabled) {
+          const desktopRestoreStatus = await tryDesktopSessionRestore();
+          if (handleDesktopRestoreStatus(desktopRestoreStatus)) {
+            return;
+          }
         }
 
-        if (desktopRestoreStatus === "mfa_required") {
-          setUser(null);
-          return;
-        }
-
-        if (desktopRestoreStatus === "hard_failed") {
-          setUser(null);
-          return;
-        }
-
-        if (desktopRestoreStatus === "cancelled") {
-          setUser(null);
+        if (biometricEnabled) {
           return;
         }
 

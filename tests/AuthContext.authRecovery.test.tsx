@@ -48,6 +48,9 @@ const setup = async (options: SetupOptions) => {
     queryClientClear: vi.fn(),
     setAuthenticated: vi.fn().mockResolvedValue(undefined),
     saveCredentials: vi.fn().mockResolvedValue(undefined),
+    getCredentialsWithBiometric: vi.fn().mockResolvedValue(
+      options.biometricPromptResult === false ? null : options.credentials,
+    ),
     subscribe: vi.fn((listener: (snapshot: { event: string; session: any }) => void) => {
       mockState.authListener = listener;
       return vi.fn();
@@ -85,9 +88,7 @@ const setup = async (options: SetupOptions) => {
           // When biometric is enabled, getCredentials returns null (must use getCredentialsWithBiometric)
           options.biometricEnabled ? null : options.credentials,
         ),
-        getCredentialsWithBiometric: vi.fn().mockResolvedValue(
-          options.biometricPromptResult === false ? null : options.credentials,
-        ),
+        getCredentialsWithBiometric: mockState.getCredentialsWithBiometric,
         clearCredentials: vi.fn().mockResolvedValue(undefined),
         saveCredentials: mockState.saveCredentials,
         setBiometricEnabled: vi.fn().mockResolvedValue(undefined),
@@ -330,6 +331,51 @@ describe("AuthContext auth recovery", () => {
       refreshToken: "active-refresh-token-123456",
       email: "test@example.com",
     });
+  });
+
+  it("zapnutá desktop biometrika se vyžádá před hydratací aktivní Supabase session", async () => {
+    const mockState = await setup({
+      isDesktop: true,
+      credentials: { refreshToken: "biometric-refresh-token-123456", email: "test@example.com" },
+      biometricEnabled: true,
+      biometricPromptResult: true,
+      getSessionResult: {
+        data: {
+          session: {
+            access_token: "active-access-token",
+            refresh_token: "active-refresh-token-123456",
+            expires_at: 1924992000,
+            user: { email: "test@example.com" },
+          },
+        },
+      },
+      refreshSessionResult: {
+        data: {
+          session: {
+            access_token: "fresh-biometric-token",
+            refresh_token: "fresh-biometric-refresh-token-123456",
+            user: { email: "test@example.com" },
+          },
+        },
+        error: null,
+      },
+      currentUser: null,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("loading").textContent).toBe("false");
+    });
+
+    expect(mockState.getCredentialsWithBiometric).toHaveBeenCalledWith("Odemknout Tender Flow");
+    expect(mockState.refreshSession).toHaveBeenCalledWith("biometric-refresh-token-123456");
+    expect(mockState.getSession).not.toHaveBeenCalled();
+    expect(mockState.setAuthenticated).toHaveBeenCalledWith(
+      true,
+      expect.objectContaining({
+        accessToken: "fresh-biometric-token",
+        expiresAt: null,
+      }),
+    );
   });
 
   it("TOKEN_REFRESHED synchronizuje desktop secure refresh token po ověření session", async () => {
