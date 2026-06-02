@@ -3,6 +3,9 @@
     "type": "commonjs",
     "private": true,
     "dependencies": {
+        "electron-squirrel-startup": "1.0.1",
+        "electron-updater": "6.7.3",
+        "exceljs": "4.4.0",
         "win-hello": "^1.1.1"
     }
 }
