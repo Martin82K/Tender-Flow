@@ -455,7 +455,10 @@ export const useDocHubIntegration = (
                 const path = rootLink.trim();
                 // Grant access for paths outside default allowed roots (e.g. D:\, network shares)
                 if (isDesktop) {
-                    await fileSystemAdapter.grantAccess(path);
+                    const granted = await fileSystemAdapter.grantAccess(path);
+                    if (!granted) {
+                        throw new Error("Přístup ke složce nebyl potvrzen. Vyberte prosím cílovou složku nebo její existující nadřazenou složku.");
+                    }
                 }
                 const exists = await folderExists(path);
 

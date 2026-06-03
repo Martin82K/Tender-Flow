@@ -31,6 +31,19 @@ export const getPublicEnvValue = (key: PublicEnvKey): string => {
     return process.env[key] || readDesktopBuildEnv()[key] || '';
 };
 
+export const getDesktopRendererPublicEnv = (): Partial<Record<PublicEnvKey, string>> => {
+    const values: Partial<Record<PublicEnvKey, string>> = {};
+    for (const key of [
+        'VITE_SUPABASE_URL',
+        'VITE_SUPABASE_ANON_KEY',
+        'VITE_GOOGLE_OAUTH_CLIENT_ID_DESKTOP',
+    ] as const) {
+        const value = getPublicEnvValue(key);
+        if (value) values[key] = value;
+    }
+    return values;
+};
+
 export const getSupabasePublicConfig = (): { url: string; anonKey: string } => ({
     url: getPublicEnvValue('VITE_SUPABASE_URL') || process.env.SUPABASE_URL || '',
     anonKey: getPublicEnvValue('VITE_SUPABASE_ANON_KEY') || process.env.SUPABASE_ANON_KEY || '',

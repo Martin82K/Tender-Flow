@@ -11,6 +11,18 @@ import {
 const mockState = vi.hoisted(() => ({
   acceptLegalDocuments: vi.fn(),
   updatePreferences: vi.fn(),
+  logout: vi.fn(),
+  navigate: vi.fn(),
+  currentPlan: "pro",
+  isDesktop: false,
+  pathname: "/app",
+  search: "",
+  legalAcceptance: null as {
+    termsVersion: string | null;
+    termsAcceptedAt: string | null;
+    privacyVersion: string | null;
+    privacyAcceptedAt: string | null;
+  } | null,
 }));
 
 vi.mock("@/context/AuthContext", () => ({
@@ -20,22 +32,17 @@ vi.mock("@/context/AuthContext", () => ({
       name: "Test User",
       email: "test@example.com",
       role: "user",
-      subscriptionTier: "pro",
+      subscriptionTier: mockState.currentPlan,
       preferences: {
         theme: "system",
         primaryColor: "#607AFB",
         backgroundColor: "#f5f6f8",
       },
-      legalAcceptance: {
-        termsVersion: null,
-        termsAcceptedAt: null,
-        privacyVersion: null,
-        privacyAcceptedAt: null,
-      },
+      legalAcceptance: mockState.legalAcceptance,
     },
     isAuthenticated: true,
     isLoading: false,
-    logout: vi.fn(),
+    logout: mockState.logout,
     updatePreferences: mockState.updatePreferences,
     acceptLegalDocuments: mockState.acceptLegalDocuments,
   }),
@@ -51,13 +58,13 @@ vi.mock("@/context/UIContext", () => ({
 
 vi.mock("@/context/FeatureContext", () => ({
   useFeatures: () => ({
-    currentPlan: "pro",
+    currentPlan: mockState.currentPlan,
     isLoading: false,
   }),
 }));
 
 vi.mock("@/hooks/useDesktop", () => ({
-  useDesktop: () => ({ isDesktop: false }),
+  useDesktop: () => ({ isDesktop: mockState.isDesktop }),
 }));
 
 vi.mock("@/hooks/useAppData", () => ({
@@ -111,8 +118,8 @@ vi.mock("@/hooks/useTheme", () => ({
 }));
 
 vi.mock("@/shared/routing/router", () => ({
-  useLocation: () => ({ pathname: "/app", search: "" }),
-  navigate: vi.fn(),
+  useLocation: () => ({ pathname: mockState.pathname, search: mockState.search }),
+  navigate: mockState.navigate,
 }));
 
 vi.mock("@/shared/routing/routeUtils", () => ({
@@ -125,6 +132,7 @@ vi.mock("@/config/features", () => ({
     MODULE_PROJECTS: "projects",
     MODULE_CONTACTS: "contacts",
     MODULE_COMMAND_CENTER: "command-center",
+    MODULE_TASKS: "tasks",
     FEATURE_ADVANCED_REPORTING: "reporting",
     URL_SHORTENER: "shortener",
   },
@@ -207,6 +215,11 @@ describe("AppContent legal acceptance gate", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockState.currentPlan = "pro";
+    mockState.isDesktop = false;
+    mockState.pathname = "/app";
+    mockState.search = "";
+    mockState.legalAcceptance = null;
     mockState.acceptLegalDocuments.mockResolvedValue(undefined);
   });
 
@@ -249,5 +262,44 @@ describe("AppContent legal acceptance gate", () => {
         screen.getByText("Přihlášení vypršelo. Přihlaste se prosím znovu."),
       ).toBeInTheDocument();
     });
+  });
+
+  it("blokuje desktop aplikaci pro tarif pro a zobrazuje Enterprise-only text", () => {
+    mockState.isDesktop = true;
+    mockState.currentPlan = "pro";
+    mockState.legalAcceptance = {
+      termsVersion: CURRENT_TERMS_VERSION,
+      termsAcceptedAt: "2026-06-02T10:00:00.000Z",
+      privacyVersion: CURRENT_PRIVACY_VERSION,
+      privacyAcceptedAt: "2026-06-02T10:00:00.000Z",
+    };
+
+    renderAppContent();
+
+    expect(
+      screen.getByText(/Desktop aplikace je dostupná pouze pro Enterprise účty/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/PRO a vyšší/i)).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Otevřít webovou aplikaci" }),
+    ).toBeInTheDocument();
+  });
+
+  it("pustí desktop aplikaci pro tarif enterprise", () => {
+    mockState.isDesktop = true;
+    mockState.currentPlan = "enterprise";
+    mockState.legalAcceptance = {
+      termsVersion: CURRENT_TERMS_VERSION,
+      termsAcceptedAt: "2026-06-02T10:00:00.000Z",
+      privacyVersion: CURRENT_PRIVACY_VERSION,
+      privacyAcceptedAt: "2026-06-02T10:00:00.000Z",
+    };
+
+    renderAppContent();
+
+    expect(
+      screen.queryByText(/Desktop aplikace je dostupná pouze pro Enterprise účty/i),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("todo")).toBeInTheDocument();
   });
 });

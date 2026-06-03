@@ -5,6 +5,7 @@
 
 export interface ElectronAPI {
     platform: PlatformInfo;
+    publicEnv: PublicEnvAPI;
     fs: FileSystemAPI;
     watcher: WatcherAPI;
     app: AppAPI;
@@ -22,6 +23,13 @@ export interface ElectronAPI {
     backup: BackupAPI;
     auth: AuthNotificationAPI;
 }
+
+export type PublicEnvKey =
+    | 'VITE_SUPABASE_URL'
+    | 'VITE_SUPABASE_ANON_KEY'
+    | 'VITE_GOOGLE_OAUTH_CLIENT_ID_DESKTOP';
+
+export type PublicEnvAPI = Partial<Record<PublicEnvKey, string>>;
 
 export interface AuthNotificationAPI {
     setAuthenticated: (

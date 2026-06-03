@@ -1,4 +1,5 @@
 import { supabase } from "@/services/supabase";
+import { hasOptionalCookieConsent } from "@/shared/privacy/cookieConsent";
 import { summarizeErrorForLog } from "@/shared/security/logSanitizer";
 
 export interface AppUsageActionInput {
@@ -73,6 +74,10 @@ export async function recordUsageHeartbeat(
   sessionId: string,
   activeSeconds: number = 120,
 ): Promise<boolean> {
+  if (!hasOptionalCookieConsent()) {
+    return false;
+  }
+
   const normalizedSeconds = clampInteger(activeSeconds, 120, 1, 300);
 
   try {
@@ -94,6 +99,10 @@ export async function recordUsageHeartbeat(
 }
 
 export async function recordUsageAction(input: AppUsageActionInput = {}): Promise<boolean> {
+  if (!hasOptionalCookieConsent()) {
+    return false;
+  }
+
   const actionCount = clampInteger(input.actionCount, 1, 0, 1000);
   const createdRecordsCount = clampInteger(input.createdRecordsCount, 0, 0, 10000);
   const updatedRecordsCount = clampInteger(input.updatedRecordsCount, 0, 0, 10000);
