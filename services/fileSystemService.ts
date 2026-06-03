@@ -147,6 +147,12 @@ const resolveStructureFolderName = (name: string): {
     };
 };
 
+const isAccessDeniedMessage = (message: string | undefined): boolean => {
+    if (!message) return false;
+    const normalized = message.toLowerCase();
+    return normalized.includes("access denied") || normalized.includes("pristup odepren") || normalized.includes("přístup odepřen");
+};
+
 /**
  * Check if file system operations are available
  */
@@ -682,6 +688,8 @@ export async function ensureStructure(
         let reusedCount = 0;
 
         try {
+            await ensureDesktopIpcAuthenticated();
+
             // Simple path join helper that preserves Windows paths
             const joinPath = (...parts: string[]): string => {
                 // Detect if we're on Windows (by checking the first part for drive letters)
@@ -700,7 +708,14 @@ export async function ensureStructure(
                     logs.push(`✓ Složka existuje: ${folderPath}`);
                     reusedCount++;
                 } else {
-                    const result = await fileSystemAdapter.createFolder(folderPath);
+                    let result = await fileSystemAdapter.createFolder(folderPath);
+                    if (!result.success && isAccessDeniedMessage(result.error)) {
+                        logs.push(`! Pro vytvoření složky je potřeba potvrdit přístup: ${folderPath}`);
+                        const granted = await fileSystemAdapter.grantAccess(folderPath);
+                        if (granted) {
+                            result = await fileSystemAdapter.createFolder(folderPath);
+                        }
+                    }
                     if (result.success) {
                         logs.push(`✓ Vytvořeno: ${folderPath}`);
                         createdCount++;
@@ -1051,4 +1066,3 @@ export async function stopWatching(): Promise<void> {
         await watcherAdapter.stop();
     }
 }
-

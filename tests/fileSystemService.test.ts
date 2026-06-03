@@ -196,4 +196,26 @@ describe("fileSystemService", () => {
       }),
     );
   });
+
+  it("pri ensureStructure po Access denied pozada o pristup a vytvoreni zopakuje", async () => {
+    mockState.createFolder
+      .mockResolvedValueOnce({
+        success: false,
+        error: "Access denied: path is outside allowed roots (C:\\DocHub\\Projekt\\_Tender Flow)",
+      })
+      .mockResolvedValueOnce({ success: true });
+    mockState.grantAccess.mockResolvedValue(true);
+
+    const { ensureStructure } = await import("../services/fileSystemService");
+    const result = await ensureStructure({
+      rootPath: "C:\\DocHub\\Projekt\\_Tender Flow",
+      projectId: "project-1",
+      hierarchy: [],
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.logs).toContain("! Pro vytvoření složky je potřeba potvrdit přístup: C:\\DocHub\\Projekt\\_Tender Flow");
+    expect(mockState.grantAccess).toHaveBeenCalledWith("C:\\DocHub\\Projekt\\_Tender Flow");
+    expect(mockState.createFolder).toHaveBeenCalledTimes(2);
+  });
 });

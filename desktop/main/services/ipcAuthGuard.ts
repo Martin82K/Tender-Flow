@@ -44,6 +44,7 @@ const PRE_AUTH_CHANNELS = new Set([
 ]);
 
 type PathAccessMode = 'read' | 'write';
+type PathOps = typeof path.win32 | typeof path.posix;
 
 interface RendererSessionCandidate {
   accessToken?: string | null;
@@ -53,11 +54,21 @@ interface RendererSessionCandidate {
 const APP_AUTH_TOKEN_KEY = 'crm-auth-token';
 const SUPABASE_AUTH_TOKEN_KEY_PATTERN = /^sb-.+-auth-token$/;
 
-const toAbsolutePath = (targetPath: string): string => path.resolve(targetPath);
+const isWindowsAbsolutePath = (value: string): boolean => /^[A-Za-z]:[\\/]/.test(value);
+
+const pickPathOps = (...values: string[]): PathOps =>
+  values.some((value) => isWindowsAbsolutePath(value) || value.includes('\\')) ? path.win32 : path.posix;
+
+const toAbsolutePath = (targetPath: string): string => {
+  if (isWindowsAbsolutePath(targetPath)) return path.win32.normalize(targetPath);
+  if (path.posix.isAbsolute(targetPath)) return path.posix.normalize(targetPath);
+  return path.resolve(targetPath);
+};
 
 const isPathInsideRoot = (targetPath: string, rootPath: string): boolean => {
-  const relative = path.relative(rootPath, targetPath);
-  return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
+  const pathOps = pickPathOps(targetPath, rootPath);
+  const relative = pathOps.relative(pathOps.normalize(rootPath), pathOps.normalize(targetPath));
+  return relative === '' || (!relative.startsWith('..') && !pathOps.isAbsolute(relative));
 };
 
 class IpcAuthGuard {
@@ -180,22 +191,23 @@ class IpcAuthGuard {
       return existingTarget;
     }
 
-    let parentDir = path.dirname(normalizedPath);
-    while (parentDir !== path.dirname(parentDir)) {
+    const pathOps = pickPathOps(normalizedPath);
+    let parentDir = pathOps.dirname(normalizedPath);
+    while (parentDir !== pathOps.dirname(parentDir)) {
       const realParent = await this.realpathIfExists(parentDir);
       if (realParent) {
         if (!isInsideAllowedRoot(realParent)) {
           throw new Error(`Access denied: path is outside allowed roots (${realParent})`);
         }
 
-        const unresolvedTail = path.relative(parentDir, normalizedPath);
-        const resolvedTarget = path.resolve(realParent, unresolvedTail);
+        const unresolvedTail = pathOps.relative(parentDir, normalizedPath);
+        const resolvedTarget = pathOps.resolve(realParent, unresolvedTail);
         if (!isPathInsideRoot(resolvedTarget, realParent) || !isInsideAllowedRoot(resolvedTarget)) {
           throw new Error(`Access denied: path is outside allowed roots (${resolvedTarget})`);
         }
         return resolvedTarget;
       }
-      parentDir = path.dirname(parentDir);
+      parentDir = pathOps.dirname(parentDir);
     }
 
     throw new Error('Access denied: unable to resolve path within allowed roots');

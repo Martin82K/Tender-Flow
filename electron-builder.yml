@@ -6,6 +6,8 @@ directories:
   output: dist-electron
   buildResources: assets
 
+afterPack: scripts/verify-electron-asar-runtime.cjs
+
 files:
   - "!node_modules/**"
   - desktop/dist/**/*

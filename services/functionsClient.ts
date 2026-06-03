@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 import { logIncident } from "./incidentLogger";
-import { normalizePublicEnvValue } from "../shared/config/publicEnv";
+import { getPublicEnvValue } from "../shared/config/publicEnv";
 import { sanitizeLogText, summarizeErrorForLog } from "../shared/security/logSanitizer";
 
 type InvokeOptions = {
@@ -52,7 +52,8 @@ const buildPublicHeaders = (anonKey: string): Record<string, string> => ({
 });
 
 const getRequiredEnv = (key: "VITE_SUPABASE_URL" | "VITE_SUPABASE_ANON_KEY") => {
-  const value = normalizePublicEnvValue(
+  const value = getPublicEnvValue(
+    key,
     key === "VITE_SUPABASE_URL"
       ? import.meta.env.VITE_SUPABASE_URL
       : import.meta.env.VITE_SUPABASE_ANON_KEY,

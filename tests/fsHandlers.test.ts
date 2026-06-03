@@ -231,12 +231,13 @@ describe("fsHandlers", () => {
       filePaths: ["C:\\Users\\tester\\OneDrive - BAU-STAV a.s\\Projekt"],
     } as any);
 
-    const resolvePortableReadPath = vi.fn(async () => "C:\\Users\\tester\\OneDrive - BAU-STAV a.s\\Projekt");
+    const resolvePortableReadPath = vi.fn(async (value: string) => value);
+    const resolvePortableWritePath = vi.fn(async () => "C:\\Users\\tester\\OneDrive - BAU-STAV a.s\\Projekt");
 
     const { registerFsHandlers } = await import("../desktop/main/ipc/modules/fsHandlers");
     registerFsHandlers({
       resolvePortableReadPath,
-      resolvePortableWritePath: vi.fn(async (value: string) => value),
+      resolvePortableWritePath,
       requireAuth: vi.fn(),
     });
 
@@ -244,10 +245,43 @@ describe("fsHandlers", () => {
       handlers.get("fs:grantAccess")?.({}, "C:\\Users\\old\\OneDrive - BAU-STAV a.s\\Projekt"),
     ).resolves.toBe(true);
 
-    expect(resolvePortableReadPath).toHaveBeenCalledWith("C:\\Users\\old\\OneDrive - BAU-STAV a.s\\Projekt");
+    expect(resolvePortableReadPath).not.toHaveBeenCalled();
+    expect(resolvePortableWritePath).toHaveBeenCalledWith("C:\\Users\\old\\OneDrive - BAU-STAV a.s\\Projekt");
     expect(vi.mocked(dialog.showOpenDialog).mock.calls.at(-1)?.[0]).toEqual(
       expect.objectContaining({
         defaultPath: "C:\\Users\\tester\\OneDrive - BAU-STAV a.s\\Projekt",
+      }),
+    );
+  });
+
+  it("grantAccess pro neexistujici cilovou slozku potvrdi existujiciho rodice", async () => {
+    const { dialog } = await import("electron");
+    const requestedPath =
+      "C:\\Users\\tester\\OneDrive - BAU-STAV a.s\\_Stavby\\26019 - SILNICE III2099\\_Tender Flow";
+    const parentPath = "C:\\Users\\tester\\OneDrive - BAU-STAV a.s\\_Stavby\\26019 - SILNICE III2099";
+
+    fsMock.stat.mockImplementation(async (targetPath: string) => {
+      if (targetPath === parentPath) return { isDirectory: () => true };
+      throw new Error("ENOENT");
+    });
+    fsMock.realpath.mockImplementation(async (targetPath: string) => targetPath);
+    vi.mocked(dialog.showOpenDialog).mockResolvedValue({
+      canceled: false,
+      filePaths: [parentPath],
+    } as any);
+
+    const { registerFsHandlers } = await import("../desktop/main/ipc/modules/fsHandlers");
+    registerFsHandlers({
+      resolvePortableReadPath: vi.fn(async (value: string) => value),
+      resolvePortableWritePath: vi.fn(async (value: string) => value),
+      requireAuth: vi.fn(),
+    });
+
+    await expect(handlers.get("fs:grantAccess")?.({}, requestedPath)).resolves.toBe(true);
+
+    expect(vi.mocked(dialog.showOpenDialog).mock.calls.at(-1)?.[0]).toEqual(
+      expect.objectContaining({
+        defaultPath: parentPath,
       }),
     );
   });

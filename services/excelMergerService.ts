@@ -5,6 +5,7 @@
  */
 import { HeaderMapping } from './excelMergerTypes';
 import { supabase } from './supabase';
+import { getPublicEnvValue } from '../shared/config/publicEnv';
 import type ExcelJS from 'exceljs';
 
 const loadExcelJS = async () => {
@@ -291,7 +292,7 @@ export class ExcelService {
     onProgress?: (message: string) => void,
     onProgressUpdate?: (progress: number) => void
   ): Promise<Blob> {
-    const supabaseUrl = (import.meta as any)?.env?.VITE_SUPABASE_URL;
+    const supabaseUrl = getPublicEnvValue('VITE_SUPABASE_URL', import.meta.env.VITE_SUPABASE_URL);
     const { data } = await supabase.auth.getSession();
     const accessToken = data.session?.access_token;
 
