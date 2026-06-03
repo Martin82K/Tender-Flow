@@ -17,18 +17,19 @@ describe("projectExportApi", () => {
     vi.clearAllMocks();
   });
 
-  it("deleguje project exporty do legacy export service", () => {
+  it("deleguje project exporty do legacy export service", async () => {
     const category = { id: "cat-1", title: "Elektro" } as DemandCategory;
     const bids = [{ id: "bid-1", companyName: "Firma" }] as Bid[];
     const project = { id: "project-1", title: "Stavba" } as ProjectDetails;
+    const meta = { organizationName: "Tenant Demo" };
 
-    projectExportApi.exportToXLSX(category, bids, project);
+    await projectExportApi.exportToXLSX(category, bids, project, meta);
     projectExportApi.exportToMarkdown(category, bids, project);
-    projectExportApi.exportToPDF(category, bids, project);
+    await projectExportApi.exportToPDF(category, bids, project, meta);
 
-    expect(exportServiceMock.exportToXLSX).toHaveBeenCalledWith(category, bids, project);
+    expect(exportServiceMock.exportToXLSX).toHaveBeenCalledWith(category, bids, project, meta);
     expect(exportServiceMock.exportToMarkdown).toHaveBeenCalledWith(category, bids, project);
-    expect(exportServiceMock.exportToPDF).toHaveBeenCalledWith(category, bids, project);
+    expect(exportServiceMock.exportToPDF).toHaveBeenCalledWith(category, bids, project, meta);
   });
 
   it("deleguje supplier analysis PDF včetně chart image payloadu", () => {
