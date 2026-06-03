@@ -68,6 +68,7 @@ vi.mock("../services/supabase", () => ({
   clearStoredSessionData: vi.fn(),
   getStoredAuthSessionRaw: vi.fn().mockReturnValue(null),
   setRememberMePreference: vi.fn(),
+  shouldPersistSession: vi.fn().mockReturnValue(true),
   supabase: {
     auth: {
       onAuthStateChange: vi.fn().mockReturnValue({

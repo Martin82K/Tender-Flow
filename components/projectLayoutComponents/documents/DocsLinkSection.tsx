@@ -3,6 +3,8 @@ import { ProjectDetails, DocumentLink } from "../../../types";
 import { isProbablyUrl, isSafePublicHttpUrlForExternalShortener } from "../../../utils/docHub";
 import { shortenUrl } from "../../../services/urlShortenerService";
 import { useAuth } from "../../../context/AuthContext";
+import { openInExplorer } from "../../../services/fileSystemService";
+import { isDesktop, shellAdapter } from "../../../services/platformAdapter";
 
 interface DocsLinkSectionProps {
   project: ProjectDetails;
@@ -93,23 +95,75 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
     onUpdate({ documentLinks: documentLinks.filter((l) => l.id !== id) });
   };
 
-  const handleOpenLink = async (url: string) => {
-    if (isProbablyUrl(url)) {
-      window.open(url, "_blank", "noopener,noreferrer");
-    } else {
-      try {
-        await navigator.clipboard.writeText(url);
-        showModal({ title: "Zkopírováno", message: url, variant: "success" });
-      } catch {
-        showModal({
-          title: "Zkopírujte cestu",
-          message: "Automatické kopírování selhalo. Zkopírujte cestu ručně:",
-          variant: "info",
-          copyableText: url,
-        });
-      }
+  const copyPathToClipboard = async (path: string) => {
+    try {
+      await navigator.clipboard.writeText(path);
+      showModal({ title: "Zkopírováno", message: path, variant: "success" });
+    } catch {
+      showModal({
+        title: "Zkopírujte cestu",
+        message: "Automatické kopírování selhalo. Zkopírujte cestu ručně:",
+        variant: "info",
+        copyableText: path,
+      });
     }
   };
+
+  const isSafeDocumentUrl = (target: string): boolean => {
+    try {
+      const parsed = new URL(target);
+      return parsed.protocol === "https:" || parsed.protocol === "mailto:";
+    } catch {
+      return false;
+    }
+  };
+
+  const handleOpenLink = async (target: string) => {
+    if (isProbablyUrl(target)) {
+      if (!isSafeDocumentUrl(target)) {
+        showModal({
+          title: "Odkaz se nepodařilo otevřít",
+          message: "Z bezpečnostních důvodů lze otevírat jen HTTPS odkazy.",
+          variant: "danger",
+          copyableText: target,
+        });
+        return;
+      }
+
+      try {
+        await shellAdapter.openExternal(target);
+      } catch {
+        showModal({
+          title: "Odkaz se nepodařilo otevřít",
+          message: "Zkontrolujte, že je odkaz platný a povolený pro otevření v aplikaci.",
+          variant: "danger",
+          copyableText: target,
+        });
+      }
+      return;
+    }
+
+    if (isDesktop) {
+      const result = await openInExplorer(target);
+      if (result.success) return;
+
+      showModal({
+        title: "Složku se nepodařilo otevřít",
+        message: "Aplikace nemá přístup k této lokální cestě nebo složka neexistuje. Cestu můžete zkopírovat ručně:",
+        variant: "danger",
+        copyableText: target,
+      });
+      return;
+    }
+
+    await copyPathToClipboard(target);
+  };
+
+  const getOpenButtonTitle = (target: string): string =>
+    isProbablyUrl(target) || isDesktop ? "Otevřít" : "Zkopírovat";
+
+  const getOpenButtonIcon = (target: string): string =>
+    isProbablyUrl(target) || isDesktop ? "open_in_new" : "content_copy";
 
   return (
     <div className="space-y-4">
@@ -166,16 +220,10 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
                 <button
                   onClick={() => handleOpenLink(project.documentationLink!)}
                   className="p-2 text-slate-500 hover:text-emerald-400 transition-colors"
-                  title={
-                    isProbablyUrl(project.documentationLink || "")
-                      ? "Otevřít"
-                      : "Zkopírovat"
-                  }
+                  title={getOpenButtonTitle(project.documentationLink || "")}
                 >
                   <span className="material-symbols-outlined text-[18px]">
-                    {isProbablyUrl(project.documentationLink || "")
-                      ? "open_in_new"
-                      : "content_copy"}
+                    {getOpenButtonIcon(project.documentationLink || "")}
                   </span>
                 </button>
                 <button
@@ -222,10 +270,10 @@ export const DocsLinkSection: React.FC<DocsLinkSectionProps> = ({
                 <button
                   onClick={() => handleOpenLink(link.url)}
                   className="p-2 text-slate-500 hover:text-emerald-400 transition-colors"
-                  title={isProbablyUrl(link.url) ? "Otevřít" : "Zkopírovat"}
+                  title={getOpenButtonTitle(link.url)}
                 >
                   <span className="material-symbols-outlined text-[18px]">
-                    {isProbablyUrl(link.url) ? "open_in_new" : "content_copy"}
+                    {getOpenButtonIcon(link.url)}
                   </span>
                 </button>
                 <button

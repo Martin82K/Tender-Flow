@@ -6,6 +6,11 @@ import type { ProjectDetails } from '../types';
 
 const mockUseAuth = vi.fn();
 const mockShortenUrl = vi.fn();
+const platformMocks = vi.hoisted(() => ({
+    isDesktop: false,
+    openExternal: vi.fn(),
+}));
+const mockOpenInExplorer = vi.hoisted(() => vi.fn());
 
 vi.mock('../context/AuthContext', () => ({
     useAuth: () => mockUseAuth(),
@@ -13,6 +18,19 @@ vi.mock('../context/AuthContext', () => ({
 
 vi.mock('../services/urlShortenerService', () => ({
     shortenUrl: (...args: any[]) => mockShortenUrl(...args),
+}));
+
+vi.mock('../services/platformAdapter', () => ({
+    get isDesktop() {
+        return platformMocks.isDesktop;
+    },
+    shellAdapter: {
+        openExternal: (...args: any[]) => platformMocks.openExternal(...args),
+    },
+}));
+
+vi.mock('../services/fileSystemService', () => ({
+    openInExplorer: (...args: any[]) => mockOpenInExplorer(...args),
 }));
 
 const mockProject = {
@@ -30,6 +48,9 @@ describe('DocsLinkSection', () => {
             originalUrl: 'https://example.com/very-long-url',
             provider: 'tinyurl',
         });
+        platformMocks.isDesktop = false;
+        platformMocks.openExternal.mockResolvedValue(undefined);
+        mockOpenInExplorer.mockResolvedValue({ success: true });
     });
 
     const defaultProps = {
@@ -66,6 +87,124 @@ describe('DocsLinkSection', () => {
         const editButton = screen.getByText('edit').closest('button');
         fireEvent.click(editButton!);
         expect(defaultProps.onEditToggle).toHaveBeenCalledWith(true);
+    });
+
+    it('opens project documentation URL through the platform shell adapter', async () => {
+        render(<DocsLinkSection {...defaultProps} />);
+
+        fireEvent.click(screen.getByTitle('Otevřít'));
+
+        await waitFor(() => {
+            expect(platformMocks.openExternal).toHaveBeenCalledWith('https://docs.com');
+        });
+    });
+
+    it('shows a copyable error when external URL opening is blocked', async () => {
+        platformMocks.openExternal.mockRejectedValueOnce(new Error('Blocked external URL host'));
+        const showModal = vi.fn();
+
+        render(<DocsLinkSection {...defaultProps} showModal={showModal} />);
+
+        fireEvent.click(screen.getByTitle('Otevřít'));
+
+        await waitFor(() => {
+            expect(showModal).toHaveBeenCalledWith({
+                title: 'Odkaz se nepodařilo otevřít',
+                message: 'Zkontrolujte, že je odkaz platný a povolený pro otevření v aplikaci.',
+                variant: 'danger',
+                copyableText: 'https://docs.com',
+            });
+        });
+    });
+
+    it('blocks insecure HTTP document URLs before calling the shell adapter', async () => {
+        const project = {
+            ...mockProject,
+            documentationLink: 'http://github.com/Martin82K/Tender-Flow',
+        } as unknown as ProjectDetails;
+        const showModal = vi.fn();
+
+        render(<DocsLinkSection {...defaultProps} project={project} showModal={showModal} />);
+
+        fireEvent.click(screen.getByTitle('Otevřít'));
+
+        await waitFor(() => {
+            expect(showModal).toHaveBeenCalledWith({
+                title: 'Odkaz se nepodařilo otevřít',
+                message: 'Z bezpečnostních důvodů lze otevírat jen HTTPS odkazy.',
+                variant: 'danger',
+                copyableText: 'http://github.com/Martin82K/Tender-Flow',
+            });
+        });
+        expect(platformMocks.openExternal).not.toHaveBeenCalled();
+    });
+
+    it('opens a local documentation path in Explorer in desktop mode', async () => {
+        platformMocks.isDesktop = true;
+        const project = {
+            ...mockProject,
+            documentationLink: 'C:\\Users\\touaplikova\\OneDrive - BAU-STAV a.s\\25007\\000_TF\\03_Vyberova_rizeni\\22 povlakové',
+        } as unknown as ProjectDetails;
+
+        render(<DocsLinkSection {...defaultProps} project={project} />);
+
+        fireEvent.click(screen.getByTitle('Otevřít'));
+
+        await waitFor(() => {
+            expect(mockOpenInExplorer).toHaveBeenCalledWith(project.documentationLink);
+        });
+        expect(defaultProps.showModal).not.toHaveBeenCalled();
+    });
+
+    it('shows a copyable error when opening a local desktop path fails', async () => {
+        platformMocks.isDesktop = true;
+        mockOpenInExplorer.mockResolvedValueOnce({ success: false, error: 'access denied' });
+        const showModal = vi.fn();
+        const project = {
+            ...mockProject,
+            documentationLink: 'C:\\Users\\touaplikova\\OneDrive - BAU-STAV a.s\\25007\\000_TF\\03_Vyberova_rizeni\\22 povlakové',
+        } as unknown as ProjectDetails;
+
+        render(<DocsLinkSection {...defaultProps} project={project} showModal={showModal} />);
+
+        fireEvent.click(screen.getByTitle('Otevřít'));
+
+        await waitFor(() => {
+            expect(showModal).toHaveBeenCalledWith({
+                title: 'Složku se nepodařilo otevřít',
+                message: 'Aplikace nemá přístup k této lokální cestě nebo složka neexistuje. Cestu můžete zkopírovat ručně:',
+                variant: 'danger',
+                copyableText: project.documentationLink,
+            });
+        });
+    });
+
+    it('copies a local documentation path in web mode', async () => {
+        const writeTextSpy = vi.fn().mockResolvedValue(undefined);
+        Object.assign(navigator, {
+            clipboard: {
+                writeText: writeTextSpy,
+            },
+        });
+        const showModal = vi.fn();
+        const project = {
+            ...mockProject,
+            documentationLink: 'C:\\Users\\touaplikova\\OneDrive - BAU-STAV a.s\\25007\\000_TF\\03_Vyberova_rizeni\\22 povlakové',
+        } as unknown as ProjectDetails;
+
+        render(<DocsLinkSection {...defaultProps} project={project} showModal={showModal} />);
+
+        fireEvent.click(screen.getByTitle('Zkopírovat'));
+
+        await waitFor(() => {
+            expect(writeTextSpy).toHaveBeenCalledWith(project.documentationLink);
+        });
+        expect(mockOpenInExplorer).not.toHaveBeenCalled();
+        expect(showModal).toHaveBeenCalledWith({
+            title: 'Zkopírováno',
+            message: project.documentationLink,
+            variant: 'success',
+        });
     });
 
     it('shows add link form when requested', () => {

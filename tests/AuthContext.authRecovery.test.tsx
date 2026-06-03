@@ -10,8 +10,10 @@ interface SetupOptions {
   biometricEnabled: boolean;
   biometricPromptResult?: boolean;
   refreshSessionResult?: { data: { session: any | null }; error: any | null };
+  getSessionResult?: { data: { session: any | null } };
   currentUser?: any;
   storedSessionRaw?: string | null;
+  rememberMe?: boolean;
 }
 
 const setup = async (options: SetupOptions) => {
@@ -38,11 +40,17 @@ const setup = async (options: SetupOptions) => {
         error: null,
       },
     ),
+    getSession: vi.fn().mockResolvedValue(
+      options.getSessionResult ?? { data: { session: null } },
+    ),
     invalidateAuthState: vi.fn().mockResolvedValue(undefined),
     navigate: vi.fn(),
     queryClientClear: vi.fn(),
     setAuthenticated: vi.fn().mockResolvedValue(undefined),
     saveCredentials: vi.fn().mockResolvedValue(undefined),
+    getCredentialsWithBiometric: vi.fn().mockResolvedValue(
+      options.biometricPromptResult === false ? null : options.credentials,
+    ),
     subscribe: vi.fn((listener: (snapshot: { event: string; session: any }) => void) => {
       mockState.authListener = listener;
       return vi.fn();
@@ -80,9 +88,7 @@ const setup = async (options: SetupOptions) => {
           // When biometric is enabled, getCredentials returns null (must use getCredentialsWithBiometric)
           options.biometricEnabled ? null : options.credentials,
         ),
-        getCredentialsWithBiometric: vi.fn().mockResolvedValue(
-          options.biometricPromptResult === false ? null : options.credentials,
-        ),
+        getCredentialsWithBiometric: mockState.getCredentialsWithBiometric,
         clearCredentials: vi.fn().mockResolvedValue(undefined),
         saveCredentials: mockState.saveCredentials,
         setBiometricEnabled: vi.fn().mockResolvedValue(undefined),
@@ -98,8 +104,9 @@ const setup = async (options: SetupOptions) => {
       clearStoredSessionData: vi.fn(),
       getStoredAuthSessionRaw: vi.fn().mockReturnValue(options.storedSessionRaw ?? null),
       setRememberMePreference: vi.fn(),
+      shouldPersistSession: vi.fn().mockReturnValue(options.rememberMe ?? true),
       refreshSession: mockState.refreshSession,
-      getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
+      getSession: mockState.getSession,
       invalidateAuthState: mockState.invalidateAuthState,
     },
   }));
@@ -112,6 +119,7 @@ const setup = async (options: SetupOptions) => {
     queryClient: {
       clear: mockState.queryClientClear,
     },
+    resetAuthErrorCount: vi.fn(),
   }));
 
   vi.doMock("@/services/incidentLogger", () => ({
@@ -140,6 +148,12 @@ const setup = async (options: SetupOptions) => {
         needsVerification: false,
       }),
       verifyFactor: vi.fn().mockResolvedValue(undefined),
+    },
+  }));
+
+  vi.doMock("@infra/auth/deviceService", () => ({
+    authDeviceService: {
+      registerCurrentDevice: vi.fn().mockResolvedValue(undefined),
     },
   }));
 
@@ -274,6 +288,130 @@ describe("AuthContext auth recovery", () => {
     expect(mockState.saveCredentials).toHaveBeenCalledWith({
       refreshToken: "fresh-refresh-token-123456",
       email: "test@example.com",
+    });
+    expect(mockState.setAuthenticated.mock.invocationCallOrder[0]).toBeLessThan(
+      mockState.saveCredentials.mock.invocationCallOrder[0],
+    );
+  });
+
+  it("platná Supabase session má na desktopu prioritu před uloženým refresh tokenem", async () => {
+    const mockState = await setup({
+      isDesktop: true,
+      credentials: { refreshToken: "stary-refresh-token-123456", email: "test@example.com" },
+      biometricEnabled: false,
+      getSessionResult: {
+        data: {
+          session: {
+            access_token: "active-access-token",
+            refresh_token: "active-refresh-token-123456",
+            expires_at: 1924992000,
+            user: { email: "test@example.com" },
+          },
+        },
+      },
+      refreshSessionResult: {
+        data: { session: null },
+        error: { status: 400, message: "Invalid Refresh Token: Not Found" },
+      },
+      currentUser: null,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("loading").textContent).toBe("false");
+    });
+
+    expect(mockState.getSession).toHaveBeenCalled();
+    expect(mockState.refreshSession).not.toHaveBeenCalled();
+    expect(mockState.invalidateAuthState).not.toHaveBeenCalled();
+    expect(mockState.setAuthenticated).toHaveBeenCalledWith(true, {
+      accessToken: "active-access-token",
+      expiresAt: 1924992000,
+    });
+    expect(mockState.saveCredentials).toHaveBeenCalledWith({
+      refreshToken: "active-refresh-token-123456",
+      email: "test@example.com",
+    });
+  });
+
+  it("zapnutá desktop biometrika se vyžádá před hydratací aktivní Supabase session", async () => {
+    const mockState = await setup({
+      isDesktop: true,
+      credentials: { refreshToken: "biometric-refresh-token-123456", email: "test@example.com" },
+      biometricEnabled: true,
+      biometricPromptResult: true,
+      getSessionResult: {
+        data: {
+          session: {
+            access_token: "active-access-token",
+            refresh_token: "active-refresh-token-123456",
+            expires_at: 1924992000,
+            user: { email: "test@example.com" },
+          },
+        },
+      },
+      refreshSessionResult: {
+        data: {
+          session: {
+            access_token: "fresh-biometric-token",
+            refresh_token: "fresh-biometric-refresh-token-123456",
+            user: { email: "test@example.com" },
+          },
+        },
+        error: null,
+      },
+      currentUser: null,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("loading").textContent).toBe("false");
+    });
+
+    expect(mockState.getCredentialsWithBiometric).toHaveBeenCalledWith("Odemknout Tender Flow");
+    expect(mockState.refreshSession).toHaveBeenCalledWith("biometric-refresh-token-123456");
+    expect(mockState.getSession).not.toHaveBeenCalled();
+    expect(mockState.setAuthenticated).toHaveBeenCalledWith(
+      true,
+      expect.objectContaining({
+        accessToken: "fresh-biometric-token",
+        expiresAt: null,
+      }),
+    );
+  });
+
+  it("TOKEN_REFRESHED synchronizuje desktop secure refresh token po ověření session", async () => {
+    const mockState = await setup({
+      isDesktop: true,
+      credentials: null,
+      biometricEnabled: false,
+      currentUser: null,
+    });
+
+    await waitFor(() => {
+      expect(mockState.subscribe).toHaveBeenCalledTimes(1);
+    });
+
+    act(() => {
+      mockState.authListener?.({
+        event: "TOKEN_REFRESHED",
+        session: {
+          access_token: "refreshed-access-token",
+          refresh_token: "refreshed-refresh-token-123456",
+          expires_at: 1924992000,
+          user: { email: "test@example.com" },
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(mockState.saveCredentials).toHaveBeenCalledWith({
+        refreshToken: "refreshed-refresh-token-123456",
+        email: "test@example.com",
+      });
+    });
+
+    expect(mockState.setAuthenticated).toHaveBeenCalledWith(true, {
+      accessToken: "refreshed-access-token",
+      expiresAt: 1924992000,
     });
     expect(mockState.setAuthenticated.mock.invocationCallOrder[0]).toBeLessThan(
       mockState.saveCredentials.mock.invocationCallOrder[0],
