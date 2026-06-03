@@ -93,6 +93,24 @@ type ChartImage = {
   height: number;
 };
 
+export interface TenderSelectionExportMeta {
+  organizationName?: string;
+  organizationLogoUrl?: string | null;
+  appLogoUrl?: string;
+  sourceLabel?: string;
+}
+
+const DEFAULT_TF_LOGO_URL = '/TF_ico.png';
+const TENDER_FLOW_BLUE = '0F172A';
+const TENDER_FLOW_ACCENT = '0EA5E9';
+const TENDER_FLOW_LIGHT = 'E0F2FE';
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+const loadExcelJS = async () => {
+  const module = await import('exceljs');
+  return module.default ?? module;
+};
+
 const formatMoneyPDF = (value: number) =>
   new Intl.NumberFormat('cs-CZ', {
     minimumFractionDigits: 2,
@@ -109,6 +127,106 @@ const formatDateOrDash = (value?: string) => {
   return formatDate(value);
 };
 
+const getExportDateText = () => formatDate(new Date().toISOString());
+
+const sanitizeExportText = (value: string): string => {
+  if (/^(?:[=+@]|-.+)/.test(value)) {
+    return `'${value}`;
+  }
+
+  return value;
+};
+
+const getSafeText = (value?: string | null, fallback = '-'): string =>
+  sanitizeExportText(value && value.trim() ? value : fallback);
+
+const getWinnerBids = (bids: Bid[]): Bid[] => bids.filter((bid) => bid.status === 'sod');
+
+const getWinnersTotal = (bids: Bid[]): number =>
+  getWinnerBids(bids).reduce((total, bid) => total + parseMoney(bid.price || ''), 0);
+
+const getExportSourceText = (
+  project: ProjectDetails,
+  category: DemandCategory,
+  meta?: TenderSelectionExportMeta,
+) =>
+  `${meta?.sourceLabel || 'Výběrové řízení'}: ${project.title} / ${category.title}`;
+
+type ImagePayload = {
+  dataUrl: string;
+  extension: 'png' | 'jpeg';
+  jsPdfType: 'PNG' | 'JPEG';
+};
+
+const convertImageDataUrlToPng = (dataUrl: string): Promise<ImagePayload | null> =>
+  new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = image.naturalWidth || image.width || 1;
+      canvas.height = image.naturalHeight || image.height || 1;
+      const context = canvas.getContext('2d');
+      if (!context) {
+        resolve(null);
+        return;
+      }
+
+      context.drawImage(image, 0, 0);
+      resolve({
+        dataUrl: canvas.toDataURL('image/png'),
+        extension: 'png',
+        jsPdfType: 'PNG',
+      });
+    };
+    image.onerror = () => resolve(null);
+    image.src = dataUrl;
+  });
+
+const fetchRasterImagePayload = async (url?: string | null): Promise<ImagePayload | null> => {
+  if (!url) return null;
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return null;
+
+    const contentType = response.headers.get('content-type') || '';
+    const blob = await response.blob();
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () =>
+        resolve(typeof reader.result === 'string' ? reader.result : '');
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+
+    const isJpeg = contentType.includes('jpeg') || contentType.includes('jpg') || dataUrl.startsWith('data:image/jpeg');
+    const isPng = contentType.includes('png') || dataUrl.startsWith('data:image/png');
+
+    if (!isJpeg && !isPng) {
+      return await convertImageDataUrlToPng(dataUrl);
+    }
+
+    return {
+      dataUrl,
+      extension: isJpeg ? 'jpeg' : 'png',
+      jsPdfType: isJpeg ? 'JPEG' : 'PNG',
+    };
+  } catch {
+    return null;
+  }
+};
+
+const downloadBlob = (blob: Blob, filename: string): void => {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
 const formatAvgDiffText = (value: number | null, label: string) => {
   if (value === null) return `Bez dat pro ${label}`;
   const isPositive = value >= 0;
@@ -120,119 +238,158 @@ const formatAvgDiffText = (value: number | null, label: string) => {
 /**
  * Export to XLSX format with styling
  */
-export function exportToXLSX(
+export async function exportToXLSX(
   category: DemandCategory,
   bids: Bid[],
-  project: ProjectDetails
-): void {
-  const workbook = XLSX.utils.book_new();
+  project: ProjectDetails,
+  meta: TenderSelectionExportMeta = {},
+): Promise<void> {
+  const ExcelJS = await loadExcelJS();
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'Tender Flow';
+  workbook.created = new Date();
 
-  // Combined data - overview + suppliers on one sheet
-  const combinedData: (string | number)[][] = [
-    ['ZÁPIS O VÝBĚRU', '', '', '', '', '', '', '', '', '', '', ''],
-    [],
-    ['Projekt:', project.title],
-    ['Kategorie:', category.title],
-    ['SOD rozpočet:', formatMoney(category.sodBudget)],
-    ['Plánovaný náklad:', formatMoney(category.planBudget)],
-    ...(category.deadline ? [['Termín poptávky:', formatDate(category.deadline)]] : []),
-    ['Datum exportu:', formatDate(new Date().toISOString())],
-    [],
-    ['Popis:', category.description || '-'],
-    [],
-    [], // Empty row before suppliers table
-    ['SEZNAM DODAVATELŮ', '', '', '', '', '', '', '', '', '', '', ''],
-    [],
-    ['#', 'Firma', 'Kontaktní osoba', 'Email', 'Telefon', 'Cena', 'Soutěž', '1. kolo', '2. kolo', '3. kolo', 'Stav', 'Tagy', 'Poznámky']
-  ];
-
-  const headerRowIndex = combinedData.length - 1; // 0-indexed row number of table header
-
-  // Add bid rows
-  bids.forEach((bid, index) => {
-    combinedData.push([
-      index + 1,
-      bid.companyName,
-      bid.contactPerson,
-      bid.email || '-',
-      bid.phone || '-',
-      bid.price || '?',
-      bid.priceHistory?.[0] || '-',
-      bid.priceHistory?.[1] || '-',
-      bid.priceHistory?.[2] || '-',
-      bid.priceHistory?.[3] || '-',
-      getStatusLabel(bid.status),
-      bid.tags ? bid.tags.join(', ') : '-',
-      bid.notes || '-'
-    ]);
+  const sheet = workbook.addWorksheet('Poptávka', {
+    pageSetup: {
+      orientation: 'landscape',
+      fitToPage: true,
+      fitToWidth: 1,
+      fitToHeight: 0,
+      paperSize: 9,
+    },
+    views: [{ state: 'frozen', ySplit: 15 }],
   });
 
-  // Add statistics
-  const offersCount = bids.filter(b => b.status === 'offer' || b.status === 'shortlist' || b.status === 'sod').length;
-  combinedData.push([]);
-  combinedData.push(['STATISTIKY', '', '', '', '', '', '', '', '', '', '', '']);
-  combinedData.push(['Celkem osloveno:', bids.length.toString()]);
-  combinedData.push(['Obdržené nabídky:', offersCount.toString()]);
+  sheet.columns = [
+    { key: 'order', width: 6 },
+    { key: 'company', width: 34 },
+    { key: 'spacer', width: 3 },
+    { key: 'contact', width: 24 },
+    { key: 'email', width: 34 },
+    { key: 'phone', width: 17 },
+    { key: 'price', width: 17 },
+    { key: 'competition', width: 16 },
+    { key: 'round1', width: 16 },
+    { key: 'round2', width: 16 },
+    { key: 'round3', width: 16 },
+    { key: 'status', width: 18 },
+    { key: 'notes', width: 44 },
+  ];
 
-  // Winner comparison
-  const winnerBid = bids.find(b => b.status === 'sod');
-  const winnerPrice = winnerBid ? parseMoney(winnerBid.price) : 0;
+  const appLogo = await fetchRasterImagePayload(meta.appLogoUrl || DEFAULT_TF_LOGO_URL);
+  const tenantLogo = await fetchRasterImagePayload(meta.organizationLogoUrl);
 
-  if (winnerBid && winnerPrice > 0) {
-    const sodDiff = winnerPrice - category.sodBudget;
-    const planDiff = winnerPrice - category.planBudget;
-    const sodPercent = category.sodBudget > 0 ? ((sodDiff / category.sodBudget) * 100).toFixed(1) : '0';
-    const planPercent = category.planBudget > 0 ? ((planDiff / category.planBudget) * 100).toFixed(1) : '0';
-
-    combinedData.push([]);
-    combinedData.push(['BILANCE VÍTĚZE (Jednání o SOD)', '', '', '', '', '', '', '', '', '', '', '']);
-    combinedData.push(['Vítěz:', winnerBid.companyName]);
-    combinedData.push(['Cena vítěze:', formatMoney(winnerPrice)]);
-    combinedData.push([
-      'vs SOD rozpočet:',
-      `${sodDiff >= 0 ? '+' : ''}${formatMoney(sodDiff)} (${sodDiff >= 0 ? '+' : ''}${sodPercent}%)`
-    ]);
-    combinedData.push([
-      'vs Plánovaný náklad:',
-      `${planDiff >= 0 ? '+' : ''}${formatMoney(planDiff)} (${planDiff >= 0 ? '+' : ''}${planPercent}%)`
-    ]);
+  if (appLogo) {
+    const imageId = workbook.addImage({ base64: appLogo.dataUrl, extension: appLogo.extension });
+    sheet.addImage(imageId, { tl: { col: 0, row: 0 }, ext: { width: 52, height: 52 } });
   }
 
-  const sheet = XLSX.utils.aoa_to_sheet(combinedData);
+  if (tenantLogo) {
+    const imageId = workbook.addImage({ base64: tenantLogo.dataUrl, extension: tenantLogo.extension });
+    sheet.addImage(imageId, { tl: { col: 10.2, row: 0 }, ext: { width: 96, height: 44 } });
+  }
 
-  // Set column widths
-  sheet['!cols'] = [
-    { wch: 5 },   // #
-    { wch: 28 },  // Firma
-    { wch: 22 },  // Kontakt
-    { wch: 28 },  // Email
-    { wch: 15 },  // Telefon
-    { wch: 15 },  // Cena
-    { wch: 14 },  // Soutěž
-    { wch: 14 },  // 1. kolo
-    { wch: 14 },  // 2. kolo
-    { wch: 14 },  // 3. kolo
-    { wch: 14 },  // Stav
-    { wch: 18 },  // Tagy
-    { wch: 35 }   // Poznámky
+  sheet.mergeCells('B1:J1');
+  sheet.getCell('B1').value = 'ZÁPIS O VÝBĚRU';
+  sheet.getCell('B1').font = { bold: true, size: 18, color: { argb: TENDER_FLOW_BLUE } };
+  sheet.getCell('B1').alignment = { vertical: 'middle' };
+  sheet.getRow(1).height = 28;
+
+  sheet.mergeCells('B2:J2');
+  sheet.getCell('B2').value = getExportSourceText(project, category, meta);
+  sheet.getCell('B2').font = { size: 10, color: { argb: '475569' } };
+
+  sheet.getCell('K1').value = meta.organizationName || 'Tender Flow';
+  sheet.getCell('K1').font = { bold: true, size: 11, color: { argb: TENDER_FLOW_BLUE } };
+  sheet.getCell('K1').alignment = { horizontal: 'right' };
+
+  const infoRows: [string, string][] = [
+    ['Projekt', project.title],
+    ['Kategorie', category.title],
+    ['SOD rozpočet', formatMoney(category.sodBudget)],
+    ['Plánovaný náklad', formatMoney(category.planBudget)],
+    ...(getWinnerBids(bids).length > 1 ? [['Vítěz celkem', formatMoney(getWinnersTotal(bids))] as [string, string]] : []),
+    ...(category.deadline ? [['Termín poptávky', formatDate(category.deadline)] as [string, string]] : []),
+    ['Exportováno', getExportDateText()],
   ];
 
-  // Merge cells for section titles
-  sheet['!merges'] = [
-    { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } },  // PŘEHLED POPTÁVKY
-    { s: { r: 12, c: 0 }, e: { r: 12, c: 5 } }, // SEZNAM DODAVATELŮ (row 13)
-  ];
+  infoRows.forEach(([label, value], index) => {
+    const rowNumber = 4 + index;
+    sheet.getCell(rowNumber, 1).value = `${label}:`;
+    sheet.getCell(rowNumber, 1).font = { bold: true, color: { argb: TENDER_FLOW_BLUE } };
+    sheet.getCell(rowNumber, 2).value = sanitizeExportText(value);
+    sheet.mergeCells(rowNumber, 2, rowNumber, 6);
+  });
 
-  // Set row heights for better readability
-  sheet['!rows'] = [
-    { hpt: 24 },  // Title row - taller
-  ];
+  const descriptionRow = 4 + infoRows.length + 1;
+  sheet.getCell(descriptionRow, 1).value = 'Popis:';
+  sheet.getCell(descriptionRow, 1).font = { bold: true, color: { argb: TENDER_FLOW_BLUE } };
+  sheet.getCell(descriptionRow, 2).value = getSafeText(category.description);
+  sheet.getCell(descriptionRow, 2).alignment = { wrapText: true, vertical: 'top' };
+  sheet.mergeCells(descriptionRow, 2, descriptionRow + 1, 12);
+  sheet.getRow(descriptionRow).height = 34;
 
-  XLSX.utils.book_append_sheet(workbook, sheet, 'Poptávka');
+  const sectionRow = descriptionRow + 3;
+  sheet.mergeCells(sectionRow, 1, sectionRow, 13);
+  sheet.getCell(sectionRow, 1).value = 'SEZNAM DODAVATELŮ';
+  sheet.getCell(sectionRow, 1).font = { bold: true, color: { argb: TENDER_FLOW_BLUE } };
+  sheet.getCell(sectionRow, 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TENDER_FLOW_LIGHT } };
 
-  // Download file
+  const headerRow = sectionRow + 2;
+  const headers = ['#', 'Firma', '', 'Kontaktní osoba', 'Email', 'Telefon', 'Cena', 'Soutěž', '1. kolo', '2. kolo', '3. kolo', 'Stav', 'Poznámky'];
+  sheet.getRow(headerRow).values = headers;
+  sheet.getRow(headerRow).height = 24;
+  sheet.getRow(headerRow).eachCell((cell) => {
+    cell.font = { bold: true, color: { argb: 'FFFFFF' } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TENDER_FLOW_BLUE } };
+    cell.alignment = { vertical: 'middle' };
+    cell.border = { bottom: { style: 'thin', color: { argb: TENDER_FLOW_ACCENT } } };
+  });
+
+  bids.forEach((bid, index) => {
+    const row = sheet.addRow([
+      index + 1,
+      getSafeText(bid.companyName),
+      '',
+      getSafeText(bid.contactPerson),
+      getSafeText(bid.email),
+      getSafeText(bid.phone),
+      getSafeText(bid.price, '?'),
+      getSafeText(bid.priceHistory?.[0]),
+      getSafeText(bid.priceHistory?.[1]),
+      getSafeText(bid.priceHistory?.[2]),
+      getSafeText(bid.priceHistory?.[3]),
+      getStatusLabel(bid.status),
+      getSafeText(bid.notes),
+    ]);
+
+    row.eachCell((cell, colNumber) => {
+      cell.alignment = { wrapText: colNumber === 13, vertical: 'top' };
+      cell.border = { bottom: { style: 'thin', color: { argb: 'E2E8F0' } } };
+      if (index % 2 === 1) {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F8FAFC' } };
+      }
+    });
+  });
+
+  const footerRow = sheet.addRow([]);
+  footerRow.getCell(1).value = `Exportováno z Tender Flow | ${getExportSourceText(project, category, meta)} | ${getExportDateText()}`;
+  footerRow.getCell(1).font = { italic: true, color: { argb: '64748B' } };
+  sheet.mergeCells(footerRow.number, 1, footerRow.number, 13);
+
+  sheet.eachRow((row) => {
+    row.eachCell((cell) => {
+      cell.font = { name: 'Calibri', ...(cell.font || {}) };
+    });
+  });
+
+  sheet.pageSetup.printArea = `A1:M${footerRow.number}`;
+  sheet.headerFooter.oddFooter = `Tender Flow | Exportováno: ${getExportDateText()} | Strana &P z &N`;
+
+  const output = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([output as BlobPart], { type: XLSX_MIME });
   const filename = `poptavka_${category.title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
-  XLSX.writeFile(workbook, filename);
+  downloadBlob(blob, filename);
 }
 
 /**
@@ -445,28 +602,53 @@ export function exportMarkdownToPdf(
 /**
  * Export to PDF format
  */
-export function exportToPDF(
+export async function exportToPDF(
   category: DemandCategory,
   bids: Bid[],
-  project: ProjectDetails
-): void {
+  project: ProjectDetails,
+  meta: TenderSelectionExportMeta = {},
+): Promise<void> {
   // Create PDF in landscape orientation
-  const doc = new jsPDF({ orientation: 'landscape' });
+  const doc = new jsPDF({ orientation: 'landscape', format: 'a4' });
 
   // Register Roboto font for Czech diacritics support
   registerRobotoFont(doc);
 
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const marginX = 10;
+  const tableWidth = pageWidth - marginX * 2;
+  const appLogo = await fetchRasterImagePayload(meta.appLogoUrl || DEFAULT_TF_LOGO_URL);
+  const tenantLogo = await fetchRasterImagePayload(meta.organizationLogoUrl);
+
+  if (appLogo) {
+    try {
+      doc.addImage(appLogo.dataUrl, appLogo.jsPdfType, marginX, 8, 16, 16);
+    } catch {
+      // Export pokračuje i bez loga, pokud jej jsPDF nezpracuje.
+    }
+  }
+
+  if (tenantLogo) {
+    try {
+      doc.addImage(tenantLogo.dataUrl, tenantLogo.jsPdfType, pageWidth - marginX - 34, 8, 34, 14);
+    } catch {
+      // Export pokračuje i bez loga tenantu.
+    }
+  }
+
   // Title
   doc.setFontSize(18);
   doc.setFont('Roboto', 'normal');
-  doc.text('Zápis o výběru', 14, 15);
+  doc.setTextColor(15, 23, 42);
+  doc.text('Zápis o výběru', appLogo ? 30 : marginX, 15);
 
   // Project info - two columns for better space usage
   doc.setFontSize(10);
   doc.setFont('Roboto', 'normal');
 
-  doc.text(`Projekt: ${project.title}`, 14, 25);
-  doc.text(`Kategorie: ${category.title}`, 14, 31);
+  doc.text(`Projekt: ${project.title}`, marginX, 28);
+  doc.text(`Kategorie: ${category.title}`, marginX, 34);
 
   // Format money without Kč symbol for PDF - just number to prevent wrapping
   const formatMoneyPDF = (value: number) =>
@@ -475,11 +657,27 @@ export function exportToPDF(
       maximumFractionDigits: 2,
     }).format(value);
 
-  doc.text(`SOD rozpočet: ${formatMoneyPDF(category.sodBudget)}`, 150, 25);
-  doc.text(`Plánovaný náklad: ${formatMoneyPDF(category.planBudget)}`, 150, 31);
+  const winners = getWinnerBids(bids);
+  const rightInfoX = pageWidth - marginX;
+  doc.text(`SOD rozpočet: ${formatMoneyPDF(category.sodBudget)}`, rightInfoX, 28, { align: 'right' });
+  doc.text(`Plánovaný náklad: ${formatMoneyPDF(category.planBudget)}`, rightInfoX, 34, { align: 'right' });
+  if (winners.length > 1) {
+    doc.text(`Vítěz celkem: ${formatMoneyPDF(getWinnersTotal(bids))}`, rightInfoX, 40, { align: 'right' });
+  }
 
   if (category.deadline) {
-    doc.text(`Termín: ${formatDate(category.deadline)}`, 14, 37);
+    doc.text(`Termín: ${formatDate(category.deadline)}`, marginX, 40);
+  }
+
+  const description = category.description?.trim();
+  const descriptionY = 46;
+  let tableStartY = 46;
+  if (description) {
+    const descriptionLines = doc.splitTextToSize(`Poznámka: ${description}`, tableWidth) as string[];
+    doc.setTextColor(71, 85, 105);
+    doc.text(descriptionLines.slice(0, 3), marginX, descriptionY);
+    tableStartY = descriptionY + Math.min(descriptionLines.length, 3) * 5 + 3;
+    doc.setTextColor(15, 23, 42);
   }
 
   // Table with round prices - now with proper Czech diacritics
@@ -493,30 +691,34 @@ export function exportToPDF(
     bid.priceHistory?.[0] ? formatMoneyPDF(parseMoney(bid.priceHistory[0])) : '-',
     bid.priceHistory?.[1] ? formatMoneyPDF(parseMoney(bid.priceHistory[1])) : '-',
     bid.priceHistory?.[2] ? formatMoneyPDF(parseMoney(bid.priceHistory[2])) : '-',
-    // bid.priceHistory?.[3] || '-', // Omit 3rd round in PDF to save space if needed, or keep it. Let's try to fit it.
-    getStatusLabel(bid.status)
+    bid.priceHistory?.[3] ? formatMoneyPDF(parseMoney(bid.priceHistory[3])) : '-',
+    getStatusLabel(bid.status),
+    bid.notes || '-',
   ]);
 
   autoTable(doc, {
-    startY: 42,
-    head: [['#', 'Firma', 'Kontakt', 'Email', 'Telefon', 'Cena', 'Soutěž', '1.kolo', '2.kolo', 'Stav']],
+    startY: tableStartY,
+    tableWidth,
+    head: [['#', 'Firma', 'Kontakt', 'Email', 'Telefon', 'Cena', 'Soutěž', '1.kolo', '2.kolo', '3.kolo', 'Stav', 'Poznámka']],
     body: tableData,
-    styles: { fontSize: 8, cellPadding: 2, font: 'Roboto' },
-    headStyles: { fillColor: [71, 85, 105], textColor: 255, fontStyle: 'normal' },
+    styles: { fontSize: 7.4, cellPadding: 1.5, font: 'Roboto', overflow: 'linebreak' },
+    headStyles: { fillColor: [15, 23, 42], textColor: 255, fontStyle: 'normal' },
     alternateRowStyles: { fillColor: [248, 250, 252] },
     columnStyles: {
-      0: { cellWidth: 8 },
-      1: { cellWidth: 35 },
-      2: { cellWidth: 25 },
-      3: { cellWidth: 40 },
-      4: { cellWidth: 25 },
-      5: { cellWidth: 20 },
-      6: { cellWidth: 20 },
-      7: { cellWidth: 20 },
-      8: { cellWidth: 20 },
-      9: { cellWidth: 20 }
+      0: { cellWidth: 7 },
+      1: { cellWidth: 31 },
+      2: { cellWidth: 24 },
+      3: { cellWidth: 36 },
+      4: { cellWidth: 20 },
+      5: { cellWidth: 18 },
+      6: { cellWidth: 16 },
+      7: { cellWidth: 16 },
+      8: { cellWidth: 16 },
+      9: { cellWidth: 16 },
+      10: { cellWidth: 20 },
+      11: { cellWidth: 48 },
     },
-    margin: { left: 14, right: 14 }
+    margin: { left: marginX, right: marginX }
   });
 
   // Footer
@@ -526,9 +728,9 @@ export function exportToPDF(
     doc.setFontSize(8);
     doc.setTextColor(128);
     doc.text(
-      `Tender Flow | Exportováno: ${formatDate(new Date().toISOString())} | Strana ${i} z ${pageCount}`,
-      14,
-      doc.internal.pageSize.height - 10
+      `Tender Flow | ${getExportSourceText(project, category, meta)} | Exportováno: ${getExportDateText()} | Strana ${i} z ${pageCount}`,
+      marginX,
+      pageHeight - 10
     );
   }
 
