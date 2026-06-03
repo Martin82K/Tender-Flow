@@ -1,10 +1,16 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { recordUsageHeartbeat } from "@/infra/usage/appUsageService";
+import {
+  COOKIE_CONSENT_CHANGE_EVENT,
+  hasOptionalCookieConsent,
+  type CookieConsentDecision,
+} from "@/shared/privacy/cookieConsent";
 
 const HEARTBEAT_INTERVAL_MS = 120_000;
 const HEARTBEAT_SECONDS = HEARTBEAT_INTERVAL_MS / 1000;
 const INITIAL_HEARTBEAT_SECONDS = 1;
 const IDLE_TIMEOUT_MS = 5 * 60_000;
+const COOKIE_CONSENT_STORAGE_KEY = "tf_cookie_consent_v1";
 
 interface UseAppUsageHeartbeatInput {
   enabled: boolean;
@@ -64,9 +70,37 @@ export const useAppUsageHeartbeat = ({ enabled, sessionKey }: UseAppUsageHeartbe
   const isWindowFocusedRef = useRef<boolean>(
     typeof document === "undefined" ? true : document.hasFocus(),
   );
+  const [hasConsent, setHasConsent] = useState(hasOptionalCookieConsent);
 
   useEffect(() => {
-    if (!enabled || typeof window === "undefined" || typeof document === "undefined") {
+    if (typeof window === "undefined") return undefined;
+
+    const syncConsent = () => {
+      setHasConsent(hasOptionalCookieConsent());
+    };
+
+    const handleConsentEvent = (event: Event) => {
+      const detail = (event as CustomEvent<CookieConsentDecision | null>).detail;
+      setHasConsent(detail === "accepted_all");
+    };
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== COOKIE_CONSENT_STORAGE_KEY) return;
+      syncConsent();
+    };
+
+    syncConsent();
+    window.addEventListener(COOKIE_CONSENT_CHANGE_EVENT, handleConsentEvent);
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      window.removeEventListener(COOKIE_CONSENT_CHANGE_EVENT, handleConsentEvent);
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!enabled || !hasConsent || typeof window === "undefined" || typeof document === "undefined") {
       sessionIdRef.current = null;
       return undefined;
     }
@@ -135,5 +169,5 @@ export const useAppUsageHeartbeat = ({ enabled, sessionKey }: UseAppUsageHeartbe
       window.removeEventListener("blur", handleBlur);
       document.removeEventListener("visibilitychange", markActivity);
     };
-  }, [enabled, sessionKey]);
+  }, [enabled, hasConsent, sessionKey]);
 };

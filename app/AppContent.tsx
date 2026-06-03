@@ -168,7 +168,7 @@ export const AppContent: React.FC = () => {
     sessionKey: user?.id ?? null,
   });
 
-  const desktopAllowedTiers = ["pro", "enterprise", "admin"] as const;
+  const desktopAllowedTiers = ["enterprise", "admin"] as const;
   const isDesktopPlanBlocked =
     isDesktop &&
     isAuthenticated &&
@@ -290,9 +290,8 @@ export const AppContent: React.FC = () => {
       <div className="min-h-screen bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
         <div className="max-w-3xl mx-auto px-6 py-10">
           <div className="mb-8 rounded-2xl border border-amber-300/60 bg-amber-50 text-amber-900 px-5 py-4 text-sm">
-            Desktop aplikace je dostupná pro tarif PRO a vyšší. Pokud máte Free nebo Starter,
-            prosím použijte webovou aplikaci. Pro pokračování na desktopu aktivujte
-            PRO/Enterprise předplatné.
+            Desktop aplikace je dostupná pouze pro Enterprise účty. Pokud nemáte aktivní
+            Enterprise přístup, prosím použijte webovou aplikaci.
           </div>
           <div className="flex flex-wrap gap-3">
             <button

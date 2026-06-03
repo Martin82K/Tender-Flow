@@ -47,8 +47,30 @@ const ensurePathAllowed = (requestedPath: string, mode: "read" | "write"): Promi
 
 const isWindowsAbsolutePath = (value: string): boolean => /^[A-Za-z]:[\\/]/.test(value);
 
+const pickPathOps = (value: string): typeof path.win32 | typeof path.posix =>
+  isWindowsAbsolutePath(value) || value.includes("\\") ? path.win32 : path.posix;
+
 const resolveNativeOrPortableAbsolutePath = (value: string): string =>
   path.isAbsolute(value) || isWindowsAbsolutePath(value) ? value : path.resolve(value);
+
+const findExistingDirectoryForGrant = async (targetPath: string): Promise<string | null> => {
+  const pathOps = pickPathOps(targetPath);
+  let candidate = resolveNativeOrPortableAbsolutePath(targetPath);
+
+  while (true) {
+    try {
+      const stat = await fs.stat(candidate);
+      if (stat.isDirectory()) return candidate;
+      return null;
+    } catch {
+      const parent = pathOps.dirname(candidate);
+      if (parent === candidate || parent === "." || parent.trim().length === 0) {
+        return null;
+      }
+      candidate = parent;
+    }
+  }
+};
 
 const parsePersistedGrantedRoots = (raw: string | null): string[] => {
   if (!raw) return [];
@@ -294,19 +316,13 @@ export const registerFsHandlers = ({
     requireAuth(event.sender, 'fs:grantAccess');
     await ensurePersistedRootsLoaded();
     if (typeof folderPath !== "string" || folderPath.trim().length === 0) return false;
-    const resolvedFolderPath = await resolvePortableReadPath(folderPath.trim());
-    const abs = resolveNativeOrPortableAbsolutePath(resolvedFolderPath);
-
-    try {
-      const stat = await fs.stat(abs);
-      if (!stat.isDirectory()) return false;
-    } catch {
-      return false;
-    }
+    const resolvedFolderPath = await resolvePortableWritePath(folderPath.trim());
+    const grantTarget = await findExistingDirectoryForGrant(resolvedFolderPath);
+    if (!grantTarget) return false;
 
     const confirmation = await dialog.showOpenDialog({
       title: "Potvrďte přístup ke složce",
-      defaultPath: abs,
+      defaultPath: grantTarget,
       properties: ["openDirectory"],
       message: "Pro pokračování vyberte složku, ke které chcete udělit přístup.",
       buttonLabel: "Udělit přístup",
@@ -317,7 +333,7 @@ export const registerFsHandlers = ({
     const selectedPath = resolveNativeOrPortableAbsolutePath(confirmation.filePaths[0]);
     const [selectedRealPath, requestedRealPath] = await Promise.all([
       fs.realpath(selectedPath),
-      fs.realpath(abs),
+      fs.realpath(grantTarget),
     ]);
     if (selectedRealPath !== requestedRealPath) return false;
 

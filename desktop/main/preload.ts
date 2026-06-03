@@ -19,6 +19,8 @@ import type {
 } from './types';
 import type { IpcChannel, IpcContractMap } from './ipc/contracts';
 
+const PUBLIC_ENV_ARG_PREFIX = '--tender-flow-public-env=';
+
 console.log('[Preload] Script starting...');
 try {
     console.log('[Preload] Exposing electronAPI');
@@ -37,6 +39,22 @@ const invokeTyped = <C extends IpcChannel>(
     return ipcRenderer.invoke(channel, ...(args as unknown as any[]));
 };
 
+const loadPublicEnvFromArgs = (): ElectronAPI['publicEnv'] => {
+    const rawValue = process.argv
+        .find((arg) => arg.startsWith(PUBLIC_ENV_ARG_PREFIX))
+        ?.slice(PUBLIC_ENV_ARG_PREFIX.length);
+
+    if (!rawValue) return {};
+
+    try {
+        const parsed = JSON.parse(decodeURIComponent(rawValue)) as ElectronAPI['publicEnv'];
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+        console.warn('[Preload] Failed to parse public env bootstrap.');
+        return {};
+    }
+};
+
 const electronAPI: ElectronAPI = {
     // Platform detection
     platform: {
@@ -45,6 +63,8 @@ const electronAPI: ElectronAPI = {
         os: process.platform,
         version: process.versions.electron,
     },
+
+    publicEnv: loadPublicEnvFromArgs(),
 
     // File system operations
     fs: {

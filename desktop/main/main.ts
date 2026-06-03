@@ -7,6 +7,7 @@ import { startMcpServer } from './services/mcpServer';
 import { buildDesktopCsp, shouldInjectDesktopCsp } from './services/csp';
 import { buildMainWindowWebPreferences } from './services/windowSecurity';
 import { ipcAuthGuard } from './services/ipcAuthGuard';
+import { getDesktopRendererPublicEnv } from './services/publicEnv';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {
@@ -21,6 +22,7 @@ const DESKTOP_BOOTSTRAP_ENV_KEYS = new Set([
     'VITE_SUPABASE_URL',
     'VITE_SUPABASE_ANON_KEY',
 ]);
+const PUBLIC_ENV_ARG_PREFIX = '--tender-flow-public-env=';
 
 const loadDesktopEnvFile = (filePath: string): void => {
     if (!fs.existsSync(filePath)) return;
@@ -57,6 +59,11 @@ const loadDesktopEnv = (): void => {
     const appRoot = path.resolve(__dirname, '../..');
     loadDesktopEnvFile(path.join(appRoot, '.env.local'));
     loadDesktopEnvFile(path.join(appRoot, '.env'));
+};
+
+const buildDesktopPublicEnvArgument = (): string => {
+    const encoded = encodeURIComponent(JSON.stringify(getDesktopRendererPublicEnv()));
+    return `${PUBLIC_ENV_ARG_PREFIX}${encoded}`;
 };
 
 loadDesktopEnv();
@@ -153,7 +160,9 @@ function createWindow(): void {
                 return undefined;
             }
         })(),
-        webPreferences: buildMainWindowWebPreferences(path.join(__dirname, 'preload.js')),
+        webPreferences: buildMainWindowWebPreferences(path.join(__dirname, 'preload.js'), [
+            buildDesktopPublicEnvArgument(),
+        ]),
         titleBarStyle: 'hiddenInset', // macOS native feel
         trafficLightPosition: { x: 15, y: 15 },
         show: false, // Show when ready
