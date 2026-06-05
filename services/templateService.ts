@@ -1,10 +1,40 @@
 import { Template } from '../types';
 import { supabase } from './supabase';
 
+type TemplateScope = {
+    projectId?: string | null;
+};
+
+type DbTemplate = {
+    id: string;
+    project_id?: string | null;
+    name: string;
+    subject: string;
+    content: string;
+    is_default: boolean;
+    updated_at?: string | null;
+};
+
+const templateDate = (updatedAt?: string | null): string =>
+    updatedAt ? new Date(updatedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+
+const mapTemplateFromDb = (template: DbTemplate): Template => ({
+    id: template.id,
+    projectId: template.project_id ?? null,
+    name: template.name,
+    subject: template.subject,
+    content: template.content,
+    isDefault: template.is_default,
+    lastModified: templateDate(template.updated_at),
+});
+
+const hasProjectScope = (scope?: TemplateScope): scope is { projectId: string } =>
+    typeof scope?.projectId === 'string' && scope.projectId.trim().length > 0;
+
 /**
- * Copy default templates from default_templates table to current user's templates
+ * Copy default templates from default_templates table to current user's scoped templates.
  */
-const copyDefaultTemplatesForUser = async (): Promise<void> => {
+const copyDefaultTemplatesForUser = async (scope?: TemplateScope): Promise<void> => {
     try {
         const { data: defaultTemplates, error: fetchError } = await supabase
             .from('default_templates')
@@ -30,6 +60,7 @@ const copyDefaultTemplatesForUser = async (): Promise<void> => {
         // Copy each default template to user's templates
         const templatesToInsert = defaultTemplates.map(dt => ({
             user_id: user.id,
+            project_id: hasProjectScope(scope) ? scope.projectId : null,
             name: dt.name,
             subject: dt.subject,
             content: dt.content,
@@ -49,13 +80,19 @@ const copyDefaultTemplatesForUser = async (): Promise<void> => {
     }
 };
 
-export const getTemplates = async (): Promise<Template[]> => {
+export const getTemplates = async (scope?: TemplateScope): Promise<Template[]> => {
     try {
         // RLS automatically filters by user_id = auth.uid()
-        const { data, error } = await supabase
+        let query = supabase
             .from('templates')
             .select('*')
             .order('name');
+
+        query = hasProjectScope(scope)
+            ? query.eq('project_id', scope.projectId)
+            : query.is('project_id', null);
+
+        const { data, error } = await query;
 
         if (error) {
             console.error('Error fetching templates:', error);
@@ -64,37 +101,29 @@ export const getTemplates = async (): Promise<Template[]> => {
 
         // If user has no templates, copy defaults and retry
         if (!data || data.length === 0) {
-            await copyDefaultTemplatesForUser();
+            await copyDefaultTemplatesForUser(scope);
 
             // Retry fetching after copying
-            const { data: retryData, error: retryError } = await supabase
+            let retryQuery = supabase
                 .from('templates')
                 .select('*')
                 .order('name');
+
+            retryQuery = hasProjectScope(scope)
+                ? retryQuery.eq('project_id', scope.projectId)
+                : retryQuery.is('project_id', null);
+
+            const { data: retryData, error: retryError } = await retryQuery;
 
             if (retryError || !retryData) {
                 console.error('Error fetching templates after copy:', retryError);
                 return [];
             }
 
-            return retryData.map(t => ({
-                id: t.id,
-                name: t.name,
-                subject: t.subject,
-                content: t.content,
-                isDefault: t.is_default,
-                lastModified: t.updated_at ? new Date(t.updated_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
-            }));
+            return retryData.map(mapTemplateFromDb);
         }
 
-        return data.map(t => ({
-            id: t.id,
-            name: t.name,
-            subject: t.subject,
-            content: t.content,
-            isDefault: t.is_default,
-            lastModified: t.updated_at ? new Date(t.updated_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
-        }));
+        return data.map(mapTemplateFromDb);
     } catch (e) {
         console.error('Failed to load templates', e);
         return [];
@@ -103,25 +132,45 @@ export const getTemplates = async (): Promise<Template[]> => {
 
 
 
-export const getDefaultTemplate = async (): Promise<Template | undefined> => {
+export const getDefaultTemplate = async (scope?: TemplateScope): Promise<Template | undefined> => {
     try {
         // RLS automatically filters by user_id = auth.uid()
         // First try to find a template explicitly marked as default
-        let { data, error } = await supabase
+        let defaultQuery = supabase
             .from('templates')
             .select('*')
-            .eq('is_default', true)
-            .limit(1)
-            .single();
+            .eq('is_default', true);
+
+        defaultQuery = hasProjectScope(scope)
+            ? defaultQuery.eq('project_id', scope.projectId)
+            : defaultQuery.is('project_id', null);
+
+        let { data, error } = await defaultQuery.limit(1).single();
+
+        if ((error || !data) && hasProjectScope(scope)) {
+            await copyDefaultTemplatesForUser(scope);
+            let retryDefaultQuery = supabase
+                .from('templates')
+                .select('*')
+                .eq('is_default', true)
+                .eq('project_id', scope.projectId);
+            const retryResult = await retryDefaultQuery.limit(1).single();
+            data = retryResult.data;
+            error = retryResult.error;
+        }
 
         // If no default found, get the first template (ordered by name)
         if (error || !data) {
-            const result = await supabase
+            let fallbackQuery = supabase
                 .from('templates')
                 .select('*')
-                .order('name')
-                .limit(1)
-                .single();
+                .order('name');
+
+            fallbackQuery = hasProjectScope(scope)
+                ? fallbackQuery.eq('project_id', scope.projectId)
+                : fallbackQuery.is('project_id', null);
+
+            const result = await fallbackQuery.limit(1).single();
 
             data = result.data;
             error = result.error;
@@ -132,14 +181,7 @@ export const getDefaultTemplate = async (): Promise<Template | undefined> => {
             return undefined;
         }
 
-        return {
-            id: data.id,
-            name: data.name,
-            subject: data.subject,
-            content: data.content,
-            isDefault: data.is_default,
-            lastModified: data.updated_at ? new Date(data.updated_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
-        };
+        return mapTemplateFromDb(data);
     } catch (e) {
         console.error('Failed to get default template', e);
         return undefined;
@@ -148,14 +190,19 @@ export const getDefaultTemplate = async (): Promise<Template | undefined> => {
 
 
 
-export const getTemplateById = async (id: string): Promise<Template | undefined> => {
+export const getTemplateById = async (id: string, scope?: TemplateScope): Promise<Template | undefined> => {
     try {
         // RLS automatically filters by user_id = auth.uid()
-        const { data, error } = await supabase
+        let query = supabase
             .from('templates')
             .select('*')
-            .eq('id', id)
-            .maybeSingle();
+            .eq('id', id);
+
+        query = hasProjectScope(scope)
+            ? query.eq('project_id', scope.projectId)
+            : query.is('project_id', null);
+
+        const { data, error } = await query.maybeSingle();
 
         if (error) {
             console.error('Error fetching template:', error);
@@ -164,14 +211,7 @@ export const getTemplateById = async (id: string): Promise<Template | undefined>
 
         if (!data) return undefined;
 
-        return {
-            id: data.id,
-            name: data.name,
-            subject: data.subject,
-            content: data.content,
-            isDefault: data.is_default,
-            lastModified: data.updated_at ? new Date(data.updated_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
-        };
+        return mapTemplateFromDb(data);
     } catch (e) {
         console.error('Failed to get template by id', e);
         return undefined;
@@ -180,7 +220,7 @@ export const getTemplateById = async (id: string): Promise<Template | undefined>
 
 
 
-export const saveTemplate = async (template: Template): Promise<Template | null> => {
+export const saveTemplate = async (template: Template, scope?: TemplateScope): Promise<Template | null> => {
     try {
         // Get current user ID
         const { data: { user } } = await supabase.auth.getUser();
@@ -195,17 +235,23 @@ export const saveTemplate = async (template: Template): Promise<Template | null>
             subject: template.subject,
             content: template.content,
             is_default: template.isDefault,
+            project_id: hasProjectScope(scope) ? scope.projectId : null,
             user_id: user.id, // Always set user_id to current user
             updated_at: new Date().toISOString()
         };
 
         if (dbTemplate.is_default) {
             // Unset other defaults first to ensure only one default exists per user
-            await supabase
+            let unsetDefaultQuery = supabase
                 .from('templates')
                 .update({ is_default: false })
-                .eq('user_id', user.id)
-                .eq('is_default', true);
+                .eq('user_id', user.id);
+
+            unsetDefaultQuery = hasProjectScope(scope)
+                ? unsetDefaultQuery.eq('project_id', scope.projectId)
+                : unsetDefaultQuery.is('project_id', null);
+
+            await unsetDefaultQuery.eq('is_default', true);
         }
 
         let result;
@@ -233,14 +279,7 @@ export const saveTemplate = async (template: Template): Promise<Template | null>
             result = data;
         }
 
-        return {
-            id: result.id,
-            name: result.name,
-            subject: result.subject,
-            content: result.content,
-            isDefault: result.is_default,
-            lastModified: result.updated_at ? new Date(result.updated_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
-        };
+        return mapTemplateFromDb(result);
     } catch (e) {
         console.error('Failed to save template', e);
         return null;
@@ -248,12 +287,18 @@ export const saveTemplate = async (template: Template): Promise<Template | null>
 };
 
 
-export const deleteTemplate = async (id: string): Promise<boolean> => {
+export const deleteTemplate = async (id: string, scope?: TemplateScope): Promise<boolean> => {
     try {
-        const { error } = await supabase
+        let query = supabase
             .from('templates')
             .delete()
             .eq('id', id);
+
+        query = hasProjectScope(scope)
+            ? query.eq('project_id', scope.projectId)
+            : query.is('project_id', null);
+
+        const { error } = await query;
 
         if (error) throw error;
         return true;

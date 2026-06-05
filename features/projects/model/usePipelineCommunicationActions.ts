@@ -156,12 +156,12 @@ export const usePipelineCommunicationActions = ({
     for (const templateLink of templateLinks) {
       const templateId = templateLink.split(":")[1];
       if (!templateId) continue;
-      template = await getTemplateById(templateId);
+      template = await getTemplateById(templateId, { projectId: projectDetails.id });
       if (template) break;
     }
 
     if (!template) {
-      template = await getDefaultTemplate();
+      template = await getDefaultTemplate({ projectId: projectDetails.id });
     }
 
     if (!template) {
@@ -312,7 +312,7 @@ export const usePipelineCommunicationActions = ({
     const templateLink = projectDetails.losersEmailTemplateLink || "";
     if (templateLink.startsWith("template:")) {
       const templateId = templateLink.split(":")[1];
-      const template = await getTemplateById(templateId);
+      const template = await getTemplateById(templateId, { projectId: projectDetails.id });
       if (template) {
         subject = processTemplate(
           template.subject,

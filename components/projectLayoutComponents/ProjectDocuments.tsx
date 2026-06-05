@@ -217,35 +217,35 @@ const ProjectDocuments: React.FC<ProjectDocumentsProps> = ({
   useEffect(() => {
     if (project.inquiryLetterLink?.startsWith("template:")) {
       const templateId = project.inquiryLetterLink.split(":")[1];
-      getTemplateById(templateId).then((template) => {
+      getTemplateById(templateId, { projectId: project.id }).then((template) => {
         setTemplateName(template?.name || "Neznámá šablona");
       });
     } else {
       setTemplateName(null);
     }
-  }, [project.inquiryLetterLink]);
+  }, [project.id, project.inquiryLetterLink]);
 
   useEffect(() => {
     if (project.materialInquiryTemplateLink?.startsWith("template:")) {
       const templateId = project.materialInquiryTemplateLink.split(":")[1];
-      getTemplateById(templateId).then((template) => {
+      getTemplateById(templateId, { projectId: project.id }).then((template) => {
         setMaterialTemplateName(template?.name || "Neznámá šablona");
       });
     } else {
       setMaterialTemplateName(null);
     }
-  }, [project.materialInquiryTemplateLink]);
+  }, [project.id, project.materialInquiryTemplateLink]);
 
   useEffect(() => {
     if (project.losersEmailTemplateLink?.startsWith("template:")) {
       const templateId = project.losersEmailTemplateLink.split(":")[1];
-      getTemplateById(templateId).then((template) => {
+      getTemplateById(templateId, { projectId: project.id }).then((template) => {
         setLosersTemplateName(template?.name || "Neznámá šablona");
       });
     } else {
       setLosersTemplateName(null);
     }
-  }, [project.losersEmailTemplateLink]);
+  }, [project.id, project.losersEmailTemplateLink]);
 
   const handleSaveDocs = () => {
     onUpdate({ documentationLink: docsLinkValue });

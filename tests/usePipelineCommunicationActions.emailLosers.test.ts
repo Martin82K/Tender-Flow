@@ -33,11 +33,13 @@ vi.mock("@/services/organizationService", () => ({
 import { usePipelineCommunicationActions } from "../features/projects/model/usePipelineCommunicationActions";
 import type { Bid, DemandCategory, ProjectDetails, User } from "../types";
 
-const { mockGetTemplateById } = vi.hoisted(() => ({
+const { mockGetDefaultTemplate, mockGetTemplateById } = vi.hoisted(() => ({
+  mockGetDefaultTemplate: vi.fn(),
   mockGetTemplateById: vi.fn(),
 }));
 
 vi.mock("../services/templateService", () => ({
+  getDefaultTemplate: mockGetDefaultTemplate,
   getTemplateById: mockGetTemplateById,
 }));
 
@@ -206,6 +208,9 @@ describe("usePipelineCommunicationActions.handleEmailLosers", () => {
     expect(decodedHtml).toContain("<p>děkujeme za nabídku.</p>");
     expect(decodedHtml).toContain("Martin Kalkuš");
     expect(decodedHtml).not.toContain("</p><br><p>");
+    expect(mockGetTemplateById).toHaveBeenCalledWith("tpl-1", {
+      projectId: "project-1",
+    });
     expect(showAlert).not.toHaveBeenCalled();
   });
 

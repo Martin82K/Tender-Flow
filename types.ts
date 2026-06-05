@@ -357,6 +357,7 @@ export interface User {
 
 export interface Template {
   id: string;
+  projectId?: string | null;
   name: string;
   subject: string;
   content: string;

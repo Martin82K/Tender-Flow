@@ -127,6 +127,9 @@ describe("usePipelineCommunicationActions status persistence", () => {
     expect(mockPlatformAdapter.shell.openExternal).toHaveBeenCalledWith(
       "mailto:test@example.com",
     );
+    expect(mockGetDefaultTemplate).toHaveBeenCalledWith({
+      projectId: "project-1",
+    });
     expect(mockPersistBidStatusChange).toHaveBeenCalledWith(
       expect.objectContaining({
         bidId: bid.id,
@@ -167,6 +170,9 @@ describe("usePipelineCommunicationActions status persistence", () => {
 
     expect(mockGenerateEmlContent).toHaveBeenCalled();
     expect(mockPlatformAdapter.shell.openTempFile).toHaveBeenCalled();
+    expect(mockGetDefaultTemplate).toHaveBeenCalledWith({
+      projectId: "project-1",
+    });
     expect(mockPersistBidStatusChange).toHaveBeenCalledWith(
       expect.objectContaining({
         bidId: bid.id,

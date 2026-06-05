@@ -6,7 +6,7 @@ import { getTemplates, saveTemplate, deleteTemplate as serviceDeleteTemplate } f
 import { ConfirmationModal } from './ConfirmationModal';
 
 interface TemplateManagerProps {
-    project?: ProjectDetails;
+    project: ProjectDetails;
     onSelectTemplate?: (template: Template) => void;
     onClose?: () => void;
     initialTemplateId?: string | null;
@@ -47,7 +47,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
     const loadTemplatesData = async () => {
         setLoading(true);
         try {
-            const data = await getTemplates();
+            const data = await getTemplates({ projectId: project.id });
             setTemplates(data);
             const preferredId = initialTemplateId && data.some((t) => t.id === initialTemplateId) ? initialTemplateId : null;
             if (!selectedTemplateId && data.length > 0) setSelectedTemplateId(preferredId || data[0].id);
@@ -60,7 +60,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
 
     useEffect(() => {
         loadTemplatesData();
-    }, []);
+    }, [project.id]);
 
     const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
 
@@ -83,14 +83,15 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
             subject: editedSubject,
             content: editedContent,
             isDefault: editedIsDefault,
-            lastModified: new Date().toISOString().split('T')[0]
+            lastModified: new Date().toISOString().split('T')[0],
+            projectId: project.id ?? null
         };
 
-        const saved = await saveTemplate(updatedTemplate);
+        const saved = await saveTemplate(updatedTemplate, { projectId: project.id });
         if (saved) {
             setEditMode(false);
             // Reload templates to get updated IDs if new
-            const data = await getTemplates();
+            const data = await getTemplates({ projectId: project.id });
             setTemplates(data);
             // Select the saved template (using ID from result in case it changed from temp to uuid)
             setSelectedTemplateId(saved.id);
@@ -107,7 +108,8 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
             subject: 'Poptávka: {NAZEV_STAVBY}',
             content: 'Dobrý den,\n\n...',
             isDefault: false,
-            lastModified: new Date().toISOString().split('T')[0]
+            lastModified: new Date().toISOString().split('T')[0],
+            projectId: project.id ?? null
         };
 
         // We add it to local state immediately for UI responsiveness
@@ -146,7 +148,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({ project, onSel
         }
 
         setLoading(true);
-        const success = await serviceDeleteTemplate(id);
+        const success = await serviceDeleteTemplate(id, { projectId: project.id });
         if (success) {
             const newTemplates = templates.filter(t => t.id !== id);
             setTemplates(newTemplates);
