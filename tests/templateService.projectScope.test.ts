@@ -227,4 +227,63 @@ describe("templateService project scope", () => {
     ]);
     expect(supabaseMock.builders.some((builder) => builder.table === "default_templates")).toBe(false);
   });
+
+  it("při chybějícím project_id sloupci zobrazí původní šablony místo prázdného seznamu", async () => {
+    supabaseMock.results.push(
+      {
+        data: null,
+        error: {
+          code: "42703",
+          message: "column templates.project_id does not exist",
+        },
+      },
+      {
+        data: [
+          {
+            id: "legacy-template-1",
+            name: "Původní šablona",
+            subject: "Poptávka",
+            content: "Legacy text",
+            is_default: true,
+            updated_at: "2026-06-05T10:00:00.000Z",
+          },
+        ],
+        error: null,
+      },
+    );
+
+    await expect(getTemplates({ projectId: "project-a" })).resolves.toEqual([
+      expect.objectContaining({
+        id: "legacy-template-1",
+        content: "Legacy text",
+      }),
+    ]);
+
+    expect(callsFor(supabaseMock.builders[0], "eq")).toContainEqual(["project_id", "project-a"]);
+    expect(callsFor(supabaseMock.builders[1], "order")).toContainEqual(["name"]);
+  });
+
+  it("vrátí vestavěné vzorové šablony, když nejsou legacy ani databázové defaulty", async () => {
+    supabaseMock.results.push(
+      { data: [], error: null },
+      { data: [], error: null },
+      { data: [], error: null },
+      { data: null, error: { message: "insert blocked in test" } },
+      { data: [], error: null },
+      { data: [], error: null },
+    );
+
+    await expect(getTemplates({ projectId: "project-a" })).resolves.toEqual([
+      expect.objectContaining({
+        id: "builtin-inquiry-standard",
+        name: "MK poptávka standard",
+        projectId: "project-a",
+      }),
+      expect.objectContaining({
+        id: "builtin-material-inquiry",
+        name: "poptávka materiály",
+        projectId: "project-a",
+      }),
+    ]);
+  });
 });
