@@ -15,6 +15,14 @@ type DbTemplate = {
     updated_at?: string | null;
 };
 
+type TemplateSeed = {
+    name: string;
+    subject: string;
+    content: string;
+    is_default: boolean;
+    source_template_id?: string | null;
+};
+
 const templateDate = (updatedAt?: string | null): string =>
     updatedAt ? new Date(updatedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
 
@@ -30,6 +38,15 @@ const mapTemplateFromDb = (template: DbTemplate): Template => ({
 
 const hasProjectScope = (scope?: TemplateScope): scope is { projectId: string } =>
     typeof scope?.projectId === 'string' && scope.projectId.trim().length > 0;
+
+const getCurrentUserId = async (): Promise<string | null> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        console.error('No authenticated user found');
+        return null;
+    }
+    return user.id;
+};
 
 /**
  * Copy default templates from default_templates table to current user's scoped templates.
@@ -50,16 +67,12 @@ const copyDefaultTemplatesForUser = async (scope?: TemplateScope): Promise<void>
             return;
         }
 
-        // Get current user ID
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-            console.error('No authenticated user found');
-            return;
-        }
+        const userId = await getCurrentUserId();
+        if (!userId) return;
 
         // Copy each default template to user's templates
         const templatesToInsert = defaultTemplates.map(dt => ({
-            user_id: user.id,
+            user_id: userId,
             project_id: hasProjectScope(scope) ? scope.projectId : null,
             name: dt.name,
             subject: dt.subject,
@@ -77,6 +90,60 @@ const copyDefaultTemplatesForUser = async (scope?: TemplateScope): Promise<void>
         }
     } catch (e) {
         console.error('Failed to copy default templates', e);
+    }
+};
+
+const copyLegacyUserTemplatesForProject = async (scope?: TemplateScope): Promise<boolean> => {
+    if (!hasProjectScope(scope)) return false;
+
+    try {
+        const userId = await getCurrentUserId();
+        if (!userId) return false;
+
+        const { data: legacyTemplates, error: fetchError } = await supabase
+            .from('templates')
+            .select('name, subject, content, is_default, source_template_id')
+            .eq('user_id', userId)
+            .is('project_id', null)
+            .order('name');
+
+        if (fetchError) {
+            console.error('Error fetching legacy user templates:', fetchError);
+            return false;
+        }
+
+        if (!legacyTemplates || legacyTemplates.length === 0) return false;
+
+        const templatesToInsert = (legacyTemplates as TemplateSeed[]).map(template => ({
+            user_id: userId,
+            project_id: scope.projectId,
+            name: template.name,
+            subject: template.subject,
+            content: template.content,
+            is_default: template.is_default,
+            source_template_id: template.source_template_id ?? null,
+        }));
+
+        const { error: insertError } = await supabase
+            .from('templates')
+            .insert(templatesToInsert);
+
+        if (insertError) {
+            console.error('Error copying legacy user templates:', insertError);
+            return false;
+        }
+
+        return true;
+    } catch (e) {
+        console.error('Failed to copy legacy user templates', e);
+        return false;
+    }
+};
+
+const ensureTemplatesForScope = async (scope?: TemplateScope): Promise<void> => {
+    const copiedLegacyTemplates = await copyLegacyUserTemplatesForProject(scope);
+    if (!copiedLegacyTemplates) {
+        await copyDefaultTemplatesForUser(scope);
     }
 };
 
@@ -99,9 +166,10 @@ export const getTemplates = async (scope?: TemplateScope): Promise<Template[]> =
             return [];
         }
 
-        // If user has no templates, copy defaults and retry
+        // If user has no scoped templates, copy legacy user templates first.
+        // This preserves existing custom text but isolates it per project.
         if (!data || data.length === 0) {
-            await copyDefaultTemplatesForUser(scope);
+            await ensureTemplatesForScope(scope);
 
             // Retry fetching after copying
             let retryQuery = supabase
@@ -148,7 +216,7 @@ export const getDefaultTemplate = async (scope?: TemplateScope): Promise<Templat
         let { data, error } = await defaultQuery.limit(1).single();
 
         if ((error || !data) && hasProjectScope(scope)) {
-            await copyDefaultTemplatesForUser(scope);
+            await ensureTemplatesForScope(scope);
             let retryDefaultQuery = supabase
                 .from('templates')
                 .select('*')

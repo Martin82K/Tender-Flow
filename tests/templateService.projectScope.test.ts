@@ -78,22 +78,26 @@ class QueryBuilderMock {
 
 const supabaseMock = vi.hoisted(() => ({
   builders: [] as QueryBuilderMock[],
+  results: [] as Array<{ data?: unknown; error?: unknown }>,
   from: vi.fn((table: string) => {
-    const data =
+    const defaultResult =
       table === "templates"
-        ? [
-            {
-              id: "tpl-1",
-              project_id: "project-a",
-              name: "Projektová šablona",
-              subject: "Poptávka",
-              content: "Text",
-              is_default: true,
-              updated_at: "2026-06-05T10:00:00.000Z",
-            },
-          ]
-        : [];
-    const builder = new QueryBuilderMock(table, { data, error: null });
+        ? {
+            data: [
+              {
+                id: "tpl-1",
+                project_id: "project-a",
+                name: "Projektová šablona",
+                subject: "Poptávka",
+                content: "Text",
+                is_default: true,
+                updated_at: "2026-06-05T10:00:00.000Z",
+              },
+            ],
+            error: null,
+          }
+        : { data: [], error: null };
+    const builder = new QueryBuilderMock(table, supabaseMock.results.shift() ?? defaultResult);
     supabaseMock.builders.push(builder);
     return builder;
   }),
@@ -119,6 +123,7 @@ describe("templateService project scope", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     supabaseMock.builders.length = 0;
+    supabaseMock.results.length = 0;
   });
 
   it("načítá seznam šablon pouze pro aktuální stavbu", async () => {
@@ -165,5 +170,61 @@ describe("templateService project scope", () => {
       project_id: "project-a",
       user_id: "user-1",
     });
+  });
+
+  it("při prázdné stavbě nejdřív zkopíruje původní uživatelské šablony", async () => {
+    supabaseMock.results.push(
+      { data: [], error: null },
+      {
+        data: [
+          {
+            name: "MK poptávka standard",
+            subject: "Poptávka: {NAZEV_STAVBY}",
+            content: "Původní vlastní text",
+            is_default: true,
+            source_template_id: "default-1",
+          },
+        ],
+        error: null,
+      },
+      { data: null, error: null },
+      {
+        data: [
+          {
+            id: "project-template-1",
+            project_id: "project-a",
+            name: "MK poptávka standard",
+            subject: "Poptávka: {NAZEV_STAVBY}",
+            content: "Původní vlastní text",
+            is_default: true,
+            updated_at: "2026-06-05T10:00:00.000Z",
+          },
+        ],
+        error: null,
+      },
+    );
+
+    await expect(getTemplates({ projectId: "project-a" })).resolves.toEqual([
+      expect.objectContaining({
+        id: "project-template-1",
+        projectId: "project-a",
+        content: "Původní vlastní text",
+      }),
+    ]);
+
+    const legacyQuery = supabaseMock.builders[1];
+    const insertQuery = supabaseMock.builders[2];
+
+    expect(callsFor(legacyQuery, "is")).toContainEqual(["project_id", null]);
+    expect(callsFor(legacyQuery, "eq")).toContainEqual(["user_id", "user-1"]);
+    expect(callsFor(insertQuery, "insert")[0]?.[0]).toEqual([
+      expect.objectContaining({
+        user_id: "user-1",
+        project_id: "project-a",
+        name: "MK poptávka standard",
+        content: "Původní vlastní text",
+      }),
+    ]);
+    expect(supabaseMock.builders.some((builder) => builder.table === "default_templates")).toBe(false);
   });
 });
