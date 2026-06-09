@@ -58,9 +58,11 @@ try {
     console.log('   git push origin main --tags');
     console.log('5. Build the application:');
     console.log('   npm run desktop:build:win');
-    console.log('6. Upload to GitHub Releases:');
+    console.log('6. Verify auto-update artifacts:');
+    console.log('   npm run release:verify-artifacts');
+    console.log('7. Upload to GitHub Releases:');
     console.log(`   https://github.com/Martin82K/Tender-Flow/releases/new?tag=v${version}`);
-    console.log('   - Upload files from dist-electron folder');
+    console.log('   - Upload the Windows installer, .blockmap, and latest.yml from dist-electron');
     console.log('   - Add release notes');
     console.log('   - Publish release\n');
 
