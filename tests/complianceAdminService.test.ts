@@ -1159,6 +1159,9 @@ describe("complianceAdminService", () => {
   });
 
   it("umí uložit access review report a zapsat audit", async () => {
+    const recentSignIn = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
+    const staleSignIn = new Date(Date.now() - 120 * 24 * 60 * 60 * 1000).toISOString();
+
     state.rpc.mockResolvedValue({
       data: [
         {
@@ -1167,7 +1170,7 @@ describe("complianceAdminService", () => {
           display_name: "Admin",
           role_id: "priprava",
           role_label: "Přípravář",
-          last_sign_in: "2026-03-10T10:00:00.000Z",
+          last_sign_in: recentSignIn,
         },
         {
           user_id: "user-2",
@@ -1175,7 +1178,7 @@ describe("complianceAdminService", () => {
           display_name: "Stale",
           role_id: null,
           role_label: null,
-          last_sign_in: "2025-01-10T10:00:00.000Z",
+          last_sign_in: staleSignIn,
         },
       ],
       error: null,
