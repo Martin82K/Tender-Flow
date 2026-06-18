@@ -55,7 +55,7 @@ jobs:
           name: tender-flow-windows-${{ github.ref_name }}
           path: |
             dist-electron/*.exe
-            dist-electron/*.yml
+            dist-electron/latest.yml
             dist-electron/*.blockmap
           if-no-files-found: error
 
@@ -65,5 +65,5 @@ jobs:
         with:
           files: |
             dist-electron/*.exe
-            dist-electron/*.yml
+            dist-electron/latest.yml
             dist-electron/*.blockmap
