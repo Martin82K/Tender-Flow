@@ -5,7 +5,7 @@ import { join } from "node:path";
 import {
   createSha512Base64,
   verifyReleaseArtifacts,
-} from "../scripts/verify-release-artifacts.mjs";
+} from "../scripts/verify-release-artifacts-core.js";
 
 const createFixtureDir = () => mkdtempSync(join(tmpdir(), "tender-flow-release-"));
 
