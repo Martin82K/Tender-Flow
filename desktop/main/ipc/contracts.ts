@@ -1,6 +1,8 @@
 import type {
   BackupFileEntry,
   BackupSettingsInfo,
+  BidComparisonAgentConfig,
+  BidComparisonAgentTestResult,
   BidComparisonAutoConfig,
   BidComparisonAutoScope,
   BidComparisonAutoStartResult,
@@ -105,6 +107,10 @@ export interface IpcContractMap {
     result: BidComparisonJobStatus[];
   };
   "bid-comparison:cancel": { args: [jobId: string]; result: { success: boolean } };
+  "bid-comparison:test-agent": {
+    args: [config: BidComparisonAgentConfig];
+    result: BidComparisonAgentTestResult;
+  };
   "bid-comparison:auto-start": {
     args: [config: BidComparisonAutoConfig];
     result: BidComparisonAutoStartResult;

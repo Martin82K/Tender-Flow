@@ -16,6 +16,7 @@ import type {
 const STORAGE_KEY = 'bidComparison:autoConfigs:v1';
 const DEFAULT_DEBOUNCE_MS = 10_000;
 const DEFAULT_FALLBACK_MINUTES = 15;
+const DEFAULT_OUTPUT_BASE_NAME = 'porovnani-nabidek';
 const JOB_POLL_INTERVAL_MS = 900;
 const JOB_TIMEOUT_MS = 20 * 60 * 1000;
 
@@ -51,7 +52,7 @@ type RunnerLike = {
 
 interface AutoSession {
   key: string;
-  config: Required<BidComparisonAutoConfig>;
+  config: NormalizedAutoConfig;
   status: BidComparisonAutoStatus;
   watcher: WatcherLike | null;
   debounceTimer: NodeJS.Timeout | null;
@@ -60,6 +61,8 @@ interface AutoSession {
   pendingRerun: boolean;
   disposed: boolean;
 }
+
+type NormalizedAutoConfig = Required<BidComparisonAutoConfig>;
 
 const makeScopeKey = (scope: BidComparisonAutoScope): string =>
   `${scope.projectId}::${scope.categoryId}`;
@@ -73,12 +76,17 @@ const toIsoNow = (): string => new Date().toISOString();
 
 const isXlsxPath = (filePath: string): boolean => filePath.toLowerCase().endsWith('.xlsx');
 
-const normalizeConfig = (config: BidComparisonAutoConfig): Required<BidComparisonAutoConfig> => ({
+const normalizeConfig = (config: BidComparisonAutoConfig): NormalizedAutoConfig => ({
   ...config,
   tenderFolderPath: path.resolve(config.tenderFolderPath),
   suppliers: Array.isArray(config.suppliers) ? config.suppliers : [],
   selectedFiles: Array.isArray(config.selectedFiles) ? config.selectedFiles : [],
-  outputBaseName: (config.outputBaseName || 'porovnani_nabidek').trim() || 'porovnani_nabidek',
+  outputBaseName: (config.outputBaseName || DEFAULT_OUTPUT_BASE_NAME).trim() || DEFAULT_OUTPUT_BASE_NAME,
+  agent: config.agent ?? {
+    enabled: false,
+    baseUrl: '',
+    bearerToken: '',
+  },
   debounceMs: Number.isFinite(config.debounceMs)
     ? Math.max(1_000, Math.floor(config.debounceMs as number))
     : DEFAULT_DEBOUNCE_MS,
@@ -87,7 +95,7 @@ const normalizeConfig = (config: BidComparisonAutoConfig): Required<BidCompariso
     : DEFAULT_FALLBACK_MINUTES,
 });
 
-const makeStatusFromConfig = (config: Required<BidComparisonAutoConfig>): BidComparisonAutoStatus => ({
+const makeStatusFromConfig = (config: NormalizedAutoConfig): BidComparisonAutoStatus => ({
   projectId: config.projectId,
   categoryId: config.categoryId,
   tenderFolderPath: config.tenderFolderPath,
@@ -113,7 +121,9 @@ const sleep = async (ms: number): Promise<void> =>
 const isGeneratedOutput = (filePath: string, outputBaseName: string): boolean => {
   const base = path.basename(filePath).toLowerCase();
   const key = outputBaseName.toLowerCase();
-  return base.startsWith(`${key}_`) || base === `${key}.xlsx`;
+  const normalizedBase = base.replace(/[-_]+/g, '-');
+  const normalizedKey = key.replace(/[-_]+/g, '-');
+  return normalizedBase === `${normalizedKey}.xlsx` || normalizedBase.startsWith(`${normalizedKey}-`);
 };
 
 const shouldReactToFileChange = (filePath: string, outputBaseName: string): boolean => {
@@ -156,7 +166,7 @@ const mergeSelectedFiles = (
 };
 
 const extractStartInput = (
-  config: Required<BidComparisonAutoConfig>,
+  config: NormalizedAutoConfig,
   files: Array<
     BidComparisonDetectedFile & {
       role: BidComparisonRole;
@@ -213,6 +223,7 @@ const extractStartInput = (
     categoryId: config.categoryId,
     tenderFolderPath: config.tenderFolderPath,
     outputBaseName: config.outputBaseName,
+    agent: config.agent.enabled ? config.agent : undefined,
     selectedFiles,
   };
 
@@ -526,12 +537,12 @@ export class BidComparisonAutoRunner {
     };
   }
 
-  private async loadPersistedMap(): Promise<Record<string, Required<BidComparisonAutoConfig>>> {
+  private async loadPersistedMap(): Promise<Record<string, NormalizedAutoConfig>> {
     const raw = await this.storage.get(STORAGE_KEY);
     if (!raw) return {};
     try {
       const parsed = JSON.parse(raw) as Record<string, BidComparisonAutoConfig>;
-      const output: Record<string, Required<BidComparisonAutoConfig>> = {};
+      const output: Record<string, NormalizedAutoConfig> = {};
       Object.entries(parsed).forEach(([key, value]) => {
         output[key] = normalizeConfig(value);
       });
@@ -542,7 +553,7 @@ export class BidComparisonAutoRunner {
   }
 
   private async savePersistedMap(
-    map: Record<string, Required<BidComparisonAutoConfig>>,
+    map: Record<string, NormalizedAutoConfig>,
   ): Promise<void> {
     await this.storage.set(STORAGE_KEY, JSON.stringify(map));
   }

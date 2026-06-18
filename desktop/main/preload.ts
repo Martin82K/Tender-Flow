@@ -7,6 +7,8 @@ import type {
     UpdateStatus,
     BackupSettingsInfo,
     BackupFileEntry,
+    BidComparisonAgentConfig,
+    BidComparisonAgentTestResult,
     BidComparisonSupplierOption,
     BidComparisonDetectionResult,
     BidComparisonStartInput,
@@ -317,6 +319,9 @@ const electronAPI: ElectronAPI = {
 
         cancel: (jobId: string): Promise<{ success: boolean }> =>
             invokeTyped('bid-comparison:cancel', jobId),
+
+        testAgent: (config: BidComparisonAgentConfig): Promise<BidComparisonAgentTestResult> =>
+            invokeTyped('bid-comparison:test-agent', config),
 
         autoStart: (config: BidComparisonAutoConfig): Promise<BidComparisonAutoStartResult> =>
             invokeTyped('bid-comparison:auto-start', config),

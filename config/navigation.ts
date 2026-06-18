@@ -12,7 +12,7 @@ export interface NavItemConfig {
   href?: string; // For external links
   // Optional deep-linking into Settings
   settingsTab?: 'user' | 'tools' | 'organization' | 'admin';
-  settingsSubTab?: 'profile' | 'notifications' | 'backup' | 'contacts' | 'excelUnlocker' | 'excelMerger' | 'excelIndexer' | 'urlShortener' | 'registration' | 'users' | 'organizations' | 'subscriptions' | 'ai' | 'incidents' | 'compliance' | 'tools';
+  settingsSubTab?: 'profile' | 'notifications' | 'backup' | 'contacts' | 'excelUnlocker' | 'excelMerger' | 'excelIndexer' | 'urlShortener' | 'bidComparison' | 'registration' | 'users' | 'organizations' | 'subscriptions' | 'ai' | 'incidents' | 'compliance' | 'tools';
 }
 
 export const SIDEBAR_NAVIGATION: NavItemConfig[] = [
@@ -121,6 +121,14 @@ export const BOTTOM_NAVIGATION: NavItemConfig[] = [
         feature: FEATURES.URL_SHORTENER,
         settingsTab: 'tools',
         settingsSubTab: 'urlShortener',
+      },
+      {
+        id: 'settings-bid-comparison',
+        label: 'Porovnání nabídek',
+        icon: 'compare_arrows',
+        view: 'settings',
+        settingsTab: 'tools',
+        settingsSubTab: 'bidComparison',
       },
     ],
   },

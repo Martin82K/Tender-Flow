@@ -60,6 +60,10 @@ class FakeRunner {
       finishedAt: new Date().toISOString(),
       outputPath: null,
       outputLatestPath: null,
+      outputWorkbookPath: null,
+      agentAnalysisStatus: 'disabled',
+      agentAnalysisError: null,
+      agentRecommendationWrittenAt: null,
       stats: null,
       error: null,
       cancelRequested: false,
@@ -140,7 +144,7 @@ describe('BidComparisonAutoRunner', () => {
       enabled: true,
       debounceMs: 120,
       fallbackIntervalMinutes: 15,
-      outputBaseName: 'porovnani_nabidek',
+      outputBaseName: 'porovnani-nabidek',
     };
 
     await autoRunner.autoStart(config);
@@ -183,7 +187,7 @@ describe('BidComparisonAutoRunner', () => {
       suppliers: [{ name: 'Drywall' }],
       selectedFiles: [],
       enabled: true,
-      outputBaseName: 'porovnani_nabidek',
+      outputBaseName: 'porovnani-nabidek',
     };
 
     await autoRunner.autoStart(config);
@@ -236,7 +240,7 @@ describe('BidComparisonAutoRunner', () => {
       selectedFiles: [],
       enabled: true,
       debounceMs: 120,
-      outputBaseName: 'porovnani_nabidek',
+      outputBaseName: 'porovnani-nabidek',
     });
 
     await waitFor(() => runner.startCalls === 1);

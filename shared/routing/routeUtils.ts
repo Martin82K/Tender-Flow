@@ -23,7 +23,7 @@ export const buildAppUrl = (
         categoryId?: string | null;
         documentsSubTab?: "pd" | "templates" | "dochub" | "ceniky";
         settingsTab?: 'user' | 'tools' | 'organization' | 'admin';
-        settingsSubTab?: 'profile' | 'security' | 'notifications' | 'backup' | 'contacts' | 'excelUnlocker' | 'excelMerger' | 'excelIndexer' | 'urlShortener' | 'registration' | 'users' | 'organizations' | 'subscriptions' | 'ai' | 'incidents' | 'compliance' | 'tools' | 'overview' | 'members' | 'billing' | 'branding';
+        settingsSubTab?: 'profile' | 'security' | 'notifications' | 'backup' | 'contacts' | 'excelUnlocker' | 'excelMerger' | 'excelIndexer' | 'urlShortener' | 'bidComparison' | 'registration' | 'users' | 'organizations' | 'subscriptions' | 'ai' | 'incidents' | 'compliance' | 'tools' | 'overview' | 'members' | 'billing' | 'branding';
     }
 ): string => {
     switch (view) {

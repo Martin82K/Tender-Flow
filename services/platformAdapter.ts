@@ -10,6 +10,8 @@ import type {
     FolderSnapshot,
     BackupSettingsInfo,
     BackupFileEntry,
+    BidComparisonAgentConfig,
+    BidComparisonAgentTestResult,
     BidComparisonDetectionResult,
     BidComparisonStartInput,
     BidComparisonStartResult,
@@ -450,6 +452,18 @@ export const bidComparisonAdapter = {
             return window.electronAPI.bidComparison.cancel(jobId);
         }
         return { success: false };
+    },
+
+    async testAgent(config: BidComparisonAgentConfig): Promise<BidComparisonAgentTestResult> {
+        if (isDesktop && window.electronAPI?.bidComparison) {
+            return window.electronAPI.bidComparison.testAgent(config);
+        }
+        return {
+            success: false,
+            endpoint: null,
+            status: null,
+            error: 'Test Hermes agenta je dostupný pouze v desktop aplikaci.',
+        };
     },
 
     async autoStart(config: BidComparisonAutoConfig): Promise<BidComparisonAutoStartResult> {

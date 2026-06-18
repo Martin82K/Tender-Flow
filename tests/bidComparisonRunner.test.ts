@@ -1,10 +1,10 @@
 /** @vitest-environment node */
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import ExcelJS from 'exceljs';
 import * as os from 'os';
 import * as path from 'path';
-import { access, mkdir, mkdtemp, rm } from 'fs/promises';
+import { access, mkdir, mkdtemp, readdir, rm } from 'fs/promises';
 import { BidComparisonRunner } from '../desktop/main/services/bidComparisonRunner';
 
 const tempDirs: string[] = [];
@@ -47,12 +47,28 @@ const buildRows = (price: ExcelJS.CellValue): ExcelJS.CellValue[][] => [
 ];
 
 afterEach(async () => {
+  vi.unstubAllGlobals();
   await Promise.all(
     tempDirs.splice(0).map((dir) =>
       rm(dir, { recursive: true, force: true }),
     ),
   );
 });
+
+const waitForTerminalJob = async (
+  runner: BidComparisonRunner,
+  jobId: string,
+) => {
+  let job = runner.get(jobId);
+  for (let i = 0; i < 100; i += 1) {
+    if (job && (job.status === 'error' || job.status === 'success' || job.status === 'cancelled')) {
+      return job;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    job = runner.get(jobId);
+  }
+  throw new Error('Job nedoběhl v limitu.');
+};
 
 describe('BidComparisonRunner.detectInputs', () => {
   it('autodetekuje zadání i nabídku dodavatele včetně kola', async () => {
@@ -136,6 +152,103 @@ describe('BidComparisonRunner.detectInputs', () => {
 
 
 describe('BidComparisonRunner.start', () => {
+  it('vytvoří latest workbook a archivní kopii s novým názvem', async () => {
+    const tempDir = await createTempDir();
+    await writeWorkbook(
+      path.join(tempDir, 'VV_k_vyplneni_zadani.xlsx'),
+      buildRows(''),
+    );
+    await writeWorkbook(
+      path.join(tempDir, 'VV_Drywall_kolo1.xlsx'),
+      buildRows(125),
+    );
+
+    const runner = new BidComparisonRunner();
+    const detected = await runner.detectInputs({
+      tenderFolderPath: tempDir,
+      suppliers: [{ name: 'Drywall' }],
+    });
+
+    const selectedFiles = detected.files
+      .filter((file) => file.suggestedRole !== 'ignore')
+      .map((file) => ({
+        path: file.path,
+        role: file.suggestedRole,
+        supplierName: file.suggestedSupplierName,
+        round: file.suggestedRound,
+        mtimeMs: file.mtimeMs,
+      }));
+
+    const { jobId } = runner.start({
+      tenderFolderPath: tempDir,
+      selectedFiles,
+    });
+
+    const job = await waitForTerminalJob(runner, jobId);
+
+    expect(job.status).toBe('success');
+    expect(job.outputLatestPath).toBe(path.join(tempDir, 'porovnani-nabidek-latest.xlsx'));
+    expect(job.outputWorkbookPath).toBe(job.outputLatestPath);
+    expect(job.stats?.matrix).toHaveLength(1);
+    await expect(access(path.join(tempDir, 'porovnani-nabidek-latest.xlsx'))).resolves.toBeUndefined();
+
+    const files = await readdir(tempDir);
+    expect(files.some((file) => /^porovnani-nabidek-\d{8}-\d{6}\.xlsx$/.test(file))).toBe(true);
+  });
+
+  it('při chybě Hermes agenta dokončí workbook bez agentního listu', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: false,
+      status: 503,
+      text: async () => JSON.stringify({ error: 'unavailable' }),
+    })));
+
+    const tempDir = await createTempDir();
+    await writeWorkbook(
+      path.join(tempDir, 'VV_k_vyplneni_zadani.xlsx'),
+      buildRows(''),
+    );
+    await writeWorkbook(
+      path.join(tempDir, 'VV_Drywall_kolo1.xlsx'),
+      buildRows(125),
+    );
+
+    const runner = new BidComparisonRunner();
+    const detected = await runner.detectInputs({
+      tenderFolderPath: tempDir,
+      suppliers: [{ name: 'Drywall' }],
+    });
+
+    const selectedFiles = detected.files
+      .filter((file) => file.suggestedRole !== 'ignore')
+      .map((file) => ({
+        path: file.path,
+        role: file.suggestedRole,
+        supplierName: file.suggestedSupplierName,
+        round: file.suggestedRound,
+        mtimeMs: file.mtimeMs,
+      }));
+
+    const { jobId } = runner.start({
+      tenderFolderPath: tempDir,
+      selectedFiles,
+      agent: {
+        enabled: true,
+        baseUrl: 'https://agent.kalmatech.cz',
+        bearerToken: 'test-token',
+        timeoutMs: 5000,
+      },
+    });
+
+    const job = await waitForTerminalJob(runner, jobId);
+
+    expect(job.status).toBe('success');
+    expect(job.agentAnalysisStatus).toBe('error');
+    expect(job.agentAnalysisError).toContain('HTTP 503');
+    expect(job.stats?.agentRecommendation).toBeNull();
+    await expect(access(path.join(tempDir, 'porovnani-nabidek-latest.xlsx'))).resolves.toBeUndefined();
+  });
+
   it('odmítne outputBaseName s cestou mimo cílovou složku', async () => {
     const tempDir = await createTempDir();
     await writeWorkbook(
@@ -168,19 +281,12 @@ describe('BidComparisonRunner.start', () => {
       outputBaseName: '../pwned',
     });
 
-    let job = runner.get(jobId);
-    for (let i = 0; i < 50; i += 1) {
-      if (job && (job.status === 'error' || job.status === 'success' || job.status === 'cancelled')) {
-        break;
-      }
-      await new Promise((resolve) => setTimeout(resolve, 20));
-      job = runner.get(jobId);
-    }
+    const job = await waitForTerminalJob(runner, jobId);
 
     expect(job).not.toBeNull();
     expect(job?.status).toBe('error');
     expect(job?.error).toContain('Neplatný název výstupu');
 
-    await expect(access(path.join(tempDir, '..', 'pwned_latest.xlsx'))).rejects.toThrow();
+    await expect(access(path.join(tempDir, '..', 'pwned-latest.xlsx'))).rejects.toThrow();
   });
 });

@@ -136,6 +136,11 @@ describe('bidComparisonEngine', () => {
     expect(result.suppliers['Drywall (K1 v1)']?.sparovano).toBe(2);
     expect(result.suppliers['PBK (K1 v1)']?.sparovano).toBe(1);
     expect(result.suppliers['PBK (K1 v1)']?.nesparovano).toContain('2');
+    expect(result.matrix).toHaveLength(2);
+    expect(result.matrix[0].popis).toBe('Položka A');
+    expect(result.matrix[0].offers['Drywall (K1 v1)']?.jcena).toBe(100);
+    expect(result.matrix[0].offers['Drywall (K1 v1)']?.celkem).toBe(200);
+    expect(result.matrix[1].offers['PBK (K1 v1)']?.matched).toBe(false);
 
     const outputWorkbook = new ExcelJS.Workbook();
     await outputWorkbook.xlsx.load(result.outputBuffer);
@@ -154,5 +159,50 @@ describe('bidComparisonEngine', () => {
     expect(cellJ5.formula).toBe('I5*F5');
     expect(cellJ4.formula).toBe('J5+J6');
     expect(cellL6 == null || cellL6 === '').toBe(true);
+  });
+
+  it('buildComparisonWorkbook zapíše doporučení agenta do samostatného listu', async () => {
+    const tempDir = await createTempDir();
+    const zadaniPath = path.join(tempDir, 'zadani.xlsx');
+    const offerPath = path.join(tempDir, 'offer.xlsx');
+
+    await writeWorkbook(zadaniPath, buildRows('', ''));
+    await writeWorkbook(offerPath, buildRows(100, 200));
+
+    const result = await buildComparisonWorkbook({
+      zadaniPath,
+      offers: [
+        {
+          supplierName: 'Drywall',
+          displayLabel: 'Drywall (K1 v1)',
+          filePath: offerPath,
+          round: 1,
+          variant: 1,
+        },
+      ],
+      agentRecommendation: {
+        summary: 'Drywall má nejnižší jednotkové ceny bez zásadních výjimek.',
+        recommendedSupplier: 'Drywall',
+        nextSteps: ['Prověřit platnost nabídky.'],
+        risks: [
+          {
+            severity: 'medium',
+            itemKod: 'A-001',
+            supplierName: 'Drywall',
+            title: 'Kontrola rozsahu',
+            detail: 'Ověřit, že jednotková cena zahrnuje shodný rozsah.',
+          },
+        ],
+      },
+    });
+
+    const outputWorkbook = new ExcelJS.Workbook();
+    await outputWorkbook.xlsx.load(result.outputBuffer);
+    const recommendationSheet = outputWorkbook.getWorksheet('Agent doporučení');
+
+    expect(recommendationSheet).toBeDefined();
+    expect(recommendationSheet?.getCell('A2').value).toBe('Shrnutí');
+    expect(recommendationSheet?.getCell('B2').value).toBe('Drywall');
+    expect(String(recommendationSheet?.getCell('C2').value)).toContain('nejnižší');
   });
 });

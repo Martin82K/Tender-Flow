@@ -19,6 +19,7 @@ import { ExcelUnlockerProSettings } from "@/features/settings/ExcelUnlockerProSe
 import { ExcelMergerProSettings } from "@/features/settings/ExcelMergerProSettings";
 import { UrlShortener } from "@/features/tools/UrlShortener";
 import { ExcelIndexerSettings } from "@/features/settings/ExcelIndexerSettings";
+import { BidComparisonAgentSettings } from "@/features/settings/BidComparisonAgentSettings";
 import { OrganizationDashboard } from "@/features/organization/ui/OrganizationDashboard";
 import type { OrgSubTab } from "@/features/organization/model/types";
 import { NotificationSettings } from "@/features/settings/NotificationSettings";
@@ -82,9 +83,10 @@ export const Settings: React.FC<SettingsProps> = ({
     | "excelUnlocker"
     | "excelMerger"
     | "urlShortener"
-    | "excelIndexer";
+    | "excelIndexer"
+    | "bidComparison";
   const USER_SUBTABS: UserSubTab[] = ["profile", "security", "notifications", "backup"];
-  const TOOLS_SUBTABS: ToolsSubTab[] = ["contacts", "excelUnlocker", "excelMerger", "excelIndexer", "urlShortener"];
+  const TOOLS_SUBTABS: ToolsSubTab[] = ["contacts", "excelUnlocker", "excelMerger", "excelIndexer", "urlShortener", "bidComparison"];
   const isToolsSubTab = (v: string | null): v is ToolsSubTab =>
     !!v && (TOOLS_SUBTABS as string[]).includes(v);
   const isUserSubTab = (v: string | null): v is UserSubTab =>
@@ -138,7 +140,8 @@ export const Settings: React.FC<SettingsProps> = ({
         subTabParam === "excelMerger" ||
         subTabParam === "urlShortener" ||
         subTabParam === "indexMatcher" ||
-        subTabParam === "excelIndexer"
+        subTabParam === "excelIndexer" ||
+        subTabParam === "bidComparison"
           ? subTabParam
           : null;
     } else if (tab === "admin") {
@@ -190,7 +193,8 @@ export const Settings: React.FC<SettingsProps> = ({
         settingsRoute.subTab === "excelUnlocker" ||
         settingsRoute.subTab === "excelMerger" ||
         settingsRoute.subTab === "urlShortener" ||
-        settingsRoute.subTab === "excelIndexer")
+        settingsRoute.subTab === "excelIndexer" ||
+        settingsRoute.subTab === "bidComparison")
     ) {
       return settingsRoute.subTab;
     }
@@ -274,7 +278,7 @@ export const Settings: React.FC<SettingsProps> = ({
         (canExcelIndexer && "excelIndexer") ||
         (canContactsImport && "contacts") ||
         (canUrlShortener && "urlShortener") ||
-        null;
+        "bidComparison";
       if (firstAvailable) {
         setActiveToolsSubTab(firstAvailable as ToolsSubTab);
         updateSettingsUrl({ tab: "tools", subTab: firstAvailable as ToolsSubTab }, { replace: true });
@@ -796,6 +800,19 @@ export const Settings: React.FC<SettingsProps> = ({
                     </div>
                   </button>
                 )}
+                <button
+                  onClick={() => updateSettingsUrl({ tab: "tools", subTab: "bidComparison" })}
+                  className={`text-left px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                    activeToolsSubTab === "bidComparison"
+                      ? "bg-white dark:bg-slate-800 text-primary shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                      : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[20px]">compare_arrows</span>
+                    Porovnání nabídek
+                  </div>
+                </button>
               </nav>
             </aside>
 
@@ -850,6 +867,7 @@ export const Settings: React.FC<SettingsProps> = ({
               {activeToolsSubTab === "excelMerger" && canExcelMerger && <ExcelMergerProSettings />}
               {activeToolsSubTab === "urlShortener" && canUrlShortener && <UrlShortener />}
               {activeToolsSubTab === "excelIndexer" && canExcelIndexer && <ExcelIndexerSettings />}
+              {activeToolsSubTab === "bidComparison" && <BidComparisonAgentSettings />}
             </main>
           </div>
         )}

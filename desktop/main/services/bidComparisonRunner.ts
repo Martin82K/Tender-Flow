@@ -2,6 +2,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import type {
+  BidComparisonAgentRecommendation,
   BidComparisonDetectionResult,
   BidComparisonDetectedFile,
   BidComparisonJobResult,
@@ -17,6 +18,7 @@ import {
   type BidOfferInput,
   type DetectionAnalysis,
 } from './bidComparisonEngine';
+import { requestBidComparisonAgentRecommendation } from './bidComparisonAgent';
 
 const IGNORE_DIRS = new Set(['.git', 'node_modules', 'dist', 'dist-electron']);
 
@@ -96,10 +98,10 @@ const toTimestamp = (date = new Date()): string => {
   const hh = String(date.getHours()).padStart(2, '0');
   const min = String(date.getMinutes()).padStart(2, '0');
   const ss = String(date.getSeconds()).padStart(2, '0');
-  return `${yyyy}${mm}${dd}_${hh}${min}${ss}`;
+  return `${yyyy}${mm}${dd}-${hh}${min}${ss}`;
 };
 
-const DEFAULT_OUTPUT_BASE_NAME = 'porovnani_nabidek';
+const DEFAULT_OUTPUT_BASE_NAME = 'porovnani-nabidek';
 
 const sanitizeOutputBaseName = (rawOutputBaseName?: string): string => {
   const trimmed = (rawOutputBaseName || '').trim();
@@ -110,6 +112,16 @@ const sanitizeOutputBaseName = (rawOutputBaseName?: string): string => {
   }
 
   return candidate;
+};
+
+const createProgressMapper = (
+  setProgress: (percent: number, step: string) => void,
+  start: number,
+  end: number,
+) => (percent: number, step: string): void => {
+  const boundedPercent = Math.max(0, Math.min(100, percent));
+  const mapped = start + Math.round((boundedPercent / 100) * (end - start));
+  setProgress(mapped, step);
 };
 
 const ensurePathWithinRoot = (rootPath: string, targetPath: string): string => {
@@ -263,6 +275,10 @@ export class BidComparisonRunner {
       finishedAt: null,
       outputPath: null,
       outputLatestPath: null,
+      outputWorkbookPath: null,
+      agentAnalysisStatus: input.agent?.enabled ? 'pending' : 'disabled',
+      agentAnalysisError: null,
+      agentRecommendationWrittenAt: null,
       stats: null,
       error: null,
       cancelRequested: false,
@@ -390,18 +406,63 @@ export class BidComparisonRunner {
       });
 
       setProgress(10, 'Spouštím porovnání nabídek...');
+      const wantsAgentAnalysis = input.agent?.enabled === true;
       const result = await buildComparisonWorkbook({
         zadaniPath: zadani[0].path,
         offers: offerEntries,
-        onProgress: (percent, step) => setProgress(percent, step),
+        onProgress: createProgressMapper(setProgress, 10, wantsAgentAnalysis ? 78 : 95),
         isCancelled: () => job.cancelRequested === true,
       });
 
       ensureNotCancelled();
 
+      let finalResult = result;
+      let agentRecommendation: BidComparisonAgentRecommendation | null = null;
+
+      if (wantsAgentAnalysis) {
+        try {
+          setProgress(82, 'Odesílám položkovou matici Hermes agentovi...');
+          agentRecommendation = await requestBidComparisonAgentRecommendation({
+            config: input.agent!,
+            projectId: job.projectId,
+            categoryId: job.categoryId,
+            tenderFolderName: path.basename(job.tenderFolderPath),
+            pocetPolozek: result.pocetPolozek,
+            suppliers: result.suppliers,
+            matrix: result.matrix,
+          });
+          ensureNotCancelled();
+
+          job.agentAnalysisStatus = 'success';
+          job.agentAnalysisError = null;
+          job.agentRecommendationWrittenAt = new Date().toISOString();
+
+          setProgress(90, 'Zapisuji doporučení agenta do workbooku...');
+          finalResult = await buildComparisonWorkbook({
+            zadaniPath: zadani[0].path,
+            offers: offerEntries,
+            agentRecommendation,
+            onProgress: createProgressMapper(setProgress, 90, 98),
+            isCancelled: () => job.cancelRequested === true,
+          });
+        } catch (agentError) {
+          const message = agentError instanceof Error ? agentError.message : String(agentError);
+          job.agentAnalysisStatus = 'error';
+          job.agentAnalysisError = message;
+          job.agentRecommendationWrittenAt = null;
+          job.logs.push(`Agentní analýza přeskočena: ${message}`);
+        }
+      } else {
+        job.agentAnalysisStatus = 'disabled';
+        job.agentAnalysisError = null;
+        job.agentRecommendationWrittenAt = null;
+      }
+
+      ensureNotCancelled();
+
       const outputBase = sanitizeOutputBaseName(input.outputBaseName);
-      const archiveFileName = `${outputBase}_${toTimestamp()}.xlsx`;
-      const latestFileName = `${outputBase}_latest.xlsx`;
+      const archiveFileName = `${outputBase}-${toTimestamp()}.xlsx`;
+      const latestFileName = `${outputBase}-latest.xlsx`;
       const outputPath = ensurePathWithinRoot(
         job.tenderFolderPath,
         path.join(job.tenderFolderPath, archiveFileName),
@@ -411,12 +472,14 @@ export class BidComparisonRunner {
         path.join(job.tenderFolderPath, latestFileName),
       );
 
-      await fs.writeFile(outputPath, result.outputBuffer);
-      await fs.writeFile(latestPath, result.outputBuffer);
+      await fs.writeFile(outputPath, finalResult.outputBuffer);
+      await fs.writeFile(latestPath, finalResult.outputBuffer);
 
       const stats: BidComparisonJobResult = {
-        pocetPolozek: result.pocetPolozek,
-        suppliers: result.suppliers,
+        pocetPolozek: finalResult.pocetPolozek,
+        matrix: finalResult.matrix,
+        agentRecommendation,
+        suppliers: finalResult.suppliers,
       };
 
       job.status = 'success';
@@ -425,6 +488,7 @@ export class BidComparisonRunner {
       job.finishedAt = new Date().toISOString();
       job.outputPath = outputPath;
       job.outputLatestPath = latestPath;
+      job.outputWorkbookPath = latestPath;
       job.stats = stats;
       job.logs.push(`Výstup uložen: ${outputPath}`);
       job.logs.push(`Aktuální verze: ${latestPath}`);

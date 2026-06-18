@@ -24,6 +24,9 @@ export interface HeaderColumnMap {
 export interface BidComparisonItem {
   pc: string | null;
   kod: string | null;
+  popis: string | null;
+  mj: string | null;
+  mnozstvi: number | null;
   jcena: number | null;
   celkem: number | null;
   radek: number;
@@ -55,13 +58,51 @@ export interface BidOfferInput {
 export interface BuildComparisonInput {
   zadaniPath: string;
   offers: BidOfferInput[];
+  agentRecommendation?: BidComparisonAgentRecommendation | null;
   onProgress?: (percent: number, step: string) => void;
   isCancelled?: () => boolean;
+}
+
+export interface BidComparisonMatrixOffer {
+  supplierName: string;
+  displayLabel: string;
+  round: number;
+  variant: number;
+  jcena: number | null;
+  celkem: number | null;
+  matched: boolean;
+}
+
+export interface BidComparisonMatrixItem {
+  pc: string | null;
+  kod: string | null;
+  popis: string | null;
+  mj: string | null;
+  mnozstvi: number | null;
+  radek: number;
+  offers: Record<string, BidComparisonMatrixOffer>;
+}
+
+export interface BidComparisonAgentRisk {
+  severity: 'low' | 'medium' | 'high';
+  itemKod?: string | null;
+  itemPc?: string | null;
+  supplierName?: string | null;
+  title: string;
+  detail: string;
+}
+
+export interface BidComparisonAgentRecommendation {
+  summary: string;
+  recommendedSupplier?: string | null;
+  nextSteps: string[];
+  risks: BidComparisonAgentRisk[];
 }
 
 export interface BuildComparisonResult {
   outputBuffer: Buffer;
   pocetPolozek: number;
+  matrix: BidComparisonMatrixItem[];
   suppliers: Record<
     string,
     {
@@ -219,10 +260,15 @@ const parseWorksheet = (worksheet: ExcelJS.Worksheet): ParsedSheetResult => {
     kRows.push(rowIndex);
     const pcValue = pcCol ? readCellText(row.getCell(pcCol).value).trim() : '';
     const kodValue = kodCol ? readCellText(row.getCell(kodCol).value).trim() : '';
+    const popisValue = columnMap.popis ? readCellText(row.getCell(columnMap.popis).value).trim() : '';
+    const mjValue = columnMap.mj ? readCellText(row.getCell(columnMap.mj).value).trim() : '';
 
     items.push({
       pc: pcValue || null,
       kod: kodValue || null,
+      popis: popisValue || null,
+      mj: mjValue || null,
+      mnozstvi: columnMap.mnozstvi ? safeNumericValue(row.getCell(columnMap.mnozstvi).value) : null,
       jcena: jcCol ? safeNumericValue(row.getCell(jcCol).value) : null,
       celkem: celCol ? safeNumericValue(row.getCell(celCol).value) : null,
       radek: rowIndex,
@@ -321,10 +367,84 @@ const createLookup = (items: BidComparisonItem[]) => {
   return { byKod, byPc };
 };
 
+const calculateTotal = (item: BidComparisonItem, quantity: number | null): number | null => {
+  if (item.celkem != null) return item.celkem;
+  if (item.jcena == null || quantity == null) return null;
+  return item.jcena * quantity;
+};
+
+const getSeverityLabel = (severity: BidComparisonAgentRisk['severity']): string => {
+  if (severity === 'high') return 'Vysoké';
+  if (severity === 'medium') return 'Střední';
+  return 'Nízké';
+};
+
+const writeAgentRecommendationSheet = (
+  workbook: ExcelJS.Workbook,
+  recommendation: BidComparisonAgentRecommendation,
+): void => {
+  const sheetName = 'Agent doporučení';
+  const existing = workbook.getWorksheet(sheetName);
+  if (existing) {
+    workbook.removeWorksheet(existing.id);
+  }
+
+  const sheet = workbook.addWorksheet(sheetName);
+  sheet.columns = [
+    { header: 'Sekce', key: 'section', width: 22 },
+    { header: 'Hodnota', key: 'value', width: 42 },
+    { header: 'Detail', key: 'detail', width: 72 },
+  ];
+  sheet.getRow(1).font = { bold: true };
+  sheet.getRow(1).fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFE2EFDA' },
+  };
+
+  sheet.addRow({
+    section: 'Shrnutí',
+    value: recommendation.recommendedSupplier || '',
+    detail: recommendation.summary,
+  });
+
+  if (recommendation.nextSteps.length > 0) {
+    recommendation.nextSteps.forEach((step, index) => {
+      sheet.addRow({
+        section: index === 0 ? 'Doporučené kroky' : '',
+        value: `${index + 1}. krok`,
+        detail: step,
+      });
+    });
+  }
+
+  if (recommendation.risks.length > 0) {
+    recommendation.risks.forEach((risk) => {
+      const labels = [
+        risk.itemKod ? `Kód: ${risk.itemKod}` : null,
+        risk.itemPc ? `PČ: ${risk.itemPc}` : null,
+        risk.supplierName ? `Dodavatel: ${risk.supplierName}` : null,
+      ].filter(Boolean).join(' | ');
+      sheet.addRow({
+        section: 'Riziko',
+        value: `${getSeverityLabel(risk.severity)}: ${risk.title}`,
+        detail: labels ? `${labels}\n${risk.detail}` : risk.detail,
+      });
+    });
+  }
+
+  sheet.eachRow((row) => {
+    row.eachCell((cell) => {
+      cell.alignment = { vertical: 'top', wrapText: true };
+      cell.border = BORDER_THIN;
+    });
+  });
+};
+
 export const buildComparisonWorkbook = async (
   input: BuildComparisonInput,
 ): Promise<BuildComparisonResult> => {
-  const { zadaniPath, offers, onProgress, isCancelled } = input;
+  const { zadaniPath, offers, agentRecommendation, onProgress, isCancelled } = input;
 
   if (offers.length === 0) {
     throw new Error('Nebyla vybrána žádná nabídka k porovnání.');
@@ -373,6 +493,15 @@ export const buildComparisonWorkbook = async (
   const quantityCol = parsedZadani.columnMap.mnozstvi;
 
   const suppliers: BuildComparisonResult['suppliers'] = {};
+  const matrix: BidComparisonMatrixItem[] = parsedZadani.items.map((item) => ({
+    pc: item.pc,
+    kod: item.kod,
+    popis: item.popis,
+    mj: item.mj,
+    mnozstvi: item.mnozstvi,
+    radek: item.radek,
+    offers: {},
+  }));
 
   parsedOffers.forEach((entry, offerIndex) => {
     const palette = PALETTE[offerIndex % PALETTE.length];
@@ -425,7 +554,7 @@ export const buildComparisonWorkbook = async (
     let matched = 0;
     const unmatched: string[] = [];
 
-    parsedZadani.items.forEach((zadaniItem) => {
+    parsedZadani.items.forEach((zadaniItem, itemIndex) => {
       if (isCancelled?.()) {
         throw new Error('Porovnání bylo zrušeno.');
       }
@@ -440,10 +569,28 @@ export const buildComparisonWorkbook = async (
 
       if (!offerItem || offerItem.jcena == null) {
         unmatched.push(zadaniItem.kod || zadaniItem.pc || `řádek ${zadaniItem.radek}`);
+        matrix[itemIndex].offers[entry.offer.displayLabel] = {
+          supplierName: entry.offer.supplierName,
+          displayLabel: entry.offer.displayLabel,
+          round: entry.offer.round,
+          variant: entry.offer.variant,
+          jcena: null,
+          celkem: null,
+          matched: false,
+        };
         return;
       }
 
       matched += 1;
+      matrix[itemIndex].offers[entry.offer.displayLabel] = {
+        supplierName: entry.offer.supplierName,
+        displayLabel: entry.offer.displayLabel,
+        round: entry.offer.round,
+        variant: entry.offer.variant,
+        jcena: offerItem.jcena,
+        celkem: calculateTotal(offerItem, zadaniItem.mnozstvi),
+        matched: true,
+      };
 
       const jcCell = zadaniSheet.getCell(zadaniItem.radek, colJcena);
       jcCell.value = offerItem.jcena;
@@ -498,6 +645,11 @@ export const buildComparisonWorkbook = async (
     throw new Error('Porovnání bylo zrušeno.');
   }
 
+  if (agentRecommendation) {
+    onProgress?.(96, 'Zapisuji doporučení agenta...');
+    writeAgentRecommendationSheet(zadaniWorkbook, agentRecommendation);
+  }
+
   onProgress?.(98, 'Generuji výstupní soubor...');
   const outputBuffer = Buffer.from(await zadaniWorkbook.xlsx.writeBuffer());
 
@@ -506,6 +658,7 @@ export const buildComparisonWorkbook = async (
   return {
     outputBuffer,
     pocetPolozek: parsedZadani.items.length,
+    matrix,
     suppliers,
   };
 };

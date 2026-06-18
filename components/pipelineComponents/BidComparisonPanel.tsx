@@ -2,7 +2,14 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { trackFeatureUsage } from '../../services/featureUsageService';
 import { openInExplorer } from '../../services/fileSystemService';
 import platformAdapter from '../../services/platformAdapter';
+import {
+  BID_COMPARISON_AGENT_SETTINGS_KEY,
+  parseBidComparisonAgentSettings,
+  toRuntimeBidComparisonAgentConfig,
+} from '../../shared/bidComparisonAgentSettings';
+import { navigate } from '../../shared/routing/router';
 import type {
+  BidComparisonAgentConfig,
   BidComparisonAutoConfig,
   BidComparisonAutoStatus,
   BidComparisonDetectedFile,
@@ -27,6 +34,7 @@ interface BidComparisonPanelProps {
 
 const terminalStates = new Set(['success', 'error', 'cancelled']);
 type BidComparisonPhase = 'source' | 'mapping' | 'run';
+const OUTPUT_BASE_NAME = 'porovnani-nabidek';
 
 const normalizeSupplierList = (list: string[]): string[] =>
   Array.from(new Set(list.map((value) => value.trim()).filter(Boolean))).sort((a, b) =>
@@ -57,6 +65,9 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
   const [autoError, setAutoError] = useState<string | null>(null);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
   const [uiPhase, setUiPhase] = useState<BidComparisonPhase>('source');
+  const [agentConfig, setAgentConfig] = useState<BidComparisonAgentConfig>(
+    parseBidComparisonAgentSettings(null),
+  );
 
   const trackedSuccessJobIdRef = useRef<string | null>(null);
   const autoDetectedPathRef = useRef<string | null>(null);
@@ -87,6 +98,7 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
     setAutoError(null);
     setAutoStatus(null);
     setUiPhase('source');
+    setAgentConfig(parseBidComparisonAgentSettings(null));
     trackedSuccessJobIdRef.current = null;
     autoDetectedPathRef.current = null;
   }, [
@@ -108,6 +120,11 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
 
   const canUseDesktopApi = platformAdapter.bidComparison.isAvailable();
   const autoEnabled = !!autoStatus?.enabled;
+  const runtimeAgentConfig = useMemo(
+    () => toRuntimeBidComparisonAgentConfig(agentConfig),
+    [agentConfig],
+  );
+  const agentIsRunnable = runtimeAgentConfig.enabled;
 
   const buildAutoConfig = useCallback(
     (enabled: boolean): BidComparisonAutoConfig => ({
@@ -125,10 +142,35 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
       enabled,
       debounceMs: 10_000,
       fallbackIntervalMinutes: 15,
-      outputBaseName: 'porovnani_nabidek',
+      outputBaseName: OUTPUT_BASE_NAME,
+      agent: runtimeAgentConfig,
     }),
-    [categoryId, files, projectId, supplierOptions, tenderFolderPath],
+    [categoryId, files, projectId, runtimeAgentConfig, supplierOptions, tenderFolderPath],
   );
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+
+    const loadAgentSettings = async () => {
+      try {
+        const raw = await platformAdapter.storage.get(BID_COMPARISON_AGENT_SETTINGS_KEY);
+        if (!cancelled) {
+          setAgentConfig(parseBidComparisonAgentSettings(raw));
+        }
+      } catch {
+        if (!cancelled) {
+          setAgentConfig(parseBidComparisonAgentSettings(null));
+        }
+      }
+    };
+
+    void loadAgentSettings();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
 
   const runDetection = useCallback(
     async (folderPathParam?: string) => {
@@ -350,7 +392,8 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
         projectId,
         categoryId,
         tenderFolderPath,
-        outputBaseName: 'porovnani_nabidek',
+        outputBaseName: OUTPUT_BASE_NAME,
+        agent: runtimeAgentConfig,
         selectedFiles: files.map((file) => ({
           path: file.path,
           role: file.role,
@@ -369,7 +412,7 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
     } finally {
       setIsStarting(false);
     }
-  }, [canStart, canUseDesktopApi, categoryId, files, projectId, tenderFolderPath]);
+  }, [canStart, canUseDesktopApi, categoryId, files, projectId, runtimeAgentConfig, tenderFolderPath]);
 
   const cancelJob = useCallback(async () => {
     if (!canUseDesktopApi || !jobId) return;
@@ -400,6 +443,11 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
     if (!tenderFolderPath.trim()) return;
     await openInExplorer(tenderFolderPath);
   }, [tenderFolderPath]);
+
+  const openAgentSettings = useCallback(() => {
+    onClose();
+    navigate('/app/settings?tab=tools&subTab=bidComparison');
+  }, [onClose]);
 
   const toggleAutoMode = useCallback(
     async (enabled: boolean) => {
@@ -443,6 +491,16 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
   const jobIsRunning = !!job && !terminalStates.has(job.status);
   const canOpenMapping = files.length > 0;
   const canOpenRun = files.length > 0;
+  const agentStatusText =
+    job?.agentAnalysisStatus === 'success'
+      ? 'Agent hotovo'
+      : job?.agentAnalysisStatus === 'error'
+        ? 'Agent chyba'
+        : job?.agentAnalysisStatus === 'pending'
+          ? 'Agent běží'
+          : agentIsRunnable
+            ? 'Agent připraven'
+            : 'Agent vypnutý';
 
   return (
     <div data-help-id="pipeline-bid-comparison-modal" className="tf-modal-overlay fixed inset-0 z-[10001] bg-slate-900/50 backdrop-blur-sm p-4 overflow-y-auto">
@@ -514,11 +572,9 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
           <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-4 space-y-3">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                  Auto-recompare
-                </p>
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Watcher porovnání</p>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Po změně souborů + pojistný běh každých 15 minut
+                  Výstup: {OUTPUT_BASE_NAME}-latest.xlsx + archivní kopie po každém běhu
                 </p>
               </div>
               <button
@@ -532,6 +588,24 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
                 }`}
               >
                 {isAutoSaving ? 'Ukládám...' : autoEnabled ? 'Vypnout auto' : 'Zapnout auto'}
+              </button>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-3 text-xs">
+              <div className="rounded-lg bg-slate-50 dark:bg-slate-800/40 px-3 py-2 text-slate-600 dark:text-slate-300">
+                <p className="font-semibold text-slate-700 dark:text-slate-100">Latest XLSX</p>
+                <p>{OUTPUT_BASE_NAME}-latest.xlsx</p>
+              </div>
+              <div className="rounded-lg bg-slate-50 dark:bg-slate-800/40 px-3 py-2 text-slate-600 dark:text-slate-300">
+                <p className="font-semibold text-slate-700 dark:text-slate-100">Agent</p>
+                <p>{agentStatusText}</p>
+              </div>
+              <button
+                type="button"
+                onClick={openAgentSettings}
+                className="rounded-lg bg-slate-100 dark:bg-slate-800 px-3 py-2 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700"
+              >
+                Nastavení agenta
               </button>
             </div>
 
@@ -805,7 +879,7 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
                 )}
 
                 {(job.outputLatestPath || job.outputPath) && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <button
                       type="button"
                       onClick={() => void openOutputFile()}
@@ -820,8 +894,21 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
                     >
                       Otevřít složku VŘ
                     </button>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                      {job.outputWorkbookPath || job.outputLatestPath || job.outputPath}
+                    </span>
                   </div>
                 )}
+
+                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 p-3 text-xs text-slate-600 dark:text-slate-300 space-y-1">
+                  <p>Agent: {agentStatusText}</p>
+                  {job.agentRecommendationWrittenAt && (
+                    <p>Doporučení zapsáno: {new Date(job.agentRecommendationWrittenAt).toLocaleString('cs-CZ')}</p>
+                  )}
+                  {job.agentAnalysisError && (
+                    <p className="text-amber-700 dark:text-amber-300">{job.agentAnalysisError}</p>
+                  )}
+                </div>
 
                 {job.stats && (
                   <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 p-3 text-xs text-slate-600 dark:text-slate-300 space-y-1">

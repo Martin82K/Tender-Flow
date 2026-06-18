@@ -1,6 +1,9 @@
 import { ipcMain } from "electron";
+import { testBidComparisonAgentConnection } from "../../services/bidComparisonAgent";
 import { getBidComparisonRunner } from "../../services/bidComparisonRunner";
 import type {
+  BidComparisonAgentConfig,
+  BidComparisonAgentTestResult,
   BidComparisonAutoConfig,
   BidComparisonAutoScope,
   BidComparisonAutoStartResult,
@@ -82,6 +85,14 @@ export const registerBidComparisonHandlers = ({
     requireAuth(event.sender, 'bid-comparison:cancel');
     return getBidComparisonRunner().cancel(jobId);
   });
+
+  ipcMain.handle(
+    "bid-comparison:test-agent",
+    async (event, config: BidComparisonAgentConfig): Promise<BidComparisonAgentTestResult> => {
+      requireAuth(event.sender, 'bid-comparison:test-agent');
+      return testBidComparisonAgentConnection(config);
+    },
+  );
 
   ipcMain.handle(
     "bid-comparison:auto-start",

@@ -209,12 +209,61 @@ export interface BidComparisonSelectedFileInput {
     mtimeMs?: number;
 }
 
+export interface BidComparisonAgentConfig {
+    enabled: boolean;
+    baseUrl: string;
+    bearerToken: string;
+    timeoutMs?: number;
+}
+
+export interface BidComparisonAgentTestResult {
+    success: boolean;
+    endpoint: string | null;
+    status: number | null;
+    error: string | null;
+}
+
+export interface BidComparisonMatrixItem {
+    pc: string | null;
+    kod: string | null;
+    popis: string | null;
+    mj: string | null;
+    mnozstvi: number | null;
+    radek: number;
+    offers: Record<string, {
+        supplierName: string;
+        displayLabel: string;
+        round: number;
+        variant: number;
+        jcena: number | null;
+        celkem: number | null;
+        matched: boolean;
+    }>;
+}
+
+export interface BidComparisonAgentRisk {
+    severity: 'low' | 'medium' | 'high';
+    itemKod?: string | null;
+    itemPc?: string | null;
+    supplierName?: string | null;
+    title: string;
+    detail: string;
+}
+
+export interface BidComparisonAgentRecommendation {
+    summary: string;
+    recommendedSupplier?: string | null;
+    nextSteps: string[];
+    risks: BidComparisonAgentRisk[];
+}
+
 export interface BidComparisonStartInput {
     projectId?: string;
     categoryId?: string;
     tenderFolderPath: string;
     selectedFiles: BidComparisonSelectedFileInput[];
     outputBaseName?: string;
+    agent?: BidComparisonAgentConfig;
 }
 
 export interface BidComparisonStartResult {
@@ -244,6 +293,7 @@ export interface BidComparisonAutoConfig extends BidComparisonAutoScope {
     debounceMs?: number;
     fallbackIntervalMinutes?: number;
     outputBaseName?: string;
+    agent?: BidComparisonAgentConfig;
 }
 
 export interface BidComparisonAutoStatus extends BidComparisonAutoScope {
@@ -269,6 +319,8 @@ export interface BidComparisonAutoStartResult {
 
 export interface BidComparisonJobResult {
     pocetPolozek: number;
+    matrix?: BidComparisonMatrixItem[];
+    agentRecommendation?: BidComparisonAgentRecommendation | null;
     suppliers: Record<string, {
         sparovano: number;
         nesparovano: string[];
@@ -290,6 +342,10 @@ export interface BidComparisonJobStatus {
     finishedAt: string | null;
     outputPath: string | null;
     outputLatestPath: string | null;
+    outputWorkbookPath: string | null;
+    agentAnalysisStatus: 'disabled' | 'pending' | 'success' | 'error';
+    agentAnalysisError: string | null;
+    agentRecommendationWrittenAt: string | null;
     stats: BidComparisonJobResult | null;
     error: string | null;
     cancelRequested?: boolean;
@@ -304,6 +360,7 @@ export interface BidComparisonAPI {
     get: (jobId: string) => Promise<BidComparisonJobStatus | null>;
     list: (filter?: { projectId?: string; categoryId?: string }) => Promise<BidComparisonJobStatus[]>;
     cancel: (jobId: string) => Promise<{ success: boolean }>;
+    testAgent: (config: BidComparisonAgentConfig) => Promise<BidComparisonAgentTestResult>;
     autoStart: (config: BidComparisonAutoConfig) => Promise<BidComparisonAutoStartResult>;
     autoStop: (scope: BidComparisonAutoScope) => Promise<{ success: boolean }>;
     autoStatus: (scope: BidComparisonAutoScope) => Promise<BidComparisonAutoStatus | null>;
