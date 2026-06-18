@@ -28,4 +28,15 @@ describe("Electron ASAR runtime dependency verification", () => {
 
     expect(errors).toEqual([]);
   });
+
+  it("normalizes Windows-style ASAR paths before checking runtime dependencies", () => {
+    const errors = verifyAsarEntries([
+      "\\desktop\\node_modules\\exceljs\\package.json",
+      "\\desktop\\node_modules\\exceljs\\lib\\xlsx\\xlsx.js",
+      "\\desktop\\node_modules\\jszip\\package.json",
+      "\\desktop\\node_modules\\jszip\\lib\\index.js",
+    ]);
+
+    expect(errors).toEqual([]);
+  });
 });

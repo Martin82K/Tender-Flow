@@ -9,7 +9,10 @@ const REQUIRED_RUNTIME_PAIRS = [
   },
 ];
 
-const normalizeAsarPath = (entry) => (entry.startsWith("/") ? entry : `/${entry}`);
+const normalizeAsarPath = (entry) => {
+  const normalizedEntry = entry.replace(/\\/g, "/");
+  return normalizedEntry.startsWith("/") ? normalizedEntry : `/${normalizedEntry}`;
+};
 
 const hasEntry = (entries, entry) => entries.has(normalizeAsarPath(entry));
 
