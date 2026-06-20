@@ -36,6 +36,9 @@ const pickPathOps = (values: Array<string | undefined>): PathOps => {
   return hasWindowsPath ? path.win32 : path.posix;
 };
 
+const pickLocalPathOps = (values: Array<string | undefined>): PathOps =>
+  values.some((value) => !!value && value.trim().length > 0) ? pickPathOps(values) : path;
+
 const normalizeKey = (value: string, pathOps: PathOps): string => {
   const normalized = pathOps.normalize(value).replace(/[\\/]+$/, '');
   return pathOps === path.win32 ? normalized.toLowerCase() : normalized;
@@ -175,7 +178,14 @@ export const resolvePortablePath = async (
 
   const deps = options.deps || defaultDeps;
   const mode = options.mode;
-  const pathOps = pickPathOps([fromPath, options.homeDir, options.env?.OneDrive, options.env?.OneDriveCommercial, options.env?.OneDriveConsumer]);
+  const inputPathOps = pickPathOps([fromPath]);
+  const env = options.env || process.env;
+  const localPathOps = pickLocalPathOps([
+    options.homeDir,
+    env.OneDrive,
+    env.OneDriveCommercial,
+    env.OneDriveConsumer,
+  ]);
 
   if (await deps.pathExists(fromPath)) {
     return fromPath;
@@ -194,25 +204,24 @@ export const resolvePortablePath = async (
     return fromPath;
   }
 
-  const env = options.env || process.env;
   const candidateBases = await collectCandidateBases(
     anchorSegment,
     options.homeDir,
     env,
     deps,
-    pathOps,
+    localPathOps,
   );
 
   if (candidateBases.length === 0) {
     return fromPath;
   }
 
-  let resolvedPath = await resolveUsingExistingTarget(candidateBases, suffixSegments, deps, pathOps);
+  let resolvedPath = await resolveUsingExistingTarget(candidateBases, suffixSegments, deps, localPathOps);
   if (!resolvedPath && mode === 'write') {
-    resolvedPath = await resolveUsingExistingBase(candidateBases, suffixSegments, anchorSegment, deps, pathOps);
+    resolvedPath = await resolveUsingExistingBase(candidateBases, suffixSegments, anchorSegment, deps, localPathOps);
   }
 
-  if (!resolvedPath || normalizeKey(resolvedPath, pathOps) === normalizeKey(fromPath, pathOps)) {
+  if (!resolvedPath || normalizeKey(resolvedPath, localPathOps) === normalizeKey(fromPath, inputPathOps)) {
     return fromPath;
   }
 

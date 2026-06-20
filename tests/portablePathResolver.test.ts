@@ -80,6 +80,38 @@ describe('resolvePortablePath', () => {
     );
   });
 
+  it('remaps Windows OneDrive path to macOS OneDrive path by keeping suffix after anchor', async () => {
+    const sharedPath =
+      'C:\\Users\\kalkus\\OneDrive - BAU-STAV a.s\\_Stavby\\25036 - Statické zajištění silnice Oloví - Boučí, 2.etapa\\_Tender Flow\\03_Vyberova_rizeni\\Dopravní svodidla';
+    const localMappedPath =
+      '/Users/martinkalkus/OneDrive - BAU-STAV a.s/_Stavby/25036 - Statické zajištění silnice Oloví - Boučí, 2.etapa/_Tender Flow/03_Vyberova_rizeni/Dopravní svodidla';
+    const onRemap = vi.fn();
+
+    const resolved = await resolvePortablePath(sharedPath, {
+      mode: 'read',
+      homeDir: '/Users/martinkalkus',
+      deps: createMockDeps({
+        existingDirs: [
+          '/Users/martinkalkus/OneDrive - BAU-STAV a.s',
+          localMappedPath,
+        ],
+        homeDirsByPath: {
+          [normalize('/Users/martinkalkus')]: ['OneDrive - BAU-STAV a.s'],
+        },
+      }),
+      onRemap,
+    });
+
+    expect(resolved).toBe(localMappedPath);
+    expect(onRemap).toHaveBeenCalledWith(
+      expect.objectContaining({
+        from: sharedPath,
+        to: localMappedPath,
+        mode: 'read',
+      }),
+    );
+  });
+
   it('returns original path when no local OneDrive candidate can be resolved', async () => {
     const sharedPath =
       'C:\\Users\\marti\\OneDrive - BAU-STAV a.s\\Bazen - pracovni\\_TF';
@@ -110,6 +142,26 @@ describe('resolvePortablePath', () => {
         existingDirs: ['C:\\Users\\petr\\OneDrive - BAU-STAV a.s'],
         homeDirsByPath: {
           [normalize('C:\\Users\\petr')]: ['OneDrive - BAU-STAV a.s'],
+        },
+      }),
+    });
+
+    expect(resolved).toBe(expectedWriteTarget);
+  });
+
+  it('resolves Windows OneDrive path in macOS write mode when only local OneDrive base exists', async () => {
+    const sharedPath =
+      'C:\\Users\\kalkus\\OneDrive - BAU-STAV a.s\\_Stavby\\25036\\_Tender Flow\\03_Vyberova_rizeni';
+    const expectedWriteTarget =
+      '/Users/martinkalkus/OneDrive - BAU-STAV a.s/_Stavby/25036/_Tender Flow/03_Vyberova_rizeni';
+
+    const resolved = await resolvePortablePath(sharedPath, {
+      mode: 'write',
+      homeDir: '/Users/martinkalkus',
+      deps: createMockDeps({
+        existingDirs: ['/Users/martinkalkus/OneDrive - BAU-STAV a.s'],
+        homeDirsByPath: {
+          [normalize('/Users/martinkalkus')]: ['OneDrive - BAU-STAV a.s'],
         },
       }),
     });
@@ -152,4 +204,3 @@ describe('resolvePortablePath', () => {
     expect(resolved).toBe(regularPath);
   });
 });
-
