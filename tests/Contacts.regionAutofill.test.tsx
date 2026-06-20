@@ -7,11 +7,16 @@ const mockState = vi.hoisted(() => ({
   findCompanyRegistrationDetails: vi.fn(),
   lookupCompanyRegistrations: vi.fn(),
   onBulkUpdateContacts: vi.fn(),
+  analyzeContactQuickPaste: vi.fn(),
 }));
 
 vi.mock("@/services/geminiService", () => ({
   findCompanyRegistrationDetails: mockState.findCompanyRegistrationDetails,
   lookupCompanyRegistrations: mockState.lookupCompanyRegistrations,
+}));
+
+vi.mock("@features/contacts/model/contactQuickPaste", () => ({
+  analyzeContactQuickPaste: mockState.analyzeContactQuickPaste,
 }));
 
 vi.mock("@/shared/ui/Header", () => ({
@@ -115,6 +120,38 @@ describe("Contacts auto-fill regions", () => {
     // Default: auto-fill on mount returns empty (no ARES results) so it doesn't interfere with manual tests
     mockState.findCompanyRegistrationDetails.mockResolvedValue({});
     mockState.lookupCompanyRegistrations.mockResolvedValue({});
+    mockState.analyzeContactQuickPaste.mockResolvedValue({
+      operation: "create",
+      confidence: "high",
+      matchedContact: undefined,
+      warnings: [],
+      source: { usedAi: false, usedAres: true },
+      contact: {
+        id: "quick-1",
+        company: "Rychla Firma",
+        specialization: ["Elektro"],
+        contacts: [
+          {
+            id: "person-1",
+            name: "Jan Rychly",
+            email: "jan@rychla.cz",
+            phone: "+420 777 123 456",
+            position: "Hlavní kontakt",
+          },
+        ],
+        ico: "12345678",
+        region: "Praha",
+        address: "Ulice 1",
+        city: "Praha",
+        web: "https://rychla.cz",
+        note: "",
+        regions: [],
+        status: "available",
+        name: "Jan Rychly",
+        email: "jan@rychla.cz",
+        phone: "+420 777 123 456",
+      },
+    });
   });
 
   it("přeskočí placeholder region a zobrazí informaci, když AI vrátí jen pomlčku", async () => {
@@ -215,6 +252,59 @@ describe("Contacts auto-fill regions", () => {
     await waitFor(() => {
       expect(screen.getByDisplayValue("Karlovarský kraj")).toBeInTheDocument();
       expect(screen.getByDisplayValue("č.p. 88, 36225 Božičany")).toBeInTheDocument();
+    });
+  });
+
+  it("rychlé vložení jen předvyplní standardní formulář před uložením", async () => {
+    const onAddContact = vi.fn();
+
+    render(
+      <Contacts
+        statuses={statuses}
+        contacts={contacts}
+        onContactsChange={vi.fn()}
+        onAddContact={onAddContact}
+        onUpdateContact={vi.fn()}
+        onBulkUpdateContacts={mockState.onBulkUpdateContacts}
+        onDeleteContacts={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /vložit kontakt/i }));
+    fireEvent.change(screen.getByPlaceholderText(/název firmy, ičo, web/i), {
+      target: { value: "Rychla Firma s.r.o.\nIČO: 12345678\njan@rychla.cz" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /analyzovat/i }));
+
+    await waitFor(() => {
+      expect(mockState.analyzeContactQuickPaste).toHaveBeenCalledWith(
+        expect.objectContaining({
+          input: expect.stringContaining("Rychla Firma"),
+          existingContacts: contacts,
+          existingSpecializations: ["Elektro"],
+          defaultStatusId: "available",
+          useAi: true,
+        }),
+      );
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: /převzít do formuláře/i }));
+
+    expect(screen.getByDisplayValue("Rychla Firma")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("12345678")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("jan@rychla.cz")).toBeInTheDocument();
+
+    const submitButton = screen.getByRole("button", { name: /vytvořit kontakt/i });
+    fireEvent.submit(submitButton.closest("form")!);
+
+    await waitFor(() => {
+      expect(onAddContact).toHaveBeenCalledWith(
+        expect.objectContaining({
+          company: "Rychla Firma",
+          ico: "12345678",
+          specialization: ["Elektro"],
+        }),
+      );
     });
   });
 });

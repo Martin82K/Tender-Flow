@@ -16,6 +16,10 @@ import { formatDecimal } from '@/shared/formatting/decimalFormatters';
 import { FEATURES } from '@/config/features';
 import { SubcontractorMapView } from '@features/maps/components/SubcontractorMapView';
 import { SubcontractorCardsView } from '@features/contacts/ui/SubcontractorCardsView';
+import {
+    analyzeContactQuickPaste,
+} from '@features/contacts/model/contactQuickPaste';
+import type { ContactQuickPasteAnalysis } from '@features/contacts/model/contactQuickPaste';
 
 interface ContactsProps {
     statuses: StatusConfig[];
@@ -48,6 +52,13 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
     // Contact Modal State
     const [isContactModalOpen, setIsContactModalOpen] = useState(false);
     const [editingContact, setEditingContact] = useState<Subcontractor | null>(null);
+
+    // Quick paste assistant modal state
+    const [isQuickPasteModalOpen, setIsQuickPasteModalOpen] = useState(false);
+    const [quickPasteText, setQuickPasteText] = useState('');
+    const [quickPasteAnalysis, setQuickPasteAnalysis] = useState<ContactQuickPasteAnalysis | null>(null);
+    const [quickPasteError, setQuickPasteError] = useState<string | null>(null);
+    const [isQuickPasteAnalyzing, setIsQuickPasteAnalyzing] = useState(false);
 
     // Bulk Specialization Modal State
     const [isBulkSpecModalOpen, setIsBulkSpecModalOpen] = useState(false);
@@ -82,6 +93,21 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
         const normalized = value.trim().toLowerCase();
         return normalized === '' || normalized === '-' || normalized === '–' || normalized === '—' || normalized === '―';
     };
+
+    const closeQuickPasteModal = () => {
+        setIsQuickPasteModalOpen(false);
+        setQuickPasteText('');
+        setQuickPasteAnalysis(null);
+        setQuickPasteError(null);
+        setIsQuickPasteAnalyzing(false);
+    };
+
+    const openQuickPasteModal = useCallback(() => {
+        setQuickPasteText('');
+        setQuickPasteAnalysis(null);
+        setQuickPasteError(null);
+        setIsQuickPasteModalOpen(true);
+    }, []);
 
     const handleRegistryLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, url: string) => {
         e.stopPropagation();
@@ -187,6 +213,17 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
             void autoFillRegistrationForContacts(needsLookup);
         }
     }, [contacts, autoFillRegistrationForContacts]);
+
+    useEffect(() => {
+        const handleShortcut = (event: KeyboardEvent) => {
+            if (!(event.metaKey || event.ctrlKey) || !event.shiftKey || event.key.toLowerCase() !== 'k') return;
+            event.preventDefault();
+            openQuickPasteModal();
+        };
+
+        window.addEventListener('keydown', handleShortcut);
+        return () => window.removeEventListener('keydown', handleShortcut);
+    }, [openQuickPasteModal]);
 
     // --- AI Handlers ---
 
@@ -451,6 +488,37 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
         setIsContactModalOpen(true);
     };
 
+    const handleAnalyzeQuickPaste = async () => {
+        setQuickPasteError(null);
+        setQuickPasteAnalysis(null);
+        setIsQuickPasteAnalyzing(true);
+
+        try {
+            const defaultStatusId = statuses.find(s => s.id === 'available')?.id || statuses[0]?.id || 'available';
+            const analysis = await analyzeContactQuickPaste({
+                input: quickPasteText,
+                existingContacts: contacts,
+                existingSpecializations: allSpecializations,
+                defaultStatusId,
+                useAi: true,
+            });
+            setQuickPasteAnalysis(analysis);
+        } catch (error) {
+            setQuickPasteError(error instanceof Error ? error.message : 'Analýza kontaktu selhala.');
+        } finally {
+            setIsQuickPasteAnalyzing(false);
+        }
+    };
+
+    const handleUseQuickPasteDraft = () => {
+        if (!quickPasteAnalysis) return;
+        const draft = quickPasteAnalysis.contact;
+        setEditingContact(quickPasteAnalysis.matchedContact || null);
+        setFormData({ ...draft, specializationRaw: '' });
+        setIsQuickPasteModalOpen(false);
+        setIsContactModalOpen(true);
+    };
+
     const handleOpenEditModal = (contact: Subcontractor) => {
         setEditingContact(contact);
         setFormData({ ...contact });
@@ -649,6 +717,15 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                         )}
                     </div>
                     <button
+                        data-help-id="contacts-quick-paste"
+                        onClick={openQuickPasteModal}
+                        className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors"
+                        title="Rychlé vložení kontaktu (Ctrl/Cmd+Shift+K)"
+                    >
+                        <span className="material-symbols-outlined text-[20px]">content_paste_go</span>
+                        Vložit kontakt
+                    </button>
+                    <button
                         data-help-id="contacts-add"
                         onClick={handleOpenAddModal}
                         className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors"
@@ -693,6 +770,124 @@ export const Contacts: React.FC<ContactsProps> = ({ statuses, contacts, onContac
                         onContactClick={handleOpenEditModal}
                         onBulkUpdateContacts={onBulkUpdateContacts}
                     />
+                </div>
+            )}
+
+            {isQuickPasteModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-3xl w-full overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh]">
+                        <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shrink-0">
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Rychlé vložení kontaktu</h3>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                    Vložte text z webu nebo podpisu. Návrh se před uložením otevře ve standardním formuláři.
+                                </p>
+                            </div>
+                            <button onClick={closeQuickPasteModal} className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+
+                        <div className="p-6 overflow-y-auto flex-1 space-y-4">
+                            <div>
+                                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Text kontaktu</label>
+                                <textarea
+                                    value={quickPasteText}
+                                    onChange={e => setQuickPasteText(e.target.value)}
+                                    onKeyDown={(e) => e.stopPropagation()}
+                                    rows={8}
+                                    className="w-full rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm focus:ring-primary focus:border-primary dark:text-white resize-y"
+                                    placeholder="Např. název firmy, IČO, web, kontaktní osoba, telefon, email, obor..."
+                                />
+                            </div>
+
+                            {quickPasteError && (
+                                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-300">
+                                    {quickPasteError}
+                                </div>
+                            )}
+
+                            {quickPasteAnalysis && (
+                                <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 p-4 space-y-3">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div>
+                                            <p className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400">
+                                                {quickPasteAnalysis.operation === 'update' ? 'Doplnění existující firmy' : 'Nová firma'}
+                                            </p>
+                                            <h4 className="text-base font-bold text-slate-900 dark:text-white">
+                                                {quickPasteAnalysis.contact.company}
+                                            </h4>
+                                        </div>
+                                        <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-bold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                                            Jistota: {quickPasteAnalysis.confidence === 'high' ? 'vysoká' : quickPasteAnalysis.confidence === 'medium' ? 'střední' : 'nízká'}
+                                        </span>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                                        <div>
+                                            <span className="block text-xs text-slate-500 dark:text-slate-400">IČO</span>
+                                            <span className="font-medium text-slate-900 dark:text-white">{quickPasteAnalysis.contact.ico || '-'}</span>
+                                        </div>
+                                        <div>
+                                            <span className="block text-xs text-slate-500 dark:text-slate-400">Web</span>
+                                            <span className="font-medium text-slate-900 dark:text-white">{quickPasteAnalysis.contact.web || '-'}</span>
+                                        </div>
+                                        <div>
+                                            <span className="block text-xs text-slate-500 dark:text-slate-400">Specializace</span>
+                                            <span className="font-medium text-slate-900 dark:text-white">{quickPasteAnalysis.contact.specialization.join(', ')}</span>
+                                        </div>
+                                        <div>
+                                            <span className="block text-xs text-slate-500 dark:text-slate-400">Kontakt</span>
+                                            <span className="font-medium text-slate-900 dark:text-white">
+                                                {quickPasteAnalysis.contact.contacts[0]?.name || '-'} · {quickPasteAnalysis.contact.contacts[0]?.email || '-'} · {quickPasteAnalysis.contact.contacts[0]?.phone || '-'}
+                                            </span>
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <span className="block text-xs text-slate-500 dark:text-slate-400">Adresa</span>
+                                            <span className="font-medium text-slate-900 dark:text-white">
+                                                {[quickPasteAnalysis.contact.address, quickPasteAnalysis.contact.city, quickPasteAnalysis.contact.region].filter(v => v && v !== '-').join(', ') || '-'}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {quickPasteAnalysis.warnings.length > 0 && (
+                                        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-200">
+                                            {quickPasteAnalysis.warnings.join(' ')}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3 shrink-0">
+                            <button
+                                type="button"
+                                onClick={closeQuickPasteModal}
+                                className="px-4 py-2 rounded-lg text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                            >
+                                Zavřít
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleAnalyzeQuickPaste}
+                                disabled={isQuickPasteAnalyzing || !quickPasteText.trim()}
+                                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold disabled:opacity-50 inline-flex items-center gap-2"
+                            >
+                                <span className={`material-symbols-outlined text-[18px] ${isQuickPasteAnalyzing ? 'animate-spin' : ''}`}>
+                                    {isQuickPasteAnalyzing ? 'sync' : 'auto_awesome'}
+                                </span>
+                                Analyzovat
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleUseQuickPasteDraft}
+                                disabled={!quickPasteAnalysis}
+                                className="px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-white text-sm font-bold disabled:opacity-50"
+                            >
+                                Převzít do formuláře
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 
