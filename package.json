@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "vite build && node scripts/prerender-public.mjs",
     "build:web": "vite build && node scripts/prerender-public.mjs",
+    "build:local-assets": "npm run build:web && node scripts/verify-web-dist.mjs",
     "build:user-manual": "node scripts/build-user-manual.mjs",
     "build:icons": "node scripts/generate-icons.mjs",
     "preview": "vite preview",
@@ -29,6 +30,7 @@
     "version:minor": "npm version minor --no-git-tag-version && node scripts/sync-version.mjs",
     "version:major": "npm version major --no-git-tag-version && node scripts/sync-version.mjs",
     "release:prepare": "node scripts/prepare-release.mjs",
+    "verify:web-dist": "node scripts/verify-web-dist.mjs",
     "release:verify-artifacts": "node scripts/verify-release-artifacts.mjs"
   },
   "dependencies": {
