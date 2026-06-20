@@ -15,6 +15,69 @@ export interface NavItemConfig {
   settingsSubTab?: 'profile' | 'notifications' | 'backup' | 'contacts' | 'excelUnlocker' | 'excelMerger' | 'excelIndexer' | 'urlShortener' | 'bidComparison' | 'registration' | 'users' | 'organizations' | 'subscriptions' | 'ai' | 'incidents' | 'compliance' | 'tools';
 }
 
+export const TOOLS_NAV_ITEM: NavItemConfig = {
+  id: 'tools',
+  label: 'Nástroje',
+  icon: 'build',
+  view: 'settings',
+  type: 'group',
+  children: [
+    {
+      id: 'settings-contacts-import',
+      label: 'Import kontaktů',
+      icon: 'upload_file',
+      view: 'settings',
+      feature: FEATURES.CONTACTS_IMPORT,
+      settingsTab: 'tools',
+      settingsSubTab: 'contacts',
+    },
+    {
+      id: 'settings-excelunlocker-pro',
+      label: 'Excel Unlocker PRO',
+      icon: 'lock_open',
+      view: 'settings',
+      feature: FEATURES.EXCEL_UNLOCKER,
+      settingsTab: 'tools',
+      settingsSubTab: 'excelUnlocker',
+    },
+    {
+      id: 'settings-excelmerger-pro',
+      label: 'Excel Merger PRO',
+      icon: 'table_view',
+      view: 'settings',
+      feature: FEATURES.EXCEL_MERGER,
+      settingsTab: 'tools',
+      settingsSubTab: 'excelMerger',
+    },
+    {
+      id: 'settings-excel-indexer',
+      label: 'Excel Indexer',
+      icon: 'join_inner',
+      view: 'settings',
+      feature: FEATURES.EXCEL_INDEXER,
+      settingsTab: 'tools',
+      settingsSubTab: 'excelIndexer',
+    },
+    {
+      id: 'settings-url-shortener',
+      label: 'URL Zkracovač',
+      icon: 'link',
+      view: 'settings',
+      feature: FEATURES.URL_SHORTENER,
+      settingsTab: 'tools',
+      settingsSubTab: 'urlShortener',
+    },
+    {
+      id: 'settings-bid-comparison',
+      label: 'Porovnání nabídek',
+      icon: 'compare_arrows',
+      view: 'settings',
+      settingsTab: 'tools',
+      settingsSubTab: 'bidComparison',
+    },
+  ],
+};
+
 export const SIDEBAR_NAVIGATION: NavItemConfig[] = [
   {
     id: 'todo',
@@ -59,6 +122,7 @@ export const SIDEBAR_NAVIGATION: NavItemConfig[] = [
     view: 'project-overview',
     feature: FEATURES.FEATURE_ADVANCED_REPORTING,
   },
+  TOOLS_NAV_ITEM,
     // Pipeline is now part of Project tabs mostly, but if we had a global pipeline:
     // {
     //   id: 'pipeline',
@@ -70,68 +134,7 @@ export const SIDEBAR_NAVIGATION: NavItemConfig[] = [
 ];
 
 export const BOTTOM_NAVIGATION: NavItemConfig[] = [
-  {
-    id: 'tools',
-    label: 'Nástroje',
-    icon: 'build',
-    view: 'settings',
-    type: 'group',
-    children: [
-      {
-        id: 'settings-contacts-import',
-        label: 'Import kontaktů',
-        icon: 'upload_file',
-        view: 'settings',
-        feature: FEATURES.CONTACTS_IMPORT,
-        settingsTab: 'tools',
-        settingsSubTab: 'contacts',
-      },
-      {
-        id: 'settings-excelunlocker-pro',
-        label: 'Excel Unlocker PRO',
-        icon: 'lock_open',
-        view: 'settings',
-        feature: FEATURES.EXCEL_UNLOCKER,
-        settingsTab: 'tools',
-        settingsSubTab: 'excelUnlocker',
-      },
-      {
-        id: 'settings-excelmerger-pro',
-        label: 'Excel Merger PRO',
-        icon: 'table_view',
-        view: 'settings',
-        feature: FEATURES.EXCEL_MERGER,
-        settingsTab: 'tools',
-        settingsSubTab: 'excelMerger',
-      },
-      {
-        id: 'settings-excel-indexer',
-        label: 'Excel Indexer',
-        icon: 'join_inner',
-        view: 'settings',
-        feature: FEATURES.EXCEL_INDEXER,
-        settingsTab: 'tools',
-        settingsSubTab: 'excelIndexer',
-      },
-      {
-        id: 'settings-url-shortener',
-        label: 'URL Zkracovač',
-        icon: 'link',
-        view: 'settings',
-        feature: FEATURES.URL_SHORTENER,
-        settingsTab: 'tools',
-        settingsSubTab: 'urlShortener',
-      },
-      {
-        id: 'settings-bid-comparison',
-        label: 'Porovnání nabídek',
-        icon: 'compare_arrows',
-        view: 'settings',
-        settingsTab: 'tools',
-        settingsSubTab: 'bidComparison',
-      },
-    ],
-  },
+  TOOLS_NAV_ITEM,
   {
     id: 'settings',
     label: 'Nastavení',

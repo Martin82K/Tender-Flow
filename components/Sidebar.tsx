@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { View, Project, ProjectTab } from "../types";
 import logo from "../assets/logo.svg";
-import { SIDEBAR_NAVIGATION } from "../config/navigation";
+import { SIDEBAR_NAVIGATION, type NavItemConfig } from "../config/navigation";
 import { FEATURES, type FeatureKey } from "../config/features";
 import { useFeatures } from "../context/FeatureContext";
 import { useLocation } from "@/shared/routing/router";
@@ -43,18 +43,8 @@ interface SidebarProps {
   onViewChange: (
     view: View,
     opts?: {
-      settingsTab?: "user" | "admin";
-      settingsSubTab?:
-        | "profile"
-        | "contacts"
-        | "excelUnlocker"
-        | "excelMerger"
-        | "urlShortener"
-        | "registration"
-        | "users"
-        | "subscriptions"
-        | "ai"
-        | "tools";
+      settingsTab?: NonNullable<NavItemConfig["settingsTab"]>;
+      settingsSubTab?: NonNullable<NavItemConfig["settingsSubTab"]>;
     },
   ) => void;
   selectedProjectId: string;
@@ -145,10 +135,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
       subTabParam === "excelMerger" ||
       subTabParam === "excelIndexer" ||
       subTabParam === "urlShortener" ||
+      subTabParam === "bidComparison" ||
       subTabParam === "registration" ||
       subTabParam === "users" ||
+      subTabParam === "organizations" ||
       subTabParam === "subscriptions" ||
       subTabParam === "ai" ||
+      subTabParam === "incidents" ||
+      subTabParam === "compliance" ||
+      subTabParam === "overview" ||
+      subTabParam === "members" ||
+      subTabParam === "billing" ||
+      subTabParam === "branding" ||
       subTabParam === "tools" // legacy
         ? subTabParam
         : null;

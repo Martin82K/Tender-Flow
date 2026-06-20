@@ -19,6 +19,11 @@ const enabledFeatures: FeatureKey[] = [
   FEATURES.MODULE_COMMAND_CENTER,
   FEATURES.MODULE_TASKS,
   FEATURES.FEATURE_ADVANCED_REPORTING,
+  FEATURES.CONTACTS_IMPORT,
+  FEATURES.EXCEL_UNLOCKER,
+  FEATURES.EXCEL_MERGER,
+  FEATURES.EXCEL_INDEXER,
+  FEATURES.URL_SHORTENER,
 ];
 
 vi.mock('@/context/AuthContext', () => ({
@@ -78,6 +83,19 @@ describe('Sidebar navigation', () => {
     expect(onViewChange).toHaveBeenNthCalledWith(1, 'todo', undefined);
     expect(onViewChange).toHaveBeenNthCalledWith(2, 'project-management', undefined);
     expect(onViewChange).toHaveBeenNthCalledWith(3, 'project-overview', undefined);
+  });
+
+  it('nabízí nástroje v hlavním sidebaru jako alternativu k profilovému menu', () => {
+    const onViewChange = vi.fn();
+    renderSidebar(onViewChange);
+
+    fireEvent.click(screen.getByText('Nástroje'));
+    fireEvent.click(screen.getByRole('button', { name: /Excel Unlocker PRO/i }));
+
+    expect(onViewChange).toHaveBeenCalledWith('settings', {
+      settingsTab: 'tools',
+      settingsSubTab: 'excelUnlocker',
+    });
   });
 
   it('označí aktivní položku pro nový industrial skin', () => {
