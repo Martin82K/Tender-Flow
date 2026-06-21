@@ -45,6 +45,16 @@ const formatFileSize = (sizeBytes: number): string => {
   return `${(sizeBytes / 1024 / 1024).toFixed(2)} MB`;
 };
 
+const formatCurrency = (value: number | null | undefined): string => {
+  if (value == null || !Number.isFinite(value)) return '-';
+  return `${Math.round(value).toLocaleString('cs-CZ')} Kč`;
+};
+
+const formatQuantity = (value: number | null | undefined): string => {
+  if (value == null || !Number.isFinite(value)) return '-';
+  return value.toLocaleString('cs-CZ');
+};
+
 const getRoleLabel = (role: BidComparisonRole): string => {
   if (role === 'zadani') return 'Zadání';
   if (role === 'offer') return 'Nabídka';
@@ -75,6 +85,22 @@ const getBestRowTotal = (offers: Record<string, { celkem: number | null }>): num
   return totals.length ? Math.min(...totals) : null;
 };
 
+const getSupplierTotals = (
+  rows: NonNullable<BidComparisonJobStatus['stats']>['matrix'],
+  suppliers: string[],
+): Record<string, number> => {
+  const totals = Object.fromEntries(suppliers.map((supplier) => [supplier, 0]));
+  rows?.forEach((row) => {
+    suppliers.forEach((supplier) => {
+      const value = row.offers[supplier]?.celkem;
+      if (value != null && Number.isFinite(value)) {
+        totals[supplier] += value;
+      }
+    });
+  });
+  return totals;
+};
+
 export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
   isOpen,
   onClose,
@@ -98,6 +124,7 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
   const [autoStatus, setAutoStatus] = useState<BidComparisonAutoStatus | null>(null);
   const [autoError, setAutoError] = useState<string | null>(null);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
+  const [showOnlyDifferences, setShowOnlyDifferences] = useState(false);
   const [agentConfig, setAgentConfig] = useState<BidComparisonAgentConfig>(
     parseBidComparisonAgentSettings(null),
   );
@@ -455,10 +482,10 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
 
     return [
       {
-        label: '00 Zadání',
+        label: 'Zadání / položkový rozpočet',
         helper:
           zadaniFiles.length === 1
-            ? zadaniFiles[0].fileName
+            ? `${zadaniFiles[0].fileName} · zdroj množství`
             : zadaniFiles.length > 1
               ? `${zadaniFiles.length} soubory zadání`
               : 'nenalezeno, použije se alternativní porovnání',
@@ -484,6 +511,80 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
   const previewRows = useMemo(
     () => job?.stats?.matrix?.slice(0, 6) || [],
     [job?.stats?.matrix],
+  );
+
+  const visiblePreviewRows = useMemo(() => {
+    if (!showOnlyDifferences) return previewRows;
+    return previewRows.filter((row) => {
+      const offers = previewSupplierLabels.map((supplier) => row.offers[supplier]);
+      const pricedTotals = offers
+        .map((offer) => offer?.celkem)
+        .filter((value): value is number => value != null && Number.isFinite(value));
+      const hasMissingOffer = offers.some((offer) => !offer?.matched || offer.celkem == null);
+      const hasDifferentTotals = new Set(pricedTotals).size > 1;
+      return hasMissingOffer || hasDifferentTotals;
+    });
+  }, [previewRows, previewSupplierLabels, showOnlyDifferences]);
+
+  const agentStatusText =
+    job?.agentAnalysisStatus === 'success'
+      ? 'Agent hotovo'
+      : job?.agentAnalysisStatus === 'error'
+        ? 'Agent chyba'
+        : job?.agentAnalysisStatus === 'pending'
+          ? 'Agent běží'
+          : agentIsRunnable
+            ? 'Agent připraven'
+            : 'Agent vypnutý';
+
+  const supplierTotals = useMemo(
+    () => getSupplierTotals(job?.stats?.matrix || [], previewSupplierLabels),
+    [job?.stats?.matrix, previewSupplierLabels],
+  );
+
+  const lowestSupplierTotal = useMemo(() => {
+    const entries = Object.entries(supplierTotals).filter(([, total]) => total > 0);
+    if (!entries.length) return null;
+    return entries.reduce(
+      (best, current) => (current[1] < best[1] ? current : best),
+      entries[0],
+    );
+  }, [supplierTotals]);
+
+  const outputModeLabel =
+    roleSummary.zadaniCount === 0 || job?.stats?.sourceMode === 'offers_only'
+      ? 'Alternativní ocenění'
+      : 'Rozpočet + nabídky';
+
+  const inputHealthItems = useMemo(
+    () => [
+      {
+        label: roleSummary.zadaniCount === 0 ? 'Rozpočet chybí' : 'Rozpočet OK',
+        helper: roleSummary.zadaniCount === 0 ? 'alternativní režim' : 'zdroj množství',
+        tone: roleSummary.zadaniCount === 0 ? 'warn' as const : 'ok' as const,
+      },
+      {
+        label: roleSummary.zadaniCount > 0 ? 'Množství načteno' : 'Bez množství zadání',
+        helper: roleSummary.zadaniCount > 0 ? 'výpočet celkem aktivní' : 'porovnání z nabídek',
+        tone: roleSummary.zadaniCount > 0 ? 'ok' as const : 'idle' as const,
+      },
+      {
+        label: `${roleSummary.offerCount} nabíd${roleSummary.offerCount === 1 ? 'ka' : roleSummary.offerCount < 5 ? 'ky' : 'ek'}`,
+        helper: 'přiřazené nabídky',
+        tone: roleSummary.offerCount > 0 ? 'ok' as const : 'warn' as const,
+      },
+      {
+        label: `${unresolvedFiles.length} ke kontrole`,
+        helper: unresolvedFiles.length ? 'vyžaduje zásah' : 'bez ručních zásahů',
+        tone: unresolvedFiles.length ? 'warn' as const : 'ok' as const,
+      },
+      {
+        label: agentStatusText,
+        helper: agentIsRunnable ? 'doporučení dostupné' : 'volitelně',
+        tone: agentIsRunnable ? 'ok' as const : 'idle' as const,
+      },
+    ],
+    [agentIsRunnable, agentStatusText, roleSummary.offerCount, roleSummary.zadaniCount, unresolvedFiles.length],
   );
 
   const canStart = useMemo(() => {
@@ -607,25 +708,15 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
   if (!isOpen) return null;
 
   const jobIsRunning = !!job && !terminalStates.has(job.status);
-  const agentStatusText =
-    job?.agentAnalysisStatus === 'success'
-      ? 'Agent hotovo'
-      : job?.agentAnalysisStatus === 'error'
-        ? 'Agent chyba'
-        : job?.agentAnalysisStatus === 'pending'
-          ? 'Agent běží'
-          : agentIsRunnable
-            ? 'Agent připraven'
-            : 'Agent vypnutý';
 
   return (
-    <div data-help-id="pipeline-bid-comparison-modal" className="tf-modal-overlay fixed inset-0 z-[10001] bg-slate-900/50 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="tf-modal-panel tf-pipeline-modal-panel max-w-6xl mx-auto bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+    <div data-help-id="pipeline-bid-comparison-modal" className="tf-modal-overlay fixed inset-0 z-[10001] bg-slate-100 dark:bg-slate-950 overflow-hidden">
+      <div className="tf-modal-panel tf-pipeline-modal-panel flex h-screen w-screen flex-col bg-white dark:bg-slate-900">
+        <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
           <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Porovnání nabídek</h2>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Cenové studio</h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Asynchronní zpracování cenových nabídek (kola + varianty)
+              Porovnání nabídek, rozpočtu a dodavatelských cen v jedné pracovní ploše.
             </p>
           </div>
           <button
@@ -650,14 +741,14 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
           </button>
         </div>
 
-        <div className="p-5 space-y-5 bg-slate-50/60 dark:bg-slate-950/30">
+        <div className="flex min-h-0 flex-1 flex-col gap-4 bg-slate-50/80 p-4 dark:bg-slate-950/40">
           {!canUseDesktopApi && (
-            <div className="rounded-lg border border-amber-300 bg-amber-50 text-amber-800 px-4 py-3 text-sm">
+            <div className="shrink-0 rounded-lg border border-amber-300 bg-amber-50 text-amber-800 px-4 py-3 text-sm">
               Tento modul je dostupný pouze v desktop aplikaci Tender Flow.
             </div>
           )}
 
-          <section className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-3">
+          <section className="shrink-0 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 space-y-3">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
               <label className="flex-1 space-y-1">
                 <span className="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">Složka výběrového řízení</span>
@@ -700,33 +791,43 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
               </div>
             </div>
 
-            <div className="grid gap-2 md:grid-cols-4 text-xs">
-              <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 px-3 py-2">
-                <p className="font-semibold text-slate-700 dark:text-slate-100">Režim výstupu</p>
-                <p className="text-slate-500 dark:text-slate-400">
-                  {roleSummary.zadaniCount === 0 ? 'Alternativní porovnání' : 'Doplnění do zadání'}
-                </p>
+            <div className="grid gap-3 lg:grid-cols-[minmax(280px,380px)_minmax(0,1fr)]">
+              <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-2">
+                <p className="px-2 pb-2 text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">Režim výstupu</p>
+                <div className="grid grid-cols-2 gap-1 text-xs font-semibold">
+                  <div
+                    className={`rounded-md px-3 py-2 ${
+                      outputModeLabel === 'Rozpočet + nabídky'
+                        ? 'bg-primary text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-300'
+                    }`}
+                  >
+                    Rozpočet + nabídky
+                  </div>
+                  <div
+                    className={`rounded-md px-3 py-2 ${
+                      outputModeLabel === 'Alternativní ocenění'
+                        ? 'bg-primary text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-300'
+                    }`}
+                  >
+                    Alternativní ocenění
+                  </div>
+                </div>
               </div>
-              <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 px-3 py-2">
-                <p className="font-semibold text-slate-700 dark:text-slate-100">Latest XLSX</p>
-                <p className="text-slate-500 dark:text-slate-400">{OUTPUT_BASE_NAME}-latest.xlsx</p>
+              <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+                {inputHealthItems.map((item) => (
+                  <div key={item.label} className={`rounded-lg border px-3 py-2 text-xs ${getStatusTone(item.tone)}`}>
+                    <p className="font-semibold">{item.label}</p>
+                    <p className="mt-0.5 opacity-80">{item.helper}</p>
+                  </div>
+                ))}
               </div>
-              <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 px-3 py-2">
-                <p className="font-semibold text-slate-700 dark:text-slate-100">Agent</p>
-                <p className="text-slate-500 dark:text-slate-400">{agentStatusText}</p>
-              </div>
-              <button
-                type="button"
-                onClick={openAgentSettings}
-                className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 px-3 py-2 text-left text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700"
-              >
-                Nastavení agenta
-              </button>
             </div>
           </section>
 
           {(warnings.length > 0 || detectError || autoError) && (
-            <div className="space-y-2">
+            <div className="shrink-0 space-y-2">
               {warnings.length > 0 && (
                 <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 space-y-1">
                   {warnings.map((warning) => (
@@ -749,13 +850,13 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
             </div>
           )}
 
-          <div className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)_280px]">
-            <aside className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
+          <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[320px_minmax(0,1fr)_320px]">
+            <aside className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
               <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700">
-                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Struktura VŘ</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Zadání, dodavatelé a nepřiřazené soubory.</p>
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Vstupy</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Rozpočet, dodavatelé a soubory ke kontrole.</p>
               </div>
-              <div className="divide-y divide-slate-100 dark:divide-slate-800">
+              <div className="min-h-0 flex-1 divide-y divide-slate-100 overflow-auto dark:divide-slate-800">
                 {folderTreeItems.map((item) => (
                   <div key={item.label} className="px-4 py-3">
                     <div className="flex items-start justify-between gap-2">
@@ -779,23 +880,294 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
               </div>
             </aside>
 
-            <section className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
-              <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-slate-200 dark:border-slate-700">
+            <section className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+              <div className="shrink-0 flex flex-col gap-2 px-4 py-3 border-b border-slate-200 dark:border-slate-700 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Mapování souborů</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Přiřaďte roli, dodavatele a kolo nabídky.</p>
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Cenová matice</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Výpočet: množství z rozpočtu × jednotková cena dodavatele.
+                  </p>
                 </div>
-                <span className="rounded-full bg-slate-100 dark:bg-slate-800 px-2.5 py-1 text-xs font-semibold text-slate-600 dark:text-slate-300">
-                  {files.length} souborů
-                </span>
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <span className="rounded-full bg-emerald-100 px-2.5 py-1 font-semibold text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-200">
+                    nejnižší
+                  </span>
+                  <span className="rounded-full bg-amber-100 px-2.5 py-1 font-semibold text-amber-700 dark:bg-amber-900/50 dark:text-amber-200">
+                    chybí / neoceněno
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowOnlyDifferences((current) => !current)}
+                    className="rounded-lg border border-slate-200 px-3 py-1.5 font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                    aria-pressed={showOnlyDifferences}
+                  >
+                    {showOnlyDifferences ? 'Zobrazit vše' : 'Zobrazit pouze rozdíly'}
+                  </button>
+                </div>
               </div>
 
+              <div className="min-h-0 flex-1 overflow-auto">
+                <table className="w-full min-w-[1180px] text-sm">
+                  <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-slate-800">
+                    <tr className="text-left text-xs uppercase text-slate-500 dark:text-slate-400">
+                      <th className="px-3 py-2">Kód</th>
+                      <th className="px-3 py-2">Popis</th>
+                      <th className="px-3 py-2">MJ</th>
+                      <th className="px-3 py-2 text-right">Množství</th>
+                      <th className="px-3 py-2 text-right">JC zadání</th>
+                      <th className="px-3 py-2 text-right">Celkem zadání</th>
+                      {previewSupplierLabels.map((supplier) => (
+                        <th key={supplier} className="px-3 py-2 text-center" colSpan={2}>
+                          {supplier}
+                        </th>
+                      ))}
+                    </tr>
+                    <tr className="border-t border-slate-200 dark:border-slate-700 text-left text-[11px] uppercase text-slate-400">
+                      <th className="px-3 py-1" />
+                      <th className="px-3 py-1" />
+                      <th className="px-3 py-1" />
+                      <th className="px-3 py-1" />
+                      <th className="px-3 py-1" />
+                      <th className="px-3 py-1" />
+                      {previewSupplierLabels.map((supplier) => (
+                        <React.Fragment key={`${supplier}-subhead`}>
+                          <th className="px-3 py-1 text-right">JC</th>
+                          <th className="px-3 py-1 text-right">Celkem</th>
+                        </React.Fragment>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visiblePreviewRows.length > 0 ? (
+                      <>
+                        {visiblePreviewRows.map((row) => {
+                          const bestTotal = getBestRowTotal(row.offers);
+                          return (
+                            <tr key={row.radek} className="border-t border-slate-200 dark:border-slate-700">
+                              <td className="px-3 py-2 text-slate-600 dark:text-slate-300">{row.kod || row.pc || '-'}</td>
+                              <td className="px-3 py-2 max-w-[300px] truncate text-slate-800 dark:text-slate-100">{row.popis || '-'}</td>
+                              <td className="px-3 py-2 text-slate-600 dark:text-slate-300">{row.mj || '-'}</td>
+                              <td className="px-3 py-2 text-right tabular-nums text-slate-600 dark:text-slate-300">{formatQuantity(row.mnozstvi)}</td>
+                              <td className="px-3 py-2 text-right tabular-nums text-slate-400">-</td>
+                              <td className="px-3 py-2 text-right tabular-nums text-slate-400">-</td>
+                              {previewSupplierLabels.map((supplier) => {
+                                const offer = row.offers[supplier];
+                                const isBest = offer?.matched && offer.celkem != null && offer.celkem === bestTotal;
+                                const priceCellClass = !offer?.matched
+                                  ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300'
+                                  : isBest
+                                    ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300'
+                                    : 'text-slate-800 dark:text-slate-100';
+
+                                return (
+                                  <React.Fragment key={`${row.radek}-${supplier}`}>
+                                    <td className={`px-3 py-2 text-right tabular-nums ${priceCellClass}`}>
+                                      {formatCurrency(offer?.jcena)}
+                                    </td>
+                                    <td className={`px-3 py-2 text-right tabular-nums font-semibold ${priceCellClass}`}>
+                                      <span>{formatCurrency(offer?.celkem)}</span>
+                                      {isBest && (
+                                        <span className="ml-2 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] uppercase text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-200">
+                                          nejnižší
+                                        </span>
+                                      )}
+                                    </td>
+                                  </React.Fragment>
+                                );
+                              })}
+                            </tr>
+                          );
+                        })}
+                        <tr className="border-t border-slate-300 bg-slate-50 font-semibold dark:border-slate-700 dark:bg-slate-800/50">
+                          <td className="px-3 py-2" colSpan={4}>Celkem v náhledu</td>
+                          <td className="px-3 py-2 text-right text-slate-400">-</td>
+                          <td className="px-3 py-2 text-right text-slate-400">-</td>
+                          {previewSupplierLabels.map((supplier) => (
+                            <React.Fragment key={`${supplier}-total`}>
+                              <td className="px-3 py-2" />
+                              <td className="px-3 py-2 text-right tabular-nums text-slate-800 dark:text-slate-100">
+                                {formatCurrency(supplierTotals[supplier])}
+                              </td>
+                            </React.Fragment>
+                          ))}
+                        </tr>
+                      </>
+                    ) : (
+                      <tr>
+                        <td className="px-4 py-10 text-sm text-slate-500 dark:text-slate-400" colSpan={6 + previewSupplierLabels.length * 2}>
+                          {previewSupplierLabels.length
+                            ? showOnlyDifferences
+                              ? 'V aktuálním náhledu nejsou žádné rozdíly ani chybějící ceny.'
+                              : 'Náhled položek se zobrazí po spuštění porovnání.'
+                            : 'Po načtení nabídek se zde připraví matice rozpočtu a dodavatelských cen.'}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <aside className="min-h-0 overflow-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-4">
+              <div>
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Doporučení</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Rizika, připravenost a další krok.</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 px-3 py-2">
+                  <p className="text-slate-500 dark:text-slate-400">Zadání</p>
+                  <p className="text-lg font-bold text-slate-900 dark:text-white">{roleSummary.zadaniCount}</p>
+                </div>
+                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 px-3 py-2">
+                  <p className="text-slate-500 dark:text-slate-400">Nabídky</p>
+                  <p className="text-lg font-bold text-slate-900 dark:text-white">{roleSummary.offerCount}</p>
+                </div>
+                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 px-3 py-2">
+                  <p className="text-slate-500 dark:text-slate-400">Dodavatelé</p>
+                  <p className="text-lg font-bold text-slate-900 dark:text-white">
+                    {supplierReadiness.filter((supplier) => supplier.offerCount > 0).length}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 px-3 py-2">
+                  <p className="text-slate-500 dark:text-slate-400">Ke kontrole</p>
+                  <p className="text-lg font-bold text-slate-900 dark:text-white">{unresolvedFiles.length}</p>
+                </div>
+              </div>
+
+              <div className="space-y-2 text-xs">
+                {lowestSupplierTotal ? (
+                  <div className={`rounded-lg border px-3 py-2 ${getStatusTone('ok')}`}>
+                    <p className="font-semibold">Nejnižší celkem</p>
+                    <p>{lowestSupplierTotal[0]} · {formatCurrency(lowestSupplierTotal[1])}</p>
+                  </div>
+                ) : (
+                  <div className={`rounded-lg border px-3 py-2 ${getStatusTone('idle')}`}>
+                    <p className="font-semibold">Cenové doporučení</p>
+                    <p>Zobrazí se po vytvoření matice.</p>
+                  </div>
+                )}
+                {job?.stats?.agentRecommendation?.summary && (
+                  <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-blue-800 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-200">
+                    <p className="font-semibold">Agent</p>
+                    <p>{job.stats.agentRecommendation.summary}</p>
+                  </div>
+                )}
+                {roleSummary.zadaniCount === 0 && files.length > 0 && (
+                  <div className={`rounded-lg border px-3 py-2 ${getStatusTone('warn')}`}>
+                    <p className="font-semibold">Alternativní ocenění</p>
+                    <p>Rozpočet chybí, porovnání se vytvoří z dodavatelských nabídek.</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                {blockingReasons.length === 0 ? (
+                  <div className={`rounded-lg border px-3 py-2 text-xs font-semibold ${getStatusTone('ok')}`}>
+                    Matice je připravená ke spuštění.
+                  </div>
+                ) : (
+                  blockingReasons.map((reason) => (
+                    <div key={reason} className={`rounded-lg border px-3 py-2 text-xs ${getStatusTone('warn')}`}>
+                      {reason}
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {autoStatus && (
+                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 px-3 py-2 text-xs text-slate-600 dark:text-slate-300 space-y-1">
+                  <p>
+                    Auto: <span className="font-semibold">{autoStatus.state}</span>
+                  </p>
+                  <p>
+                    Poslední běh:{' '}
+                    {autoStatus.lastRunAt
+                      ? new Date(autoStatus.lastRunAt).toLocaleString('cs-CZ')
+                      : 'zatím neproběhl'}
+                  </p>
+                  {autoStatus.pendingReason !== 'none' && <p>Čekání: {autoStatus.pendingReason}</p>}
+                  {autoStatus.lastError && <p className="text-rose-600 dark:text-rose-400">{autoStatus.lastError}</p>}
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => void startComparison()}
+                  className="w-full px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-50"
+                  disabled={!canStart || isStarting || jobIsRunning}
+                >
+                  {isStarting ? 'Spouštím...' : 'Vytvořit porovnání'}
+                </button>
+                <button
+                  type="button"
+                  onClick={openAgentSettings}
+                  className="w-full px-4 py-2 rounded-lg text-sm font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                >
+                  Nastavení agenta
+                </button>
+                {jobIsRunning && (
+                  <button
+                    type="button"
+                    onClick={() => void cancelJob()}
+                    className="w-full px-4 py-2 rounded-lg text-sm font-semibold bg-rose-600 text-white hover:bg-rose-500"
+                  >
+                    Zrušit job
+                  </button>
+                )}
+              </div>
+            </aside>
+          </div>
+
+          <section className="shrink-0 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
+            <details className="group">
+              <summary className="flex cursor-pointer flex-col gap-2 px-4 py-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Detail vstupů a přiřazení</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Servisní pohled pro ruční opravu, když automatika netrefí roli nebo dodavatele.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {(job?.outputLatestPath || job?.outputPath) && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          void openOutputFile();
+                        }}
+                        className="px-3 py-2 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700"
+                      >
+                        Zobrazit výstup
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          void openTenderFolder();
+                        }}
+                        className="px-3 py-2 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700"
+                      >
+                        Otevřít složku VŘ
+                      </button>
+                    </>
+                  )}
+                  <span className="rounded-full bg-slate-100 dark:bg-slate-800 px-2.5 py-1 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                    {files.length} souborů
+                  </span>
+                  <span className="text-xs font-semibold text-primary group-open:hidden">Upravit přiřazení</span>
+                  <span className="hidden text-xs font-semibold text-primary group-open:inline">Skrýt detail</span>
+                </div>
+              </summary>
+
               {files.length === 0 ? (
-                <div className="px-4 py-8 text-sm text-slate-500 dark:text-slate-400">
+                <div className="border-t border-slate-200 px-4 py-8 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
                   Nejsou načtené žádné soubory. Zadejte složku a spusťte detekci.
                 </div>
               ) : (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto border-t border-slate-200 dark:border-slate-700">
                   <table className="w-full min-w-[860px] text-sm">
                     <thead className="bg-slate-100 dark:bg-slate-800/50">
                       <tr className="text-left text-xs uppercase text-slate-500 dark:text-slate-400">
@@ -912,199 +1284,7 @@ export const BidComparisonPanel: React.FC<BidComparisonPanelProps> = ({
                   </table>
                 </div>
               )}
-            </section>
-
-            <aside className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-4">
-              <div>
-                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Připravenost</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Co brání vytvoření porovnání.</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 px-3 py-2">
-                  <p className="text-slate-500 dark:text-slate-400">Zadání</p>
-                  <p className="text-lg font-bold text-slate-900 dark:text-white">{roleSummary.zadaniCount}</p>
-                </div>
-                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 px-3 py-2">
-                  <p className="text-slate-500 dark:text-slate-400">Nabídky</p>
-                  <p className="text-lg font-bold text-slate-900 dark:text-white">{roleSummary.offerCount}</p>
-                </div>
-                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 px-3 py-2">
-                  <p className="text-slate-500 dark:text-slate-400">Dodavatelé</p>
-                  <p className="text-lg font-bold text-slate-900 dark:text-white">
-                    {supplierReadiness.filter((supplier) => supplier.offerCount > 0).length}
-                  </p>
-                </div>
-                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 px-3 py-2">
-                  <p className="text-slate-500 dark:text-slate-400">Ke kontrole</p>
-                  <p className="text-lg font-bold text-slate-900 dark:text-white">{unresolvedFiles.length}</p>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                {blockingReasons.length === 0 ? (
-                  <div className={`rounded-lg border px-3 py-2 text-xs font-semibold ${getStatusTone('ok')}`}>
-                    Porovnání je připravené ke spuštění.
-                  </div>
-                ) : (
-                  blockingReasons.map((reason) => (
-                    <div key={reason} className={`rounded-lg border px-3 py-2 text-xs ${getStatusTone('warn')}`}>
-                      {reason}
-                    </div>
-                  ))
-                )}
-                {roleSummary.zadaniCount === 0 && files.length > 0 && (
-                  <div className={`rounded-lg border px-3 py-2 text-xs ${getStatusTone('idle')}`}>
-                    Bez zadání vznikne alternativní porovnání z dodaných nabídek.
-                  </div>
-                )}
-              </div>
-
-              {autoStatus && (
-                <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 px-3 py-2 text-xs text-slate-600 dark:text-slate-300 space-y-1">
-                  <p>
-                    Auto: <span className="font-semibold">{autoStatus.state}</span>
-                  </p>
-                  <p>
-                    Poslední běh:{' '}
-                    {autoStatus.lastRunAt
-                      ? new Date(autoStatus.lastRunAt).toLocaleString('cs-CZ')
-                      : 'zatím neproběhl'}
-                  </p>
-                  {autoStatus.pendingReason !== 'none' && <p>Čekání: {autoStatus.pendingReason}</p>}
-                  {autoStatus.lastError && <p className="text-rose-600 dark:text-rose-400">{autoStatus.lastError}</p>}
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <button
-                  type="button"
-                  onClick={() => void startComparison()}
-                  className="w-full px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-50"
-                  disabled={!canStart || isStarting || jobIsRunning}
-                >
-                  {isStarting ? 'Spouštím...' : 'Spustit porovnání'}
-                </button>
-                {jobIsRunning && (
-                  <button
-                    type="button"
-                    onClick={() => void cancelJob()}
-                    className="w-full px-4 py-2 rounded-lg text-sm font-semibold bg-rose-600 text-white hover:bg-rose-500"
-                  >
-                    Zrušit job
-                  </button>
-                )}
-              </div>
-            </aside>
-          </div>
-
-          <section className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
-            <div className="flex flex-col gap-2 px-4 py-3 border-b border-slate-200 dark:border-slate-700 md:flex-row md:items-center md:justify-between">
-              <div>
-                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Výstup porovnání</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  {job?.stats?.sourceMode === 'offers_only'
-                    ? 'Alternativní tabulka složená z položek dodavatelských nabídek.'
-                    : 'Původní rozpočet doplněný o jednotkové ceny a součty dodavatelů.'}
-                </p>
-              </div>
-              {(job?.outputLatestPath || job?.outputPath) && (
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => void openOutputFile()}
-                    className="px-3 py-2 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700"
-                  >
-                    Zobrazit výstup
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void openTenderFolder()}
-                    className="px-3 py-2 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700"
-                  >
-                    Otevřít složku VŘ
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[980px] text-sm">
-                <thead className="bg-slate-100 dark:bg-slate-800/50">
-                  <tr className="text-left text-xs uppercase text-slate-500 dark:text-slate-400">
-                    <th className="px-3 py-2">Kód</th>
-                    <th className="px-3 py-2">Popis</th>
-                    <th className="px-3 py-2">MJ</th>
-                    <th className="px-3 py-2 text-right">Množství</th>
-                    {previewSupplierLabels.map((supplier) => (
-                      <th key={supplier} className="px-3 py-2 text-center" colSpan={2}>
-                        {supplier}
-                      </th>
-                    ))}
-                  </tr>
-                  <tr className="border-t border-slate-200 dark:border-slate-700 text-left text-[11px] uppercase text-slate-400">
-                    <th className="px-3 py-1" />
-                    <th className="px-3 py-1" />
-                    <th className="px-3 py-1" />
-                    <th className="px-3 py-1" />
-                    {previewSupplierLabels.map((supplier) => (
-                      <React.Fragment key={`${supplier}-subhead`}>
-                        <th className="px-3 py-1 text-right">JC</th>
-                        <th className="px-3 py-1 text-right">Celkem</th>
-                      </React.Fragment>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {previewRows.length > 0 ? (
-                    previewRows.map((row) => {
-                      const bestTotal = getBestRowTotal(row.offers);
-                      return (
-                        <tr key={row.radek} className="border-t border-slate-200 dark:border-slate-700">
-                          <td className="px-3 py-2 text-slate-600 dark:text-slate-300">{row.kod || row.pc || '-'}</td>
-                          <td className="px-3 py-2 max-w-[320px] truncate text-slate-800 dark:text-slate-100">{row.popis || '-'}</td>
-                          <td className="px-3 py-2 text-slate-600 dark:text-slate-300">{row.mj || '-'}</td>
-                          <td className="px-3 py-2 text-right text-slate-600 dark:text-slate-300">{row.mnozstvi ?? '-'}</td>
-                          {previewSupplierLabels.map((supplier) => {
-                            const offer = row.offers[supplier];
-                            const isBest = offer?.matched && offer.celkem != null && offer.celkem === bestTotal;
-                            const priceCellClass = !offer?.matched
-                              ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300'
-                              : isBest
-                                ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300'
-                                : 'text-slate-800 dark:text-slate-100';
-
-                            return (
-                              <React.Fragment key={`${row.radek}-${supplier}`}>
-                                <td className={`px-3 py-2 text-right ${priceCellClass}`}>
-                                  {offer?.jcena ?? '-'}
-                                </td>
-                                <td className={`px-3 py-2 text-right font-semibold ${priceCellClass}`}>
-                                  <span>{offer?.celkem ?? '-'}</span>
-                                  {isBest && (
-                                    <span className="ml-2 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] uppercase text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-200">
-                                      nejnižší
-                                    </span>
-                                  )}
-                                </td>
-                              </React.Fragment>
-                            );
-                          })}
-                        </tr>
-                      );
-                    })
-                  ) : (
-                    <tr>
-                      <td className="px-4 py-8 text-sm text-slate-500 dark:text-slate-400" colSpan={4 + previewSupplierLabels.length * 2}>
-                        {previewSupplierLabels.length
-                          ? 'Náhled položek se zobrazí po spuštění porovnání.'
-                          : 'Po načtení nabídek se zde připraví sloupce JC a Celkem pro každého dodavatele.'}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+            </details>
 
             {job && (
               <div className="border-t border-slate-200 dark:border-slate-700 p-4 space-y-3">

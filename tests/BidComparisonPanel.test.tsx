@@ -111,6 +111,26 @@ describe('BidComparisonPanel', () => {
     platformMocks.showItemInFolder.mockResolvedValue({ success: true });
   });
 
+  it('využije celou obrazovku aplikace místo omezeného modalu', async () => {
+    platformMocks.detectInputs.mockResolvedValue(
+      detectedResult([
+        detectedFile('zadani.xlsx', '00 Zadání/zadani.xlsx', 'zadani', null),
+        detectedFile('nabidka-kamenolom.xlsx', '01 Kamenolom Číhaná/nabidka-kamenolom.xlsx', 'offer', 'Kamenolom Číhaná'),
+      ]),
+    );
+
+    const { container } = renderPanel();
+
+    await waitFor(() => {
+      expect(screen.getByText('Cenové studio')).toBeInTheDocument();
+    });
+
+    const panel = container.querySelector('.tf-pipeline-modal-panel');
+    expect(panel).toHaveClass('h-screen');
+    expect(panel).toHaveClass('w-screen');
+    expect(panel).not.toHaveClass('max-w-6xl');
+  });
+
   it('zobrazí alternativní porovnání, když složka nemá soubor zadání', async () => {
     platformMocks.detectInputs.mockResolvedValue(
       detectedResult([
@@ -122,11 +142,13 @@ describe('BidComparisonPanel', () => {
     renderPanel();
 
     await waitFor(() => {
-      expect(screen.getByText('Alternativní porovnání')).toBeInTheDocument();
+      expect(screen.getByText('Alternativní ocenění')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Bez zadání vznikne alternativní porovnání z dodaných nabídek.')).toBeInTheDocument();
-    expect(screen.getByText('Struktura VŘ')).toBeInTheDocument();
+    expect(screen.getByText('Rozpočet chybí')).toBeInTheDocument();
+    expect(screen.getByText('Rozpočet chybí, porovnání se vytvoří z dodavatelských nabídek.')).toBeInTheDocument();
+    expect(screen.getByText('Vstupy')).toBeInTheDocument();
+    expect(screen.getByText('Cenová matice')).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Kamenolom Číhaná' })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Doprava' })).toBeInTheDocument();
   });
@@ -145,7 +167,7 @@ describe('BidComparisonPanel', () => {
       expect(screen.getByText('Každá nabídka musí mít přiřazeného dodavatele.')).toBeInTheDocument();
     });
 
-    expect(screen.getByRole('button', { name: 'Spustit porovnání' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Vytvořit porovnání' })).toBeDisabled();
   });
 
   it('po dokončeném jobu označí nejnižší cenu v náhledu výstupu', async () => {
@@ -217,10 +239,10 @@ describe('BidComparisonPanel', () => {
     renderPanel();
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Spustit porovnání' })).toBeEnabled();
+      expect(screen.getByRole('button', { name: 'Vytvořit porovnání' })).toBeEnabled();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Spustit porovnání' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Vytvořit porovnání' }));
 
     await waitFor(() => {
       expect(screen.getByText('nejnižší')).toBeInTheDocument();
